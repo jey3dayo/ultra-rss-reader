@@ -59,7 +59,11 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 import { TagChip } from "@/components/shared/tag-chip";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { WorkspaceHeaderActionButton } from "@/components/shared/workspace-header";
-import type { SubscriptionSummaryCard } from "@/components/subscriptions-index/subscriptions-index.types";
+import type {
+  SubscriptionListGroup,
+  SubscriptionSummaryCard,
+} from "@/components/subscriptions-index/subscriptions-index.types";
+import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -237,6 +241,82 @@ const SUMMARY_FILTER_CARDS: SubscriptionSummaryCard[] = [
     caption: "最近動きがない購読",
     tone: "stale",
     isActive: false,
+  },
+  {
+    filterKey: "all",
+    label: "同期状態",
+    value: "Ready",
+    caption: "押せない static sibling",
+    tone: "neutral",
+    isActive: false,
+  },
+];
+
+const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
+  {
+    key: "folder-design",
+    label: "Design",
+    folderId: "folder-design",
+    rows: [
+      {
+        folderId: "folder-design",
+        folderName: "Design",
+        latestArticleAt: "2026-04-29T08:00:00Z",
+        status: { tone: "neutral", labelKey: "normal" },
+        feed: {
+          id: "feed-cafict",
+          account_id: "account-local",
+          folder_id: "folder-design",
+          title: "CAFICT",
+          url: "https://cafict.com/feed/",
+          site_url: "https://cafict.com",
+          unread_count: 5,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      },
+      {
+        folderId: "folder-design",
+        folderName: "Design",
+        latestArticleAt: "2026-04-21T11:30:00Z",
+        status: { tone: "medium", labelKey: "review" },
+        feed: {
+          id: "feed-99diy",
+          account_id: "account-local",
+          folder_id: "folder-design",
+          title: "99% DIY -DIYブログ-",
+          url: "https://99diy.tokyo/feed/",
+          site_url: "https://99diy.tokyo",
+          unread_count: 0,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      },
+    ],
+  },
+  {
+    key: "ungrouped",
+    label: "フォルダなし",
+    folderId: null,
+    rows: [
+      {
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "medium", labelKey: "stale_90d" },
+        feed: {
+          id: "feed-archive",
+          account_id: "account-local",
+          folder_id: null,
+          title: "Archive notes",
+          url: "https://example.com/archive.xml",
+          site_url: "https://example.com",
+          unread_count: 18,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      },
+    ],
   },
 ];
 
@@ -1107,7 +1187,7 @@ export function SummaryFilterCardsSpecimen() {
   const [activeFilter, setActiveFilter] = useState<SubscriptionSummaryCard["filterKey"]>("all");
   const cards = SUMMARY_FILTER_CARDS.map((card) => ({
     ...card,
-    isActive: card.filterKey === activeFilter,
+    isActive: Number.isFinite(Number(card.value)) && card.filterKey === activeFilter,
   }));
 
   return (
@@ -1117,8 +1197,58 @@ export function SummaryFilterCardsSpecimen() {
         <SubscriptionsOverviewSummary cards={cards} onSelectFilter={setActiveFilter} />
       </div>
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
-        card 全体が filter button になるワークスペース summary。active accent、badge slot、数値 typography、 static card
-        との差分を確認してから wrapper 化する。
+        card 全体が filter button になる workspace summary。active accent、badge slot、numeric typography、押せない
+        static sibling の差分をここで確認してから wrapper 化する。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function SubscriptionGroupDisclosureSpecimen() {
+  const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(new Set(["folder-design"]));
+  const [selectedFeedId, setSelectedFeedId] = useState("feed-cafict");
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Subscription group disclosure</SectionHeading>
+      <div
+        data-testid="reference-subscription-group-disclosure-frame"
+        className="overflow-hidden rounded-md border border-border/55"
+      >
+        <SubscriptionsListPane
+          heading="購読一覧"
+          groups={SUBSCRIPTION_GROUPS}
+          selectedFeedId={selectedFeedId}
+          emptyLabel="購読はありません"
+          statusLabels={{
+            normal: "確認済み",
+            review: "確認待ち",
+            stale_90d: "90日以上更新なし",
+            no_unread: "未読なし",
+            no_stars: "スターなし",
+          }}
+          formatUnreadCountLabel={(count) => `${count} unread`}
+          formatLatestArticleLabel={(value) => (value ? "最終更新あり" : "更新なし")}
+          isGroupExpanded={(groupKey) => expandedGroups.has(groupKey)}
+          onSelectFeed={setSelectedFeedId}
+          onToggleGroup={toggleGroup}
+        />
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+        folder row は disclosure button と drop target を兼ねる。aria-expanded、count chip、motion disclosure、feed row
+        との余白をこの基準面で確認する。
       </p>
     </SurfaceCard>
   );
@@ -1197,6 +1327,10 @@ export function DetailPanelSpecimen() {
           reasonChips={["一度見ておきたい購読"]}
         />
       </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+        panel は単一 action card ではなく、title、status、reason、metrics、recent articles を束ねる detail
+        surface。summary card より情報密度を高くし、primary action は末尾に閉じ込める。
+      </p>
     </SurfaceCard>
   );
 }

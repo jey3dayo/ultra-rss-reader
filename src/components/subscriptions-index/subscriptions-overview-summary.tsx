@@ -79,6 +79,10 @@ function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neut
   return summaryToneClassNames[tone ?? "neutral"];
 }
 
+function isSummaryFilterCardActionable(card: SubscriptionSummaryCard) {
+  return Number.isFinite(Number(card.value));
+}
+
 type SummaryFilterCardButtonProps = {
   card: SubscriptionSummaryCard;
   className: string;
@@ -115,7 +119,10 @@ function SummaryFilterCardButton({
   return (
     <button
       type="button"
-      className={cn(className, "group cursor-pointer", "hover:border-border-strong/90")}
+      className={cn(
+        className,
+        "group cursor-pointer hover:border-border-strong/90 focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
+      )}
       aria-pressed={card.isActive}
       onClick={() => onSelectFilter(card.filterKey)}
     >
@@ -180,23 +187,23 @@ export function SubscriptionsOverviewSummary({
 }) {
   return (
     <section
-      className="rounded-lg border border-border/55 px-4 py-3 sm:px-5 sm:py-4"
+      className="rounded-md border border-border/55 px-4 py-3 sm:px-5 sm:py-4"
       style={{
         backgroundColor: "var(--subscriptions-summary-surface)",
       }}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-3.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3.5">
         {cards.map((card) => {
-          const numericValue = Number(card.value);
-          const isActionable = Number.isFinite(numericValue);
+          const isActionable = isSummaryFilterCardActionable(card);
+          const isActiveActionable = isActionable && card.isActive;
           const isPrimary = card.tone === "review";
           const toneClasses = resolveSummaryToneClasses(card.tone);
           const className = cn(
-            "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
+            "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
             toneClasses.card,
             isPrimary && "shadow-[var(--subscriptions-summary-card-shadow)]",
             isPrimary && "sm:col-span-2 lg:col-span-1",
-            card.isActive ? toneClasses.activeCard : "shadow-none",
+            isActiveActionable ? toneClasses.activeCard : "shadow-none",
           );
 
           if (isActionable) {
@@ -213,12 +220,17 @@ export function SubscriptionsOverviewSummary({
           }
 
           return (
-            <div key={card.label} className={className}>
+            <div key={card.label} data-subscriptions-summary-static-card="" className={cn(className, "shadow-none")}>
               <div>
-                <SummaryText as="p" variant="label">
-                  {card.label}
-                </SummaryText>
-                <SummaryText as="p" variant="staticValue">
+                <div className="mb-2 flex min-h-6 items-start justify-between gap-3">
+                  <SummaryText as="p" variant="label">
+                    {card.label}
+                  </SummaryText>
+                  <span className="rounded-full border border-border/55 bg-background/70 px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-foreground-soft uppercase">
+                    Static
+                  </span>
+                </div>
+                <SummaryText as="p" variant="staticValue" className="text-foreground-soft">
                   {card.value}
                 </SummaryText>
                 {card.caption ? (

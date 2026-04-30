@@ -14,6 +14,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { SubscriptionListGroup, SubscriptionListRow } from "./subscriptions-index.types";
 
+type SubscriptionGroupDisclosureButtonProps = {
+  group: SubscriptionListGroup;
+  expanded: boolean;
+  controlsId: string;
+  onToggleGroup: (groupKey: string) => void;
+};
+
 function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) {
   if (labelKey === "review") {
     return "warning";
@@ -24,6 +31,45 @@ function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) 
   }
 
   return "neutral";
+}
+
+export function SubscriptionGroupDisclosureButton({
+  group,
+  expanded,
+  controlsId,
+  onToggleGroup,
+}: SubscriptionGroupDisclosureButtonProps) {
+  return (
+    <button
+      type="button"
+      data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
+      data-folder-drop-target={group.folderId ? "true" : "false"}
+      aria-expanded={expanded}
+      aria-controls={controlsId}
+      onClick={() => onToggleGroup(group.key)}
+      className={cn(
+        "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:bg-[color:var(--subscriptions-list-row-hover)]",
+        expanded ? "shadow-none" : "shadow-[var(--subscriptions-list-group-collapsed-shadow)]",
+      )}
+      style={{
+        borderColor: "var(--subscriptions-list-divider)",
+        backgroundColor: "var(--subscriptions-list-group-surface)",
+      }}
+    >
+      <span className="flex items-center gap-1.5">
+        <ChevronDown
+          className={cn(
+            "motion-disclosure-icon h-3.5 w-3.5 text-foreground-soft",
+            expanded ? "rotate-0" : "-rotate-90",
+          )}
+        />
+        <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
+      </span>
+      <LabelChip tone="neutral" size="compact">
+        {group.rows.length}
+      </LabelChip>
+    </button>
+  );
 }
 
 export function SubscriptionsListPane({
@@ -102,35 +148,12 @@ export function SubscriptionsListPane({
 
             return (
               <div key={group.key} className="space-y-2.5">
-                <button
-                  type="button"
-                  data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
-                  data-folder-drop-target={group.folderId ? "true" : "false"}
-                  aria-expanded={expanded}
-                  aria-controls={groupBodyId}
-                  onClick={() => onToggleGroup(group.key)}
-                  className={cn(
-                    "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:bg-[color:var(--subscriptions-list-row-hover)]",
-                    expanded ? "shadow-none" : "shadow-[var(--subscriptions-list-group-collapsed-shadow)]",
-                  )}
-                  style={{
-                    borderColor: "var(--subscriptions-list-divider)",
-                    backgroundColor: "var(--subscriptions-list-group-surface)",
-                  }}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <ChevronDown
-                      className={cn(
-                        "motion-disclosure-icon h-3.5 w-3.5 text-foreground-soft",
-                        expanded ? "rotate-0" : "-rotate-90",
-                      )}
-                    />
-                    <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
-                  </span>
-                  <LabelChip tone="neutral" size="compact">
-                    {group.rows.length}
-                  </LabelChip>
-                </button>
+                <SubscriptionGroupDisclosureButton
+                  group={group}
+                  expanded={expanded}
+                  controlsId={groupBodyId}
+                  onToggleGroup={onToggleGroup}
+                />
                 <div
                   id={groupBodyId}
                   {...{ [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED }}

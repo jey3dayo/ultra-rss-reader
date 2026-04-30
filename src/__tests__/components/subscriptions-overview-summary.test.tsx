@@ -27,12 +27,17 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-lg", "border-border/55");
+    expect(summarySection).toHaveClass("rounded-md", "border-border/55");
     expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
-    expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
+    expect(summarySection?.querySelector(".grid")).toHaveClass(
+      "grid-cols-1",
+      "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
+      "gap-3",
+    );
 
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
     expect(actionableCard).toHaveClass("w-full", "min-w-0");
+    expect(actionableCard).toHaveClass("rounded-md", "focus-visible:ring-2");
     expect(actionableCard).toHaveClass("sm:col-span-2", "lg:col-span-1");
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
@@ -149,5 +154,31 @@ describe("SubscriptionsOverviewSummary", () => {
     const card = screen.getByRole("button", { name: /Total subscriptions/ });
     expect(within(card).getByText("すべて表示")).toBeInTheDocument();
     expect(within(card).queryByText("フィルタ中")).toBeNull();
+  });
+
+  it("renders nonnumeric values as static sibling cards instead of filter buttons", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "all",
+            label: "Sync state",
+            value: "Ready",
+            caption: "Passive summary",
+            isActive: true,
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Sync state/ })).toBeNull();
+
+    const staticCard = screen.getByText("Sync state").closest("[data-subscriptions-summary-static-card]");
+    expect(staticCard).not.toBeNull();
+    expect(staticCard).toHaveClass("rounded-md", "shadow-none");
+    expect(staticCard).not.toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-neutral)]");
+    expect(within(staticCard as HTMLElement).getByText("Static")).toBeInTheDocument();
+    expect(within(staticCard as HTMLElement).getByText("Ready")).toHaveClass("text-foreground-soft");
   });
 });

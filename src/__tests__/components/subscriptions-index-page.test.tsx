@@ -197,19 +197,19 @@ describe("SubscriptionsIndexPage", () => {
     const totalSubscriptionsLabel = await screen.findByRole("button", { name: /総購読数/ });
     const summarySection = totalSubscriptionsLabel.closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-lg", "border-border/55");
+    expect(summarySection).toHaveClass("rounded-md", "border-border/55");
     expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
     expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
     expect(summarySection?.querySelector(".grid")).toHaveClass("sm:grid-cols-3", "lg:gap-3.5");
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
-      "rounded-lg",
+      "rounded-md",
       "border-state-review-border/80",
       "bg-state-review-surface/86",
     );
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
-    expect(await screen.findByRole("button", { name: /90日停止/ })).toHaveClass("rounded-lg");
+    expect(await screen.findByRole("button", { name: /90日停止/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("button", { name: /参照エラー/ })).not.toBeInTheDocument();
   });
 

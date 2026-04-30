@@ -203,7 +203,18 @@ describe("UI Reference canvases", () => {
     expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
     expect(screen.getByText("Summary filter cards")).toBeInTheDocument();
     expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /確認待ち/ })).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(screen.getByTestId("reference-summary-filter-card-frame")).getByRole("button", { name: /確認待ち/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(screen.getByTestId("reference-summary-filter-card-frame")).queryByRole("button", { name: /同期状態/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("同期状態").closest("[data-subscriptions-summary-static-card]")).toHaveClass("rounded-md");
+    expect(screen.getByText("Static")).toBeInTheDocument();
+    expect(screen.getByText("Subscription group disclosure")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-subscription-group-disclosure-frame")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Design2" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "フォルダなし1" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByTestId("reference-workspace-action-cluster")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");

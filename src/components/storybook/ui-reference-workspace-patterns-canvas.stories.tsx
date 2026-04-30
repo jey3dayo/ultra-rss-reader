@@ -5,6 +5,7 @@ import {
   DetailPanelSpecimen,
   ReferencePage,
   SettingsHeaderSummarySpecimen,
+  SubscriptionGroupDisclosureSpecimen,
   SummaryFilterCardsSpecimen,
   WorkspaceActionClusterSpecimen,
   WorkspaceFilterClusterSpecimen,
@@ -19,9 +20,10 @@ export function ViewSpecimensCanvas() {
           title="View specimens"
           body="Feature-local display fragments, dense workspace patterns, and two-pane specimens live here."
         />
-        <div className="grid gap-4 xl:grid-cols-2">
+        <SummaryFilterCardsSpecimen />
+        <div className="grid items-start gap-4 xl:grid-cols-2">
           <WorkspaceFilterClusterSpecimen />
-          <SummaryFilterCardsSpecimen />
+          <SubscriptionGroupDisclosureSpecimen />
           <WorkspaceActionClusterSpecimen />
           <AnnouncementCardsSpecimen />
           <DetailPanelSpecimen />
