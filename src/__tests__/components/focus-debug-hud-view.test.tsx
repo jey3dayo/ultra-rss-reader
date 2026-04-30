@@ -1,25 +1,30 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { FocusDebugHudView } from "@/components/debug/focus-debug-hud-view";
 
+const baseProps = {
+  focusedPane: "list",
+  contentMode: "reader",
+  selectedArticleId: "article-1",
+  browserCloseInFlight: false,
+  pendingBrowserCloseAction: null,
+  activeElementDescription: "button | label=Copy debug HUD",
+  browserGeometryRows: [],
+  traces: ["12:00:00.000 raw-key Enter"],
+  onCopyClick: vi.fn(),
+  onCloseClick: vi.fn(),
+  onCopyPointerDown: vi.fn(),
+} satisfies ComponentProps<typeof FocusDebugHudView>;
+
+function renderFocusDebugHudView(overrides: Partial<ComponentProps<typeof FocusDebugHudView>> = {}) {
+  return render(<FocusDebugHudView {...baseProps} {...overrides} />);
+}
+
 describe("FocusDebugHudView", () => {
   it("keeps the collapsed HUD as a quiet transparent shell", () => {
-    render(
-      <FocusDebugHudView
-        focusedPane="list"
-        contentMode="reader"
-        selectedArticleId="article-1"
-        browserCloseInFlight={false}
-        pendingBrowserCloseAction={null}
-        activeElementDescription="button | label=Copy debug HUD"
-        browserGeometryRows={[]}
-        traces={["12:00:00.000 raw-key Enter"]}
-        onCopyClick={vi.fn()}
-        onCloseClick={vi.fn()}
-        onCopyPointerDown={vi.fn()}
-      />,
-    );
+    renderFocusDebugHudView();
 
     const hud = screen.getByRole("button", { name: "Expand debug HUD" }).closest("section");
 
@@ -32,21 +37,7 @@ describe("FocusDebugHudView", () => {
   });
 
   it("uses product-aligned inner cards without dropping monospace surfaces", () => {
-    render(
-      <FocusDebugHudView
-        focusedPane="list"
-        contentMode="reader"
-        selectedArticleId="article-1"
-        browserCloseInFlight={false}
-        pendingBrowserCloseAction={null}
-        activeElementDescription="button | label=Copy debug HUD"
-        browserGeometryRows={[]}
-        traces={["12:00:00.000 raw-key Enter"]}
-        onCopyClick={vi.fn()}
-        onCloseClick={vi.fn()}
-        onCopyPointerDown={vi.fn()}
-      />,
-    );
+    renderFocusDebugHudView();
 
     const summaryCard = screen.getByText("Copy debug HUD").parentElement;
     const recentEventsCard = screen.getByText("Recent events").parentElement;
@@ -58,21 +49,11 @@ describe("FocusDebugHudView", () => {
   });
 
   it("uses compact badges and lighter labels in the collapsed hierarchy", () => {
-    render(
-      <FocusDebugHudView
-        focusedPane="list"
-        contentMode="reader"
-        selectedArticleId="article-1"
-        browserCloseInFlight={false}
-        pendingBrowserCloseAction="dismiss"
-        activeElementDescription="button | role=button | label=Copy debug HUD"
-        browserGeometryRows={[]}
-        traces={["12:00:00.000 raw-key Enter", "12:00:00.050 focus copy-button"]}
-        onCopyClick={vi.fn()}
-        onCloseClick={vi.fn()}
-        onCopyPointerDown={vi.fn()}
-      />,
-    );
+    renderFocusDebugHudView({
+      pendingBrowserCloseAction: "dismiss",
+      activeElementDescription: "button | role=button | label=Copy debug HUD",
+      traces: ["12:00:00.000 raw-key Enter", "12:00:00.050 focus copy-button"],
+    });
 
     expect(screen.queryByText("pane=list mode=reader")).not.toBeInTheDocument();
     expect(screen.getByText("pane=list")).toHaveClass("rounded-full");
@@ -84,21 +65,7 @@ describe("FocusDebugHudView", () => {
   });
 
   it("anchors the HUD to the bottom-right corner by default", () => {
-    render(
-      <FocusDebugHudView
-        focusedPane="list"
-        contentMode="reader"
-        selectedArticleId="article-1"
-        browserCloseInFlight={false}
-        pendingBrowserCloseAction={null}
-        activeElementDescription="button | label=Copy debug HUD"
-        browserGeometryRows={[]}
-        traces={["12:00:00.000 raw-key Enter"]}
-        onCopyClick={vi.fn()}
-        onCloseClick={vi.fn()}
-        onCopyPointerDown={vi.fn()}
-      />,
-    );
+    renderFocusDebugHudView();
 
     const hud = screen.getByRole("button", { name: "Expand debug HUD" }).closest("section");
     const container = hud?.parentElement;
@@ -107,24 +74,36 @@ describe("FocusDebugHudView", () => {
     expect(container).not.toHaveClass("left-4");
   });
 
+  it("renders in the top-right fallback without changing the selected bottom-right position", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderFocusDebugHudView({ avoidBottomRight: true });
+
+    const moveButton = screen.getByRole("button", { name: "Move debug HUD" });
+    const container = moveButton.closest("section")?.parentElement;
+
+    expect(container).toHaveClass("top-4", "right-4");
+    expect(container).not.toHaveClass("bottom-4");
+
+    rerender(<FocusDebugHudView {...baseProps} />);
+
+    expect(container).toHaveClass("right-4", "bottom-4");
+    expect(container).not.toHaveClass("top-4");
+
+    await user.click(moveButton);
+
+    expect(container).toHaveClass("top-4", "left-4");
+    expect(container).not.toHaveClass("right-4");
+
+    rerender(<FocusDebugHudView {...baseProps} avoidBottomRight />);
+
+    expect(container).toHaveClass("top-4", "left-4");
+    expect(container).not.toHaveClass("right-4");
+  });
+
   it("cycles the HUD through screen corners", async () => {
     const user = userEvent.setup();
 
-    render(
-      <FocusDebugHudView
-        focusedPane="list"
-        contentMode="reader"
-        selectedArticleId="article-1"
-        browserCloseInFlight={false}
-        pendingBrowserCloseAction={null}
-        activeElementDescription="button | label=Copy debug HUD"
-        browserGeometryRows={[]}
-        traces={["12:00:00.000 raw-key Enter"]}
-        onCopyClick={vi.fn()}
-        onCloseClick={vi.fn()}
-        onCopyPointerDown={vi.fn()}
-      />,
-    );
+    renderFocusDebugHudView();
 
     const moveButton = screen.getByRole("button", { name: "Move debug HUD" });
     const container = moveButton.closest("section")?.parentElement;
@@ -156,19 +135,7 @@ describe("FocusDebugHudView", () => {
 
   it("keeps manual position while temporarily hidden", async () => {
     const user = userEvent.setup();
-    const props = {
-      focusedPane: "list",
-      contentMode: "reader",
-      selectedArticleId: "article-1",
-      browserCloseInFlight: false,
-      pendingBrowserCloseAction: null,
-      activeElementDescription: "button | label=Copy debug HUD",
-      browserGeometryRows: [],
-      traces: ["12:00:00.000 raw-key Enter"],
-      onCopyClick: vi.fn(),
-      onCloseClick: vi.fn(),
-      onCopyPointerDown: vi.fn(),
-    };
+    const props = baseProps;
     const { rerender } = render(<FocusDebugHudView {...props} />);
 
     const moveButton = screen.getByRole("button", { name: "Move debug HUD" });
@@ -192,21 +159,7 @@ describe("FocusDebugHudView", () => {
   it("exposes expanded state on the trace toggle", async () => {
     const user = userEvent.setup();
 
-    render(
-      <FocusDebugHudView
-        focusedPane="list"
-        contentMode="reader"
-        selectedArticleId="article-1"
-        browserCloseInFlight={false}
-        pendingBrowserCloseAction={null}
-        activeElementDescription="button | label=Copy debug HUD"
-        browserGeometryRows={[]}
-        traces={["12:00:00.000 raw-key Enter"]}
-        onCopyClick={vi.fn()}
-        onCloseClick={vi.fn()}
-        onCopyPointerDown={vi.fn()}
-      />,
-    );
+    renderFocusDebugHudView();
 
     const toggleButton = screen.getByRole("button", { name: "Expand debug HUD" });
 

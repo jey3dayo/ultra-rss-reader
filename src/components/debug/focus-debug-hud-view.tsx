@@ -39,6 +39,7 @@ export type FocusDebugHudViewProps = {
   defaultExpanded?: boolean;
   defaultShowGeometry?: boolean;
   temporarilyHidden?: boolean;
+  avoidBottomRight?: boolean;
 };
 
 export function FocusDebugHudView({
@@ -56,6 +57,7 @@ export function FocusDebugHudView({
   defaultExpanded = false,
   defaultShowGeometry = false,
   temporarilyHidden = false,
+  avoidBottomRight = false,
 }: FocusDebugHudViewProps) {
   const [expanded, setExpanded] = useState(() => defaultExpanded);
   const [showGeometry, setShowGeometry] = useState(() => defaultShowGeometry);
@@ -66,6 +68,7 @@ export function FocusDebugHudView({
   const visibleTraces = expanded ? traces : traces.slice(-2);
   const latestTrace = traces.length > 0 ? traces[traces.length - 1] : "No trace yet";
   const collapsedSummary = summarizeDebugHudActiveElementDescription(activeElementDescription);
+  const renderedPosition = avoidBottomRight && position === "bottom-right" ? "top-right" : position;
   const moveHud = () => {
     setPosition((currentPosition) => {
       const currentIndex = DEBUG_HUD_POSITIONS.indexOf(currentPosition);
@@ -77,7 +80,7 @@ export function FocusDebugHudView({
     <div
       className={cn(
         "pointer-events-none fixed z-[2147483647] max-w-[min(28rem,calc(100vw-1rem))]",
-        DEBUG_HUD_POSITION_CLASS[position],
+        DEBUG_HUD_POSITION_CLASS[renderedPosition],
         temporarilyHidden && "hidden",
       )}
       aria-hidden={temporarilyHidden || undefined}

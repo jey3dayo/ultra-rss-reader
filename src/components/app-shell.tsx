@@ -13,9 +13,13 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
-import { formatDebugTimestamp } from "../lib/datetime";
 import { describeDebugHudActiveElement } from "../lib/debug-hud-active-element";
-import { emitDebugInputTrace } from "../lib/debug-input-trace";
+import {
+  emitDebugInputTrace,
+  formatRawClickTrace,
+  formatRawKeyboardTrace,
+  formatRawPointerTrace,
+} from "../lib/debug-input-trace";
 import { attachTauriListeners } from "../lib/tauri-event-listeners";
 import { cn } from "../lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
@@ -211,9 +215,10 @@ function focusDebugHudReducer(state: FocusDebugHudState, action: FocusDebugHudAc
 
 type FocusDebugHudProps = {
   temporarilyHidden?: boolean;
+  avoidBottomRight?: boolean;
 };
 
-function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
+function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: FocusDebugHudProps) {
   const { t } = useTranslation("reader");
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
@@ -234,9 +239,10 @@ function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
     const keyTraceListener = createKeyboardEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: `${formatDebugTimestamp()} raw-key ${event.key} target=${describeDebugHudActiveElement(
-          event.target instanceof Element ? event.target : null,
-        )}`,
+        value: formatRawKeyboardTrace(
+          event.key,
+          describeDebugHudActiveElement(event.target instanceof Element ? event.target : null),
+        ),
       });
     });
     const traceListener = createCustomEventDetailListener(
@@ -254,17 +260,22 @@ function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
     const pointerTraceListener = createPointerEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: `${formatDebugTimestamp()} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeDebugHudActiveElement(
-          event.target instanceof Element ? event.target : null,
-        )}`,
+        value: formatRawPointerTrace({
+          type: event.type,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          targetDescription: describeDebugHudActiveElement(event.target instanceof Element ? event.target : null),
+        }),
       });
     });
     const clickTraceListener = createMouseEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: `${formatDebugTimestamp()} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeDebugHudActiveElement(
-          event.target instanceof Element ? event.target : null,
-        )}`,
+        value: formatRawClickTrace(
+          event.clientX,
+          event.clientY,
+          describeDebugHudActiveElement(event.target instanceof Element ? event.target : null),
+        ),
       });
     });
 
@@ -336,6 +347,7 @@ function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
         }}
         onCloseClick={() => setPref("debug_browser_hud", "false")}
         temporarilyHidden={temporarilyHidden}
+        avoidBottomRight={avoidBottomRight}
       />
     </Suspense>
   );
@@ -364,6 +376,7 @@ export function AppShell() {
   const closeSettings = useUiStore((state) => state.closeSettings);
   const browserUrl = useUiStore((state) => state.browserUrl);
   const appLoading = useUiStore((state) => state.appLoading);
+  const toastMessage = useUiStore((state) => state.toastMessage);
   const prefs = usePreferencesStore((state) => state.prefs);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
     platformKind,
@@ -413,7 +426,9 @@ export function AppShell() {
           <LazyCommandPalette />
         </Suspense>
       ) : null}
-      {showFocusDebugHud ? <FocusDebugHud temporarilyHidden={settingsOpen} /> : null}
+      {showFocusDebugHud ? (
+        <FocusDebugHud temporarilyHidden={settingsOpen} avoidBottomRight={toastMessage !== null} />
+      ) : null}
     </div>
   );
 }

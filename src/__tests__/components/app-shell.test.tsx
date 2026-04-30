@@ -44,6 +44,18 @@ vi.mock("@/components/reader/command-palette", () => ({
   CommandPalette: () => <div>Command Palette</div>,
 }));
 
+function enableDebugHud() {
+  usePreferencesStore.setState((state) => ({
+    ...state,
+    prefs: { ...state.prefs, debug_browser_hud: "true" },
+  }));
+}
+
+function renderAppShellWithDebugHud() {
+  enableDebugHud();
+  return render(<AppShell />, { wrapper: createWrapper() });
+}
+
 describe("AppShell", () => {
   beforeEach(() => {
     settingsModalState.shouldThrow = false;
@@ -205,10 +217,7 @@ describe("AppShell", () => {
   });
 
   it("copies the debug HUD contents when clicked", async () => {
-    usePreferencesStore.setState((state) => ({
-      ...state,
-      prefs: { ...state.prefs, debug_browser_hud: "true" },
-    }));
+    enableDebugHud();
     useUiStore.setState({
       focusedPane: "list",
       contentMode: "reader",
@@ -240,10 +249,7 @@ describe("AppShell", () => {
   it("copies the debug HUD contents when activated from the keyboard", async () => {
     const user = userEvent.setup();
 
-    usePreferencesStore.setState((state) => ({
-      ...state,
-      prefs: { ...state.prefs, debug_browser_hud: "true" },
-    }));
+    enableDebugHud();
     useUiStore.setState({
       focusedPane: "list",
       contentMode: "reader",
@@ -264,13 +270,31 @@ describe("AppShell", () => {
     });
   });
 
-  it("temporarily hides the debug HUD while the settings modal is open", async () => {
+  it("moves the bottom-right debug HUD away while an undo toast is visible", async () => {
     usePreferencesStore.setState((state) => ({
       ...state,
       prefs: { ...state.prefs, debug_browser_hud: "true" },
     }));
+    useUiStore.setState({
+      toastMessage: {
+        message: "Undo available",
+        actions: [{ label: "Undo", onClick: vi.fn() }],
+      },
+    });
 
-    const { rerender } = render(<AppShell />, { wrapper: createWrapper() });
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("app-toast")).toBeInTheDocument();
+
+    const copyButton = await screen.findByRole("button", { name: "Copy debug HUD" });
+    const container = copyButton.closest("section")?.parentElement;
+
+    expect(container).toHaveClass("top-4", "right-4");
+    expect(container).not.toHaveClass("bottom-4");
+  });
+
+  it("temporarily hides the debug HUD while the settings modal is open", async () => {
+    const { rerender } = renderAppShellWithDebugHud();
 
     expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
 
@@ -289,12 +313,7 @@ describe("AppShell", () => {
   it("turns off the debug HUD preference from the HUD close action", async () => {
     const user = userEvent.setup();
 
-    usePreferencesStore.setState((state) => ({
-      ...state,
-      prefs: { ...state.prefs, debug_browser_hud: "true" },
-    }));
-
-    render(<AppShell />, { wrapper: createWrapper() });
+    renderAppShellWithDebugHud();
 
     await user.click(await screen.findByRole("button", { name: "Hide debug HUD" }));
 
@@ -303,12 +322,7 @@ describe("AppShell", () => {
   });
 
   it("shows browser geometry rows inside the debug HUD when preview diagnostics are published", async () => {
-    usePreferencesStore.setState((state) => ({
-      ...state,
-      prefs: { ...state.prefs, debug_browser_hud: "true" },
-    }));
-
-    render(<AppShell />, { wrapper: createWrapper() });
+    renderAppShellWithDebugHud();
 
     fireEvent(
       window,
