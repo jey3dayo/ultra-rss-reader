@@ -24,6 +24,29 @@ export type ArticleViewSelectionState =
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
 
+function resolveEmptyArticleViewState(params: {
+  accountsCount: number | undefined;
+  selectedAccountId: string | null;
+  feeds: FeedDto[] | undefined;
+  summary: ArticleViewSummaryState | undefined;
+}): ArticleViewEmptyState {
+  const { accountsCount, selectedAccountId, feeds, summary } = params;
+
+  if (accountsCount === 0) {
+    return { kind: "empty", emptyReason: "no-accounts" };
+  }
+
+  if (selectedAccountId !== null && feeds !== undefined && feeds.length === 0) {
+    return { kind: "empty", emptyReason: "no-feeds" };
+  }
+
+  return {
+    kind: "empty",
+    emptyReason: "default",
+    summary,
+  };
+}
+
 export function useArticleViewSelection(): ArticleViewSelectionState {
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
@@ -79,14 +102,6 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   }
 
   if (contentMode === "empty" || !selectedArticleId) {
-    if (accounts?.length === 0) {
-      return { kind: "empty", emptyReason: "no-accounts" };
-    }
-
-    if (selectedAccountId !== null && sources.feeds !== undefined && sources.feeds.length === 0) {
-      return { kind: "empty", emptyReason: "no-feeds" };
-    }
-
     const summary = buildArticleViewSummary({
       selection,
       selectedFeedId,
@@ -97,11 +112,12 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       allFeedArticles,
     });
 
-    return {
-      kind: "empty",
-      emptyReason: "default",
+    return resolveEmptyArticleViewState({
+      accountsCount: accounts?.length,
+      selectedAccountId,
+      feeds: sources.feeds,
       summary,
-    };
+    });
   }
 
   const articleResult = findSelectedArticle({
