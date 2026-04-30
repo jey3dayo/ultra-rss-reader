@@ -375,6 +375,16 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByRole("button", { name: "あとで" })).toBeInTheDocument();
     expect(within(detailPane).getByRole("button", { name: "削除" })).toBeInTheDocument();
 
+    await user.click(within(detailPane).getByRole("button", { name: "残す" }));
+    expect(useUiStore.getState().toastMessage?.message).toBe("Example Feed を残すにしました");
+    await user.click(within(detailPane).getByRole("button", { name: "あとで" }));
+    expect(useUiStore.getState().toastMessage?.message).toBe("Example Feed をあとで確認にしました");
+    await user.click(within(detailPane).getByRole("button", { name: "削除" }));
+    const unsubscribeDialog = await screen.findByRole("dialog");
+    expect(unsubscribeDialog).toBeInTheDocument();
+    expect(within(unsubscribeDialog).getByText("Example Feed")).toBeInTheDocument();
+    await user.click(within(unsubscribeDialog).getByRole("button", { name: "キャンセル" }));
+
     await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
 
     expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
