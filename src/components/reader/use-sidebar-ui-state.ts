@@ -1,6 +1,5 @@
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { StartupFolderExpansionMode } from "./sidebar-feed-section.types";
 import type { SidebarUiStateResult } from "./sidebar-runtime.types";
 
 export function useSidebarUiState(): SidebarUiStateResult {
@@ -48,8 +47,8 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "sort_subscriptions"));
-  const startupFolderExpansion = usePreferencesStore(
-    (s) => resolvePreferenceValue(s.prefs, "startup_folder_expansion") as StartupFolderExpansionMode,
+  const startupFolderExpansion = usePreferencesStore((s) =>
+    resolvePreferenceValue(s.prefs, "startup_folder_expansion"),
   );
   const sidebarDensity = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "sidebar_density"));
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");

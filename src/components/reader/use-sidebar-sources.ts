@@ -5,6 +5,7 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
+import { sumUnreadCounts } from "@/lib/sidebar";
 import type { SidebarSourcesParams, SidebarSourcesResult } from "./sidebar-sources.types";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 
@@ -35,7 +36,6 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const showFeedTreeSkeleton = isFeedTreeLoading && adoptedSnapshot === null;
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
   const folderList = adoptedSnapshot?.folders ?? folders ?? [];
-  const totalUnread = useMemo(() => feedList.reduce((sum, feed) => sum + feed.unread_count, 0), [feedList]);
   const sidebarCountsSnapshotCandidate = useMemo(
     () =>
       selectedAccountId !== null && tagArticleCounts !== undefined && accountStarredCount !== undefined
@@ -54,6 +54,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const adoptedCountsSnapshot = adoptSnapshotByKey(sidebarCountsSnapshot, "accountId", selectedAccountId);
   const resolvedTagArticleCounts = adoptedCountsSnapshot?.tagArticleCounts ?? tagArticleCounts;
   const starredCount = adoptedCountsSnapshot?.starredCount ?? accountStarredCount ?? 0;
+  const totalUnread = useMemo(() => sumUnreadCounts(feedList), [feedList]);
 
   return {
     accounts,
