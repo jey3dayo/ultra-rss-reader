@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { useMarkFolderRead } from "@/hooks/use-articles";
@@ -29,23 +30,26 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
     preview: t("display_mode_preview"),
   });
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = useCallback(() => {
     confirmMarkAllRead({
       count: folderUnread,
       onConfirm: () => markFolderRead.mutate(folder.id),
     });
-  };
+  }, [confirmMarkAllRead, folder.id, folderUnread, markFolderRead]);
 
-  const handleSetDisplayPreset = async (value: string) => {
-    if (!isFeedDisplayPresetOption(value)) {
-      return;
-    }
+  const handleSetDisplayPreset = useCallback(
+    async (value: string) => {
+      if (!isFeedDisplayPresetOption(value)) {
+        return;
+      }
 
-    const nextModes = displayPresetToTriStateModes(value);
-    await Promise.all(
-      feeds.map((feed) => updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode)),
-    );
-  };
+      const nextModes = displayPresetToTriStateModes(value);
+      await Promise.all(
+        feeds.map((feed) => updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode)),
+      );
+    },
+    [feeds, updateFeedDisplaySettings],
+  );
 
   return (
     <FolderContextMenuView
