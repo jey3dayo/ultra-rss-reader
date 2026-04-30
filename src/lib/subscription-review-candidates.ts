@@ -14,6 +14,28 @@ export type SubscriptionReviewSummaryKey =
 
 export type SubscriptionReviewReasonFactKey = "stale_days" | "unread_count" | "starred_count";
 
+type SubscriptionReviewSummaryTranslationKey =
+  | "detail_reason_stale_and_inactive"
+  | "detail_reason_stale_with_no_stars"
+  | "detail_reason_inactive_without_signals"
+  | "detail_reason_stale_but_supported"
+  | "detail_reason_normal";
+type SubscriptionReviewReasonFactTranslationKey = "fact_stale_days" | "fact_unread_count" | "fact_starred_count";
+
+const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
+  stale_and_inactive: "detail_reason_stale_and_inactive",
+  stale_with_no_stars: "detail_reason_stale_with_no_stars",
+  inactive_without_signals: "detail_reason_inactive_without_signals",
+  stale_but_supported: "detail_reason_stale_but_supported",
+  healthy_feed: "detail_reason_normal",
+} satisfies Record<SubscriptionReviewSummaryKey, SubscriptionReviewSummaryTranslationKey>;
+
+const SUBSCRIPTION_REVIEW_REASON_FACT_TRANSLATION_KEY_BY_FACT = {
+  stale_days: "fact_stale_days",
+  unread_count: "fact_unread_count",
+  starred_count: "fact_starred_count",
+} satisfies Record<SubscriptionReviewReasonFactKey, SubscriptionReviewReasonFactTranslationKey>;
+
 export type SubscriptionReviewCandidate = {
   feedId: string;
   title: string;
@@ -43,43 +65,14 @@ export function hasSubscriptionReviewReason(
 
 export function resolveSubscriptionReviewSummaryTranslationKey(
   summaryKey: SubscriptionReviewSummaryKey,
-):
-  | "detail_reason_stale_and_inactive"
-  | "detail_reason_stale_with_no_stars"
-  | "detail_reason_inactive_without_signals"
-  | "detail_reason_stale_but_supported"
-  | "detail_reason_normal" {
-  if (summaryKey === "stale_and_inactive") {
-    return "detail_reason_stale_and_inactive";
-  }
-
-  if (summaryKey === "stale_with_no_stars") {
-    return "detail_reason_stale_with_no_stars";
-  }
-
-  if (summaryKey === "inactive_without_signals") {
-    return "detail_reason_inactive_without_signals";
-  }
-
-  if (summaryKey === "stale_but_supported") {
-    return "detail_reason_stale_but_supported";
-  }
-
-  return "detail_reason_normal";
+): SubscriptionReviewSummaryTranslationKey {
+  return SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY[summaryKey];
 }
 
 export function resolveSubscriptionReviewReasonFactTranslationKey(
   factKey: SubscriptionReviewReasonFactKey,
-): "fact_stale_days" | "fact_unread_count" | "fact_starred_count" {
-  if (factKey === "stale_days") {
-    return "fact_stale_days";
-  }
-
-  if (factKey === "unread_count") {
-    return "fact_unread_count";
-  }
-
-  return "fact_starred_count";
+): SubscriptionReviewReasonFactTranslationKey {
+  return SUBSCRIPTION_REVIEW_REASON_FACT_TRANSLATION_KEY_BY_FACT[factKey];
 }
 
 export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionReviewCandidate): {
