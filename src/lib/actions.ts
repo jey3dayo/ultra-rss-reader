@@ -87,8 +87,8 @@ const appActions = new Set<string>([
 type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
 
 /** Runtime type guard for validating action strings from external sources (e.g. Tauri IPC). */
-export function isAppAction(value: string): value is AppAction {
-  return appActions.has(value);
+export function isAppAction(value: unknown): value is AppAction {
+  return typeof value === "string" && appActions.has(value);
 }
 
 /** Emit a keyboard-style DOM event that existing components already listen for. */

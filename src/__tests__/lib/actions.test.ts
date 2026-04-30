@@ -84,7 +84,7 @@ vi.mock("@/stores/preferences-store", () => {
 
 // Dynamic import of actions after mocks are set up
 let executeAction: (action: AppAction) => void;
-let isAppAction: (value: string) => value is AppAction;
+let isAppAction: (value: unknown) => value is AppAction;
 let flushPendingBrowserCloseAction: () => void;
 
 beforeEach(async () => {
@@ -681,6 +681,13 @@ describe("executeAction", () => {
       expect(isAppAction("unknown-action")).toBe(false);
       expect(isAppAction("open-feed-cleanup")).toBe(false);
       expect(isAppAction("")).toBe(false);
+    });
+
+    it("returns false for non-string values", () => {
+      expect(isAppAction(null)).toBe(false);
+      expect(isAppAction(undefined)).toBe(false);
+      expect(isAppAction(1)).toBe(false);
+      expect(isAppAction({ type: "open-settings" })).toBe(false);
     });
   });
 });
