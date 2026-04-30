@@ -18,6 +18,7 @@ import {
   formatSubscriptionDate,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
+  resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionRowStatus,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
@@ -362,6 +363,35 @@ describe("subscriptions index helpers", () => {
     expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-mid", "feed-stale"]);
   });
 
+  it("filters visible rows by folder or feed search and sorts by unread count", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "all",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery: "work",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-stale"]);
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "all",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery: "feed",
+        sortKey: "unread_count",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-active", "feed-mid", "feed-dormant"]);
+  });
+
   it("sorts rows with invalid update dates after valid update dates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
@@ -407,6 +437,34 @@ describe("subscriptions index helpers", () => {
   it("formats subscription dates with an invalid fallback", () => {
     expect(formatSubscriptionDate("not-a-date", "en-US")).toBe("—");
     expect(formatSubscriptionDate("2026-04-01T09:00:00Z", "en-US")).toContain("2026");
+  });
+
+  it("resolves the selected display mode label for default, standard, and preview feed modes", () => {
+    const labels = {
+      default: "Use default",
+      standard: "Standard",
+      preview: "Preview",
+    };
+    const baseRow = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    })[0];
+
+    expect(resolveSelectedSubscriptionDisplayModeLabel({ selectedRow: null, labels })).toBe("Use default");
+    expect(resolveSelectedSubscriptionDisplayModeLabel({ selectedRow: baseRow, labels })).toBe("Use default");
+    expect(
+      resolveSelectedSubscriptionDisplayModeLabel({
+        selectedRow: { ...baseRow, feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "off" } },
+        labels,
+      }),
+    ).toBe("Standard");
+    expect(
+      resolveSelectedSubscriptionDisplayModeLabel({
+        selectedRow: { ...baseRow, feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "on" } },
+        labels,
+      }),
+    ).toBe("Preview");
   });
 
   it("builds detail candidate copy from review facts", () => {
