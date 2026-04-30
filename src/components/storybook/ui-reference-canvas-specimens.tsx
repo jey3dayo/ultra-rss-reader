@@ -705,8 +705,7 @@ export function SpecializedButtonPatternsSpecimen() {
               accountName="Local"
               lastSyncedLabel="Today at 10:42"
               hasMultipleAccounts
-              aria-expanded="false"
-              aria-haspopup="menu"
+              isExpanded={false}
             />
             <AccountSwitcherTriggerButton
               accountName="Single"

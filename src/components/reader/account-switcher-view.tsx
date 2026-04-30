@@ -5,18 +5,38 @@ import { cn } from "@/lib/utils";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
 
-type AccountSwitcherTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type AccountSwitcherTriggerButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "aria-controls" | "aria-expanded" | "aria-haspopup"
+> & {
   accountName: string;
+  controlsId?: string;
   hasMultipleAccounts: boolean;
+  isExpanded?: boolean;
   lastSyncedLabel: string;
 };
 
 export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, AccountSwitcherTriggerButtonProps>(
-  ({ accountName, className, hasMultipleAccounts, lastSyncedLabel, type = "button", ...props }, ref) => (
+  (
+    {
+      accountName,
+      className,
+      controlsId,
+      hasMultipleAccounts,
+      isExpanded = false,
+      lastSyncedLabel,
+      type = "button",
+      ...props
+    },
+    ref,
+  ) => (
     <button
       ref={ref}
       type={type}
       {...{ [SIDEBAR_FALLBACK_TARGET_ATTRIBUTE]: "true" }}
+      aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
+      aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
+      aria-controls={hasMultipleAccounts ? controlsId : undefined}
       className={cn(
         "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         hasMultipleAccounts
@@ -71,7 +91,9 @@ export function AccountSwitcherView({
       <AccountSwitcherTriggerButton
         ref={triggerRef}
         accountName={selectedAccount?.name ?? title}
+        controlsId={menuId}
         hasMultipleAccounts={hasMultipleAccounts}
+        isExpanded={isExpanded}
         lastSyncedLabel={lastSyncedLabel}
         onClick={() => hasMultipleAccounts && onToggle()}
         onKeyDown={(e) => {
@@ -85,9 +107,6 @@ export function AccountSwitcherView({
             onClose(true);
           }
         }}
-        aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
-        aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
-        aria-controls={hasMultipleAccounts ? menuId : undefined}
       />
 
       {isExpanded && accounts.length > 0 ? (
