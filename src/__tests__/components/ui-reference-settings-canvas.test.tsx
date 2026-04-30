@@ -31,6 +31,9 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Shortcut" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove design" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Press a key" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("rounded-full", "min-h-6");
+    expect(screen.getByRole("button", { name: "Add compact tag" })).toHaveClass("rounded-full", "gap-0");
+    expect(screen.getByRole("button", { name: "design" })).toHaveClass("motion-static-hover-surface", "rounded-md");
     expect(screen.getByRole("button", { name: "General Account and settings section row 12" })).toBeInTheDocument();
   });
 

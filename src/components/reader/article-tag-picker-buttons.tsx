@@ -1,4 +1,5 @@
 import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from "react";
+import { controlChipVariants } from "@/components/shared/control-chip";
 import { cn } from "@/lib/utils";
 
 type TagPickerTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -17,9 +18,9 @@ export const TagPickerTriggerButton = forwardRef<HTMLButtonElement, TagPickerTri
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex min-h-6 items-center justify-center rounded-full border text-[12px] leading-none text-foreground-soft select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
+        controlChipVariants({ size: compact ? "pickerCompact" : "picker", interaction: "action" }),
+        "justify-center rounded-full border text-foreground-soft select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
         "motion-interactive-surface",
-        compact ? "gap-0 px-2" : "gap-1.5 px-2.5 pr-3",
         expanded
           ? "border-border/60 bg-surface-2/88 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
           : "border-border/45 bg-background/12 hover:border-border/60 hover:bg-surface-1/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-1/72 focus-visible:text-foreground",

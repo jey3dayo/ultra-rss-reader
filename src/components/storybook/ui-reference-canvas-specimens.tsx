@@ -11,6 +11,7 @@ import {
   ExternalLink,
   List,
   Palette,
+  Plus,
   RefreshCw,
   Save,
   Settings2,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { TagOptionButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
 import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
@@ -638,11 +640,12 @@ export function ReaderHeaderActionStripSpecimen() {
 
 export function SpecializedButtonPatternsSpecimen() {
   const [tagColor, setTagColor] = useState<string | null>(TAG_COLOR_PRESETS[2]);
+  const [tagPickerExpanded, setTagPickerExpanded] = useState(false);
 
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Specialized button patterns</SectionHeading>
-      <div data-testid="reference-specialized-button-patterns" className="grid gap-3 lg:grid-cols-3">
+      <div data-testid="reference-specialized-button-patterns" className="grid gap-3 lg:grid-cols-4">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
             Tag chip action
@@ -655,6 +658,29 @@ export function SpecializedButtonPatternsSpecimen() {
               removeLabel="Remove design"
             />
             <TagChip label="reader" onRemove={() => undefined} removeLabel="Remove reader" />
+          </div>
+        </div>
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Tag picker trigger
+          </div>
+          <div className="flex flex-col items-start gap-2">
+            <TagPickerTriggerButton
+              expanded={tagPickerExpanded}
+              aria-expanded={tagPickerExpanded}
+              aria-label="Add tag"
+              onClick={() => setTagPickerExpanded((current) => !current)}
+            >
+              <Plus className="h-3 w-3" aria-hidden="true" />
+              <span>Add tag</span>
+            </TagPickerTriggerButton>
+            <TagPickerTriggerButton compact aria-label="Add compact tag">
+              <Plus className="h-3 w-3" aria-hidden="true" />
+            </TagPickerTriggerButton>
+            <div className="w-full rounded-md border border-border/60 bg-surface-2 p-1.5">
+              <TagOptionButton swatchColor={TAG_COLOR_PRESETS[2]}>design</TagOptionButton>
+              <TagOptionButton>reader</TagOptionButton>
+            </div>
           </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
