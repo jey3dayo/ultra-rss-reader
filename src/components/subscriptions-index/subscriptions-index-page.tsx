@@ -5,7 +5,6 @@ import { useAccountArticles } from "@/hooks/use-articles";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
-import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
 import { getCurrentDate } from "@/lib/datetime";
 import {
   buildFolderNameByIdMap,
@@ -24,6 +23,7 @@ import {
   isSubscriptionRowFlagged,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
+  resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
@@ -105,16 +105,14 @@ export function SubscriptionsIndexPage() {
     [selectedCandidate, state.selectedRow, t],
   );
 
-  const selectedDisplayModeLabel = state.selectedRow
-    ? resolveFeedDisplayPresetLabel({
-        preset: resolveFeedDisplayPreset(state.selectedRow.feed),
-        labels: {
-          default: tr("display_mode_default"),
-          standard: tr("display_mode_standard"),
-          preview: tr("display_mode_preview"),
-        },
-      })
-    : tr("display_mode_default");
+  const selectedDisplayModeLabel = resolveSelectedSubscriptionDisplayModeLabel({
+    selectedRow: state.selectedRow,
+    labels: {
+      default: tr("display_mode_default"),
+      standard: tr("display_mode_standard"),
+      preview: tr("display_mode_preview"),
+    },
+  });
 
   const groupedRows = useMemo(
     () => buildSubscriptionListGroups(state.visibleRows, t("meta_folder_none")),
