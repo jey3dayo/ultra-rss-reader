@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import {
   addLocalDays,
   compareDateInputsAsc,
@@ -43,6 +43,11 @@ export type CalculateArticleNavigationScrollTopParams = {
   stickyTopOffset?: number;
   edgePadding?: number;
   maxScrollTop?: number;
+};
+
+export type RetainedArticlesSnapshot = {
+  contextKey: string;
+  articles: ArticleDto[];
 };
 
 function getDateGroup(dateStr: string): string {
@@ -109,6 +114,108 @@ function filterByViewMode(
   }
 
   return [...articles];
+}
+
+export function areArticleListsEquivalent(left: ArticleDto[], right: ArticleDto[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((article, index) => {
+    const candidate = right[index];
+    return (
+      candidate !== undefined &&
+      article.id === candidate.id &&
+      article.is_read === candidate.is_read &&
+      article.is_starred === candidate.is_starred &&
+      article.title === candidate.title
+    );
+  });
+}
+
+export function collectRetainedArticlesFromSources(params: {
+  retainedArticleIds: ReadonlySet<string>;
+  sources: Array<ArticleDto[] | undefined>;
+}): ArticleDto[] {
+  const { retainedArticleIds, sources } = params;
+  if (retainedArticleIds.size === 0) {
+    return [];
+  }
+
+  const merged = new Map<string, ArticleDto>();
+  for (const source of sources) {
+    if (!Array.isArray(source)) {
+      continue;
+    }
+    for (const article of source) {
+      if (retainedArticleIds.has(article.id)) {
+        merged.set(article.id, article);
+      }
+    }
+  }
+
+  return [...merged.values()];
+}
+
+export function mergeRetainedArticlesSnapshot(params: {
+  previous: RetainedArticlesSnapshot | null;
+  contextKey: string;
+  retainedArticleIds: ReadonlySet<string>;
+  currentRetainedArticles: ArticleDto[];
+}): RetainedArticlesSnapshot | null {
+  const { previous, contextKey, retainedArticleIds, currentRetainedArticles } = params;
+  const preservedArticles =
+    previous?.contextKey === contextKey
+      ? previous.articles.filter((article) => retainedArticleIds.has(article.id))
+      : [];
+  const merged = new Map(preservedArticles.map((article) => [article.id, article]));
+  for (const article of currentRetainedArticles) {
+    merged.set(article.id, article);
+  }
+
+  if (merged.size === 0) {
+    return null;
+  }
+
+  const nextSnapshot = {
+    contextKey,
+    articles: [...merged.values()],
+  };
+
+  if (
+    previous?.contextKey === nextSnapshot.contextKey &&
+    areArticleListsEquivalent(previous.articles, nextSnapshot.articles)
+  ) {
+    return previous;
+  }
+
+  return nextSnapshot;
+}
+
+export function mergeResolvedArticlesWithRetained(params: {
+  resolvedPrimarySourceArticles: ArticleDto[] | undefined;
+  retainedArticlesSnapshot: RetainedArticlesSnapshot | null;
+  retainedArticleIds: ReadonlySet<string>;
+  contextKey: string;
+}): ArticleDto[] | undefined {
+  const { resolvedPrimarySourceArticles, retainedArticlesSnapshot, retainedArticleIds, contextKey } = params;
+  if (retainedArticleIds.size === 0 || resolvedPrimarySourceArticles === undefined) {
+    return resolvedPrimarySourceArticles;
+  }
+
+  const retainedArticles =
+    retainedArticlesSnapshot?.contextKey === contextKey
+      ? retainedArticlesSnapshot.articles.filter((article) => retainedArticleIds.has(article.id))
+      : [];
+  if (retainedArticles.length === 0) {
+    return resolvedPrimarySourceArticles;
+  }
+
+  const currentIds = new Set(resolvedPrimarySourceArticles.map((article) => article.id));
+  const missingRetainedArticles = retainedArticles.filter((article) => !currentIds.has(article.id));
+  return missingRetainedArticles.length === 0
+    ? resolvedPrimarySourceArticles
+    : [...missingRetainedArticles, ...resolvedPrimarySourceArticles];
 }
 
 export function selectVisibleArticles(params: SelectVisibleArticlesParams): ArticleDto[] {
@@ -181,6 +288,22 @@ export function groupArticles(params: GroupArticlesParams): Record<string, Artic
     groups[group].push(article);
   }
   return groups;
+}
+
+export function buildArticleListFeedNameMap(feeds: FeedDto[] | undefined): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const feed of feeds ?? []) {
+    map.set(feed.id, feed.title);
+  }
+  return map;
+}
+
+export function buildFolderFeedIdSet(feeds: FeedDto[] | undefined, folderId: string | null): Set<string> | null {
+  if (!folderId) {
+    return null;
+  }
+
+  return new Set((feeds ?? []).filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
 }
 
 export function getAdjacentItemId(

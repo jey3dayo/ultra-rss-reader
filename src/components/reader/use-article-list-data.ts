@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { groupArticles, selectVisibleArticles } from "@/lib/article-list";
+import {
+  buildArticleListFeedNameMap,
+  buildFolderFeedIdSet,
+  groupArticles,
+  selectVisibleArticles,
+} from "@/lib/article-list";
 import type { UseArticleListDataParams, UseArticleListDataResult } from "./article-list.types";
 
 export function useArticleListData({
@@ -48,19 +53,11 @@ export function useArticleListData({
   }, [effectiveViewMode, retainedArticleIds, selectedArticleId, selection]);
 
   const feedNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const feed of feeds ?? []) {
-      map.set(feed.id, feed.title);
-    }
-    return map;
+    return buildArticleListFeedNameMap(feeds);
   }, [feeds]);
 
   const folderFeedIds = useMemo(() => {
-    if (!folderId) {
-      return null;
-    }
-
-    return new Set((feeds ?? []).filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
+    return buildFolderFeedIdSet(feeds, folderId);
   }, [feeds, folderId]);
 
   const filteredArticles = useMemo(() => {

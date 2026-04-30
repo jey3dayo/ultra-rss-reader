@@ -2,12 +2,18 @@ import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
+  areArticleListsEquivalent,
+  buildArticleListFeedNameMap,
+  buildFolderFeedIdSet,
   calculateArticleNavigationScrollTop,
+  collectRetainedArticlesFromSources,
   countUnreadArticles,
   getAdjacentArticleId,
   getAdjacentItemId,
   getUnreadArticleIds,
   groupArticles,
+  mergeResolvedArticlesWithRetained,
+  mergeRetainedArticlesSnapshot,
   selectVisibleArticles,
 } from "@/lib/article-list";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
@@ -228,6 +234,63 @@ describe("article-list utils", () => {
     });
 
     expect(Object.keys(result)).toEqual(["Tech Blog"]);
+  });
+
+  it("builds feed lookup helpers for list grouping and folder filtering", () => {
+    expect(buildArticleListFeedNameMap(sampleFeeds)).toEqual(new Map(sampleFeeds.map((feed) => [feed.id, feed.title])));
+    expect(buildFolderFeedIdSet(sampleFeeds, "folder-1")).toEqual(
+      new Set(sampleFeeds.filter((feed) => feed.folder_id === "folder-1").map((feed) => feed.id)),
+    );
+    expect(buildFolderFeedIdSet(sampleFeeds, null)).toBeNull();
+  });
+
+  it("collects retained articles from multiple sources without duplicates", () => {
+    const retained = collectRetainedArticlesFromSources({
+      retainedArticleIds: new Set(["art-1", "retained-copy"]),
+      sources: [[sampleArticles[0]], undefined, [sampleArticles[0], { ...sampleArticles[1], id: "retained-copy" }]],
+    });
+
+    expect(retained.map((article) => article.id)).toEqual(["art-1", "retained-copy"]);
+  });
+
+  it("merges retained article snapshots and preserves equivalent references", () => {
+    const previous = {
+      contextKey: "account:acc-1",
+      articles: [sampleArticles[0]],
+    };
+
+    const next = mergeRetainedArticlesSnapshot({
+      previous,
+      contextKey: "account:acc-1",
+      retainedArticleIds: new Set(["art-1"]),
+      currentRetainedArticles: [],
+    });
+
+    expect(next).toBe(previous);
+    expect(
+      mergeRetainedArticlesSnapshot({
+        previous,
+        contextKey: "account:acc-1",
+        retainedArticleIds: new Set(),
+        currentRetainedArticles: [],
+      }),
+    ).toBeNull();
+  });
+
+  it("prepends retained articles missing from the current primary source", () => {
+    const result = mergeResolvedArticlesWithRetained({
+      resolvedPrimarySourceArticles: [sampleArticles[1]],
+      retainedArticlesSnapshot: { contextKey: "feed:feed-1", articles: [sampleArticles[0], sampleArticles[1]] },
+      retainedArticleIds: new Set(["art-1", "art-2"]),
+      contextKey: "feed:feed-1",
+    });
+
+    expect(result?.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+  });
+
+  it("compares article lists by stable row fields", () => {
+    expect(areArticleListsEquivalent([sampleArticles[0]], [{ ...sampleArticles[0], summary: "changed" }])).toBe(true);
+    expect(areArticleListsEquivalent([sampleArticles[0]], [{ ...sampleArticles[0], title: "changed" }])).toBe(false);
   });
 
   it("returns unread ids and unread count from the currently visible list", () => {
