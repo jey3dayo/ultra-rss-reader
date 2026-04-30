@@ -191,6 +191,10 @@ export function buildFeedDisplayPresetOptions(labels: {
   ];
 }
 
+export function isFeedDisplayPresetOption(value: string): value is FeedDisplayPresetOption {
+  return value === "default" || value === "standard" || value === "preview";
+}
+
 function resolveTriState(baseValue: boolean, override: TriStateDisplayMode): boolean {
   if (override === "inherit") {
     return baseValue;

@@ -7,6 +7,7 @@ import {
   displayPresetToPreferenceValues,
   displayPresetToTriStateModes,
   feedModesToDisplayPresetOption,
+  isFeedDisplayPresetOption,
   modesToDisplayPreset,
   resolveArticleDisplay,
   resolveFeedDisplayPresetLabel,
@@ -113,6 +114,14 @@ describe("article-display preset conversions", () => {
         { reader_mode: "on", web_preview_mode: "on" },
       ]),
     ).toBeNull();
+  });
+
+  it("narrows unknown values to feed display preset options", () => {
+    expect(isFeedDisplayPresetOption("default")).toBe(true);
+    expect(isFeedDisplayPresetOption("standard")).toBe(true);
+    expect(isFeedDisplayPresetOption("preview")).toBe(true);
+    expect(isFeedDisplayPresetOption("custom")).toBe(false);
+    expect(isFeedDisplayPresetOption("")).toBe(false);
   });
 });
 
