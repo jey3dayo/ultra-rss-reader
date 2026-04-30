@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
+import { buildShortcutCategoryOrder } from "@/components/settings/use-shortcuts-settings-view-props";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -38,6 +39,17 @@ describe("ShortcutsSettings", () => {
     expect(screen.getByTestId("shortcut-badge-show_starred")).toHaveTextContent("⌘ 3");
     expect(screen.getByTestId("shortcut-badge-toggle_read")).toHaveTextContent("m");
     expect(screen.getByTestId("shortcut-badge-toggle_star")).toHaveTextContent("s");
+  });
+
+  it("builds shortcut categories in definition order", () => {
+    expect(
+      buildShortcutCategoryOrder([
+        { categoryKey: "shortcuts.category_navigation" },
+        { categoryKey: "shortcuts.category_actions" },
+        { categoryKey: "shortcuts.category_navigation" },
+        { categoryKey: "shortcuts.category_global" },
+      ]),
+    ).toEqual(["shortcuts.category_navigation", "shortcuts.category_actions", "shortcuts.category_global"]);
   });
 
   it("shows conflicts when a direct filter shortcut collides with an article toggle shortcut", () => {

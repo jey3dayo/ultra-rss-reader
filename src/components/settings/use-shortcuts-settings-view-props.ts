@@ -1,6 +1,11 @@
 import type { TFunction } from "i18next";
 import type { PlatformInfo } from "@/api/schemas";
-import { formatKeyForDisplay, type ShortcutActionId, shortcutDefinitions } from "@/lib/keyboard-shortcuts";
+import {
+  formatKeyForDisplay,
+  type ShortcutActionId,
+  type ShortcutCategoryKey,
+  shortcutDefinitions,
+} from "@/lib/keyboard-shortcuts";
 import type { ShortcutsSettingsViewProps } from "./shortcuts-settings-view";
 
 type UseShortcutsSettingsViewPropsParams = {
@@ -17,6 +22,12 @@ type UseShortcutsSettingsViewPropsParams = {
   onBadgeKeyDown: (id: ShortcutActionId, event: globalThis.KeyboardEvent) => void;
 };
 
+export function buildShortcutCategoryOrder(
+  definitions: readonly Pick<(typeof shortcutDefinitions)[number], "categoryKey">[],
+): ShortcutCategoryKey[] {
+  return [...new Set(definitions.map((definition) => definition.categoryKey))];
+}
+
 export function useShortcutsSettingsViewProps({
   t,
   tReader,
@@ -30,7 +41,7 @@ export function useShortcutsSettingsViewProps({
   onStartRecording,
   onBadgeKeyDown,
 }: UseShortcutsSettingsViewPropsParams): ShortcutsSettingsViewProps {
-  const categories = [...new Set(shortcutDefinitions.map((definition) => definition.categoryKey))];
+  const categories = buildShortcutCategoryOrder(shortcutDefinitions);
 
   return {
     title: t("shortcuts.heading"),
