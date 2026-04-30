@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
@@ -164,7 +164,9 @@ describe("SubscriptionsIndexPage", () => {
       "data-label-chip",
       "neutral",
     );
-    expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => {
+      expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
+    });
     expect(selectedFeed).toHaveClass("motion-static-hover-surface");
     expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
     expect(selectedFeed).toHaveClass("shadow-[var(--subscriptions-list-row-selected-shadow)]");
