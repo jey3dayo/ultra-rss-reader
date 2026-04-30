@@ -11,14 +11,20 @@ import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHA
 import { getOptionLabelByValue } from "@/lib/options";
 
 export type MuteSettingsScopeOption = {
-  value: "title" | "body" | "title_and_body";
+  value: MuteKeywordScope;
   label: string;
 };
+
+type MuteKeywordScope = "title" | "body" | "title_and_body";
+
+function isMuteKeywordScope(value: string | null): value is MuteKeywordScope {
+  return value === "title" || value === "body" || value === "title_and_body";
+}
 
 export type MuteSettingsSavedRule = {
   id: string;
   keyword: string;
-  scope: "title" | "body" | "title_and_body";
+  scope: MuteKeywordScope;
 };
 
 export type MuteSettingsViewProps = {
@@ -29,18 +35,18 @@ export type MuteSettingsViewProps = {
   keywordValue: string;
   keywordPlaceholder: string;
   scopeAriaLabel: string;
-  scopeValue: "title" | "body" | "title_and_body";
+  scopeValue: MuteKeywordScope;
   scopeOptions: MuteSettingsScopeOption[];
   addLabel: string;
   onKeywordChange: (value: string) => void;
-  onScopeChange: (value: "title" | "body" | "title_and_body") => void;
+  onScopeChange: (value: MuteKeywordScope) => void;
   onAdd: () => void;
   addDisabled: boolean;
   savedHeading: string;
   emptyState: string;
   rules: MuteSettingsSavedRule[];
   savedScopeAriaLabel: (keyword: string) => string;
-  onRuleScopeChange: (ruleId: string, scope: "title" | "body" | "title_and_body") => void;
+  onRuleScopeChange: (ruleId: string, scope: MuteKeywordScope) => void;
   deleteLabel: string;
   onRequestDelete: (ruleId: string) => void;
   autoMarkReadHeading: string;
@@ -113,7 +119,7 @@ export function MuteSettingsView({
                 placeholder={keywordPlaceholder}
                 className="h-10 w-full sm:w-[220px] sm:flex-none"
               />
-              <Select value={scopeValue} onValueChange={(value) => value && onScopeChange(value as typeof scopeValue)}>
+              <Select value={scopeValue} onValueChange={(value) => isMuteKeywordScope(value) && onScopeChange(value)}>
                 <SelectTrigger aria-label={scopeAriaLabel} className="h-10 w-full sm:w-[192px]">
                   <SelectValue>
                     {(selectedValue: string | null) => getOptionLabelByValue(scopeOptions, selectedValue ?? scopeValue)}
@@ -163,7 +169,7 @@ export function MuteSettingsView({
                 <div className="flex w-full flex-col gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end">
                   <Select
                     value={rule.scope}
-                    onValueChange={(value) => value && onRuleScopeChange(rule.id, value as typeof rule.scope)}
+                    onValueChange={(value) => isMuteKeywordScope(value) && onRuleScopeChange(rule.id, value)}
                   >
                     <SelectTrigger aria-label={savedScopeAriaLabel(rule.keyword)} className="h-10 w-full sm:flex-1">
                       <SelectValue>

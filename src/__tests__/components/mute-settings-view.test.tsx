@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { MuteSettingsView } from "@/components/settings/mute-settings-view";
 
@@ -59,7 +60,9 @@ describe("MuteSettingsView", () => {
     expect(screen.getByRole("switch", { name: "Mark muted items as read" })).not.toHaveAttribute("aria-disabled");
   });
 
-  it("keeps mute controls on the shared right-side settings rail", () => {
+  it("keeps mute controls on the shared right-side settings rail", async () => {
+    const user = userEvent.setup();
+    const onScopeChange = vi.fn();
     render(
       <MuteSettingsView
         title="Mute"
@@ -77,7 +80,7 @@ describe("MuteSettingsView", () => {
         ]}
         addLabel="Add"
         onKeywordChange={vi.fn()}
-        onScopeChange={vi.fn()}
+        onScopeChange={onScopeChange}
         onAdd={vi.fn()}
         addDisabled={false}
         savedHeading="Saved rules"
@@ -108,5 +111,10 @@ describe("MuteSettingsView", () => {
     expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-10", "sm:flex-1");
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-10", "px-4");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10", "px-4");
+
+    await user.click(screen.getByRole("combobox", { name: "Mute scope" }));
+    await user.click(await screen.findByRole("option", { name: "Body" }));
+
+    expect(onScopeChange).toHaveBeenCalledWith("body");
   });
 });
