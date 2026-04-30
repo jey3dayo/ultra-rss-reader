@@ -282,7 +282,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
 }
 
 export function countUnreadArticles(articles: ArticleDto[]): number {
-  return articles.filter((article) => !article.is_read).length;
+  return getUnreadArticleIds(articles).length;
 }
 
 export function getUnreadArticleIds(articles: ArticleDto[]): string[] {
