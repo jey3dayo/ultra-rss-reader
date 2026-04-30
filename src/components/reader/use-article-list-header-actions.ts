@@ -91,15 +91,7 @@ export function useArticleListHeaderActions({
         return;
       }
     }
-  }, [
-    confirmMarkAllRead,
-    doMarkAllRead,
-    feedId,
-    markAllReadCount,
-    markFeedRead,
-    markFolderRead,
-    selection,
-  ]);
+  }, [confirmMarkAllRead, doMarkAllRead, feedId, markAllReadCount, markFeedRead, markFolderRead, selection]);
 
   return {
     selectedFeedDisplayPreset,
