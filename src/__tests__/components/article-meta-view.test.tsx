@@ -36,9 +36,11 @@ describe("ArticleMetaView", () => {
     const titleButton = screen.getByRole("button", { name: "First Article" });
     const feedButton = screen.getByRole("button", { name: "Tech Blog" });
     expect(titleButton.parentElement).toHaveClass("font-sans");
+    expect(titleButton).toHaveClass("motion-static-hover-surface");
     expect(titleButton).toHaveClass("hover:bg-surface-1/72");
     expect(feedButton).toHaveClass("text-[0.95rem]");
     expect(feedButton).toHaveClass("text-foreground-soft");
+    expect(feedButton).toHaveClass("motion-static-hover-surface");
     expect(feedButton).toHaveClass("hover:bg-surface-1/72");
     expect(feedButton).not.toHaveClass("rounded-full");
     expect(feedButton).not.toHaveClass("border");

@@ -19,6 +19,7 @@ const preview: Preview = {
           [
             "Foundations Canvas",
             "Input Controls Canvas",
+            "Button Controls Canvas",
             "Shell & Overlay Canvas",
             "Settings Workspace Canvas",
             "Navigation & Collections Canvas",

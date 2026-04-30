@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { ButtonControlsCanvas } from "@/components/storybook/ui-reference-button-controls-canvas.stories";
 import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
 import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
@@ -9,6 +10,23 @@ import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-ov
 import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 
 describe("UI Reference canvases", () => {
+  it("renders the button controls canvas with action family specimens", () => {
+    render(<ButtonControlsCanvas />);
+
+    expect(screen.getByText("Button controls")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-button-family-guide")).toBeInTheDocument();
+    expect(screen.getByText("SettingsActionButton")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-button-variant-matrix")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-button-size-matrix")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-settings-action-button-matrix")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-form-loading-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-semantic-action-buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-article-filter-toggle-buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete permanently" })).toHaveAttribute("data-delete-button");
+    expect(screen.getByRole("button", { name: "Shortcut" })).toBeInTheDocument();
+  });
+
   it("renders the settings sections canvas with form specimens", () => {
     render(<InputControlsCanvas />);
 

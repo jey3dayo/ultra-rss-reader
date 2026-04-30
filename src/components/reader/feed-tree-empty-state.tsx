@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import type { FeedTreeEmptyStateProps } from "./feed-tree.types";
 
 export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
@@ -19,13 +20,15 @@ export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
           <span>{text}</span>
         </div>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={props.onAction}
-          className="inline-flex min-h-11 items-center justify-center rounded-md px-3 text-foreground-soft underline decoration-foreground-soft/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
+          className="min-h-11 px-3 text-foreground-soft underline decoration-foreground-soft/50 underline-offset-2 hover:bg-transparent hover:text-foreground hover:decoration-foreground/50"
         >
           {text}
-        </button>
+        </Button>
       )}
     </div>
   );

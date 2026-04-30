@@ -304,6 +304,7 @@ Surface governance:
 - `Typography` -> `UI Reference/Foundations Canvas`
 - `Colors`, semantic surfaces, and feature accents -> `UI Reference/Foundations Canvas`
 - `Inputs and Forms` -> `UI Reference/Input Controls Canvas`
+- `Buttons`, `Utility Icon Actions`, `Mobile Toolbar Actions` -> `UI Reference/Button Controls Canvas`
 - `Cards and Containers`, `Shell Roles` -> `UI Reference/Shell & Overlay Canvas`
 - `Lists and Navigation` -> `UI Reference/Navigation & Collections Canvas`
 - Dense workspace filters, action clusters, detail panels, and two-pane composition -> `UI Reference/View Specimens Canvas`

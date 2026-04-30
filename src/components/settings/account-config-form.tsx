@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { useMemo, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { runAccountSetupSync } from "@/components/settings/use-account-detail-sync-controls";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
@@ -131,16 +132,18 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
   return (
     <div className="p-6">
       <div className="mb-5 grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border/60 pb-4">
-        <button
+        <SettingsActionButton
           type="button"
+          tone="subtle"
+          size="compact"
           onClick={onBack}
           disabled={submitting}
           aria-label={t("account.back_to_services")}
-          className="inline-flex items-center gap-0.5 justify-self-start text-sm text-foreground-soft transition-colors hover:text-foreground disabled:opacity-50"
+          className="h-8 gap-0.5 justify-self-start bg-transparent px-1 text-sm shadow-none"
         >
           <ChevronLeft className="h-4 w-4" />
           {tc("back")}
-        </button>
+        </SettingsActionButton>
         <h2 className="text-center font-sans text-[19px] font-medium tracking-[-0.02em] text-foreground">
           {t(`account.${kind.toLowerCase()}` as "account.local")}
         </h2>

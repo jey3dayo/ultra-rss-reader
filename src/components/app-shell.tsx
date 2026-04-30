@@ -31,6 +31,7 @@ import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
 import { IndeterminateProgress } from "./shared/indeterminate-progress";
+import { Button } from "./ui/button";
 
 const LazyFocusDebugHudView = lazy(async () => {
   const mod = await import("./debug/focus-debug-hud-view");
@@ -111,14 +112,16 @@ function Toast() {
     >
       <div className="flex items-center gap-2">
         <span className="flex-1">{message}</span>
-        <button
+        <Button
           type="button"
           onClick={clearToast}
           aria-label={t("close")}
-          className="ml-2 shrink-0 rounded-md px-1.5 text-foreground-soft transition-colors hover:bg-surface-1/72 hover:text-foreground"
+          variant="ghost"
+          size="xs"
+          className="ml-2 h-7 min-w-7 shrink-0 px-0 text-foreground-soft hover:bg-surface-1/72"
         >
           &times;
-        </button>
+        </Button>
       </div>
       {progress !== undefined && (
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1/72">
@@ -135,14 +138,16 @@ function Toast() {
       {actions && actions.length > 0 && (
         <div className="flex gap-2">
           {actions.map((action) => (
-            <button
+            <Button
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className="rounded-md px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-surface-1/72"
+              variant="ghost"
+              size="xs"
+              className="min-h-7 px-2.5 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"
             >
               {action.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabelChip } from "@/components/shared/label-chip";
@@ -117,6 +118,28 @@ describe("Design-themed shared components", () => {
     );
     expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
     expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft");
+  });
+
+  it("centralizes colored article filter toggle buttons", () => {
+    render(
+      <>
+        <ArticleFilterToggleButton mode="unread" pressed value="unread" aria-label="Unread">
+          Unread
+        </ArticleFilterToggleButton>
+        <ArticleFilterToggleButton mode="starred" pressed value="starred" aria-label="Starred">
+          Starred
+        </ArticleFilterToggleButton>
+      </>,
+    );
+
+    expect(screen.getByRole("button", { name: "Unread" })).toHaveClass(
+      "data-[pressed]:bg-[var(--semantic-tone-unread-surface)]",
+      "data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]",
+    );
+    expect(screen.getByRole("button", { name: "Starred" })).toHaveClass(
+      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+    );
   });
 
   it("reserves space for mac traffic lights in workspace headers", () => {

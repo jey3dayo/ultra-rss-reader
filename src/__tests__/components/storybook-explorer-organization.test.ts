@@ -23,6 +23,7 @@ const titles = storyMetas.map((entry) => entry.title);
 const uiReferenceTitles = [
   "UI Reference/Foundations Canvas",
   "UI Reference/Input Controls Canvas",
+  "UI Reference/Button Controls Canvas",
   "UI Reference/Shell & Overlay Canvas",
   "UI Reference/Settings Workspace Canvas",
   "UI Reference/Navigation & Collections Canvas",
@@ -47,6 +48,7 @@ describe("Storybook Explorer organization", () => {
         [
           "Foundations Canvas",
           "Input Controls Canvas",
+          "Button Controls Canvas",
           "Shell & Overlay Canvas",
           "Settings Workspace Canvas",
           "Navigation & Collections Canvas",

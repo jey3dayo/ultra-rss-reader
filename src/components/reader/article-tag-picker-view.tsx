@@ -1,8 +1,8 @@
 import { Plus } from "lucide-react";
 import { useId } from "react";
-import { cn } from "@/lib/utils";
 import { ArticleTagChipList } from "./article-tag-chip-list";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker.types";
+import { TagPickerTriggerButton } from "./article-tag-picker-buttons";
 import { ArticleTagPickerPopover } from "./article-tag-picker-popover";
 import { useArticleTagPickerPopover } from "./use-article-tag-picker-popover";
 
@@ -40,14 +40,6 @@ export function ArticleTagPickerView({
     onCreateTag(trimmedName);
   };
 
-  const addTagTriggerClassName = cn(
-    "inline-flex min-h-6 items-center justify-center rounded-full border text-[12px] leading-none text-foreground-soft transition-[color,background-color,border-color,box-shadow] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
-    hasAssignedTags ? "gap-0 px-2" : "gap-1.5 px-2.5 pr-3",
-    isExpanded
-      ? "border-border/60 bg-surface-2/88 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-      : "border-border/45 bg-background/12 hover:border-border/60 hover:bg-surface-1/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-1/72 focus-visible:text-foreground",
-  );
-
   return (
     <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-1">
       <div className="flex max-w-full items-center gap-2">
@@ -61,12 +53,12 @@ export function ArticleTagPickerView({
         >
           <ArticleTagChipList assignedTags={assignedTags} labels={labels} onRemoveTag={onRemoveTag} />
           <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
-            <button
+            <TagPickerTriggerButton
               ref={triggerRef}
-              type="button"
+              compact={hasAssignedTags}
+              expanded={isExpanded}
               onClick={() => onExpandedChange(!isExpanded)}
               onKeyDown={handleTriggerKeyDown}
-              className={addTagTriggerClassName}
               aria-label={labels.addTag}
               aria-haspopup="listbox"
               aria-expanded={isExpanded}
@@ -74,7 +66,7 @@ export function ArticleTagPickerView({
             >
               <Plus className="h-3 w-3" aria-hidden="true" />
               {hasAssignedTags ? null : <span className="truncate">{labels.addTag}</span>}
-            </button>
+            </TagPickerTriggerButton>
             {isExpanded && (
               <ArticleTagPickerPopover
                 pickerId={pickerId}

@@ -1,4 +1,5 @@
 import type { ArticleMetaViewProps } from "./article-view.types";
+import { ReaderInlineActionButton } from "./reader-inline-action-button";
 
 export function ArticleMetaView({
   title,
@@ -16,14 +17,9 @@ export function ArticleMetaView({
       </div>
       <h1 className="font-sans text-[1.66rem] font-normal leading-[1.07] tracking-[-0.04em] text-foreground sm:text-[2.06rem]">
         {onTitleClick ? (
-          <button
-            type="button"
-            className="-mx-1 -my-1 block w-[calc(100%+0.5rem)] rounded-md px-1 py-1.5 text-left transition-colors hover:bg-surface-1/72"
-            onClick={onTitleClick}
-            onAuxClick={onTitleAuxClick}
-          >
+          <ReaderInlineActionButton variant="title" onClick={onTitleClick} onAuxClick={onTitleAuxClick}>
             {title}
-          </button>
+          </ReaderInlineActionButton>
         ) : (
           title
         )}
@@ -32,13 +28,9 @@ export function ArticleMetaView({
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-serif text-[0.95rem] leading-[1.7] text-foreground-soft">
           {feedName &&
             (onFeedClick ? (
-              <button
-                type="button"
-                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-foreground-soft transition-colors hover:bg-surface-1/72 hover:text-foreground"
-                onClick={onFeedClick}
-              >
+              <ReaderInlineActionButton variant="feed" onClick={onFeedClick}>
                 {feedName}
-              </button>
+              </ReaderInlineActionButton>
             ) : (
               <span>{feedName}</span>
             ))}

@@ -2,24 +2,46 @@ import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { AlertTriangle, BookOpen, Check, Clock3, List, Palette, Settings2, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  Check,
+  Clock3,
+  ExternalLink,
+  List,
+  Palette,
+  RefreshCw,
+  Save,
+  Settings2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
+import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import type { AccountNavItem, SettingsNavItem } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
+import { DeleteButton } from "@/components/shared/delete-button";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { iconToolbarButtonClassName } from "@/components/shared/icon-toolbar-control";
+import {
+  IconToolbarButton,
+  IconToolbarSurfaceButton,
+  iconToolbarButtonClassName,
+} from "@/components/shared/icon-toolbar-control";
 import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
@@ -28,7 +50,9 @@ import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
+import { WorkspaceHeaderActionButton } from "@/components/shared/workspace-header";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type AnnotatedNoteProps = {
@@ -136,6 +160,296 @@ export function ReferencePage({ children, maxWidthClassName = "max-w-6xl" }: Ref
     <div className="h-screen overflow-y-auto bg-background px-6 py-8 text-foreground sm:px-8">
       <div className={cn("mx-auto w-full", maxWidthClassName)}>{children}</div>
     </div>
+  );
+}
+
+const BUTTON_VARIANTS = ["default", "outline", "secondary", "ghost", "destructive", "link"] as const;
+const BUTTON_SIZES = ["xs", "sm", "default", "lg", "icon-xs", "icon-sm", "icon", "icon-lg"] as const;
+const BUTTON_FAMILY_GUIDE = [
+  {
+    family: "Button",
+    context: "General CTA, dialogs, forms, and empty-state actions.",
+    example: "Save changes",
+  },
+  {
+    family: "SettingsActionButton",
+    context: "Settings content, header, rail, subtle, and danger actions.",
+    example: "Open log directory",
+  },
+  {
+    family: "IconToolbar*",
+    context: "Toolbar chrome with tooltips, pressed state, or overlay surfaces.",
+    example: "Refresh feeds",
+  },
+  {
+    family: "ControlChipButton",
+    context: "Filter chips, toggle chips, and picker triggers.",
+    example: "Unread",
+  },
+  {
+    family: "DecisionButton / DeleteButton",
+    context: "Meaningful review, defer, keep, and destructive actions.",
+    example: "Delete selected",
+  },
+  {
+    family: "WorkspaceHeaderActionButton",
+    context: "Workspace header chrome and compact titlebar actions.",
+    example: "Close workspace",
+  },
+] as const;
+
+export function ButtonFamilyGuideSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Button family guide</SectionHeading>
+      <div data-testid="reference-button-family-guide" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {BUTTON_FAMILY_GUIDE.map((item) => (
+          <div key={item.family} className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+            <div className="text-sm font-medium text-foreground">{item.family}</div>
+            <p className="mt-1 text-sm leading-[1.45] text-foreground-soft">{item.context}</p>
+            <div className="mt-3 inline-flex min-h-7 items-center rounded-md border border-border/70 bg-background/80 px-2 text-xs font-medium text-foreground-soft">
+              {item.example}
+            </div>
+          </div>
+        ))}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function ButtonVariantMatrixSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Button variants</SectionHeading>
+      <div data-testid="reference-button-variant-matrix" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {BUTTON_VARIANTS.map((variant) => (
+          <div key={variant} className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+              {variant}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant={variant}>Action</Button>
+              <Button variant={variant} disabled>
+                Disabled
+              </Button>
+              {variant === "link" ? null : (
+                <Button variant={variant} size="icon-sm" aria-label={`${variant} icon action`}>
+                  <Save className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function ButtonSizeMatrixSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Button sizes</SectionHeading>
+      <div data-testid="reference-button-size-matrix" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {BUTTON_SIZES.map((size) => (
+          <div key={size} className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">{size}</div>
+            {size.startsWith("icon") ? (
+              <Button size={size} variant="outline" aria-label={`${size} action`}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button size={size} variant="outline">
+                {size} action
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function SettingsActionButtonSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Settings action buttons</SectionHeading>
+      <div data-testid="reference-settings-action-button-matrix" className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Content and header
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SettingsActionButton>Open log directory</SettingsActionButton>
+            <SettingsActionButton tone="header">Reset to defaults</SettingsActionButton>
+            <SettingsActionButton tone="subtle" size="compact">
+              Back
+            </SettingsActionButton>
+            <SettingsActionButton tone="danger" size="compact">
+              Remove
+            </SettingsActionButton>
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/45 uppercase">
+            Rail action
+          </div>
+          <div className="inline-flex rounded-lg border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)] p-1 shadow-elevation-1">
+            <SettingsActionButton tone="rail" size="icon" aria-label="Close settings">
+              <X className="h-4 w-4" />
+            </SettingsActionButton>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function LoadingAndFormActionsSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Form and loading actions</SectionHeading>
+      <div data-testid="reference-form-loading-actions" className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Form footer
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <FormActionButtons
+              cancelLabel="Cancel"
+              submitLabel="Save"
+              onCancel={() => undefined}
+              onSubmit={() => undefined}
+            />
+          </div>
+        </div>
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Loading settings action
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SettingsLoadingActionButton loading loadingLabel="Syncing">
+              Sync now
+            </SettingsLoadingActionButton>
+            <SettingsLoadingActionButton disabled>Disabled</SettingsLoadingActionButton>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function SemanticActionButtonsSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Semantic action buttons</SectionHeading>
+      <div data-testid="reference-semantic-action-buttons" className="flex flex-wrap items-center gap-2">
+        <DecisionButton intent="keep" className={denseDecisionButtonClassName} aria-label="Keep selected">
+          <Check className="h-4 w-4" />
+          Keep selected
+        </DecisionButton>
+        <DecisionButton intent="defer" className={denseDecisionButtonClassName} aria-label="Defer selected">
+          <Clock3 className="h-4 w-4" />
+          Defer selected
+        </DecisionButton>
+        <DecisionButton intent="delete" className={denseDecisionButtonClassName} aria-label="Delete selected">
+          <Trash2 className="h-4 w-4" />
+          Delete selected
+        </DecisionButton>
+        <DeleteButton>Delete permanently</DeleteButton>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function IconUtilityButtonSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Icon utility actions</SectionHeading>
+      <TooltipProvider>
+        <div data-testid="reference-icon-utility-buttons" className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">Toolbar</div>
+            <div className="flex items-center gap-2">
+              <IconToolbarButton label="Refresh feeds" onClick={() => undefined}>
+                <RefreshCw className="h-4 w-4" />
+              </IconToolbarButton>
+              <IconToolbarButton label="Open in browser" ariaPressed onClick={() => undefined}>
+                <ExternalLink className="h-4 w-4" />
+              </IconToolbarButton>
+            </div>
+          </div>
+          <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+              Overlay surface
+            </div>
+            <div className="flex items-center gap-2">
+              <IconToolbarSurfaceButton label="Close Web Preview" onClick={() => undefined}>
+                <X className="h-4 w-4" />
+              </IconToolbarSurfaceButton>
+              <IconToolbarSurfaceButton label="Reload page" variant="chrome" onClick={() => undefined}>
+                <RefreshCw className="h-4 w-4" />
+              </IconToolbarSurfaceButton>
+            </div>
+          </div>
+          <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+              Workspace header
+            </div>
+            <div className="flex items-center gap-2">
+              <WorkspaceHeaderActionButton aria-label="Close workspace">
+                <X className="h-4 w-4" />
+              </WorkspaceHeaderActionButton>
+              <WorkspaceHeaderActionButton presentation="text">Shortcut</WorkspaceHeaderActionButton>
+            </div>
+          </div>
+        </div>
+      </TooltipProvider>
+    </SurfaceCard>
+  );
+}
+
+export function ArticleFilterToggleButtonSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Article filter toggle buttons</SectionHeading>
+      <div data-testid="reference-article-filter-toggle-buttons" className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Colored state filters
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <ArticleFilterToggleButton mode="unread" pressed value="unread" aria-label="Unread">
+              Unread
+            </ArticleFilterToggleButton>
+            <ArticleFilterToggleButton mode="starred" pressed value="starred" aria-label="Starred">
+              Starred
+            </ArticleFilterToggleButton>
+            <ArticleFilterToggleButton mode="all" pressed={false} value="all" aria-label="All">
+              All
+            </ArticleFilterToggleButton>
+          </div>
+        </div>
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Compact inactive states
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <ArticleFilterToggleButton mode="unread" pressed={false} size="compact" value="unread" aria-label="Unread">
+              Unread
+            </ArticleFilterToggleButton>
+            <ArticleFilterToggleButton
+              mode="starred"
+              pressed={false}
+              size="compact"
+              value="starred"
+              aria-label="Starred"
+            >
+              Starred
+            </ArticleFilterToggleButton>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
   );
 }
 
