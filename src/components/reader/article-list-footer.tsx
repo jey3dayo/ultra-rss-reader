@@ -15,14 +15,18 @@ const EMPTY_DISABLED_MODES: readonly ArticleListViewMode[] = [];
 const compactFooterButtonClassName =
   "h-11 rounded-md border border-transparent bg-transparent px-3.5 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-surface-2/58 hover:text-foreground focus-visible:border-transparent focus-visible:bg-surface-3/72 focus-visible:ring-0 data-[pressed]:border-border/55 data-[pressed]:bg-surface-3/92 data-[pressed]:text-foreground data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:h-7 sm:rounded-md sm:border-0 sm:bg-transparent sm:px-3 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none";
 
+function isArticleListViewMode(value: string | undefined): value is ArticleListViewMode {
+  return VIEW_MODES.some((mode) => mode.value === value);
+}
+
 export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMode }: ArticleListFooterProps) {
   const { t } = useTranslation("reader");
   const resolvedModes = modes ?? DEFAULT_VISIBLE_MODES;
   const resolvedDisabledModes = disabledModes ?? EMPTY_DISABLED_MODES;
   const handleChange = useCallback(
     (groupValue: string[]) => {
-      const latest = groupValue[groupValue.length - 1] as ArticleListViewMode | undefined;
-      if (latest) onSetViewMode(latest);
+      const latest = groupValue[groupValue.length - 1];
+      if (isArticleListViewMode(latest)) onSetViewMode(latest);
     },
     [onSetViewMode],
   );

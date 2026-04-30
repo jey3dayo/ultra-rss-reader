@@ -7,12 +7,16 @@ export type CommandSearchResult = {
   query: string;
 };
 
-const PREFIXES: SearchPrefix[] = [">", "@", "#"];
+const PREFIXES: readonly Exclude<SearchPrefix, null>[] = [">", "@", "#"];
+
+function isSearchPrefix(value: string | undefined): value is Exclude<SearchPrefix, null> {
+  return value !== undefined && PREFIXES.includes(value);
+}
 
 export function parsePrefix(input: string): CommandSearchResult {
   const trimmedInput = input.trimStart();
-  const prefixChar = trimmedInput[0] as Exclude<SearchPrefix, null>;
-  const prefix = PREFIXES.includes(prefixChar) ? prefixChar : null;
+  const prefixChar = trimmedInput[0];
+  const prefix = isSearchPrefix(prefixChar) ? prefixChar : null;
 
   if (!prefix) {
     return { prefix: null, query: trimmedInput };
