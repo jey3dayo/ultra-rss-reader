@@ -22,6 +22,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-form-loading-actions")).toBeInTheDocument();
     expect(screen.getByTestId("reference-semantic-action-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("reference-article-filter-toggle-buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-reader-header-action-strip")).toBeInTheDocument();
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete permanently" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Shortcut" })).toBeInTheDocument();

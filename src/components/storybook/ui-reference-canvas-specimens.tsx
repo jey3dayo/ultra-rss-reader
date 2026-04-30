@@ -1,3 +1,4 @@
+import { Menu } from "@base-ui/react/menu";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Toggle } from "@base-ui/react/toggle";
@@ -13,11 +14,13 @@ import {
   RefreshCw,
   Save,
   Settings2,
+  Share,
   Trash2,
   X,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
@@ -39,6 +42,7 @@ import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import {
   IconToolbarButton,
+  IconToolbarMenuTrigger,
   IconToolbarSurfaceButton,
   iconToolbarButtonClassName,
 } from "@/components/shared/icon-toolbar-control";
@@ -449,6 +453,62 @@ export function ArticleFilterToggleButtonSpecimen() {
           </div>
         </div>
       </div>
+    </SurfaceCard>
+  );
+}
+
+export function ReaderHeaderActionStripSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Reader header action strip</SectionHeading>
+      <TooltipProvider>
+        <div
+          data-testid="reference-reader-header-action-strip"
+          className="flex items-center justify-end rounded-md border border-border/70 px-3 py-2 shadow-elevation-1"
+          style={{ backgroundColor: "var(--reader-toolbar-surface)" }}
+        >
+          <ArticleToolbarActionStrip
+            hasArticle
+            canToggleRead
+            canToggleStar
+            isRead={false}
+            isStarred
+            isBrowserOpen={false}
+            showCopyLinkButton
+            canCopyLink
+            showOpenInBrowserButton
+            canOpenInBrowser
+            showOpenInExternalBrowserButton
+            canOpenInExternalBrowser
+            labels={{
+              closeView: "Close article",
+              toggleRead: "Toggle read",
+              toggleReadShort: "Read",
+              toggleStar: "Toggle star",
+              toggleStarShort: "Star",
+              copyLink: "Copy link",
+              previewToggleOff: "Open Web Preview",
+              previewToggleOffShort: "Preview",
+              previewToggleOn: "Close Web Preview",
+              previewToggleOnShort: "Close",
+              openInExternalBrowser: "Open in External Browser",
+              moreActions: "More actions",
+            }}
+            onToggleRead={() => undefined}
+            onToggleStar={() => undefined}
+            onCopyLink={() => undefined}
+            onOpenInBrowser={() => undefined}
+            onOpenInExternalBrowser={() => undefined}
+            shareMenuControl={
+              <Menu.Root>
+                <IconToolbarMenuTrigger label="Share">
+                  <Share className="h-4 w-4" />
+                </IconToolbarMenuTrigger>
+              </Menu.Root>
+            }
+          />
+        </div>
+      </TooltipProvider>
     </SurfaceCard>
   );
 }
