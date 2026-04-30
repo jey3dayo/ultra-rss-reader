@@ -390,6 +390,24 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
   });
 
+  it("removes deferred feeds from the active review filter and clears the detail pane", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /要確認/ }));
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: "あとで" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(within(detailPane).getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
+  });
+
   it("keeps review and stale filters inside the subscriptions index", async () => {
     const user = userEvent.setup();
 

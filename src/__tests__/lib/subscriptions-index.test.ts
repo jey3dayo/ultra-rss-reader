@@ -361,6 +361,17 @@ describe("subscriptions index helpers", () => {
     });
 
     expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-mid", "feed-stale"]);
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "review",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(["feed-mid"]),
+        searchQuery: "",
+        sortKey: "updated_at",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-dormant", "feed-stale"]);
   });
 
   it("filters visible rows by folder or feed search and sorts by unread count", () => {
