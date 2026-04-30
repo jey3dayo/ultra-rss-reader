@@ -14,6 +14,10 @@ import { ArticleMetaView } from "./article-meta-view";
 import { ArticleTagChips } from "./article-tag-chips";
 import type { ArticleReaderBodyProps } from "./article-view.types";
 
+function getArticleContentAnchors(contentContainer: HTMLElement): HTMLAnchorElement[] {
+  return Array.from(contentContainer.querySelectorAll<HTMLAnchorElement>("a[href]"));
+}
+
 export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPreview }: ArticleReaderBodyProps) {
   const { i18n } = useTranslation();
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
@@ -47,7 +51,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       return;
     }
 
-    const anchors = Array.from(contentContainer.querySelectorAll("a[href]")) as HTMLAnchorElement[];
+    const anchors = getArticleContentAnchors(contentContainer);
     const handleContentClick = (event: Event) => {
       const anchor = event.currentTarget;
       if (!(anchor instanceof HTMLAnchorElement) || !anchor.href) {
