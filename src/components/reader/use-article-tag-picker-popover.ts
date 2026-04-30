@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 import type { UseArticleTagPickerPopoverParams } from "./article-tag-picker.types";
 import { isOutsideElement } from "./dom-target";
-import { focusRovingButton } from "./roving-focus";
+import { focusRovingButton, getActiveRovingButtonIndex } from "./roving-focus";
 
 export function useArticleTagPickerPopover({
   isExpanded,
@@ -101,7 +101,7 @@ export function useArticleTagPickerPopover({
 
   const handleListboxKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      const currentIndex = tagOptionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+      const currentIndex = getActiveRovingButtonIndex(tagOptionRefs, document.activeElement);
 
       if (event.key === "Escape") {
         event.preventDefault();

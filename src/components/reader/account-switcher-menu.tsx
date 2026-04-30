@@ -3,7 +3,7 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherMenuProps } from "./account-switcher.types";
-import { focusRovingButton } from "./roving-focus";
+import { focusRovingButton, getActiveRovingButtonIndex } from "./roving-focus";
 
 function shouldShowKindLabel(name: string, kind: string): boolean {
   return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
@@ -39,7 +39,7 @@ export function AccountSwitcherMenu({
       onKeyDown={(e) => {
         if (!accounts.length) return;
 
-        const currentIndex = itemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+        const currentIndex = getActiveRovingButtonIndex(itemRefs, document.activeElement);
         if (e.key === "Escape") {
           e.preventDefault();
           onClose(true);

@@ -1,6 +1,6 @@
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { focusRovingButton, getLoopedFocusIndex } from "@/components/reader/roving-focus";
+import { focusRovingButton, getActiveRovingButtonIndex, getLoopedFocusIndex } from "@/components/reader/roving-focus";
 
 describe("roving-focus", () => {
   it("wraps indices within the available item count", () => {
@@ -19,5 +19,15 @@ describe("roving-focus", () => {
     focusRovingButton(itemRefs, buttons.length, -1);
 
     expect(focusSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves the active button index from roving refs", () => {
+    const buttons = [document.createElement("button"), document.createElement("button")];
+    const itemRefs = createRef<Array<HTMLButtonElement | null>>();
+    itemRefs.current = buttons;
+
+    expect(getActiveRovingButtonIndex(itemRefs, buttons[1])).toBe(1);
+    expect(getActiveRovingButtonIndex(itemRefs, document.createElement("button"))).toBe(-1);
+    expect(getActiveRovingButtonIndex(itemRefs, null)).toBe(-1);
   });
 });

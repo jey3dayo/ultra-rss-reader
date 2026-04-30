@@ -8,6 +8,17 @@ export function getLoopedFocusIndex(itemCount: number, index: number) {
   return (index + itemCount) % itemCount;
 }
 
+export function getActiveRovingButtonIndex(
+  itemRefs: RefObject<Array<HTMLButtonElement | null> | null>,
+  activeElement: Element | null,
+): number {
+  if (!(activeElement instanceof HTMLButtonElement)) {
+    return -1;
+  }
+
+  return itemRefs.current?.indexOf(activeElement) ?? -1;
+}
+
 export function focusRovingButton(
   itemRefs: RefObject<Array<HTMLButtonElement | null> | null>,
   itemCount: number,
