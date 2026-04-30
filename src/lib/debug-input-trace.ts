@@ -17,6 +17,10 @@ export function formatRawKeyboardTrace(key: string, targetDescription: string): 
   return `${formatDebugTimestamp()} raw-key ${key} target=${targetDescription}`;
 }
 
+function formatDebugCoordinates(clientX: number, clientY: number): string {
+  return `x=${Math.round(clientX)} y=${Math.round(clientY)}`;
+}
+
 export function formatRawPointerTrace(params: {
   type: string;
   clientX: number;
@@ -24,9 +28,9 @@ export function formatRawPointerTrace(params: {
   targetDescription: string;
 }): string {
   const { type, clientX, clientY, targetDescription } = params;
-  return `${formatDebugTimestamp()} raw-pointer ${type} x=${Math.round(clientX)} y=${Math.round(clientY)} target=${targetDescription}`;
+  return `${formatDebugTimestamp()} raw-pointer ${type} ${formatDebugCoordinates(clientX, clientY)} target=${targetDescription}`;
 }
 
 export function formatRawClickTrace(clientX: number, clientY: number, targetDescription: string): string {
-  return `${formatDebugTimestamp()} raw-click x=${Math.round(clientX)} y=${Math.round(clientY)} target=${targetDescription}`;
+  return `${formatDebugTimestamp()} raw-click ${formatDebugCoordinates(clientX, clientY)} target=${targetDescription}`;
 }
