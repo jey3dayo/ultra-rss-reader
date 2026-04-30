@@ -16,7 +16,7 @@
     "lint:fix": "pnpm exec biome lint --write .",
     "test": "pnpm exec vitest run",
     "test:watch": "pnpm exec vitest",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build"
   },
   "dependencies": {
