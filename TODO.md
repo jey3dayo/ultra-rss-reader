@@ -12,9 +12,6 @@
 
 ## UI/UX 監査の残り
 
-- [ ] 高リスクな button family 化候補は UI Reference で基準を固めてから wrapper 化する
-  - feed tree drop target 系は visual button ではなく invisible hit target / drop zone として扱い、通常の button family 統合対象から外す
-
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
   - Tauri child webview geometry と重なり、見た目の polish よりレイアウト安定性を優先する必要がある
   - 適用する場合は `browser-overlay-stage` / `browser-overlay-chrome` / native webview bounds の同期を実機で確認してから進める
@@ -34,7 +31,7 @@
 - [ ] `Debug HUD` の collision handling を見直す
   - dev アプリ実機で、HUD を表示したまま `設定` モーダルを開くと HUD がモーダル上に残り、内容を隠しうる
   - 2026-04-28 の実機レビューで、設定モーダル右下の操作領域と HUD が重なり、閉じるボタン周辺の可読性と操作性を下げることを再確認
-  - 修正方針: HUD は overlay デバッグにも必要なため自動非表示にはせず、4 隅へ移動できる導線で重なりを避ける。閉じる操作は設定の `Debug HUD` と同じ preference を `false` にする
+  - 現状: HUD は `Move debug HUD` で 4 隅を巡回でき、閉じる操作は設定の `Debug HUD` と同じ preference を `false` にする
   - 少なくとも modal / dialog / toast などの高優先 overlay と重なったときは、自動で退避・縮小・片側ドック・一時非表示のいずれかが必要
   - 対象: `src/components/debug/focus-debug-hud-view.tsx`, `src/components/app-shell.tsx`
 

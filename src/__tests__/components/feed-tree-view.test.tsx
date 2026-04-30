@@ -342,6 +342,8 @@ describe("FeedTreeView", () => {
     expect(feedButton).not.toBeNull();
     expect(feedButton).not.toHaveClass("pl-7");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
+    expect(folderTarget).toHaveClass("absolute", "inset-0", "z-10", "rounded-md");
+    expect(folderTarget).not.toHaveClass("motion-contextual-surface");
     fireEvent.click(handle);
     fireEvent.click(folderTarget);
 
@@ -737,7 +739,10 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
+    const dropZone = screen.getByTestId("unfoldered-drop-zone");
+    expect(dropZone).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
+    expect(dropZone).toHaveClass("border-dashed", "min-h-8");
+    expect(dropZone).not.toHaveClass("motion-contextual-surface");
   });
 
   it("does not show the unfoldered drop zone until a drag is active", () => {

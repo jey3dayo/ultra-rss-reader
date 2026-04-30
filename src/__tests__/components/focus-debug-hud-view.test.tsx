@@ -140,6 +140,18 @@ describe("FocusDebugHudView", () => {
 
     expect(container).toHaveClass("top-4", "right-4");
     expect(container).not.toHaveClass("left-4");
+
+    await user.click(moveButton);
+
+    expect(container).toHaveClass("bottom-4", "left-4");
+    expect(container).not.toHaveClass("top-4");
+    expect(container).not.toHaveClass("right-4");
+
+    await user.click(moveButton);
+
+    expect(container).toHaveClass("right-4", "bottom-4");
+    expect(container).not.toHaveClass("top-4");
+    expect(container).not.toHaveClass("left-4");
   });
 
   it("exposes expanded state on the trace toggle", async () => {
