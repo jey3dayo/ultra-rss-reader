@@ -69,6 +69,7 @@ import { SubscriptionsListPane } from "@/components/subscriptions-index/subscrip
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 
 type AnnotatedNoteProps = {
@@ -1416,6 +1417,47 @@ export function DetailPanelSpecimen() {
 }
 
 export function WorkspaceTwoPaneSpecimen() {
+  const entries = [
+    {
+      id: "automaton",
+      title: "AUTOMATON",
+      href: "https://automaton-media.com",
+      folder: "Gaming",
+      latestArticle: "2026/04/16",
+      unread: 0,
+      starred: 0,
+      status: "Review",
+      statusTone: "medium" as const,
+      article: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。",
+    },
+    {
+      id: "publickey",
+      title: "Publickey",
+      href: "https://www.publickey1.jp",
+      folder: "Engineering",
+      latestArticle: "2026/04/28",
+      unread: 2,
+      starred: 1,
+      status: "Watch",
+      statusTone: "low" as const,
+      article: "クラウドネイティブな開発環境とフロントエンド基盤の最新動向。",
+    },
+    {
+      id: "nhk",
+      title: "NHKニュース",
+      href: "https://www3.nhk.or.jp/news/",
+      folder: "News",
+      latestArticle: "2026/04/30",
+      unread: 4,
+      starred: 0,
+      status: "Normal",
+      statusTone: "neutral" as const,
+      article: "国内外の主要ニュースを短く確認するための定点観測フィード。",
+    },
+  ];
+  const [selectedEntryId, setSelectedEntryId] = useState(entries[0].id);
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? entries[0];
+
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Workspace two-pane</SectionHeading>
@@ -1444,41 +1486,59 @@ export function WorkspaceTwoPaneSpecimen() {
               </LabelChip>
             </div>
             <div className="space-y-2">
-              {["AUTOMATON", "Publickey", "NHKニュース"].map((title) => (
-                <div key={title} className="rounded-md border border-border/70 bg-background/86 px-3 py-3">
-                  <p className="font-sans text-sm text-foreground">{title}</p>
+              {entries.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-pressed={entry.id === selectedEntryId}
+                  onClick={() => setSelectedEntryId(entry.id)}
+                  className={cn(
+                    "motion-static-hover-surface w-full rounded-md border border-border/70 bg-background/86 px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
+                    entry.id === selectedEntryId &&
+                      "border-border-strong bg-surface-2/82 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+                  )}
+                >
+                  <p className="font-sans text-sm text-foreground">{entry.title}</p>
                   <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/72">
                     選択中の feed に応じて detail pane を更新する二段構成。
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="rounded-md border border-border/70 bg-surface-1/84 px-3 py-3 shadow-none">
+        <div
+          key={selectedEntry.id}
+          data-testid="reference-workspace-two-pane-detail"
+          {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+          className={cn(
+            MOTION_CONTENT_SWAP_CLASS_NAME,
+            "rounded-md border border-border/70 bg-surface-1/84 px-3 py-3 shadow-none",
+          )}
+        >
           <FeedDetailPanel
-            title="AUTOMATON"
-            titleHref="https://automaton-media.com"
-            badgeLabel="Review"
-            badgeTone="medium"
+            title={selectedEntry.title}
+            titleHref={selectedEntry.href}
+            badgeLabel={selectedEntry.status}
+            badgeTone={selectedEntry.statusTone}
             reasonBox={{
               title: "整理候補になった理由",
-              body: "未読 0件 / スター 0件",
-              tone: "medium",
+              body: `未読 ${selectedEntry.unread}件 / スター ${selectedEntry.starred}件`,
+              tone: selectedEntry.statusTone,
             }}
             metrics={[
-              { label: "フォルダ", value: "Gaming" },
-              { label: "最終記事", value: "2026/04/16" },
-              { label: "未読", value: 0 },
-              { label: "スター", value: 0 },
+              { label: "フォルダ", value: selectedEntry.folder },
+              { label: "最終記事", value: selectedEntry.latestArticle },
+              { label: "未読", value: selectedEntry.unread },
+              { label: "スター", value: selectedEntry.starred },
             ]}
             links={[]}
             recentArticlesHeading="最近の記事"
             recentArticles={[
               {
-                id: "ref-2",
-                title: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。",
-                publishedAt: "2026/04/16",
+                id: `ref-${selectedEntry.id}`,
+                title: selectedEntry.article,
+                publishedAt: selectedEntry.latestArticle,
                 url: "https://example.com/article",
               },
             ]}

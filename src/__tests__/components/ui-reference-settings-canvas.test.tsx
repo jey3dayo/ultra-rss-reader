@@ -248,6 +248,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getAllByText("確認済み").length).toBeGreaterThan(0);
     expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);
     expect(screen.getByTestId("reference-workspace-two-pane-frame")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-workspace-two-pane-detail")).toHaveClass("motion-content-swap");
     expect(screen.getByText("Announcement cards")).toBeInTheDocument();
     expect(screen.getAllByText("確認待ち").length).toBeGreaterThan(0);
     expect(screen.getByText("判断済み")).toBeInTheDocument();
@@ -255,6 +256,22 @@ describe("UI Reference canvases", () => {
     expect(
       within(screen.getByTestId("reference-announcement-card-pending")).queryByRole("button", { name: /確認待ち/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("lets the workspace two-pane specimen swap selected detail content", async () => {
+    const user = userEvent.setup();
+    render(<ViewSpecimensCanvas />);
+
+    const detail = screen.getByTestId("reference-workspace-two-pane-detail");
+    expect(within(detail).getByRole("heading", { name: "AUTOMATON" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Publickey/ }));
+
+    const swappedDetail = screen.getByTestId("reference-workspace-two-pane-detail");
+    expect(swappedDetail).toHaveClass("motion-content-swap");
+    expect(swappedDetail).toHaveAttribute("data-motion-phase", "entering");
+    expect(within(swappedDetail).getByRole("heading", { name: "Publickey" })).toBeInTheDocument();
+    expect(within(swappedDetail).getByText("Engineering")).toBeInTheDocument();
   });
 
   it("renders the settings workspace canvas with real settings shell composition", () => {
