@@ -34,10 +34,14 @@ describe("useAccountSyncStatus", () => {
       }),
     );
 
-    const { rerender, result } = renderHook(({ accountId }: { accountId: string | null }) => useAccountSyncStatus(accountId), {
-      initialProps: { accountId: null },
-      wrapper: createWrapper(),
-    });
+    const initialProps: { accountId: string | null } = { accountId: null };
+    const { rerender, result } = renderHook(
+      ({ accountId }: { accountId: string | null }) => useAccountSyncStatus(accountId),
+      {
+        initialProps,
+        wrapper: createWrapper(),
+      },
+    );
 
     expect(result.current.fetchStatus).toBe("idle");
     expect(getAccountSyncStatusSpy).not.toHaveBeenCalled();
