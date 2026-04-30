@@ -3,8 +3,8 @@ import { SettingsActionButton } from "@/components/settings/settings-action-butt
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
-import { Input } from "@/components/ui/input";
 
 export type TagsSettingsListItem = {
   id: string;
@@ -70,25 +70,22 @@ export function TagsSettingsView({
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
       <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow
+        <LabeledInputRow
           label={nameLabel}
-          className="items-start sm:items-center"
+          name="tag_name"
+          value={nameValue}
+          placeholder={namePlaceholder}
+          onChange={onNameChange}
+          rowClassName="items-start sm:items-center"
           labelClassName="sm:w-40 sm:shrink-0"
-        >
-          <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
-            <Input
-              name="tag_name"
-              aria-label={nameLabel}
-              value={nameValue}
-              placeholder={namePlaceholder}
-              onChange={(event) => onNameChange(event.target.value)}
-              className="h-10 flex-1"
-            />
-            <SettingsActionButton size="compact" onClick={onCreate} disabled={createDisabled} aria-label={createLabel}>
-              {createLabel}
-            </SettingsActionButton>
-          </div>
-        </LabeledControlRow>
+          controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
+          inputClassName="h-10 flex-1"
+          actionLabel={createLabel}
+          actionAriaLabel={createLabel}
+          onAction={onCreate}
+          actionDisabled={createDisabled}
+          actionClassName="h-10 px-4 text-sm font-medium"
+        />
         <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
           <div className="w-full sm:max-w-[400px]">
             <TagColorPicker
