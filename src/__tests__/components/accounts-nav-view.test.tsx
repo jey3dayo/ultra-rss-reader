@@ -1,9 +1,65 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { AccountsNavView } from "@/components/settings/accounts-nav-view";
+import { AccountsNavView, resolveAccountDescription } from "@/components/settings/accounts-nav-view";
 import type { AccountNavItem } from "@/components/settings/settings-nav.types";
 
 describe("AccountsNavView", () => {
+  it("resolves account descriptions for multiple accounts", () => {
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-1",
+          name: "FreshRSS",
+          kind: "freshrss",
+          username: "alice",
+          serverUrl: "https://freshrss.example.com/api/greader.php",
+          isActive: false,
+        },
+        true,
+      ),
+    ).toBe("alice");
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-2",
+          name: "debug",
+          kind: "freshrss",
+          username: "debug",
+          serverUrl: "https://feeds.example.com/api/greader.php",
+          isActive: false,
+        },
+        true,
+      ),
+    ).toBe("feeds.example.com");
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-3",
+          name: "Archive",
+          kind: "local",
+          isActive: false,
+        },
+        true,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not resolve account descriptions for a single account", () => {
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-1",
+          name: "FreshRSS",
+          kind: "freshrss",
+          username: "alice",
+          serverUrl: "https://freshrss.example.com/api/greader.php",
+          isActive: true,
+        },
+        false,
+      ),
+    ).toBeNull();
+  });
+
   it("hides account descriptions when there is only one account", () => {
     render(
       <AccountsNavView

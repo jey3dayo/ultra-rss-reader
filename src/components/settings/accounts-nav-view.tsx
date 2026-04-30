@@ -32,7 +32,7 @@ function getServerHostLabel(serverUrl?: string | null): string | null {
   }
 }
 
-function getAccountDescription(
+export function resolveAccountDescription(
   account: AccountsNavViewProps["accounts"][number],
   hasMultipleAccounts: boolean,
 ): string | null {
@@ -70,7 +70,7 @@ export function AccountsNavView({
     <div className="flex flex-wrap gap-2 overflow-visible sm:block sm:space-y-1">
       {accounts.map((account) => {
         const kindKey = account.kind.toLowerCase();
-        const description = getAccountDescription(account, hasMultipleAccounts);
+        const description = resolveAccountDescription(account, hasMultipleAccounts);
 
         return (
           <NavRowButton
