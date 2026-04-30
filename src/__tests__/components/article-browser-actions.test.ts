@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addArticleToReadingList,
   copyArticleLink,
+  openArticleInExternalBrowser,
   openUrlInExternalBrowser,
 } from "@/components/reader/article-browser-actions";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("article-browser-actions", () => {
@@ -13,6 +15,7 @@ describe("article-browser-actions", () => {
   beforeEach(() => {
     calls = [];
     showToast.mockReset();
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -117,6 +120,28 @@ describe("article-browser-actions", () => {
     expect(calls).toContainEqual({
       cmd: "open_in_browser",
       args: { url: "https://example.com/article", background: false },
+    });
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("opens an article in the background when the background preference is enabled", async () => {
+    usePreferencesStore.setState({ prefs: { open_links_background: "true" }, loaded: true });
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "open_in_browser":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    await openArticleInExternalBrowser("https://example.com/article", showToast);
+
+    expect(calls).toContainEqual({
+      cmd: "open_in_browser",
+      args: { url: "https://example.com/article", background: true },
     });
     expect(showToast).not.toHaveBeenCalled();
   });
