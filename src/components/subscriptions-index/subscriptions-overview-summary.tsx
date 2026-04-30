@@ -227,7 +227,7 @@ function SummaryFilterCardButton({ onSelect, renderValue, summaryCard }: Summary
         <LabelChip
           tone="neutral"
           className={cn(
-            "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
+            "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-foreground motion-reduce:transition-none",
             summaryCard.isActive &&
               "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
             isProminent && !summaryCard.isActive && "bg-surface-1/88",

@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const labelChipVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border font-sans font-medium leading-none whitespace-nowrap tabular-nums transition-[color,background-color,border-color]",
+  "inline-flex items-center gap-1.5 rounded-full border font-sans font-medium leading-none whitespace-nowrap tabular-nums transition-[color,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
   {
     variants: {
       tone: {

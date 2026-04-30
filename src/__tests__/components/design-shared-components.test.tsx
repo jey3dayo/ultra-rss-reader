@@ -105,6 +105,7 @@ describe("Design-themed shared components", () => {
       "motion-interactive-surface",
       "motion-contextual-surface",
       "select-none",
+      "motion-reduce:transition-none",
       "bg-surface-2/88",
       "border-border/70",
       "data-[pressed]:bg-surface-4",
@@ -116,9 +117,10 @@ describe("Design-themed shared components", () => {
     );
     expect(screen.getByRole("switch", { name: "Live preview" })).toHaveClass(
       "shadow-[var(--gradient-switch-track-shadow)]",
+      "motion-reduce:transition-none",
     );
     expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
-    expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft", "motion-reduce:transition-none");
   });
 
   it("keeps base switch transitions explicit", () => {

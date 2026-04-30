@@ -39,7 +39,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         data-sidebar-navigation-target="true"
         data-active-pane={selected ? String(activePane) : undefined}
         className={cn(
-          "motion-contextual-surface relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none",
+          "motion-contextual-surface relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none motion-reduce:transition-none",
           tokens.navButtonPaddingX,
           size === "default" ? "min-h-10 py-2" : tokens.navButton,
           selected

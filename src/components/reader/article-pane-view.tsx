@@ -45,7 +45,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
       data-active-pane={focusedPane === "content" ? "true" : "false"}
       tabIndex={-1}
       className={cn(
-        "typography-lane-reader flex h-full flex-1 flex-col bg-background outline-none transition-[background-color,box-shadow] duration-150",
+        "typography-lane-reader flex h-full flex-1 flex-col bg-background outline-none transition-[background-color,box-shadow] duration-150 motion-reduce:transition-none",
         focusedPane === "content" &&
           "bg-[linear-gradient(90deg,var(--background)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_24%,var(--background))_100%)]",
       )}

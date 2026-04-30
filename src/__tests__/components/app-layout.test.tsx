@@ -92,6 +92,17 @@ describe("AppLayout", () => {
     expect(sidebarContent).toHaveAttribute("inert");
   });
 
+  it("disables sliding pane transition for reduced motion", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "compact",
+    });
+
+    render(<AppLayout />);
+
+    expect(screen.getByTestId("sliding-pane-tray")).toHaveClass("motion-reduce:transition-none");
+  });
+
   it("uses the shared pane width constants for desktop widths", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

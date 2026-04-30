@@ -38,7 +38,7 @@ export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, Accoun
       aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
       aria-controls={hasMultipleAccounts ? controlsId : undefined}
       className={cn(
-        "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
         hasMultipleAccounts
           ? "cursor-pointer text-sidebar-foreground/92 hover:text-sidebar-foreground"
           : "cursor-default text-sidebar-foreground",
@@ -49,7 +49,7 @@ export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, Accoun
       <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-medium tracking-[-0.055em] text-current">
         {accountName}
         {hasMultipleAccounts ? (
-          <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78" />
+          <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78 motion-reduce:transition-none" />
         ) : null}
       </h1>
       <p className="text-[0.72rem] font-medium tracking-[0.04em] text-sidebar-foreground/54">{lastSyncedLabel}</p>

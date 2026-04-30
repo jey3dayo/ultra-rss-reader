@@ -127,7 +127,7 @@ function Toast() {
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1/72">
           {progress != null ? (
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              className="h-full rounded-full bg-primary transition-[width] duration-200 motion-reduce:transition-none"
               style={{ width: `${progress}%` }}
             />
           ) : (

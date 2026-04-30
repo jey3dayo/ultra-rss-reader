@@ -905,7 +905,7 @@ export function ReferenceRadioGroup() {
                 <label
                   key={option.value}
                   className={cn(
-                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors",
+                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                     checked
                       ? "border-border-strong bg-surface-3 text-foreground"
                       : "border-border bg-surface-1 text-foreground/72 hover:bg-surface-2",
@@ -915,7 +915,7 @@ export function ReferenceRadioGroup() {
                     value={option.value}
                     aria-label={option.label}
                     className={cn(
-                      "flex size-4 items-center justify-center rounded-full border transition-colors",
+                      "flex size-4 items-center justify-center rounded-full border transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                       checked ? "border-primary bg-primary/10" : "border-border-strong bg-background",
                     )}
                   >

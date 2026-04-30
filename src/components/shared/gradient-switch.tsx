@@ -12,14 +12,14 @@ function GradientSwitch({ className, ...props }: SwitchPrimitive.Root.Props) {
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "relative flex h-6 w-10 shrink-0 rounded-full bg-[linear-gradient(to_right,var(--gradient-switch-track-on)_35%,var(--gradient-switch-track-off)_65%)] bg-[length:6.5rem_100%] bg-[100%_0%] bg-no-repeat p-px shadow-[var(--gradient-switch-track-shadow)] outline-1 -outline-offset-1 outline-[var(--gradient-switch-track-outline)] transition-[background-position,box-shadow] duration-[125ms] ease-[cubic-bezier(0.26,0.75,0.38,0.45)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-checked:bg-[0%_0%] data-checked:shadow-none data-disabled:cursor-not-allowed data-disabled:opacity-50",
+        "relative flex h-6 w-10 shrink-0 rounded-full bg-[linear-gradient(to_right,var(--gradient-switch-track-on)_35%,var(--gradient-switch-track-off)_65%)] bg-[length:6.5rem_100%] bg-[100%_0%] bg-no-repeat p-px shadow-[var(--gradient-switch-track-shadow)] outline-1 -outline-offset-1 outline-[var(--gradient-switch-track-outline)] transition-[background-position,box-shadow] duration-[125ms] ease-[cubic-bezier(0.26,0.75,0.38,0.45)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-checked:bg-[0%_0%] data-checked:shadow-none data-disabled:cursor-not-allowed data-disabled:opacity-50 motion-reduce:transition-none",
         className,
       )}
       {...props}
     >
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className="pointer-events-none aspect-square h-full rounded-full bg-white shadow-[var(--gradient-switch-thumb-shadow)] ring-0 transition-transform duration-150 data-checked:translate-x-4"
+        className="pointer-events-none aspect-square h-full rounded-full bg-white shadow-[var(--gradient-switch-thumb-shadow)] ring-0 transition-transform duration-150 data-checked:translate-x-4 motion-reduce:transition-none"
       />
     </SwitchPrimitive.Root>
   );

@@ -66,7 +66,7 @@ export function ArticleListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-lg px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150",
+        "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-lg px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
         selectionStyle === "classic"
           ? cn(
               "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
@@ -123,7 +123,7 @@ export function ArticleListItem({
       {metaLabel && (
         <p
           className={cn(
-            "pl-4 text-xs text-foreground-soft transition-colors duration-150",
+            "pl-4 text-xs text-foreground-soft transition-colors duration-150 motion-reduce:transition-none",
             isSelected && "text-foreground/72",
           )}
         >
@@ -136,7 +136,7 @@ export function ArticleListItem({
           {showSummary && (
             <p
               className={cn(
-                "line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft transition-colors duration-150",
+                "line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft transition-colors duration-150 motion-reduce:transition-none",
                 isSelected && "text-foreground/68",
               )}
             >

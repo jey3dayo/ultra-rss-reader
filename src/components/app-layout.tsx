@@ -52,7 +52,7 @@ function SlidingPaneLayout({
         <div className="min-w-0 flex-1 overflow-hidden">
           <div
             data-testid="sliding-pane-tray"
-            className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0"
+            className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:transition-none"
             style={{
               width: isMobile ? "300%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
               transform: `translateX(${translateX})`,

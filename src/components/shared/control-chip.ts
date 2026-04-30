@@ -1,7 +1,7 @@
 import { cva } from "class-variance-authority";
 
 export const controlChipVariants = cva(
-  "inline-flex items-center gap-1 rounded-md font-medium transition-colors text-foreground-soft",
+  "inline-flex items-center gap-1 rounded-md font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
   {
     variants: {
       size: {

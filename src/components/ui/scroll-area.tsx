@@ -9,7 +9,7 @@ function ScrollArea({ className, children, contentClassName, viewportRef, ...pro
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow,outline-color] outline-none focus-visible:outline-1 focus-visible:outline-border/80 focus-visible:ring-2 focus-visible:ring-border/35"
+        className="size-full rounded-[inherit] transition-[color,box-shadow,outline-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] outline-none focus-visible:outline-1 focus-visible:outline-border/80 focus-visible:ring-2 focus-visible:ring-border/35 motion-reduce:transition-none"
       >
         {contentClassName ? (
           <div data-slot="scroll-area-content" className={contentClassName}>
@@ -32,7 +32,7 @@ function ScrollBar({ className, orientation = "vertical", ...props }: ScrollArea
       data-orientation={orientation}
       orientation={orientation}
       className={cn(
-        "flex touch-none p-px transition-colors select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent",
+        "flex touch-none p-px transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent motion-reduce:transition-none",
         className,
       )}
       {...props}

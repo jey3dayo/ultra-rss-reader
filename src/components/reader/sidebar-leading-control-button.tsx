@@ -22,10 +22,10 @@ export function SidebarLeadingControlButton({
     <button
       type={type}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-md select-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60",
+        "inline-flex shrink-0 items-center justify-center rounded-md select-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 motion-reduce:transition-none",
         tokens.leadingControl,
         visibleMode === "on-row-hover" &&
-          "opacity-0 transition-opacity group-hover/feed-row:opacity-100 focus-visible:opacity-100",
+          "opacity-0 transition-opacity group-hover/feed-row:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none",
         className,
       )}
       {...props}

@@ -50,7 +50,7 @@ export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButton
       ref={ref}
       type={type}
       className={cn(
-        "w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] leading-none font-medium tracking-[0.02em] transition-colors sm:w-auto",
+        "w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] leading-none font-medium tracking-[0.02em] transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] sm:w-auto motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         recording
           ? "animate-pulse border-ring bg-ring/14 text-foreground"
