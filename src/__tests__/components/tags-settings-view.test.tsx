@@ -132,4 +132,48 @@ describe("TagsSettingsView", () => {
     expect(onNameChange).toHaveBeenCalled();
     expect(onCreate).toHaveBeenCalledTimes(1);
   });
+
+  it("updates the selected color from the tag creation swatches", async () => {
+    const user = userEvent.setup();
+    const onColorChange = vi.fn();
+
+    render(
+      <TagsSettingsView
+        title="Tags"
+        addHeading="Add tag"
+        intro="Use tags to organize related articles."
+        nameLabel="Name"
+        nameValue="News"
+        namePlaceholder="News"
+        colorLabel="Color"
+        colorValue="#cf7868"
+        colorOptions={["#cf7868", "#6f8eb8"]}
+        noColorLabel="No color"
+        colorOptionAriaLabel={(color) => `Color ${color}`}
+        createLabel="Create"
+        onNameChange={vi.fn()}
+        onColorChange={onColorChange}
+        onCreate={vi.fn()}
+        createDisabled={false}
+        savedHeading="Saved tags"
+        emptyState="No tags yet."
+        tags={[]}
+        editLabel="Edit"
+        editAriaLabel={(name) => `Edit ${name}`}
+        deleteLabel="Delete"
+        deleteAriaLabel={(name) => `Delete ${name}`}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Color #cf7868" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Color #6f8eb8" })).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(screen.getByRole("button", { name: "Color #6f8eb8" }));
+    await user.click(screen.getByRole("button", { name: "No color" }));
+
+    expect(onColorChange).toHaveBeenNthCalledWith(1, "#6f8eb8");
+    expect(onColorChange).toHaveBeenNthCalledWith(2, null);
+  });
 });

@@ -39,7 +39,10 @@ describe("DataSettingsView", () => {
     expect(onOpenLogDir).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the loading label while vacuuming", () => {
+  it("shows the loading label while vacuuming and keeps the action disabled", async () => {
+    const user = userEvent.setup();
+    const onVacuum = vi.fn();
+
     render(
       <DataSettingsView
         title="Data"
@@ -53,11 +56,16 @@ describe("DataSettingsView", () => {
         logsHeading="Logs"
         openLogDirDescription="Open the log directory."
         openLogDirLabel="Open log directory"
-        onVacuum={vi.fn()}
+        onVacuum={onVacuum}
         onOpenLogDir={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Optimizing..." })).toBeDisabled();
+    const vacuumButton = screen.getByRole("button", { name: "Optimizing..." });
+    expect(vacuumButton).toBeDisabled();
+
+    await user.click(vacuumButton);
+
+    expect(onVacuum).not.toHaveBeenCalled();
   });
 });
