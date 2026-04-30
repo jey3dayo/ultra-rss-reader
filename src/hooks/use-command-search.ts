@@ -7,10 +7,8 @@ export type CommandSearchResult = {
   query: string;
 };
 
-const PREFIXES: readonly Exclude<SearchPrefix, null>[] = [">", "@", "#"];
-
 function isSearchPrefix(value: string | undefined): value is Exclude<SearchPrefix, null> {
-  return value !== undefined && PREFIXES.includes(value);
+  return value === ">" || value === "@" || value === "#";
 }
 
 export function parsePrefix(input: string): CommandSearchResult {

@@ -20,6 +20,56 @@ function matchesQuery(label: string, keywords: readonly string[], query: string)
   return [label, ...keywords].some((value) => normalize(value).includes(needle));
 }
 
+function filterByQuery<T>(
+  items: T[],
+  query: string,
+  selectors: {
+    label: (item: T) => string;
+    keywords: (item: T) => readonly string[];
+  },
+): T[] {
+  return items.filter((item) => matchesQuery(selectors.label(item), selectors.keywords(item), query));
+}
+
+function resolveHasVisiblePaletteResults(params: {
+  showRecentActions: boolean;
+  recentActionsCount: number;
+  showActions: boolean;
+  filteredActionsCount: number;
+  showDevScenarios: boolean;
+  filteredDevScenariosCount: number;
+  showFeeds: boolean;
+  filteredFeedsCount: number;
+  showTags: boolean;
+  filteredTagsCount: number;
+  showArticles: boolean;
+  articlesCount: number;
+}): boolean {
+  const {
+    showRecentActions,
+    recentActionsCount,
+    showActions,
+    filteredActionsCount,
+    showDevScenarios,
+    filteredDevScenariosCount,
+    showFeeds,
+    filteredFeedsCount,
+    showTags,
+    filteredTagsCount,
+    showArticles,
+    articlesCount,
+  } = params;
+
+  return [
+    showRecentActions && recentActionsCount > 0,
+    !showRecentActions && showActions && filteredActionsCount > 0,
+    !showRecentActions && showDevScenarios && filteredDevScenariosCount > 0,
+    !showRecentActions && showFeeds && filteredFeedsCount > 0,
+    !showRecentActions && showTags && filteredTagsCount > 0,
+    !showRecentActions && showArticles && articlesCount > 0,
+  ].some(Boolean);
+}
+
 export function useCommandPaletteData({
   actions,
   deferredQuery,
@@ -33,18 +83,25 @@ export function useCommandPaletteData({
   const { data: articles = [] } = useSearchArticles(selectedAccountId, prefix === null ? deferredQuery : "");
 
   const filteredActions = useMemo(
-    () => actions.filter((action) => matchesQuery(action.label, action.keywords, query)),
+    () => filterByQuery(actions, query, { label: (action) => action.label, keywords: (action) => action.keywords }),
     [actions, query],
   );
   const filteredDevScenarios = useMemo(
-    () => devScenarios.filter((scenario) => matchesQuery(scenario.title, scenario.keywords, query)),
+    () =>
+      filterByQuery(devScenarios, query, {
+        label: (scenario) => scenario.title,
+        keywords: (scenario) => scenario.keywords,
+      }),
     [devScenarios, query],
   );
   const filteredFeeds = useMemo(
-    () => feeds.filter((feed) => matchesQuery(feed.title, [feed.url, feed.site_url], query)),
+    () => filterByQuery(feeds, query, { label: (feed) => feed.title, keywords: (feed) => [feed.url, feed.site_url] }),
     [feeds, query],
   );
-  const filteredTags = useMemo(() => tags.filter((tag) => matchesQuery(tag.name, [], query)), [tags, query]);
+  const filteredTags = useMemo(
+    () => filterByQuery(tags, query, { label: (tag) => tag.name, keywords: () => [] }),
+    [tags, query],
+  );
 
   const recentActions = useMemo(() => {
     const actionMap = new Map(actions.map((action) => [action.id, action]));
@@ -62,14 +119,20 @@ export function useCommandPaletteData({
   const showTags = prefix === null || prefix === "#";
   const showArticles = prefix === null;
 
-  const hasVisibleResults = [
-    showRecentActions && recentActions.length > 0,
-    !showRecentActions && showActions && filteredActions.length > 0,
-    !showRecentActions && showDevScenarios && filteredDevScenarios.length > 0,
-    !showRecentActions && showFeeds && filteredFeeds.length > 0,
-    !showRecentActions && showTags && filteredTags.length > 0,
-    !showRecentActions && showArticles && articles.length > 0,
-  ].some(Boolean);
+  const hasVisibleResults = resolveHasVisiblePaletteResults({
+    showRecentActions,
+    recentActionsCount: recentActions.length,
+    showActions,
+    filteredActionsCount: filteredActions.length,
+    showDevScenarios,
+    filteredDevScenariosCount: filteredDevScenarios.length,
+    showFeeds,
+    filteredFeedsCount: filteredFeeds.length,
+    showTags,
+    filteredTagsCount: filteredTags.length,
+    showArticles,
+    articlesCount: articles.length,
+  });
 
   return {
     articles,
