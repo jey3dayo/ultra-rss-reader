@@ -101,6 +101,61 @@ describe("sync-result-feedback", () => {
     });
   });
 
+  it("chooses the earliest scheduled retry warning", () => {
+    expect(
+      summarizeSyncWarnings([
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "Retry later",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:20:00Z",
+          retry_in_seconds: 300,
+        },
+        {
+          account_id: "acc-2",
+          account_name: "Local",
+          message: "Retry sooner",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:16:00Z",
+          retry_in_seconds: 60,
+        },
+      ]),
+    ).toEqual({
+      kind: "retry-scheduled",
+      accounts: "FreshRSS, Local",
+      retryAt: "2026-04-13T03:16:00Z",
+      retryInSeconds: 60,
+    });
+  });
+
+  it("uses scheduled retry warnings with missing retry seconds after timed warnings", () => {
+    expect(
+      summarizeSyncWarnings([
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "Retry scheduled",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:20:00Z",
+        },
+        {
+          account_id: "acc-2",
+          account_name: "Local",
+          message: "Retry sooner",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:17:00Z",
+          retry_in_seconds: 90,
+        },
+      ]),
+    ).toEqual({
+      kind: "retry-scheduled",
+      accounts: "FreshRSS, Local",
+      retryAt: "2026-04-13T03:17:00Z",
+      retryInSeconds: 90,
+    });
+  });
+
   it("resolves retry-scheduled messages with retry metadata", () => {
     expect(
       resolveSyncFeedbackMessage(
