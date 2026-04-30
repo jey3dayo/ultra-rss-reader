@@ -373,6 +373,7 @@ export function AppShell() {
   const shortcutsHelpOpen = useUiStore((state) => state.shortcutsHelpOpen);
   const closeShortcutsHelp = useUiStore((state) => state.closeShortcutsHelp);
   const settingsOpen = useUiStore((state) => state.settingsOpen);
+  const confirmDialogOpen = useUiStore((state) => state.confirmDialog.open);
   const closeSettings = useUiStore((state) => state.closeSettings);
   const browserUrl = useUiStore((state) => state.browserUrl);
   const appLoading = useUiStore((state) => state.appLoading);
@@ -383,6 +384,7 @@ export function AppShell() {
     hasTauriRuntime: hasTauriRuntime(),
   });
   const showFocusDebugHud = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
+  const focusDebugHudTemporarilyHidden = settingsOpen || confirmDialogOpen || shortcutsHelpOpen || commandPaletteOpen;
 
   useEffect(() => {
     loadPlatformInfo();
@@ -427,7 +429,7 @@ export function AppShell() {
         </Suspense>
       ) : null}
       {showFocusDebugHud ? (
-        <FocusDebugHud temporarilyHidden={settingsOpen} avoidBottomRight={toastMessage !== null} />
+        <FocusDebugHud temporarilyHidden={focusDebugHudTemporarilyHidden} avoidBottomRight={toastMessage !== null} />
       ) : null}
     </div>
   );

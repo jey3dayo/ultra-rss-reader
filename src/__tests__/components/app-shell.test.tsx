@@ -310,6 +310,46 @@ describe("AppShell", () => {
     expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
   });
 
+  it("temporarily hides the debug HUD while the confirm dialog is open", async () => {
+    const { rerender } = renderAppShellWithDebugHud();
+
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+
+    useUiStore.getState().showConfirm("Delete feed?", vi.fn(), { actionLabel: "Delete" });
+    rerender(<AppShell />);
+
+    expect(useUiStore.getState().confirmDialog.open).toBe(true);
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
+
+    useUiStore.getState().closeConfirm();
+    rerender(<AppShell />);
+
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+  });
+
+  it("temporarily hides the debug HUD while shortcut and command overlays are open", async () => {
+    const { rerender } = renderAppShellWithDebugHud();
+
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+
+    useUiStore.setState({ shortcutsHelpOpen: true });
+    rerender(<AppShell />);
+
+    expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
+
+    useUiStore.setState({ shortcutsHelpOpen: false, commandPaletteOpen: true });
+    rerender(<AppShell />);
+
+    expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
+
+    useUiStore.setState({ commandPaletteOpen: false });
+    rerender(<AppShell />);
+
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+  });
+
   it("turns off the debug HUD preference from the HUD close action", async () => {
     const user = userEvent.setup();
 
