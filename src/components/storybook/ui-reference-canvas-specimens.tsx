@@ -30,6 +30,7 @@ import { SettingsLoadingActionButton } from "@/components/settings/settings-load
 import type { AccountNavItem, SettingsNavItem } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { ShortcutKeyButton } from "@/components/settings/shortcuts-settings-view";
 import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
@@ -53,6 +54,7 @@ import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import { TagChip } from "@/components/shared/tag-chip";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { WorkspaceHeaderActionButton } from "@/components/shared/workspace-header";
 import { Button } from "@/components/ui/button";
@@ -513,6 +515,57 @@ export function ReaderHeaderActionStripSpecimen() {
           />
         </div>
       </TooltipProvider>
+    </SurfaceCard>
+  );
+}
+
+export function SpecializedButtonPatternsSpecimen() {
+  const [tagColor, setTagColor] = useState<string | null>(TAG_COLOR_PRESETS[2]);
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Specialized button patterns</SectionHeading>
+      <div data-testid="reference-specialized-button-patterns" className="grid gap-3 lg:grid-cols-3">
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Tag chip action
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <TagChip
+              label="design"
+              color={TAG_COLOR_PRESETS[2]}
+              onRemove={() => undefined}
+              removeLabel="Remove design"
+            />
+            <TagChip label="reader" onRemove={() => undefined} removeLabel="Remove reader" />
+          </div>
+        </div>
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Tag color swatches
+          </div>
+          <TagColorPicker
+            color={tagColor}
+            colorOptions={TAG_COLOR_PRESETS.slice(0, 5)}
+            noColorLabel="No color"
+            optionAriaLabel={(option) => `Select ${option}`}
+            onChange={setTagColor}
+          />
+        </div>
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Shortcut key capture
+          </div>
+          <div className="flex flex-wrap items-start gap-2">
+            <ShortcutKeyButton>⌘K</ShortcutKeyButton>
+            <ShortcutKeyButton recording>Press a key</ShortcutKeyButton>
+            <div className="flex flex-col items-stretch gap-1">
+              <ShortcutKeyButton conflict>⌘R</ShortcutKeyButton>
+              <span className="text-[10px] text-state-danger-foreground">Conflict</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </SurfaceCard>
   );
 }

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { type ButtonHTMLAttributes, forwardRef, type ReactNode, useEffect, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { cn } from "@/lib/utils";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 
 export type ShortcutsSettingsItem = {
@@ -37,6 +38,36 @@ export type ShortcutKeyBadgeProps = {
   pressAKeyLabel: string;
 };
 
+export type ShortcutKeyButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  children: ReactNode;
+  conflict?: boolean;
+  recording?: boolean;
+};
+
+export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButtonProps>(
+  ({ children, className, conflict = false, recording = false, type = "button", ...props }, ref) => (
+    <button
+      ref={ref}
+      type={type}
+      className={cn(
+        "w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] leading-none font-medium tracking-[0.02em] transition-colors sm:w-auto",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        recording
+          ? "animate-pulse border-ring bg-ring/14 text-foreground"
+          : conflict
+            ? "border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
+            : "cursor-pointer border-border/70 bg-surface-1 text-foreground-soft hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  ),
+);
+
+ShortcutKeyButton.displayName = "ShortcutKeyButton";
+
 function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
   const badgeRef = useRef<HTMLButtonElement>(null);
 
@@ -54,21 +85,15 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
 
   return (
     <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-      <button
+      <ShortcutKeyButton
         ref={badgeRef}
-        type="button"
         data-testid={`shortcut-badge-${item.id}`}
         onClick={item.onStartRecording}
-        className={`w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] transition-colors sm:w-auto ${
-          item.isRecording
-            ? "animate-pulse border-ring bg-ring/14 text-foreground"
-            : item.conflictLabel
-              ? "border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
-              : "cursor-pointer border-border/70 bg-surface-1 text-foreground-soft hover:border-border-strong hover:bg-surface-2 hover:text-foreground"
-        }`}
+        recording={item.isRecording}
+        conflict={Boolean(item.conflictLabel)}
       >
         {item.isRecording ? pressAKeyLabel : item.displayKey}
-      </button>
+      </ShortcutKeyButton>
       {item.conflictLabel && !item.isRecording && (
         <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
       )}

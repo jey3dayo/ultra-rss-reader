@@ -11,6 +11,7 @@ import {
   ReferencePage,
   SemanticActionButtonsSpecimen,
   SettingsActionButtonSpecimen,
+  SpecializedButtonPatternsSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
 
 export function ButtonControlsCanvas() {
@@ -30,6 +31,7 @@ export function ButtonControlsCanvas() {
         <ArticleFilterToggleButtonSpecimen />
         <ReaderHeaderActionStripSpecimen />
         <IconUtilityButtonSpecimen />
+        <SpecializedButtonPatternsSpecimen />
       </div>
     </ReferencePage>
   );
