@@ -15,6 +15,9 @@ export function LabeledInputRow({
   disabled,
   readOnly,
   title,
+  ariaDescribedBy,
+  ariaErrorMessage,
+  ariaInvalid,
   inputRef,
   onChange,
   onBlur,
@@ -68,6 +71,9 @@ export function LabeledInputRow({
             value={value}
             readOnly={readOnly}
             title={title}
+            aria-describedby={ariaDescribedBy}
+            aria-errormessage={ariaErrorMessage}
+            aria-invalid={ariaInvalid || undefined}
             onChange={(event) => onChange(event.target.value)}
             onBlur={onBlur}
             onFocus={onFocus}

@@ -19,6 +19,9 @@ export type LabeledInputRowProps = {
   disabled?: boolean;
   readOnly?: boolean;
   title?: string;
+  ariaDescribedBy?: string;
+  ariaErrorMessage?: string;
+  ariaInvalid?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
   onChange: (value: string) => void;
   onBlur?: () => void;

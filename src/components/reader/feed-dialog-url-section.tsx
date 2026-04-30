@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 import type { FeedDialogUrlSectionViewProps } from "./feed-dialog-form.types";
 
@@ -15,7 +14,6 @@ export function FeedDialogUrlSection({
   discoverDisabled,
   placeholder,
   inputRef,
-  inputId,
   helperTextId,
   discoveredFeedsFoundLabel,
   discoveredFeedOptions,
@@ -30,34 +28,29 @@ export function FeedDialogUrlSection({
       className="motion-contextual-surface rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
     >
       <div className="space-y-3">
-        <label htmlFor={inputId} className="block text-sm font-medium text-foreground-soft">
-          {label}
-        </label>
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <Input
-            id={inputId}
-            ref={inputRef}
-            name="feed-url"
-            type="url"
-            value={value}
-            onChange={(event) => onValueChange(event.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            aria-describedby={helperText ? helperTextId : undefined}
-            aria-errormessage={helperTone === "error" ? helperTextId : undefined}
-            aria-invalid={helperTone === "error" ? true : undefined}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDiscover}
-            disabled={discoverDisabled}
-            className="min-w-24 shrink-0"
-          >
-            {discovering ? discoveringLabel : discoverLabel}
-          </Button>
-        </div>
+        <LabeledInputRow
+          label={label}
+          name="feed-url"
+          type="url"
+          value={value}
+          onChange={onValueChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          inputRef={inputRef}
+          labelClassName="text-foreground-soft"
+          rowClassName="border-b-0 py-0"
+          controlClassName="sm:max-w-none"
+          ariaDescribedBy={helperText ? helperTextId : undefined}
+          ariaErrorMessage={helperTone === "error" ? helperTextId : undefined}
+          ariaInvalid={helperTone === "error"}
+          actionLabel={discovering ? discoveringLabel : discoverLabel}
+          actionAriaLabel={discovering ? discoveringLabel : discoverLabel}
+          actionVariant="outline"
+          actionSize="sm"
+          actionClassName="min-w-24 shrink-0"
+          actionDisabled={discoverDisabled}
+          onAction={onDiscover}
+        />
       </div>
 
       {discoveredFeedOptions.length > 0 && discoveredFeedsFoundLabel && (
