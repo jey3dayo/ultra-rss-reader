@@ -1,8 +1,12 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window-events";
 import type { UseArticleListGlobalEventsParams } from "./article-list.types";
-import { bindWindowEvents } from "./use-browser-url-effect";
+
+function isArticleNavigationDirection(value: unknown): value is 1 | -1 {
+  return value === 1 || value === -1;
+}
 
 export function useArticleListGlobalEvents({
   onNavigateArticle,
@@ -10,9 +14,7 @@ export function useArticleListGlobalEvents({
   onMarkAllRead,
 }: UseArticleListGlobalEventsParams) {
   useEffect(() => {
-    const handler = (event: Event) => {
-      onNavigateArticle((event as CustomEvent<1 | -1>).detail);
-    };
+    const handler = createCustomEventDetailListener(isArticleNavigationDirection, onNavigateArticle);
 
     return bindWindowEvents([{ type: APP_EVENTS.navigateArticle, listener: handler }]);
   }, [onNavigateArticle]);
