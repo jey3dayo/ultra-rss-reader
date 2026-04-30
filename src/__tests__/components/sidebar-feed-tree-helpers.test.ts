@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
   buildSidebarFeedTreeFolders,
+  getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
 } from "@/components/reader/sidebar-feed-tree-helpers";
 
@@ -49,6 +50,12 @@ const feeds: FeedDto[] = [
 const feedsByFolder = new Map<string, FeedDto[]>([["folder-1", feeds.filter((feed) => feed.folder_id === "folder-1")]]);
 
 describe("getVisibleSidebarFeedTreeData", () => {
+  it("sorts feeds before applying the unread filter", () => {
+    expect(
+      getVisibleSidebarFeeds(feeds, "unread", (candidateFeeds) => [...candidateFeeds].reverse()).map((feed) => feed.id),
+    ).toEqual(["feed-c", "feed-a"]);
+  });
+
   it("builds ordered ids from visible folder and unfoldered feeds", () => {
     const result = getVisibleSidebarFeedTreeData({
       sortedFolderList: folders,
