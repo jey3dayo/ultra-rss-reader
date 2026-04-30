@@ -127,6 +127,16 @@ describe("CommandPalette", () => {
     expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
   });
 
+  it("falls back to the normal action list when recent history entries are stale", async () => {
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:removed-action", "feed:feed-1"]));
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+  });
+
   it("renders the no-results helper in foreground-soft tone", async () => {
     const user = userEvent.setup();
 
@@ -172,6 +182,28 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(executeAction).toHaveBeenCalledWith("open-settings");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
+  it("filters to tag results for the tag prefix and selects the tag", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, "#lat");
+
+    expect(await screen.findByText("Tags", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Later/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open settings/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("option", { name: /Later/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["tag:tag-1"]));
     });
   });
 
