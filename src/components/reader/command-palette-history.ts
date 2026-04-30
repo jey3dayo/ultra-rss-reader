@@ -1,4 +1,4 @@
-import type { AppAction } from "@/lib/actions";
+import { type AppAction, isAppAction } from "@/lib/actions";
 
 export type CommandPaletteHistoryEntry =
   | { kind: "action"; id: AppAction }
@@ -24,15 +24,11 @@ export function parseCommandPaletteHistoryEntry(value: string): CommandPaletteHi
     }
 
     const id = value.slice(prefix.length);
-    return kind === "action"
-      ? {
-          kind,
-          id: id as AppAction,
-        }
-      : {
-          kind,
-          id,
-        };
+    if (kind === "action") {
+      return isAppAction(id) ? { kind, id } : null;
+    }
+
+    return { kind, id };
   }
 
   return null;

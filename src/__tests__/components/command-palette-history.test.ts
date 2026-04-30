@@ -27,6 +27,7 @@ describe("command-palette-history", () => {
   it("returns null for unsupported values", () => {
     expect(parseCommandPaletteHistoryEntry("unknown:value")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("action")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("action:removed-action")).toBeNull();
   });
 
   it("formats history values from structured entries", () => {
