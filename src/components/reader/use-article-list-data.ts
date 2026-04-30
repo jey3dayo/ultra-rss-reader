@@ -3,6 +3,8 @@ import {
   buildArticleListFeedNameMap,
   buildFolderFeedIdSet,
   groupArticles,
+  resolveArticleListEffectiveViewMode,
+  resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/article-list";
 import type { UseArticleListDataParams, UseArticleListDataResult } from "./article-list.types";
@@ -28,28 +30,16 @@ export function useArticleListData({
   groupBy,
 }: UseArticleListDataParams): UseArticleListDataResult {
   const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
-    if (smartViewKind === "unread") {
-      return "unread";
-    }
-
-    if (smartViewKind === "starred") {
-      return viewMode === "unread" ? "unread" : "all";
-    }
-
-    return viewMode;
+    return resolveArticleListEffectiveViewMode(smartViewKind, viewMode);
   }, [smartViewKind, viewMode]);
 
   const effectiveRetainedArticleIds = useMemo(() => {
-    if (
-      selection.type === "smart" &&
-      selection.kind === "starred" &&
-      effectiveViewMode === "all" &&
-      selectedArticleId
-    ) {
-      return new Set([...retainedArticleIds, selectedArticleId]);
-    }
-
-    return retainedArticleIds;
+    return resolveEffectiveRetainedArticleIds({
+      selection,
+      effectiveViewMode,
+      retainedArticleIds,
+      selectedArticleId,
+    });
   }, [effectiveViewMode, retainedArticleIds, selectedArticleId, selection]);
 
   const feedNameMap = useMemo(() => {

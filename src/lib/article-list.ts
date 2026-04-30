@@ -65,6 +65,13 @@ export type ArticleListMarkAllReadCountParams = {
   filteredArticles: ArticleDto[];
 };
 
+export type ArticleListSelectionForDerivedState =
+  | { type: "all" }
+  | { type: "feed"; feedId: string }
+  | { type: "folder"; folderId: string }
+  | { type: "tag"; tagId: string }
+  | { type: "smart"; kind: "unread" | "starred" | "recent" };
+
 function getDateGroup(dateStr: string): string {
   const date = parseDateInput(dateStr);
   if (date === null) {
@@ -294,6 +301,35 @@ export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllRea
   }
 
   return getUnreadArticleIds(filteredArticles).length;
+}
+
+export function resolveArticleListEffectiveViewMode(
+  smartViewKind: "unread" | "starred" | "recent" | null,
+  viewMode: ViewMode,
+): ViewMode {
+  if (smartViewKind === "unread") {
+    return "unread";
+  }
+
+  if (smartViewKind === "starred") {
+    return viewMode === "unread" ? "unread" : "all";
+  }
+
+  return viewMode;
+}
+
+export function resolveEffectiveRetainedArticleIds(params: {
+  selection: ArticleListSelectionForDerivedState;
+  effectiveViewMode: ViewMode;
+  retainedArticleIds: ReadonlySet<string>;
+  selectedArticleId: string | null;
+}): ReadonlySet<string> {
+  const { selection, effectiveViewMode, retainedArticleIds, selectedArticleId } = params;
+  if (selection.type === "smart" && selection.kind === "starred" && effectiveViewMode === "all" && selectedArticleId) {
+    return new Set([...retainedArticleIds, selectedArticleId]);
+  }
+
+  return retainedArticleIds;
 }
 
 export function groupArticles(params: GroupArticlesParams): Record<string, ArticleDto[]> {
