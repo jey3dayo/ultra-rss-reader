@@ -9,6 +9,7 @@ import {
   getFeedIntegrityReport,
   getPlatformInfo,
   listStarredArticles,
+  testAccountConnection,
 } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
@@ -87,6 +88,14 @@ describe("setupDevMocks", () => {
       error_count: 0,
       next_retry_at: null,
     });
+  });
+
+  it("returns the requested account for browser-only connection checks", async () => {
+    setupDevMocks();
+
+    const account = Result.unwrap(await testAccountConnection("acc-local"));
+
+    expect(account.id).toBe("acc-local");
   });
 
   it("returns starred counts and articles in browser-only mode", async () => {

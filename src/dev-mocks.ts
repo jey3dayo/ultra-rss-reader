@@ -43,6 +43,7 @@ import {
   setMuteAutoMarkReadArgs,
   setPreferenceArgs,
   tagArticleArgs,
+  testAccountConnectionArgs,
   toggleArticleStarArgs,
   untagArticleArgs,
   updateAccountSyncArgs,
@@ -183,12 +184,10 @@ export function setupDevMocks() {
         return target ?? null;
       }
 
-      case "test_account_connection":
-        return (
-          mockAccounts.find((account) => account.id === (payload as { accountId?: string } | null)?.accountId) ??
-          mockAccounts[0] ??
-          null
-        );
+      case "test_account_connection": {
+        const { accountId } = testAccountConnectionArgs.parse(payload);
+        return mockAccounts.find((account) => account.id === accountId) ?? mockAccounts[0] ?? null;
+      }
 
       case "delete_account": {
         const { accountId } = deleteAccountArgs.parse(payload);
