@@ -59,6 +59,21 @@ export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, Accoun
 
 AccountSwitcherTriggerButton.displayName = "AccountSwitcherTriggerButton";
 
+function resolveSelectedAccountViewModel(
+  accounts: AccountSwitcherProps["accounts"],
+  selectedAccountId: string | null,
+): {
+  selectedAccountName: string | null;
+  selectedIndex: number;
+} {
+  const selectedIndex = accounts.findIndex((account) => account.id === selectedAccountId);
+
+  return {
+    selectedAccountName: selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null,
+    selectedIndex,
+  };
+}
+
 export function AccountSwitcherView({
   title,
   lastSyncedLabel,
@@ -74,23 +89,22 @@ export function AccountSwitcherView({
   onSelectAccount,
   onClose,
 }: AccountSwitcherProps) {
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
+  const { selectedAccountName, selectedIndex } = resolveSelectedAccountViewModel(accounts, selectedAccountId);
   const hasMultipleAccounts = accounts.length > 1;
 
   useEffect(() => {
     if (!isExpanded || accounts.length === 0) return;
 
     requestAnimationFrame(() => {
-      const selectedIndex = accounts.findIndex((account) => account.id === selectedAccountId);
       focusAccountItem(itemRefs, accounts.length, selectedIndex >= 0 ? selectedIndex : 0);
     });
-  }, [accounts, isExpanded, itemRefs, selectedAccountId]);
+  }, [accounts, isExpanded, itemRefs, selectedIndex]);
 
   return (
     <div className="relative px-5 pt-4 pb-4">
       <AccountSwitcherTriggerButton
         ref={triggerRef}
-        accountName={selectedAccount?.name ?? title}
+        accountName={selectedAccountName ?? title}
         controlsId={menuId}
         hasMultipleAccounts={hasMultipleAccounts}
         isExpanded={isExpanded}
