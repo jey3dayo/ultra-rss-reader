@@ -1,4 +1,9 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import {
+  resolveFeedDisplayPreset,
+  resolveFeedDisplayPresetLabel,
+  type FeedDisplayPresetOption,
+} from "@/lib/article-display";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -260,6 +265,25 @@ export function resolveSelectedSubscriptionDetailMetrics(params: {
 }): SubscriptionDetailMetrics | null {
   const { selectedRow, articles } = params;
   return selectedRow ? buildSubscriptionDetailMetrics({ feed: selectedRow.feed, articles }) : null;
+}
+
+export function resolveSelectedSubscriptionDisplayModeLabel(params: {
+  selectedRow: SubscriptionListRow | null;
+  labels: {
+    default: string;
+    standard: string;
+    preview: string;
+  };
+}): string {
+  const { selectedRow, labels } = params;
+  if (!selectedRow) {
+    return labels.default;
+  }
+
+  return resolveFeedDisplayPresetLabel({
+    preset: resolveFeedDisplayPreset(selectedRow.feed) as FeedDisplayPresetOption,
+    labels,
+  });
 }
 
 export function buildSubscriptionListGroups(
