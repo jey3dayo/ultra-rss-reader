@@ -260,7 +260,7 @@ export type UseBrowserWebviewRequestStateParams = {
 
 export type UseBrowserWebviewSyncParams = {
   hostRef: RefObject<HTMLDivElement | null>;
-  platformKind: string;
+  platformKind: PlatformInfo["kind"];
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
   captureLayoutDiagnostics: () => void;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;

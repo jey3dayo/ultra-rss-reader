@@ -1,10 +1,11 @@
 import type { RefObject } from "react";
+import type { PlatformInfo } from "@/api/schemas";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
 
 export function resolveBrowserWebviewBounds(
   hostRef: RefObject<HTMLDivElement | null>,
-  platformKind: string,
+  platformKind: PlatformInfo["kind"],
 ): BrowserWebviewBounds | null {
   const rect = hostRef.current?.getBoundingClientRect();
   if (!rect) {
