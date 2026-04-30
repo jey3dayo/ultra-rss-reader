@@ -40,6 +40,22 @@ function toArticleTagPickerTagView(tag: { id: string; name: string; color: strin
   };
 }
 
+function buildArticleTagPickerLists(params: {
+  articleTags: Array<{ id: string; name: string; color: string | null }> | undefined;
+  allTags: Array<{ id: string; name: string; color: string | null }> | undefined;
+}): {
+  assignedTags: ArticleTagPickerTagView[];
+  availableTags: ArticleTagPickerTagView[];
+} {
+  const { articleTags, allTags } = params;
+  const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
+
+  return {
+    assignedTags: (articleTags ?? []).map(toArticleTagPickerTagView),
+    availableTags: (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView),
+  };
+}
+
 export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
   const { t } = useTranslation("reader");
   const { data: articleTags } = useArticleTags(articleId);
@@ -49,10 +65,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
   const createTagMutation = useCreateTag();
   const [state, dispatch] = useReducer(articleTagChipsReducer, initialArticleTagChipsState);
   const { showPicker, newTagName } = state;
-
-  const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
-  const assignedTags = (articleTags ?? []).map(toArticleTagPickerTagView);
-  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView);
+  const { assignedTags, availableTags } = buildArticleTagPickerLists({ articleTags, allTags });
 
   const handleCreateAndAssign = (name: string) => {
     if (!name) return;
@@ -70,7 +83,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
   return (
     <ArticleTagPickerView
       assignedTags={assignedTags}
-      availableTags={unassignedTags}
+      availableTags={availableTags}
       newTagName={newTagName}
       isExpanded={showPicker}
       labels={{
