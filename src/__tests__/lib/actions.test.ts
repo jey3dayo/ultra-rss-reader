@@ -366,13 +366,14 @@ describe("executeAction", () => {
   });
 
   describe("preference toggle actions", () => {
-    it("toggles sort_unread preference", async () => {
+    it("toggles reading_sort preference", async () => {
       const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
       const { setPref } = usePreferencesStore.getState();
+      vi.mocked(setPref).mockClear();
 
       executeAction("toggle-sort-unread");
 
-      expect(setPref).toHaveBeenCalled();
+      expect(setPref).toHaveBeenCalledWith("reading_sort", "oldest_first");
     });
 
     it("toggles group_by preference", async () => {

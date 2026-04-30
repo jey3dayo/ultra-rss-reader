@@ -226,10 +226,11 @@ export function executeAction(action: AppAction): void {
 
     // --- Preference toggles ---
     case "toggle-sort-unread": {
-      const current = usePreferencesStore.getState().prefs.sort_unread ?? "newest_first";
+      const prefs = usePreferencesStore.getState().prefs;
+      const current = prefs.reading_sort ?? prefs.sort_unread ?? "newest_first";
       usePreferencesStore
         .getState()
-        .setPref("sort_unread", current === "newest_first" ? "oldest_first" : "newest_first");
+        .setPref("reading_sort", current === "newest_first" ? "oldest_first" : "newest_first");
       break;
     }
     case "toggle-group-by-feed": {
