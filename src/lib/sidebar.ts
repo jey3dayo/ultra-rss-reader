@@ -34,5 +34,5 @@ export function sumUnreadCounts(feeds: FeedDto[] | undefined): number {
 }
 
 export function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {
-  return sumUnreadCounts((feeds ?? []).filter((feed) => feed.folder_id === folderId));
+  return (feeds ?? []).reduce((sum, feed) => (feed.folder_id === folderId ? sum + feed.unread_count : sum), 0);
 }
