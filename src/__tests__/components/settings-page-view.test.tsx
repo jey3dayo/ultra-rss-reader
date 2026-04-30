@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 
@@ -100,5 +101,51 @@ describe("SettingsPageView", () => {
     expect(screen.getByText("Storage backend")).toBeInTheDocument();
     expect(screen.getByText("OS keyring")).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Storage backend" })).toBeNull();
+  });
+
+  it("uses the shared labeled input row for text controls with inline actions", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const onAction = vi.fn();
+
+    render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "profile",
+            heading: "Profile",
+            controls: [
+              {
+                id: "display-name",
+                type: "text",
+                name: "display_name",
+                label: "Display name",
+                value: "Main reader",
+                placeholder: "Main reader",
+                onChange,
+                actionLabel: "Reset",
+                onAction,
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Display name" });
+    expect(input).toHaveValue("Main reader");
+    expect(input).toHaveClass("h-10", "flex-1");
+    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+
+    const action = screen.getByRole("button", { name: "Reset: Display name" });
+    expect(action).toHaveClass("h-10", "px-4");
+
+    await user.clear(input);
+    await user.type(input, "Reader");
+    await user.click(action);
+
+    expect(onChange).toHaveBeenCalled();
+    expect(onAction).toHaveBeenCalledTimes(1);
   });
 });

@@ -939,14 +939,29 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
       note="Input / select / switch は既存の labeled row を再利用し、注釈は短く添える。"
     >
       <LabeledInputRow
-        label="Feed URL"
-        name="feed_url"
-        value="https://example.com/feed.xml"
+        label="Display name"
+        name="display_name"
+        value="Main reader"
         onChange={() => {}}
-        placeholder="https://example.com/feed.xml"
+        placeholder="Main reader"
+        controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
+        inputClassName="h-10 flex-1"
+        actionLabel="Reset"
+        actionClassName="h-10 px-4 text-sm font-medium"
+        onAction={() => {}}
+        actionDisabled={false}
+      />
+      <LabeledInputRow
+        label="Tag name"
+        name="tag_name"
+        value="News"
+        onChange={() => {}}
+        placeholder="News"
         controlClassName="flex-col items-stretch sm:flex-row sm:items-center"
-        actionLabel="Fetch"
-        actionClassName="w-full justify-center sm:w-auto"
+        inputClassName="h-10 flex-1"
+        actionLabel="Create"
+        actionAriaLabel="Create"
+        actionClassName="h-10 w-full justify-center px-4 text-sm font-medium sm:w-auto"
         onAction={() => {}}
         actionDisabled={false}
       />
