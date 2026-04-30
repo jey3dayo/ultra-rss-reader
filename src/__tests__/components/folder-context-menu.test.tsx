@@ -46,6 +46,31 @@ vi.mock("@/hooks/use-update-feed-display-mode", () => ({
 }));
 
 describe("FolderContextMenuContent", () => {
+  it("confirms marking every folder feed as read", async () => {
+    const user = userEvent.setup();
+    const folder: FolderDto = {
+      id: "folder-1",
+      account_id: "acc-1",
+      name: "Work",
+      sort_order: 0,
+    };
+
+    render(
+      <ContextMenu.Root open>
+        <FolderContextMenuContent folder={folder} folderUnread={6} feeds={[]} />
+      </ContextMenu.Root>,
+    );
+
+    await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
+
+    expect(confirmMarkAllReadMock).toHaveBeenCalledWith({
+      count: 6,
+      onConfirm: expect.any(Function),
+    });
+    confirmMarkAllReadMock.mock.calls[0]?.[0].onConfirm();
+    expect(markFolderReadMutate).toHaveBeenCalledWith("folder-1");
+  });
+
   it("applies the selected display preset to every feed in the folder", async () => {
     const user = userEvent.setup();
     const folder: FolderDto = {

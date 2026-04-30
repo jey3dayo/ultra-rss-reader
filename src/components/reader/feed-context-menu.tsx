@@ -37,6 +37,19 @@ const initialFeedContextMenuState: FeedContextMenuState = {
   showUnsubscribeDialog: false,
 };
 
+function buildFeedMarkAllReadConfirmation(params: {
+  feedId: string;
+  unreadCount: number;
+  markFeedRead: { mutate: (feedId: string) => void };
+}) {
+  const { feedId, unreadCount, markFeedRead } = params;
+
+  return {
+    count: unreadCount,
+    onConfirm: () => markFeedRead.mutate(feedId),
+  };
+}
+
 function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContextMenuAction): FeedContextMenuState {
   switch (action.type) {
     case "set-rename-dialog":
@@ -79,10 +92,13 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   }, [feed.site_url, feed.url]);
 
   const handleMarkAllRead = useCallback(() => {
-    confirmMarkAllRead({
-      count: feed.unread_count,
-      onConfirm: () => markFeedRead.mutate(feed.id),
-    });
+    confirmMarkAllRead(
+      buildFeedMarkAllReadConfirmation({
+        feedId: feed.id,
+        unreadCount: feed.unread_count,
+        markFeedRead,
+      }),
+    );
   }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);
 
   const handleSetDisplayPreset = useCallback(

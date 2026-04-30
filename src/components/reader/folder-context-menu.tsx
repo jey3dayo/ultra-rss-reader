@@ -18,6 +18,19 @@ export type FolderContextMenuContentProps = {
   feeds: FeedDto[];
 };
 
+function buildFolderMarkAllReadConfirmation(params: {
+  folderId: string;
+  unreadCount: number;
+  markFolderRead: { mutate: (folderId: string) => void };
+}) {
+  const { folderId, unreadCount, markFolderRead } = params;
+
+  return {
+    count: unreadCount,
+    onConfirm: () => markFolderRead.mutate(folderId),
+  };
+}
+
 export function FolderContextMenuContent({ folder, folderUnread, feeds }: FolderContextMenuContentProps) {
   const { t } = useTranslation("reader");
   const confirmMarkAllRead = useConfirmMarkAllRead();
@@ -31,10 +44,13 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
   });
 
   const handleMarkAllRead = useCallback(() => {
-    confirmMarkAllRead({
-      count: folderUnread,
-      onConfirm: () => markFolderRead.mutate(folder.id),
-    });
+    confirmMarkAllRead(
+      buildFolderMarkAllReadConfirmation({
+        folderId: folder.id,
+        unreadCount: folderUnread,
+        markFolderRead,
+      }),
+    );
   }, [confirmMarkAllRead, folder.id, folderUnread, markFolderRead]);
 
   const handleSetDisplayPreset = useCallback(
