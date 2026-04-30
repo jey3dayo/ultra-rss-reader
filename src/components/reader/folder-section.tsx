@@ -1,6 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { MotionNumber } from "@/components/shared/motion-number";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FeedItem, FeedItemView } from "./feed-item";
 import { FolderContextMenuContent } from "./folder-context-menu";
@@ -37,7 +38,7 @@ function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: F
         {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         <span className="font-medium">{folderName}</span>
       </div>
-      {folderUnread > 0 && <span className="text-foreground-soft tabular-nums">{folderUnread.toLocaleString()}</span>}
+      {folderUnread > 0 && <MotionNumber value={folderUnread.toLocaleString()} className="text-foreground-soft" />}
     </>
   );
 }
