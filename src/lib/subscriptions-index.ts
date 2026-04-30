@@ -1,9 +1,4 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import {
-  resolveFeedDisplayPreset,
-  resolveFeedDisplayPresetLabel,
-  type FeedDisplayPresetOption,
-} from "@/lib/article-display";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -12,6 +7,7 @@ import type {
   SubscriptionSummaryCard,
   SubscriptionSummaryFilterKey,
 } from "@/components/subscriptions-index/subscriptions-index.types";
+import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
 import { compareDateInputsAsc, formatMediumDate, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
 import {
@@ -281,7 +277,7 @@ export function resolveSelectedSubscriptionDisplayModeLabel(params: {
   }
 
   return resolveFeedDisplayPresetLabel({
-    preset: resolveFeedDisplayPreset(selectedRow.feed) as FeedDisplayPresetOption,
+    preset: resolveFeedDisplayPreset(selectedRow.feed),
     labels,
   });
 }
