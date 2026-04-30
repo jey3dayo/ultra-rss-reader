@@ -8,7 +8,7 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory, disabled =
   return (
     <nav
       aria-label={ariaLabel}
-      className="flex gap-2 overflow-x-auto px-3 py-2.5 sm:block sm:space-y-1 sm:overflow-visible sm:p-2 sm:pb-4"
+      className="flex flex-wrap gap-2 overflow-visible px-3 py-2.5 sm:block sm:space-y-1 sm:p-2 sm:pb-4"
     >
       {items.map((item) => (
         <NavRowButton
@@ -19,7 +19,7 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory, disabled =
           disabled={disabled}
           onClick={() => onSelectCategory(item.id)}
           className={cn(
-            "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] font-medium leading-[1.25] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
+            "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] font-medium leading-[1.25] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
             item.isActive &&
               "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-[var(--sidebar-selection-inset-shadow)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
           )}

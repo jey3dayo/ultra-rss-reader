@@ -39,8 +39,10 @@ describe("SettingsNavView", () => {
     expect(screen.getByText("A").parentElement).toHaveClass("w-5");
     expect(screen.getByText("A").parentElement).toHaveClass("text-sidebar-foreground/44");
     expect(appearanceButton).toHaveAttribute("aria-pressed", "false");
+    expect(appearanceButton).toHaveClass("w-auto");
     expect(screen.getByRole("navigation")).toHaveClass("flex");
-    expect(screen.getByRole("navigation")).toHaveClass("overflow-x-auto");
+    expect(screen.getByRole("navigation")).toHaveClass("flex-wrap");
+    expect(screen.getByRole("navigation")).toHaveClass("overflow-visible");
 
     fireEvent.click(appearanceButton);
 

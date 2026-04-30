@@ -95,8 +95,10 @@ describe("AccountsNavView", () => {
     expect(freshRssButton.querySelector("span")?.className).toContain("w-7");
     expect(debugButton.querySelector("span")?.className).toContain("bg-surface-1/72");
     expect(within(freshRssButton).getByText("alice")).toHaveClass("text-sidebar-foreground/38");
+    expect(localButton).toHaveClass("w-auto");
     expect(localButton.parentElement).toHaveClass("flex");
-    expect(localButton.parentElement).toHaveClass("overflow-x-auto");
+    expect(localButton.parentElement).toHaveClass("flex-wrap");
+    expect(localButton.parentElement).toHaveClass("overflow-visible");
 
     fireEvent.click(freshRssButton);
     fireEvent.click(addAccountButton);

@@ -102,7 +102,7 @@ const FILTER_ITEMS = [
 
 const REFERENCE_FILTER_TONE_CLASSNAMES = {
   unread:
-    "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))]",
+    "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[var(--semantic-tone-unread-sidebar-foreground)]",
   all: "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[var(--sidebar-pressed-surface)] data-[pressed]:text-sidebar-foreground",
   starred:
     "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))]",
@@ -1825,7 +1825,7 @@ export function MotionTransitionsSpecimen() {
             <div className="flex h-full min-w-[250px] flex-col justify-between p-4">
               <div>
                 <div className="mb-1 text-sm font-medium text-foreground">Account pane</div>
-                <p className="max-w-[18rem] font-serif text-xs leading-[1.45] text-foreground/62">
+                <p className="max-w-[18rem] font-serif text-xs leading-[1.45] text-foreground/72">
                   Width and height changes share the same measured desktop rhythm.
                 </p>
               </div>
