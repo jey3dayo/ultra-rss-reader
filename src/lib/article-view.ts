@@ -49,6 +49,26 @@ export type ArticleViewSummaryState =
       latestArticlePublishedAt?: string | null;
     };
 
+type ArticleViewSummaryStats = {
+  articleCount: number;
+  feedCount: number;
+  latestArticlePublishedAt: string | null;
+};
+
+function buildArticleViewSummaryStats(filteredArticles: ArticleDto[]): ArticleViewSummaryStats {
+  const visibleFeedIds = new Set(filteredArticles.map((article) => article.feed_id));
+  const latestVisibleArticleResult = findLatestArticle(filteredArticles);
+  const latestVisibleArticle = Result.isSuccess(latestVisibleArticleResult)
+    ? Result.unwrap(latestVisibleArticleResult)
+    : null;
+
+  return {
+    articleCount: filteredArticles.length,
+    feedCount: visibleFeedIds.size,
+    latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+  };
+}
+
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
   const { selectedArticleId, feedId, tagId, articles, accountArticles, tagArticles } = params;
 
@@ -184,11 +204,7 @@ export function buildArticleViewSummary(params: {
     return undefined;
   }
 
-  const visibleFeedIds = new Set(filteredArticles.map((article) => article.feed_id));
-  const latestVisibleArticleResult = findLatestArticle(filteredArticles);
-  const latestVisibleArticle = Result.isSuccess(latestVisibleArticleResult)
-    ? Result.unwrap(latestVisibleArticleResult)
-    : null;
+  const summaryStats = buildArticleViewSummaryStats(filteredArticles);
 
   if (selection.type === "feed") {
     const feed = selectedFeedId ? feeds?.find((candidate) => candidate.id === selectedFeedId) : undefined;
@@ -216,7 +232,7 @@ export function buildArticleViewSummary(params: {
       folder,
       feedCount: countFeedsInFolder(feeds, folder.id),
       unreadCount: countUnreadArticles(filteredArticles),
-      latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+      latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
     };
   }
 
@@ -229,17 +245,13 @@ export function buildArticleViewSummary(params: {
     return {
       kind: "tag",
       tag,
-      articleCount: filteredArticles.length,
-      feedCount: visibleFeedIds.size,
-      latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+      ...summaryStats,
     };
   }
 
   return {
     kind: "smart",
     smartKind: selection.kind,
-    articleCount: filteredArticles.length,
-    feedCount: visibleFeedIds.size,
-    latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+    ...summaryStats,
   };
 }
