@@ -3,11 +3,12 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { MotionNumber } from "@/components/shared/motion-number";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { sumUnreadCounts } from "@/lib/sidebar";
 import { FeedItem, FeedItemView } from "./feed-item";
 import { FolderContextMenuContent } from "./folder-context-menu";
 
 function getFolderUnreadCount(feeds: FeedDto[]) {
-  return feeds.reduce((sum, feed) => sum + feed.unread_count, 0);
+  return sumUnreadCounts(feeds);
 }
 
 export type FolderSectionViewProps = {

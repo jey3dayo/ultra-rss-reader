@@ -16,6 +16,7 @@ import {
 import { resolveSiteHostLabel } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";
+import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
@@ -36,19 +37,6 @@ const initialFeedContextMenuState: FeedContextMenuState = {
   showRenameDialog: false,
   showUnsubscribeDialog: false,
 };
-
-function buildFeedMarkAllReadConfirmation(params: {
-  feedId: string;
-  unreadCount: number;
-  markFeedRead: { mutate: (feedId: string) => void };
-}) {
-  const { feedId, unreadCount, markFeedRead } = params;
-
-  return {
-    count: unreadCount,
-    onConfirm: () => markFeedRead.mutate(feedId),
-  };
-}
 
 function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContextMenuAction): FeedContextMenuState {
   switch (action.type) {
@@ -96,7 +84,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       buildFeedMarkAllReadConfirmation({
         feedId: feed.id,
         unreadCount: feed.unread_count,
-        markFeedRead,
+        onConfirmRead: (feedId) => markFeedRead.mutate(feedId),
       }),
     );
   }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);

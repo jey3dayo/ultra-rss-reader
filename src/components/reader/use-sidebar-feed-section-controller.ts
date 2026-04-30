@@ -3,6 +3,7 @@ import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "./sidebar-feed-section.types";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
@@ -10,19 +11,6 @@ import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
 import { useSidebarFeedTreeProps } from "./use-sidebar-feed-tree-props";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
-
-function buildFeedMarkAllReadConfirmation(params: {
-  feedId: string;
-  unreadCount: number;
-  markFeedRead: (feedId: string) => void;
-}) {
-  const { feedId, unreadCount, markFeedRead } = params;
-
-  return {
-    count: unreadCount,
-    onConfirm: () => markFeedRead(feedId),
-  };
-}
 
 export function useSidebarFeedSectionController({
   selectedAccountId,
@@ -110,7 +98,7 @@ export function useSidebarFeedSectionController({
         buildFeedMarkAllReadConfirmation({
           feedId: feed.id,
           unreadCount: feed.unreadCount,
-          markFeedRead,
+          onConfirmRead: markFeedRead,
         }),
       );
     },
