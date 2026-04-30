@@ -96,11 +96,10 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     Result.pipe(
       await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
       Result.inspectError((e) => {
-        const appError = e as { type?: string; message: string };
         let message: string;
-        if (appError.type === "Retryable") {
+        if (e.type === "Retryable") {
           message = t("account.error_network");
-        } else if (appError.message.toLowerCase().includes("auth")) {
+        } else if (e.message.toLowerCase().includes("auth")) {
           message = t("account.error_auth");
           if (kind === "FreshRss") {
             message += `\n${t("account.error_auth_hint_freshrss")}`;
