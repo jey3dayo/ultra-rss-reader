@@ -22,11 +22,47 @@ type WorkspaceHeaderProps = {
   actions?: ReactNode;
 };
 
+type WorkspaceHeaderMotionTextVariant = "eyebrow" | "title" | "subtitle";
+
+type WorkspaceHeaderMotionTextProps = {
+  as: "h1" | "p";
+  children: ReactNode;
+  phase: MotionPhase;
+  variant: WorkspaceHeaderMotionTextVariant;
+  className?: string;
+  testId?: string;
+};
+
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
 const MAC_OVERLAY_TITLE_OFFSET_PX = 24;
 
+const WORKSPACE_HEADER_MOTION_TEXT_CLASS_NAMES: Record<WorkspaceHeaderMotionTextVariant, string> = {
+  eyebrow: "font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase",
+  title: "font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground",
+  subtitle: "max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft",
+};
+
 export const workspaceHeaderActionClassName =
   "h-7 rounded-md border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
+
+function WorkspaceHeaderMotionText({
+  as: Component,
+  children,
+  phase,
+  variant,
+  className,
+  testId,
+}: WorkspaceHeaderMotionTextProps) {
+  return (
+    <Component
+      data-testid={testId}
+      data-motion-phase={phase}
+      className={cn(MOTION_CONTENT_SWAP_CLASS_NAME, WORKSPACE_HEADER_MOTION_TEXT_CLASS_NAMES[variant], className)}
+    >
+      {children}
+    </Component>
+  );
+}
 
 export function WorkspaceHeader({
   eyebrow,
@@ -136,12 +172,9 @@ export function WorkspaceHeader({
               ) : null
             ) : null}
             {showEyebrowInTopRow ? (
-              <p
-                data-motion-phase={contentMotionPhase}
-                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase`}
-              >
+              <WorkspaceHeaderMotionText as="p" phase={contentMotionPhase} variant="eyebrow">
                 {eyebrow}
-              </p>
+              </WorkspaceHeaderMotionText>
             ) : null}
           </div>
           <div data-testid="workspace-header-actions" className="relative z-30 flex shrink-0 items-center gap-2">
@@ -182,12 +215,9 @@ export function WorkspaceHeader({
                   useDesktopOverlay && "pointer-events-none",
                 )}
               >
-                <p
-                  data-motion-phase={contentMotionPhase}
-                  className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase`}
-                >
+                <WorkspaceHeaderMotionText as="p" phase={contentMotionPhase} variant="eyebrow">
                   {eyebrow}
-                </p>
+                </WorkspaceHeaderMotionText>
               </div>
             </div>
           ) : null}
@@ -219,33 +249,26 @@ export function WorkspaceHeader({
                 data-testid="workspace-header-title-drag-content"
                 className={cn("min-w-0 flex-1", useDesktopOverlay && "pointer-events-none")}
               >
-                <h1
-                  data-motion-phase={contentMotionPhase}
-                  className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground`}
-                >
+                <WorkspaceHeaderMotionText as="h1" phase={contentMotionPhase} variant="title">
                   {title}
-                </h1>
+                </WorkspaceHeaderMotionText>
               </div>
             </div>
           ) : (
-            <h1
-              data-motion-phase={contentMotionPhase}
-              className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground`}
-            >
+            <WorkspaceHeaderMotionText as="h1" phase={contentMotionPhase} variant="title">
               {title}
-            </h1>
+            </WorkspaceHeaderMotionText>
           )}
           <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
-            <p
-              data-testid="workspace-header-subtitle-content"
-              data-motion-phase={contentMotionPhase}
-              className={cn(
-                `${MOTION_CONTENT_SWAP_CLASS_NAME} max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft`,
-                useDesktopOverlay && "pointer-events-none",
-              )}
+            <WorkspaceHeaderMotionText
+              as="p"
+              phase={contentMotionPhase}
+              variant="subtitle"
+              testId="workspace-header-subtitle-content"
+              className={cn(useDesktopOverlay && "pointer-events-none")}
             >
               {subtitle}
-            </p>
+            </WorkspaceHeaderMotionText>
           </div>
         </div>
       </div>
