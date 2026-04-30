@@ -9,8 +9,10 @@ import {
   feedModesToDisplayPresetOption,
   isArticleDisplayPreset,
   isFeedDisplayPresetOption,
+  isTriStateDisplayMode,
   modesToDisplayPreset,
   resolveArticleDisplay,
+  resolveFeedDisplayOverrides,
   resolveFeedDisplayPresetLabel,
   resolveFolderDisplayPreset,
 } from "@/lib/article-display";
@@ -130,6 +132,25 @@ describe("article-display preset conversions", () => {
     expect(isArticleDisplayPreset("preview")).toBe(true);
     expect(isArticleDisplayPreset("default")).toBe(false);
     expect(isArticleDisplayPreset("custom")).toBe(false);
+  });
+
+  it("narrows unknown values to tri-state display modes", () => {
+    expect(isTriStateDisplayMode("inherit")).toBe(true);
+    expect(isTriStateDisplayMode("on")).toBe(true);
+    expect(isTriStateDisplayMode("off")).toBe(true);
+    expect(isTriStateDisplayMode("default")).toBe(false);
+    expect(isTriStateDisplayMode(null)).toBe(false);
+  });
+
+  it("falls feed display overrides back to inherit when persisted values are invalid", () => {
+    expect(resolveFeedDisplayOverrides({ reader_mode: "on", web_preview_mode: "off" })).toEqual({
+      readerMode: "on",
+      webPreviewMode: "off",
+    });
+    expect(resolveFeedDisplayOverrides({ reader_mode: "on", web_preview_mode: "custom" })).toEqual({
+      readerMode: "inherit",
+      webPreviewMode: "inherit",
+    });
   });
 });
 

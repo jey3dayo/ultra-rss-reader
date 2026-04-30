@@ -98,10 +98,7 @@ export function resolveFeedDisplayOverrides(feed: FeedLikeDisplaySettings | null
 
   const readerMode = feed.reader_mode;
   const webPreviewMode = feed.web_preview_mode;
-  if (
-    (readerMode === "inherit" || readerMode === "on" || readerMode === "off") &&
-    (webPreviewMode === "inherit" || webPreviewMode === "on" || webPreviewMode === "off")
-  ) {
+  if (isTriStateDisplayMode(readerMode) && isTriStateDisplayMode(webPreviewMode)) {
     return {
       readerMode,
       webPreviewMode,
@@ -198,6 +195,10 @@ export function isFeedDisplayPresetOption(value: string): value is FeedDisplayPr
 
 export function isArticleDisplayPreset(value: string): value is ArticleDisplayPreset {
   return value === "standard" || value === "preview";
+}
+
+export function isTriStateDisplayMode(value: string | null | undefined): value is TriStateDisplayMode {
+  return value === "inherit" || value === "on" || value === "off";
 }
 
 function booleanToPreferenceValue(value: boolean): PreferenceBooleanValue {
