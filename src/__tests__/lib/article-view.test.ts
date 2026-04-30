@@ -1,12 +1,14 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
+import type { FolderDto } from "@/api/tauri-commands";
 import {
+  buildArticleViewSummary,
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/article-view";
-import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
 
 describe("article-view utils", () => {
   it("resolves the selected article from feed articles", () => {
@@ -150,5 +152,43 @@ describe("resolveArticleDateLocale", () => {
   it("falls back unsupported locales to en", () => {
     expect(resolveArticleDateLocale("zh-CN")).toBe("en");
     expect(resolveArticleDateLocale(undefined)).toBe("en");
+  });
+});
+
+describe("buildArticleViewSummary", () => {
+  it("counts folder feeds and unread visible articles for folder summaries", () => {
+    const folders: FolderDto[] = [
+      {
+        id: "folder-1",
+        account_id: "acc-1",
+        name: "Work",
+        sort_order: 0,
+      },
+    ];
+    const folderFeeds = sampleFeeds.map((feed, index) => ({
+      ...feed,
+      folder_id: index < 2 ? "folder-1" : "folder-other",
+    }));
+    const filteredArticles = [
+      { ...sampleArticles[0], is_read: false, published_at: "2026-03-01T10:00:00Z" },
+      { ...sampleArticles[1], is_read: true, published_at: "2026-03-02T10:00:00Z" },
+    ];
+
+    expect(
+      buildArticleViewSummary({
+        selection: { type: "folder", folderId: "folder-1" },
+        selectedFeedId: null,
+        feeds: folderFeeds,
+        folders,
+        tags: [],
+        filteredArticles,
+        allFeedArticles: [],
+      }),
+    ).toMatchObject({
+      kind: "folder",
+      feedCount: 2,
+      unreadCount: 1,
+      latestArticlePublishedAt: "2026-03-02T10:00:00Z",
+    });
   });
 });
