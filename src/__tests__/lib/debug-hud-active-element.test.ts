@@ -8,7 +8,7 @@ import {
 describe("debug-hud-active-element", () => {
   it("describes null and non-element targets as none", () => {
     expect(describeDebugHudActiveElement(null)).toBe("none");
-    expect(describeDebugHudEventTarget(new Event("click"))).toBe("none");
+    expect(describeDebugHudEventTarget(new EventTarget())).toBe("none");
   });
 
   it("includes stable element metadata in the active element description", () => {
