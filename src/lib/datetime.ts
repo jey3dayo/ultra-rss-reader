@@ -1,6 +1,7 @@
 import {
   addHours as addDateFnsHours,
   addDays,
+  compareAsc,
   differenceInDays as differenceInDateFnsDays,
   isSameDay,
   isValid,
@@ -60,7 +61,7 @@ export function compareDateInputsAsc(left: DateInput, right: DateInput): number 
     return 0;
   }
 
-  return leftTime - rightTime;
+  return compareAsc(leftTime, rightTime);
 }
 
 export function getStartOfLocalDay(date: Date): Date {

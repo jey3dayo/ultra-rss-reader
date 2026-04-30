@@ -55,8 +55,8 @@ function getDateGroup(dateStr: string): string {
   const yesterday = addLocalDays(today, -1);
   const articleDate = getStartOfLocalDay(date);
 
-  if (articleDate.getTime() >= today.getTime()) return "TODAY";
-  if (articleDate.getTime() >= yesterday.getTime()) return "YESTERDAY";
+  if (compareDateInputsAsc(articleDate, today) >= 0) return "TODAY";
+  if (compareDateInputsAsc(articleDate, yesterday) >= 0) return "YESTERDAY";
   return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
