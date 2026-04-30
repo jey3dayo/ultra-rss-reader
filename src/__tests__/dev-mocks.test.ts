@@ -40,7 +40,7 @@ describe("setupDevMocks", () => {
     });
   });
 
-  it("returns a feed integrity report for browser-only feed cleanup checks", async () => {
+  it("returns an empty feed integrity report for browser-only subscription checks", async () => {
     setupDevMocks();
 
     const result = await getFeedIntegrityReport();

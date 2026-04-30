@@ -43,12 +43,12 @@ const feeds: FeedDto[] = [
     web_preview_mode: "inherit",
   },
   {
-    id: "feed-broken",
+    id: "feed-dormant",
     account_id: "acc-1",
     folder_id: null,
-    title: "Broken Feed",
-    url: "https://example.com/broken.xml",
-    site_url: "https://example.com/broken",
+    title: "Dormant Feed",
+    url: "https://example.com/dormant.xml",
+    site_url: "https://example.com/dormant",
     unread_count: 0,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
@@ -118,12 +118,12 @@ const articles: ArticleDto[] = [
     is_starred: false,
   },
   {
-    id: "art-broken-1",
-    feed_id: "feed-broken",
-    title: "Broken latest post",
-    content_sanitized: "<p>broken</p>",
+    id: "art-dormant-1",
+    feed_id: "feed-dormant",
+    title: "Dormant latest post",
+    content_sanitized: "<p>dormant</p>",
     summary: null,
-    url: "https://example.com/broken/1",
+    url: "https://example.com/dormant/1",
     author: null,
     published_at: "2026-03-15T12:00:00Z",
     thumbnail: null,
@@ -173,7 +173,7 @@ describe("subscriptions index helpers", () => {
 
     expect(
       resolveSubscriptionRowStatus({
-        candidate: candidateMap.get("feed-broken"),
+        candidate: candidateMap.get("feed-dormant"),
       }),
     ).toEqual({ tone: "medium", labelKey: "no_unread" });
   });

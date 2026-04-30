@@ -462,7 +462,7 @@ export function SemanticStateSurfaceSpecimen() {
         />
         <ReferenceSemanticStateCard
           title="Danger surface"
-          description="Destructive decisions and broken integrity states."
+          description="Destructive decisions and irreversible error states."
           chipLabel="Danger"
           chipTone="danger"
           className="border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
