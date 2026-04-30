@@ -37,6 +37,14 @@ export type RecordArticleViewMutationInput = {
   articleId: string;
 };
 
+function requireEnabledQueryValue(value: string | null, label: string): string {
+  if (!value) {
+    throw new Error(`${label} is required when the query is enabled.`);
+  }
+
+  return value;
+}
+
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
   const updateArticleArray = (current: unknown) => {
     if (!Array.isArray(current)) {
@@ -204,7 +212,7 @@ export function useArticles(feedId: string | null, options?: { unreadOnly?: bool
 
   return useQuery({
     queryKey: ["articles", feedId, { unreadOnly }],
-    queryFn: () => listArticles(feedId as string, unreadOnly).then(Result.unwrap()),
+    queryFn: () => listArticles(requireEnabledQueryValue(feedId, "feedId"), unreadOnly).then(Result.unwrap()),
     enabled: !!feedId,
   });
 }
@@ -214,7 +222,7 @@ export function useAccountArticles(accountId: string | null, options?: { unreadO
 
   return useQuery({
     queryKey: ["accountArticles", accountId, { unreadOnly }],
-    queryFn: () => listAccountArticles(accountId as string, unreadOnly).then(Result.unwrap()),
+    queryFn: () => listAccountArticles(requireEnabledQueryValue(accountId, "accountId"), unreadOnly).then(Result.unwrap()),
     enabled: !!accountId,
   });
 }
@@ -233,7 +241,7 @@ export function useFeedIntegrityReport() {
 export function useAccountStarredCount(accountId: string | null) {
   return useQuery({
     queryKey: ["accountStarredCount", accountId],
-    queryFn: () => countAccountStarredArticles(accountId as string).then(Result.unwrap()),
+    queryFn: () => countAccountStarredArticles(requireEnabledQueryValue(accountId, "accountId")).then(Result.unwrap()),
     enabled: !!accountId,
   });
 }
@@ -296,7 +304,7 @@ export const useMarkFolderRead = createMutation(markFolderRead, (qc) => invalida
 export function useSearchArticles(accountId: string | null, query: string) {
   return useQuery({
     queryKey: ["search", accountId, query],
-    queryFn: () => searchArticles(accountId as string, query).then(Result.unwrap()),
+    queryFn: () => searchArticles(requireEnabledQueryValue(accountId, "accountId"), query).then(Result.unwrap()),
     enabled: !!accountId && query.length > 0,
   });
 }

@@ -51,11 +51,19 @@ export function useTagArticleCounts(accountId: string | null | undefined) {
 
 export const useArticleTags = createQuery("articleTags", getArticleTags);
 
+function requireTagId(tagId: string | null): string {
+  if (!tagId) {
+    throw new Error("tagId is required when the query is enabled.");
+  }
+
+  return tagId;
+}
+
 export function useArticlesByTag(tagId: string | null, accountId?: string | null) {
   return useQuery({
     queryKey: ["articlesByTag", tagId, accountId],
     queryFn: () =>
-      listArticlesByTag(tagId as string, undefined, undefined, accountId ?? undefined).then(Result.unwrap()),
+      listArticlesByTag(requireTagId(tagId), undefined, undefined, accountId ?? undefined).then(Result.unwrap()),
     enabled: !!tagId,
   });
 }
