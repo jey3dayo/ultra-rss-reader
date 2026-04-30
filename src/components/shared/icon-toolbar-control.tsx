@@ -14,7 +14,7 @@ export const iconToolbarButtonClassName = cn(
 export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
   variants: {
     pressedTone: {
-      none: "",
+      none: "data-[pressed]:bg-transparent data-[pressed]:text-foreground-soft data-[pressed]:shadow-none data-[pressed]:focus-visible:bg-transparent",
       neutral:
         "data-[pressed]:bg-surface-3/88 data-[pressed]:text-foreground data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
       accent:

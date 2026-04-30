@@ -81,6 +81,8 @@ describe("ArticleToolbarView", () => {
     const previewIconSwap = previewButton.querySelector(motionIconSwapSelector);
 
     expect(readButton).toHaveClass("text-foreground-soft");
+    expect(readButton).toHaveClass("data-[pressed]:bg-transparent");
+    expect(readButton).toHaveClass("data-[pressed]:focus-visible:bg-transparent");
     expect(starButton).toHaveClass("text-foreground-soft");
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");

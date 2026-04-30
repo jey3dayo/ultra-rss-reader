@@ -177,6 +177,7 @@ export function ArticleToolbarActionStrip({
             pressed={isRead}
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
             disabled={!canToggleRead}
+            pressedTone="none"
             className="text-foreground-soft hover:text-foreground"
           >
             <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />

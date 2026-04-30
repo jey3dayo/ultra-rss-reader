@@ -239,7 +239,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 56, width: 1400, height: 844 },
+          bounds: { x: 0, y: 48, width: 1400, height: 852 },
         },
       });
     });
@@ -333,7 +333,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 70, width: 1750, height: 1055, unit: "physical" },
+          bounds: { x: 0, y: 60, width: 1750, height: 1065, unit: "physical" },
         },
       });
     });
@@ -468,7 +468,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "56px",
+      top: "48px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -500,7 +500,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "56px",
+      top: "48px",
       bottom: "0px",
     });
     expect(topRail).toBeInTheDocument();
@@ -511,7 +511,7 @@ describe("BrowserView", () => {
       left: "0px",
       right: "0px",
       top: "0px",
-      height: "56px",
+      height: "48px",
     });
     expect(host).toHaveStyle({
       left: "0px",
@@ -566,14 +566,14 @@ describe("BrowserView", () => {
       const topRail = screen.getByTestId("browser-overlay-top-rail");
 
       expectInlineStyles(stage, {
-        top: "56px",
+        top: "48px",
       });
       expectInlineStyles(topRail, {
-        height: "56px",
+        height: "48px",
       });
       expectInlineStyles(leadingAction, {
         left: "72px",
-        top: "12px",
+        top: "8px",
       });
       const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
         name: "Close Web Preview",
@@ -634,7 +634,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "56px" });
+    expect(stage).toHaveStyle({ top: "48px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -658,7 +658,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "64px",
+      top: "56px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -689,7 +689,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "64px" });
+    expect(stage).toHaveStyle({ top: "56px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -870,7 +870,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 56, width: 1400, height: 844 },
+          bounds: { x: 0, y: 48, width: 1400, height: 852 },
         },
       });
     });
@@ -889,7 +889,7 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 0, y: 56, width: 1200, height: 744 },
+          bounds: { x: 0, y: 48, width: 1200, height: 752 },
         },
       });
     });
@@ -929,7 +929,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 56, width: 1400, height: 844 },
+          bounds: { x: 0, y: 48, width: 1400, height: 852 },
         },
       });
     });
