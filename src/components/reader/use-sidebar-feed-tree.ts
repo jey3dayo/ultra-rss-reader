@@ -4,6 +4,7 @@ import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "./sidebar-feed-tree.types";
 import {
+  buildSidebarFeedTreeFolders,
   getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
@@ -60,23 +61,16 @@ export function useSidebarFeedTree({
 
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
-      sortedFolderList
-        .map((folder) => {
-          const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
-          const folderFeeds = visibleFolderFeedsById.get(folder.id) ?? [];
-          const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
-          return {
-            id: folder.id,
-            name: folder.name,
-            accountId: folder.account_id,
-            sortOrder: folder.sort_order,
-            unreadCount: folderUnread,
-            isExpanded: expandedFolderIds.has(folder.id),
-            isSelected: selectedFolderId === folder.id,
-            feeds: mapFeedsToFeedTreeViewModels(folderFeeds, { selectedFeedId, grayscaleFavicons }),
-          };
-        })
-        .filter((folder) => !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0),
+      buildSidebarFeedTreeFolders({
+        sortedFolderList,
+        feedsByFolder,
+        visibleFolderFeedsById,
+        expandedFolderIds,
+        selectedFolderId,
+        selectedFeedId,
+        grayscaleFavicons,
+        hideEmptyFoldersInCurrentView,
+      }),
     [
       expandedFolderIds,
       feedsByFolder,
