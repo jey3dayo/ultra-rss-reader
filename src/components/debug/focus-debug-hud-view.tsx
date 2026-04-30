@@ -13,6 +13,7 @@ const DEBUG_HUD_INNER_CARD_LIGHT_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-white
 const DEBUG_HUD_INNER_CARD_DARK_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-black/24`;
 const DEBUG_HUD_QUIET_BADGE_CLASS =
   "rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58";
+const DEBUG_HUD_ICON_ACTION_CLASS = "size-8 px-0";
 const DEBUG_HUD_POSITIONS = ["bottom-right", "top-left", "top-right", "bottom-left"] as const;
 
 type DebugHudPosition = (typeof DEBUG_HUD_POSITIONS)[number];
@@ -104,7 +105,12 @@ export function FocusDebugHudView({
             </div>
           </div>
           <div className="-mr-1 flex items-center gap-1">
-            <DebugHudActionButton type="button" onClick={moveHud} aria-label="Move debug HUD" className="size-8 px-0">
+            <DebugHudActionButton
+              type="button"
+              onClick={moveHud}
+              aria-label="Move debug HUD"
+              className={DEBUG_HUD_ICON_ACTION_CLASS}
+            >
               <MoveDiagonal2 className="size-3.5" />
             </DebugHudActionButton>
             <DebugHudActionButton
@@ -113,7 +119,7 @@ export function FocusDebugHudView({
               aria-label={expanded ? "Collapse debug HUD" : "Expand debug HUD"}
               aria-expanded={expanded}
               aria-controls={tracePanelId}
-              className="size-8 px-0"
+              className={DEBUG_HUD_ICON_ACTION_CLASS}
             >
               {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             </DebugHudActionButton>
@@ -122,7 +128,7 @@ export function FocusDebugHudView({
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
-              className="size-8 px-0"
+              className={DEBUG_HUD_ICON_ACTION_CLASS}
             >
               <Copy className="size-3.5" />
             </DebugHudActionButton>
@@ -130,7 +136,7 @@ export function FocusDebugHudView({
               type="button"
               aria-label="Hide debug HUD"
               onClick={onCloseClick}
-              className="size-8 px-0"
+              className={DEBUG_HUD_ICON_ACTION_CLASS}
             >
               <X className="size-3.5" />
             </DebugHudActionButton>
