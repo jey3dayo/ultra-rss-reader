@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
 import {
+  buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
+  buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
+  buildSubscriptionSummaryCards,
   buildSubscriptionsIndexSummary,
   resolveSubscriptionRowStatus,
+  resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
 
 const feeds: FeedDto[] = [
@@ -188,6 +192,95 @@ describe("subscriptions index helpers", () => {
       latestArticleAt: "2025-11-01T10:00:00Z",
       starredCount: 1,
       previewArticles: [articles[0], articles[1]],
+    });
+  });
+
+  it("builds summary cards and derives the filtered inventory heading", () => {
+    const summaryCards = buildSubscriptionSummaryCards({
+      summary: { totalCount: 4, reviewCount: 3, staleCount: 2 },
+      activeSummaryFilter: "review",
+      labels: {
+        total: "All",
+        totalCaption: (count) => `${count} feeds`,
+        review: "Review",
+        reviewCaption: (count) => `${count} candidates`,
+        stale: "Stale",
+        staleCaption: (count) => `${count} stale`,
+      },
+    });
+
+    expect(summaryCards).toMatchObject([
+      { filterKey: "all", value: "4", isActive: false },
+      { filterKey: "review", value: "3", isActive: true },
+      { filterKey: "stale", value: "2", isActive: false },
+    ]);
+    expect(
+      resolveSubscriptionsInventoryHeading({
+        activeSummaryFilter: "review",
+        summaryCards,
+        defaultHeading: "Inventory",
+      }),
+    ).toBe("Review");
+  });
+
+  it("builds list rows with folder names and candidate status", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      articles,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+
+    expect(rows[0]).toMatchObject({
+      feed: feeds[0],
+      folderId: "folder-work",
+      folderName: "Work",
+      latestArticleAt: "2025-11-01T10:00:00Z",
+      status: { tone: "medium", labelKey: "stale_90d" },
+    });
+  });
+
+  it("builds detail candidate copy from review facts", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      articles,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+    const selectedCandidate = candidates.find((candidate) => candidate.feedId === "feed-stale") ?? null;
+
+    const detail = buildSubscriptionDetailCandidate({
+      selectedRow: {
+        feed: feeds[0],
+        folderId: "folder-work",
+        folderName: "Work",
+        latestArticleAt: selectedCandidate?.latestArticleAt ?? null,
+        status: { tone: "medium", labelKey: "stale_90d" },
+      },
+      selectedCandidate,
+      labels: {
+        statusLabel: (labelKey) => labelKey,
+        normalReason: "Normal",
+        summaryText: (summaryKey) => summaryKey,
+        reasonFact: (fact) => `${fact.key}:${fact.value}`,
+        reasonLabel: (reasonKey) => reasonKey,
+      },
+    });
+
+    expect(detail).toMatchObject({
+      candidate: selectedCandidate,
+      tone: "high",
+      statusLabel: "stale_90d",
+      summary: "stale_and_inactive",
+      reasonBoxBody: "stale_days:154 / unread_count:0",
+      reasonLabels: ["stale_90d", "no_unread"],
     });
   });
 });

@@ -1,12 +1,17 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type {
+  SubscriptionDetailCandidate,
   SubscriptionListGroup,
   SubscriptionListRow,
+  SubscriptionSummaryCard,
   SubscriptionSummaryFilterKey,
 } from "@/components/subscriptions-index/subscriptions-index.types";
 import { compareDateInputsAsc, formatMediumDate } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
-import { summarizeSubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
+import {
+  buildSubscriptionReviewReasonFacts,
+  summarizeSubscriptionReviewCandidate,
+} from "@/lib/subscription-review-candidates";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
@@ -103,6 +108,108 @@ export function buildSubscriptionsIndexSummary({
   };
 }
 
+export function buildSubscriptionSummaryCards(params: {
+  summary: {
+    totalCount: number;
+    reviewCount: number;
+    staleCount: number;
+  };
+  activeSummaryFilter: SubscriptionSummaryFilterKey;
+  labels: {
+    total: string;
+    totalCaption: (count: number) => string;
+    review: string;
+    reviewCaption: (count: number) => string;
+    stale: string;
+    staleCaption: (count: number) => string;
+  };
+}): SubscriptionSummaryCard[] {
+  const { summary, activeSummaryFilter, labels } = params;
+
+  return [
+    {
+      filterKey: "all",
+      label: labels.total,
+      value: String(summary.totalCount),
+      caption: labels.totalCaption(summary.totalCount),
+      tone: "neutral",
+      isActive: activeSummaryFilter === "all",
+    },
+    {
+      filterKey: "review",
+      label: labels.review,
+      value: String(summary.reviewCount),
+      caption: labels.reviewCaption(summary.reviewCount),
+      tone: "review",
+      isActive: activeSummaryFilter === "review",
+    },
+    {
+      filterKey: "stale",
+      label: labels.stale,
+      value: String(summary.staleCount),
+      caption: labels.staleCaption(summary.staleCount),
+      tone: "stale",
+      isActive: activeSummaryFilter === "stale",
+    },
+  ];
+}
+
+export function resolveSubscriptionsInventoryHeading(params: {
+  activeSummaryFilter: SubscriptionSummaryFilterKey;
+  summaryCards: SubscriptionSummaryCard[];
+  defaultHeading: string;
+}): string {
+  const { activeSummaryFilter, summaryCards, defaultHeading } = params;
+
+  if (activeSummaryFilter === "all") {
+    return defaultHeading;
+  }
+
+  return summaryCards.find((card) => card.filterKey === activeSummaryFilter)?.label ?? defaultHeading;
+}
+
+export function buildSubscriptionDetailCandidate(params: {
+  selectedRow: SubscriptionListRow | null;
+  selectedCandidate: SubscriptionReviewCandidate | null;
+  labels: {
+    statusLabel: (labelKey: SubscriptionRowStatus["labelKey"]) => string;
+    normalReason: string;
+    summaryText: (summaryKey: ReturnType<typeof summarizeSubscriptionReviewCandidate>["summaryKey"]) => string;
+    reasonFact: (fact: { key: "stale_days" | "unread_count" | "starred_count"; value: number }) => string;
+    reasonLabel: (reasonKey: SubscriptionReviewCandidate["reasonKeys"][number]) => string;
+  };
+}): SubscriptionDetailCandidate | null {
+  const { selectedRow, selectedCandidate, labels } = params;
+  if (!selectedRow) {
+    return null;
+  }
+
+  if (!selectedCandidate) {
+    return {
+      candidate: null,
+      tone: "neutral",
+      statusLabel: labels.statusLabel("normal"),
+      summary: labels.normalReason,
+      reasonBoxBody: labels.normalReason,
+      reasonLabels: [],
+    };
+  }
+
+  const summary = summarizeSubscriptionReviewCandidate(selectedCandidate);
+  const reasonFacts = buildSubscriptionReviewReasonFacts(selectedCandidate);
+  const summaryText = labels.summaryText(summary.summaryKey);
+
+  return {
+    candidate: selectedCandidate,
+    tone: summary.tone,
+    statusLabel: labels.statusLabel(selectedRow.status.labelKey),
+    summary: summaryText,
+    reasonBoxBody:
+      reasonFacts.length > 0 ? reasonFacts.map((fact) => labels.reasonFact(fact)).join(" / ") : summaryText,
+    reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => labels.reasonLabel(reasonKey)),
+  };
+}
+
 export function buildSubscriptionReviewCandidateMap(
   candidates: SubscriptionReviewCandidate[],
 ): Map<string, SubscriptionReviewCandidate> {
@@ -134,6 +241,24 @@ export function buildSubscriptionListGroups(
   }
 
   return Array.from(groups.values()).sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function buildSubscriptionListRows({
+  feeds,
+  candidateMap,
+  folderNameById,
+}: {
+  feeds: FeedDto[];
+  candidateMap: Map<string, SubscriptionReviewCandidate>;
+  folderNameById: Map<string, string>;
+}): SubscriptionListRow[] {
+  return feeds.map((feed) => ({
+    feed,
+    folderId: feed.folder_id,
+    folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
+    latestArticleAt: candidateMap.get(feed.id)?.latestArticleAt ?? null,
+    status: resolveSubscriptionRowStatus({ candidate: candidateMap.get(feed.id) }),
+  }));
 }
 
 export function resolveSubscriptionRowStatus({

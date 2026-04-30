@@ -7,19 +7,18 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { getCurrentDate } from "@/lib/datetime";
+import { buildFolderNameByIdMap, buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
 import {
-  buildSubscriptionReviewCandidates,
-  buildSubscriptionReviewReasonFacts,
-  summarizeSubscriptionReviewCandidate,
-} from "@/lib/subscription-review-candidates";
-import {
+  buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
+  buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
+  buildSubscriptionSummaryCards,
   buildSubscriptionsIndexSummary,
   formatSubscriptionDate,
   isSubscriptionRowFlagged,
-  resolveSubscriptionRowStatus,
+  resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { useUiStore } from "@/stores/ui-store";
@@ -61,16 +60,9 @@ export function SubscriptionsIndexPage() {
   );
 
   const candidateMap = useMemo(() => buildSubscriptionReviewCandidateMap(candidates), [candidates]);
-  const folderNameById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder.name])), [folders]);
+  const folderNameById = useMemo(() => buildFolderNameByIdMap(folders), [folders]);
   const rows = useMemo<SubscriptionListRow[]>(
-    () =>
-      feeds.map((feed) => ({
-        feed,
-        folderId: feed.folder_id,
-        folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
-        latestArticleAt: candidateMap.get(feed.id)?.latestArticleAt ?? null,
-        status: resolveSubscriptionRowStatus({ candidate: candidateMap.get(feed.id) }),
-      })),
+    () => buildSubscriptionListRows({ feeds, candidateMap, folderNameById }),
     [candidateMap, feeds, folderNameById],
   );
 
@@ -93,56 +85,37 @@ export function SubscriptionsIndexPage() {
       })
     : null;
   const selectedCandidate = state.selectedRow ? (candidateMap.get(state.selectedRow.feed.id) ?? null) : null;
-  const selectedDetailCandidate = useMemo<SubscriptionDetailCandidate | null>(() => {
-    if (!state.selectedRow) {
-      return null;
-    }
-
-    if (!selectedCandidate) {
-      return {
-        candidate: null,
-        tone: "neutral",
-        statusLabel: t("status_normal"),
-        summary: t("detail_reason_normal"),
-        reasonBoxBody: t("detail_reason_normal"),
-        reasonLabels: [],
-      };
-    }
-
-    const summary = summarizeSubscriptionReviewCandidate(selectedCandidate);
-    const reasonFacts = buildSubscriptionReviewReasonFacts(selectedCandidate);
-    const summaryText = t(
-      summary.summaryKey === "stale_and_inactive"
-        ? "detail_reason_stale_and_inactive"
-        : summary.summaryKey === "stale_with_no_stars"
-          ? "detail_reason_stale_with_no_stars"
-          : summary.summaryKey === "inactive_without_signals"
-            ? "detail_reason_inactive_without_signals"
-            : summary.summaryKey === "stale_but_supported"
-              ? "detail_reason_stale_but_supported"
-              : "detail_reason_normal",
-    );
-
-    return {
-      candidate: selectedCandidate,
-      tone: summary.tone,
-      statusLabel: t(`status_${state.selectedRow.status.labelKey}`),
-      summary: summaryText,
-      reasonBoxBody:
-        reasonFacts.length > 0
-          ? reasonFacts
-              .map((fact) =>
-                fact.key === "stale_days"
-                  ? t("fact_stale_days", { count: fact.value })
-                  : fact.key === "unread_count"
-                    ? t("fact_unread_count", { count: fact.value })
-                    : t("fact_starred_count", { count: fact.value }),
-              )
-              .join(" / ")
-          : summaryText,
-      reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => t(`reason_${reasonKey}`)),
-    };
-  }, [selectedCandidate, state.selectedRow, t]);
+  const selectedDetailCandidate = useMemo<SubscriptionDetailCandidate | null>(
+    () =>
+      buildSubscriptionDetailCandidate({
+        selectedRow: state.selectedRow,
+        selectedCandidate,
+        labels: {
+          statusLabel: (labelKey) => t(`status_${labelKey}`),
+          normalReason: t("detail_reason_normal"),
+          summaryText: (summaryKey) =>
+            t(
+              summaryKey === "stale_and_inactive"
+                ? "detail_reason_stale_and_inactive"
+                : summaryKey === "stale_with_no_stars"
+                  ? "detail_reason_stale_with_no_stars"
+                  : summaryKey === "inactive_without_signals"
+                    ? "detail_reason_inactive_without_signals"
+                    : summaryKey === "stale_but_supported"
+                      ? "detail_reason_stale_but_supported"
+                      : "detail_reason_normal",
+            ),
+          reasonFact: (fact) =>
+            fact.key === "stale_days"
+              ? t("fact_stale_days", { count: fact.value })
+              : fact.key === "unread_count"
+                ? t("fact_unread_count", { count: fact.value })
+                : t("fact_starred_count", { count: fact.value }),
+          reasonLabel: (reasonKey) => t(`reason_${reasonKey}`),
+        },
+      }),
+    [selectedCandidate, state.selectedRow, t],
+  );
 
   const selectedDisplayModeLabel = state.selectedRow
     ? (() => {
@@ -163,37 +136,24 @@ export function SubscriptionsIndexPage() {
   );
 
   const summary = buildSubscriptionsIndexSummary({ feeds, candidates });
-  const summaryCards = [
-    {
-      filterKey: "all",
-      label: t("summary_total"),
-      value: String(summary.totalCount),
-      caption: t("summary_total_caption", { count: summary.totalCount }),
-      tone: "neutral",
-      isActive: state.activeSummaryFilter === "all",
+  const summaryCards = buildSubscriptionSummaryCards({
+    summary,
+    activeSummaryFilter: state.activeSummaryFilter,
+    labels: {
+      total: t("summary_total"),
+      totalCaption: (count) => t("summary_total_caption", { count }),
+      review: t("summary_review"),
+      reviewCaption: (count) => t("summary_review_caption", { count }),
+      stale: t("summary_stale"),
+      staleCaption: (count) => t("summary_stale_caption", { count }),
     },
-    {
-      filterKey: "review",
-      label: t("summary_review"),
-      value: String(summary.reviewCount),
-      caption: t("summary_review_caption", { count: summary.reviewCount }),
-      tone: "review",
-      isActive: state.activeSummaryFilter === "review",
-    },
-    {
-      filterKey: "stale",
-      label: t("summary_stale"),
-      value: String(summary.staleCount),
-      caption: t("summary_stale_caption", { count: summary.staleCount }),
-      tone: "stale",
-      isActive: state.activeSummaryFilter === "stale",
-    },
-  ] satisfies SubscriptionSummaryCard[];
+  }) satisfies SubscriptionSummaryCard[];
 
-  const inventoryHeading =
-    state.activeSummaryFilter === "all"
-      ? t("inventory_heading")
-      : (summaryCards.find((card) => card.filterKey === state.activeSummaryFilter)?.label ?? t("inventory_heading"));
+  const inventoryHeading = resolveSubscriptionsInventoryHeading({
+    activeSummaryFilter: state.activeSummaryFilter,
+    summaryCards,
+    defaultHeading: t("inventory_heading"),
+  });
 
   const decisionActions =
     state.selectedRow && isSubscriptionRowFlagged(state.selectedRow.status)

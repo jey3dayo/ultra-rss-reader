@@ -100,6 +100,10 @@ export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReview
   return facts;
 }
 
+export function buildFolderNameByIdMap(folders: FolderDto[]): Map<string, string> {
+  return new Map(folders.map((folder) => [folder.id, folder.name]));
+}
+
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
@@ -107,7 +111,7 @@ export function buildSubscriptionReviewCandidates({
   now,
   hiddenFeedIds,
 }: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
-  const folderNameById = new Map(folders.map((folder) => [folder.id, folder.name]));
+  const folderNameById = buildFolderNameByIdMap(folders);
   const articleGroups = new Map<string, ArticleDto[]>();
 
   for (const article of articles) {

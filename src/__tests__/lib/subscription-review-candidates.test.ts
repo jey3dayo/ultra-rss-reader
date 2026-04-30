@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
+  buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscription-review-candidates";
@@ -106,6 +107,10 @@ const articles: ArticleDto[] = [
 ];
 
 describe("buildSubscriptionReviewCandidates", () => {
+  it("builds a folder name lookup by folder id", () => {
+    expect(buildFolderNameByIdMap(folders)).toEqual(new Map([["folder-work", "Work"]]));
+  });
+
   it("derives one candidate per feed with latest article, folder name, and signal counts", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
