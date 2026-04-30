@@ -9,7 +9,7 @@ import {
   type FeedDisplayPresetOption,
   resolveFeedDisplayPreset,
 } from "@/lib/article-display";
-import { getUnreadArticleIds } from "@/lib/article-list";
+import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/article-list";
 import { countUnreadFeedsInFolder } from "@/lib/sidebar";
 import type { UseArticleListHeaderActionsParams, UseArticleListHeaderActionsResult } from "./article-list.types";
 
@@ -60,6 +60,13 @@ export function useArticleListHeaderActions({
     markAllRead.mutate(unreadIds);
   }, [filteredArticles, markAllRead]);
 
+  const markAllReadCount = resolveArticleListMarkAllReadCount({
+    selection,
+    selectedFeedUnreadCount: selectedFeed?.unread_count ?? 0,
+    folderUnreadCount,
+    filteredArticles,
+  });
+
   const handleMarkAllRead = useCallback(() => {
     switch (selection.type) {
       case "feed":
@@ -67,21 +74,20 @@ export function useArticleListHeaderActions({
           return;
         }
         confirmMarkAllRead({
-          count: selectedFeed?.unread_count ?? 0,
+          count: markAllReadCount,
           onConfirm: () => markFeedRead.mutate(feedId),
         });
         return;
       case "folder":
         confirmMarkAllRead({
-          count: folderUnreadCount,
+          count: markAllReadCount,
           onConfirm: () => markFolderRead.mutate(selection.folderId),
         });
         return;
       case "all":
       case "smart":
       case "tag": {
-        const unreadIds = getUnreadArticleIds(filteredArticles);
-        confirmMarkAllRead({ count: unreadIds.length, onConfirm: doMarkAllRead });
+        confirmMarkAllRead({ count: markAllReadCount, onConfirm: doMarkAllRead });
         return;
       }
     }
@@ -89,11 +95,9 @@ export function useArticleListHeaderActions({
     confirmMarkAllRead,
     doMarkAllRead,
     feedId,
-    filteredArticles,
-    folderUnreadCount,
+    markAllReadCount,
     markFeedRead,
     markFolderRead,
-    selectedFeed?.unread_count,
     selection,
   ]);
 

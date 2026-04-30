@@ -51,6 +51,18 @@ export type RetainedArticlesSnapshot = {
   articles: ArticleDto[];
 };
 
+export type ArticleListMarkAllReadCountParams = {
+  selection:
+    | { type: "all" }
+    | { type: "feed"; feedId: string }
+    | { type: "folder"; folderId: string }
+    | { type: "tag"; tagId: string }
+    | { type: "smart"; kind: "unread" | "starred" | "recent" };
+  selectedFeedUnreadCount: number;
+  folderUnreadCount: number;
+  filteredArticles: ArticleDto[];
+};
+
 function getDateGroup(dateStr: string): string {
   const date = parseDateInput(dateStr);
   if (date === null) {
@@ -266,6 +278,20 @@ export function countUnreadArticles(articles: ArticleDto[]): number {
 
 export function getUnreadArticleIds(articles: ArticleDto[]): string[] {
   return articles.filter((article) => !article.is_read).map((article) => article.id);
+}
+
+export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllReadCountParams): number {
+  const { selection, selectedFeedUnreadCount, folderUnreadCount, filteredArticles } = params;
+
+  if (selection.type === "feed") {
+    return selectedFeedUnreadCount;
+  }
+
+  if (selection.type === "folder") {
+    return folderUnreadCount;
+  }
+
+  return getUnreadArticleIds(filteredArticles).length;
 }
 
 export function groupArticles(params: GroupArticlesParams): Record<string, ArticleDto[]> {

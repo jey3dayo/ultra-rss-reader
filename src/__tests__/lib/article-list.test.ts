@@ -14,6 +14,7 @@ import {
   groupArticles,
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
+  resolveArticleListMarkAllReadCount,
   selectVisibleArticles,
 } from "@/lib/article-list";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
@@ -306,6 +307,39 @@ describe("article-list utils", () => {
   it("returns unread ids and unread count from the currently visible list", () => {
     expect(getUnreadArticleIds(sampleArticles)).toEqual(["art-1"]);
     expect(countUnreadArticles(sampleArticles)).toBe(1);
+  });
+
+  it("resolves the mark-all-read confirmation count for each article list selection", () => {
+    const filteredArticles = [
+      { ...sampleArticles[0], is_read: false },
+      { ...sampleArticles[1], is_read: false },
+      { ...sampleArticles[2], is_read: true },
+    ];
+
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "feed", feedId: "feed-1" },
+        selectedFeedUnreadCount: 12,
+        folderUnreadCount: 34,
+        filteredArticles,
+      }),
+    ).toBe(12);
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "folder", folderId: "folder-1" },
+        selectedFeedUnreadCount: 12,
+        folderUnreadCount: 34,
+        filteredArticles,
+      }),
+    ).toBe(34);
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "all" },
+        selectedFeedUnreadCount: 12,
+        folderUnreadCount: 34,
+        filteredArticles,
+      }),
+    ).toBe(2);
   });
 
   it("returns the adjacent article id", () => {
