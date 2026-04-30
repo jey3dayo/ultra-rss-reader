@@ -44,9 +44,8 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
     }
 
     return current.map((candidate) => {
-      if (candidate && typeof candidate === "object" && "id" in candidate && "is_read" in candidate) {
-        const article = candidate as ArticleDto;
-        return article.id === articleId ? { ...article, is_read: read } : article;
+      if (isArticleDto(candidate)) {
+        return candidate.id === articleId ? { ...candidate, is_read: read } : candidate;
       }
 
       return candidate;
