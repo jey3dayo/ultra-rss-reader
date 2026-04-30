@@ -3,6 +3,7 @@ export type BinaryDisplayMode = "on" | "off";
 export type TriStateDisplayMode = "inherit" | BinaryDisplayMode;
 export type ArticleDisplayFallbackReason = "missing_web_preview" | "invalid_empty_display" | null;
 export type FeedDisplayPresetOption = "default" | ArticleDisplayPreset;
+type PreferenceBooleanValue = "true" | "false";
 
 export type ArticleDisplayModes = {
   readerMode: boolean;
@@ -53,13 +54,13 @@ export function modesToDisplayPreset(modes: ArticleDisplayModes): ArticleDisplay
 }
 
 export function displayPresetToPreferenceValues(preset: ArticleDisplayPreset): {
-  reader_mode_default: "true" | "false";
-  web_preview_mode_default: "true" | "false";
+  reader_mode_default: PreferenceBooleanValue;
+  web_preview_mode_default: PreferenceBooleanValue;
 } {
   const modes = displayPresetToModes(preset);
   return {
-    reader_mode_default: String(modes.readerMode) as "true" | "false",
-    web_preview_mode_default: String(modes.webPreviewMode) as "true" | "false",
+    reader_mode_default: booleanToPreferenceValue(modes.readerMode),
+    web_preview_mode_default: booleanToPreferenceValue(modes.webPreviewMode),
   };
 }
 
@@ -193,6 +194,10 @@ export function buildFeedDisplayPresetOptions(labels: {
 
 export function isFeedDisplayPresetOption(value: string): value is FeedDisplayPresetOption {
   return value === "default" || value === "standard" || value === "preview";
+}
+
+function booleanToPreferenceValue(value: boolean): PreferenceBooleanValue {
+  return value ? "true" : "false";
 }
 
 function resolveTriState(baseValue: boolean, override: TriStateDisplayMode): boolean {
