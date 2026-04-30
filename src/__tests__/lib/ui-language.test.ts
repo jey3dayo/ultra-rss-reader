@@ -10,6 +10,10 @@ describe("resolveUiLanguage", () => {
     expect(resolveUiLanguage("system", "en-US")).toBe("en");
   });
 
+  it("resolves system to English when the system locale is unavailable", () => {
+    expect(resolveUiLanguage("system", undefined)).toBe("en");
+  });
+
   it("keeps explicit Japanese regardless of system locale", () => {
     expect(resolveUiLanguage("ja", "en-US")).toBe("ja");
   });
