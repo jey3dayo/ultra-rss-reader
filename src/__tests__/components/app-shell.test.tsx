@@ -56,6 +56,16 @@ function renderAppShellWithDebugHud() {
   return render(<AppShell />, { wrapper: createWrapper() });
 }
 
+function setDebugHudUiState(overrides: Partial<ReturnType<typeof useUiStore.getInitialState>> = {}) {
+  useUiStore.setState({
+    ...useUiStore.getInitialState(),
+    focusedPane: "list",
+    contentMode: "reader",
+    selectedArticleId: "art-1",
+    ...overrides,
+  });
+}
+
 describe("AppShell", () => {
   beforeEach(() => {
     settingsModalState.shouldThrow = false;
@@ -218,11 +228,7 @@ describe("AppShell", () => {
 
   it("copies the debug HUD contents when clicked", async () => {
     enableDebugHud();
-    useUiStore.setState({
-      focusedPane: "list",
-      contentMode: "reader",
-      selectedArticleId: "art-1",
-    });
+    setDebugHudUiState();
 
     render(<AppShell />, { wrapper: createWrapper() });
 
@@ -250,11 +256,7 @@ describe("AppShell", () => {
     const user = userEvent.setup();
 
     enableDebugHud();
-    useUiStore.setState({
-      focusedPane: "list",
-      contentMode: "reader",
-      selectedArticleId: "art-1",
-    });
+    setDebugHudUiState();
 
     render(<AppShell />, { wrapper: createWrapper() });
 
@@ -271,11 +273,8 @@ describe("AppShell", () => {
   });
 
   it("moves the bottom-right debug HUD away while an undo toast is visible", async () => {
-    usePreferencesStore.setState((state) => ({
-      ...state,
-      prefs: { ...state.prefs, debug_browser_hud: "true" },
-    }));
-    useUiStore.setState({
+    enableDebugHud();
+    setDebugHudUiState({
       toastMessage: {
         message: "Undo available",
         actions: [{ label: "Undo", onClick: vi.fn() }],
