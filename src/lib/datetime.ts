@@ -126,6 +126,21 @@ export function formatShortDate(value: DateInput, locale?: string): string | nul
   });
 }
 
+export function formatShortDateTime(value: DateInput, locale?: string): string | null {
+  const date = parseDateInput(value);
+  if (date === null) {
+    return null;
+  }
+
+  return date.toLocaleString(locale, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export function formatMediumDate(value: DateInput, locale?: string): string | null {
   const date = parseDateInput(value);
   if (date === null) {

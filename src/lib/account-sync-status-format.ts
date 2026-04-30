@@ -1,22 +1,18 @@
-import { formatHourMinute, getCurrentDate, isSameLocalDay, parseDateInput } from "@/lib/datetime";
+import {
+  formatHourMinute,
+  formatShortDate,
+  formatShortDateTime,
+  getCurrentDate,
+  isSameLocalDay,
+  parseDateInput,
+} from "@/lib/datetime";
 
 export function formatAccountSyncRetryTime(retryAt: string | undefined, language: string): string | null {
   return formatHourMinute(retryAt, language);
 }
 
 export function formatAccountSyncRetryDateTime(retryAt: string | undefined, language: string): string | null {
-  const date = parseDateInput(retryAt);
-  if (date === null) {
-    return null;
-  }
-
-  return date.toLocaleString(language, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  return formatShortDateTime(retryAt, language);
 }
 
 export function formatAccountLastSuccessLabel(
@@ -33,7 +29,7 @@ export function formatAccountLastSuccessLabel(
   }
 
   return {
-    date: date.toLocaleDateString(language, { month: "short", day: "numeric" }),
+    date: formatShortDate(date, language) ?? "",
     time: formatHourMinute(date, language) ?? "",
     isToday: isSameLocalDay(date, getCurrentDate()),
   };

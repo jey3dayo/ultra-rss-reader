@@ -5,6 +5,8 @@ import {
   differenceInDays,
   formatLocalHourMinute,
   formatMediumDate,
+  formatShortDate,
+  formatShortDateTime,
   getDateInputTimeMs,
   parseDateInput,
 } from "@/lib/datetime";
@@ -43,6 +45,15 @@ describe("datetime helpers", () => {
   it("formats local hour and minute with leading zeroes", () => {
     expect(formatLocalHourMinute(new Date(2026, 4, 1, 8, 5))).toBe("08:05");
     expect(formatLocalHourMinute("not-a-date")).toBeNull();
+  });
+
+  it("formats short dates and date-times with invalid fallbacks", () => {
+    const value = "2026-05-01T10:30:00Z";
+
+    expect(formatShortDate(value, "en-US")).toBeTruthy();
+    expect(formatShortDateTime(value, "en-US")).toBeTruthy();
+    expect(formatShortDate("not-a-date", "en-US")).toBeNull();
+    expect(formatShortDateTime("not-a-date", "en-US")).toBeNull();
   });
 
   it("counts local calendar day boundaries across daylight saving time changes", () => {
