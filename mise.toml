@@ -112,7 +112,7 @@ run = "yamllint -c .yamllint .github/"
 
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
-run = "actionlint"
+run = "actionlint -shellcheck="
 
 # ========================================
 # テスト
