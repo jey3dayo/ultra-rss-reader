@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { MOTION_PHASE_ENTERING } from "@/constants";
+import { MotionNumber } from "@/components/shared/motion-number";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarNavButtonProps } from "./sidebar.types";
@@ -26,8 +26,11 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
     const tokens = getSidebarDensityTokens(density);
     const focusedPane = useUiStore((state) => state.focusedPane);
     const activePane = activePaneProp ?? focusedPane === "sidebar";
-    const trailingMotionKey =
-      typeof trailing === "string" || typeof trailing === "number" ? String(trailing) : undefined;
+    const trailingClassNames = cn(
+      "ml-3 shrink-0 text-[0.75rem] font-medium text-[var(--sidebar-foreground-muted-strong)]",
+      selected && activePane && "text-[var(--sidebar-selection-muted)]",
+      trailingClassName,
+    );
 
     return (
       <button
@@ -63,17 +66,11 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
           {children}
         </span>
         {trailing ? (
-          <span
-            key={trailingMotionKey}
-            data-motion-phase={trailingMotionKey ? MOTION_PHASE_ENTERING : undefined}
-            className={cn(
-              "motion-content-swap ml-3 shrink-0 text-[0.75rem] font-medium tabular-nums text-[var(--sidebar-foreground-muted-strong)]",
-              selected && activePane && "text-[var(--sidebar-selection-muted)]",
-              trailingClassName,
-            )}
-          >
-            {trailing}
-          </span>
+          typeof trailing === "string" || typeof trailing === "number" ? (
+            <MotionNumber key={trailing} value={trailing} className={trailingClassNames} />
+          ) : (
+            <span className={trailingClassNames}>{trailing}</span>
+          )
         ) : null}
       </button>
     );

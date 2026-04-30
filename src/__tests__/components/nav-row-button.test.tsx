@@ -11,7 +11,7 @@ describe("NavRowButton", () => {
         title="Primary row"
         description={<div>Secondary text</div>}
         leading={<span aria-hidden="true">L</span>}
-        trailing={<span aria-hidden="true">3</span>}
+        trailing="3"
       />,
     );
 
@@ -22,7 +22,7 @@ describe("NavRowButton", () => {
     expect(button).toHaveClass("shadow-[var(--sidebar-selection-inset-shadow)]");
     expect(screen.getByText("Secondary text")).toBeInTheDocument();
     expect(screen.getByText("L")).toBeInTheDocument();
-    expect(screen.getByText("3").parentElement).toHaveClass("motion-content-swap");
+    expect(screen.getByText("3")).toHaveClass("motion-content-swap");
   });
 
   it("animates primitive trailing values as content swaps", () => {
@@ -30,6 +30,12 @@ describe("NavRowButton", () => {
 
     expect(screen.getByText("7")).toHaveClass("motion-content-swap", "tabular-nums");
     expect(screen.getByText("7")).toHaveAttribute("data-motion-phase", "entering");
+  });
+
+  it("keeps custom trailing nodes under caller control", () => {
+    render(<NavRowButton title="Primary row" trailing={<span aria-hidden="true">Manual</span>} />);
+
+    expect(screen.getByText("Manual")).not.toHaveClass("motion-content-swap");
   });
 
   it("keeps sidebar rows borderless", () => {

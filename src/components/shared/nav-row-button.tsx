@@ -1,12 +1,8 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
-import {
-  MOTION_CONTENT_SWAP_CLASS_NAME,
-  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
-  MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
-  MOTION_PHASE_ENTERING,
-} from "@/constants";
+import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME, MOTION_INTERACTIVE_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
+import { MotionNumber } from "./motion-number";
 
 type NavRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title"> & {
   title: ReactNode;
@@ -22,9 +18,6 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
     { title, description, leading, trailing, tone = "default", selected = false, className, type = "button", ...props },
     ref,
   ) => {
-    const trailingMotionKey =
-      typeof trailing === "string" || typeof trailing === "number" ? String(trailing) : undefined;
-
     return (
       <button
         ref={ref}
@@ -55,13 +48,11 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
         </div>
         {trailing ? (
           <div className="shrink-0">
-            <span
-              key={trailingMotionKey}
-              data-motion-phase={trailingMotionKey ? MOTION_PHASE_ENTERING : undefined}
-              className={cn(MOTION_CONTENT_SWAP_CLASS_NAME, "tabular-nums")}
-            >
-              {trailing}
-            </span>
+            {typeof trailing === "string" || typeof trailing === "number" ? (
+              <MotionNumber key={trailing} value={trailing} />
+            ) : (
+              trailing
+            )}
           </div>
         ) : null}
       </button>
