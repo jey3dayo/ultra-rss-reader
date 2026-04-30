@@ -4,10 +4,13 @@ import { buildSubscriptionReviewCandidates } from "@/lib/subscription-review-can
 import {
   buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
+  buildSubscriptionListGroups,
   buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
   buildSubscriptionSummaryCards,
   buildSubscriptionsIndexSummary,
+  buildVisibleSubscriptionRows,
+  formatSubscriptionDate,
   resolveSubscriptionRowStatus,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
@@ -244,6 +247,50 @@ describe("subscriptions index helpers", () => {
       latestArticleAt: "2025-11-01T10:00:00Z",
       status: { tone: "medium", labelKey: "stale_90d" },
     });
+  });
+
+  it("filters visible rows by review status, local decisions, search query, and sort key", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      articles,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "review",
+      keptFeedIds: new Set(["feed-dormant"]),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "updated_at",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-mid", "feed-stale"]);
+  });
+
+  it("groups subscription rows by folder label", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+
+    expect(buildSubscriptionListGroups(rows, "No Folder")).toMatchObject([
+      { key: "__ungrouped__", label: "No Folder", rows: [rows[1], rows[2], rows[3]], folderId: null },
+      { key: "folder-work", label: "Work", rows: [rows[0]], folderId: "folder-work" },
+    ]);
+  });
+
+  it("formats subscription dates with an invalid fallback", () => {
+    expect(formatSubscriptionDate("not-a-date", "en-US")).toBe("—");
+    expect(formatSubscriptionDate("2026-04-01T09:00:00Z", "en-US")).toContain("2026");
   });
 
   it("builds detail candidate copy from review facts", () => {
