@@ -3,8 +3,10 @@ import {
   addDays,
   compareAsc,
   differenceInDays as differenceInDateFnsDays,
+  format,
   isSameDay,
   isValid,
+  set,
   startOfDay,
 } from "date-fns";
 
@@ -77,7 +79,7 @@ export function addHours(date: Date, amount: number): Date {
 }
 
 export function createLocalDateTime(baseDate: Date, hours: number, minutes: number): Date {
-  return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hours, minutes);
+  return set(baseDate, { hours, minutes, seconds: 0, milliseconds: 0 });
 }
 
 export function isSameLocalDay(left: Date, right: Date): boolean {
@@ -107,9 +109,7 @@ export function formatLocalHourMinute(value: DateInput): string | null {
     return null;
   }
 
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
+  return format(date, "HH:mm");
 }
 
 export function formatShortDate(value: DateInput, locale?: string): string | null {
