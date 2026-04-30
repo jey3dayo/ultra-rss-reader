@@ -1,5 +1,6 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type {
+  SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListGroup,
@@ -280,6 +281,33 @@ export function resolveSelectedSubscriptionDisplayModeLabel(params: {
     preset: resolveFeedDisplayPreset(selectedRow.feed),
     labels,
   });
+}
+
+export function buildSubscriptionDecisionActions(params: {
+  selectedRow: SubscriptionListRow | null;
+  isFlagged: boolean;
+  labels: {
+    keep: string;
+    defer: string;
+    delete: string;
+  };
+  onKeep: (selectedRow: SubscriptionListRow) => void;
+  onDefer: (selectedRow: SubscriptionListRow) => void;
+  onDelete: () => void;
+}): SubscriptionDecisionActions | null {
+  const { selectedRow, isFlagged, labels, onKeep, onDefer, onDelete } = params;
+  if (!selectedRow || !isFlagged) {
+    return null;
+  }
+
+  return {
+    keepLabel: labels.keep,
+    deferLabel: labels.defer,
+    deleteLabel: labels.delete,
+    onKeep: () => onKeep(selectedRow),
+    onDefer: () => onDefer(selectedRow),
+    onDelete,
+  };
 }
 
 export function buildSubscriptionListGroups(

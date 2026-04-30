@@ -13,6 +13,7 @@ import {
   resolveSubscriptionReviewSummaryTranslationKey,
 } from "@/lib/subscription-review-candidates";
 import {
+  buildSubscriptionDecisionActions,
   buildSubscriptionDetailCandidate,
   buildSubscriptionListGroups,
   buildSubscriptionListRows,
@@ -29,6 +30,7 @@ import {
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { useUiStore } from "@/stores/ui-store";
 import type {
+  SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
@@ -139,31 +141,28 @@ export function SubscriptionsIndexPage() {
     defaultHeading: t("inventory_heading"),
   });
 
-  const decisionActions =
-    state.selectedRow && isSubscriptionRowFlagged(state.selectedRow.status)
-      ? {
-          keepLabel: t("decision_keep"),
-          deferLabel: t("decision_defer"),
-          deleteLabel: tc("delete"),
-          onKeep: () => {
-            state.markSelectedFeedKept();
-            if (state.selectedRow) {
-              showToast(t("decision_kept", { title: state.selectedRow.feed.title }));
-            }
-          },
-          onDefer: () => {
-            state.markSelectedFeedDeferred();
-            if (state.selectedRow) {
-              showToast(t("decision_deferred", { title: state.selectedRow.feed.title }));
-            }
-          },
-          onDelete: () => {
-            if (state.selectedRow) {
-              setDeleteTargetFeed(state.selectedRow.feed);
-            }
-          },
-        }
-      : null;
+  const decisionActions = buildSubscriptionDecisionActions({
+    selectedRow: state.selectedRow,
+    isFlagged: state.selectedRow ? isSubscriptionRowFlagged(state.selectedRow.status) : false,
+    labels: {
+      keep: t("decision_keep"),
+      defer: t("decision_defer"),
+      delete: tc("delete"),
+    },
+    onKeep: (selectedRow) => {
+      state.markSelectedFeedKept();
+      showToast(t("decision_kept", { title: selectedRow.feed.title }));
+    },
+    onDefer: (selectedRow) => {
+      state.markSelectedFeedDeferred();
+      showToast(t("decision_deferred", { title: selectedRow.feed.title }));
+    },
+    onDelete: () => {
+      if (state.selectedRow) {
+        setDeleteTargetFeed(state.selectedRow.feed);
+      }
+    },
+  }) satisfies SubscriptionDecisionActions | null;
 
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {

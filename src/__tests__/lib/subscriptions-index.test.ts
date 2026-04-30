@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
 import {
+  buildSubscriptionDecisionActions,
   buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
@@ -280,6 +281,59 @@ describe("subscriptions index helpers", () => {
       starredCount: 1,
     });
     expect(resolveSelectedSubscriptionDetailMetrics({ selectedRow: null, articles })).toBeNull();
+  });
+
+  it("builds decision actions only for flagged subscription rows", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map([
+        [
+          "feed-stale",
+          {
+            feedId: "feed-stale",
+            title: "Old Product Blog",
+            folderId: "folder-work",
+            folderName: "Work",
+            latestArticleAt: "2025-11-01T10:00:00Z",
+            unreadCount: 0,
+            starredCount: 1,
+            staleDays: 155,
+            reasonKeys: ["stale_90d"],
+          },
+        ],
+      ]),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+    const onKeep = vi.fn();
+    const onDefer = vi.fn();
+    const onDelete = vi.fn();
+
+    const actions = buildSubscriptionDecisionActions({
+      selectedRow: rows[0],
+      isFlagged: true,
+      labels: { keep: "Keep", defer: "Later", delete: "Delete" },
+      onKeep,
+      onDefer,
+      onDelete,
+    });
+
+    expect(actions).toMatchObject({ keepLabel: "Keep", deferLabel: "Later", deleteLabel: "Delete" });
+    actions?.onKeep();
+    actions?.onDefer();
+    actions?.onDelete();
+    expect(onKeep).toHaveBeenCalledTimes(1);
+    expect(onDefer).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(
+      buildSubscriptionDecisionActions({
+        selectedRow: rows[0],
+        isFlagged: false,
+        labels: { keep: "Keep", defer: "Later", delete: "Delete" },
+        onKeep,
+        onDefer,
+        onDelete,
+      }),
+    ).toBeNull();
   });
 
   it("filters visible rows by review status, local decisions, search query, and sort key", () => {

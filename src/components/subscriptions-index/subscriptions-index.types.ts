@@ -43,3 +43,12 @@ export type SubscriptionDetailCandidate = {
   reasonBoxBody: string | null;
   reasonLabels: string[];
 };
+
+export type SubscriptionDecisionActions = {
+  keepLabel: string;
+  deferLabel: string;
+  deleteLabel: string;
+  onKeep: () => void;
+  onDefer: () => void;
+  onDelete: () => void;
+};
