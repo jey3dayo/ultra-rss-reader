@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useReducer, useRef } from "react";
+import { isOutsideElement } from "./dom-target";
 import type { SidebarAccountSwitcherResult } from "./sidebar-runtime.types";
 
 type SidebarAccountSwitcherState = {
@@ -39,7 +40,7 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
     if (!isAccountListOpen) return;
 
     const handler = (event: MouseEvent) => {
-      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
+      if (isOutsideElement(accountDropdownRef.current, event.target)) {
         dispatch({ type: "set-account-list-open", value: false });
       }
     };

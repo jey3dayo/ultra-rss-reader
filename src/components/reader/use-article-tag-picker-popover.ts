@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 import type { UseArticleTagPickerPopoverParams } from "./article-tag-picker.types";
+import { isOutsideElement } from "./dom-target";
 import { focusRovingButton } from "./roving-focus";
 
 export function useArticleTagPickerPopover({
@@ -37,7 +38,7 @@ export function useArticleTagPickerPopover({
     }
 
     const handleMouseDown = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (isOutsideElement(pickerRef.current, event.target)) {
         closePicker();
       }
     };

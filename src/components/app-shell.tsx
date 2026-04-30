@@ -190,6 +190,10 @@ const initialFocusDebugHudState: FocusDebugHudState = {
   browserGeometry: null,
 };
 
+function pushTraceLine(traces: string[], value: string, maxLines: number): string[] {
+  return [...traces.slice(-(maxLines - 1)), value];
+}
+
 function focusDebugHudReducer(state: FocusDebugHudState, action: FocusDebugHudAction): FocusDebugHudState {
   const MAX_TRACE_LINES = 20;
 
@@ -199,12 +203,12 @@ function focusDebugHudReducer(state: FocusDebugHudState, action: FocusDebugHudAc
     case "append-trace":
       return {
         ...state,
-        traces: [...state.traces.slice(-(MAX_TRACE_LINES - 1)), action.value],
+        traces: pushTraceLine(state.traces, action.value, MAX_TRACE_LINES),
       };
     case "append-browser-trace":
       return {
         ...state,
-        traces: [...state.traces.slice(-5), action.value],
+        traces: pushTraceLine(state.traces, action.value, 6),
       };
     case "set-browser-geometry":
       return { ...state, browserGeometry: action.value };
