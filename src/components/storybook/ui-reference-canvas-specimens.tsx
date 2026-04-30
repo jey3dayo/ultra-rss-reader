@@ -458,6 +458,10 @@ export function ArticleFilterToggleButtonSpecimen() {
 }
 
 export function ReaderHeaderActionStripSpecimen() {
+  const [isRead, setIsRead] = useState(false);
+  const [isStarred, setIsStarred] = useState(true);
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
+
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Reader header action strip</SectionHeading>
@@ -471,9 +475,9 @@ export function ReaderHeaderActionStripSpecimen() {
             hasArticle
             canToggleRead
             canToggleStar
-            isRead={false}
-            isStarred
-            isBrowserOpen={false}
+            isRead={isRead}
+            isStarred={isStarred}
+            isBrowserOpen={isBrowserOpen}
             showCopyLinkButton
             canCopyLink
             showOpenInBrowserButton
@@ -494,10 +498,10 @@ export function ReaderHeaderActionStripSpecimen() {
               openInExternalBrowser: "Open in External Browser",
               moreActions: "More actions",
             }}
-            onToggleRead={() => undefined}
-            onToggleStar={() => undefined}
+            onToggleRead={setIsRead}
+            onToggleStar={setIsStarred}
             onCopyLink={() => undefined}
-            onOpenInBrowser={() => undefined}
+            onOpenInBrowser={() => setIsBrowserOpen((current) => !current)}
             onOpenInExternalBrowser={() => undefined}
             shareMenuControl={
               <Menu.Root>

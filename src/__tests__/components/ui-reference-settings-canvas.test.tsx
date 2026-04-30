@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ButtonControlsCanvas } from "@/components/storybook/ui-reference-button-controls-canvas.stories";
 import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
@@ -26,6 +27,31 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete permanently" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Shortcut" })).toBeInTheDocument();
+  });
+
+  it("lets the reader header action strip toggle article states in the reference canvas", async () => {
+    const user = userEvent.setup();
+    render(<ButtonControlsCanvas />);
+
+    const readButton = screen.getByRole("button", { name: "Toggle read" });
+    const starButton = screen.getByRole("button", { name: "Toggle star" });
+    const previewButton = screen.getByRole("button", { name: "Open Web Preview" });
+
+    expect(readButton).toHaveAttribute("aria-pressed", "false");
+    expect(starButton).toHaveAttribute("aria-pressed", "true");
+    expect(previewButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(readButton);
+    await user.click(starButton);
+    await user.click(previewButton);
+
+    expect(readButton).toHaveAttribute("aria-pressed", "true");
+    expect(starButton).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(screen.getByTestId("reference-reader-header-action-strip")).getByRole("button", {
+        name: "Close Web Preview",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders the settings sections canvas with form specimens", () => {
