@@ -14,6 +14,37 @@ type UseSidebarContextMenuRenderersParams = {
   onManageTags: () => void;
 };
 
+function toFolderContextMenuFolder(folder: FeedTreeFolderViewModel) {
+  return {
+    id: folder.id,
+    account_id: folder.accountId,
+    name: folder.name,
+    sort_order: folder.sortOrder,
+  };
+}
+
+function toFeedContextMenuFeed(feed: FeedTreeFeedViewModel) {
+  return {
+    id: feed.id,
+    account_id: feed.accountId,
+    folder_id: feed.folderId,
+    title: feed.title,
+    url: feed.url,
+    site_url: feed.siteUrl,
+    unread_count: feed.unreadCount,
+    reader_mode: feed.readerMode,
+    web_preview_mode: feed.webPreviewMode,
+  };
+}
+
+function toTagContextMenuTag(tag: TagListItemViewModel) {
+  return {
+    id: tag.id,
+    name: tag.name,
+    color: tag.color,
+  };
+}
+
 export function useSidebarContextMenuRenderers({
   folders,
   setExpandedFolders,
@@ -22,50 +53,21 @@ export function useSidebarContextMenuRenderers({
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => (
       <FolderContextMenuContent
-        folder={{
-          id: folder.id,
-          account_id: folder.accountId,
-          name: folder.name,
-          sort_order: folder.sortOrder,
-        }}
+        folder={toFolderContextMenuFolder(folder)}
         folderUnread={folder.unreadCount}
-        feeds={folder.feeds.map((feed) => ({
-          id: feed.id,
-          account_id: feed.accountId,
-          folder_id: feed.folderId,
-          title: feed.title,
-          url: feed.url,
-          site_url: feed.siteUrl,
-          unread_count: feed.unreadCount,
-          reader_mode: feed.readerMode,
-          web_preview_mode: feed.webPreviewMode,
-        }))}
+        feeds={folder.feeds.map(toFeedContextMenuFeed)}
       />
     ),
     [],
   );
 
   const renderFeedContextMenu = useCallback(
-    (feed: FeedTreeFeedViewModel) => (
-      <FeedContextMenuContent
-        feed={{
-          id: feed.id,
-          account_id: feed.accountId,
-          folder_id: feed.folderId,
-          title: feed.title,
-          url: feed.url,
-          site_url: feed.siteUrl,
-          unread_count: feed.unreadCount,
-          reader_mode: feed.readerMode,
-          web_preview_mode: feed.webPreviewMode,
-        }}
-      />
-    ),
+    (feed: FeedTreeFeedViewModel) => <FeedContextMenuContent feed={toFeedContextMenuFeed(feed)} />,
     [],
   );
 
   const renderTagContextMenu = useCallback(
-    (tag: TagListItemViewModel) => <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />,
+    (tag: TagListItemViewModel) => <TagContextMenuContent tag={toTagContextMenuTag(tag)} />,
     [],
   );
 
