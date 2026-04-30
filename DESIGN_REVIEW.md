@@ -22,15 +22,17 @@ Do not use this document as a replacement for `DESIGN.md`. If the question is ab
 After reading `DESIGN.md`, consult the Storybook UI Reference catalog in this order before introducing new UI patterns:
 
 1. `UI Reference / Input Controls Canvas`
-2. `UI Reference / Shell & Overlay Canvas`
-3. `UI Reference / View Specimens Canvas`
+2. `UI Reference / Button Controls Canvas`
+3. `UI Reference / Shell & Overlay Canvas`
+4. `UI Reference / View Specimens Canvas`
 
 Routing rules:
 
 - form rows, validation, and disabled states go in `Input Controls Canvas`
+- button variants, decision/delete/form actions, settings actions, and utility icon action strips go in `Button Controls Canvas`
 - settings-form row behavior, control rail alignment, and shared radius rules belong in `shared` once they repeat
 - app-level outer frames, dialog shells, and menu shells go in `Shell & Overlay Canvas`
-- compact borderless utility-action chrome for sidebar headers, article toolbars, and browser-overlay rails also belongs in `Shell & Overlay Canvas`
+- runtime chrome frames and overlay surfaces belong in `Shell & Overlay Canvas`; their compact action buttons should still be checked against `Button Controls Canvas`
 - feature-local display fragments and density specimens go in `View Specimens Canvas`
 - do not mix shell examples into section or form reference surfaces
 - when adjusting radius in these reference canvases, prefer shared scale utilities such as `rounded-md` through `rounded-2xl` instead of pixel literals
@@ -63,6 +65,7 @@ Promote a fix into `shared` only when all of these are true:
 - the pattern is repeated or clearly reusable
 - the row alignment rule or radius rule should stay consistent across multiple settings surfaces
 - compact utility-action chrome keeps the same borderless resting state, focus treatment, and tonal selected treatment across screens
+- button families can preserve their semantic role names instead of collapsing into a generic `Button`
 
 Do not promote a component into `shared` only because it looks similar.
 Do not fold form buttons, primary CTAs, or label-led action buttons into the compact utility-action family just because they share an icon.
@@ -144,6 +147,7 @@ When reviewing compact icon-only action strips, check semantic state and visual 
 - baseline states such as read, default, or closed should stay visually quiet unless the product meaning requires emphasis
 - semantic states such as starred or unread may use tokenized icon tint or a quiet tonal surface, but avoid making every state look equally selected
 - keyboard focus must remain visible even when the pressed surface is intentionally transparent
+- compare sidebar header, reader header, article toolbar, and browser-overlay action strips in `UI Reference / Button Controls Canvas` before adding a local button style
 
 ## Escalation
 
