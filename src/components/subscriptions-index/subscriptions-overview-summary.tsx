@@ -85,9 +85,16 @@ function canSelectSummaryFilterCard(card: SubscriptionSummaryCard) {
 }
 
 type SummaryFilterCardButtonProps = {
-  isProminent?: boolean;
   onSelect: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
   summaryCard: SubscriptionSummaryCard;
+};
+
+type SummaryCardViewState = {
+  className: string;
+  isActionable: boolean;
+  isProminent: boolean;
+  toneClasses: (typeof summaryToneClassNames)[SubscriptionSummaryTone];
 };
 
 function resolveSummaryCardClassName({
@@ -108,6 +115,20 @@ function resolveSummaryCardClassName({
     isProminent && "sm:col-span-2 lg:col-span-1",
     isActiveActionable ? toneClasses.activeCard : "shadow-none",
   );
+}
+
+function resolveSummaryCardViewState(card: SubscriptionSummaryCard): SummaryCardViewState {
+  const isActionable = canSelectSummaryFilterCard(card);
+  const isActiveActionable = isActionable && Boolean(card.isActive);
+  const isProminent = card.tone === "review";
+  const toneClasses = resolveSummaryToneClasses(card.tone);
+
+  return {
+    className: resolveSummaryCardClassName({ card, isActiveActionable, isProminent }),
+    isActionable,
+    isProminent,
+    toneClasses,
+  };
 }
 
 function resolveActiveBadgeLabel() {
@@ -148,14 +169,9 @@ function renderDefaultSummaryValue(card: SubscriptionSummaryCard) {
   return card.value;
 }
 
-function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }: SummaryFilterCardButtonProps) {
-  const toneClasses = resolveSummaryToneClasses(summaryCard.tone);
-  const cardClassName = resolveSummaryCardClassName({
-    card: summaryCard,
-    isActiveActionable: Boolean(summaryCard.isActive),
-    isProminent,
-  });
-  const value = renderDefaultSummaryValue(summaryCard);
+function SummaryFilterCardButton({ onSelect, renderValue, summaryCard }: SummaryFilterCardButtonProps) {
+  const { className: cardClassName, isProminent, toneClasses } = resolveSummaryCardViewState(summaryCard);
+  const value = renderValue?.(summaryCard) ?? renderDefaultSummaryValue(summaryCard);
 
   return (
     <button
@@ -165,7 +181,7 @@ function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }:
         "group cursor-pointer hover:border-border-strong/90 focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
       )}
       aria-label={resolveSummaryFilterCardAriaLabel(summaryCard)}
-      aria-pressed={summaryCard.isActive}
+      aria-pressed={Boolean(summaryCard.isActive)}
       onClick={() => onSelect(summaryCard.filterKey)}
     >
       <span
@@ -227,9 +243,11 @@ function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }:
 export function SubscriptionsOverviewSummary({
   cards,
   onSelectFilter,
+  renderValue,
 }: {
   cards: SubscriptionSummaryCard[];
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
 }) {
   return (
     <section
@@ -240,25 +258,26 @@ export function SubscriptionsOverviewSummary({
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3.5">
         {cards.map((card) => {
-          const value = renderDefaultSummaryValue(card);
-          const isActionable = canSelectSummaryFilterCard(card);
-          const isActiveActionable = isActionable && Boolean(card.isActive);
-          const isProminent = card.tone === "review";
-          const className = resolveSummaryCardClassName({ card, isActiveActionable, isProminent });
+          const cardViewState = resolveSummaryCardViewState(card);
+          const value = renderValue?.(card) ?? renderDefaultSummaryValue(card);
 
-          if (isActionable) {
+          if (cardViewState.isActionable) {
             return (
               <SummaryFilterCardButton
                 key={card.label}
-                isProminent={isProminent}
                 onSelect={onSelectFilter}
+                renderValue={renderValue}
                 summaryCard={card}
               />
             );
           }
 
           return (
-            <div key={card.label} data-subscriptions-summary-static-card="" className={cn(className, "shadow-none")}>
+            <div
+              key={card.label}
+              data-subscriptions-summary-static-card=""
+              className={cn(cardViewState.className, "shadow-none")}
+            >
               <div>
                 <div className="mb-2 flex min-h-6 items-start justify-between gap-3">
                   <SummaryText as="p" variant="label">
