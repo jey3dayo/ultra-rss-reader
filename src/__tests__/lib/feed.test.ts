@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { extractSiteHost } from "@/lib/feed";
+import { extractSiteHost, resolveSiteHostLabel } from "@/lib/feed";
 
 describe("extractSiteHost", () => {
   it("extracts hostname from a valid site_url", () => {
@@ -35,5 +35,10 @@ describe("extractSiteHost", () => {
     const result = extractSiteHost("not-valid", "https://feed.example.com/rss");
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result)).toBe("not-valid");
+  });
+
+  it("resolves a host label without exposing Result handling to callers", () => {
+    expect(resolveSiteHostLabel("https://example.com/path", "https://fallback.com/feed.xml")).toBe("example.com");
+    expect(resolveSiteHostLabel("", "not-a-url")).toBe("not-a-url");
   });
 });

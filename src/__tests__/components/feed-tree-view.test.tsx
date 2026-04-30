@@ -742,7 +742,9 @@ describe("FeedTreeView", () => {
     const dropZone = screen.getByTestId("unfoldered-drop-zone");
     expect(dropZone).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
     expect(dropZone).toHaveClass("border-dashed", "min-h-8");
+    expect(dropZone).toHaveClass("motion-resize-surface");
     expect(dropZone).not.toHaveClass("motion-contextual-surface");
+    expect(dropZone).not.toHaveClass("transition-all");
   });
 
   it("does not show the unfoldered drop zone until a drag is active", () => {
