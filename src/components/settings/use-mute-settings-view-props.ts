@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
+import { getOptionLabelByValue } from "@/lib/options";
 import type { MuteSettingsViewProps } from "./mute-settings-view";
 
 type UseMuteSettingsViewPropsParams = {
@@ -87,7 +88,7 @@ export function useMuteSettingsViewProps({
     confirmMessage: confirmRule
       ? t("mute.confirm_delete_message", {
           keyword: confirmRule.keyword,
-          scope: scopeOptions.find((option) => option.value === confirmRule.scope)?.label ?? confirmRule.scope,
+          scope: getOptionLabelByValue(scopeOptions, confirmRule.scope),
         })
       : "",
     confirmActionLabel: t("mute.delete"),

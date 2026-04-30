@@ -1,5 +1,6 @@
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
+import { getOptionLabelByValue } from "@/lib/options";
 import type { ArticleListFeedModeControlProps } from "./article-list.types";
 
 export function ArticleListFeedModeControl({
@@ -15,11 +16,7 @@ export function ArticleListFeedModeControl({
       onValueChange={(nextValue) => nextValue && onValueChange(nextValue as FeedDisplayPresetOption)}
     >
       <SelectTrigger aria-label={ariaLabel} className="min-w-[168px]">
-        <SelectValue>
-          {(selectedValue: string | null) =>
-            options.find((option) => option.value === (selectedValue ?? ""))?.label ?? selectedValue ?? ""
-          }
-        </SelectValue>
+        <SelectValue>{(selectedValue: string | null) => getOptionLabelByValue(options, selectedValue)}</SelectValue>
       </SelectTrigger>
       <SelectPopup>
         {options.map((option) => (
