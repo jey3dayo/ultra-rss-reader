@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { buildArticleGroupItems, resolveArticleGroupLabelToken } from "@/lib/article-list";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { UseArticleListGroupsParams } from "./article-list.types";
 
@@ -13,21 +14,17 @@ export function useArticleListGroups({
   return useMemo(() => {
     return Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => ({
       id: groupLabel,
-      label:
-        groupLabel === "TODAY"
-          ? t("today")
-          : groupLabel === "YESTERDAY"
-            ? t("yesterday")
-            : groupLabel === "__unknown_feed__"
-              ? t("unknown_feed")
-              : groupLabel,
+      label: (() => {
+        const labelToken = resolveArticleGroupLabelToken(groupLabel);
+        return labelToken ? t(labelToken) : groupLabel;
+      })(),
       showLabel: groupBy !== "none",
-      items: groupArticles.map((article) => ({
-        article,
-        feedName: feedNameMap.get(article.feed_id),
-        isSelected: selectedArticleId === article.id,
-        isRecentlyRead: recentlyReadIds.has(article.id),
-      })),
+      items: buildArticleGroupItems({
+        articles: groupArticles,
+        feedNameMap,
+        selectedArticleId,
+        recentlyReadIds,
+      }),
     }));
   }, [feedNameMap, groupBy, groupedArticles, recentlyReadIds, selectedArticleId, t]);
 }

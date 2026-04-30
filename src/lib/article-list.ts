@@ -34,6 +34,8 @@ export type GroupArticlesParams = {
   feedNameMap: Map<string, string>;
 };
 
+export type ArticleGroupLabelToken = "today" | "yesterday" | "unknown_feed" | null;
+
 export type CalculateArticleNavigationScrollTopParams = {
   currentScrollTop: number;
   viewportTop: number;
@@ -311,6 +313,38 @@ export function groupArticles(params: GroupArticlesParams): Record<string, Artic
     groups[group].push(article);
   }
   return groups;
+}
+
+export function resolveArticleGroupLabelToken(groupLabel: string): ArticleGroupLabelToken {
+  if (groupLabel === "TODAY") {
+    return "today";
+  }
+
+  if (groupLabel === "YESTERDAY") {
+    return "yesterday";
+  }
+
+  if (groupLabel === "__unknown_feed__") {
+    return "unknown_feed";
+  }
+
+  return null;
+}
+
+export function buildArticleGroupItems(params: {
+  articles: ArticleDto[];
+  feedNameMap: Map<string, string>;
+  selectedArticleId: string | null;
+  recentlyReadIds: ReadonlySet<string>;
+}) {
+  const { articles, feedNameMap, selectedArticleId, recentlyReadIds } = params;
+
+  return articles.map((article) => ({
+    article,
+    feedName: feedNameMap.get(article.feed_id),
+    isSelected: selectedArticleId === article.id,
+    isRecentlyRead: recentlyReadIds.has(article.id),
+  }));
 }
 
 export function buildArticleListFeedNameMap(feeds: FeedDto[] | undefined): Map<string, string> {

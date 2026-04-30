@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
   areArticleListsEquivalent,
+  buildArticleGroupItems,
   buildArticleListFeedNameMap,
   buildFolderFeedIdSet,
   calculateArticleNavigationScrollTop,
@@ -14,6 +15,7 @@ import {
   groupArticles,
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
+  resolveArticleGroupLabelToken,
   resolveArticleListMarkAllReadCount,
   selectVisibleArticles,
 } from "@/lib/article-list";
@@ -245,6 +247,37 @@ describe("article-list utils", () => {
     });
 
     expect(Object.keys(result)[0]).toContain("2026");
+  });
+
+  it("resolves built-in article group label translation tokens", () => {
+    expect(resolveArticleGroupLabelToken("TODAY")).toBe("today");
+    expect(resolveArticleGroupLabelToken("YESTERDAY")).toBe("yesterday");
+    expect(resolveArticleGroupLabelToken("__unknown_feed__")).toBe("unknown_feed");
+    expect(resolveArticleGroupLabelToken("Tech Blog")).toBeNull();
+  });
+
+  it("builds article group row items from group context", () => {
+    const result = buildArticleGroupItems({
+      articles: sampleArticles.slice(0, 2),
+      feedNameMap: new Map([["feed-1", "Tech Blog"]]),
+      selectedArticleId: "art-2",
+      recentlyReadIds: new Set(["art-1"]),
+    });
+
+    expect(result).toEqual([
+      {
+        article: sampleArticles[0],
+        feedName: "Tech Blog",
+        isSelected: false,
+        isRecentlyRead: true,
+      },
+      {
+        article: sampleArticles[1],
+        feedName: "Tech Blog",
+        isSelected: true,
+        isRecentlyRead: false,
+      },
+    ]);
   });
 
   it("builds feed lookup helpers for list grouping and folder filtering", () => {
