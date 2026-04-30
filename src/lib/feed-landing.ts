@@ -7,13 +7,15 @@ import {
 } from "@/lib/article-display";
 import { selectVisibleArticles } from "@/lib/article-list";
 
+const FEED_LANDING_FEED_ID = "__feed_landing__";
+
 export function resolveFeedLandingArticle(params: { articles: ArticleDto[]; sortUnread: string }): ArticleDto | null {
   const visibleArticles = selectVisibleArticles({
     articles: params.articles,
     accountArticles: undefined,
     tagArticles: undefined,
     searchResults: undefined,
-    feedId: "__feed_landing__",
+    feedId: FEED_LANDING_FEED_ID,
     tagId: null,
     viewMode: "unread",
     showSearch: false,
