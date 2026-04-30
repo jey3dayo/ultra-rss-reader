@@ -1,17 +1,22 @@
 import { FolderClosed, Inbox, Star, Tag as TagIcon } from "lucide-react";
 import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import type { FeedDto } from "@/api/tauri-commands";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { MotionNumber } from "@/components/shared/motion-number";
-import { formatArticleSummaryDate, resolveArticleDateLocale } from "@/lib/article-view";
+import {
+  type ArticleViewSummaryState,
+  formatArticleSummaryDate,
+  resolveArticleDateLocale,
+  resolveArticleSummaryWebsiteHref,
+  resolveArticleSummaryWebsiteLabel,
+} from "@/lib/article-view";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
 import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
-import { type ArticleViewSummaryState, useArticleViewSelection } from "./use-article-view-selection";
+import { useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
 
 const LazySubscriptionsIndexPage = lazy(async () => {
@@ -34,23 +39,6 @@ function renderSummaryCount(value: number, locale: string) {
   const label = value.toLocaleString(locale);
 
   return <MotionNumber key={label} value={label} />;
-}
-
-function resolveWebsiteHref(feed: FeedDto): string | null {
-  return feed.site_url || feed.url || null;
-}
-
-function resolveWebsiteLabel(feed: FeedDto): string | null {
-  const href = resolveWebsiteHref(feed);
-  if (!href) {
-    return null;
-  }
-
-  try {
-    return new URL(href).host;
-  } catch {
-    return href;
-  }
 }
 
 function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics }: SummaryCardProps) {
@@ -88,8 +76,8 @@ function buildSummaryCardProps(
   sidebarT: ReturnType<typeof useTranslation<"sidebar">>["t"],
 ): SummaryCardProps {
   if (summary.kind === "feed") {
-    const websiteHref = resolveWebsiteHref(summary.feed);
-    const websiteLabel = resolveWebsiteLabel(summary.feed);
+    const websiteHref = resolveArticleSummaryWebsiteHref(summary.feed);
+    const websiteLabel = resolveArticleSummaryWebsiteLabel(summary.feed);
 
     return {
       title: summary.feed.title,

@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { formatMediumDate, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 
 export type FindSelectedArticleParams = {
@@ -17,6 +17,35 @@ export type LinkNavigationParams = {
   ctrlKey: boolean;
 };
 
+export type ArticleViewSummaryState =
+  | {
+      kind: "feed";
+      feed: FeedDto;
+      latestArticleTitle?: string | null;
+      latestArticlePublishedAt?: string | null;
+    }
+  | {
+      kind: "folder";
+      folder: FolderDto;
+      feedCount: number;
+      unreadCount: number;
+      latestArticlePublishedAt?: string | null;
+    }
+  | {
+      kind: "tag";
+      tag: TagDto;
+      articleCount: number;
+      feedCount: number;
+      latestArticlePublishedAt?: string | null;
+    }
+  | {
+      kind: "smart";
+      smartKind: "unread" | "starred" | "recent";
+      articleCount: number;
+      feedCount: number;
+      latestArticlePublishedAt?: string | null;
+    };
+
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
   const { selectedArticleId, feedId, tagId, articles, accountArticles, tagArticles } = params;
 
@@ -30,17 +59,18 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
   return article ? Result.succeed(article) : Result.fail("article_not_found");
 }
 
-export function findLatestArticle(articles: ArticleDto[] | undefined): ArticleDto | null {
+export function findLatestArticle(articles: ArticleDto[] | undefined): Result.Result<ArticleDto, "no_articles"> {
   if (!articles || articles.length === 0) {
-    return null;
+    return Result.fail("no_articles");
   }
 
-  return articles.reduce<ArticleDto | null>((latest, candidate) => {
-    if (latest === null) {
-      return candidate;
-    }
+  const [firstArticle, ...restArticles] = articles;
+  if (!firstArticle) {
+    return Result.fail("no_articles");
+  }
 
-    const latestTime = getDateInputTimeMs(latest.published_at);
+  const latest = restArticles.reduce<ArticleDto>((currentLatest, candidate) => {
+    const latestTime = getDateInputTimeMs(currentLatest.published_at);
     const candidateTime = getDateInputTimeMs(candidate.published_at);
 
     if (latestTime === null) {
@@ -48,11 +78,13 @@ export function findLatestArticle(articles: ArticleDto[] | undefined): ArticleDt
     }
 
     if (candidateTime === null) {
-      return latest;
+      return currentLatest;
     }
 
-    return candidateTime > latestTime ? candidate : latest;
-  }, null);
+    return candidateTime > latestTime ? candidate : currentLatest;
+  }, firstArticle);
+
+  return Result.succeed(latest);
 }
 
 export function shouldOpenArticleTitleInExternalBrowser(params: LinkNavigationParams): boolean {
@@ -114,4 +146,100 @@ export function formatArticleDate(dateStr: string, locale = "en-US"): string {
 
 export function formatArticleSummaryDate(value: string | null | undefined, locale: string): string {
   return formatMediumDate(value, locale) ?? "—";
+}
+
+export function resolveArticleSummaryWebsiteHref(feed: FeedDto): string | null {
+  return feed.site_url || feed.url || null;
+}
+
+export function resolveArticleSummaryWebsiteLabel(feed: FeedDto): string | null {
+  const href = resolveArticleSummaryWebsiteHref(feed);
+  if (!href) {
+    return null;
+  }
+
+  try {
+    return new URL(href).host;
+  } catch {
+    return href;
+  }
+}
+
+export function buildArticleViewSummary(params: {
+  selection:
+    | { type: "all" }
+    | { type: "feed"; feedId: string }
+    | { type: "folder"; folderId: string }
+    | { type: "tag"; tagId: string }
+    | { type: "smart"; kind: "unread" | "starred" | "recent" };
+  selectedFeedId: string | null;
+  feeds: FeedDto[] | undefined;
+  folders: FolderDto[] | undefined;
+  tags: TagDto[] | undefined;
+  filteredArticles: ArticleDto[];
+  allFeedArticles: ArticleDto[] | undefined;
+}): ArticleViewSummaryState | undefined {
+  const { selection, selectedFeedId, feeds, folders, tags, filteredArticles, allFeedArticles } = params;
+  if (selection.type === "all") {
+    return undefined;
+  }
+
+  const visibleFeedIds = new Set(filteredArticles.map((article) => article.feed_id));
+  const latestVisibleArticleResult = findLatestArticle(filteredArticles);
+  const latestVisibleArticle = Result.isSuccess(latestVisibleArticleResult)
+    ? Result.unwrap(latestVisibleArticleResult)
+    : null;
+
+  if (selection.type === "feed") {
+    const feed = selectedFeedId ? feeds?.find((candidate) => candidate.id === selectedFeedId) : undefined;
+    const latestFeedArticleResult = findLatestArticle(allFeedArticles);
+    const latestFeedArticle = Result.isSuccess(latestFeedArticleResult) ? Result.unwrap(latestFeedArticleResult) : null;
+
+    return feed
+      ? {
+          kind: "feed",
+          feed,
+          latestArticleTitle: latestFeedArticle?.title ?? null,
+          latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
+        }
+      : undefined;
+  }
+
+  if (selection.type === "folder") {
+    const folder = folders?.find((candidate) => candidate.id === selection.folderId);
+    if (!folder) {
+      return undefined;
+    }
+
+    return {
+      kind: "folder",
+      folder,
+      feedCount: (feeds ?? []).filter((feed) => feed.folder_id === folder.id).length,
+      unreadCount: filteredArticles.filter((article) => !article.is_read).length,
+      latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+    };
+  }
+
+  if (selection.type === "tag") {
+    const tag = tags?.find((candidate) => candidate.id === selection.tagId);
+    if (!tag) {
+      return undefined;
+    }
+
+    return {
+      kind: "tag",
+      tag,
+      articleCount: filteredArticles.length,
+      feedCount: visibleFeedIds.size,
+      latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+    };
+  }
+
+  return {
+    kind: "smart",
+    smartKind: selection.kind,
+    articleCount: filteredArticles.length,
+    feedCount: visibleFeedIds.size,
+    latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+  };
 }

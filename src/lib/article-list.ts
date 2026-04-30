@@ -183,14 +183,24 @@ export function groupArticles(params: GroupArticlesParams): Record<string, Artic
   return groups;
 }
 
-export function getAdjacentItemId(ids: readonly string[], selectedId: string | null, direction: 1 | -1): string | null {
+export function getAdjacentItemId(
+  ids: readonly string[],
+  selectedId: string | null,
+  direction: 1 | -1,
+): Result.Result<string, "no_items"> {
   if (ids.length === 0) {
-    return null;
+    return Result.fail("no_items");
   }
 
   const currentIndex = ids.indexOf(selectedId ?? "");
   const nextIndex = currentIndex === -1 ? 0 : Math.max(0, Math.min(ids.length - 1, currentIndex + direction));
-  return ids[nextIndex] ?? null;
+  const nextItemId = ids[nextIndex];
+
+  if (!nextItemId) {
+    return Result.fail("no_items");
+  }
+
+  return Result.succeed(nextItemId);
 }
 
 export function getAdjacentArticleId(
@@ -204,11 +214,11 @@ export function getAdjacentArticleId(
     direction,
   );
 
-  if (!nextArticleId) {
+  if (Result.isFailure(nextArticleId)) {
     return Result.fail("no_articles");
   }
 
-  return Result.succeed(nextArticleId);
+  return Result.succeed(Result.unwrap(nextArticleId));
 }
 
 export function calculateArticleNavigationScrollTop(params: CalculateArticleNavigationScrollTopParams): number | null {

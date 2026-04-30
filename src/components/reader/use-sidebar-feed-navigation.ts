@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { useCallback, useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/article-list";
@@ -19,18 +20,19 @@ export function useSidebarFeedNavigation({
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
       const nextFeedId = getAdjacentItemId(orderedFeedIds, selectedFeedId, direction);
-      if (!nextFeedId) {
+      if (Result.isFailure(nextFeedId)) {
         return;
       }
+      const resolvedNextFeedId = Result.unwrap(nextFeedId);
 
-      const nextFeedFolderId = getFeedFolderId(nextFeedId) ?? null;
+      const nextFeedFolderId = getFeedFolderId(resolvedNextFeedId) ?? null;
       if (nextFeedFolderId && !expandedFolderIds.has(nextFeedFolderId)) {
         setExpandedFolders([...expandedFolderIds, nextFeedFolderId]);
       }
 
-      selectFeed(nextFeedId);
+      selectFeed(resolvedNextFeedId);
       requestAnimationFrame(() => {
-        const nextFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${nextFeedId}"]`);
+        const nextFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${resolvedNextFeedId}"]`);
         if (!nextFeedButton) {
           return;
         }

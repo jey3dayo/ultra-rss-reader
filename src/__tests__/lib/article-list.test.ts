@@ -242,10 +242,10 @@ describe("article-list utils", () => {
   });
 
   it("returns the adjacent id from an ordered id list", () => {
-    expect(getAdjacentItemId(["a", "b", "c"], "b", 1)).toBe("c");
-    expect(getAdjacentItemId(["a", "b", "c"], "b", -1)).toBe("a");
-    expect(getAdjacentItemId(["a", "b", "c"], null, 1)).toBe("a");
-    expect(getAdjacentItemId([], null, 1)).toBeNull();
+    expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "b", 1))).toBe("c");
+    expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "b", -1))).toBe("a");
+    expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], null, 1))).toBe("a");
+    expect(Result.unwrapError(getAdjacentItemId([], null, 1))).toBe("no_items");
   });
 
   it("returns an error when no articles are available", () => {

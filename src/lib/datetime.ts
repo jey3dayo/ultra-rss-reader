@@ -1,6 +1,14 @@
-export type DateInput = string | Date | null | undefined;
+import {
+  addHours as addDateFnsHours,
+  addDays,
+  differenceInDays as differenceInDateFnsDays,
+  isSameDay,
+  isValid,
+  startOfDay,
+} from "date-fns";
 
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
+export type DateInput = string | Date | null | undefined;
+type ParseDateInputError = "missing_value" | "invalid_date";
 
 export function getCurrentDate(): Date {
   return new Date();
@@ -22,17 +30,22 @@ export function formatDebugTimestamp(date: Date = getCurrentDate()): string {
   return date.toISOString().slice(11, 23);
 }
 
-export function parseDateInput(value: DateInput): Date | null {
+function parseDateInputResult(value: DateInput): { ok: true; value: Date } | { ok: false; error: ParseDateInputError } {
   if (!value) {
-    return null;
+    return { ok: false, error: "missing_value" };
   }
 
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
+    return isValid(value) ? { ok: true, value } : { ok: false, error: "invalid_date" };
   }
 
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return isValid(date) ? { ok: true, value: date } : { ok: false, error: "invalid_date" };
+}
+
+export function parseDateInput(value: DateInput): Date | null {
+  const parsed = parseDateInputResult(value);
+  return parsed.ok ? parsed.value : null;
 }
 
 export function getDateInputTimeMs(value: DateInput): number | null {
@@ -51,19 +64,15 @@ export function compareDateInputsAsc(left: DateInput, right: DateInput): number 
 }
 
 export function getStartOfLocalDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return startOfDay(date);
 }
 
 export function addLocalDays(date: Date, amount: number): Date {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + amount);
-  return nextDate;
+  return addDays(date, amount);
 }
 
 export function addHours(date: Date, amount: number): Date {
-  const nextDate = new Date(date);
-  nextDate.setHours(nextDate.getHours() + amount);
-  return nextDate;
+  return addDateFnsHours(date, amount);
 }
 
 export function createLocalDateTime(baseDate: Date, hours: number, minutes: number): Date {
@@ -71,15 +80,11 @@ export function createLocalDateTime(baseDate: Date, hours: number, minutes: numb
 }
 
 export function isSameLocalDay(left: Date, right: Date): boolean {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  );
+  return isSameDay(left, right);
 }
 
 export function differenceInDays(later: Date, earlier: Date): number {
-  return Math.floor((later.getTime() - earlier.getTime()) / MS_PER_DAY);
+  return differenceInDateFnsDays(later, earlier);
 }
 
 export function formatHourMinute(value: DateInput, locale?: string): string | null {

@@ -82,4 +82,15 @@ describe("dev-intent helpers", () => {
 
     expect(readDevWindowSize()).toBeNull();
   });
+
+  it("keeps valid env dimensions while dropping invalid ones", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "tall");
+
+    expect(readDevWindowSize()).toEqual({
+      width: 520,
+      height: null,
+    });
+  });
 });

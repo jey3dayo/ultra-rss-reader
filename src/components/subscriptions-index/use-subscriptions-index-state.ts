@@ -1,23 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "./subscriptions-index.types";
-
-function rowMatchesSummaryFilter(row: SubscriptionListRow, filterKey: SubscriptionSummaryFilterKey) {
-  if (filterKey === "all") {
-    return true;
-  }
-
-  if (filterKey === "stale") {
-    return row.status.labelKey === "stale_90d";
-  }
-
-  if (filterKey === "review") {
-    return (
-      row.status.labelKey === "review" || row.status.labelKey === "stale_90d" || row.status.labelKey === "no_unread"
-    );
-  }
-
-  return false;
-}
 
 export function useSubscriptionsIndexState(
   rows: SubscriptionListRow[],
@@ -35,41 +18,21 @@ export function useSubscriptionsIndexState(
     () => new Set(options?.initialDeferredFeedIds ?? []),
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortKey, setSortKey] = useState<"title" | "updated_at" | "unread_count">("title");
+  const [sortKey, setSortKey] = useState<SubscriptionSortKey>("title");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(options?.initialExpandedGroups ?? {});
   const [activeSummaryFilter, setActiveSummaryFilter] = useState<SubscriptionSummaryFilterKey>(
     options?.initialSummaryFilter ?? "all",
   );
 
   const visibleRows = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
-    return rows
-      .filter((row) => rowMatchesSummaryFilter(row, activeSummaryFilter))
-      .filter((row) =>
-        activeSummaryFilter === "all" ? true : !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id),
-      )
-      .filter((row) => {
-        if (normalizedQuery.length === 0) {
-          return true;
-        }
-
-        return (
-          row.feed.title.toLowerCase().includes(normalizedQuery) ||
-          (row.folderName ?? "").toLowerCase().includes(normalizedQuery)
-        );
-      })
-      .sort((left, right) => {
-        if (sortKey === "updated_at") {
-          return (Date.parse(right.latestArticleAt ?? "") || 0) - (Date.parse(left.latestArticleAt ?? "") || 0);
-        }
-
-        if (sortKey === "unread_count") {
-          return right.feed.unread_count - left.feed.unread_count;
-        }
-
-        return left.feed.title.localeCompare(right.feed.title);
-      });
+    return buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter,
+      keptFeedIds,
+      deferredFeedIds,
+      searchQuery,
+      sortKey,
+    });
   }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery, sortKey]);
 
   useEffect(() => {

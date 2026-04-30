@@ -2,6 +2,7 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type {
   SubscriptionListGroup,
   SubscriptionListRow,
+  SubscriptionSummaryFilterKey,
 } from "@/components/subscriptions-index/subscriptions-index.types";
 import { compareDateInputsAsc, formatMediumDate } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
@@ -11,8 +12,76 @@ export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
   | { tone: "medium"; labelKey: "review" | "stale_90d" | "no_unread" | "no_stars" };
 
+export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
+
 export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
   return status.labelKey !== "normal";
+}
+
+export function rowMatchesSubscriptionSummaryFilter(
+  row: SubscriptionListRow,
+  filterKey: SubscriptionSummaryFilterKey,
+): boolean {
+  if (filterKey === "all") {
+    return true;
+  }
+
+  if (filterKey === "stale") {
+    return row.status.labelKey === "stale_90d";
+  }
+
+  if (filterKey === "review") {
+    return (
+      row.status.labelKey === "review" || row.status.labelKey === "stale_90d" || row.status.labelKey === "no_unread"
+    );
+  }
+
+  return false;
+}
+
+export function buildVisibleSubscriptionRows({
+  rows,
+  activeSummaryFilter,
+  keptFeedIds,
+  deferredFeedIds,
+  searchQuery,
+  sortKey,
+}: {
+  rows: SubscriptionListRow[];
+  activeSummaryFilter: SubscriptionSummaryFilterKey;
+  keptFeedIds: ReadonlySet<string>;
+  deferredFeedIds: ReadonlySet<string>;
+  searchQuery: string;
+  sortKey: SubscriptionSortKey;
+}): SubscriptionListRow[] {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  return rows
+    .filter((row) => rowMatchesSubscriptionSummaryFilter(row, activeSummaryFilter))
+    .filter((row) =>
+      activeSummaryFilter === "all" ? true : !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id),
+    )
+    .filter((row) => {
+      if (normalizedQuery.length === 0) {
+        return true;
+      }
+
+      return (
+        row.feed.title.toLowerCase().includes(normalizedQuery) ||
+        (row.folderName ?? "").toLowerCase().includes(normalizedQuery)
+      );
+    })
+    .sort((left, right) => {
+      if (sortKey === "updated_at") {
+        return (Date.parse(right.latestArticleAt ?? "") || 0) - (Date.parse(left.latestArticleAt ?? "") || 0);
+      }
+
+      if (sortKey === "unread_count") {
+        return right.feed.unread_count - left.feed.unread_count;
+      }
+
+      return left.feed.title.localeCompare(right.feed.title);
+    });
 }
 
 export function buildSubscriptionsIndexSummary({
