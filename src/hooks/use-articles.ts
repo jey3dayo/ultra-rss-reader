@@ -222,7 +222,8 @@ export function useAccountArticles(accountId: string | null, options?: { unreadO
 
   return useQuery({
     queryKey: ["accountArticles", accountId, { unreadOnly }],
-    queryFn: () => listAccountArticles(requireEnabledQueryValue(accountId, "accountId"), unreadOnly).then(Result.unwrap()),
+    queryFn: () =>
+      listAccountArticles(requireEnabledQueryValue(accountId, "accountId"), unreadOnly).then(Result.unwrap()),
     enabled: !!accountId,
   });
 }
