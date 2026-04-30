@@ -2,7 +2,6 @@ import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
-import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./add-account-services";
 import type { ServicePickerProps } from "./add-account-services.types";
@@ -22,7 +21,7 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
           return (
             <fieldset key={category.labelKey} aria-labelledby={labelId}>
               <legend id={labelId}>
-                <SectionHeading>{t(category.labelKey as "account.category_local")}</SectionHeading>
+                <SectionHeading>{t(category.labelKey)}</SectionHeading>
               </legend>
               <ul className="space-y-0.5">
                 {category.services.map((service) => (
@@ -31,7 +30,7 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                       disabled={service.disabled}
                       onClick={() => {
                         if (!service.disabled) {
-                          onSelect(service.kind as AddAccountProviderKind);
+                          onSelect(service.kind);
                         }
                       }}
                       className={cn("items-center rounded-md px-3 py-2.5")}
@@ -44,10 +43,10 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                       }
                       title={
                         <div className="flex items-center gap-2">
-                          <span>{t(service.nameKey as "account.local_feeds")}</span>
+                          <span>{t(service.nameKey)}</span>
                         </div>
                       }
-                      description={<div>{t(service.descKey as "account.local_desc")}</div>}
+                      description={<div>{t(service.descKey)}</div>}
                       trailing={service.disabled ? null : <ChevronRight className="h-4 w-4 text-foreground-soft" />}
                     />
                   </li>
