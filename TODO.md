@@ -24,7 +24,7 @@
   - `article-list-item` の row hover / selected transition は連続キー移動で毎フレーム効くため、`motion-static-hover-surface` への置換は計測後に行う
   - どちらも適用前後でキーボード操作、ドラッグ、連続記事移動時の jank を確認する
 
-- [ ] Text / number swap の追加適用候補を実データ更新頻度で分ける
+- [x] Text / number swap の追加適用候補を実データ更新頻度で分ける
   - 現状: 件数バッジなどの短い数値は `MotionNumber` に寄せ、`UI Reference/View Specimens Canvas` に基準面を置く。追加適用は同期カウント・検索結果数のような短い表示に限定する
   - 記事本文、長いタイトル、フィード名には適用しない。読む対象そのものが動いて見えると視線移動が増える
 
