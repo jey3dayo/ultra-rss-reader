@@ -4,6 +4,7 @@ import { useMarkAllRead, useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import {
+  buildFeedDisplayPresetOptions,
   displayPresetToTriStateModes,
   type FeedDisplayPresetOption,
   resolveFeedDisplayPreset,
@@ -27,11 +28,12 @@ export function useArticleListHeaderActions({
 
   const selectedFeedDisplayPreset = resolveFeedDisplayPreset(selectedFeed);
   const displayPresetOptions = useMemo<Array<{ value: FeedDisplayPresetOption; label: string }>>(
-    () => [
-      { value: "default", label: t("display_mode_default") },
-      { value: "standard", label: t("display_mode_standard") },
-      { value: "preview", label: t("display_mode_preview") },
-    ],
+    () =>
+      buildFeedDisplayPresetOptions({
+        default: t("display_mode_default"),
+        standard: t("display_mode_standard"),
+        preview: t("display_mode_preview"),
+      }),
     [t],
   );
 

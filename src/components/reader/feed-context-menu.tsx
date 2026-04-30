@@ -8,11 +8,12 @@ import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import {
+  buildFeedDisplayPresetOptions,
   displayPresetToTriStateModes,
   feedModesToDisplayPresetOption,
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
-import { extractSiteHost } from "@/lib/feed";
+import { resolveSiteHostLabel } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 import { RenameDialog } from "./rename-feed-dialog";
@@ -56,17 +57,16 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const deleteFeedMutation = useDeleteFeed();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
 
-  const hostResult = extractSiteHost(feed.site_url, feed.url);
-  const siteHost = Result.isSuccess(hostResult) ? Result.unwrap(hostResult) : Result.unwrapError(hostResult);
+  const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
   const selectedDisplayPreset = feedModesToDisplayPresetOption(
     resolveFeedDisplayOverrides(feed).readerMode,
     resolveFeedDisplayOverrides(feed).webPreviewMode,
   );
-  const displayPresetOptions = [
-    { value: "default", label: t("display_mode_default") },
-    { value: "standard", label: t("display_mode_standard") },
-    { value: "preview", label: t("display_mode_preview") },
-  ];
+  const displayPresetOptions = buildFeedDisplayPresetOptions({
+    default: t("display_mode_default"),
+    standard: t("display_mode_standard"),
+    preview: t("display_mode_preview"),
+  });
 
   const handleOpenSite = () => {
     const url = feed.site_url || feed.url;

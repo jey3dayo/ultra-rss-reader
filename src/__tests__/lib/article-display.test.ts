@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   type ArticleDisplayPreset,
   appDefaultsToDisplayPreset,
+  buildFeedDisplayPresetOptions,
   displayPresetToModes,
   displayPresetToPreferenceValues,
   displayPresetToTriStateModes,
   feedModesToDisplayPresetOption,
   modesToDisplayPreset,
   resolveArticleDisplay,
+  resolveFeedDisplayPresetLabel,
+  resolveFolderDisplayPreset,
 } from "@/lib/article-display";
 
 describe("article-display preset conversions", () => {
@@ -63,6 +66,53 @@ describe("article-display preset conversions", () => {
     expect(feedModesToDisplayPresetOption("on", "off")).toBe("standard");
     expect(feedModesToDisplayPresetOption("on", "on")).toBe("preview");
     expect(feedModesToDisplayPresetOption("off", "on")).toBe("preview");
+  });
+
+  it.each([
+    ["default", "Use default"],
+    ["standard", "Standard"],
+    ["preview", "Preview"],
+  ] as const)("resolves feed display preset %s labels", (preset, expected) => {
+    expect(
+      resolveFeedDisplayPresetLabel({
+        preset,
+        labels: {
+          default: "Use default",
+          standard: "Standard",
+          preview: "Preview",
+        },
+      }),
+    ).toBe(expected);
+  });
+
+  it("builds feed display preset options in selector order", () => {
+    expect(
+      buildFeedDisplayPresetOptions({
+        default: "Use default",
+        standard: "Standard",
+        preview: "Preview",
+      }),
+    ).toEqual([
+      { value: "default", label: "Use default" },
+      { value: "standard", label: "Standard" },
+      { value: "preview", label: "Preview" },
+    ]);
+  });
+
+  it("resolves folder display preset only when child feeds match", () => {
+    expect(resolveFolderDisplayPreset([])).toBe("default");
+    expect(
+      resolveFolderDisplayPreset([
+        { reader_mode: "inherit", web_preview_mode: "inherit" },
+        { reader_mode: "inherit", web_preview_mode: "inherit" },
+      ]),
+    ).toBe("default");
+    expect(
+      resolveFolderDisplayPreset([
+        { reader_mode: "on", web_preview_mode: "off" },
+        { reader_mode: "on", web_preview_mode: "on" },
+      ]),
+    ).toBeNull();
   });
 });
 

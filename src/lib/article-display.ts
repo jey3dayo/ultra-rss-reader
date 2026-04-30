@@ -147,6 +147,50 @@ export function resolveFeedDisplayPreset(feed: FeedLikeDisplaySettings | null | 
   return feedModesToDisplayPresetOption(overrides.readerMode, overrides.webPreviewMode);
 }
 
+export function resolveFolderDisplayPreset(feeds: Array<FeedLikeDisplaySettings>): FeedDisplayPresetOption | null {
+  if (feeds.length === 0) {
+    return "default";
+  }
+
+  const [firstFeed, ...restFeeds] = feeds;
+  const firstPreset = resolveFeedDisplayPreset(firstFeed);
+
+  return restFeeds.every((feed) => resolveFeedDisplayPreset(feed) === firstPreset) ? firstPreset : null;
+}
+
+export function resolveFeedDisplayPresetLabel(params: {
+  preset: FeedDisplayPresetOption;
+  labels: {
+    default: string;
+    standard: string;
+    preview: string;
+  };
+}): string {
+  const { preset, labels } = params;
+
+  if (preset === "default") {
+    return labels.default;
+  }
+
+  if (preset === "standard") {
+    return labels.standard;
+  }
+
+  return labels.preview;
+}
+
+export function buildFeedDisplayPresetOptions(labels: {
+  default: string;
+  standard: string;
+  preview: string;
+}): Array<{ value: FeedDisplayPresetOption; label: string }> {
+  return [
+    { value: "default", label: labels.default },
+    { value: "standard", label: labels.standard },
+    { value: "preview", label: labels.preview },
+  ];
+}
+
 function resolveTriState(baseValue: boolean, override: TriStateDisplayMode): boolean {
   if (override === "inherit") {
     return baseValue;

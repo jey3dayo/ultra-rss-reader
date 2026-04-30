@@ -5,7 +5,7 @@ import { useAccountArticles } from "@/hooks/use-articles";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
-import { resolveFeedDisplayPreset } from "@/lib/article-display";
+import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
 import { getCurrentDate } from "@/lib/datetime";
 import { buildFolderNameByIdMap, buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
 import {
@@ -118,16 +118,14 @@ export function SubscriptionsIndexPage() {
   );
 
   const selectedDisplayModeLabel = state.selectedRow
-    ? (() => {
-        const preset = resolveFeedDisplayPreset(state.selectedRow.feed);
-        if (preset === "default") {
-          return tr("display_mode_default");
-        }
-        if (preset === "standard") {
-          return tr("display_mode_standard");
-        }
-        return tr("display_mode_preview");
-      })()
+    ? resolveFeedDisplayPresetLabel({
+        preset: resolveFeedDisplayPreset(state.selectedRow.feed),
+        labels: {
+          default: tr("display_mode_default"),
+          standard: tr("display_mode_standard"),
+          preview: tr("display_mode_preview"),
+        },
+      })
     : tr("display_mode_default");
 
   const groupedRows = useMemo(

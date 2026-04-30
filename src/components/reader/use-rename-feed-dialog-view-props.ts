@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { buildFeedDisplayPresetOptions } from "@/lib/article-display";
 import type {
   RenameFeedDialogViewOption,
   RenameFeedDialogViewProps,
@@ -16,11 +17,11 @@ export function useRenameFeedDialogViewProps({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
 
-  const displayModeOptions: RenameFeedDialogViewOption[] = [
-    { value: "default", label: t("display_mode_default") },
-    { value: "standard", label: t("display_mode_standard") },
-    { value: "preview", label: t("display_mode_preview") },
-  ];
+  const displayModeOptions: RenameFeedDialogViewOption[] = buildFeedDisplayPresetOptions({
+    default: t("display_mode_default"),
+    standard: t("display_mode_standard"),
+    preview: t("display_mode_preview"),
+  });
 
   return {
     open,
