@@ -11,6 +11,7 @@ import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import {
+  type AddAccountProviderKind,
   addAccountFormInitialState,
   addAccountFormReducer,
   buildAddAccountPayload,
@@ -35,6 +36,11 @@ type AccountConfigUiAction =
 const initialAccountConfigUiState: AccountConfigUiState = {
   submitting: false,
   errorMessage: null,
+};
+
+const ACCOUNT_KIND_TITLE_KEY: Record<AddAccountProviderKind, "account.local" | "account.freshrss"> = {
+  Local: "account.local",
+  FreshRss: "account.freshrss",
 };
 
 function accountConfigUiReducer(state: AccountConfigUiState, action: AccountConfigUiAction): AccountConfigUiState {
@@ -144,7 +150,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           {tc("back")}
         </SettingsActionButton>
         <h2 className="text-center font-sans text-[19px] font-medium tracking-[-0.02em] text-foreground">
-          {t(`account.${kind.toLowerCase()}` as "account.local")}
+          {t(ACCOUNT_KIND_TITLE_KEY[kind])}
         </h2>
         <div aria-hidden="true" className="h-8 w-8 justify-self-end" />
       </div>
@@ -157,11 +163,9 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <span>{t(serviceDef.nameKey as "account.local_feeds")}</span>
+                <span>{t(serviceDef.nameKey)}</span>
               </div>
-              <div className="font-serif text-xs leading-[1.45] text-foreground-soft">
-                {t(serviceDef.descKey as "account.local_desc")}
-              </div>
+              <div className="font-serif text-xs leading-[1.45] text-foreground-soft">{t(serviceDef.descKey)}</div>
             </div>
           </div>
         </SurfaceCard>
