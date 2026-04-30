@@ -136,6 +136,15 @@ When reviewing browser previews, embedded WebView surfaces, or app-shell chrome,
 - header height, close/action button centering, and overlay rail density should stay app-owned and visually consistent across browser preview, macOS, and Windows unless a native platform constraint requires an explicit exception
 - if browser-mode and native Tauri disagree, inspect the overlay root, host rect, and native bounds contract before adding local padding or per-platform offsets
 
+### Utility Action Checklist
+
+When reviewing compact icon-only action strips, check semantic state and visual emphasis separately:
+
+- `aria-pressed` or equivalent state may be required for accessibility, but it should not automatically create a filled selected surface
+- baseline states such as read, default, or closed should stay visually quiet unless the product meaning requires emphasis
+- semantic states such as starred or unread may use tokenized icon tint or a quiet tonal surface, but avoid making every state look equally selected
+- keyboard focus must remain visible even when the pressed surface is intentionally transparent
+
 ## Escalation
 
 If the direction is unclear:
