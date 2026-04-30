@@ -3,6 +3,7 @@ import {
   AnnotatedNote,
   AnnouncementCardsSpecimen,
   DetailPanelSpecimen,
+  MotionNumberSpecimen,
   ReferencePage,
   SettingsHeaderSummarySpecimen,
   SubscriptionGroupDisclosureSpecimen,
@@ -23,6 +24,7 @@ export function ViewSpecimensCanvas() {
         <SummaryFilterCardsSpecimen />
         <div className="grid items-start gap-4 xl:grid-cols-2">
           <WorkspaceFilterClusterSpecimen />
+          <MotionNumberSpecimen />
           <SubscriptionGroupDisclosureSpecimen />
           <WorkspaceActionClusterSpecimen />
           <AnnouncementCardsSpecimen />

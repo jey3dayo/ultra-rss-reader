@@ -1,8 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
-import { Toggle } from "@base-ui/react/toggle";
-import { ToggleGroup } from "@base-ui/react/toggle-group";
 import {
   AlertTriangle,
   BookOpen,
@@ -56,6 +54,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import { MotionNumber } from "@/components/shared/motion-number";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SurfaceCard } from "@/components/shared/surface-card";
@@ -174,7 +173,7 @@ const SHELL_SPECIMEN_INNER_RADIUS_CLASS = "rounded-lg";
 
 export function ReferencePage({ children, maxWidthClassName = "max-w-6xl" }: ReferencePageProps) {
   return (
-    <div className="h-screen overflow-y-auto bg-background px-6 py-8 text-foreground sm:px-8">
+    <div className="min-h-screen bg-background px-6 py-8 text-foreground sm:px-8">
       <div className={cn("mx-auto w-full", maxWidthClassName)}>{children}</div>
     </div>
   );
@@ -799,7 +798,7 @@ function ReferenceTypeScaleBlock({
     <div className="rounded-md border border-border/70 bg-surface-1/88 px-4 py-4 shadow-none">
       <div className="mb-3">
         <p className="font-sans text-[11px] font-medium tracking-[0.16em] text-foreground-soft uppercase">{label}</p>
-        <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/58">{hint}</p>
+        <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/72">{hint}</p>
       </div>
       <div className={sampleClassName}>{sampleText}</div>
     </div>
@@ -1002,14 +1001,14 @@ export function DisabledSwitchSpecimen() {
       >
         <LabeledControlRow label="ミュート時に自動既読">
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-[11px] text-foreground/58">
+            <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-[11px] text-foreground/72">
               工事中
             </span>
             <GradientSwitch checked={false} disabled aria-label="ミュート時に自動既読" />
           </div>
         </LabeledControlRow>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         利用予定だが今は無効、という状態の見本。注記と disabled control を同時に見せる。
       </p>
     </SurfaceCard>
@@ -1054,7 +1053,7 @@ export function TypographyScaleSpecimen() {
         <ReferenceTypeScaleBlock
           label="Caption"
           hint="Micro labels and metadata."
-          sampleClassName="font-sans text-[11px] leading-[1.45] tracking-[0.08em] text-foreground/58 uppercase"
+          sampleClassName="font-sans text-[11px] leading-[1.45] tracking-[0.08em] text-foreground/72 uppercase"
           sampleText="Caption"
         />
         <ReferenceTypeScaleBlock
@@ -1146,22 +1145,16 @@ export function ReaderFilterStripSpecimen() {
           "border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-3 py-2 text-sidebar-foreground shadow-elevation-1",
         )}
       >
-        <ToggleGroup
-          aria-label="記事フィルター"
-          value={[mode]}
-          onValueChange={(values) => {
-            const next = values[values.length - 1] as ReaderFilterMode | undefined;
-            if (next) {
-              setMode(next);
-            }
-          }}
-          className="flex items-center gap-1"
-        >
+        <fieldset className="flex items-center gap-1">
+          <legend className="sr-only">記事フィルター</legend>
           {FILTER_ITEMS.map((item) => (
-            <Toggle
+            <button
               key={item.value}
-              value={item.value}
+              type="button"
               aria-label={item.label}
+              aria-pressed={mode === item.value}
+              data-pressed={mode === item.value ? "" : undefined}
+              onClick={() => setMode(item.value)}
               className={cn(
                 controlChipVariants({ size: "filter", interaction: "toggle" }),
                 REFERENCE_FILTER_TONE_CLASSNAMES[item.value],
@@ -1175,11 +1168,11 @@ export function ReaderFilterStripSpecimen() {
                 <UnreadIcon unread={mode === "unread"} className="h-2.5 w-2.5" />
               )}
               {item.label}
-            </Toggle>
+            </button>
           ))}
-        </ToggleGroup>
+        </fieldset>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         reader 固有の帯。filter chip 群と補助説明の密度を確認する。
       </p>
     </SurfaceCard>
@@ -1221,9 +1214,50 @@ export function WorkspaceFilterClusterSpecimen() {
           </ControlChipButton>
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         密度の高いワークスペースでは、pill よりも少し角張った filter chip
         を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function MotionNumberSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Short numeric swaps</SectionHeading>
+      <div
+        data-testid="reference-motion-number-frame"
+        className={cn(
+          STACK_SPECIMEN_FRAME_RADIUS_CLASS,
+          "grid gap-3 border border-border/70 bg-surface-1/88 px-3 py-3 shadow-elevation-1",
+        )}
+      >
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-border/55 bg-card/48 px-3 py-2">
+          <span className="truncate text-sm font-medium text-foreground">Unread queue</span>
+          <MotionNumber value={27} className="text-sm font-semibold text-foreground" />
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-border/55 bg-card/48 px-3 py-2">
+          <span className="truncate text-sm font-medium text-foreground">Search results</span>
+          <MotionNumber value={8} className="text-sm font-semibold text-foreground" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ControlChipButton pressed size="comfortable" className="gap-2 rounded-md px-3.5">
+            <span>未読なし</span>
+            <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
+              <MotionNumber value={163} />
+            </LabelChip>
+          </ControlChipButton>
+          <ControlChipButton pressed={false} size="comfortable" className="gap-2 rounded-md px-3.5">
+            <span>スターなし</span>
+            <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
+              <MotionNumber value={42} />
+            </LabelChip>
+          </ControlChipButton>
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        件数バッジ、検索結果数、同期カウントのような短い数値だけに使う。記事本文、長いタイトル、フィード名は動かさない。
       </p>
     </SurfaceCard>
   );
@@ -1242,7 +1276,7 @@ export function SummaryFilterCardsSpecimen() {
       <div data-testid="reference-summary-filter-card-frame">
         <SubscriptionsOverviewSummary cards={cards} onSelectFilter={setActiveFilter} />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         card 全体が filter button になる workspace summary。active accent、badge slot、numeric typography、押せない
         static sibling の差分をここで確認してから wrapper 化する。
       </p>
@@ -1292,7 +1326,7 @@ export function SubscriptionGroupDisclosureSpecimen() {
           onToggleGroup={toggleGroup}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         folder row は disclosure button と drop target を兼ねる。aria-expanded、count chip、motion disclosure、feed row
         との余白をこの基準面で確認する。
       </p>
@@ -1326,7 +1360,7 @@ export function WorkspaceActionClusterSpecimen() {
           </DecisionButton>
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         dense toolbar では action width を揃え、keep / defer / delete の順で置く。destructive
         は最後に寄せ、視線の終点に置く。
       </p>
@@ -1373,7 +1407,7 @@ export function DetailPanelSpecimen() {
           reasonChips={["一度見ておきたい購読"]}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         panel は単一 action card ではなく、title、status、reason、metrics、recent articles を束ねる detail
         surface。summary card より情報密度を高くし、primary action は末尾に閉じ込める。
       </p>
@@ -1413,7 +1447,7 @@ export function WorkspaceTwoPaneSpecimen() {
               {["AUTOMATON", "Publickey", "NHKニュース"].map((title) => (
                 <div key={title} className="rounded-md border border-border/70 bg-background/86 px-3 py-3">
                   <p className="font-sans text-sm text-foreground">{title}</p>
-                  <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/58">
+                  <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/72">
                     選択中の feed に応じて detail pane を更新する二段構成。
                   </p>
                 </div>
@@ -1482,7 +1516,7 @@ export function SettingsHeaderSummarySpecimen() {
           <AccountConnectionSummary statusLabel="未認証" statusTone="danger" detail="認証に失敗しています" />
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         settings の見出し右で account status を要約する見本。入力行ではなく header-level summary として扱う。
       </p>
     </SurfaceCard>
@@ -1508,7 +1542,7 @@ export function AccountCardStackSpecimen() {
           onAddAccount={() => {}}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         avatar とタイトル、補足行をまとめて見せたいときの密度見本。settings の account list に近い。
       </p>
     </SurfaceCard>
@@ -1576,7 +1610,7 @@ export function NavigationStackSpecimen() {
           displayFavicons={true}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         folder trigger と feed row の組み合わせ見本。数値列と favicon の密度を見るための断片。
       </p>
     </SurfaceCard>
@@ -1597,7 +1631,7 @@ export function TagPaletteSpecimen() {
         optionAriaLabel={(option) => `カラー ${option}`}
         onChange={setColor}
       />
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         サイドバーや記事画面で使うタグ色の選択見本。色 chip 群と説明文の関係を見るための断片。
       </p>
     </SurfaceCard>
@@ -1637,13 +1671,13 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Dialog shell</div>
-          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Dialog shell</div>
+          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/72">
             Outer shell only. Keep the inner dialog component surface separate and smaller-radius.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Dialog shell frame</div>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Dialog shell frame</div>
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
               Inner dialog component surface
             </div>
             <div className="mx-auto grid w-full max-w-[300px] gap-4 rounded-lg border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3">
@@ -1668,13 +1702,13 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Utility action chrome</div>
-          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Utility action chrome</div>
+          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/72">
             Resting state stays borderless. Selection comes from tonal fill and semantic icon tint, while focus remains
             a separate layer.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
               Sidebar or toolbar chrome
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-[#202122] px-3 py-3 text-white">
@@ -1725,15 +1759,15 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Context menu shell</div>
-          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Context menu shell</div>
+          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/72">
             This is the workspace frame around the menu body, not the reusable menu body itself.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
               Context menu shell frame
             </div>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Inner menu body</div>
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Inner menu body</div>
             <div className="inline-flex rounded-md border border-border px-3 py-2 text-sm text-foreground">Feed</div>
             <div className="mt-3 min-w-[200px] rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-elevation-2 outline-none">
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Edit…</div>
@@ -1781,7 +1815,7 @@ export function MotionTransitionsSpecimen() {
 
       <div className="grid gap-3 xl:grid-cols-3">
         <div className="rounded-lg border border-border/70 bg-background/70 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Resize surface</div>
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Resize surface</div>
           <div
             className={cn(
               "motion-resize-surface overflow-hidden rounded-lg border border-border bg-surface-2 shadow-elevation-1",
@@ -1804,7 +1838,7 @@ export function MotionTransitionsSpecimen() {
         </div>
 
         <div className="rounded-lg border border-border/70 bg-background/70 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Popup surface</div>
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Popup surface</div>
           <Button size="sm" variant="outline" aria-expanded={popupOpen}>
             Feed
           </Button>
@@ -1828,7 +1862,7 @@ export function MotionTransitionsSpecimen() {
         </div>
 
         <div className="rounded-lg border border-border/70 bg-background/70 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Dialog and popover</div>
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Dialog and popover</div>
           <div className="relative h-[210px] overflow-hidden rounded-lg border border-border/70 bg-surface-1/80">
             <div
               className="motion-popup-overlay absolute inset-0 bg-dialog-overlay bg-dialog-scrim"

@@ -138,8 +138,7 @@ describe("UI Reference canvases", () => {
   it("renders the foundations canvas with typography and semantic surfaces", () => {
     const { container } = render(<FoundationsCanvas />);
 
-    expect(container.firstElementChild).toHaveClass("h-screen");
-    expect(container.firstElementChild).toHaveClass("overflow-y-auto");
+    expect(container.firstElementChild).toHaveClass("min-h-screen");
     expect(screen.getByText("Foundations")).toBeInTheDocument();
     expect(screen.getByText("Typography scale")).toBeInTheDocument();
     expect(screen.getAllByText("Display Hero").length).toBeGreaterThan(0);
@@ -207,6 +206,18 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
     expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
     expect(screen.getByText("Summary filter cards")).toBeInTheDocument();
+    expect(screen.getByText("Short numeric swaps")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-motion-number-frame")).toHaveClass("rounded-md");
+    expect(within(screen.getByTestId("reference-motion-number-frame")).getByText("27")).toHaveClass(
+      "motion-content-swap",
+      "tabular-nums",
+    );
+    const motionNumberFrame = screen.getByTestId("reference-motion-number-frame");
+    expect(within(motionNumberFrame).getByRole("button", { name: "未読なし163" })).toBeInTheDocument();
+    expect(within(within(motionNumberFrame).getByRole("button", { name: "未読なし163" })).getByText("163")).toHaveClass(
+      "motion-content-swap",
+      "tabular-nums",
+    );
     expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
     expect(
       within(screen.getByTestId("reference-summary-filter-card-frame")).getByRole("button", { name: /確認待ち/ }),

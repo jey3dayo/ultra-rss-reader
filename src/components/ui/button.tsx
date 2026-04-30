@@ -18,7 +18,7 @@ const buttonVariants = cva(
         ghost: "text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2",
         destructive:
           "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface focus-visible:border-state-danger-border focus-visible:ring-destructive/20",
-        link: "border-transparent p-0 text-primary shadow-none underline-offset-4 hover:text-primary hover:underline",
+        link: "border-transparent p-0 text-[color:color-mix(in_srgb,var(--primary)_68%,var(--foreground))] shadow-none underline-offset-4 hover:text-primary hover:underline",
       },
       size: {
         default: "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
