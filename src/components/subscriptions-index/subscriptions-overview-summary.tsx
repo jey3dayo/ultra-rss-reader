@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ReactNode } from "react";
 import { LabelChip } from "@/components/shared/label-chip";
+import { MotionNumber } from "@/components/shared/motion-number";
 import { cn } from "@/lib/utils";
 import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
 
@@ -135,6 +136,18 @@ function resolveActionChipLabel({
   return filterKey === "all" ? "すべて表示" : "絞り込む";
 }
 
+function isNumericSummaryValue(value: string) {
+  return value.trim() !== "" && !Number.isNaN(Number(value));
+}
+
+function renderDefaultSummaryValue(card: SubscriptionSummaryCard) {
+  if (isNumericSummaryValue(card.value)) {
+    return <MotionNumber value={card.value} variant="digit-pop" />;
+  }
+
+  return card.value;
+}
+
 function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }: SummaryFilterCardButtonProps) {
   const toneClasses = resolveSummaryToneClasses(summaryCard.tone);
   const cardClassName = resolveSummaryCardClassName({
@@ -142,6 +155,7 @@ function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }:
     isActiveActionable: Boolean(summaryCard.isActive),
     isProminent,
   });
+  const value = renderDefaultSummaryValue(summaryCard);
 
   return (
     <button
@@ -185,7 +199,7 @@ function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }:
           variant="actionableValue"
           className={cn(summaryCard.isActive && toneClasses.activeValue)}
         >
-          {summaryCard.value}
+          {value}
         </SummaryText>
         {summaryCard.caption ? (
           <SummaryText as="p" variant="actionableCaption" className={cn(summaryCard.isActive && "text-foreground")}>
@@ -226,6 +240,7 @@ export function SubscriptionsOverviewSummary({
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3.5">
         {cards.map((card) => {
+          const value = renderDefaultSummaryValue(card);
           const isActionable = canSelectSummaryFilterCard(card);
           const isActiveActionable = isActionable && Boolean(card.isActive);
           const isProminent = card.tone === "review";
@@ -254,7 +269,7 @@ export function SubscriptionsOverviewSummary({
                   </span>
                 </div>
                 <SummaryText as="p" variant="staticValue" className="text-foreground-soft">
-                  {card.value}
+                  {value}
                 </SummaryText>
                 {card.caption ? (
                   <SummaryText as="p" variant="staticCaption">

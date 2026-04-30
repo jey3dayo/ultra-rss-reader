@@ -1235,23 +1235,23 @@ export function MotionNumberSpecimen() {
       >
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-border/55 bg-card/48 px-3 py-2">
           <span className="truncate text-sm font-medium text-foreground">Unread queue</span>
-          <MotionNumber value={27} className="text-sm font-semibold text-foreground" />
+          <MotionNumber value={27} variant="digit-pop" className="text-sm font-semibold text-foreground" />
         </div>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-border/55 bg-card/48 px-3 py-2">
           <span className="truncate text-sm font-medium text-foreground">Search results</span>
-          <MotionNumber value={8} className="text-sm font-semibold text-foreground" />
+          <MotionNumber value={8} variant="digit-pop" className="text-sm font-semibold text-foreground" />
         </div>
         <div className="flex flex-wrap gap-2">
           <ControlChipButton pressed size="comfortable" className="gap-2 rounded-md px-3.5">
             <span>未読なし</span>
             <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
-              <MotionNumber value={163} />
+              <MotionNumber value={163} variant="digit-pop" />
             </LabelChip>
           </ControlChipButton>
           <ControlChipButton pressed={false} size="comfortable" className="gap-2 rounded-md px-3.5">
             <span>スターなし</span>
             <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
-              <MotionNumber value={42} />
+              <MotionNumber value={42} variant="digit-pop" />
             </LabelChip>
           </ControlChipButton>
         </div>

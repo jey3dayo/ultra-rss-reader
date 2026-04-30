@@ -110,7 +110,9 @@ describe("SubscriptionsOverviewSummary", () => {
     );
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
     expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
-    expect(within(activeCard).getByText("2")).toHaveClass("text-state-review-foreground");
+    const metric = within(activeCard).getByText("2").closest(".t-digit-group");
+    expect(metric).toHaveClass("t-digit-group", "tabular-nums");
+    expect(metric?.parentElement).toHaveClass("text-state-review-foreground");
     expect(activeCard).toHaveAttribute("aria-pressed", "true");
   });
 

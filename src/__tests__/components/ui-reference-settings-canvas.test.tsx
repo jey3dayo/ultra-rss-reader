@@ -208,17 +208,24 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Summary filter cards")).toBeInTheDocument();
     expect(screen.getByText("Short numeric swaps")).toBeInTheDocument();
     expect(screen.getByTestId("reference-motion-number-frame")).toHaveClass("rounded-md");
-    expect(within(screen.getByTestId("reference-motion-number-frame")).getByText("27")).toHaveClass(
-      "motion-content-swap",
-      "tabular-nums",
-    );
     const motionNumberFrame = screen.getByTestId("reference-motion-number-frame");
+    const motionNumber = motionNumberFrame.querySelector(".t-digit-group");
+    if (!motionNumber) {
+      throw new Error("Motion number specimen did not render a digit group");
+    }
+    expect(motionNumber).toHaveClass("t-digit-group", "tabular-nums");
     expect(within(motionNumberFrame).getByRole("button", { name: "未読なし163" })).toBeInTheDocument();
-    expect(within(within(motionNumberFrame).getByRole("button", { name: "未読なし163" })).getByText("163")).toHaveClass(
-      "motion-content-swap",
-      "tabular-nums",
-    );
+    const chipMotionNumber = within(motionNumberFrame)
+      .getByRole("button", { name: "未読なし163" })
+      .querySelector(".t-digit-group");
+    if (!chipMotionNumber) {
+      throw new Error("Motion number chip specimen did not render a digit group");
+    }
+    expect(chipMotionNumber).toHaveClass("t-digit-group", "tabular-nums");
     expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-summary-filter-card-frame").querySelectorAll(".t-digit-group")).toHaveLength(
+      3,
+    );
     expect(
       within(screen.getByTestId("reference-summary-filter-card-frame")).getByRole("button", { name: /確認待ち/ }),
     ).toHaveAttribute("aria-pressed", "false");
