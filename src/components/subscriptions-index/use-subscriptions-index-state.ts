@@ -2,6 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions-index";
 import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "./subscriptions-index.types";
 
+function findSelectedSubscriptionRow(
+  rows: SubscriptionListRow[],
+  selectedFeedId: string | null,
+): SubscriptionListRow | null {
+  return rows.find((row) => row.feed.id === selectedFeedId) ?? null;
+}
+
+function addFeedIdToSet(current: ReadonlySet<string>, feedId: string): Set<string> {
+  return new Set(current).add(feedId);
+}
+
+function removeFeedIdFromSet(current: ReadonlySet<string>, feedId: string): Set<string> {
+  const next = new Set(current);
+  next.delete(feedId);
+  return next;
+}
+
 export function useSubscriptionsIndexState(
   rows: SubscriptionListRow[],
   options?: {
@@ -35,6 +52,8 @@ export function useSubscriptionsIndexState(
     });
   }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery, sortKey]);
 
+  const selectedRow = findSelectedSubscriptionRow(visibleRows, selectedFeedId);
+
   useEffect(() => {
     if (visibleRows.length === 0) {
       if (selectedFeedId !== null) {
@@ -43,12 +62,10 @@ export function useSubscriptionsIndexState(
       return;
     }
 
-    if (selectedFeedId === null || !visibleRows.some((row) => row.feed.id === selectedFeedId)) {
+    if (selectedRow === null) {
       setSelectedFeedId(visibleRows[0]?.feed.id ?? null);
     }
-  }, [selectedFeedId, visibleRows]);
-
-  const selectedRow = visibleRows.find((row) => row.feed.id === selectedFeedId) ?? null;
+  }, [selectedFeedId, selectedRow, visibleRows]);
 
   return {
     activeSummaryFilter,
@@ -69,23 +86,15 @@ export function useSubscriptionsIndexState(
       if (!selectedFeedId) {
         return;
       }
-      setDeferredFeedIds((current) => new Set(current).add(selectedFeedId));
-      setKeptFeedIds((current) => {
-        const next = new Set(current);
-        next.delete(selectedFeedId);
-        return next;
-      });
+      setDeferredFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
+      setKeptFeedIds((current) => removeFeedIdFromSet(current, selectedFeedId));
     },
     markSelectedFeedKept: () => {
       if (!selectedFeedId) {
         return;
       }
-      setKeptFeedIds((current) => new Set(current).add(selectedFeedId));
-      setDeferredFeedIds((current) => {
-        const next = new Set(current);
-        next.delete(selectedFeedId);
-        return next;
-      });
+      setKeptFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
+      setDeferredFeedIds((current) => removeFeedIdFromSet(current, selectedFeedId));
     },
     toggleGroup: (groupKey: string) =>
       setExpandedGroups((current) => ({
