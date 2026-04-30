@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { fn } from "storybook/test";
 import { usePlatformStore } from "@/stores/platform-store";
-import { WorkspaceHeader } from "./workspace-header";
+import { WorkspaceHeader, WorkspaceHeaderActionButton } from "./workspace-header";
 
 type RuntimeMode = "browser" | "mac" | "windows";
 
@@ -100,12 +100,9 @@ function WorkspaceHeaderStory({
         closeLabel={closeLabel}
         onClose={fn()}
         actions={
-          <button
-            type="button"
-            className="h-7 rounded-md border border-border/60 px-2.5 text-[0.8rem] text-foreground-soft"
-          >
+          <WorkspaceHeaderActionButton type="button" presentation="text">
             ショートカット
-          </button>
+          </WorkspaceHeaderActionButton>
         }
       />
     </WorkspaceHeaderStoryFrame>

@@ -1,5 +1,5 @@
 import { ChevronLeft, X } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -22,13 +22,13 @@ type WorkspaceHeaderProps = {
   actions?: ReactNode;
 };
 
-type WorkspaceHeaderMotionTextVariant = "eyebrow" | "title" | "subtitle";
+type MotionTextVariant = "eyebrow" | "title" | "subtitle";
 
-type WorkspaceHeaderMotionTextProps = {
+type MotionTextProps = {
   as: "h1" | "p";
   children: ReactNode;
   phase: MotionPhase;
-  variant: WorkspaceHeaderMotionTextVariant;
+  variant: MotionTextVariant;
   className?: string;
   testId?: string;
 };
@@ -36,28 +36,46 @@ type WorkspaceHeaderMotionTextProps = {
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
 const MAC_OVERLAY_TITLE_OFFSET_PX = 24;
 
-const WORKSPACE_HEADER_MOTION_TEXT_CLASS_NAMES: Record<WorkspaceHeaderMotionTextVariant, string> = {
+const motionTextClassNames: Record<MotionTextVariant, string> = {
   eyebrow: "font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase",
   title: "font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground",
   subtitle: "max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft",
 };
 
-export const workspaceHeaderActionClassName =
+const workspaceHeaderActionClassName =
   "h-7 rounded-md border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
 
-function WorkspaceHeaderMotionText({
-  as: Component,
-  children,
-  phase,
-  variant,
+type WorkspaceHeaderActionButtonProps = Omit<ComponentProps<typeof Button>, "size" | "variant"> & {
+  presentation?: "icon" | "text";
+};
+
+export function WorkspaceHeaderActionButton({
   className,
-  testId,
-}: WorkspaceHeaderMotionTextProps) {
+  presentation = "icon",
+  style,
+  ...props
+}: WorkspaceHeaderActionButtonProps) {
+  return (
+    <Button
+      variant="ghost"
+      size={presentation === "icon" ? "icon-sm" : "sm"}
+      className={cn(
+        workspaceHeaderActionClassName,
+        presentation === "icon" ? "w-7 justify-center px-0" : "px-2.5",
+        className,
+      )}
+      style={{ backgroundColor: "var(--workspace-header-action-surface)", ...style }}
+      {...props}
+    />
+  );
+}
+
+function MotionText({ as: Component, children, phase, variant, className, testId }: MotionTextProps) {
   return (
     <Component
       data-testid={testId}
       data-motion-phase={phase}
-      className={cn(MOTION_CONTENT_SWAP_CLASS_NAME, WORKSPACE_HEADER_MOTION_TEXT_CLASS_NAMES[variant], className)}
+      className={cn(MOTION_CONTENT_SWAP_CLASS_NAME, motionTextClassNames[variant], className)}
     >
       {children}
     </Component>
@@ -159,36 +177,22 @@ export function WorkspaceHeader({
           >
             {hasBackAction ? (
               isBrowserPreview ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
-                  style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
-                  aria-label={backLabel}
-                  onClick={onBack}
-                >
+                <WorkspaceHeaderActionButton aria-label={backLabel} onClick={onBack}>
                   <ChevronLeft className="h-4 w-4" />
-                </Button>
+                </WorkspaceHeaderActionButton>
               ) : null
             ) : null}
             {showEyebrowInTopRow ? (
-              <WorkspaceHeaderMotionText as="p" phase={contentMotionPhase} variant="eyebrow">
+              <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
                 {eyebrow}
-              </WorkspaceHeaderMotionText>
+              </MotionText>
             ) : null}
           </div>
           <div data-testid="workspace-header-actions" className="relative z-30 flex shrink-0 items-center gap-2">
             {actions}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
-              style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
-              aria-label={closeLabel}
-              onClick={onClose}
-            >
+            <WorkspaceHeaderActionButton aria-label={closeLabel} onClick={onClose}>
               <X className="h-4 w-4" />
-            </Button>
+            </WorkspaceHeaderActionButton>
           </div>
         </div>
         <div
@@ -215,9 +219,9 @@ export function WorkspaceHeader({
                   useDesktopOverlay && "pointer-events-none",
                 )}
               >
-                <WorkspaceHeaderMotionText as="p" phase={contentMotionPhase} variant="eyebrow">
+                <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
                   {eyebrow}
-                </WorkspaceHeaderMotionText>
+                </MotionText>
               </div>
             </div>
           ) : null}
@@ -230,37 +234,30 @@ export function WorkspaceHeader({
               )}
             >
               {hasBackAction ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className={cn(
-                    `${workspaceHeaderActionClassName} w-7 justify-center px-0`,
-                    "relative z-30",
-                    useDesktopOverlay && "pointer-events-auto",
-                  )}
-                  style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
+                <WorkspaceHeaderActionButton
+                  className={cn("relative z-30", useDesktopOverlay && "pointer-events-auto")}
                   aria-label={backLabel}
                   onClick={onBack}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                </Button>
+                </WorkspaceHeaderActionButton>
               ) : null}
               <div
                 data-testid="workspace-header-title-drag-content"
                 className={cn("min-w-0 flex-1", useDesktopOverlay && "pointer-events-none")}
               >
-                <WorkspaceHeaderMotionText as="h1" phase={contentMotionPhase} variant="title">
+                <MotionText as="h1" phase={contentMotionPhase} variant="title">
                   {title}
-                </WorkspaceHeaderMotionText>
+                </MotionText>
               </div>
             </div>
           ) : (
-            <WorkspaceHeaderMotionText as="h1" phase={contentMotionPhase} variant="title">
+            <MotionText as="h1" phase={contentMotionPhase} variant="title">
               {title}
-            </WorkspaceHeaderMotionText>
+            </MotionText>
           )}
           <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
-            <WorkspaceHeaderMotionText
+            <MotionText
               as="p"
               phase={contentMotionPhase}
               variant="subtitle"
@@ -268,7 +265,7 @@ export function WorkspaceHeader({
               className={cn(useDesktopOverlay && "pointer-events-none")}
             >
               {subtitle}
-            </WorkspaceHeaderMotionText>
+            </MotionText>
           </div>
         </div>
       </div>
