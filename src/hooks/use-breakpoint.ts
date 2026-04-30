@@ -4,6 +4,10 @@ import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { resolveResponsiveLayoutMode } from "./use-layout";
 
+export function resolvePreferredLayoutMode(layoutPref: string): "wide" | "compact" {
+  return layoutPref === "compact" ? "compact" : "wide";
+}
+
 export function useBreakpoint() {
   const setLayoutMode = useUiStore((s) => s.setLayoutMode);
   const layoutPref = usePreferencesStore((s) => s.prefs.layout ?? "automatic");
@@ -11,7 +15,7 @@ export function useBreakpoint() {
   useEffect(() => {
     const update = () => {
       const w = window.innerWidth;
-      const preferredLayoutMode = layoutPref === "automatic" ? "wide" : (layoutPref as "wide" | "compact");
+      const preferredLayoutMode = resolvePreferredLayoutMode(layoutPref);
       setLayoutMode(resolveResponsiveLayoutMode(preferredLayoutMode, w));
     };
     update();
