@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useReducer } from "react";
+import { useCallback, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
@@ -65,7 +65,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     preview: t("display_mode_preview"),
   });
 
-  const handleOpenSite = () => {
+  const handleOpenSite = useCallback(() => {
     const url = feed.site_url || feed.url;
     if (url) {
       const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -76,14 +76,34 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         ),
       );
     }
-  };
+  }, [feed.site_url, feed.url]);
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = useCallback(() => {
     confirmMarkAllRead({
       count: feed.unread_count,
       onConfirm: () => markFeedRead.mutate(feed.id),
     });
-  };
+  }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);
+
+  const handleSetDisplayPreset = useCallback(
+    (value: string) => {
+      if (!isFeedDisplayPresetOption(value)) {
+        return;
+      }
+
+      const nextModes = displayPresetToTriStateModes(value);
+      void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
+    },
+    [feed.id, updateFeedDisplaySettings],
+  );
+
+  const handleOpenUnsubscribeDialog = useCallback(() => {
+    dispatch({ type: "set-unsubscribe-dialog", value: true });
+  }, []);
+
+  const handleOpenRenameDialog = useCallback(() => {
+    dispatch({ type: "set-rename-dialog", value: true });
+  }, []);
 
   const handleConfirmUnsubscribe = async () => {
     try {
@@ -109,16 +129,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         editLabel={t("edit_ellipsis")}
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
-        onSetDisplayPreset={(value) => {
-          if (!isFeedDisplayPresetOption(value)) {
-            return;
-          }
-
-          const nextModes = displayPresetToTriStateModes(value);
-          void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
-        }}
-        onUnsubscribe={() => dispatch({ type: "set-unsubscribe-dialog", value: true })}
-        onEdit={() => dispatch({ type: "set-rename-dialog", value: true })}
+        onSetDisplayPreset={handleSetDisplayPreset}
+        onUnsubscribe={handleOpenUnsubscribeDialog}
+        onEdit={handleOpenRenameDialog}
       />
 
       <RenameDialog
