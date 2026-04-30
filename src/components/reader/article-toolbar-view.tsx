@@ -187,7 +187,7 @@ export function ArticleToolbarActionStrip({
             pressed={isStarred}
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             disabled={!canToggleStar}
-            pressedTone="starred"
+            pressedTone="none"
           >
             <StarIcon starred={isStarred} className="h-4 w-4" />
           </IconToolbarToggle>

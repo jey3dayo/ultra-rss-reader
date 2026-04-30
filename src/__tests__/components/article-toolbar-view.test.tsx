@@ -86,6 +86,8 @@ describe("ArticleToolbarView", () => {
     expect(starButton).toHaveClass("text-foreground-soft");
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
+    expect(starButton).toHaveClass("data-[pressed]:bg-transparent");
+    expect(starButton).toHaveClass("data-[pressed]:focus-visible:bg-transparent");
     expect(previewButton).toHaveAttribute("aria-pressed", "false");
     expect(readIcon).not.toBeNull();
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
@@ -151,7 +153,8 @@ describe("ArticleToolbarView", () => {
     );
 
     const readIcon = screen.getByRole("button", { name: "Toggle read" }).querySelector("span");
-    const starIcon = screen.getByRole("button", { name: "Toggle star" }).querySelector("svg");
+    const starButton = screen.getByRole("button", { name: "Toggle star" });
+    const starIcon = starButton.querySelector("svg");
 
     expect(readIcon).not.toBeNull();
     expect(readIcon).toHaveClass("bg-[var(--tone-unread)]");
@@ -160,6 +163,8 @@ describe("ArticleToolbarView", () => {
     expect(starIcon).not.toBeNull();
     expect(starIcon).toHaveClass("text-[var(--tone-starred)]");
     expect(starIcon).toHaveClass("fill-[var(--tone-starred)]");
+    expect(starButton).toHaveClass("data-[pressed]:bg-transparent");
+    expect(starButton).toHaveClass("data-[pressed]:focus-visible:bg-transparent");
   });
 
   it("hides optional actions and disables unavailable ones", () => {
