@@ -47,7 +47,7 @@ const summaryTextVariants = cva("", {
     variant: {
       label: "text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase",
       actionableValue: "mt-1.5 block text-[1.72rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[1.96rem]",
-      staticValue: "mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]",
+      staticValue: "mt-2 text-[1.56rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.76rem]",
       actionableCaption:
         "mt-1 max-w-[24ch] text-[12px] leading-5 text-foreground-soft sm:max-w-[26ch] sm:text-[13px] sm:leading-[1.5]",
       staticCaption:
@@ -79,20 +79,46 @@ function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neut
   return summaryToneClassNames[tone ?? "neutral"];
 }
 
-function isSummaryFilterCardActionable(card: SubscriptionSummaryCard) {
+function canSelectSummaryFilterCard(card: SubscriptionSummaryCard) {
   return card.isActionable ?? true;
 }
 
 type SummaryFilterCardButtonProps = {
-  card: SubscriptionSummaryCard;
-  className: string;
-  isPrimary?: boolean;
-  onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
-  toneClasses: (typeof summaryToneClassNames)[SubscriptionSummaryTone];
+  isProminent?: boolean;
+  onSelect: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  summaryCard: SubscriptionSummaryCard;
 };
+
+function resolveSummaryCardClassName({
+  card,
+  isActiveActionable,
+  isProminent,
+}: {
+  card: SubscriptionSummaryCard;
+  isActiveActionable: boolean;
+  isProminent: boolean;
+}) {
+  const toneClasses = resolveSummaryToneClasses(card.tone);
+
+  return cn(
+    "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
+    toneClasses.card,
+    isProminent && "shadow-[var(--subscriptions-summary-card-shadow)]",
+    isProminent && "sm:col-span-2 lg:col-span-1",
+    isActiveActionable ? toneClasses.activeCard : "shadow-none",
+  );
+}
 
 function resolveActiveBadgeLabel() {
   return "表示中";
+}
+
+function resolveStaticBadgeLabel() {
+  return "参照";
+}
+
+function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard) {
+  return `${card.label} を表示`;
 }
 
 function resolveActionChipLabel({
@@ -109,55 +135,61 @@ function resolveActionChipLabel({
   return filterKey === "all" ? "すべて表示" : "絞り込む";
 }
 
-function SummaryFilterCardButton({
-  card,
-  className,
-  isPrimary = false,
-  onSelectFilter,
-  toneClasses,
-}: SummaryFilterCardButtonProps) {
+function SummaryFilterCardButton({ isProminent = false, onSelect, summaryCard }: SummaryFilterCardButtonProps) {
+  const toneClasses = resolveSummaryToneClasses(summaryCard.tone);
+  const cardClassName = resolveSummaryCardClassName({
+    card: summaryCard,
+    isActiveActionable: Boolean(summaryCard.isActive),
+    isProminent,
+  });
+
   return (
     <button
       type="button"
       className={cn(
-        className,
+        cardClassName,
         "group cursor-pointer hover:border-border-strong/90 focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
       )}
-      aria-pressed={card.isActive}
-      onClick={() => onSelectFilter(card.filterKey)}
+      aria-label={resolveSummaryFilterCardAriaLabel(summaryCard)}
+      aria-pressed={summaryCard.isActive}
+      onClick={() => onSelect(summaryCard.filterKey)}
     >
       <span
         aria-hidden="true"
         className={cn(
           "absolute inset-x-0 top-0 h-1.5 transition-opacity duration-150",
           toneClasses.activeAccent,
-          card.isActive ? "opacity-100" : "opacity-0",
+          summaryCard.isActive ? "opacity-100" : "opacity-0",
         )}
       />
       <div>
         <div className="mb-2 flex items-start justify-between gap-3">
           <SummaryText as="span" variant="label" className="block">
-            {card.label}
+            {summaryCard.label}
           </SummaryText>
           <span data-testid="subscriptions-summary-card-badge-slot" className="flex min-w-[4.75rem] justify-end">
             <span
               className={cn(
                 "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
-                card.isActive && toneClasses.activeBadge,
-                !card.isActive && "invisible",
+                summaryCard.isActive && toneClasses.activeBadge,
+                !summaryCard.isActive && "invisible",
               )}
-              aria-hidden={card.isActive ? undefined : "true"}
+              aria-hidden={summaryCard.isActive ? undefined : "true"}
             >
               {resolveActiveBadgeLabel()}
             </span>
           </span>
         </div>
-        <SummaryText as="span" variant="actionableValue" className={cn(card.isActive && toneClasses.activeValue)}>
-          {card.value}
+        <SummaryText
+          as="span"
+          variant="actionableValue"
+          className={cn(summaryCard.isActive && toneClasses.activeValue)}
+        >
+          {summaryCard.value}
         </SummaryText>
-        {card.caption ? (
-          <SummaryText as="p" variant="actionableCaption" className={cn(card.isActive && "text-foreground")}>
-            {card.caption}
+        {summaryCard.caption ? (
+          <SummaryText as="p" variant="actionableCaption" className={cn(summaryCard.isActive && "text-foreground")}>
+            {summaryCard.caption}
           </SummaryText>
         ) : null}
       </div>
@@ -166,12 +198,12 @@ function SummaryFilterCardButton({
           tone="neutral"
           className={cn(
             "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
-            card.isActive &&
+            summaryCard.isActive &&
               "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
-            isPrimary && !card.isActive && "bg-surface-1/88",
+            isProminent && !summaryCard.isActive && "bg-surface-1/88",
           )}
         >
-          {resolveActionChipLabel({ filterKey: card.filterKey, isActive: card.isActive })}
+          {resolveActionChipLabel({ filterKey: summaryCard.filterKey, isActive: summaryCard.isActive })}
         </LabelChip>
       </div>
     </button>
@@ -194,27 +226,18 @@ export function SubscriptionsOverviewSummary({
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3.5">
         {cards.map((card) => {
-          const isActionable = isSummaryFilterCardActionable(card);
-          const isActiveActionable = isActionable && card.isActive;
-          const isPrimary = card.tone === "review";
-          const toneClasses = resolveSummaryToneClasses(card.tone);
-          const className = cn(
-            "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
-            toneClasses.card,
-            isPrimary && "shadow-[var(--subscriptions-summary-card-shadow)]",
-            isPrimary && "sm:col-span-2 lg:col-span-1",
-            isActiveActionable ? toneClasses.activeCard : "shadow-none",
-          );
+          const isActionable = canSelectSummaryFilterCard(card);
+          const isActiveActionable = isActionable && Boolean(card.isActive);
+          const isProminent = card.tone === "review";
+          const className = resolveSummaryCardClassName({ card, isActiveActionable, isProminent });
 
           if (isActionable) {
             return (
               <SummaryFilterCardButton
                 key={card.label}
-                card={card}
-                className={className}
-                isPrimary={isPrimary}
-                onSelectFilter={onSelectFilter}
-                toneClasses={toneClasses}
+                isProminent={isProminent}
+                onSelect={onSelectFilter}
+                summaryCard={card}
               />
             );
           }
@@ -226,8 +249,8 @@ export function SubscriptionsOverviewSummary({
                   <SummaryText as="p" variant="label">
                     {card.label}
                   </SummaryText>
-                  <span className="rounded-full border border-border/55 bg-background/70 px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-foreground-soft uppercase">
-                    Static
+                  <span className="rounded-full border border-border/55 bg-background/70 px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-foreground-soft">
+                    {resolveStaticBadgeLabel()}
                   </span>
                 </div>
                 <SummaryText as="p" variant="staticValue" className="text-foreground-soft">

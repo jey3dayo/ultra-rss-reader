@@ -1558,7 +1558,7 @@ export function AnnouncementCardsSpecimen() {
           data-testid="reference-announcement-card-pending"
           className={cn(
             STACK_SPECIMEN_FRAME_RADIUS_CLASS,
-            "flex items-center gap-4 border border-border/60 bg-card/52 px-4 py-3 shadow-elevation-1",
+            "flex items-center gap-4 border border-border/55 bg-surface-1/72 px-4 py-3 shadow-none",
           )}
         >
           <span className="inline-flex min-w-12 justify-center rounded-md border border-border/70 bg-background px-3 py-2 font-sans text-2xl font-medium text-foreground">
@@ -1573,7 +1573,7 @@ export function AnnouncementCardsSpecimen() {
           data-testid="reference-announcement-card-decided"
           className={cn(
             STACK_SPECIMEN_FRAME_RADIUS_CLASS,
-            "flex items-center gap-4 border border-state-success-border bg-state-success-surface px-4 py-3 shadow-elevation-1",
+            "flex items-center gap-4 border border-state-success-border/70 bg-state-success-surface/68 px-4 py-3 shadow-none",
           )}
         >
           <span className="inline-flex min-w-12 justify-center rounded-md border border-state-success-border bg-state-success-surface px-3 py-2 font-sans text-2xl font-medium text-state-success-foreground">
@@ -1585,6 +1585,10 @@ export function AnnouncementCardsSpecimen() {
           </div>
         </div>
       </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        announcement card は押せる summary card と混ぜない。hover affordance、action chip、active badge を持たない
+        passive surface として扱う。
+      </p>
     </SurfaceCard>
   );
 }

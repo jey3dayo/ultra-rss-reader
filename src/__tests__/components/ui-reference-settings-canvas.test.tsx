@@ -226,7 +226,7 @@ describe("UI Reference canvases", () => {
       within(screen.getByTestId("reference-summary-filter-card-frame")).queryByRole("button", { name: /同期状態/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("同期状態").closest("[data-subscriptions-summary-static-card]")).toHaveClass("rounded-md");
-    expect(screen.getByText("Static")).toBeInTheDocument();
+    expect(screen.getByText("参照")).toBeInTheDocument();
     expect(screen.getByText("Subscription group disclosure")).toBeInTheDocument();
     expect(screen.getByTestId("reference-subscription-group-disclosure-frame")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Design2" })).toHaveAttribute("aria-expanded", "true");
@@ -244,6 +244,10 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Announcement cards")).toBeInTheDocument();
     expect(screen.getAllByText("確認待ち").length).toBeGreaterThan(0);
     expect(screen.getByText("判断済み")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-announcement-card-pending")).toHaveClass("shadow-none");
+    expect(
+      within(screen.getByTestId("reference-announcement-card-pending")).queryByRole("button", { name: /確認待ち/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the settings workspace canvas with real settings shell composition", () => {

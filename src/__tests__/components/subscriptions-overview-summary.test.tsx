@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 
@@ -111,6 +111,35 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
     expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
     expect(within(activeCard).getByText("2")).toHaveClass("text-state-review-foreground");
+    expect(activeCard).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("sends the selected filter key from actionable card buttons", () => {
+    const handleSelectFilter = vi.fn();
+
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "2",
+            caption: "Check these feeds",
+            tone: "review",
+            isActive: false,
+          },
+        ]}
+        onSelectFilter={handleSelectFilter}
+      />,
+    );
+
+    const card = screen.getByRole("button", { name: "Needs review を表示" });
+    expect(card).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(card);
+
+    expect(handleSelectFilter).toHaveBeenCalledTimes(1);
+    expect(handleSelectFilter).toHaveBeenCalledWith("review");
   });
 
   it("uses all-items copy when the total card is active", () => {
@@ -179,7 +208,7 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(staticCard).not.toBeNull();
     expect(staticCard).toHaveClass("rounded-md", "shadow-none");
     expect(staticCard).not.toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-neutral)]");
-    expect(within(staticCard as HTMLElement).getByText("Static")).toBeInTheDocument();
+    expect(within(staticCard as HTMLElement).getByText("参照")).toBeInTheDocument();
     expect(within(staticCard as HTMLElement).getByText("Ready")).toHaveClass("text-foreground-soft");
   });
 });
