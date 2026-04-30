@@ -11,6 +11,19 @@ import { useSidebarFeedTreeProps } from "./use-sidebar-feed-tree-props";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
+function buildFeedMarkAllReadConfirmation(params: {
+  feedId: string;
+  unreadCount: number;
+  markFeedRead: (feedId: string) => void;
+}) {
+  const { feedId, unreadCount, markFeedRead } = params;
+
+  return {
+    count: unreadCount,
+    onConfirm: () => markFeedRead(feedId),
+  };
+}
+
 export function useSidebarFeedSectionController({
   selectedAccountId,
   feeds,
@@ -93,10 +106,13 @@ export function useSidebarFeedSectionController({
   );
   const handleMarkFeedRead = useCallback(
     (feed: { id: string; unreadCount: number }) => {
-      confirmMarkAllRead({
-        count: feed.unreadCount,
-        onConfirm: () => markFeedRead(feed.id),
-      });
+      confirmMarkAllRead(
+        buildFeedMarkAllReadConfirmation({
+          feedId: feed.id,
+          unreadCount: feed.unreadCount,
+          markFeedRead,
+        }),
+      );
     },
     [confirmMarkAllRead, markFeedRead],
   );
