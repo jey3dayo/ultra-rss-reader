@@ -79,6 +79,17 @@ function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
   });
 }
 
+function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, value: string) {
+  const labelNode = within(summary).getByText(label);
+  const row = labelNode.closest("div");
+
+  if (!row) {
+    throw new Error(`Summary metric row was not found for ${label}`);
+  }
+
+  expect(within(row).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
+}
+
 async function expectArticleAutoMarksAsRead({
   afterReading,
   delayMs,
@@ -1847,10 +1858,8 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
-    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("2")).toHaveClass("motion-content-swap", "tabular-nums");
-    expect(within(summary).getByText("Unread")).toBeInTheDocument();
-    expect(within(summary).getByText("1")).toHaveClass("motion-content-swap", "tabular-nums");
+    expectSummaryMetricMotionValue(summary, "Feeds", "2");
+    expectSummaryMetricMotionValue(summary, "Unread", "1");
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
@@ -1885,14 +1894,8 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
-    expect(within(summary).getByText("Articles")).toBeInTheDocument();
-    expect(
-      within(summary)
-        .getAllByText("2")
-        .some((node) => node.classList.contains("motion-content-swap")),
-    ).toBe(true);
-    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("1")).toHaveClass("motion-content-swap", "tabular-nums");
+    expectSummaryMetricMotionValue(summary, "Articles", "2");
+    expectSummaryMetricMotionValue(summary, "Feeds", "1");
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
   });
 
@@ -1909,13 +1912,8 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Unread" })).toBeInTheDocument();
-    expect(within(summary).getByText("Articles")).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        within(summary)
-          .getAllByText("1")
-          .some((node) => node.classList.contains("motion-content-swap")),
-      ).toBe(true);
+      expectSummaryMetricMotionValue(summary, "Articles", "1");
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
@@ -1935,13 +1933,8 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Starred" })).toBeInTheDocument();
-    expect(within(summary).getByText("Articles")).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        within(summary)
-          .getAllByText("1")
-          .some((node) => node.classList.contains("motion-content-swap")),
-      ).toBe(true);
+      expectSummaryMetricMotionValue(summary, "Articles", "1");
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
