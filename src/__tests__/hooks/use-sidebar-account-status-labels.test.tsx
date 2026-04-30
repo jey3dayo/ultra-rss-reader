@@ -1,6 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { useSidebarAccountStatusLabels } from "@/components/reader/use-sidebar-account-status-labels";
+import {
+  buildSidebarAccountStatusLabels,
+  useSidebarAccountStatusLabels,
+} from "@/components/reader/use-sidebar-account-status-labels";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import i18n from "@/lib/i18n";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -9,6 +12,38 @@ import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 describe("useSidebarAccountStatusLabels", () => {
   beforeEach(() => {
     setupTauriMocks();
+  });
+
+  it("builds no labels for accounts without loaded statuses", () => {
+    expect(
+      buildSidebarAccountStatusLabels({
+        accounts: [{ id: "acc-1" }],
+        accountSyncStatuses: {},
+        language: "en",
+        labels: {
+          scheduledAt: (time) => `scheduled:${time}`,
+          scheduledSoon: "scheduled soon",
+        },
+      }),
+    ).toEqual({});
+  });
+
+  it("falls back to a soon label for invalid scheduled retry dates", () => {
+    expect(
+      buildSidebarAccountStatusLabels({
+        accounts: [{ id: "acc-1" }],
+        accountSyncStatuses: {
+          "acc-1": { next_retry_at: "not-a-date" },
+        },
+        language: "en",
+        labels: {
+          scheduledAt: (time) => `scheduled:${time}`,
+          scheduledSoon: "scheduled soon",
+        },
+      }),
+    ).toEqual({
+      "acc-1": "scheduled soon",
+    });
   });
 
   it("returns retry labels for accounts with scheduled retries", async () => {
