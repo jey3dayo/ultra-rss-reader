@@ -65,6 +65,44 @@ export function rowMatchesSubscriptionSummaryFilter(
   return false;
 }
 
+function rowMatchesSubscriptionDecisionVisibility(params: {
+  row: SubscriptionListRow;
+  activeSummaryFilter: SubscriptionSummaryFilterKey;
+  keptFeedIds: ReadonlySet<string>;
+  deferredFeedIds: ReadonlySet<string>;
+}): boolean {
+  const { row, activeSummaryFilter, keptFeedIds, deferredFeedIds } = params;
+
+  return activeSummaryFilter === "all" ? true : !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id);
+}
+
+function rowMatchesSubscriptionSearch(row: SubscriptionListRow, normalizedQuery: string): boolean {
+  if (normalizedQuery.length === 0) {
+    return true;
+  }
+
+  return (
+    row.feed.title.toLowerCase().includes(normalizedQuery) ||
+    (row.folderName ?? "").toLowerCase().includes(normalizedQuery)
+  );
+}
+
+function compareSubscriptionRows(
+  left: SubscriptionListRow,
+  right: SubscriptionListRow,
+  sortKey: SubscriptionSortKey,
+): number {
+  if (sortKey === "updated_at") {
+    return (getDateInputTimeMs(right.latestArticleAt) ?? 0) - (getDateInputTimeMs(left.latestArticleAt) ?? 0);
+  }
+
+  if (sortKey === "unread_count") {
+    return right.feed.unread_count - left.feed.unread_count;
+  }
+
+  return left.feed.title.localeCompare(right.feed.title);
+}
+
 export function buildVisibleSubscriptionRows({
   rows,
   activeSummaryFilter,
@@ -85,29 +123,15 @@ export function buildVisibleSubscriptionRows({
   return rows
     .filter((row) => rowMatchesSubscriptionSummaryFilter(row, activeSummaryFilter))
     .filter((row) =>
-      activeSummaryFilter === "all" ? true : !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id),
+      rowMatchesSubscriptionDecisionVisibility({
+        row,
+        activeSummaryFilter,
+        keptFeedIds,
+        deferredFeedIds,
+      }),
     )
-    .filter((row) => {
-      if (normalizedQuery.length === 0) {
-        return true;
-      }
-
-      return (
-        row.feed.title.toLowerCase().includes(normalizedQuery) ||
-        (row.folderName ?? "").toLowerCase().includes(normalizedQuery)
-      );
-    })
-    .sort((left, right) => {
-      if (sortKey === "updated_at") {
-        return (getDateInputTimeMs(right.latestArticleAt) ?? 0) - (getDateInputTimeMs(left.latestArticleAt) ?? 0);
-      }
-
-      if (sortKey === "unread_count") {
-        return right.feed.unread_count - left.feed.unread_count;
-      }
-
-      return left.feed.title.localeCompare(right.feed.title);
-    });
+    .filter((row) => rowMatchesSubscriptionSearch(row, normalizedQuery))
+    .sort((left, right) => compareSubscriptionRows(left, right, sortKey));
 }
 
 export function buildSubscriptionsIndexSummary({
