@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
-import { countFeedsInFolder, countUnreadFeedsInFolder, groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
+import {
+  countFeedsInFolder,
+  countUnreadFeedsInFolder,
+  groupFeedsByFolder,
+  sortFeedsByPreference,
+  sumUnreadCounts,
+} from "@/lib/sidebar";
 import { buildSidebarSmartViews } from "@/lib/sidebar-smart-views";
 
 const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
@@ -93,6 +99,11 @@ describe("folder feed counts", () => {
     expect(countUnreadFeedsInFolder(feeds, "folder-a")).toBe(7);
     expect(countUnreadFeedsInFolder(feeds, "folder-missing")).toBe(0);
     expect(countUnreadFeedsInFolder(undefined, "folder-a")).toBe(0);
+  });
+
+  it("sums unread counts without filtering by folder", () => {
+    expect(sumUnreadCounts(feeds)).toBe(18);
+    expect(sumUnreadCounts(undefined)).toBe(0);
   });
 });
 
