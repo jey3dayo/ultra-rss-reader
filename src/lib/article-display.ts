@@ -193,7 +193,11 @@ export function buildFeedDisplayPresetOptions(labels: {
 }
 
 export function isFeedDisplayPresetOption(value: string): value is FeedDisplayPresetOption {
-  return value === "default" || value === "standard" || value === "preview";
+  return value === "default" || isArticleDisplayPreset(value);
+}
+
+export function isArticleDisplayPreset(value: string): value is ArticleDisplayPreset {
+  return value === "standard" || value === "preview";
 }
 
 function booleanToPreferenceValue(value: boolean): PreferenceBooleanValue {

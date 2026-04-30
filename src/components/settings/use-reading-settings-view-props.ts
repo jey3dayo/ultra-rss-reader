@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useClearArticleViewHistory } from "@/hooks/use-articles";
-import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
+import { displayPresetToPreferenceValues, isArticleDisplayPreset, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
 import type { DevIntent } from "@/lib/dev-intent";
 import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
@@ -60,7 +60,11 @@ export function useReadingSettingsViewProps({
               { value: "preview", label: t("reading.preview") },
             ],
             onChange: (value) => {
-              const nextValues = displayPresetToPreferenceValues(value as "standard" | "preview");
+              if (!isArticleDisplayPreset(value)) {
+                return;
+              }
+
+              const nextValues = displayPresetToPreferenceValues(value);
               setPref("reader_mode_default", nextValues.reader_mode_default);
               setPref("web_preview_mode_default", nextValues.web_preview_mode_default);
             },
