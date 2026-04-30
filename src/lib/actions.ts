@@ -46,8 +46,8 @@ export type AppAction =
   | "add-to-reading-list"
   | "check-for-updates";
 
-/** Set of all valid action strings, used for runtime validation at IPC boundaries. */
-const appActions = new Set<string>([
+/** All concrete action strings accepted at runtime boundaries. */
+const APP_ACTIONS: readonly AppAction[] = [
   "set-filter-unread",
   "set-filter-all",
   "set-filter-starred",
@@ -82,7 +82,10 @@ const appActions = new Set<string>([
   "open-in-default-browser",
   "add-to-reading-list",
   "check-for-updates",
-]);
+];
+
+/** Set of all valid action strings, used for runtime validation at IPC boundaries. */
+const appActions: ReadonlySet<string> = new Set(APP_ACTIONS);
 
 type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
 
