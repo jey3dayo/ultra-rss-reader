@@ -10,6 +10,7 @@ import { compareDateInputsAsc, formatMediumDate, getDateInputTimeMs } from "@/li
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
 import {
   buildSubscriptionReviewReasonFacts,
+  hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscription-review-candidates";
 
@@ -21,6 +22,35 @@ export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
 
 export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
   return status.labelKey !== "normal";
+}
+
+export function countReviewCandidates(candidates: SubscriptionReviewCandidate[]): number {
+  return candidates.filter((candidate) => summarizeSubscriptionReviewCandidate(candidate).tone !== "low").length;
+}
+
+export function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
+  return candidates.filter((candidate) => hasSubscriptionReviewReason(candidate, "stale_90d")).length;
+}
+
+export function countStarredArticles(articles: ArticleDto[]): number {
+  return articles.filter((article) => article.is_starred).length;
+}
+
+export function findLatestArticleTimestamp(articles: ArticleDto[]): string | null {
+  return (
+    articles.reduce<{ timestamp: string; timeMs: number } | null>((latest, article) => {
+      const articleTimeMs = getDateInputTimeMs(article.published_at);
+      if (articleTimeMs === null) {
+        return latest;
+      }
+
+      if (latest === null) {
+        return { timestamp: article.published_at, timeMs: articleTimeMs };
+      }
+
+      return articleTimeMs > latest.timeMs ? { timestamp: article.published_at, timeMs: articleTimeMs } : latest;
+    }, null)?.timestamp ?? null
+  );
 }
 
 export function rowMatchesSubscriptionSummaryFilter(
@@ -102,9 +132,8 @@ export function buildSubscriptionsIndexSummary({
 } {
   return {
     totalCount: feeds.length,
-    reviewCount: candidates.filter((candidate) => summarizeSubscriptionReviewCandidate(candidate).tone !== "low")
-      .length,
-    staleCount: candidates.filter((candidate) => candidate.reasonKeys.includes("stale_90d")).length,
+    reviewCount: countReviewCandidates(candidates),
+    staleCount: countStaleCandidates(candidates),
   };
 }
 
@@ -270,15 +299,15 @@ export function resolveSubscriptionRowStatus({
     return { tone: "neutral", labelKey: "normal" };
   }
 
-  if (candidate.reasonKeys.includes("stale_90d")) {
+  if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
     return { tone: "medium", labelKey: "stale_90d" };
   }
 
-  if (candidate.reasonKeys.includes("no_unread")) {
+  if (hasSubscriptionReviewReason(candidate, "no_unread")) {
     return { tone: "medium", labelKey: "no_unread" };
   }
 
-  if (candidate.reasonKeys.includes("no_stars")) {
+  if (hasSubscriptionReviewReason(candidate, "no_stars")) {
     return { tone: "medium", labelKey: "no_stars" };
   }
 
@@ -296,8 +325,8 @@ export function buildSubscriptionDetailMetrics({ feed, articles }: { feed: FeedD
     .slice(0, 3);
 
   return {
-    latestArticleAt: previewArticles[0]?.published_at ?? null,
-    starredCount: feedArticles.filter((article) => article.is_starred).length,
+    latestArticleAt: findLatestArticleTimestamp(feedArticles),
+    starredCount: countStarredArticles(feedArticles),
     previewArticles,
   };
 }

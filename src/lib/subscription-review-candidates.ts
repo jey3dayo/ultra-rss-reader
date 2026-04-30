@@ -1,5 +1,6 @@
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { compareDateInputsAsc, differenceInDays, parseDateInput } from "@/lib/datetime";
+import { differenceInDays, parseDateInput } from "@/lib/datetime";
+import { countStarredArticles, findLatestArticleTimestamp } from "@/lib/subscriptions-index";
 
 export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
@@ -33,14 +34,21 @@ export type BuildSubscriptionReviewCandidatesParams = {
   hiddenFeedIds: ReadonlySet<string>;
 };
 
+export function hasSubscriptionReviewReason(
+  candidate: SubscriptionReviewCandidate,
+  reasonKey: SubscriptionReviewReasonKey,
+): boolean {
+  return candidate.reasonKeys.includes(reasonKey);
+}
+
 export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionReviewCandidate): {
   tone: SubscriptionReviewTone;
   titleKey: SubscriptionReviewTitleKey;
   summaryKey: SubscriptionReviewSummaryKey;
 } {
-  const hasStale = candidate.reasonKeys.includes("stale_90d");
-  const hasNoUnread = candidate.reasonKeys.includes("no_unread");
-  const hasNoStars = candidate.reasonKeys.includes("no_stars");
+  const hasStale = hasSubscriptionReviewReason(candidate, "stale_90d");
+  const hasNoUnread = hasSubscriptionReviewReason(candidate, "no_unread");
+  const hasNoStars = hasSubscriptionReviewReason(candidate, "no_stars");
 
   if (hasStale && hasNoUnread) {
     return {
@@ -87,13 +95,13 @@ export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReview
 }> {
   const facts: Array<{ key: SubscriptionReviewReasonFactKey; value: number }> = [];
 
-  if (candidate.reasonKeys.includes("stale_90d") && candidate.staleDays != null) {
+  if (hasSubscriptionReviewReason(candidate, "stale_90d") && candidate.staleDays != null) {
     facts.push({ key: "stale_days", value: candidate.staleDays });
   }
-  if (candidate.reasonKeys.includes("no_unread")) {
+  if (hasSubscriptionReviewReason(candidate, "no_unread")) {
     facts.push({ key: "unread_count", value: candidate.unreadCount });
   }
-  if (candidate.reasonKeys.includes("no_stars")) {
+  if (hasSubscriptionReviewReason(candidate, "no_stars")) {
     facts.push({ key: "starred_count", value: candidate.starredCount });
   }
 
@@ -127,16 +135,11 @@ export function buildSubscriptionReviewCandidates({
     .filter((feed) => !hiddenFeedIds.has(feed.id))
     .map((feed) => {
       const feedArticles = articleGroups.get(feed.id) ?? [];
-      const latestArticleAt = feedArticles.reduce<string | null>((latest, article) => {
-        if (!latest) {
-          return article.published_at;
-        }
-        return compareDateInputsAsc(article.published_at, latest) > 0 ? article.published_at : latest;
-      }, null);
+      const latestArticleAt = findLatestArticleTimestamp(feedArticles);
 
       const latestArticleDate = parseDateInput(latestArticleAt);
       const staleDays = latestArticleDate === null ? null : differenceInDays(now, latestArticleDate);
-      const starredCount = feedArticles.filter((article) => article.is_starred).length;
+      const starredCount = countStarredArticles(feedArticles);
       const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
       if (staleDays != null && staleDays >= 90) {
