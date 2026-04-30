@@ -13,7 +13,7 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
-import { describeDebugHudActiveElement } from "../lib/debug-hud-active-element";
+import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "../lib/debug-hud-active-element";
 import {
   emitDebugInputTrace,
   formatRawClickTrace,
@@ -243,10 +243,7 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
     const keyTraceListener = createKeyboardEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: formatRawKeyboardTrace(
-          event.key,
-          describeDebugHudActiveElement(event.target instanceof Element ? event.target : null),
-        ),
+        value: formatRawKeyboardTrace(event.key, describeDebugHudEventTarget(event.target)),
       });
     });
     const traceListener = createCustomEventDetailListener(
@@ -268,18 +265,14 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
           type: event.type,
           clientX: event.clientX,
           clientY: event.clientY,
-          targetDescription: describeDebugHudActiveElement(event.target instanceof Element ? event.target : null),
+          targetDescription: describeDebugHudEventTarget(event.target),
         }),
       });
     });
     const clickTraceListener = createMouseEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: formatRawClickTrace(
-          event.clientX,
-          event.clientY,
-          describeDebugHudActiveElement(event.target instanceof Element ? event.target : null),
-        ),
+        value: formatRawClickTrace(event.clientX, event.clientY, describeDebugHudEventTarget(event.target)),
       });
     });
 

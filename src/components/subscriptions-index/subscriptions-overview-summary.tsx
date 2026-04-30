@@ -97,6 +97,12 @@ type SummaryCardViewState = {
   toneClasses: (typeof summaryToneClassNames)[SubscriptionSummaryTone];
 };
 
+type SummaryCardRenderModel = {
+  card: SubscriptionSummaryCard;
+  value: ReactNode;
+  viewState: SummaryCardViewState;
+};
+
 function resolveSummaryCardClassName({
   card,
   isActiveActionable,
@@ -169,9 +175,26 @@ function renderDefaultSummaryValue(card: SubscriptionSummaryCard) {
   return card.value;
 }
 
+function buildSummaryCardRenderModel(params: {
+  card: SubscriptionSummaryCard;
+  renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
+}): SummaryCardRenderModel {
+  const { card, renderValue } = params;
+  return {
+    card,
+    value: renderValue?.(card) ?? renderDefaultSummaryValue(card),
+    viewState: resolveSummaryCardViewState(card),
+  };
+}
+
 function SummaryFilterCardButton({ onSelect, renderValue, summaryCard }: SummaryFilterCardButtonProps) {
-  const { className: cardClassName, isProminent, toneClasses } = resolveSummaryCardViewState(summaryCard);
-  const value = renderValue?.(summaryCard) ?? renderDefaultSummaryValue(summaryCard);
+  const {
+    value,
+    viewState: { className: cardClassName, isProminent, toneClasses },
+  } = buildSummaryCardRenderModel({
+    card: summaryCard,
+    renderValue,
+  });
 
   return (
     <button
@@ -258,10 +281,9 @@ export function SubscriptionsOverviewSummary({
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3.5">
         {cards.map((card) => {
-          const cardViewState = resolveSummaryCardViewState(card);
-          const value = renderValue?.(card) ?? renderDefaultSummaryValue(card);
+          const { value, viewState } = buildSummaryCardRenderModel({ card, renderValue });
 
-          if (cardViewState.isActionable) {
+          if (viewState.isActionable) {
             return (
               <SummaryFilterCardButton
                 key={card.label}
@@ -276,7 +298,7 @@ export function SubscriptionsOverviewSummary({
             <div
               key={card.label}
               data-subscriptions-summary-static-card=""
-              className={cn(cardViewState.className, "shadow-none")}
+              className={cn(viewState.className, "shadow-none")}
             >
               <div>
                 <div className="mb-2 flex min-h-6 items-start justify-between gap-3">

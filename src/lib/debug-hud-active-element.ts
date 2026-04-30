@@ -47,3 +47,7 @@ export function summarizeDebugHudActiveElementDescription(description: string): 
     meta: metaParts.join(" | "),
   };
 }
+
+export function describeDebugHudEventTarget(target: EventTarget | null): string {
+  return describeDebugHudActiveElement(target instanceof Element ? target : null);
+}
