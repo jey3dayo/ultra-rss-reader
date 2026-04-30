@@ -6,7 +6,7 @@ import type {
   SubscriptionSummaryCard,
   SubscriptionSummaryFilterKey,
 } from "@/components/subscriptions-index/subscriptions-index.types";
-import { compareDateInputsAsc, formatMediumDate } from "@/lib/datetime";
+import { compareDateInputsAsc, formatMediumDate, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
 import {
   buildSubscriptionReviewReasonFacts,
@@ -78,7 +78,7 @@ export function buildVisibleSubscriptionRows({
     })
     .sort((left, right) => {
       if (sortKey === "updated_at") {
-        return (Date.parse(right.latestArticleAt ?? "") || 0) - (Date.parse(left.latestArticleAt ?? "") || 0);
+        return (getDateInputTimeMs(right.latestArticleAt) ?? 0) - (getDateInputTimeMs(left.latestArticleAt) ?? 0);
       }
 
       if (sortKey === "unread_count") {

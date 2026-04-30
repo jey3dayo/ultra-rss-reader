@@ -275,6 +275,35 @@ describe("subscriptions index helpers", () => {
     expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-mid", "feed-stale"]);
   });
 
+  it("sorts rows with invalid update dates after valid update dates", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      articles,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    }).map((row, index) => ({
+      ...row,
+      latestArticleAt: index === 0 ? "not-a-date" : row.latestArticleAt,
+    }));
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "updated_at",
+    });
+
+    expect(visibleRows[visibleRows.length - 1]?.feed.id).toBe("feed-stale");
+  });
+
   it("groups subscription rows by folder label", () => {
     const rows = buildSubscriptionListRows({
       feeds,
