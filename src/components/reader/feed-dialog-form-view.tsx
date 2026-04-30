@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import type { FeedDialogFormViewProps } from "./feed-dialog-form.types";
 
 export type {
@@ -100,7 +101,7 @@ export function FeedDialogFormView({
             <div
               data-testid="feed-dialog-folder-section"
               data-motion-phase="entering"
-              className="motion-content-swap rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
+              className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-border/70 bg-surface-1/80 px-4 py-4`}
             >
               <FolderSelectView {...folderSelectProps} />
             </div>
@@ -112,7 +113,7 @@ export function FeedDialogFormView({
               tone="success"
               padding="compact"
               data-motion-phase="entering"
-              className="motion-content-swap"
+              className={MOTION_CONTENT_SWAP_CLASS_NAME}
             >
               <p className="text-sm">{successMessage}</p>
             </SurfaceCard>
@@ -123,7 +124,7 @@ export function FeedDialogFormView({
               tone="danger"
               padding="compact"
               data-motion-phase="entering"
-              className="motion-content-swap"
+              className={MOTION_CONTENT_SWAP_CLASS_NAME}
             >
               <p className="text-sm">{error}</p>
             </SurfaceCard>

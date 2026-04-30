@@ -1,4 +1,5 @@
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
+import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 import type { FeedDialogUrlSectionViewProps } from "./feed-dialog-form.types";
 
@@ -69,8 +70,8 @@ export function FeedDialogUrlSection({
           data-motion-phase="entering"
           className={
             helperTone === "error"
-              ? "motion-content-swap mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground"
-              : "motion-content-swap mt-3 text-sm leading-6 text-foreground-soft"
+              ? `${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground`
+              : `${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 text-sm leading-6 text-foreground-soft`
           }
         >
           {helperText}

@@ -10,6 +10,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -90,7 +91,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
             key={searchValue.trim().toLowerCase()}
             data-testid="shortcuts-help-results"
             data-motion-phase="entering"
-            className="motion-content-swap max-h-[360px]"
+            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} max-h-[360px]`}
           >
             {shortcutsByCategory.map((category) => {
               const visibleItems = category.items;
