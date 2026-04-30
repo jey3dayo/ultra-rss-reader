@@ -11,6 +11,7 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
+import { countSubscriptionGroupRows } from "@/lib/subscriptions-index";
 import { cn } from "@/lib/utils";
 import type { SubscriptionListGroup, SubscriptionListRow } from "./subscriptions-index.types";
 
@@ -101,7 +102,8 @@ export function SubscriptionsListPane({
 }) {
   const scrollRegionRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollTopRef = useRef<number | null>(null);
-  const hasRows = groups.some((group) => group.rows.length > 0);
+  const totalRowCount = countSubscriptionGroupRows(groups);
+  const hasRows = totalRowCount > 0;
 
   useEffect(() => {
     const scrollRegion = scrollRegionRef.current;
@@ -125,9 +127,7 @@ export function SubscriptionsListPane({
     >
       <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/50 pb-4">
         <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">{heading}</h2>
-        {hasRows ? (
-          <LabelChip tone="neutral">{groups.reduce((count, group) => count + group.rows.length, 0)}</LabelChip>
-        ) : null}
+        {hasRows ? <LabelChip tone="neutral">{totalRowCount}</LabelChip> : null}
       </div>
       <div
         ref={scrollRegionRef}
@@ -163,66 +163,67 @@ export function SubscriptionsListPane({
                 >
                   <div className="motion-disclosure-body">
                     <div className="space-y-1.5 pl-1 pt-2.5">
-                      {group.rows.map((row) => (
-                        <NavRowButton
-                          key={row.feed.id}
-                          selected={selectedFeedId === row.feed.id}
-                          aria-pressed={selectedFeedId === row.feed.id}
-                          onClick={() => onSelectFeed(row.feed.id)}
-                          className={cn(
-                            "motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
-                            selectedFeedId === row.feed.id
-                              ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
-                              : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
-                          )}
-                          leading={
-                            <span
-                              className={cn(
-                                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                                selectedFeedId === row.feed.id
-                                  ? "bg-surface-1 text-foreground"
-                                  : "bg-surface-2/88 text-foreground",
-                              )}
-                              style={{
-                                borderColor: "var(--subscriptions-list-divider)",
-                                backgroundColor:
-                                  selectedFeedId === row.feed.id
+                      {group.rows.map((row) => {
+                        const isSelected = selectedFeedId === row.feed.id;
+
+                        return (
+                          <NavRowButton
+                            key={row.feed.id}
+                            selected={isSelected}
+                            aria-pressed={isSelected}
+                            onClick={() => onSelectFeed(row.feed.id)}
+                            className={cn(
+                              "motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
+                              isSelected
+                                ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
+                                : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
+                            )}
+                            leading={
+                              <span
+                                className={cn(
+                                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                                  isSelected ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
+                                )}
+                                style={{
+                                  borderColor: "var(--subscriptions-list-divider)",
+                                  backgroundColor: isSelected
                                     ? "var(--subscriptions-list-favicon-surface)"
                                     : "var(--subscriptions-list-favicon-surface-muted)",
-                              }}
-                            >
-                              <FeedFavicon
-                                title={row.feed.title}
-                                url={row.feed.url}
-                                siteUrl={row.feed.site_url}
-                                size="md"
-                              />
-                            </span>
-                          }
-                          title={
-                            <div className="flex items-center gap-2">
-                              <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
-                                {row.feed.title}
+                                }}
+                              >
+                                <FeedFavicon
+                                  title={row.feed.title}
+                                  url={row.feed.url}
+                                  siteUrl={row.feed.site_url}
+                                  size="md"
+                                />
                               </span>
-                            </div>
-                          }
-                          description={
-                            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
-                              <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
-                                {statusLabels[row.status.labelKey]}
-                              </LabelChip>
-                              <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-                                •
-                              </span>
-                              <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-                              <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-                                •
-                              </span>
-                              <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
-                            </div>
-                          }
-                        />
-                      ))}
+                            }
+                            title={
+                              <div className="flex items-center gap-2">
+                                <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
+                                  {row.feed.title}
+                                </span>
+                              </div>
+                            }
+                            description={
+                              <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
+                                <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
+                                  {statusLabels[row.status.labelKey]}
+                                </LabelChip>
+                                <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                                  •
+                                </span>
+                                <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
+                                <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                                  •
+                                </span>
+                                <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
+                              </div>
+                            }
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

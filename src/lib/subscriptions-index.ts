@@ -325,6 +325,10 @@ export function buildSubscriptionListGroups(
   return Array.from(groups.values()).sort((left, right) => left.label.localeCompare(right.label));
 }
 
+export function countSubscriptionGroupRows(groups: SubscriptionListGroup[]): number {
+  return groups.reduce((count, group) => count + group.rows.length, 0);
+}
+
 export function buildSubscriptionListRows({
   feeds,
   candidateMap,
