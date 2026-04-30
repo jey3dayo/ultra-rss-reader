@@ -4,6 +4,7 @@ import {
   addLocalDays,
   compareDateInputsAsc,
   formatLocalHourMinute,
+  formatLongDate,
   getCurrentDate,
   getStartOfLocalDay,
   parseDateInput,
@@ -62,11 +63,7 @@ function getDateGroup(dateStr: string): string {
 
   if (compareDateInputsAsc(articleDate, today) >= 0) return "TODAY";
   if (compareDateInputsAsc(articleDate, yesterday) >= 0) return "YESTERDAY";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return formatLongDate(date) ?? dateStr;
 }
 
 export function formatArticleTime(dateStr: string): string {

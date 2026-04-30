@@ -236,6 +236,16 @@ describe("article-list utils", () => {
     expect(Object.keys(result)).toEqual(["Tech Blog"]);
   });
 
+  it("groups older articles by long local date label", () => {
+    const result = groupArticles({
+      articles: [{ ...sampleArticles[0], published_at: "2026-03-01T10:00:00Z" }],
+      groupBy: "date",
+      feedNameMap: new Map(),
+    });
+
+    expect(Object.keys(result)[0]).toContain("2026");
+  });
+
   it("builds feed lookup helpers for list grouping and folder filtering", () => {
     expect(buildArticleListFeedNameMap(sampleFeeds)).toEqual(new Map(sampleFeeds.map((feed) => [feed.id, feed.title])));
     expect(buildFolderFeedIdSet(sampleFeeds, "folder-1")).toEqual(

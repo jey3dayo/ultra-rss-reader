@@ -141,6 +141,19 @@ export function formatShortDateTime(value: DateInput, locale?: string): string |
   });
 }
 
+export function formatLongDate(value: DateInput, locale?: string): string | null {
+  const date = parseDateInput(value);
+  if (date === null) {
+    return null;
+  }
+
+  return date.toLocaleDateString(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export function formatMediumDate(value: DateInput, locale?: string): string | null {
   const date = parseDateInput(value);
   if (date === null) {

@@ -4,6 +4,7 @@ import {
   createLocalDateTime,
   differenceInDays,
   formatLocalHourMinute,
+  formatLongDate,
   formatMediumDate,
   formatShortDate,
   formatShortDateTime,
@@ -54,6 +55,11 @@ describe("datetime helpers", () => {
     expect(formatShortDateTime(value, "en-US")).toBeTruthy();
     expect(formatShortDate("not-a-date", "en-US")).toBeNull();
     expect(formatShortDateTime("not-a-date", "en-US")).toBeNull();
+  });
+
+  it("formats long dates with invalid fallbacks", () => {
+    expect(formatLongDate("2026-05-01T10:30:00Z", "en-US")).toContain("2026");
+    expect(formatLongDate("not-a-date", "en-US")).toBeNull();
   });
 
   it("counts local calendar day boundaries across daylight saving time changes", () => {
