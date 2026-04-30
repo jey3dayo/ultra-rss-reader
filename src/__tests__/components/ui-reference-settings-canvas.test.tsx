@@ -25,11 +25,13 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-article-filter-toggle-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("reference-reader-header-action-strip")).toBeInTheDocument();
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-navigation-button-patterns")).toBeInTheDocument();
     expect(screen.getByTestId("reference-specialized-button-patterns")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete permanently" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Shortcut" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove design" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Press a key" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "General Account and settings section row 12" })).toBeInTheDocument();
   });
 
   it("lets the reader header action strip toggle article states in the reference canvas", async () => {

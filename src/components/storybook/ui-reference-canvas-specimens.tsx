@@ -23,6 +23,7 @@ import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
+import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
@@ -52,6 +53,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { TagChip } from "@/components/shared/tag-chip";
@@ -191,6 +193,11 @@ const BUTTON_FAMILY_GUIDE = [
     family: "ControlChipButton",
     context: "Filter chips, toggle chips, and picker triggers.",
     example: "Unread",
+  },
+  {
+    family: "NavRowButton / SidebarNavButton",
+    context: "Navigation rows with selected state, leading content, trailing counts, and roving-focus targets.",
+    example: "Tech Blog",
   },
   {
     family: "DecisionButton / DeleteButton",
@@ -563,6 +570,46 @@ export function SpecializedButtonPatternsSpecimen() {
               <ShortcutKeyButton conflict>⌘R</ShortcutKeyButton>
               <span className="text-[10px] text-state-danger-foreground">Conflict</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function NavigationButtonPatternsSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Navigation row buttons</SectionHeading>
+      <div data-testid="reference-navigation-button-patterns" className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            NavRowButton
+          </div>
+          <div className="space-y-2">
+            <NavRowButton
+              title="General"
+              description="Account and settings section row"
+              selected
+              leading={<Settings2 className="h-4 w-4" />}
+              trailing="12"
+            />
+            <NavRowButton title="Integrations" description="Inactive row with description" trailing="3" />
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/45 uppercase">
+            SidebarNavButton
+          </div>
+          <div className="space-y-1">
+            <SidebarNavButton selected activePane trailing="7">
+              <UnreadIcon unread forceTone className="h-3.5 w-3.5" />
+              <span className="truncate">Unread</span>
+            </SidebarNavButton>
+            <SidebarNavButton trailing="2">
+              <StarIcon starred forceTone className="h-3.5 w-3.5" />
+              <span className="truncate">Starred</span>
+            </SidebarNavButton>
           </div>
         </div>
       </div>

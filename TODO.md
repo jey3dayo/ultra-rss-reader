@@ -27,6 +27,14 @@
 
 ## UI/UX 監査の残り
 
+- [ ] 高リスクな button family 化候補は UI Reference で基準を固めてから wrapper 化する
+  - `subscriptions-overview-summary.tsx` の clickable summary card は `SummaryFilterCardButton` / `WorkspaceSummaryFilterButton` 候補。card 全体が button で、active accent、badge slot、numeric typography、static sibling との差分を持つため、まず `View Specimens Canvas` に summary filter card family として載せてから切り出す
+  - `subscriptions-list-pane.tsx` の folder group disclosure row は `SubscriptionGroupDisclosureButton` 候補。`aria-expanded` / `aria-controls`、drop target data 属性、motion disclosure class、count chip 位置を wrapper API に含める必要がある
+  - `article-tag-picker-buttons.tsx` の `TagPickerTriggerButton` は `ControlChipButton` ベース化候補。ただし `expanded` / `compact` 表現が既存 chip variant にないため、variant 追加の設計を先に行う
+  - `TagOptionButton` は `TagOptionRowButton` または `NavRowButton` 系への寄せ候補。popover option と navigation row の semantics を混ぜすぎないよう UI Reference で比較してから進める
+  - `AccountSwitcherView` の title trigger は `AccountSwitcherTriggerButton` 候補。`h1`、fallback focus target、single-account の cursor default が絡むため、一般 `Button` へ吸収しない
+  - feed tree drop target 系は visual button ではなく invisible hit target / drop zone として扱い、通常の button family 統合対象から外す
+
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
   - Tauri child webview geometry と重なり、見た目の polish よりレイアウト安定性を優先する必要がある
   - 適用する場合は `browser-overlay-stage` / `browser-overlay-chrome` / native webview bounds の同期を実機で確認してから進める

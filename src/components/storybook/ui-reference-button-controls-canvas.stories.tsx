@@ -7,6 +7,7 @@ import {
   ButtonVariantMatrixSpecimen,
   IconUtilityButtonSpecimen,
   LoadingAndFormActionsSpecimen,
+  NavigationButtonPatternsSpecimen,
   ReaderHeaderActionStripSpecimen,
   ReferencePage,
   SemanticActionButtonsSpecimen,
@@ -31,6 +32,7 @@ export function ButtonControlsCanvas() {
         <ArticleFilterToggleButtonSpecimen />
         <ReaderHeaderActionStripSpecimen />
         <IconUtilityButtonSpecimen />
+        <NavigationButtonPatternsSpecimen />
         <SpecializedButtonPatternsSpecimen />
       </div>
     </ReferencePage>
