@@ -71,7 +71,10 @@ describe("UI Reference canvases", () => {
     expect(screen.getAllByTestId("reference-annotated-note")[0]).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-validation-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-disabled-switch-frame")).toHaveClass("rounded-md");
-    expect(screen.getByRole("textbox", { name: "Feed URL" })).toBeInTheDocument();
+    expect(screen.getAllByRole("textbox", { name: "Display name" })[0]).toHaveClass("h-10", "flex-1");
+    expect(screen.getByRole("button", { name: "Reset: Display name" })).toHaveClass("h-10", "px-4");
+    expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveClass("h-10", "flex-1");
+    expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-10", "px-4");
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
 
