@@ -19,6 +19,20 @@ function removeFeedIdFromSet(current: ReadonlySet<string>, feedId: string): Set<
   return next;
 }
 
+function updateSelectedFeedDecision(params: {
+  selectedFeedId: string | null;
+  setPrimary: (updater: (current: Set<string>) => Set<string>) => void;
+  setSecondary: (updater: (current: Set<string>) => Set<string>) => void;
+}) {
+  const { selectedFeedId, setPrimary, setSecondary } = params;
+  if (!selectedFeedId) {
+    return;
+  }
+
+  setPrimary((current) => addFeedIdToSet(current, selectedFeedId));
+  setSecondary((current) => removeFeedIdFromSet(current, selectedFeedId));
+}
+
 export function useSubscriptionsIndexState(
   rows: SubscriptionListRow[],
   options?: {
@@ -83,18 +97,18 @@ export function useSubscriptionsIndexState(
     setSelectedFeedId,
     setSortKey,
     markSelectedFeedDeferred: () => {
-      if (!selectedFeedId) {
-        return;
-      }
-      setDeferredFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
-      setKeptFeedIds((current) => removeFeedIdFromSet(current, selectedFeedId));
+      updateSelectedFeedDecision({
+        selectedFeedId,
+        setPrimary: setDeferredFeedIds,
+        setSecondary: setKeptFeedIds,
+      });
     },
     markSelectedFeedKept: () => {
-      if (!selectedFeedId) {
-        return;
-      }
-      setKeptFeedIds((current) => addFeedIdToSet(current, selectedFeedId));
-      setDeferredFeedIds((current) => removeFeedIdFromSet(current, selectedFeedId));
+      updateSelectedFeedDecision({
+        selectedFeedId,
+        setPrimary: setKeptFeedIds,
+        setSecondary: setDeferredFeedIds,
+      });
     },
     toggleGroup: (groupKey: string) =>
       setExpandedGroups((current) => ({
