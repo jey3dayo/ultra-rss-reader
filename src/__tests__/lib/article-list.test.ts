@@ -16,7 +16,9 @@ import {
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
   resolveArticleGroupLabelToken,
+  resolveArticleListEffectiveViewMode,
   resolveArticleListMarkAllReadCount,
+  resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/article-list";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
@@ -373,6 +375,48 @@ describe("article-list utils", () => {
         filteredArticles,
       }),
     ).toBe(2);
+  });
+
+  it("resolves effective list view mode for smart views", () => {
+    expect(resolveArticleListEffectiveViewMode("unread", "all")).toBe("unread");
+    expect(resolveArticleListEffectiveViewMode("starred", "unread")).toBe("unread");
+    expect(resolveArticleListEffectiveViewMode("starred", "starred")).toBe("all");
+    expect(resolveArticleListEffectiveViewMode("recent", "starred")).toBe("starred");
+    expect(resolveArticleListEffectiveViewMode(null, "all")).toBe("all");
+  });
+
+  it("retains the selected starred smart-view row in all mode", () => {
+    const retainedArticleIds = new Set(["art-1"]);
+    const result = resolveEffectiveRetainedArticleIds({
+      selection: { type: "smart", kind: "starred" },
+      effectiveViewMode: "all",
+      retainedArticleIds,
+      selectedArticleId: "art-2",
+    });
+
+    expect([...result]).toEqual(["art-1", "art-2"]);
+    expect(result).not.toBe(retainedArticleIds);
+  });
+
+  it("reuses retained article ids when selected row retention is unnecessary", () => {
+    const retainedArticleIds = new Set(["art-1"]);
+
+    expect(
+      resolveEffectiveRetainedArticleIds({
+        selection: { type: "smart", kind: "starred" },
+        effectiveViewMode: "unread",
+        retainedArticleIds,
+        selectedArticleId: "art-2",
+      }),
+    ).toBe(retainedArticleIds);
+    expect(
+      resolveEffectiveRetainedArticleIds({
+        selection: { type: "feed", feedId: "feed-1" },
+        effectiveViewMode: "all",
+        retainedArticleIds,
+        selectedArticleId: "art-2",
+      }),
+    ).toBe(retainedArticleIds);
   });
 
   it("returns the adjacent article id", () => {
