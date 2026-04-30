@@ -1,8 +1,13 @@
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useBrowserUrlEffect, useBrowserUrlLayoutEffect } from "@/components/reader/use-browser-url-effect";
+import { useUiStore } from "@/stores/ui-store";
 
 describe("useBrowserUrlEffect", () => {
+  afterEach(() => {
+    useUiStore.setState({ browserUrl: null });
+  });
+
   it("skips the effect when browserUrl is missing", () => {
     const effect = vi.fn();
 
@@ -27,6 +32,22 @@ describe("useBrowserUrlEffect", () => {
         isCurrent: expect.any(Function),
       }),
     );
+  });
+
+  it("reports whether the captured browserUrl is still current", () => {
+    useUiStore.setState({ browserUrl: "https://example.com/article" });
+    const effect = vi.fn();
+
+    renderHook(() => {
+      useBrowserUrlEffect("https://example.com/article", effect, []);
+    });
+
+    const scope = effect.mock.calls[0]?.[0];
+    expect(scope?.isCurrent()).toBe(true);
+
+    useUiStore.setState({ browserUrl: "https://example.com/next" });
+
+    expect(scope?.isCurrent()).toBe(false);
   });
 });
 
