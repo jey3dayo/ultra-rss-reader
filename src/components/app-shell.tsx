@@ -14,6 +14,7 @@ import { useUpdater } from "../hooks/use-updater";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
 import { formatDebugTimestamp } from "../lib/datetime";
+import { describeDebugHudActiveElement } from "../lib/debug-hud-active-element";
 import { emitDebugInputTrace } from "../lib/debug-input-trace";
 import { attachTauriListeners } from "../lib/tauri-event-listeners";
 import { cn } from "../lib/utils";
@@ -155,37 +156,6 @@ function Toast() {
   );
 }
 
-function describeActiveElement(element: Element | null): string {
-  if (!(element instanceof HTMLElement)) {
-    return "none";
-  }
-
-  const parts: string[] = [element.tagName.toLowerCase()];
-  if (element.dataset.debugHud !== undefined) {
-    parts.push("debug-hud");
-  }
-  if (element.dataset.articleId) {
-    parts.push(`article=${element.dataset.articleId}`);
-  }
-  if (element.dataset.browserOverlayReturnFocus) {
-    parts.push(`return=${element.dataset.browserOverlayReturnFocus}`);
-  }
-  const role = element.getAttribute("role");
-  if (role) {
-    parts.push(`role=${role}`);
-  }
-  const testId = element.dataset.testid;
-  if (testId) {
-    parts.push(`testid=${testId}`);
-  }
-  const ariaLabel = element.getAttribute("aria-label");
-  if (ariaLabel) {
-    parts.push(`label=${ariaLabel}`);
-  }
-
-  return parts.join(" | ");
-}
-
 function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
   if (value === null || typeof value !== "object") {
     return false;
@@ -257,14 +227,14 @@ function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
 
   useEffect(() => {
     const update = () => {
-      dispatch({ type: "set-active-element", value: describeActiveElement(document.activeElement) });
+      dispatch({ type: "set-active-element", value: describeDebugHudActiveElement(document.activeElement) });
     };
 
     update();
     const keyTraceListener = createKeyboardEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: `${formatDebugTimestamp()} raw-key ${event.key} target=${describeActiveElement(
+        value: `${formatDebugTimestamp()} raw-key ${event.key} target=${describeDebugHudActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
@@ -284,7 +254,7 @@ function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
     const pointerTraceListener = createPointerEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: `${formatDebugTimestamp()} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+        value: `${formatDebugTimestamp()} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeDebugHudActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
@@ -292,7 +262,7 @@ function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
     const clickTraceListener = createMouseEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: `${formatDebugTimestamp()} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+        value: `${formatDebugTimestamp()} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeDebugHudActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });

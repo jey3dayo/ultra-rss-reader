@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window-events";
 import type { ActiveDropTarget, UseFeedTreePointerDragEventsParams } from "./feed-tree.types";
 import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
 import {
@@ -8,7 +9,6 @@ import {
 } from "./feed-tree-drag-session";
 import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import { applyFeedTreeHoverTarget } from "./feed-tree-hover-target";
-import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window-events";
 
 export function useFeedTreePointerDragEvents({
   isPointerTracking,

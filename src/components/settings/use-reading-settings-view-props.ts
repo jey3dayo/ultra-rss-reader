@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import { useClearArticleViewHistory } from "@/hooks/use-articles";
-import { displayPresetToPreferenceValues, isArticleDisplayPreset, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
+import {
+  displayPresetToPreferenceValues,
+  isArticleDisplayPreset,
+  resolveAppDefaultDisplayPreset,
+} from "@/lib/article-display";
 import type { DevIntent } from "@/lib/dev-intent";
 import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolvePreferenceValue } from "@/stores/preferences-store";

@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { DebugHudActionButton } from "@/components/debug/debug-hud-action-button";
 import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
 import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
+import { summarizeDebugHudActiveElementDescription } from "@/lib/debug-hud-active-element";
 import { cn } from "@/lib/utils";
 
 const EMPTY_BROWSER_GEOMETRY_ROWS: BrowserDebugGeometryRow[] = [];
@@ -22,20 +23,6 @@ const DEBUG_HUD_POSITION_CLASS: Record<DebugHudPosition, string> = {
   "top-left": "top-4 left-4",
   "bottom-left": "bottom-4 left-4",
 };
-
-function extractCollapsedSummaryParts(description: string) {
-  const labelMatch = description.match(/label=(.+)$/);
-  const roleMatch = description.match(/role=([^\s|]+)/);
-  const elementMatch = description.match(/^([^\s|]+)/);
-
-  const label = labelMatch?.[1]?.trim() ?? description;
-  const metaParts = [elementMatch?.[1], roleMatch ? `role=${roleMatch[1]}` : null].filter(Boolean);
-
-  return {
-    label,
-    meta: metaParts.join(" | "),
-  };
-}
 
 export type FocusDebugHudViewProps = {
   focusedPane: string;
@@ -78,7 +65,7 @@ export function FocusDebugHudView({
 
   const visibleTraces = expanded ? traces : traces.slice(-2);
   const latestTrace = traces.length > 0 ? traces[traces.length - 1] : "No trace yet";
-  const collapsedSummary = extractCollapsedSummaryParts(activeElementDescription);
+  const collapsedSummary = summarizeDebugHudActiveElementDescription(activeElementDescription);
   const moveHud = () => {
     setPosition((currentPosition) => {
       const currentIndex = DEBUG_HUD_POSITIONS.indexOf(currentPosition);
