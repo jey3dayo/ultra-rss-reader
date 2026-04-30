@@ -70,6 +70,35 @@ describe("useFeedLanding", () => {
     });
   });
 
+  it("keeps reader mode for preview-enabled feeds when the landing article has no URL", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+        case "list_articles":
+          return sampleArticles
+            .filter((article) => article.feed_id === args.feedId)
+            .map((article) => (article.id === "art-1" ? { ...article, url: null } : article));
+        default:
+          return undefined;
+      }
+    });
+
+    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current("feed-1");
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+  });
+
   it("stops at feed selection when the landing list is empty", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

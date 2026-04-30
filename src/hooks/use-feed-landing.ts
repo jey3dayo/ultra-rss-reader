@@ -58,8 +58,9 @@ export function useFeedLanding() {
           articleUrl: landingArticle.url,
         });
 
-        if (resolvedDisplay.webPreviewMode && landingArticle.url) {
-          store.openBrowser(landingArticle.url as string);
+        const landingArticleUrl = landingArticle.url;
+        if (resolvedDisplay.webPreviewMode && landingArticleUrl) {
+          store.openBrowser(landingArticleUrl);
         } else {
           store.closeBrowser();
         }

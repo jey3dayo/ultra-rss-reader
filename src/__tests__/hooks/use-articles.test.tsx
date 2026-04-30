@@ -40,25 +40,35 @@ describe("useToggleStar", () => {
     const countAccountStarredArticlesSpy = vi
       .spyOn(tauriCommands, "countAccountStarredArticles")
       .mockResolvedValue(Result.succeed(1));
-    const searchArticlesSpy = vi.spyOn(tauriCommands, "searchArticles").mockResolvedValue(Result.succeed(sampleArticles));
+    const searchArticlesSpy = vi
+      .spyOn(tauriCommands, "searchArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const initialArticlesProps: { feedId: string | null } = { feedId: null };
+    const initialAccountProps: { accountId: string | null } = { accountId: null };
+    const initialSearchProps: { accountId: string | null; query: string } = { accountId: null, query: "fresh" };
 
     const articles = renderHook(({ feedId }: { feedId: string | null }) => useArticles(feedId), {
-      initialProps: { feedId: null },
+      initialProps: initialArticlesProps,
       wrapper: createWrapper(),
     });
     const accountArticles = renderHook(({ accountId }: { accountId: string | null }) => useAccountArticles(accountId), {
-      initialProps: { accountId: null },
+      initialProps: initialAccountProps,
       wrapper: createWrapper(),
     });
-    const starredCount = renderHook(({ accountId }: { accountId: string | null }) => useAccountStarredCount(accountId), {
-      initialProps: { accountId: null },
-      wrapper: createWrapper(),
-    });
-    const search = renderHook(({ accountId, query }: { accountId: string | null; query: string }) =>
-      useSearchArticles(accountId, query), {
-        initialProps: { accountId: null, query: "fresh" },
+    const starredCount = renderHook(
+      ({ accountId }: { accountId: string | null }) => useAccountStarredCount(accountId),
+      {
+        initialProps: initialAccountProps,
         wrapper: createWrapper(),
-      });
+      },
+    );
+    const search = renderHook(
+      ({ accountId, query }: { accountId: string | null; query: string }) => useSearchArticles(accountId, query),
+      {
+        initialProps: initialSearchProps,
+        wrapper: createWrapper(),
+      },
+    );
 
     expect(listArticlesSpy).not.toHaveBeenCalled();
     expect(listAccountArticlesSpy).not.toHaveBeenCalled();

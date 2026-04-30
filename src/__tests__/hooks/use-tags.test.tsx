@@ -29,12 +29,12 @@ describe("useArticlesByTag", () => {
     const listArticlesByTagSpy = vi
       .spyOn(tauriCommands, "listArticlesByTag")
       .mockResolvedValue(Result.succeed(sampleArticles));
+    const initialProps: { tagId: string | null; accountId: string | null } = { tagId: null, accountId: "acc-1" };
 
     const { rerender } = renderHook(
-      ({ tagId, accountId }: { tagId: string | null; accountId: string | null }) =>
-        useArticlesByTag(tagId, accountId),
+      ({ tagId, accountId }: { tagId: string | null; accountId: string | null }) => useArticlesByTag(tagId, accountId),
       {
-        initialProps: { tagId: null, accountId: "acc-1" },
+        initialProps,
         wrapper: createWrapper(),
       },
     );

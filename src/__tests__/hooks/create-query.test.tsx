@@ -26,9 +26,10 @@ describe("createQuery", () => {
   it("keeps nullable id queries disabled and calls the fetcher for string ids", async () => {
     const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
     const useGeneratedQuery = createQuery("items", fetcher);
+    const initialProps: GeneratedQueryProps = { id: null };
 
     const { rerender, result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
-      initialProps: { id: null } satisfies GeneratedQueryProps,
+      initialProps,
       wrapper: createWrapper(),
     });
 
