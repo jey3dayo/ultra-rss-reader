@@ -15,9 +15,10 @@ describe("dom-target", () => {
 
   it("ignores missing elements and non-node targets", () => {
     const root = document.createElement("div");
+    const nonNodeTarget: EventTarget = new EventTarget();
 
     expect(isOutsideElement(null, root)).toBe(false);
     expect(isOutsideElement(root, null)).toBe(false);
-    expect(isOutsideElement(root, new EventTarget())).toBe(false);
+    expect(isOutsideElement(root, nonNodeTarget)).toBe(false);
   });
 });
