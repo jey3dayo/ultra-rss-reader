@@ -64,4 +64,15 @@ describe("window-events", () => {
 
     expect(onPing).toHaveBeenCalledOnce();
   });
+
+  it("removes registered window events with the original listener options", () => {
+    const onPing = vi.fn();
+    const options = { capture: true, passive: true };
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+    const cleanup = bindWindowEvents([{ type: "test-window-events-ping", listener: onPing, options }]);
+
+    cleanup();
+
+    expect(removeSpy).toHaveBeenCalledWith("test-window-events-ping", onPing, options);
+  });
 });
