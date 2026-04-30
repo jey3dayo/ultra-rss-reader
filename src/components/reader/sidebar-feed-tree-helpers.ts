@@ -1,5 +1,5 @@
 import type { FeedDto } from "@/api/tauri-commands";
-import { countUnreadFeedsInFolder } from "@/lib/sidebar";
+import { sumUnreadCounts } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type {
   SidebarFeedTreeFolderBuildParams,
@@ -115,7 +115,7 @@ export function buildSidebarFeedTreeFolders({
         name: folder.name,
         accountId: folder.account_id,
         sortOrder: folder.sort_order,
-        unreadCount: countUnreadFeedsInFolder(rawFolderFeeds, folder.id),
+        unreadCount: sumUnreadCounts(rawFolderFeeds),
         isExpanded: expandedFolderIds.has(folder.id),
         isSelected: selectedFolderId === folder.id,
         feeds: mapFeedsToFeedTreeViewModels(folderFeeds, { selectedFeedId, grayscaleFavicons }),
