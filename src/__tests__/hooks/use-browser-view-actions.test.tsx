@@ -129,4 +129,41 @@ describe("useBrowserViewActions", () => {
 
     expect(showToast).toHaveBeenCalledWith("Reload failed");
   });
+
+  it("does not retry the embedded webview without a browser URL", () => {
+    const resetBrowserWebviewSyncState = vi.fn();
+    const setSurfaceIssue = vi.fn();
+    const syncBrowserWebview = vi.fn(async () => {});
+
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const actions = useBrowserViewActions({
+        browserUrl: null,
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState,
+        setSurfaceIssue,
+        showToast: vi.fn(),
+        syncBrowserWebview,
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+
+      return { ...actions, fallbackInFlightRef, browserState };
+    });
+
+    act(() => {
+      result.current.handleRetry();
+    });
+
+    expect(result.current.fallbackInFlightRef.current).toBe(true);
+    expect(result.current.browserState).toBeNull();
+    expect(resetBrowserWebviewSyncState).not.toHaveBeenCalled();
+    expect(setSurfaceIssue).not.toHaveBeenCalled();
+    expect(syncBrowserWebview).not.toHaveBeenCalled();
+  });
 });

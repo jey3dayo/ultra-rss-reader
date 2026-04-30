@@ -88,12 +88,16 @@ export function useBrowserViewActions({
   }, [browserStateRef, runBrowserWebviewCommand]);
 
   const handleRetry = useCallback(() => {
+    if (!browserUrl) {
+      return;
+    }
+
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
     setSurfaceIssue(null);
-    const nextState = initialBrowserState(browserUrl ?? "");
+    const nextState = initialBrowserState(browserUrl);
     setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
-    void syncBrowserWebview(browserUrl ?? "", "create");
+    void syncBrowserWebview(browserUrl, "create");
   }, [
     browserStateRef,
     browserUrl,
