@@ -11,6 +11,7 @@ import {
   buildFeedDisplayPresetOptions,
   displayPresetToTriStateModes,
   feedModesToDisplayPresetOption,
+  isFeedDisplayPresetOption,
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed";
@@ -113,7 +114,11 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
         onSetDisplayPreset={(value) => {
-          const nextModes = displayPresetToTriStateModes(value as "default" | "standard" | "preview");
+          if (!isFeedDisplayPresetOption(value)) {
+            return;
+          }
+
+          const nextModes = displayPresetToTriStateModes(value);
           void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
         }}
         onUnsubscribe={() => dispatch({ type: "set-unsubscribe-dialog", value: true })}

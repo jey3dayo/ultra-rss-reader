@@ -6,6 +6,7 @@ import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mo
 import {
   buildFeedDisplayPresetOptions,
   displayPresetToTriStateModes,
+  isFeedDisplayPresetOption,
   resolveFolderDisplayPreset,
 } from "@/lib/article-display";
 import { FolderContextMenuView } from "./folder-context-menu-view";
@@ -36,7 +37,11 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
   };
 
   const handleSetDisplayPreset = async (value: string) => {
-    const nextModes = displayPresetToTriStateModes(value as "default" | "standard" | "preview");
+    if (!isFeedDisplayPresetOption(value)) {
+      return;
+    }
+
+    const nextModes = displayPresetToTriStateModes(value);
     await Promise.all(
       feeds.map((feed) => updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode)),
     );

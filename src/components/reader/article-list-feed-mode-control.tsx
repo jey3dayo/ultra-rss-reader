@@ -1,5 +1,5 @@
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { FeedDisplayPresetOption } from "@/lib/article-display";
+import { isFeedDisplayPresetOption } from "@/lib/article-display";
 import { getOptionLabelByValue } from "@/lib/options";
 import type { ArticleListFeedModeControlProps } from "./article-list.types";
 
@@ -13,7 +13,11 @@ export function ArticleListFeedModeControl({
     <Select
       name="feed-display-preset"
       value={value}
-      onValueChange={(nextValue) => nextValue && onValueChange(nextValue as FeedDisplayPresetOption)}
+      onValueChange={(nextValue) => {
+        if (nextValue && isFeedDisplayPresetOption(nextValue)) {
+          onValueChange(nextValue);
+        }
+      }}
     >
       <SelectTrigger aria-label={ariaLabel} className="min-w-[168px]">
         <SelectValue>{(selectedValue: string | null) => getOptionLabelByValue(options, selectedValue)}</SelectValue>
