@@ -51,9 +51,8 @@ export function SubscriptionsIndexPage() {
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
   const deleteFeedMutation = useDeleteFeed();
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
-  const [listScrollTop, setListScrollTop] = useState(
-    subscriptionsWorkspace?.kind === "index" ? (subscriptionsWorkspace.returnState?.listScrollTop ?? 0) : 0,
-  );
+  const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
+  const [listScrollTop, setListScrollTop] = useState(indexReturnState?.listScrollTop ?? 0);
 
   const candidates = useMemo(
     () =>
@@ -75,16 +74,11 @@ export function SubscriptionsIndexPage() {
   );
 
   const state = useSubscriptionsIndexState(rows, {
-    initialSummaryFilter:
-      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.activeSummaryFilter : undefined,
-    initialSelectedFeedId:
-      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.selectedFeedId : undefined,
-    initialExpandedGroups:
-      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.expandedGroups : undefined,
-    initialKeptFeedIds:
-      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.keptFeedIds : undefined,
-    initialDeferredFeedIds:
-      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.deferredFeedIds : undefined,
+    initialSummaryFilter: indexReturnState?.activeSummaryFilter,
+    initialSelectedFeedId: indexReturnState?.selectedFeedId,
+    initialExpandedGroups: indexReturnState?.expandedGroups,
+    initialKeptFeedIds: indexReturnState?.keptFeedIds,
+    initialDeferredFeedIds: indexReturnState?.deferredFeedIds,
   });
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
