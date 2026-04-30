@@ -6,6 +6,7 @@ import {
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
 import type { AppAction } from "@/lib/actions";
+import { isDevScenarioId } from "@/lib/dev-scenario-ids";
 import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 
 function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
@@ -151,5 +152,5 @@ export function listDevScenarios(): DevScenario[] {
 }
 
 export function getDevScenario(id: string): DevScenario | null {
-  return DEV_SCENARIO_MAP.get(id as DevScenarioId) ?? null;
+  return isDevScenarioId(id) ? (DEV_SCENARIO_MAP.get(id) ?? null) : null;
 }
