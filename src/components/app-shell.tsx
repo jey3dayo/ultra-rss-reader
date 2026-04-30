@@ -239,7 +239,11 @@ function focusDebugHudReducer(state: FocusDebugHudState, action: FocusDebugHudAc
   }
 }
 
-function FocusDebugHud() {
+type FocusDebugHudProps = {
+  temporarilyHidden?: boolean;
+};
+
+function FocusDebugHud({ temporarilyHidden = false }: FocusDebugHudProps) {
   const { t } = useTranslation("reader");
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
@@ -361,6 +365,7 @@ function FocusDebugHud() {
           emitDebugInputTrace("hud-pointer-down");
         }}
         onCloseClick={() => setPref("debug_browser_hud", "false")}
+        temporarilyHidden={temporarilyHidden}
       />
     </Suspense>
   );
@@ -438,7 +443,7 @@ export function AppShell() {
           <LazyCommandPalette />
         </Suspense>
       ) : null}
-      {showFocusDebugHud ? <FocusDebugHud /> : null}
+      {showFocusDebugHud ? <FocusDebugHud temporarilyHidden={settingsOpen} /> : null}
     </div>
   );
 }

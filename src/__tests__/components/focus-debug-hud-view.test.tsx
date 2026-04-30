@@ -154,6 +154,41 @@ describe("FocusDebugHudView", () => {
     expect(container).not.toHaveClass("left-4");
   });
 
+  it("keeps manual position while temporarily hidden", async () => {
+    const user = userEvent.setup();
+    const props = {
+      focusedPane: "list",
+      contentMode: "reader",
+      selectedArticleId: "article-1",
+      browserCloseInFlight: false,
+      pendingBrowserCloseAction: null,
+      activeElementDescription: "button | label=Copy debug HUD",
+      browserGeometryRows: [],
+      traces: ["12:00:00.000 raw-key Enter"],
+      onCopyClick: vi.fn(),
+      onCloseClick: vi.fn(),
+      onCopyPointerDown: vi.fn(),
+    };
+    const { rerender } = render(<FocusDebugHudView {...props} />);
+
+    const moveButton = screen.getByRole("button", { name: "Move debug HUD" });
+    const container = moveButton.closest("section")?.parentElement;
+    await user.click(moveButton);
+
+    expect(container).toHaveClass("top-4", "left-4");
+
+    rerender(<FocusDebugHudView {...props} temporarilyHidden />);
+
+    expect(container).toHaveClass("hidden");
+    expect(container).toHaveAttribute("aria-hidden", "true");
+
+    rerender(<FocusDebugHudView {...props} />);
+
+    expect(container).not.toHaveClass("hidden");
+    expect(container).not.toHaveAttribute("aria-hidden");
+    expect(container).toHaveClass("top-4", "left-4");
+  });
+
   it("exposes expanded state on the trace toggle", async () => {
     const user = userEvent.setup();
 

@@ -264,7 +264,7 @@ describe("AppShell", () => {
     });
   });
 
-  it("keeps the debug HUD available while priority overlays are open", async () => {
+  it("temporarily hides the debug HUD while the settings modal is open", async () => {
     usePreferencesStore.setState((state) => ({
       ...state,
       prefs: { ...state.prefs, debug_browser_hud: "true" },
@@ -278,7 +278,7 @@ describe("AppShell", () => {
     rerender(<AppShell />);
 
     expect(screen.getByText("Settings Modal")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
 
     useUiStore.setState({ settingsOpen: false });
     rerender(<AppShell />);

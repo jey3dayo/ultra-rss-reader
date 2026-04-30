@@ -51,6 +51,7 @@ export type FocusDebugHudViewProps = {
   onCopyPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   defaultExpanded?: boolean;
   defaultShowGeometry?: boolean;
+  temporarilyHidden?: boolean;
 };
 
 export function FocusDebugHudView({
@@ -67,6 +68,7 @@ export function FocusDebugHudView({
   onCopyPointerDown,
   defaultExpanded = false,
   defaultShowGeometry = false,
+  temporarilyHidden = false,
 }: FocusDebugHudViewProps) {
   const [expanded, setExpanded] = useState(() => defaultExpanded);
   const [showGeometry, setShowGeometry] = useState(() => defaultShowGeometry);
@@ -89,7 +91,9 @@ export function FocusDebugHudView({
       className={cn(
         "pointer-events-none fixed z-[2147483647] max-w-[min(28rem,calc(100vw-1rem))]",
         DEBUG_HUD_POSITION_CLASS[position],
+        temporarilyHidden && "hidden",
       )}
+      aria-hidden={temporarilyHidden || undefined}
     >
       <DebugHudFrame
         as="section"
