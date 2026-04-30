@@ -158,6 +158,7 @@ export function SubscriptionsListPane({
                   id={groupBodyId}
                   {...{ [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED }}
                   aria-hidden={expanded ? "false" : "true"}
+                  inert={expanded ? undefined : true}
                   className="motion-disclosure-panel"
                 >
                   <div className="motion-disclosure-body">
