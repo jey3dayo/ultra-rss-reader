@@ -80,7 +80,7 @@ function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neut
 }
 
 function isSummaryFilterCardActionable(card: SubscriptionSummaryCard) {
-  return Number.isFinite(Number(card.value));
+  return card.isActionable ?? true;
 }
 
 type SummaryFilterCardButtonProps = {

@@ -249,6 +249,7 @@ const SUMMARY_FILTER_CARDS: SubscriptionSummaryCard[] = [
     caption: "押せない static sibling",
     tone: "neutral",
     isActive: false,
+    isActionable: false,
   },
 ];
 
@@ -1187,7 +1188,7 @@ export function SummaryFilterCardsSpecimen() {
   const [activeFilter, setActiveFilter] = useState<SubscriptionSummaryCard["filterKey"]>("all");
   const cards = SUMMARY_FILTER_CARDS.map((card) => ({
     ...card,
-    isActive: Number.isFinite(Number(card.value)) && card.filterKey === activeFilter,
+    isActive: card.isActionable !== false && card.filterKey === activeFilter,
   }));
 
   return (

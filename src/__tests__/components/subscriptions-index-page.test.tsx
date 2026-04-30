@@ -200,7 +200,10 @@ describe("SubscriptionsIndexPage", () => {
     expect(summarySection).toHaveClass("rounded-md", "border-border/55");
     expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
     expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
-    expect(summarySection?.querySelector(".grid")).toHaveClass("sm:grid-cols-3", "lg:gap-3.5");
+    expect(summarySection?.querySelector(".grid")).toHaveClass(
+      "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
+      "lg:gap-3.5",
+    );
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "rounded-md",
       "border-state-review-border/80",

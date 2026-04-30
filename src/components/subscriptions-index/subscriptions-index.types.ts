@@ -11,6 +11,7 @@ export type SubscriptionSummaryCard = {
   caption?: string;
   tone?: "neutral" | "review" | "stale";
   isActive?: boolean;
+  isActionable?: boolean;
 };
 
 export type SubscriptionListRow = {

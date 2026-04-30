@@ -156,7 +156,7 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(within(card).queryByText("フィルタ中")).toBeNull();
   });
 
-  it("renders nonnumeric values as static sibling cards instead of filter buttons", () => {
+  it("renders non-actionable values as static sibling cards instead of filter buttons", () => {
     render(
       <SubscriptionsOverviewSummary
         cards={[
@@ -166,6 +166,7 @@ describe("SubscriptionsOverviewSummary", () => {
             value: "Ready",
             caption: "Passive summary",
             isActive: true,
+            isActionable: false,
           },
         ]}
         onSelectFilter={vi.fn()}
