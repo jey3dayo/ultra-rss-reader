@@ -46,7 +46,7 @@ function dataSettingsControllerReducer(
   }
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (bytes < BYTES_PER_KIBIBYTE) {
     return `${bytes} B`;
   }
