@@ -1,0 +1,94 @@
+import { QueryClient } from "@tanstack/react-query";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FeedDto } from "@/api/tauri-commands";
+import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
+import type { SubmitFeedEditsParams } from "@/components/reader/rename-feed-dialog.types";
+import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+
+const feed: FeedDto = {
+  id: "feed-1",
+  account_id: "acc-1",
+  folder_id: "folder-1",
+  title: "Tech Blog",
+  url: "https://example.com/feed.xml",
+  site_url: "https://example.com",
+  unread_count: 5,
+  reader_mode: "inherit",
+  web_preview_mode: "inherit",
+};
+
+function createParams(overrides: Partial<SubmitFeedEditsParams> = {}): SubmitFeedEditsParams {
+  return {
+    feed,
+    title: feed.title,
+    displayPreset: "default",
+    selectedFolderId: feed.folder_id,
+    isCreatingFolder: false,
+    newFolderName: "",
+    queryClient: new QueryClient(),
+    showToast: vi.fn(),
+    createFolderErrorMessage: (error) => `Create folder failed: ${error.message}`,
+    renameErrorMessage: (error) => `Rename failed: ${error.message}`,
+    updateFeedFolder: vi.fn(async () => true),
+    updateDisplaySettings: vi.fn(async () => true),
+    ...overrides,
+  };
+}
+
+describe("submitFeedEdits", () => {
+  let calls: MockTauriCommandCall[] = [];
+
+  beforeEach(() => {
+    calls = [];
+  });
+
+  it("skips rename, folder move, and display updates when nothing changed", async () => {
+    const updateFeedFolder = vi.fn(async () => true);
+    const updateDisplaySettings = vi.fn(async () => true);
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+
+    await expect(submitFeedEdits(createParams({ updateFeedFolder, updateDisplaySettings }))).resolves.toBe(true);
+
+    expect(calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
+    expect(updateFeedFolder).not.toHaveBeenCalled();
+    expect(updateDisplaySettings).not.toHaveBeenCalled();
+  });
+
+  it("returns false and shows a toast when rename fails", async () => {
+    const showToast = vi.fn();
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "rename_feed") {
+        throw { type: "UserVisible", message: "Name already exists" };
+      }
+
+      return undefined;
+    });
+
+    await expect(submitFeedEdits(createParams({ title: "Renamed", showToast }))).resolves.toBe(false);
+
+    expect(calls).toContainEqual({
+      cmd: "rename_feed",
+      args: { feedId: feed.id, title: "Renamed" },
+    });
+    expect(showToast).toHaveBeenCalledWith("Rename failed: Name already exists");
+  });
+
+  it("updates feed display settings when the display preset changes", async () => {
+    const updateDisplaySettings = vi.fn(async () => true);
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+
+    await expect(submitFeedEdits(createParams({ displayPreset: "preview", updateDisplaySettings }))).resolves.toBe(
+      true,
+    );
+
+    expect(updateDisplaySettings).toHaveBeenCalledWith(feed.id, "on", "on");
+  });
+});
