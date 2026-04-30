@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { buildFeedDisplayPresetOptions } from "@/lib/article-display";
+import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/article-display";
 import type {
   RenameFeedDialogViewOption,
   RenameFeedDialogViewProps,
@@ -31,7 +31,11 @@ export function useRenameFeedDialogViewProps({
     displayModeOptions,
     onOpenChange,
     onTitleChange: controller.setTitle,
-    onDisplayModeChange: (value) => controller.setDisplayPreset(value as typeof controller.displayPreset),
+    onDisplayModeChange: (value) => {
+      if (isFeedDisplayPresetOption(value)) {
+        controller.setDisplayPreset(value);
+      }
+    },
     urlFields: [
       {
         key: "website-url",

@@ -48,6 +48,9 @@ vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
         <button type="button" onClick={() => props.onDisplayModeChange("preview")}>
           Set preview
         </button>
+        <button type="button" onClick={() => props.onDisplayModeChange("custom")}>
+          Set custom mode
+        </button>
         {props.urlFields.map((field) => (
           <button key={field.label} type="button" onClick={field.onCopy}>
             {field.copyLabel}
@@ -279,6 +282,45 @@ describe("RenameDialog", () => {
     });
 
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores unknown display-mode values from the view", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const onOpenChange = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: {
+              queries: { retry: false },
+            },
+          })
+        }
+      >
+        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set custom mode" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+    expect(calls.find((call) => call.cmd === "update_feed_display_settings")).toBeUndefined();
   });
 
   it("keeps the dialog open when renaming fails", async () => {
