@@ -151,7 +151,7 @@ describe("AccountDetail", () => {
             keep_read_items_days: Number(args.keepReadItemsDays),
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -212,7 +212,7 @@ describe("AccountDetail", () => {
             keep_read_items_days: Number(args.keepReadItemsDays),
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -407,7 +407,7 @@ describe("AccountDetail", () => {
             warnings: [],
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -571,7 +571,7 @@ describe("AccountDetail", () => {
             warnings: [],
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -654,7 +654,7 @@ describe("AccountDetail", () => {
             connection_verification_error: null,
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -719,7 +719,7 @@ describe("AccountDetail", () => {
             keep_read_items_days: 30,
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -774,7 +774,7 @@ describe("AccountDetail", () => {
             next_retry_at: null,
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -815,7 +815,7 @@ describe("AccountDetail", () => {
             next_retry_at: null,
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -848,7 +848,7 @@ describe("AccountDetail", () => {
         case "test_account_connection":
           throw { type: "UserVisible", message: "Connection failed: connection could not be verified" };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -888,7 +888,7 @@ describe("AccountDetail", () => {
         case "copy_to_clipboard":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -932,7 +932,7 @@ describe("AccountDetail", () => {
             warnings: [{ account_id: "acc-1", account_name: "FreshRSS", message: "Skipped 3 entries." }],
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -982,7 +982,7 @@ describe("AccountDetail", () => {
             ],
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1025,7 +1025,7 @@ describe("AccountDetail", () => {
             warnings: [],
           };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1100,7 +1100,7 @@ describe("AccountDetail", () => {
             keep_read_items_days: 30,
           };
         default:
-          return null;
+          return undefined;
       }
     });
 

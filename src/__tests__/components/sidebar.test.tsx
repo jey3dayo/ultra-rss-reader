@@ -206,7 +206,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -238,7 +238,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -281,7 +281,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -312,7 +312,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -396,7 +396,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -435,7 +435,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -471,7 +471,7 @@ describe("Sidebar", () => {
         case "list_account_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -510,7 +510,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -622,7 +622,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
     useUiStore.setState({
@@ -662,7 +662,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -698,7 +698,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -735,7 +735,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -775,7 +775,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -812,7 +812,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -849,7 +849,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -890,7 +890,7 @@ describe("Sidebar", () => {
         case "update_feed_folder":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -993,7 +993,7 @@ describe("Sidebar", () => {
         case "update_feed_folder":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
     useUiStore.setState({
@@ -1032,7 +1032,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1098,7 +1098,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
     useUiStore.setState({
@@ -1150,7 +1150,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1236,7 +1236,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1314,7 +1314,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return { "tag-1": 2, "tag-2": 1 };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1379,7 +1379,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1666,7 +1666,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1714,7 +1714,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1763,7 +1763,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2271,7 +2271,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2302,7 +2302,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2328,7 +2328,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2355,7 +2355,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2391,7 +2391,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return { "tag-1": 2 };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2418,7 +2418,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return { "tag-1": 2 };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2522,7 +2522,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2563,7 +2563,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2653,7 +2653,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return { "tag-1": 2 };
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -2699,7 +2699,7 @@ describe("Sidebar", () => {
         case "get_tag_article_counts":
           return {};
         default:
-          return null;
+          return undefined;
       }
     });
 

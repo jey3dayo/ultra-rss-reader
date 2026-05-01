@@ -51,7 +51,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
   });
@@ -248,7 +248,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -287,7 +287,7 @@ describe("ArticleList", () => {
             { ...sampleArticles[1], id: "art-news", title: "News Article", feed_id: "feed-news" },
           ];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -335,7 +335,7 @@ describe("ArticleList", () => {
             { ...sampleArticles[1], id: "smart-read", title: "Smart Search Read", is_read: true, is_starred: true },
           ];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -394,7 +394,7 @@ describe("ArticleList", () => {
             },
           ];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -906,7 +906,7 @@ describe("ArticleList", () => {
           );
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -947,7 +947,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1089,7 +1089,7 @@ describe("ArticleList", () => {
           return null;
         }
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1145,7 +1145,7 @@ describe("ArticleList", () => {
         case "mark_feed_read":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1200,7 +1200,7 @@ describe("ArticleList", () => {
         case "mark_folder_read":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1251,7 +1251,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1301,7 +1301,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1358,7 +1358,7 @@ describe("ArticleList", () => {
           );
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1431,7 +1431,7 @@ describe("ArticleList", () => {
           starredArticles = articles.filter((article) => article.is_starred);
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
     starredArticlesSpy.mockImplementation(
@@ -1502,7 +1502,7 @@ describe("ArticleList", () => {
         case "close_browser_webview":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -1636,7 +1636,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
     starredArticlesSpy.mockReturnValue({

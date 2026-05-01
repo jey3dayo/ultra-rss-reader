@@ -86,7 +86,7 @@ describe("CommandPalette", () => {
             article.title.toLowerCase().includes(String(args.query).toLowerCase()),
           );
         default:
-          return null;
+          return undefined;
       }
     });
   });
@@ -154,7 +154,7 @@ describe("CommandPalette", () => {
             article.title.toLowerCase().includes(String(args.query).toLowerCase()),
           );
         default:
-          return null;
+          return undefined;
       }
     });
 

@@ -186,7 +186,7 @@ describe("useKeyboard", () => {
         case "trigger_sync":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 

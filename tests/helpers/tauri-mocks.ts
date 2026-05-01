@@ -309,7 +309,7 @@ function createDefaultHandler(): MockHandler {
       case "trigger_automatic_sync":
         return { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] };
       default:
-        return null;
+        return undefined;
     }
   };
 }

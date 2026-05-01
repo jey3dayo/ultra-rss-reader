@@ -27,7 +27,7 @@ describe("Form fields", () => {
             { url: "https://example.com/atom.xml", title: "News Feed" },
           ];
         default:
-          return null;
+          return undefined;
       }
     });
   });
@@ -226,7 +226,7 @@ describe("Form fields", () => {
         case "list_folders":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 

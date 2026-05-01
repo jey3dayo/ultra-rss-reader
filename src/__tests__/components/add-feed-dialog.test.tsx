@@ -108,7 +108,7 @@ describe("AddFeedDialog", () => {
         case "update_feed_folder":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -157,7 +157,7 @@ describe("AddFeedDialog", () => {
         case "list_folders":
           return sampleFolders.filter((folder) => folder.account_id === args.accountId);
         default:
-          return null;
+          return undefined;
       }
     });
 
