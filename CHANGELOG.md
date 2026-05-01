@@ -4,6 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-05-02
+
+### Bug Fixes
+
+- browser debug geometry の offset を release artifact に含め、embedded browser の位置確認を配布版でも追いやすくした
+- seed process detection を fail closed に寄せ、判定不能時に安全側へ倒れるようにした
+
+### Documentation
+
+- release skill の手順を調整し、tag と release notes の検証手順を明確にした
+
+### Maintenance
+
+- Tauri mock の未処理 command fallback を整理し、unit test の不要な validation stderr を抑えた
+- Windows CI の path separator 差分が分かるよう、seed script test の portable path assertion を明示した
+- CI の Vitest 出力を静かにし、失敗ログを追いやすくした
+
 ## [0.23.0] - 2026-05-01
 
 ### Features
