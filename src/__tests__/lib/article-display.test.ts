@@ -11,8 +11,11 @@ import {
   isFeedDisplayPresetOption,
   isTriStateDisplayMode,
   modesToDisplayPreset,
+  resolveAppDefaultDisplayModes,
+  resolveAppDefaultDisplayPreset,
   resolveArticleDisplay,
   resolveFeedDisplayOverrides,
+  resolveFeedDisplayPreset,
   resolveFeedDisplayPresetLabel,
   resolveFolderDisplayPreset,
 } from "@/lib/article-display";
@@ -48,6 +51,17 @@ describe("article-display preset conversions", () => {
     expect(appDefaultsToDisplayPreset("true", "false")).toBe("standard");
     expect(appDefaultsToDisplayPreset("true", "true")).toBe("preview");
     expect(appDefaultsToDisplayPreset("false", "true")).toBe("preview");
+  });
+
+  it("resolves app default display modes from preferences", () => {
+    expect(resolveAppDefaultDisplayModes({})).toEqual({ readerMode: true, webPreviewMode: false });
+    expect(
+      resolveAppDefaultDisplayModes({
+        reader_mode_default: "false",
+        web_preview_mode_default: "true",
+      }),
+    ).toEqual({ readerMode: false, webPreviewMode: true });
+    expect(resolveAppDefaultDisplayPreset({ web_preview_mode_default: "true" })).toBe("preview");
   });
 
   it("converts feed UI preset options into tri-state feed modes", () => {
@@ -151,6 +165,13 @@ describe("article-display preset conversions", () => {
       readerMode: "inherit",
       webPreviewMode: "inherit",
     });
+  });
+
+  it("resolves feed display presets from persisted feed settings", () => {
+    expect(resolveFeedDisplayPreset(null)).toBe("default");
+    expect(resolveFeedDisplayPreset({ reader_mode: "inherit", web_preview_mode: "inherit" })).toBe("default");
+    expect(resolveFeedDisplayPreset({ reader_mode: "on", web_preview_mode: "off" })).toBe("standard");
+    expect(resolveFeedDisplayPreset({ reader_mode: "on", web_preview_mode: "on" })).toBe("preview");
   });
 });
 
