@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
   buildSidebarFeedTreeFolders,
+  collectFeedIds,
   getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
+  mapFeedsToFeedTreeViewModels,
 } from "@/components/reader/sidebar-feed-tree-helpers";
 
 const folders: FolderDto[] = [
@@ -54,6 +56,41 @@ describe("getVisibleSidebarFeedTreeData", () => {
     expect(
       getVisibleSidebarFeeds(feeds, "unread", (candidateFeeds) => [...candidateFeeds].reverse()).map((feed) => feed.id),
     ).toEqual(["feed-c", "feed-a"]);
+  });
+
+  it("maps feeds to feed tree view models with display settings", () => {
+    expect(
+      mapFeedsToFeedTreeViewModels(
+        [
+          feeds[0],
+          {
+            ...feeds[1],
+            reader_mode: "on",
+            web_preview_mode: "off",
+          },
+        ],
+        { selectedFeedId: "feed-b", grayscaleFavicons: true },
+      ),
+    ).toMatchObject([
+      {
+        id: "feed-a",
+        readerMode: "inherit",
+        webPreviewMode: "inherit",
+        isSelected: false,
+        grayscaleFavicon: true,
+      },
+      {
+        id: "feed-b",
+        readerMode: "on",
+        webPreviewMode: "off",
+        isSelected: true,
+        grayscaleFavicon: true,
+      },
+    ]);
+  });
+
+  it("collects feed ids in the current order", () => {
+    expect(collectFeedIds(feeds)).toEqual(["feed-a", "feed-b", "feed-c"]);
   });
 
   it("builds ordered ids from visible folder and unfoldered feeds", () => {
