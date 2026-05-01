@@ -122,29 +122,24 @@ async function fileExists(targetPath: string, accessImpl: AccessImpl): Promise<b
   }
 }
 
-export function resolveSeedAppDataDirs(options: {
-  env?: NodeJS.ProcessEnv;
-  platform?: SeedPlatform;
-  homeDir?: string;
-} = {}): { prodAppDataDir: string; devAppDataDir: string } {
+export function resolveSeedAppDataDirs(
+  options: { env?: NodeJS.ProcessEnv; platform?: SeedPlatform; homeDir?: string } = {},
+): { prodAppDataDir: string; devAppDataDir: string } {
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const homeDir = options.homeDir ?? os.homedir();
 
   return {
     prodAppDataDir:
-      env.ULTRA_RSS_PROD_APP_DATA_DIR ??
-      resolveAppDataDir({ platform, homeDir, env, identifier: PROD_APP_IDENTIFIER }),
+      env.ULTRA_RSS_PROD_APP_DATA_DIR ?? resolveAppDataDir({ platform, homeDir, env, identifier: PROD_APP_IDENTIFIER }),
     devAppDataDir:
-      env.ULTRA_RSS_DEV_APP_DATA_DIR ??
-      resolveAppDataDir({ platform, homeDir, env, identifier: DEV_APP_IDENTIFIER }),
+      env.ULTRA_RSS_DEV_APP_DATA_DIR ?? resolveAppDataDir({ platform, homeDir, env, identifier: DEV_APP_IDENTIFIER }),
   };
 }
 
-export async function listLikelyRunningAppProcesses(options: {
-  platform?: SeedPlatform;
-  execFileImpl?: ExecFileAsync;
-} = {}): Promise<string[]> {
+export async function listLikelyRunningAppProcesses(
+  options: { platform?: SeedPlatform; execFileImpl?: ExecFileAsync } = {},
+): Promise<string[]> {
   const platform = options.platform ?? process.platform;
   const execFileImpl = options.execFileImpl ?? execFileAsync;
 
@@ -157,7 +152,6 @@ export async function listLikelyRunningAppProcesses(options: {
         running.push(processName);
       } catch (error) {
         if (isProcessNotFoundError(error)) {
-          continue;
         }
       }
     }
@@ -180,11 +174,7 @@ export async function listLikelyRunningAppProcesses(options: {
 
 function isProcessNotFoundError(error: unknown): boolean {
   return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof error.code === "number" &&
-    error.code === 1
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "number" && error.code === 1
   );
 }
 
@@ -256,12 +246,9 @@ export async function seedDevDatabaseFromProdPlan(
   };
 }
 
-export async function seedDevDatabaseFromProd(options: {
-  env?: NodeJS.ProcessEnv;
-  platform?: SeedPlatform;
-  homeDir?: string;
-  execFileImpl?: ExecFileAsync;
-} = {}): Promise<{ copied: string[]; backedUp: string[]; backupDir: string }> {
+export async function seedDevDatabaseFromProd(
+  options: { env?: NodeJS.ProcessEnv; platform?: SeedPlatform; homeDir?: string; execFileImpl?: ExecFileAsync } = {},
+): Promise<{ copied: string[]; backedUp: string[]; backupDir: string }> {
   const platform = options.platform ?? process.platform;
   const runningProcesses = await listLikelyRunningAppProcesses({
     platform,
@@ -288,8 +275,7 @@ async function main(): Promise<void> {
   );
 }
 
-const isMainModule =
-  typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
   main().catch((error: unknown) => {
