@@ -182,6 +182,10 @@ description = "Run native app in dev mode and jump into the feed cleanup page"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-feed-cleanup" }
 run = "node ./scripts/tauri-cli-dispatch.mjs dev -c src-tauri/tauri.dev.conf.json"
 
+[tasks."app:dev:seed-from-prod"]
+description = "Seed the Dev app database from the packaged app data database"
+run = "node ./scripts/seed-dev-db-from-prod.ts"
+
 [tasks."app:dev:signed"]
 description = "Build, codesign, and run native app on macOS (no Keychain dialog)"
 run = """
