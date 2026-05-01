@@ -33,5 +33,19 @@ describe("command-palette-history", () => {
   it("formats history values from structured entries", () => {
     expect(createCommandPaletteHistoryValue({ kind: "action", id: "open-settings" })).toBe("action:open-settings");
     expect(createCommandPaletteHistoryValue({ kind: "feed", id: "feed-1" })).toBe("feed:feed-1");
+    expect(createCommandPaletteHistoryValue({ kind: "tag", id: "tag-1" })).toBe("tag:tag-1");
+    expect(createCommandPaletteHistoryValue({ kind: "article", id: "art-1" })).toBe("article:art-1");
+  });
+
+  it("roundtrips non-action resource history values", () => {
+    const entries = [
+      { kind: "feed", id: "feed-1" },
+      { kind: "tag", id: "tag-1" },
+      { kind: "article", id: "art-1" },
+    ] as const;
+
+    for (const entry of entries) {
+      expect(parseCommandPaletteHistoryEntry(createCommandPaletteHistoryValue(entry))).toEqual(entry);
+    }
   });
 });
