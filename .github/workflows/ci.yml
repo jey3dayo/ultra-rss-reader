@@ -100,7 +100,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: mise run test
+      - run: mise run test:ci
 
   build:
     name: "Check: Build"

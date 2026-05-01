@@ -122,6 +122,10 @@ run = "actionlint -shellcheck="
 description = "Run all tests"
 depends = ["test:rust", "test:unit"]
 
+[tasks."test:ci"]
+description = "Run CI tests with quieter unit test output"
+depends = ["test:rust", "test:unit:ci"]
+
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
@@ -131,6 +135,11 @@ run_windows = "node ./scripts/windows-command-dispatch.ts cargo test --manifest-
 description = "Run Vitest unit tests"
 run = "rtk test pnpm run test"
 run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec vitest run"
+
+[tasks."test:unit:ci"]
+description = "Run Vitest unit tests with quieter CI output"
+run = "rtk test pnpm exec vitest run --reporter=dot --silent=passed-only"
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec vitest run --reporter=dot --silent=passed-only"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
