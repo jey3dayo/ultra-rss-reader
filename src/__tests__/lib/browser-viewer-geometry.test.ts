@@ -2,6 +2,34 @@ import { describe, expect, it } from "vitest";
 import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 
 describe("resolveBrowserViewerGeometry", () => {
+  it("exposes the content-pane inset geometry contract", () => {
+    const geometry = resolveBrowserViewerGeometry({
+      scope: "content-pane",
+      viewportWidth: 1280,
+      diagnosticsVisible: false,
+    });
+
+    expect(geometry.compact).toBe(false);
+    expect(geometry.ultraCompact).toBe(false);
+    expect(geometry.chromeRail.visible).toBe(false);
+    expect(geometry.stage).toEqual({ left: 16, top: 16, right: 16, bottom: 16 });
+    expect(geometry.host).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
+    expect(geometry.chrome.visualHeaderHeight).toBe(46);
+    expect(geometry.chrome.action.size).toBe(46);
+    expect(geometry.diagnostics).toEqual({ compact: false, top: 16 });
+  });
+
+  it("moves the content-pane stage below diagnostics when diagnostics are visible", () => {
+    const geometry = resolveBrowserViewerGeometry({
+      scope: "content-pane",
+      viewportWidth: 1280,
+      diagnosticsVisible: true,
+    });
+
+    expect(geometry.stage).toEqual({ left: 16, top: 56, right: 16, bottom: 16 });
+    expect(geometry.diagnostics.top).toBe(16);
+  });
+
   it("exposes the compact main-stage top rail contract", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
