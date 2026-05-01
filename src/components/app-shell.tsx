@@ -35,7 +35,6 @@ import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferenc
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
-import { IndeterminateProgress } from "./shared/indeterminate-progress";
 import { Button } from "./ui/button";
 
 const LazyFocusDebugHudView = lazy(async () => {
@@ -374,7 +373,6 @@ export function AppShell() {
   const confirmDialogOpen = useUiStore((state) => state.confirmDialog.open);
   const closeSettings = useUiStore((state) => state.closeSettings);
   const browserUrl = useUiStore((state) => state.browserUrl);
-  const appLoading = useUiStore((state) => state.appLoading);
   const toastMessage = useUiStore((state) => state.toastMessage);
   const prefs = usePreferencesStore((state) => state.prefs);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
@@ -400,7 +398,6 @@ export function AppShell() {
           overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
         )}
       />
-      {appLoading && <IndeterminateProgress className="shrink-0" />}
       <div className="min-h-0 flex-1">
         <AppLayout />
       </div>

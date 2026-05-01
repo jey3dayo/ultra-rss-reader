@@ -253,14 +253,10 @@ export function executeAction(action: AppAction): void {
     // --- Sync ---
     case "sync-all": {
       void triggerManualSyncWithCooldown({
-        onRequestStart: () => {
-          store.setAppLoading(true);
-        },
         onCooldown: () => {
           store.showToast(i18n.t("sidebar:sync_cooldown_active"));
         },
         onSuccess: (syncResult) => {
-          store.setAppLoading(false);
           store.showToast(
             resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
               alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
@@ -273,7 +269,6 @@ export function executeAction(action: AppAction): void {
           );
         },
         onError: (e) => {
-          store.setAppLoading(false);
           console.error("Menu sync failed:", e);
           store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
         },

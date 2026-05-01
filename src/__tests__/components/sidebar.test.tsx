@@ -2148,7 +2148,6 @@ describe("Sidebar", () => {
 
     expect(syncProgressListener).not.toBeNull();
     expect(icon).not.toHaveClass("animate-spin");
-    expect(useUiStore.getState().appLoading).toBe(false);
 
     syncProgressListener?.({
       stage: "started",
@@ -2162,11 +2161,10 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(icon).not.toHaveClass("animate-spin");
-      expect(useUiStore.getState().appLoading).toBe(false);
     });
   });
 
-  it("spins the sync button and enables app loading while full sync-progress is active", async () => {
+  it("spins only the sync button while full sync-progress is active", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const syncButton = await screen.findByRole("button", { name: "Sync feeds" });
@@ -2174,7 +2172,6 @@ describe("Sidebar", () => {
 
     expect(syncProgressListener).not.toBeNull();
     expect(icon).not.toHaveClass("animate-spin");
-    expect(useUiStore.getState().appLoading).toBe(false);
 
     syncProgressListener?.({
       stage: "started",
@@ -2188,7 +2185,6 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(icon).toHaveClass("animate-spin");
-      expect(useUiStore.getState().appLoading).toBe(true);
     });
 
     syncProgressListener?.({
@@ -2203,7 +2199,6 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(icon).not.toHaveClass("animate-spin");
-      expect(useUiStore.getState().appLoading).toBe(false);
     });
   });
 

@@ -136,7 +136,6 @@ interface UiState {
   settingsAddAccount: boolean;
   settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsLoading: boolean;
-  appLoading: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
   syncProgress: SyncProgressState;
   accountSetupSession: AccountSetupSession | null;
@@ -199,7 +198,6 @@ interface UiActions {
     initialKind?: AddAccountProviderKind,
   ) => void;
   setSettingsLoading: (loading: boolean) => void;
-  setAppLoading: (loading: boolean) => void;
   openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
   closeSubscriptionsWorkspace: () => void;
   applySyncProgress: (event: SyncProgressEvent) => void;
@@ -256,7 +254,6 @@ const initialState: UiState = {
   settingsAddAccount: false,
   settingsAddAccountInitialKind: null,
   settingsLoading: false,
-  appLoading: false,
   subscriptionsWorkspace: null,
   syncProgress: {
     active: false,
@@ -482,7 +479,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAccountsView: (accountId, addAccount, initialKind) =>
     set(getSettingsAccountsViewState(accountId, addAccount, initialKind ?? null)),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
-  setAppLoading: (loading) => set({ appLoading: loading }),
   openSubscriptionsIndex: (returnState) =>
     set({
       accountPaneOpen: false,
@@ -508,7 +504,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
 
       if (event.stage === "finished") {
         return {
-          appLoading: false,
           syncProgress: {
             active: false,
             kind: null,
@@ -521,10 +516,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         };
       }
 
-      const shouldShowAppLoading = event.kind !== "manual_account";
-
       return {
-        appLoading: shouldShowAppLoading,
         syncProgress: {
           active: true,
           kind: event.kind,
@@ -538,7 +530,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   clearSyncProgress: () =>
     set({
-      appLoading: false,
       syncProgress: {
         active: false,
         kind: null,
