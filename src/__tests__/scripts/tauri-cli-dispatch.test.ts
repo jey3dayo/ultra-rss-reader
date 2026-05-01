@@ -138,6 +138,6 @@ describe("buildWslTauriSpawnSpec", () => {
     expect(powerShellScript).toContain("[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()");
     expect(powerShellScript).toContain("$env:HOME = $env:USERPROFILE");
     expect(powerShellScript).toContain("[Environment]::GetEnvironmentVariable('Path', 'Machine')");
-    expect(powerShellScript).toContain("& pnpm exec tauri");
+    expect(powerShellScript).toContain("& 'pnpm' 'exec' 'tauri'");
   });
 });

@@ -1,52 +1,21 @@
-import { Buffer } from "node:buffer";
-import { execFile, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { readFile, rm } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
-import { promisify } from "node:util";
+import {
+  buildWslWindowsSpawnSpec,
+  canUseWindowsInterop,
+  convertWslPathToWindows,
+  isWslEnvironment,
+  pickWindowsEnvOverrides,
+  type SpawnSpec,
+} from "./lib/windows-dispatch.ts";
 
-const execFileAsync = promisify(execFile);
-const FORWARDED_ENV_PREFIXES = ["DEV_", "VITE_", "TAURI_", "RUST_"];
-
-type SpawnSpec = {
-  command: string;
-  args: string[];
-};
-
-type WslEnvironmentOptions = {
-  platform?: NodeJS.Platform;
-  env?: NodeJS.ProcessEnv;
-  osRelease?: string;
-};
+export { isWslEnvironment, pickWindowsEnvOverrides } from "./lib/windows-dispatch.ts";
 
 type ReadFileImpl = (targetPath: string, encoding: "utf8") => Promise<string>;
 type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
-
-export function isWslEnvironment(options: WslEnvironmentOptions = {}): boolean {
-  const platform = options.platform ?? process.platform;
-  const env = options.env ?? process.env;
-  const osRelease = options.osRelease ?? os.release();
-
-  return platform === "linux" && (Boolean(env.WSL_INTEROP) || /microsoft/i.test(osRelease));
-}
-
-export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
-  const overrides: Record<string, string> = {};
-
-  for (const [key, value] of Object.entries(env)) {
-    if (typeof value === "string" && FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
-      overrides[key] = value;
-    }
-  }
-
-  return overrides;
-}
-
-function quotePowerShellLiteral(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`;
-}
 
 export function buildLocalTauriSpawnSpec(cliArgs: string[], scriptUrl: string = import.meta.url): SpawnSpec {
   void scriptUrl;
@@ -113,61 +82,12 @@ export async function removeStaleMacosDevBundle(
   return removedAny;
 }
 
-function buildPowerShellScript(
-  cliArgs: string[],
-  windowsCwd: string,
-  envOverrides: Record<string, string> = {},
-): string {
-  const envAssignments = Object.entries(envOverrides).map(
-    ([key, value]) => `$env:${key} = ${quotePowerShellLiteral(value)}`,
-  );
-  const tauriArgs = cliArgs.map((arg) => quotePowerShellLiteral(arg)).join(" ");
-  return [
-    "$ErrorActionPreference = 'Stop'",
-    "$ProgressPreference = 'SilentlyContinue'",
-    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()",
-    "$OutputEncoding = [System.Text.UTF8Encoding]::new()",
-    "$env:HOME = $env:USERPROFILE",
-    "$pathParts = @([Environment]::GetEnvironmentVariable('Path', 'Machine'), [Environment]::GetEnvironmentVariable('Path', 'User'))",
-    "$env:Path = ($pathParts | Where-Object { $_ }) -join ';'",
-    `Set-Location -LiteralPath ${quotePowerShellLiteral(windowsCwd)}`,
-    ...envAssignments,
-    `& pnpm exec tauri ${tauriArgs}`.trim(),
-    "exit $LASTEXITCODE",
-  ].join("; ");
-}
-
 export function buildWslTauriSpawnSpec(
   cliArgs: string[],
   windowsCwd: string,
   envOverrides: Record<string, string> = {},
 ): SpawnSpec {
-  const powerShellScript = buildPowerShellScript(cliArgs, windowsCwd, envOverrides);
-  const encodedCommand = Buffer.from(powerShellScript, "utf16le").toString("base64");
-  return {
-    command: "sh",
-    args: [
-      "-lc",
-      `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand ${encodedCommand}`,
-    ],
-  };
-}
-
-async function convertWslPathToWindows(currentDirectory: string): Promise<string> {
-  const { stdout } = await execFileAsync("wslpath", ["-w", currentDirectory], { encoding: "utf8" });
-  return stdout.trim();
-}
-
-async function canUseWindowsInterop(): Promise<boolean> {
-  try {
-    await execFileAsync("sh", ["-lc", 'powershell.exe -NoProfile -Command "exit 0"'], {
-      timeout: 5_000,
-      encoding: "utf8",
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  return buildWslWindowsSpawnSpec("pnpm", ["exec", "tauri", ...cliArgs], windowsCwd, envOverrides);
 }
 
 async function resolveSpawnSpec(cliArgs: string[]): Promise<SpawnSpec> {
