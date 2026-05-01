@@ -28,7 +28,7 @@
   - 現状: 件数バッジなどの短い数値は `MotionNumber` に寄せ、`UI Reference/View Specimens Canvas` に基準面を置く。追加適用は同期カウント・検索結果数のような短い表示に限定する
   - 記事本文、長いタイトル、フィード名には適用しない。読む対象そのものが動いて見えると視線移動が増える
 
-- [ ] `Debug HUD` の collision handling を見直す
+- [x] `Debug HUD` の collision handling を見直す
   - dev アプリ実機で、HUD を表示したまま `設定` モーダルを開くと HUD がモーダル上に残り、内容を隠しうる
   - 2026-04-28 の実機レビューで、設定モーダル右下の操作領域と HUD が重なり、閉じるボタン周辺の可読性と操作性を下げることを再確認
   - 現状: HUD は `Move debug HUD` で 4 隅を巡回でき、閉じる操作は設定の `Debug HUD` と同じ preference を `false` にする

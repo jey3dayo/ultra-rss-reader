@@ -4,6 +4,32 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-05-01
+
+### Features
+
+- reader の四分割ペインをキーボードで移動できるようにし、記事一覧、本文、sidebar、browser preview 間の操作をつなげた
+- command palette、settings、shared surface、件数表示などに静かな motion を広げ、状態変化を追いやすくした
+
+### Bug Fixes
+
+- GReader / FreshRSS の unread state を再照合し、同期後の未読状態がずれにくいようにした
+- reader の recent smart view、summary card action、passive card、browser preview chrome geometry を調整し、表示と操作の引っかかりを減らした
+- Debug HUD が settings、toast、overlay と重なりにくいようにし、開発時の確認 UI を邪魔しないようにした
+- command palette の account 欠落 feed、browser retry の URL 欠落、reading sort preference の toggle を防御的に扱った
+
+### Documentation
+
+- Base UI primitive ownership、runtime chrome review、button reference、motion follow-up guardrail を整理し、UI レビュー基準を追いやすくした
+- 完了済み reading recovery notes を整理し、残りの cleanup 候補を TODO に記録した
+
+### Maintenance
+
+- date-fns ベースの日時 helper、display preset guard、motion constants、action registry、window event helper などを型安全に整理した
+- sidebar、subscriptions、article list、settings、command palette、tag picker の view model / helper を分離し、責務の境界を明確にした
+- pure helper、settings props builder、browser geometry、sidebar mapping、clipboard、HTML normalization などのテストを補強した
+- CI の actionlint shellcheck hang を避け、Tauri / frontend の検証を安定させた
+
 ## [0.21.0] - 2026-04-27
 
 ### Features
