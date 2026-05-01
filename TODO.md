@@ -43,3 +43,8 @@
 ## 次の並列バッチ候補
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
+
+- [ ] 小粒 cleanup 候補を別バッチで見直す
+  - `safeInvoke` 周辺の schema / error guard を型安全に整理する
+  - UI class variant のテスト固定は、見た目を過剰に固定しない範囲に限定する
+  - pure helper の追加テストは、挙動の契約として価値があるものだけ残す
