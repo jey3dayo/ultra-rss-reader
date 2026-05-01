@@ -100,7 +100,8 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
 
 function Toast() {
   const { t } = useTranslation("common");
-  const { toastMessage, clearToast } = useUiStore();
+  const toastMessage = useUiStore((state) => state.toastMessage);
+  const clearToast = useUiStore((state) => state.clearToast);
   if (!toastMessage) return null;
 
   const { message, progress, actions } = toastMessage;

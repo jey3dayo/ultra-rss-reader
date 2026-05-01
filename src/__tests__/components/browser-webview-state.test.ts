@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   initialBrowserState,
   isMissingEmbeddedBrowserWebviewError,
   mergeBrowserState,
   resolveBrowserStateForRequestedUrl,
+  updateBrowserStateWithRef,
 } from "@/components/reader/browser-webview-state";
+import { useUiStore } from "@/stores/ui-store";
 
 describe("browser-webview-state", () => {
   it("creates an initial loading state for a requested url", () => {
@@ -109,5 +111,38 @@ describe("browser-webview-state", () => {
         message: "Something else failed",
       }),
     ).toBe(false);
+  });
+
+  it("updates the browser ref and navigation store outside the React state updater", () => {
+    useUiStore.setState(useUiStore.getInitialState());
+    const browserStateRef = {
+      current: {
+        url: "https://example.com/current",
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: true,
+      },
+    };
+    const setBrowserState = vi.fn();
+
+    updateBrowserStateWithRef(browserStateRef, setBrowserState, (currentState) => ({
+      url: currentState?.url ?? "https://example.com/fallback",
+      can_go_back: true,
+      can_go_forward: false,
+      is_loading: false,
+    }));
+
+    expect(browserStateRef.current).toEqual({
+      url: "https://example.com/current",
+      can_go_back: true,
+      can_go_forward: false,
+      is_loading: false,
+    });
+    expect(useUiStore.getState().browserNavigationState).toEqual({
+      canGoBack: true,
+      canGoForward: false,
+    });
+    expect(setBrowserState).toHaveBeenCalledWith(browserStateRef.current);
+    expect(typeof setBrowserState.mock.calls[0]?.[0]).not.toBe("function");
   });
 });

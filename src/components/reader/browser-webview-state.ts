@@ -89,10 +89,8 @@ export function updateBrowserStateWithRef(
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>,
   update: (currentState: BrowserWebviewState | null) => BrowserWebviewState | null,
 ) {
-  setBrowserState((currentState) => {
-    const nextState = update(currentState);
-    browserStateRef.current = nextState;
-    useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
-    return nextState;
-  });
+  const nextState = update(browserStateRef.current);
+  browserStateRef.current = nextState;
+  useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
+  setBrowserState(nextState);
 }

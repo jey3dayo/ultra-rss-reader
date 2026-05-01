@@ -84,8 +84,8 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
   });
 
-  test("uses the single-pane mobile layout and shows labeled article actions below 640px", async ({ page }) => {
-    await page.setViewportSize({ width: 639, height: 900 });
+  test("uses the single-pane mobile layout and exposes article actions on narrow viewports", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
     await page.goto("/");
 
     await expect(page.getByTestId("sliding-pane-tray")).toBeVisible();
@@ -96,8 +96,22 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     await expect(markAllReadButton).toBeVisible();
     await expect(searchButton).toBeVisible();
-    await expect(markAllReadButton).toContainText(/Read|既読/);
-    await expect(searchButton).toContainText(/Search|検索/);
+    await expect(markAllReadButton).not.toContainText(/Read|既読/);
+    await expect(searchButton).not.toContainText(/Search|検索/);
+
+    const mobilePaneMetrics = await markAllReadButton.evaluate(() => {
+      const tray = document.querySelector<HTMLElement>('[data-testid="sliding-pane-tray"]');
+      const viewport = tray?.parentElement;
+      if (!viewport) {
+        return null;
+      }
+      return {
+        scrollLeft: viewport.scrollLeft,
+      };
+    });
+
+    expect(mobilePaneMetrics).not.toBeNull();
+    expect(mobilePaneMetrics?.scrollLeft).toBe(0);
   });
 
   test("groups secondary article actions under More actions on mobile", async ({ page }) => {

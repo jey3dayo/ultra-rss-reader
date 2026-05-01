@@ -49,17 +49,17 @@ function SlidingPaneLayout({
         >
           <AccountPane />
         </div>
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-clip">
           <div
             data-testid="sliding-pane-tray"
             className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:transition-none"
             style={{
-              width: isMobile ? "300%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
+              width: isMobile ? "100%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
               transform: `translateX(${translateX})`,
             }}
           >
             <div
-              className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
+              className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
               aria-hidden={!isPaneVisible(layoutMode, focusedPane, "sidebar")}
               {...(!isPaneVisible(layoutMode, focusedPane, "sidebar") ? { inert: true } : {})}
@@ -67,7 +67,7 @@ function SlidingPaneLayout({
               <Sidebar />
             </div>
             <div
-              className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
+              className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
               aria-hidden={!isPaneVisible(layoutMode, focusedPane, "list")}
               {...(!isPaneVisible(layoutMode, focusedPane, "list") ? { inert: true } : {})}
@@ -75,7 +75,7 @@ function SlidingPaneLayout({
               <ArticleList />
             </div>
             <div
-              className={cn(isMobile ? "w-1/3 shrink-0" : "min-w-0 flex-1")}
+              className={cn(isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
               aria-hidden={!isPaneVisible(layoutMode, focusedPane, "content")}
               {...(!isPaneVisible(layoutMode, focusedPane, "content") ? { inert: true } : {})}
             >

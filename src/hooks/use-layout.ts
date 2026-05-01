@@ -48,9 +48,9 @@ export function computeTranslateX(layoutMode: SlidingLayoutMode, focusedPane: Fo
       case "sidebar":
         return "0%";
       case "list":
-        return "calc(-100% / 3)";
+        return "-100%";
       case "content":
-        return "calc(-200% / 3)";
+        return "-200%";
     }
   }
   return focusedPane === "content" ? `-${SIDEBAR_PANE_WIDTH_PX}px` : "0px";

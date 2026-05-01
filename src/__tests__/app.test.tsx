@@ -29,7 +29,8 @@ describe("App", () => {
     const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
     const tray = screen.getByTestId("sliding-pane-tray");
-    expect(tray).toHaveStyle({ width: "300%" });
+    expect(tray.parentElement).toHaveClass("overflow-clip");
+    expect(tray).toHaveStyle({ width: "100%" });
 
     // sidebar focused: sidebar visible, list and content hidden
     const panes = tray?.children;
@@ -46,7 +47,17 @@ describe("App", () => {
     expect(panes?.[1]).not.toHaveAttribute("inert");
     expect(panes?.[2]).toHaveAttribute("inert");
 
-    expect(tray).toHaveStyle({ transform: "translateX(calc(-100% / 3))" });
+    expect(tray).toHaveStyle({ transform: "translateX(-100%)" });
+
+    // Switch to content
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "content" });
+    rerender(<AppLayout />);
+
+    expect(panes?.[0]).toHaveAttribute("inert");
+    expect(panes?.[1]).toHaveAttribute("inert");
+    expect(panes?.[2]).not.toHaveAttribute("inert");
+
+    expect(tray).toHaveStyle({ transform: "translateX(-200%)" });
   });
 
   it("mobile: no fixed-width sidebar/list classes", () => {
