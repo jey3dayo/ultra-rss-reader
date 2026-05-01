@@ -15,6 +15,7 @@ export function showUpdateAvailableToast(version: string): void {
   store.showToast({
     message: `v${version} が利用可能です`,
     persistent: true,
+    variant: "update",
     actions: [
       {
         label: "今すぐ更新",
@@ -38,6 +39,7 @@ function showUpdateFailureToast(message: string): void {
   store.showToast({
     message: "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
     persistent: true,
+    variant: "update",
     actions: [
       {
         label: "もう一度確認",
@@ -61,6 +63,7 @@ function startDownload(): void {
     message: "ダウンロード中… 0%",
     persistent: true,
     progress: 0,
+    variant: "update",
   });
 
   downloadAndInstallUpdate().then((result) =>
@@ -78,6 +81,7 @@ export function showRestartToast(): void {
   store.showToast({
     message: "更新の準備ができました",
     persistent: true,
+    variant: "update",
     actions: [
       {
         label: "再起動",
@@ -166,6 +170,7 @@ export function useUpdater(): void {
             message,
             persistent: true,
             progress: percent,
+            variant: "update",
           });
         }),
         listen("update-ready", () => {

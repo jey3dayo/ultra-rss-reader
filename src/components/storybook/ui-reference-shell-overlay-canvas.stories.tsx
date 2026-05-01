@@ -6,6 +6,7 @@ import {
   MotionTransitionsSpecimen,
   ReferencePage,
   ShellExamplesSpecimen,
+  UpdateToastStabilitySpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
 
 export function ShellOverlayCanvas() {
@@ -26,6 +27,7 @@ export function ShellOverlayCanvas() {
           </MainContentShellSpecimen>
         </div>
         <MotionTransitionsSpecimen />
+        <UpdateToastStabilitySpecimen />
         <ShellExamplesSpecimen />
       </div>
     </ReferencePage>

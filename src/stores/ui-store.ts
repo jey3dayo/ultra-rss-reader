@@ -17,6 +17,7 @@ export type ToastData = {
   persistent?: boolean;
   progress?: number | null;
   actions?: ToastAction[];
+  variant?: "update";
 };
 
 export type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";

@@ -72,14 +72,21 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
+    expect(useUiStore.getState().toastMessage?.variant).toBe("update");
     useUiStore
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
       ?.onClick();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
+      variant: "update",
+    });
     await flushAsyncWork();
 
     expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
     expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
+    expect(useUiStore.getState().toastMessage?.variant).toBe("update");
     expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
   });
 
@@ -117,6 +124,7 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     showRestartToast();
+    expect(useUiStore.getState().toastMessage?.variant).toBe("update");
     useUiStore
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "再起動")

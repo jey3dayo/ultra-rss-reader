@@ -100,6 +100,11 @@ describe("UI Reference canvases", () => {
     render(<ShellOverlayCanvas />);
 
     expect(screen.getByText("Shell & overlay")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-update-toast-stability")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-update-toast-download-0")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-update-toast-download-90")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-update-toast-ready")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-update-toast-failure")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Reference settings sections" })).toBeInTheDocument();
     expect(screen.getByText("Left Band")).toBeInTheDocument();
     expect(screen.getByText("Main content shell")).toBeInTheDocument();

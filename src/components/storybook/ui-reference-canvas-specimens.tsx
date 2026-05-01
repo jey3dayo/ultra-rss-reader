@@ -34,6 +34,7 @@ import type { AccountNavItem, SettingsNavItem } from "@/components/settings/sett
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { ShortcutKeyButton } from "@/components/settings/shortcuts-settings-view";
+import { AppToastView } from "@/components/shared/app-toast-view";
 import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
@@ -72,6 +73,7 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
+import type { ToastData } from "@/stores/ui-store";
 
 type AnnotatedNoteProps = {
   title: string;
@@ -1881,6 +1883,83 @@ export function ShellExamplesSpecimen() {
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Unsubscribe…</div>
             </div>
           </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+const updateToastSpecimens = [
+  {
+    label: "Download 0%",
+    testId: "reference-update-toast-download-0",
+    toast: {
+      message: "ダウンロード中… 0%",
+      persistent: true,
+      progress: 0,
+      variant: "update",
+    },
+  },
+  {
+    label: "Download 90%",
+    testId: "reference-update-toast-download-90",
+    toast: {
+      message: "ダウンロード中… 90%",
+      persistent: true,
+      progress: 90,
+      variant: "update",
+    },
+  },
+  {
+    label: "Ready",
+    testId: "reference-update-toast-ready",
+    toast: {
+      message: "更新の準備ができました",
+      persistent: true,
+      variant: "update",
+      actions: [
+        { label: "再起動", onClick: () => {} },
+        { label: "後で", onClick: () => {} },
+      ],
+    },
+  },
+  {
+    label: "Failure",
+    testId: "reference-update-toast-failure",
+    toast: {
+      message: "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
+      persistent: true,
+      variant: "update",
+      actions: [
+        { label: "もう一度確認", onClick: () => {} },
+        { label: "閉じる", onClick: () => {} },
+      ],
+    },
+  },
+] satisfies Array<{ label: string; testId: string; toast: ToastData }>;
+
+export function UpdateToastStabilitySpecimen() {
+  return (
+    <SurfaceCard title="Update Toast stability" variant="section" tone="subtle">
+      <div className="space-y-4" data-testid="reference-update-toast-stability">
+        <AnnotatedNote
+          title="Stable update notification width"
+          body="Download progress and restart-ready notifications share the same update Toast width so progress text changes do not resize the popup."
+        />
+        <div className="grid gap-4 xl:grid-cols-4">
+          {updateToastSpecimens.map((specimen) => (
+            <div key={specimen.testId} className="space-y-2">
+              <div className="text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+                {specimen.label}
+              </div>
+              <AppToastView
+                toastMessage={specimen.toast}
+                onClose={() => {}}
+                position="static"
+                testId={specimen.testId}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </SurfaceCard>

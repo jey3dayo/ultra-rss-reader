@@ -2,7 +2,6 @@ import { listen } from "@tauri-apps/api/event";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { MOTION_POPUP_SURFACE_CLASS_NAME } from "../constants";
 import { APP_EVENTS } from "../constants/events";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
@@ -35,7 +34,7 @@ import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferenc
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
-import { Button } from "./ui/button";
+import { AppToastView } from "./shared/app-toast-view";
 
 const LazyFocusDebugHudView = lazy(async () => {
   const mod = await import("./debug/focus-debug-hud-view");
@@ -98,66 +97,11 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
 }
 
 function Toast() {
-  const { t } = useTranslation("common");
   const toastMessage = useUiStore((state) => state.toastMessage);
   const clearToast = useUiStore((state) => state.clearToast);
   if (!toastMessage) return null;
 
-  const { message, progress, actions } = toastMessage;
-
-  return (
-    <div
-      data-open
-      data-side="top"
-      data-testid="app-toast"
-      className={cn(
-        MOTION_POPUP_SURFACE_CLASS_NAME,
-        "fixed right-4 bottom-4 z-[100] flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-elevation-2",
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <span className="flex-1">{message}</span>
-        <Button
-          type="button"
-          onClick={clearToast}
-          aria-label={t("close")}
-          variant="ghost"
-          size="xs"
-          className="ml-2 h-7 min-w-7 shrink-0 px-0 text-foreground-soft hover:bg-surface-1/72"
-        >
-          &times;
-        </Button>
-      </div>
-      {progress !== undefined && (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1/72">
-          {progress != null ? (
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-200 motion-reduce:transition-none"
-              style={{ width: `${progress}%` }}
-            />
-          ) : (
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
-          )}
-        </div>
-      )}
-      {actions && actions.length > 0 && (
-        <div className="flex gap-2">
-          {actions.map((action) => (
-            <Button
-              key={action.label}
-              type="button"
-              onClick={action.onClick}
-              variant="ghost"
-              size="xs"
-              className="min-h-7 px-2.5 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <AppToastView toastMessage={toastMessage} onClose={clearToast} />;
 }
 
 function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {

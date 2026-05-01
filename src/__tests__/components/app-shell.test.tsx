@@ -292,6 +292,33 @@ describe("AppShell", () => {
     expect(container).not.toHaveClass("bottom-4");
   });
 
+  it("keeps regular toast width content-sized", () => {
+    setDebugHudUiState({
+      toastMessage: {
+        message: "Copied",
+      },
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("app-toast").className).not.toContain("w-[min(320px,calc(100vw-2rem))]");
+  });
+
+  it("applies a stable width to update toasts", () => {
+    setDebugHudUiState({
+      toastMessage: {
+        message: "ダウンロード中… 90%",
+        persistent: true,
+        progress: 90,
+        variant: "update",
+      },
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("app-toast").className).toContain("w-[min(320px,calc(100vw-2rem))]");
+  });
+
   it("temporarily hides the debug HUD while the settings modal is open", async () => {
     const { rerender } = renderAppShellWithDebugHud();
 
