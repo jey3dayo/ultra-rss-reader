@@ -33,8 +33,17 @@ const uiReferenceTitles = [
 const sharedGroups = ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"] as const;
 const settingsGroups = ["Page", "Section", "Nav"] as const;
 const readerGroups = ["Article", "Sidebar", "Dialog", "Menu", "Browser"] as const;
+const subscriptionsGroups = ["Summary", "List", "Detail"] as const;
 const internalGroups = ["Debug", "Review"] as const;
-const topLevelGroups = ["UI Reference", "Shared", "Primitives", "Settings", "Reader", "Internal"] as const;
+const topLevelGroups = [
+  "UI Reference",
+  "Shared",
+  "Primitives",
+  "Settings",
+  "Reader",
+  "Subscriptions",
+  "Internal",
+] as const;
 
 function titlesUnder(group: string) {
   return titles.filter((title) => title.startsWith(`${group}/`));
@@ -61,6 +70,8 @@ describe("Storybook Explorer organization", () => {
         ["Page", "Section", "Nav"],
         "Reader",
         ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
+        "Subscriptions",
+        ["Summary", "List", "Detail"],
         "Internal",
         ["Debug", "Review"],
       ],
@@ -94,6 +105,8 @@ describe("Storybook Explorer organization", () => {
 
     expect(actualGroups).toEqual([...settingsGroups].sort());
     expect(settingsTitles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(settingsTitles).toContain("Settings/Page/DataSettingsView");
+    expect(settingsTitles).toContain("Settings/Page/MuteSettingsView");
   });
 
   it("nests reader stories by role", () => {
@@ -108,11 +121,29 @@ describe("Storybook Explorer organization", () => {
     expect(titles).toContain("Reader/Sidebar/SidebarFeedTreeSkeleton");
   });
 
+  it("keeps subscriptions workspace stories in their own group", () => {
+    const subscriptionsTitles = titlesUnder("Subscriptions");
+    const actualGroups = [...new Set(subscriptionsTitles.map((title) => title.split("/")[1]))].sort();
+
+    expect(actualGroups).toEqual([...subscriptionsGroups].sort());
+    expect(subscriptionsTitles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(subscriptionsTitles).toContain("Subscriptions/Summary/SubscriptionsOverviewSummary");
+    expect(subscriptionsTitles).toContain("Subscriptions/List/SubscriptionsListPane");
+    expect(subscriptionsTitles).toContain("Subscriptions/Detail/SubscriptionDetailPane");
+  });
+
+  it("covers sidebar section menus and tag creation flows", () => {
+    expect(titles).toContain("Reader/Menu/SubscriptionsSectionContextMenuView");
+    expect(titles).toContain("Reader/Menu/TagSectionContextMenuView");
+    expect(titles).toContain("Reader/Dialog/CreateTagDialogView");
+  });
+
   it("isolates internal stories under debug or review only", () => {
     const internalTitles = titlesUnder("Internal");
     const actualGroups = [...new Set(internalTitles.map((title) => title.split("/")[1]))].sort();
 
     expect(actualGroups).toEqual([...internalGroups].sort());
     expect(internalTitles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(internalTitles).toContain("Internal/Review/ArticleReadingRhythm");
   });
 });
