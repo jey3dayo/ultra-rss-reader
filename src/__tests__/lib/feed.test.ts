@@ -1,8 +1,19 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { extractSiteHost, resolveSiteHostLabel } from "@/lib/feed";
+import { extractSiteHost, resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
 
 describe("extractSiteHost", () => {
+  it("resolves website href from site_url before feed url", () => {
+    expect(resolveFeedWebsiteHref("https://site.example.com", "https://feed.example.com/rss")).toBe(
+      "https://site.example.com",
+    );
+  });
+
+  it("falls back to feed url when website href is missing", () => {
+    expect(resolveFeedWebsiteHref("", "https://feed.example.com/rss")).toBe("https://feed.example.com/rss");
+    expect(resolveFeedWebsiteHref("", "")).toBeNull();
+  });
+
   it("extracts hostname from a valid site_url", () => {
     const result = extractSiteHost("https://example.com/path", "https://fallback.com/feed.xml");
     expect(Result.unwrap(result)).toBe("example.com");
