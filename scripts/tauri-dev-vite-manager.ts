@@ -1,5 +1,3 @@
-// @ts-check
-
 import { execFile, spawn } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -11,11 +9,19 @@ const DEFAULT_DEV_HOST = "127.0.0.1";
 const PORT_WAIT_TIMEOUT_MS = 10_000;
 const PORT_WAIT_INTERVAL_MS = 250;
 
-/**
- * @param {string} commandLine
- * @returns {"vite" | "foreign" | "unknown"}
- */
-export function classifyPortOwnerCommandLine(commandLine) {
+type PortOwnerKind = "vite" | "foreign" | "unknown";
+
+type SpawnSpec = {
+  command: string;
+  args: string[];
+};
+
+type ListeningProcess = {
+  pid: number;
+  commandLine: string;
+};
+
+export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind {
   const normalized = commandLine.trim().toLowerCase();
   if (!normalized) {
     return "unknown";
@@ -32,11 +38,7 @@ export function classifyPortOwnerCommandLine(commandLine) {
   return "foreign";
 }
 
-/**
- * @param {string} [scriptUrl]
- * @returns {{ command: string; args: string[] }}
- */
-export function buildViteSpawnSpec(scriptUrl = import.meta.url) {
+export function buildViteSpawnSpec(scriptUrl: string = import.meta.url): SpawnSpec {
   return {
     command: process.execPath,
     args: [
@@ -50,36 +52,42 @@ export function buildViteSpawnSpec(scriptUrl = import.meta.url) {
   };
 }
 
-/**
- * @param {string} command
- * @param {string[]} args
- * @param {number[]} [allowedExitCodes]
- * @returns {Promise<string>}
- */
-async function capture(command, args, allowedExitCodes = [0]) {
+function getExecErrorCode(error: unknown): number | string {
+  return typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (typeof error.code === "number" || typeof error.code === "string")
+    ? error.code
+    : -1;
+}
+
+function getExecErrorExitCode(error: unknown): number {
+  return typeof error === "object" && error !== null && "code" in error && typeof error.code === "number"
+    ? error.code
+    : -1;
+}
+
+function getExecErrorStdout(error: unknown): string {
+  return typeof error === "object" && error !== null && "stdout" in error && typeof error.stdout === "string"
+    ? error.stdout
+    : "";
+}
+
+async function capture(command: string, args: string[], allowedExitCodes: number[] = [0]): Promise<string> {
   try {
     const { stdout } = await execFileAsync(command, args, { encoding: "utf8" });
     return stdout.trim();
-  } catch (error) {
-    const exitCode =
-      typeof error === "object" && error !== null && "code" in error && typeof error.code === "number" ? error.code : -1;
+  } catch (error: unknown) {
+    const exitCode = getExecErrorExitCode(error);
     if (allowedExitCodes.includes(exitCode)) {
-      const stdout =
-        typeof error === "object" && error !== null && "stdout" in error && typeof error.stdout === "string"
-          ? error.stdout
-          : "";
-      return stdout.trim();
+      return getExecErrorStdout(error).trim();
     }
 
     throw error;
   }
 }
 
-/**
- * @param {number} port
- * @returns {Promise<{ pid: number; commandLine: string } | null>}
- */
-async function getListeningProcess(port) {
+async function getListeningProcess(port: number): Promise<ListeningProcess | null> {
   if (process.platform === "win32") {
     return getListeningProcessOnWindows(port);
   }
@@ -87,18 +95,12 @@ async function getListeningProcess(port) {
   return getListeningProcessOnUnix(port);
 }
 
-/**
- * @param {number} port
- * @returns {Promise<{ pid: number; commandLine: string } | null>}
- */
-async function getListeningProcessOnUnix(port) {
+async function getListeningProcessOnUnix(port: number): Promise<ListeningProcess | null> {
   let pidText = "";
   try {
     pidText = await capture("lsof", ["-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], [0, 1]);
-  } catch (error) {
-    const commandMissing =
-      typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
-    if (!commandMissing) {
+  } catch (error: unknown) {
+    if (getExecErrorCode(error) !== "ENOENT") {
       throw error;
     }
   }
@@ -116,11 +118,7 @@ async function getListeningProcessOnUnix(port) {
   return { pid, commandLine };
 }
 
-/**
- * @param {number} port
- * @returns {Promise<{ pid: number; commandLine: string } | null>}
- */
-async function getListeningProcessFromSs(port) {
+async function getListeningProcessFromSs(port: number): Promise<ListeningProcess | null> {
   const output = await capture("ss", ["-ltnp", `sport = :${port}`], [0, 1]);
   const pidMatch = output.match(/pid=(\d+)/);
 
@@ -133,11 +131,7 @@ async function getListeningProcessFromSs(port) {
   return { pid, commandLine };
 }
 
-/**
- * @param {number} port
- * @returns {Promise<{ pid: number; commandLine: string } | null>}
- */
-async function getListeningProcessOnWindows(port) {
+async function getListeningProcessOnWindows(port: number): Promise<ListeningProcess | null> {
   const pidText = await capture(
     "powershell.exe",
     [
@@ -166,11 +160,7 @@ async function getListeningProcessOnWindows(port) {
   return { pid, commandLine };
 }
 
-/**
- * @param {number} port
- * @returns {Promise<void>}
- */
-async function waitForPortToBeFree(port) {
+async function waitForPortToBeFree(port: number): Promise<void> {
   const deadline = Date.now() + PORT_WAIT_TIMEOUT_MS;
 
   while (Date.now() < deadline) {
@@ -185,23 +175,15 @@ async function waitForPortToBeFree(port) {
   throw new Error(`Timed out waiting for port ${port} to become available`);
 }
 
-/**
- * @param {number} pid
- * @returns {void}
- */
-function stopProcess(pid) {
+function stopProcess(pid: number): void {
   process.kill(pid, "SIGTERM");
 }
 
-/**
- * @param {string[]} args
- * @returns {boolean}
- */
-function isCheckMode(args) {
+function isCheckMode(args: string[]): boolean {
   return args.includes("--check");
 }
 
-async function main() {
+async function main(): Promise<void> {
   const port = Number(process.env.TAURI_DEV_PORT ?? String(DEFAULT_DEV_PORT));
   const existingProcess = await getListeningProcess(port);
 
@@ -213,7 +195,9 @@ async function main() {
       );
     }
 
-    console.log(`[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`);
+    console.log(
+      `[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`,
+    );
     stopProcess(existingProcess.pid);
     await waitForPortToBeFree(port);
   }
@@ -229,10 +213,7 @@ async function main() {
     env: process.env,
   });
 
-  /**
-   * @param {NodeJS.Signals} signal
-   */
-  const forwardSignal = (signal) => {
+  const forwardSignal = (signal: NodeJS.Signals): void => {
     if (!child.killed) {
       child.kill(signal);
     }
@@ -255,11 +236,10 @@ async function main() {
   });
 }
 
-const isMainModule =
-  typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  main().catch((error) => {
+  main().catch((error: unknown) => {
     console.error("[tauri-dev-vite-manager]", error instanceof Error ? error.message : error);
     process.exit(1);
   });

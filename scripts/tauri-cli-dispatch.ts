@@ -1,7 +1,5 @@
-// @ts-check
-
-import { execFile, spawn } from "node:child_process";
 import { Buffer } from "node:buffer";
+import { execFile, spawn } from "node:child_process";
 import { readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -12,15 +10,21 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const FORWARDED_ENV_PREFIXES = ["DEV_", "VITE_", "TAURI_", "RUST_"];
 
-/**
- * @typedef {{ command: string; args: string[] }} SpawnSpec
- */
+type SpawnSpec = {
+  command: string;
+  args: string[];
+};
 
-/**
- * @param {{ platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv; osRelease?: string }} [options]
- * @returns {boolean}
- */
-export function isWslEnvironment(options = {}) {
+type WslEnvironmentOptions = {
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+  osRelease?: string;
+};
+
+type ReadFileImpl = (targetPath: string, encoding: "utf8") => Promise<string>;
+type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
+
+export function isWslEnvironment(options: WslEnvironmentOptions = {}): boolean {
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const osRelease = options.osRelease ?? os.release();
@@ -28,36 +32,23 @@ export function isWslEnvironment(options = {}) {
   return platform === "linux" && (Boolean(env.WSL_INTEROP) || /microsoft/i.test(osRelease));
 }
 
-/**
- * @param {NodeJS.ProcessEnv} [env]
- * @returns {Record<string, string>}
- */
-export function pickWindowsEnvOverrides(env = process.env) {
-  return Object.entries(env).reduce(
-    (overrides, [key, value]) => {
-      if (typeof value === "string" && FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
-        overrides[key] = value;
-      }
-      return overrides;
-    },
-    /** @type {Record<string, string>} */ ({}),
-  );
+export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const overrides: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value === "string" && FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      overrides[key] = value;
+    }
+  }
+
+  return overrides;
 }
 
-/**
- * @param {string} value
- * @returns {string}
- */
-function quotePowerShellLiteral(value) {
+function quotePowerShellLiteral(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-/**
- * @param {string[]} cliArgs
- * @param {string} [scriptUrl]
- * @returns {SpawnSpec}
- */
-export function buildLocalTauriSpawnSpec(cliArgs, scriptUrl = import.meta.url) {
+export function buildLocalTauriSpawnSpec(cliArgs: string[], scriptUrl: string = import.meta.url): SpawnSpec {
   void scriptUrl;
 
   return {
@@ -74,33 +65,24 @@ const STALE_MACOS_DEV_BUNDLE_PATHS = [
   path.join("src-tauri", "target", "release", "bundle", "macos", "Ultra RSS Reader.app"),
 ];
 
-/**
- * @param {string} value
- * @returns {string}
- */
-function normalizePathForComparison(value) {
+function normalizePathForComparison(value: string): string {
   return value.replaceAll("\\", "/");
 }
 
-/**
- * @param {string[]} cliArgs
- * @returns {boolean}
- */
-export function shouldCleanStaleMacosDevBundle(cliArgs) {
-  return cliArgs[0] === "dev"
-    && cliArgs.some((arg) => normalizePathForComparison(arg) === normalizePathForComparison(DEV_CONFIG_PATH));
+export function shouldCleanStaleMacosDevBundle(cliArgs: string[]): boolean {
+  return (
+    cliArgs[0] === "dev" &&
+    cliArgs.some((arg) => normalizePathForComparison(arg) === normalizePathForComparison(DEV_CONFIG_PATH))
+  );
 }
 
-/**
- * @param {{ cwd?: string; platform?: NodeJS.Platform; readFileImpl?: (path: string, encoding: "utf8") => Promise<string>; rmImpl?: typeof rm }} [options]
- * @returns {Promise<boolean>}
- */
-export async function removeStaleMacosDevBundle(options = {}) {
+export async function removeStaleMacosDevBundle(
+  options: { cwd?: string; platform?: NodeJS.Platform; readFileImpl?: ReadFileImpl; rmImpl?: RmImpl } = {},
+): Promise<boolean> {
   const cwd = options.cwd ?? process.cwd();
   const platform = options.platform ?? process.platform;
-  const readFileImpl =
-    /** @type {(path: string, encoding: "utf8") => Promise<string>} */ (options.readFileImpl ?? readFile);
-  const rmImpl = options.rmImpl ?? rm;
+  const readFileImpl = options.readFileImpl ?? ((targetPath, encoding) => readFile(targetPath, encoding));
+  const rmImpl = options.rmImpl ?? ((targetPath, rmOptions) => rm(targetPath, rmOptions));
 
   if (platform !== "darwin") {
     return false;
@@ -118,8 +100,8 @@ export async function removeStaleMacosDevBundle(options = {}) {
     }
 
     if (
-      !infoPlist.includes("<key>CFBundleIdentifier</key>")
-      || !infoPlist.includes("<string>com.ultra-rss-reader.dev</string>")
+      !infoPlist.includes("<key>CFBundleIdentifier</key>") ||
+      !infoPlist.includes("<string>com.ultra-rss-reader.dev</string>")
     ) {
       continue;
     }
@@ -131,13 +113,11 @@ export async function removeStaleMacosDevBundle(options = {}) {
   return removedAny;
 }
 
-/**
- * @param {string[]} cliArgs
- * @param {string} windowsCwd
- * @param {Record<string, string>} [envOverrides]
- * @returns {string}
- */
-function buildPowerShellScript(cliArgs, windowsCwd, envOverrides = {}) {
+function buildPowerShellScript(
+  cliArgs: string[],
+  windowsCwd: string,
+  envOverrides: Record<string, string> = {},
+): string {
   const envAssignments = Object.entries(envOverrides).map(
     ([key, value]) => `$env:${key} = ${quotePowerShellLiteral(value)}`,
   );
@@ -157,13 +137,11 @@ function buildPowerShellScript(cliArgs, windowsCwd, envOverrides = {}) {
   ].join("; ");
 }
 
-/**
- * @param {string[]} cliArgs
- * @param {string} windowsCwd
- * @param {Record<string, string>} [envOverrides]
- * @returns {SpawnSpec}
- */
-export function buildWslTauriSpawnSpec(cliArgs, windowsCwd, envOverrides = {}) {
+export function buildWslTauriSpawnSpec(
+  cliArgs: string[],
+  windowsCwd: string,
+  envOverrides: Record<string, string> = {},
+): SpawnSpec {
   const powerShellScript = buildPowerShellScript(cliArgs, windowsCwd, envOverrides);
   const encodedCommand = Buffer.from(powerShellScript, "utf16le").toString("base64");
   return {
@@ -175,36 +153,24 @@ export function buildWslTauriSpawnSpec(cliArgs, windowsCwd, envOverrides = {}) {
   };
 }
 
-/**
- * @param {string} currentDirectory
- * @returns {Promise<string>}
- */
-async function convertWslPathToWindows(currentDirectory) {
+async function convertWslPathToWindows(currentDirectory: string): Promise<string> {
   const { stdout } = await execFileAsync("wslpath", ["-w", currentDirectory], { encoding: "utf8" });
   return stdout.trim();
 }
 
-/**
- * @returns {Promise<boolean>}
- */
-async function canUseWindowsInterop() {
+async function canUseWindowsInterop(): Promise<boolean> {
   try {
-    await execFileAsync(
-      "sh",
-      ["-lc", "powershell.exe -NoProfile -Command \"exit 0\""],
-      { timeout: 5_000, encoding: "utf8" },
-    );
+    await execFileAsync("sh", ["-lc", 'powershell.exe -NoProfile -Command "exit 0"'], {
+      timeout: 5_000,
+      encoding: "utf8",
+    });
     return true;
   } catch {
     return false;
   }
 }
 
-/**
- * @param {string[]} cliArgs
- * @returns {Promise<SpawnSpec>}
- */
-async function resolveSpawnSpec(cliArgs) {
+async function resolveSpawnSpec(cliArgs: string[]): Promise<SpawnSpec> {
   if (!isWslEnvironment()) {
     return buildLocalTauriSpawnSpec(cliArgs);
   }
@@ -217,7 +183,7 @@ async function resolveSpawnSpec(cliArgs) {
   return buildWslTauriSpawnSpec(cliArgs, windowsCwd, pickWindowsEnvOverrides(process.env));
 }
 
-async function main() {
+async function main(): Promise<void> {
   const cliArgs = process.argv.slice(2);
   if (shouldCleanStaleMacosDevBundle(cliArgs)) {
     await removeStaleMacosDevBundle();
@@ -228,10 +194,7 @@ async function main() {
     env: process.env,
   });
 
-  /**
-   * @param {NodeJS.Signals} signal
-   */
-  const forwardSignal = (signal) => {
+  const forwardSignal = (signal: NodeJS.Signals): void => {
     if (!child.killed) {
       child.kill(signal);
     }
@@ -255,11 +218,10 @@ async function main() {
   });
 }
 
-const isMainModule =
-  typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  main().catch((error) => {
+  main().catch((error: unknown) => {
     console.error("[tauri-cli-dispatch]", error instanceof Error ? error.message : error);
     process.exit(1);
   });

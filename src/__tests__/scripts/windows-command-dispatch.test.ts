@@ -4,7 +4,7 @@ import {
   buildWslWindowsCommandSpawnSpec,
   isWslEnvironment,
   pickWindowsEnvOverrides,
-} from "../../../scripts/windows-command-dispatch.mjs";
+} from "../../../scripts/windows-command-dispatch.ts";
 
 describe("windows-command-dispatch isWslEnvironment", () => {
   it("detects WSL via WSL_INTEROP", () => {

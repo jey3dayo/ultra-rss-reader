@@ -59,17 +59,17 @@ depends = [
 [tasks."format:biome:check"]
 description = "Biome format + lint check (no writes)"
 run = "rtk err biome check --formatter-enabled=true --linter-enabled=true ."
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec biome check --formatter-enabled=true --linter-enabled=true ."
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec biome check --formatter-enabled=true --linter-enabled=true ."
 
 [tasks."format:rust:check"]
 description = "Rust format check (no writes)"
 run = "rtk err cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
-run_windows = "node ./scripts/windows-command-dispatch.mjs cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
+run_windows = "node ./scripts/windows-command-dispatch.ts cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
 
 [tasks."format:toml:check"]
 description = "TOML format check (no writes)"
 run = "rtk err taplo fmt --check mise.toml src-tauri/Cargo.toml"
-run_windows = "node ./scripts/windows-command-dispatch.mjs taplo fmt --check mise.toml src-tauri/Cargo.toml"
+run_windows = "node ./scripts/windows-command-dispatch.ts taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 # ========================================
 # リント
@@ -89,22 +89,22 @@ depends = [
 [tasks."lint:types"]
 description = "TypeScript type check"
 run = "rtk pnpm exec tsc --noEmit"
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec tsc --noEmit"
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec tsc --noEmit"
 
 [tasks."lint:biome"]
 description = "Biome lint check"
 run = "rtk pnpm run lint"
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec biome lint ."
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec biome lint ."
 
 [tasks."lint:clippy"]
 description = "Rust clippy"
 run = "rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
-run_windows = "node ./scripts/windows-command-dispatch.mjs cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+run_windows = "node ./scripts/windows-command-dispatch.ts cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
 run = "pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
 
 [tasks."lint:yaml"]
 description = "YAML lint check"
@@ -125,17 +125,17 @@ depends = ["test:rust", "test:unit"]
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
-run_windows = "node ./scripts/windows-command-dispatch.mjs cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
+run_windows = "node ./scripts/windows-command-dispatch.ts cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
 run = "rtk test pnpm run test"
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec vitest run"
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec vitest run"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
 run = "rtk test pnpm exec playwright test"
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec playwright test"
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec playwright test"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
@@ -152,7 +152,7 @@ run = "dotenvx run -- rtk test cargo test --manifest-path src-tauri/Cargo.toml f
 [tasks.build]
 description = "Build frontend"
 run = ["pnpm build"]
-run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm build"
+run_windows = "node ./scripts/windows-command-dispatch.ts pnpm build"
 
 # ========================================
 # アプリ（Tauri）
@@ -161,26 +161,26 @@ run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm build"
 [tasks."app:dev"]
 description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
-run = "node ./scripts/tauri-cli-dispatch.mjs dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:native-keyring"]
 description = "Run native app in dev mode with the OS keyring backend"
-run = "node ./scripts/tauri-cli-dispatch.mjs dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:subscriptions-index"]
 description = "Run native app in dev mode and jump into the subscriptions index workspace"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-subscriptions-index" }
-run = "node ./scripts/tauri-cli-dispatch.mjs dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:web-preview"]
 description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
-run = "node ./scripts/tauri-cli-dispatch.mjs dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:feed-cleanup"]
 description = "Run native app in dev mode and jump into the feed cleanup page"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-feed-cleanup" }
-run = "node ./scripts/tauri-cli-dispatch.mjs dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:seed-from-prod"]
 description = "Seed the Dev app database from the packaged app data database"
@@ -209,8 +209,8 @@ run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
-run = "node ./scripts/tauri-cli-dispatch.mjs build"
-run_windows = "node ./scripts/tauri-cli-dispatch.mjs build"
+run = "node ./scripts/tauri-cli-dispatch.ts build"
+run_windows = "node ./scripts/tauri-cli-dispatch.ts build"
 
 [tasks."app:install"]
 description = "Build and install the native app for the current platform"
@@ -249,8 +249,8 @@ exit 1
 
 [tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"
-run = "node ./scripts/tauri-cli-dispatch.mjs build --debug"
-run_windows = "node ./scripts/tauri-cli-dispatch.mjs build --debug"
+run = "node ./scripts/tauri-cli-dispatch.ts build --debug"
+run_windows = "node ./scripts/tauri-cli-dispatch.ts build --debug"
 
 [tasks."app:icon"]
 description = "Generate app icons from source image"

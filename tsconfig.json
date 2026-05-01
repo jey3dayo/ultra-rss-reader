@@ -21,7 +21,8 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "erasableSyntaxOnly": true
   },
-  "include": ["src", "tests", "e2e", ".storybook"]
+  "include": ["src", "tests", "e2e", ".storybook", "scripts"]
 }

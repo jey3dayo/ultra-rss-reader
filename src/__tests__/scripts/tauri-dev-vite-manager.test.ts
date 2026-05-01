@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildViteSpawnSpec, classifyPortOwnerCommandLine } from "../../../scripts/tauri-dev-vite-manager.mjs";
+import { buildViteSpawnSpec, classifyPortOwnerCommandLine } from "../../../scripts/tauri-dev-vite-manager.ts";
 
 describe("classifyPortOwnerCommandLine", () => {
   it("treats pnpm exec vite as restartable", () => {
@@ -29,7 +29,7 @@ describe("classifyPortOwnerCommandLine", () => {
 
 describe("buildViteSpawnSpec", () => {
   it("spawns the local Vite cli through the current Node executable", () => {
-    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.mjs");
+    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts");
 
     expect(spawnSpec.command).toBe(process.execPath);
     expect(spawnSpec.args).toHaveLength(6);

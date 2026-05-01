@@ -1,7 +1,5 @@
-// @ts-check
-
-import { execFile, spawn } from "node:child_process";
 import { Buffer } from "node:buffer";
+import { execFile, spawn } from "node:child_process";
 import os from "node:os";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -10,15 +8,18 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const FORWARDED_ENV_PREFIXES = ["DEV_", "VITE_", "TAURI_", "RUST_"];
 
-/**
- * @typedef {{ command: string; args: string[] }} SpawnSpec
- */
+type SpawnSpec = {
+  command: string;
+  args: string[];
+};
 
-/**
- * @param {{ platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv; osRelease?: string }} [options]
- * @returns {boolean}
- */
-export function isWslEnvironment(options = {}) {
+type WslEnvironmentOptions = {
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+  osRelease?: string;
+};
+
+export function isWslEnvironment(options: WslEnvironmentOptions = {}): boolean {
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const osRelease = options.osRelease ?? os.release();
@@ -26,47 +27,32 @@ export function isWslEnvironment(options = {}) {
   return platform === "linux" && (Boolean(env.WSL_INTEROP) || /microsoft/i.test(osRelease));
 }
 
-/**
- * @param {NodeJS.ProcessEnv} [env]
- * @returns {Record<string, string>}
- */
-export function pickWindowsEnvOverrides(env = process.env) {
-  return Object.entries(env).reduce(
-    (overrides, [key, value]) => {
-      if (typeof value === "string" && FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
-        overrides[key] = value;
-      }
-      return overrides;
-    },
-    /** @type {Record<string, string>} */ ({}),
-  );
+export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const overrides: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value === "string" && FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      overrides[key] = value;
+    }
+  }
+
+  return overrides;
 }
 
-/**
- * @param {string} value
- * @returns {string}
- */
-function quotePowerShellLiteral(value) {
+function quotePowerShellLiteral(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-/**
- * @param {string} command
- * @param {string[]} args
- * @returns {SpawnSpec}
- */
-export function buildLocalCommandSpawnSpec(command, args) {
+export function buildLocalCommandSpawnSpec(command: string, args: string[]): SpawnSpec {
   return { command, args };
 }
 
-/**
- * @param {string} command
- * @param {string[]} args
- * @param {string} windowsCwd
- * @param {Record<string, string>} [envOverrides]
- * @returns {string}
- */
-function buildPowerShellScript(command, args, windowsCwd, envOverrides = {}) {
+function buildPowerShellScript(
+  command: string,
+  args: string[],
+  windowsCwd: string,
+  envOverrides: Record<string, string> = {},
+): string {
   const envAssignments = Object.entries(envOverrides).map(
     ([key, value]) => `$env:${key} = ${quotePowerShellLiteral(value)}`,
   );
@@ -87,14 +73,12 @@ function buildPowerShellScript(command, args, windowsCwd, envOverrides = {}) {
   ].join("; ");
 }
 
-/**
- * @param {string} command
- * @param {string[]} args
- * @param {string} windowsCwd
- * @param {Record<string, string>} [envOverrides]
- * @returns {SpawnSpec}
- */
-export function buildWslWindowsCommandSpawnSpec(command, args, windowsCwd, envOverrides = {}) {
+export function buildWslWindowsCommandSpawnSpec(
+  command: string,
+  args: string[],
+  windowsCwd: string,
+  envOverrides: Record<string, string> = {},
+): SpawnSpec {
   const powerShellScript = buildPowerShellScript(command, args, windowsCwd, envOverrides);
   const encodedCommand = Buffer.from(powerShellScript, "utf16le").toString("base64");
   return {
@@ -106,19 +90,12 @@ export function buildWslWindowsCommandSpawnSpec(command, args, windowsCwd, envOv
   };
 }
 
-/**
- * @param {string} currentDirectory
- * @returns {Promise<string>}
- */
-async function convertWslPathToWindows(currentDirectory) {
+async function convertWslPathToWindows(currentDirectory: string): Promise<string> {
   const { stdout } = await execFileAsync("wslpath", ["-w", currentDirectory], { encoding: "utf8" });
   return stdout.trim();
 }
 
-/**
- * @returns {Promise<boolean>}
- */
-async function canUseWindowsInterop() {
+async function canUseWindowsInterop(): Promise<boolean> {
   try {
     await execFileAsync("sh", ["-lc", 'powershell.exe -NoProfile -Command "exit 0"'], {
       timeout: 5_000,
@@ -130,12 +107,7 @@ async function canUseWindowsInterop() {
   }
 }
 
-/**
- * @param {string} command
- * @param {string[]} args
- * @returns {Promise<SpawnSpec>}
- */
-async function resolveSpawnSpec(command, args) {
+async function resolveSpawnSpec(command: string, args: string[]): Promise<SpawnSpec> {
   if (!isWslEnvironment()) {
     return buildLocalCommandSpawnSpec(command, args);
   }
@@ -148,7 +120,7 @@ async function resolveSpawnSpec(command, args) {
   return buildWslWindowsCommandSpawnSpec(command, args, windowsCwd, pickWindowsEnvOverrides(process.env));
 }
 
-async function main() {
+async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (!command) {
     console.error("[windows-command-dispatch] missing command");
@@ -161,10 +133,7 @@ async function main() {
     env: process.env,
   });
 
-  /**
-   * @param {NodeJS.Signals} signal
-   */
-  const forwardSignal = (signal) => {
+  const forwardSignal = (signal: NodeJS.Signals): void => {
     if (!child.killed) {
       child.kill(signal);
     }
@@ -188,11 +157,10 @@ async function main() {
   });
 }
 
-const isMainModule =
-  typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  main().catch((error) => {
+  main().catch((error: unknown) => {
     console.error("[windows-command-dispatch]", error instanceof Error ? error.message : error);
     process.exit(1);
   });

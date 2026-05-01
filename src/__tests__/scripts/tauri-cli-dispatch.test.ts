@@ -6,7 +6,7 @@ import {
   pickWindowsEnvOverrides,
   removeStaleMacosDevBundle,
   shouldCleanStaleMacosDevBundle,
-} from "../../../scripts/tauri-cli-dispatch.mjs";
+} from "../../../scripts/tauri-cli-dispatch.ts";
 
 function normalizePathSeparators(value: string) {
   return value.replaceAll("\\", "/");
@@ -56,7 +56,7 @@ describe("buildLocalTauriSpawnSpec", () => {
   it("spawns the local Tauri CLI through pnpm", () => {
     const spawnSpec = buildLocalTauriSpawnSpec(
       ["dev", "-c", "src-tauri/tauri.dev.conf.json"],
-      "file:///C:/repo/scripts/tauri-cli-dispatch.mjs",
+      "file:///C:/repo/scripts/tauri-cli-dispatch.ts",
     );
 
     expect(spawnSpec.command).toBe("pnpm");
