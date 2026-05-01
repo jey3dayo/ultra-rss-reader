@@ -155,6 +155,15 @@ async function navigateBrowserBackOrClose(): Promise<void> {
 
   Result.pipe(
     await goBackBrowserWebview(),
+    Result.inspect((state) => {
+      store.setBrowserNavigationState({
+        canGoBack: state.can_go_back,
+        canGoForward: state.can_go_forward,
+      });
+      if (!state.can_go_back) {
+        executeAction("close-browser");
+      }
+    }),
     Result.inspectError((error) => {
       console.error("Menu webview back failed:", error);
     }),
@@ -168,6 +177,12 @@ async function navigateBrowserForward(): Promise<void> {
 
   Result.pipe(
     await goForwardBrowserWebview(),
+    Result.inspect((state) => {
+      useUiStore.getState().setBrowserNavigationState({
+        canGoBack: state.can_go_back,
+        canGoForward: state.can_go_forward,
+      });
+    }),
     Result.inspectError((error) => {
       console.error("Menu webview forward failed:", error);
     }),

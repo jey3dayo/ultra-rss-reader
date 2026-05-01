@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
@@ -23,7 +24,7 @@ const runManualUpdateCheckMock = vi.fn();
 const restartAppMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
 const showUpdateAvailableToastMock = vi.fn();
-const reloadBrowserWebviewMock = vi.fn(async () =>
+const reloadBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
     can_go_back: false,
@@ -31,7 +32,7 @@ const reloadBrowserWebviewMock = vi.fn(async () =>
     is_loading: false,
   }),
 );
-const goBackBrowserWebviewMock = vi.fn(async () =>
+const goBackBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
     can_go_back: true,
@@ -39,7 +40,7 @@ const goBackBrowserWebviewMock = vi.fn(async () =>
     is_loading: false,
   }),
 );
-const goForwardBrowserWebviewMock = vi.fn(async () =>
+const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
     can_go_back: true,
@@ -447,6 +448,38 @@ describe("executeAction", () => {
       await waitFor(() => {
         expect(goBackBrowserWebviewMock).toHaveBeenCalledTimes(1);
       });
+    });
+
+    it("closes browser mode when native back reports the history edge", async () => {
+      goBackBrowserWebviewMock.mockResolvedValueOnce(
+        Result.succeed({
+          url: "https://example.com/article",
+          can_go_back: false,
+          can_go_forward: true,
+          is_loading: false,
+        } satisfies BrowserWebviewState),
+      );
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+        browserNavigationState: { canGoBack: true, canGoForward: false },
+      });
+      const handler = vi.fn();
+      window.addEventListener(keyboardEvents.closeBrowserOverlay, handler);
+
+      executeAction("mouse-back");
+
+      await waitFor(() => {
+        expect(handler).toHaveBeenCalledTimes(1);
+      });
+      expect(useUiStore.getState().browserNavigationState).toEqual({
+        canGoBack: false,
+        canGoForward: true,
+      });
+
+      window.removeEventListener(keyboardEvents.closeBrowserOverlay, handler);
     });
 
     it("routes mouse-forward to native browser forward when history is available", async () => {

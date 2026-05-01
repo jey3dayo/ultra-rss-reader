@@ -497,6 +497,18 @@ pub fn go_back_browser_webview(
         .map(|url| url.to_string())
         .unwrap_or_else(|_| String::new());
     let next_state = current_or_loading_state(state.inner(), app_handle, fallback_url)?;
+    let next_state = if let Some(availability) = navigation_availability(&browser_webview) {
+        BrowserWebviewState {
+            can_go_back: availability.can_go_back,
+            can_go_forward: availability.can_go_forward,
+            ..next_state
+        }
+    } else {
+        next_state
+    };
+    if !next_state.can_go_back {
+        return Ok(next_state);
+    }
     go_back(&browser_webview)
         .map_err(|error| browser_webview_error(format!("Failed to navigate back: {error}")))?;
     Ok(next_state)
@@ -515,6 +527,18 @@ pub fn go_forward_browser_webview(
         .map(|url| url.to_string())
         .unwrap_or_else(|_| String::new());
     let next_state = current_or_loading_state(state.inner(), app_handle, fallback_url)?;
+    let next_state = if let Some(availability) = navigation_availability(&browser_webview) {
+        BrowserWebviewState {
+            can_go_back: availability.can_go_back,
+            can_go_forward: availability.can_go_forward,
+            ..next_state
+        }
+    } else {
+        next_state
+    };
+    if !next_state.can_go_forward {
+        return Ok(next_state);
+    }
     go_forward(&browser_webview)
         .map_err(|error| browser_webview_error(format!("Failed to navigate forward: {error}")))?;
     Ok(next_state)
