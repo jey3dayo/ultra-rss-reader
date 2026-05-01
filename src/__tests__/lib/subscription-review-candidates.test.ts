@@ -3,6 +3,7 @@ import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
+  buildSubscriptionReviewReasonFacts,
   resolveSubscriptionReviewReasonFactTranslationKey,
   resolveSubscriptionReviewSummaryTranslationKey,
   summarizeSubscriptionReviewCandidate,
@@ -187,6 +188,27 @@ describe("buildSubscriptionReviewCandidates", () => {
       titleKey: "keep",
       summaryKey: "healthy_feed",
     });
+  });
+
+  it("builds reason facts only for active review reasons", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      articles,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([
+      { key: "stale_days", value: 154 },
+      { key: "unread_count", value: 0 },
+    ]);
+    expect(buildSubscriptionReviewReasonFacts(candidates[1])).toEqual([
+      { key: "stale_days", value: 93 },
+      { key: "unread_count", value: 0 },
+      { key: "starred_count", value: 0 },
+    ]);
+    expect(buildSubscriptionReviewReasonFacts(candidates[2])).toEqual([]);
   });
 
   it("resolves review summary and fact translation keys", () => {
