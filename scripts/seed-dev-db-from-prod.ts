@@ -6,6 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { Result } from "@praha/byethrow";
 
 type SeedPlatform = "darwin" | "win32" | "linux" | NodeJS.Platform;
 type ExecFileAsync = (
@@ -44,6 +45,11 @@ const execFileAsync: ExecFileAsync = async (command, args, options) => {
   const { stdout, stderr } = await promisifiedExecFile(command, [...args], options);
   return { stdout: String(stdout), stderr: String(stderr) };
 };
+
+function processDetectionError(error: unknown): Error {
+  const detail = error instanceof Error ? error.message : String(error);
+  return new Error(`Failed to check whether Ultra RSS Reader is running: ${detail}`);
+}
 
 export function resolveAppDataDir(options: {
   platform?: SeedPlatform;
@@ -140,36 +146,51 @@ export function resolveSeedAppDataDirs(
 export async function listLikelyRunningAppProcesses(
   options: { platform?: SeedPlatform; execFileImpl?: ExecFileAsync } = {},
 ): Promise<string[]> {
+  const result = await detectLikelyRunningAppProcesses(options);
+  if (Result.isFailure(result)) {
+    throw Result.unwrapError(result);
+  }
+
+  return Result.unwrap(result);
+}
+
+export async function detectLikelyRunningAppProcesses(
+  options: { platform?: SeedPlatform; execFileImpl?: ExecFileAsync } = {},
+): Promise<Result.Result<string[], Error>> {
   const platform = options.platform ?? process.platform;
   const execFileImpl = options.execFileImpl ?? execFileAsync;
 
   if (platform === "darwin" || platform === "linux") {
     const processNames = ["Ultra RSS Reader", "Ultra RSS Reader Dev", "ultra-rss-reader"];
-    const running = [];
+    const running: string[] = [];
     for (const processName of processNames) {
       try {
         await execFileImpl("pgrep", ["-x", processName], { encoding: "utf8" });
         running.push(processName);
       } catch (error) {
         if (isProcessNotFoundError(error)) {
+          continue;
         }
+        return Result.fail(processDetectionError(error));
       }
     }
-    return running;
+    return Result.succeed(running);
   }
 
   if (platform === "win32") {
     try {
       const { stdout } = await execFileImpl("tasklist", ["/FO", "CSV", "/NH"], { encoding: "utf8" });
-      return stdout
-        .split(/\r?\n/)
-        .filter((line) => /Ultra RSS Reader(?: Dev)?\.exe/i.test(line) || /ultra-rss-reader\.exe/i.test(line));
-    } catch {
-      return [];
+      return Result.succeed(
+        stdout
+          .split(/\r?\n/)
+          .filter((line) => /Ultra RSS Reader(?: Dev)?\.exe/i.test(line) || /ultra-rss-reader\.exe/i.test(line)),
+      );
+    } catch (error) {
+      return Result.fail(processDetectionError(error));
     }
   }
 
-  return [];
+  return Result.succeed([]);
 }
 
 function isProcessNotFoundError(error: unknown): boolean {
@@ -250,10 +271,15 @@ export async function seedDevDatabaseFromProd(
   options: { env?: NodeJS.ProcessEnv; platform?: SeedPlatform; homeDir?: string; execFileImpl?: ExecFileAsync } = {},
 ): Promise<{ copied: string[]; backedUp: string[]; backupDir: string }> {
   const platform = options.platform ?? process.platform;
-  const runningProcesses = await listLikelyRunningAppProcesses({
+  const runningProcessesResult = await detectLikelyRunningAppProcesses({
     platform,
     execFileImpl: options.execFileImpl,
   });
+  if (Result.isFailure(runningProcessesResult)) {
+    throw Result.unwrapError(runningProcessesResult);
+  }
+
+  const runningProcesses = Result.unwrap(runningProcessesResult);
 
   if (runningProcesses.length > 0) {
     throw new Error(

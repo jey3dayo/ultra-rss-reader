@@ -1,12 +1,15 @@
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import {
   buildDatabaseArtifactPaths,
   buildSeedPlan,
+  detectLikelyRunningAppProcesses,
   resolveAppDataDir,
   resolveBackupDirName,
+  seedDevDatabaseFromProd,
   seedDevDatabaseFromProdPlan,
 } from "../../../scripts/seed-dev-db-from-prod.ts";
 
@@ -132,6 +135,49 @@ describe("seedDevDatabaseFromProdPlan", () => {
           },
         ),
       ).rejects.toThrow("backup failed");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("seedDevDatabaseFromProd", () => {
+  it("returns a failure result when Windows process detection fails", async () => {
+    const result = await detectLikelyRunningAppProcesses({
+      platform: "win32",
+      execFileImpl: async () => {
+        throw new Error("tasklist unavailable");
+      },
+    });
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("Failed to check whether Ultra RSS Reader is running");
+  });
+
+  it("does not replace the Dev database when Windows process detection fails", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      await mkdir(prodDir, { recursive: true });
+      await mkdir(devDir, { recursive: true });
+      await writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db");
+      await writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db");
+
+      await expect(
+        seedDevDatabaseFromProd({
+          env: {
+            ULTRA_RSS_PROD_APP_DATA_DIR: prodDir,
+            ULTRA_RSS_DEV_APP_DATA_DIR: devDir,
+          },
+          platform: "win32",
+          execFileImpl: async () => {
+            throw new Error("tasklist unavailable");
+          },
+        }),
+      ).rejects.toThrow("Failed to check whether Ultra RSS Reader is running");
 
       await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
