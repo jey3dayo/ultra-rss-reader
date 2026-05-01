@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-05-01
+
+### Features
+
+- 本番相当データを Dev 環境へ取り込む seed task を追加し、開発時に実データに近い状態を再現しやすくした
+
+### Bug Fixes
+
+- RSS 同期中の全体ローディング表示をやめ、同期ボタンだけが静かに回るようにして短時間同期の体験を軽くした
+- browser TODO UI の検証を安定化し、ブラウザまわりの確認がタイミングに左右されにくいようにした
+
+### Maintenance
+
+- Tauri dev helper と Windows command dispatch を TypeScript 化し、dev 起動・dispatch まわりの見通しを上げた
+- Windows dispatch helper を分離し、関連テストと seed helper の整形を合わせて整理した
+
 ## [0.22.0] - 2026-05-01
 
 ### Features
