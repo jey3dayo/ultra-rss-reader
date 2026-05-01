@@ -13,14 +13,19 @@ import {
   seedDevDatabaseFromProdPlan,
 } from "../../../scripts/seed-dev-db-from-prod.ts";
 
-function normalizePathSeparators(value: string) {
+// Windows CI returns backslashes from node:path; keep path assertions and suffix checks portable.
+function toPortablePath(value: string) {
   return value.replaceAll("\\", "/");
+}
+
+function hasPortablePathSuffix(value: string, suffix: string) {
+  return toPortablePath(value).endsWith(suffix);
 }
 
 describe("resolveAppDataDir", () => {
   it("resolves macOS Tauri app data directories from bundle identifiers", () => {
     expect(
-      normalizePathSeparators(
+      toPortablePath(
         resolveAppDataDir({
           platform: "darwin",
           homeDir: "/Users/alice",
@@ -33,7 +38,7 @@ describe("resolveAppDataDir", () => {
 
   it("resolves Windows Tauri app data directories from APPDATA", () => {
     expect(
-      normalizePathSeparators(
+      toPortablePath(
         resolveAppDataDir({
           platform: "win32",
           homeDir: "C:\\Users\\alice",
@@ -47,7 +52,7 @@ describe("resolveAppDataDir", () => {
 
 describe("buildDatabaseArtifactPaths", () => {
   it("targets the SQLite database plus WAL and SHM artifacts", () => {
-    expect(buildDatabaseArtifactPaths("/app-data").map(normalizePathSeparators)).toEqual([
+    expect(buildDatabaseArtifactPaths("/app-data").map(toPortablePath)).toEqual([
       "/app-data/ultra-rss-reader.db",
       "/app-data/ultra-rss-reader.db-wal",
       "/app-data/ultra-rss-reader.db-shm",
@@ -63,15 +68,15 @@ describe("buildSeedPlan", () => {
       timestamp: "20260501T123456",
     });
 
-    expect(plan.backupDir).toBe("/dev/backups/seed-from-prod-20260501T123456");
-    expect(plan.stagingDir).toBe("/dev/backups/seed-from-prod-20260501T123456.staging");
+    expect(toPortablePath(plan.backupDir)).toBe("/dev/backups/seed-from-prod-20260501T123456");
+    expect(toPortablePath(plan.stagingDir)).toBe("/dev/backups/seed-from-prod-20260501T123456.staging");
     expect(plan.artifacts.map((artifact) => artifact.suffix)).toEqual(["", "-wal", "-shm"]);
-    expect(plan.artifacts.map((artifact) => normalizePathSeparators(artifact.source))).toEqual([
+    expect(plan.artifacts.map((artifact) => toPortablePath(artifact.source))).toEqual([
       "/prod/ultra-rss-reader.db",
       "/prod/ultra-rss-reader.db-wal",
       "/prod/ultra-rss-reader.db-shm",
     ]);
-    expect(plan.artifacts.map((artifact) => normalizePathSeparators(artifact.destination))).toEqual([
+    expect(plan.artifacts.map((artifact) => toPortablePath(artifact.destination))).toEqual([
       "/dev/ultra-rss-reader.db",
       "/dev/ultra-rss-reader.db-wal",
       "/dev/ultra-rss-reader.db-shm",
@@ -127,7 +132,9 @@ describe("seedDevDatabaseFromProdPlan", () => {
           }),
           {
             copyFileImpl: async (source, destination) => {
-              if (String(destination).endsWith("backups/seed-from-prod-20260501T123456/ultra-rss-reader.db")) {
+              if (
+                hasPortablePathSuffix(String(destination), "backups/seed-from-prod-20260501T123456/ultra-rss-reader.db")
+              ) {
                 throw new Error("backup failed");
               }
               await copyFile(source, destination);
