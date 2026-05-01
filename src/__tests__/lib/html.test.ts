@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stripHtmlTags } from "@/lib/html";
+import { normalizeArticleBodyHtml, stripHtmlTags } from "@/lib/html";
 
 describe("stripHtmlTags", () => {
   it("returns empty string for empty input", () => {
@@ -48,5 +48,23 @@ describe("stripHtmlTags", () => {
 
   it("trims leading and trailing whitespace", () => {
     expect(stripHtmlTags("  <p> Hello </p>  ")).toBe("Hello");
+  });
+});
+
+describe("normalizeArticleBodyHtml", () => {
+  it("removes a duplicated leading article label", () => {
+    expect(normalizeArticleBodyHtml("<h1>Article title</h1><p>Body text</p>", "Article title")).toBe(
+      "<p>Body text</p>",
+    );
+  });
+
+  it("keeps leading media nodes even when their text matches the label", () => {
+    const html = '<figure><img src="https://example.com/image.png" alt="">Article title</figure><p>Body text</p>';
+
+    expect(normalizeArticleBodyHtml(html, "Article title")).toBe(html);
+  });
+
+  it("normalizes null body text to an empty string", () => {
+    expect(normalizeArticleBodyHtml("<p> null </p>")).toBe("");
   });
 });
