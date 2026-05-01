@@ -14,10 +14,12 @@ Cut releases in three gated phases. Complete every step inside a phase, stop on 
 - Work only from `main`.
 - Require a clean working tree.
 - Require local `HEAD` to match `origin/main`.
+- If the user explicitly says to push first, treat that as synchronizing the current clean `main`: push only if local `main` is ahead, then fetch and re-check that `HEAD` exactly matches `origin/main` before editing release files.
 - Run `mise run check` before editing release files.
 - Read the current version from `package.json`.
-- If the bump type is not provided, ask the user to choose `patch`, `minor`, or `major`.
-- When asking for a fixed choice or confirmation in the Codex app, prefer the app's button or wizard UI. Fall back to a short numbered list only if needed.
+- If the user already provided a valid bump type (`patch`, `minor`, or `major`), treat it as approved after pre-checks pass. Ask for a bump only when it is absent or invalid.
+- Write release notes and `CHANGELOG.md` entries in concise Japanese by default, grounded in the actual commit history, unless the user explicitly asks for another language.
+- When asking for a fixed choice or confirmation in the Codex app, prefer the app's button or wizard UI if available. If that UI is unavailable, ask a concise plain-text confirmation such as `OK`.
 
 ## Phase 1: Pre-Checks And Version Choice
 
@@ -32,12 +34,25 @@ git status --porcelain
 mise run check
 ```
 
+If the user explicitly asked to push first, run this synchronization check before the `HEAD == origin/main` gate:
+
+```bash
+git branch --show-current
+git status --porcelain
+git fetch origin main
+git rev-list --left-right --count HEAD...origin/main
+```
+
+- Continue immediately when the ahead/behind count is `0 0`.
+- If the count is `<ahead> 0`, push current `main` with `git push origin main`, then fetch and re-check until the count is `0 0`.
+- If the count is `0 <behind>` or both sides are non-zero, stop before editing release files and report that `main` is not synchronized safely.
+
 - Abort if the current branch is not `main`.
 - Abort if `HEAD` does not exactly match `origin/main`.
 - Abort if `git status --porcelain` is not empty.
 - Abort if `mise run check` fails.
 - Capture `current_version` from `package.json`.
-- Ask the user for the bump type only after every pre-check succeeds.
+- Use the already supplied valid bump type only after every pre-check succeeds. Ask the user for the bump type only when it was not supplied or was invalid.
 
 ## Phase 2: Generate Release Changes
 
@@ -56,6 +71,8 @@ Refresh Cargo metadata after the bump:
 ```bash
 cd src-tauri && cargo check
 ```
+
+- Include `src-tauri/Cargo.lock` in the release changes if `cargo check` updates the package version there.
 
 ### Build Release Notes From Commits
 
@@ -81,6 +98,7 @@ Classify commits in this order:
 - Omit empty categories.
 - Keep GitHub Release headings emoji-prefixed.
 - Keep `CHANGELOG.md` headings plain text without emoji.
+- Keep the body text Japanese by default. Summarize user-visible impact rather than mechanically translating commit subjects; do not invent changes that are not present in the commits.
 
 ### Update CHANGELOG And TODO
 
@@ -156,11 +174,16 @@ git push origin main --follow-tags
 
 Then verify that the exact remote tag exists in `git ls-remote --tags origin`. If `refs/tags/v{new_version}` is missing, push the tag explicitly with `git push origin v{new_version}`.
 
+- For annotated tags, `refs/tags/v{new_version}` is the tag object and `refs/tags/v{new_version}^{}` is the peeled release commit. Verify both refs exist when possible, and compare the peeled `^{}` ref to the release commit hash.
+- Use a command shaped like `git ls-remote --tags origin "v{new_version}" "v{new_version}^{}"` so the tag object and peeled commit are visible in one check.
+
 ### Update GitHub Release Notes
 
 - Try `gh release edit v{new_version} --notes "..."` first.
 - If the Release does not exist yet because the workflow is still running, create it with `gh release create v{new_version} --draft --notes "..."`.
 - Treat the CLI as the source of truth for release note body text. The GitHub workflow only builds artifacts and attaches them.
+- After create/edit, verify with `gh release view v{new_version} --json tagName,isDraft,url,body`. Confirm `tagName` is `v{new_version}`, the body matches the intended notes, and the draft state is expected.
+- A draft Release URL containing `untagged-...` is not automatically a failure. Classify it by the structured `gh release view` fields; if `tagName` is `v{new_version}` and `isDraft` is expected, report the URL normally.
 
 ### Final Report
 
@@ -168,8 +191,10 @@ Report:
 
 - the pushed commit hash
 - the pushed tag
+- the remote annotated tag verification, including the peeled `refs/tags/v{new_version}^{}` commit when available
 - the latest `release.yml` workflow URL from `gh run list --workflow=release.yml --limit=1`
-- the GitHub Release URL
+- the GitHub Release URL, `tagName`, and draft status from `gh release view`
+- if the Release URL contains `untagged-...`, explicitly state whether it is acceptable based on `tagName == v{new_version}` and the expected draft status; do not classify it by URL text alone
 - a reminder to review the draft Release and publish it manually when the artifacts look correct
 
 ## Guardrails
