@@ -6,6 +6,8 @@ import {
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
+  resolveArticleSummaryWebsiteHref,
+  resolveArticleSummaryWebsiteLabel,
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/article-view";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
@@ -152,6 +154,41 @@ describe("resolveArticleDateLocale", () => {
   it("falls back unsupported locales to en", () => {
     expect(resolveArticleDateLocale("zh-CN")).toBe("en");
     expect(resolveArticleDateLocale(undefined)).toBe("en");
+  });
+});
+
+describe("article summary website helpers", () => {
+  it("uses the feed site URL before the feed URL", () => {
+    const feed = {
+      ...sampleFeeds[0],
+      site_url: "https://site.example.com/articles",
+      url: "https://feed.example.com/rss",
+    };
+
+    expect(resolveArticleSummaryWebsiteHref(feed)).toBe("https://site.example.com/articles");
+    expect(resolveArticleSummaryWebsiteLabel(feed)).toBe("site.example.com");
+  });
+
+  it("falls back to feed URL labels when site URL is missing", () => {
+    const feed = {
+      ...sampleFeeds[0],
+      site_url: "",
+      url: "https://feed.example.com/rss",
+    };
+
+    expect(resolveArticleSummaryWebsiteHref(feed)).toBe("https://feed.example.com/rss");
+    expect(resolveArticleSummaryWebsiteLabel(feed)).toBe("feed.example.com");
+  });
+
+  it("omits website labels when no feed URL is available", () => {
+    const feed = {
+      ...sampleFeeds[0],
+      site_url: "",
+      url: "",
+    };
+
+    expect(resolveArticleSummaryWebsiteHref(feed)).toBeNull();
+    expect(resolveArticleSummaryWebsiteLabel(feed)).toBeNull();
   });
 });
 
