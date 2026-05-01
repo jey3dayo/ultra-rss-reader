@@ -391,7 +391,11 @@ describe("AppShell", () => {
     expect(await screen.findByText("Geometry")).toBeInTheDocument();
     expect(screen.getByText("viewport")).toBeInTheDocument();
     expect(screen.getByText("1274 x 801")).toBeInTheDocument();
+    expect(screen.getByText("host")).toBeInTheDocument();
+    expect(screen.getAllByText("0,56 1274 x 745").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("native")).toBeInTheDocument();
-    expect(screen.getByText("1547 x 905")).toBeInTheDocument();
+    expect(screen.getByText("0,56 1547 x 905")).toBeInTheDocument();
+    expect(screen.getByText("delta")).toBeInTheDocument();
+    expect(screen.getByText("x0 y0 w273 h160")).toBeInTheDocument();
   });
 });

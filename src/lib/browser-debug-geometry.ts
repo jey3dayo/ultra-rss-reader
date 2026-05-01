@@ -56,6 +56,14 @@ function formatCompactFill(width: number, height: number, totalWidth: number, to
   return `${formatRatio(width, totalWidth)} ${formatRatio(height, totalHeight)}`;
 }
 
+function formatRect(rect: BrowserDebugGeometryRect) {
+  return `${Math.round(rect.x)},${Math.round(rect.y)} ${Math.round(rect.width)} x ${Math.round(rect.height)}`;
+}
+
+function formatRectDelta(from: BrowserDebugGeometryRect, to: BrowserDebugGeometryRect) {
+  return `x${Math.round(to.x - from.x)} y${Math.round(to.y - from.y)} w${Math.round(to.width - from.width)} h${Math.round(to.height - from.height)}`;
+}
+
 export function getBrowserGeometryRows(snapshot: BrowserDebugGeometrySnapshot): BrowserDebugGeometryRow[] {
   const rows: BrowserDebugGeometryRow[] = [];
   const { layoutDiagnostics, nativeDiagnostics } = snapshot;
@@ -63,7 +71,9 @@ export function getBrowserGeometryRows(snapshot: BrowserDebugGeometrySnapshot): 
   if (layoutDiagnostics) {
     rows.push(
       { label: "viewport", value: `${layoutDiagnostics.viewport.width} x ${layoutDiagnostics.viewport.height}` },
-      { label: "host", value: `${layoutDiagnostics.hostLogical.width} x ${layoutDiagnostics.hostLogical.height}` },
+      { label: "overlay", value: formatRect(layoutDiagnostics.overlay) },
+      { label: "stage", value: formatRect(layoutDiagnostics.stage) },
+      { label: "host", value: formatRect(layoutDiagnostics.hostLogical) },
       {
         label: "fill",
         value: formatCompactFill(
@@ -88,7 +98,7 @@ export function getBrowserGeometryRows(snapshot: BrowserDebugGeometrySnapshot): 
     if (nativeDiagnostics.nativeWebviewBounds) {
       rows.push({
         label: "native",
-        value: `${Math.round(nativeDiagnostics.nativeWebviewBounds.width)} x ${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`,
+        value: formatRect(nativeDiagnostics.nativeWebviewBounds),
       });
     }
     if (nativeDiagnostics.nativeWebviewBounds && layoutDiagnostics) {
@@ -100,6 +110,10 @@ export function getBrowserGeometryRows(snapshot: BrowserDebugGeometrySnapshot): 
           layoutDiagnostics.hostLogical.width,
           layoutDiagnostics.hostLogical.height,
         ),
+      });
+      rows.push({
+        label: "delta",
+        value: formatRectDelta(layoutDiagnostics.hostLogical, nativeDiagnostics.nativeWebviewBounds),
       });
     }
   }

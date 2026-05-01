@@ -5,7 +5,7 @@ const layoutDiagnostics = {
   viewport: { width: 1200, height: 800 },
   overlay: { x: 0, y: 0, width: 1000, height: 500 },
   hostLogical: { x: 100, y: 50, width: 500, height: 250 },
-  stage: { x: 0, y: 0, width: 1000, height: 500 },
+  stage: { x: 100, y: 50, width: 500, height: 250 },
   lane: { left: 100, top: 0, right: 600, bottom: 500 },
 };
 
@@ -14,14 +14,16 @@ const nativeDiagnostics = {
   requestedLogical: { x: 100, y: 50, width: 500, height: 250 },
   appliedLogical: { x: 100, y: 50, width: 500, height: 250 },
   scaleFactor: 2,
-  nativeWebviewBounds: { x: 200, y: 100, width: 1000, height: 500 },
+  nativeWebviewBounds: { x: 100, y: 50, width: 500, height: 250 },
 };
 
 describe("browser-debug-geometry", () => {
   it("formats layout diagnostics rows", () => {
     expect(getBrowserGeometryRows({ layoutDiagnostics, nativeDiagnostics: null })).toEqual([
       { label: "viewport", value: "1200 x 800" },
-      { label: "host", value: "500 x 250" },
+      { label: "overlay", value: "0,0 1000 x 500" },
+      { label: "stage", value: "100,50 500 x 250" },
+      { label: "host", value: "100,50 500 x 250" },
       { label: "fill", value: "50.0% 50.0%" },
       { label: "lane", value: "L100 T0 R600 B500" },
     ]);
@@ -30,7 +32,7 @@ describe("browser-debug-geometry", () => {
   it("formats native diagnostics rows", () => {
     expect(getBrowserGeometryRows({ layoutDiagnostics: null, nativeDiagnostics })).toEqual([
       { label: "rust", value: "resize x2.00" },
-      { label: "native", value: "1000 x 500" },
+      { label: "native", value: "100,50 500 x 250" },
     ]);
   });
 
@@ -53,7 +55,11 @@ describe("browser-debug-geometry", () => {
   it("formats match rows when layout and native diagnostics are both available", () => {
     expect(getBrowserGeometryRows({ layoutDiagnostics, nativeDiagnostics })).toContainEqual({
       label: "match",
-      value: "200.0% 200.0%",
+      value: "100.0% 100.0%",
+    });
+    expect(getBrowserGeometryRows({ layoutDiagnostics, nativeDiagnostics })).toContainEqual({
+      label: "delta",
+      value: "x0 y0 w0 h0",
     });
   });
 

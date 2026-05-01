@@ -638,6 +638,44 @@ describe("BrowserView", () => {
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
+  it("keeps native bounds tied to the host rect when diagnostics are visible", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+    usePreferencesStore.setState({
+      prefs: { debug_browser_hud: "true" },
+      loaded: true,
+    });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    expectInlineStyles(screen.getByTestId("browser-overlay-stage-shell"), {
+      left: "0px",
+      top: "48px",
+      right: "0px",
+      bottom: "0px",
+    });
+    expectInlineStyles(screen.getByTestId("browser-webview-host"), {
+      left: "0px",
+      top: "0px",
+      right: "0px",
+      bottom: "0px",
+    });
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
+          url: "https://example.com/article",
+          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+        },
+      });
+    });
+  });
+
   it("keeps the fullscreen surface full bleed at narrow widths", async () => {
     setWindowSize(500, 900);
     mockRootRect({ left: 0, top: 0, width: 500, height: 900 });
