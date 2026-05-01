@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -23,9 +23,24 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const selectFeed = useUiStore((s) => s.selectFeed);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const previousArticleIdRef = useRef(article.id);
   const articleUrl = article.url;
   const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
   const articleContentHtml = article.content_sanitized;
+
+  useLayoutEffect(() => {
+    if (previousArticleIdRef.current === article.id) {
+      return;
+    }
+
+    previousArticleIdRef.current = article.id;
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTop = 0;
+  });
 
   const openArticleTitle = useCallback(
     (url: string, metaKey = false, ctrlKey = false) => {

@@ -2225,6 +2225,39 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(0);
   });
 
+  it("resets the reader viewport scroll position when the article changes", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    const { rerender } = render(
+      <ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    const viewport = getArticleReaderViewport();
+    viewport.scrollTop = 320;
+
+    rerender(
+      <ArticlePane
+        article={{ ...primaryArticle, id: "art-next", title: "Next Article" }}
+        feed={{ ...primaryFeed, reader_mode: "on" }}
+        feedName="Tech Blog"
+      />,
+    );
+
+    await screen.findByRole("heading", { level: 1, name: "Next Article" });
+    expect(viewport.scrollTop).toBe(0);
+  });
+
   it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
