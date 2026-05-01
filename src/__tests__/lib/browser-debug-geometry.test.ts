@@ -34,6 +34,22 @@ describe("browser-debug-geometry", () => {
     ]);
   });
 
+  it("omits native bounds rows when native bounds are unavailable", () => {
+    expect(
+      getBrowserGeometryRows({
+        layoutDiagnostics: null,
+        nativeDiagnostics: {
+          ...nativeDiagnostics,
+          nativeWebviewBounds: null,
+        },
+      }),
+    ).toEqual([{ label: "rust", value: "resize x2.00" }]);
+  });
+
+  it("returns no rows when diagnostics are unavailable", () => {
+    expect(getBrowserGeometryRows({ layoutDiagnostics: null, nativeDiagnostics: null })).toEqual([]);
+  });
+
   it("formats match rows when layout and native diagnostics are both available", () => {
     expect(getBrowserGeometryRows({ layoutDiagnostics, nativeDiagnostics })).toContainEqual({
       label: "match",
