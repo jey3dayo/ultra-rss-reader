@@ -9,6 +9,7 @@ export const MOTION_RESIZE_SURFACE_CLASS_NAME = "motion-resize-surface";
 export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
 export const MOTION_POPUP_OVERLAY_CLASS_NAME = "motion-popup-overlay";
 export const MOTION_POPUP_DIALOG_CLASS_NAME = "motion-popup-dialog";
+export const MOTION_BROWSER_OVERLAY_CLASS_NAME = "motion-browser-overlay-panel";
 export const MOTION_DIGIT_GROUP_CLASS_NAME = "t-digit-group";
 export const MOTION_DIGIT_CLASS_NAME = "t-digit";
 export const MOTION_DIGIT_ANIMATING_CLASS_NAME = "is-animating";
@@ -24,6 +25,7 @@ export type MotionClassName =
   | typeof MOTION_POPUP_SURFACE_CLASS_NAME
   | typeof MOTION_POPUP_OVERLAY_CLASS_NAME
   | typeof MOTION_POPUP_DIALOG_CLASS_NAME
+  | typeof MOTION_BROWSER_OVERLAY_CLASS_NAME
   | typeof MOTION_DIGIT_GROUP_CLASS_NAME
   | typeof MOTION_DIGIT_CLASS_NAME
   | typeof MOTION_DIGIT_ANIMATING_CLASS_NAME;
@@ -55,6 +57,8 @@ export type MotionPhase = typeof MOTION_PHASE_STEADY | typeof MOTION_PHASE_ENTER
 export const MOTION_STATE_OPEN = "open";
 export const MOTION_STATE_CLOSED = "closed";
 export type MotionDisclosureState = typeof MOTION_STATE_OPEN | typeof MOTION_STATE_CLOSED;
+
+export const BROWSER_OVERLAY_CLOSE_DELAY_MS = 350;
 
 export const MOTION_ICON_SWAP_CLASS_NAME = "motion-icon-swap";
 export const MOTION_ICON_SWAP_ICON_CLASS_NAME = "motion-icon-swap-icon";

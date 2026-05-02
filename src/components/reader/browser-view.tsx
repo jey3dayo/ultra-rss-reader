@@ -1,9 +1,20 @@
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { MOTION_BROWSER_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { cn } from "@/lib/utils";
+import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
 import type { BrowserViewProps } from "./browser-view.types";
 import { useBrowserViewController } from "./use-browser-view-controller";
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 function BrowserOverlayShell({
   controller,
@@ -16,11 +27,39 @@ function BrowserOverlayShell({
   labels: BrowserViewProps["labels"];
   toolbarActions?: BrowserViewProps["toolbarActions"];
 }) {
+  const browserCloseInFlight = useUiStore((s) => s.browserCloseInFlight);
+  const [overlayOpen, setOverlayOpen] = useState(() => prefersReducedMotion());
+
+  useEffect(() => {
+    if (browserCloseInFlight) {
+      setOverlayOpen(false);
+      return undefined;
+    }
+
+    if (prefersReducedMotion()) {
+      setOverlayOpen(true);
+      return undefined;
+    }
+
+    setOverlayOpen(false);
+    const frame = window.requestAnimationFrame(() => {
+      setOverlayOpen(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [browserCloseInFlight]);
+
   return (
     <div
       ref={controller.overlayRef}
       data-testid="browser-overlay-shell"
-      className="pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-browser-overlay-shell backdrop-blur-sm"
+      data-open={overlayOpen ? "true" : "false"}
+      className={cn(
+        MOTION_BROWSER_OVERLAY_CLASS_NAME,
+        "pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-browser-overlay-shell backdrop-blur-sm",
+      )}
     >
       <div
         aria-hidden="true"

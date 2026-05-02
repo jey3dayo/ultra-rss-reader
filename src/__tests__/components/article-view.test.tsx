@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
+import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -854,8 +855,8 @@ describe("ArticleView", () => {
         case "set_browser_webview_bounds":
           return null;
         case "close_browser_webview":
-          return new Promise<void>((resolve) => {
-            resolveClose = resolve;
+          return new Promise<null>((resolve) => {
+            resolveClose = () => resolve(null);
           });
         default:
           return undefined;
@@ -875,17 +876,26 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
+    vi.useFakeTimers();
+    try {
+      window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
 
-    expect(useUiStore.getState().contentMode).toBe("browser");
-    expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
 
-    resolveClose?.();
+      resolveClose?.();
 
-    await waitFor(() => {
+      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS - 1);
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+
+      await vi.advanceTimersByTimeAsync(1);
+
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
-    });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("opens the external browser from the article title when open_links is default_browser", async () => {

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
+import { MOTION_BROWSER_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -147,6 +148,23 @@ function setWindowSize(width: number, height: number) {
   });
 }
 
+function setReducedMotionPreference(matches: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)" ? matches : false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
 type BrowserViewHarnessProps = {
   scope?: "content-pane" | "main-stage";
   onCloseOverlay?: () => void;
@@ -199,6 +217,7 @@ describe("BrowserView", () => {
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     usePlatformStore.setState(usePlatformStore.getInitialState());
+    setReducedMotionPreference(false);
     setupTauriMocks((cmd, args) => {
       commands.push({ cmd, args });
       if (cmd === "create_or_update_browser_webview") {
@@ -221,6 +240,7 @@ describe("BrowserView", () => {
 
   afterEach(() => {
     getBoundingClientRectSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it("creates the embedded browser webview with fullscreen bounds on first create", async () => {
@@ -354,7 +374,10 @@ describe("BrowserView", () => {
     const veil = screen.getByTestId("browser-overlay-veil");
 
     expect(shell).toBeInTheDocument();
-    expect(shell).toHaveClass("bg-browser-overlay-shell", "backdrop-blur-sm");
+    expect(shell).toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME, "bg-browser-overlay-shell", "backdrop-blur-sm");
+    await waitFor(() => {
+      expect(shell).toHaveAttribute("data-open", "true");
+    });
     expect(veil).toHaveStyle({ backgroundImage: "var(--browser-overlay-shell-veil)" });
     expect(screen.getByTestId("browser-overlay-stage-shell")).toBeInTheDocument();
     expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
@@ -385,6 +408,29 @@ describe("BrowserView", () => {
     expect(externalSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
+  });
+
+  it("creates the embedded browser webview without motion delay when reduced motion is preferred", async () => {
+    setReducedMotionPreference(true);
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
+          url: "https://example.com/article",
+          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+        },
+      });
+    });
   });
 
   it("wraps custom toolbar actions in the shared action shell", () => {

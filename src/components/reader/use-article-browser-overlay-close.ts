@@ -1,10 +1,29 @@
 import { Result } from "@praha/byethrow";
 import { useCallback } from "react";
 import { closeBrowserWebview } from "@/api/tauri-commands";
+import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleBrowserOverlayCloseParams } from "./article-view.types";
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function waitForBrowserOverlayCloseMotion() {
+  if (prefersReducedMotion()) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, BROWSER_OVERLAY_CLOSE_DELAY_MS);
+  });
+}
 
 export function useArticleBrowserOverlayClose({
   closeBrowser,
@@ -42,7 +61,7 @@ export function useArticleBrowserOverlayClose({
       )
       .finally(() => {
         emitDebugInputTrace("close-browser finalize");
-        finalizeCloseBrowserOverlay();
+        void waitForBrowserOverlayCloseMotion().then(finalizeCloseBrowserOverlay);
       });
   }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
 }
