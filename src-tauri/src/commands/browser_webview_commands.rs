@@ -286,6 +286,17 @@ fn tracker_finish(
     Ok(next_state)
 }
 
+fn tracker_navigation_availability(
+    uses_placeholder_url: bool,
+    availability: Option<BrowserNavigationAvailability>,
+) -> Option<BrowserNavigationAvailability> {
+    if uses_placeholder_url {
+        None
+    } else {
+        availability
+    }
+}
+
 fn current_or_loading_state(
     state: &AppState,
     app_handle: &tauri::AppHandle,
@@ -374,7 +385,10 @@ fn create_browser_webview(
                     &app_state,
                     &page_load_app_handle,
                     payload.url().to_string(),
-                    navigation_availability(&browser_webview),
+                    tracker_navigation_availability(
+                        uses_placeholder_url,
+                        navigation_availability(&browser_webview),
+                    ),
                 ),
             };
             if let Err(error) = result {
@@ -497,15 +511,6 @@ pub fn go_back_browser_webview(
         .map(|url| url.to_string())
         .unwrap_or_else(|_| String::new());
     let next_state = current_or_loading_state(state.inner(), app_handle, fallback_url)?;
-    let next_state = if let Some(availability) = navigation_availability(&browser_webview) {
-        BrowserWebviewState {
-            can_go_back: availability.can_go_back,
-            can_go_forward: availability.can_go_forward,
-            ..next_state
-        }
-    } else {
-        next_state
-    };
     if !next_state.can_go_back {
         return Ok(next_state);
     }
@@ -527,15 +532,6 @@ pub fn go_forward_browser_webview(
         .map(|url| url.to_string())
         .unwrap_or_else(|_| String::new());
     let next_state = current_or_loading_state(state.inner(), app_handle, fallback_url)?;
-    let next_state = if let Some(availability) = navigation_availability(&browser_webview) {
-        BrowserWebviewState {
-            can_go_back: availability.can_go_back,
-            can_go_forward: availability.can_go_forward,
-            ..next_state
-        }
-    } else {
-        next_state
-    };
     if !next_state.can_go_forward {
         return Ok(next_state);
     }
@@ -590,8 +586,8 @@ mod tests {
     use super::{
         browser_webview_initial_url, child_webview_rect_from_viewport_bounds, external_url,
         is_placeholder_browser_webview_url, should_use_placeholder_browser_webview_url,
-        validated_bounds, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
-        INVALID_BROWSER_BOUNDS_ERROR,
+        tracker_navigation_availability, validated_bounds, BrowserNavigationAvailability,
+        BrowserWebviewBounds, BrowserWebviewBoundsUnit, INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
@@ -713,6 +709,23 @@ mod tests {
             PlatformKind::Windows
         ));
         assert!(is_placeholder_browser_webview_url(initial_url.as_str()));
+    }
+
+    #[test]
+    fn placeholder_navigation_uses_tracker_history_instead_of_native_history() {
+        let native_availability = Some(BrowserNavigationAvailability {
+            can_go_back: true,
+            can_go_forward: false,
+        });
+
+        assert_eq!(
+            tracker_navigation_availability(true, native_availability),
+            None
+        );
+        assert_eq!(
+            tracker_navigation_availability(false, native_availability),
+            native_availability
+        );
     }
 
     #[test]

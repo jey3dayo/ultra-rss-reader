@@ -694,12 +694,13 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
     use webview2_com::{
         AcceleratorKeyPressedEventHandler, AddScriptToExecuteOnDocumentCreatedCompletedHandler,
         Microsoft::Web::WebView2::Win32::{
-            ICoreWebView2AcceleratorKeyPressedEventArgs, COREWEBVIEW2_KEY_EVENT_KIND,
-            COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN, COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN,
+            ICoreWebView2AcceleratorKeyPressedEventArgs, ICoreWebView2Settings3,
+            COREWEBVIEW2_KEY_EVENT_KIND, COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN,
+            COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN,
         },
         WebMessageReceivedEventHandler,
     };
-    use windows::core::{HSTRING, PWSTR};
+    use windows::core::{Interface, HSTRING, PWSTR};
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_SHIFT};
 
     let app_handle = app_handle.clone();
@@ -711,6 +712,11 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
         let result = (|| {
             let controller = platform_webview.controller();
             let webview = controller.CoreWebView2().map_err(|error| error.to_string())?;
+            if let Ok(settings) = webview.Settings() {
+                if let Ok(settings3) = settings.cast::<ICoreWebView2Settings3>() {
+                    let _ = settings3.SetAreBrowserAcceleratorKeysEnabled(false);
+                }
+            }
 
             if let Some(shortcut_script) = &shortcut_script {
                 let handler =
