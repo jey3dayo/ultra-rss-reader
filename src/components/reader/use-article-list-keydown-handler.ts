@@ -7,6 +7,17 @@ import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleListKeydownHandlerParams } from "./article-list.types";
 import { handleArticleListKeyboardAction } from "./article-list-keyboard-action";
 
+function consumeArticleListKeyEvent(event: ReactKeyboardEvent<HTMLDivElement>) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function focusArticleContentOnNextFrame() {
+  requestAnimationFrame(() => {
+    focusArticleContentTarget();
+  });
+}
+
 export function useArticleListKeydownHandler({
   selectedArticleId,
   selectArticle,
@@ -24,8 +35,7 @@ export function useArticleListKeydownHandler({
       }
 
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        event.preventDefault();
-        event.stopPropagation();
+        consumeArticleListKeyEvent(event);
 
         const direction = event.key === "ArrowDown" ? 1 : -1;
         emitDebugInputTrace(`list-key ${event.key} -> navigate-article`);
@@ -39,8 +49,7 @@ export function useArticleListKeydownHandler({
       }
 
       if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        event.stopPropagation();
+        consumeArticleListKeyEvent(event);
 
         emitDebugInputTrace("list-key ArrowLeft -> focus-sidebar");
         openSidebar();
@@ -51,24 +60,14 @@ export function useArticleListKeydownHandler({
       }
 
       if (event.key === "ArrowRight") {
-        event.preventDefault();
-        event.stopPropagation();
+        consumeArticleListKeyEvent(event);
 
         emitDebugInputTrace("list-key ArrowRight -> focus-content");
         const focusedArticleId = optionTarget.dataset.articleId;
-        if (focusedArticleId && focusedArticleId !== selectedArticleId) {
-          selectArticle(focusedArticleId);
-          requestAnimationFrame(() => {
-            focusArticleContentTarget();
-          });
-          return;
-        }
         if (focusedArticleId) {
           selectArticle(focusedArticleId);
         }
-        requestAnimationFrame(() => {
-          focusArticleContentTarget();
-        });
+        focusArticleContentOnNextFrame();
         return;
       }
 
@@ -88,8 +87,7 @@ export function useArticleListKeydownHandler({
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
+      consumeArticleListKeyEvent(event);
 
       const resolvedAction = Result.unwrap(action);
       emitDebugInputTrace(`list-key ${event.key} -> ${resolvedAction.type}`);
