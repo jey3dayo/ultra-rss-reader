@@ -14,6 +14,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 - Prefer editing existing files over creating new files.
 - Keep changes scoped to the requested task; avoid incidental refactors.
+- For reader article list behavior, treat [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md) as the source of truth for `ReaderQuery`, smart views, subscription scopes, footer filters, source hooks, and paging order.
 - Put screenshots and other temporary artifacts under `tmp/`.
 - For UI changes, check `DESIGN.md` before introducing new reusable patterns.
 - For UI review or abstraction decisions, follow `DESIGN_REVIEW.md`.
@@ -44,6 +45,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 - [README.md](README.md): product overview, architecture, commands, verification model
 - [docs/README.md](docs/README.md): operational and reference docs index
+- [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md): reader article list source/scope/filter matrix and debugging checklist
 - [DESIGN.md](DESIGN.md): visual rules and reusable UI design decisions
 - [DESIGN_REVIEW.md](DESIGN_REVIEW.md): UI review flow and routing (`DESIGN.md` vs `shared` vs feature-local)
 - [.claude/rules/README.md](.claude/rules/README.md): project-specific focused rules by topic

@@ -14,12 +14,14 @@ Important implementation constraints:
 - Keep changes scoped to the requested task; avoid unrelated refactors and docs churn.
 - Put temporary artifacts under `tmp/`.
 - Do not claim work complete without running at least `mise run check` unless the task is explicitly docs-only.
+- Reader article list behavior is governed by `docs/reader-article-scope-matrix.md`. Use it as the source of truth for `ReaderQuery`, smart views, subscription scopes, footer filters, source hooks, and paging order.
 
 ## Fast Path
 
 - Product and architecture context: [README](README.md)
 - Repository-local agent workflow: [CLAUDE](CLAUDE.md)
 - Router and precedence: [AGENTS](AGENTS.md)
+- Reader article list matrix: [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md)
 - Operational doc index: [docs/README.md](docs/README.md)
 - Default local verification: `mise run check`
 - Full local CI gate: `mise run ci`
@@ -39,6 +41,8 @@ Important implementation constraints:
 - [src/api/tauri-commands.ts](src/api/tauri-commands.ts): Canonical TypeScript IPC boundary and `safeInvoke` wrapper.
 - [src/App.tsx](src/App.tsx): Frontend entry composition.
 - [src/dev/scenarios](src/dev/scenarios/): `VITE_DEV_INTENT` scenarios powering direct dev entry points and command palette dev commands.
+- [src/lib/reader-query.ts](src/lib/reader-query.ts): Reader article list intent normalization via `ReaderQuery` and `ReaderSourcePlan`.
+- [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md): Canonical mapping for reader source, scope, filter, API hook, and paging order.
 - [src-tauri/src/lib.rs](src-tauri/src/lib.rs): Rust bootstrap and shared module wiring.
 - [src-tauri/tauri.dev.conf.json](src-tauri/tauri.dev.conf.json): Repository dev configuration consumed by every `mise run app:dev*` task.
 
