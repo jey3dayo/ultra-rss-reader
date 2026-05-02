@@ -4,6 +4,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-05-03
+
+### Features
+
+- ReaderQuery でスマートビュー、購読スコープ、下部フィルタを正規化し、未読・スター・最近見た記事・フォルダ・フィード・タグの表示対象を一貫して扱えるようにした
+
+### Bug Fixes
+
+- reader の記事切り替え時にスクロール位置をリセットし、次の記事を開いたときに途中位置から始まらないようにした
+- browser webview の navigation state と履歴端の preview close を安定化し、戻る・進むまわりの引っかかりを減らした
+- storybook の update toast と scrolling を安定化し、UI 検証のタイミング依存を抑えた
+
+### Documentation
+
+- reader article scope matrix を追加し、ReaderQuery、source plan、API hook、paging order、デバッグ観点を追いやすくした
+- agent 向けの導線を更新し、reader article list の仕様確認先を明確にした
+
+### Maintenance
+
+- article list のキーボード処理を整理し、同じ key event consume と content focus 処理を共通化した
+- browser overlay の motion を追加し、preview 表示の状態変化を自然に追えるようにした
+
 ## [0.23.1] - 2026-05-02
 
 ### Bug Fixes
