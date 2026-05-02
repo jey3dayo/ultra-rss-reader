@@ -50,6 +50,7 @@ export type DevScenarioContext = {
       offset?: number,
       limit?: number,
       accountId?: string,
+      mode?: "all" | "unread" | "starred",
     ): Promise<ArticleDto[]> | ArticleDto[];
   };
 };

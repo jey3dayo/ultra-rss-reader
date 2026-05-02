@@ -3,20 +3,17 @@ import {
   buildArticleListFeedNameMap,
   buildFolderFeedIdSet,
   groupArticles,
-  resolveArticleListEffectiveViewMode,
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/article-list";
 import type { UseArticleListDataParams, UseArticleListDataResult } from "./article-list.types";
 
 export function useArticleListData({
-  selection,
   feedId,
   folderId,
   tagId,
-  smartViewKind,
+  sourcePlan,
   accountListScopeId,
-  viewMode,
   selectedArticleId,
   retainedArticleIds,
   feeds,
@@ -30,17 +27,16 @@ export function useArticleListData({
   groupBy,
 }: UseArticleListDataParams): UseArticleListDataResult {
   const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
-    return resolveArticleListEffectiveViewMode(smartViewKind, viewMode);
-  }, [smartViewKind, viewMode]);
+    return sourcePlan.effectiveViewMode;
+  }, [sourcePlan.effectiveViewMode]);
 
   const effectiveRetainedArticleIds = useMemo(() => {
     return resolveEffectiveRetainedArticleIds({
-      selection,
-      effectiveViewMode,
+      sourcePlan,
       retainedArticleIds,
       selectedArticleId,
     });
-  }, [effectiveViewMode, retainedArticleIds, selectedArticleId, selection]);
+  }, [retainedArticleIds, selectedArticleId, sourcePlan]);
 
   const feedNameMap = useMemo(() => {
     return buildArticleListFeedNameMap(feeds);
@@ -58,9 +54,10 @@ export function useArticleListData({
       searchResults,
       feedId,
       tagId,
-      folderFeedIds,
+      folderFeedIds: showSearch ? folderFeedIds : null,
       viewMode: effectiveViewMode,
-      smartViewKind,
+      sourceFilter: sourcePlan.query?.filter ?? null,
+      preservesSourceOrder: sourcePlan.preservesRecentOrder,
       showSearch,
       searchQuery: trimmedDebouncedQuery,
       sortUnread,
@@ -75,7 +72,7 @@ export function useArticleListData({
     tagArticles,
     tagId,
     effectiveViewMode,
-    smartViewKind,
+    sourcePlan,
     showSearch,
     trimmedDebouncedQuery,
     searchResults,

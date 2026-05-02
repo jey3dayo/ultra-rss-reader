@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const articleListModeSchema = z.enum(["all", "unread", "starred"]);
+
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: z.string() });
 export const listFeedsArgs = z.object({ accountId: z.string() });
@@ -8,6 +10,7 @@ export const listFeedsArgs = z.object({ accountId: z.string() });
 export const listArticlesArgs = z.object({
   feedId: z.string(),
   unreadOnly: z.boolean().optional(),
+  starredOnly: z.boolean().optional(),
   offset: z.number().optional(),
   limit: z.number().optional(),
 });
@@ -16,6 +19,14 @@ export const listArticlesArgs = z.object({
 export const listAccountArticlesArgs = z.object({
   accountId: z.string(),
   unreadOnly: z.boolean().optional(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+// --- listFolderArticles ---
+export const listFolderArticlesArgs = z.object({
+  folderId: z.string(),
+  mode: articleListModeSchema.optional(),
   offset: z.number().optional(),
   limit: z.number().optional(),
 });
@@ -30,6 +41,7 @@ export const listStarredArticlesArgs = z.object({
 // --- listRecentArticles ---
 export const listRecentArticlesArgs = z.object({
   accountId: z.string(),
+  mode: articleListModeSchema.optional(),
   offset: z.number().optional(),
   limit: z.number().optional(),
 });
@@ -242,6 +254,7 @@ export const getArticleTagsArgs = z.object({ articleId: z.string() });
 // --- listArticlesByTag ---
 export const listArticlesByTagArgs = z.object({
   tagId: z.string(),
+  mode: articleListModeSchema.optional(),
   offset: z.number().optional(),
   limit: z.number().optional(),
   accountId: z.string().optional(),
@@ -277,6 +290,7 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,
   list_account_articles: listAccountArticlesArgs,
+  list_folder_articles: listFolderArticlesArgs,
   list_starred_articles: listStarredArticlesArgs,
   list_recent_articles: listRecentArticlesArgs,
   count_account_unread_articles: countAccountUnreadArticlesArgs,

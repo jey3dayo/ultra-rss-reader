@@ -7,7 +7,7 @@ use crate::commands::AppState;
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, TagId};
 use crate::infra::db::sqlite_tag::SqliteTagRepository;
-use crate::repository::article::Pagination;
+use crate::repository::article::{ArticleListMode, Pagination};
 use crate::repository::tag::TagRepository;
 
 fn lock_db(
@@ -35,6 +35,10 @@ fn validate_color(color: &str) -> bool {
         return false;
     }
     bytes[1..].iter().all(|b| b.is_ascii_hexdigit())
+}
+
+fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
+    ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
 }
 
 #[tauri::command]
@@ -175,6 +179,7 @@ pub fn get_article_tags(
 pub fn list_articles_by_tag(
     state: State<'_, AppState>,
     tag_id: String,
+    mode: Option<String>,
     offset: Option<usize>,
     limit: Option<usize>,
     account_id: Option<String>,
@@ -186,7 +191,8 @@ pub fn list_articles_by_tag(
         limit: limit.unwrap_or(50),
     };
     let aid = account_id.map(AccountId);
-    let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref())?;
+    let mode = parse_article_list_mode(mode.as_deref())?;
+    let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref(), mode)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 

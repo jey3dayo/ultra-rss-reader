@@ -70,6 +70,7 @@ export type SidebarFeedSectionParams = {
   selectedAccountId: string | null;
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;
+  starredCountByFeedId: ReadonlyMap<string, number>;
   selection: SidebarSelection;
   viewMode: SidebarFeedTreeViewMode;
   expandedFolderIds: Set<string>;

@@ -108,8 +108,8 @@ export type UseCommandPaletteHandlersParams = {
   closePalette: () => void;
   openShortcutsHelp: () => void;
   showToast: (message: string | ToastData) => void;
-  selectFeed: (feedId: string) => void;
-  selectTag: (tagId: string) => void;
+  selectFeedFromCurrentContext: (feedId: string) => void;
+  selectTagFromCurrentContext: (tagId: string) => void;
   selectArticle: (articleId: string) => void;
   openFeedLanding: (feedId: string) => Promise<void>;
 };

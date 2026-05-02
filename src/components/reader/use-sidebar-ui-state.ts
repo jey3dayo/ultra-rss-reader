@@ -12,10 +12,13 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
   const selectFeed = useUiStore((s) => s.selectFeed);
+  const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const selectFolder = useUiStore((s) => s.selectFolder);
+  const selectFolderFromCurrentContext = useUiStore((s) => s.selectFolderFromCurrentContext);
   const selectAll = useUiStore((s) => s.selectAll);
   const selectSmartView = useUiStore((s) => s.selectSmartView);
   const selectTag = useUiStore((s) => s.selectTag);
+  const selectTagFromCurrentContext = useUiStore((s) => s.selectTagFromCurrentContext);
   const setViewMode = useUiStore((s) => s.setViewMode);
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
   const setExpandedFolders = useUiStore((s) => s.setExpandedFolders);
@@ -65,10 +68,13 @@ export function useSidebarUiState(): SidebarUiStateResult {
     selection,
     viewMode,
     selectFeed,
+    selectFeedFromCurrentContext,
     selectFolder,
+    selectFolderFromCurrentContext,
     selectAll,
     selectSmartView,
     selectTag,
+    selectTagFromCurrentContext,
     setViewMode,
     expandedFolderIds,
     setExpandedFolders,

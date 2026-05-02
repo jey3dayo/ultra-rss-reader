@@ -16,6 +16,7 @@ export function useSidebarFeedSectionController({
   selectedAccountId,
   feeds,
   folders,
+  starredCountByFeedId,
   selection,
   viewMode,
   expandedFolderIds,
@@ -52,6 +53,8 @@ export function useSidebarFeedSectionController({
   const folderList = folders ?? [];
   const canDragFeeds = folderList.length > 0;
   const initialFeedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
+  const isStarredTreeContext = selection.type === "smart" && selection.kind === "starred";
+  const feedTreeViewMode = isStarredTreeContext ? "starred" : viewMode;
 
   const {
     draggedFeedId,
@@ -74,15 +77,21 @@ export function useSidebarFeedSectionController({
     feeds,
     folders,
     selection,
-    viewMode,
+    viewMode: feedTreeViewMode,
     expandedFolderIds,
     sortSubscriptions,
     grayscaleFavicons,
     draggedFeedId,
+    starredCountByFeedId,
   });
 
   const handleSelectFeed = useCallback(
     (feedId: string) => {
+      if (feedTreeViewMode === "starred") {
+        selectFeed(feedId);
+        return;
+      }
+
       if (openFirstArticleOnFeedSelection) {
         void openFeedLanding(feedId);
         return;
@@ -90,7 +99,13 @@ export function useSidebarFeedSectionController({
 
       selectFeed(feedId);
     },
-    [openFeedLanding, openFirstArticleOnFeedSelection, selectFeed],
+    [feedTreeViewMode, openFeedLanding, openFirstArticleOnFeedSelection, selectFeed],
+  );
+  const handleSelectFolder = useCallback(
+    (folderId: string) => {
+      selectFolder(folderId);
+    },
+    [selectFolder],
   );
   const handleMarkFeedRead = useCallback(
     (feed: { id: string; unreadCount: number }) => {
@@ -147,7 +162,7 @@ export function useSidebarFeedSectionController({
     feedTreeFolders,
     unfolderedFeedViews,
     toggleFolder,
-    selectFolder,
+    selectFolder: handleSelectFolder,
     selectFeed: handleSelectFeed,
     markFeedRead: handleMarkFeedRead,
     displayFavicons,

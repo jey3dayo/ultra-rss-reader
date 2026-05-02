@@ -1848,6 +1848,8 @@ describe("ArticleView", () => {
             .map((feed) => ({ ...feed, folder_id: "folder-1" }));
         case "list_account_articles":
           return sampleArticles;
+        case "list_folder_articles":
+          return sampleArticles;
         case "list_tags":
         case "get_article_tags":
           return [];
@@ -1904,7 +1906,7 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
-    expectSummaryMetricMotionValue(summary, "Articles", "2");
+    expectSummaryMetricMotionValue(summary, "Articles", "1");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
   });

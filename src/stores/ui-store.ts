@@ -95,6 +95,12 @@ function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): Focu
   return state.contentMode === "empty" ? "list" : "content";
 }
 
+function getContextAwareScopeViewMode(state: Pick<UiState, "selection" | "viewMode">): "unread" | "starred" {
+  return state.viewMode === "starred" || (state.selection.type === "smart" && state.selection.kind === "starred")
+    ? "starred"
+    : "unread";
+}
+
 function getSettingsAccountsViewState(
   accountId: string | null,
   addAccount: boolean,
@@ -169,9 +175,12 @@ interface UiActions {
   restoreAccountSelection: (id: string, options?: { focusedPane?: FocusedPane }) => void;
   clearSelectedAccount: () => void;
   selectFeed: (feedId: string) => void;
+  selectFeedFromCurrentContext: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
+  selectFolderFromCurrentContext: (folderId: string) => void;
   selectSmartView: (kind: "unread" | "starred" | "recent") => void;
   selectTag: (tagId: string) => void;
+  selectTagFromCurrentContext: (tagId: string) => void;
   selectAll: () => void;
   selectArticle: (id: string) => void;
   clearArticle: () => void;
@@ -354,11 +363,34 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
+  selectFeedFromCurrentContext: (feedId) =>
+    set((state) => ({
+      accountPaneOpen: false,
+      selection: { type: "feed", feedId },
+      viewMode: getContextAwareScopeViewMode(state),
+      selectedArticleId: null,
+      contentMode: "empty",
+      focusedPane: "list",
+      recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
+    })),
   selectFolder: (folderId) =>
     set((state) => ({
       accountPaneOpen: false,
       selection: { type: "folder", folderId },
       viewMode: "unread",
+      selectedArticleId: null,
+      contentMode: "empty",
+      focusedPane: "list",
+      expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
+      recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
+    })),
+  selectFolderFromCurrentContext: (folderId) =>
+    set((state) => ({
+      accountPaneOpen: false,
+      selection: { type: "folder", folderId },
+      viewMode: getContextAwareScopeViewMode(state),
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -388,6 +420,17 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
+  selectTagFromCurrentContext: (tagId) =>
+    set((state) => ({
+      accountPaneOpen: false,
+      selection: { type: "tag", tagId },
+      viewMode: getContextAwareScopeViewMode(state),
+      selectedArticleId: null,
+      contentMode: "empty",
+      focusedPane: "list",
+      recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
+    })),
   selectAll: () =>
     set({
       accountPaneOpen: false,

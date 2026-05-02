@@ -50,6 +50,7 @@ import {
   listArticlesArgs,
   listArticlesByTagArgs,
   listFeedsArgs,
+  listFolderArticlesArgs,
   listFoldersArgs,
   listRecentArticlesArgs,
   listStarredArticlesArgs,
@@ -195,6 +196,13 @@ export const listArticles = (
   );
 };
 
+export const listFeedStarredArticles = (feedId: string, offset?: number, limit?: number) =>
+  safeInvoke(
+    "list_articles",
+    { response: z.array(ArticleDtoSchema), args: listArticlesArgs },
+    { feedId, starredOnly: true, offset, limit },
+  );
+
 export const listAccountArticles = (
   accountId: string,
   unreadOnlyOrOffset?: boolean | number,
@@ -212,6 +220,18 @@ export const listAccountArticles = (
   );
 };
 
+export const listFolderArticles = (
+  folderId: string,
+  mode: "all" | "unread" | "starred" = "all",
+  offset?: number,
+  limit?: number,
+) =>
+  safeInvoke(
+    "list_folder_articles",
+    { response: z.array(ArticleDtoSchema), args: listFolderArticlesArgs },
+    { folderId, mode, offset, limit },
+  );
+
 export const listStarredArticles = (accountId: string, offset?: number, limit?: number) =>
   safeInvoke(
     "list_starred_articles",
@@ -219,11 +239,16 @@ export const listStarredArticles = (accountId: string, offset?: number, limit?: 
     { accountId, offset, limit },
   );
 
-export const listRecentArticles = (accountId: string, offset?: number, limit?: number) =>
+export const listRecentArticles = (
+  accountId: string,
+  offset?: number,
+  limit?: number,
+  mode?: "all" | "unread" | "starred",
+) =>
   safeInvoke(
     "list_recent_articles",
     { response: z.array(ArticleDtoSchema), args: listRecentArticlesArgs },
-    { accountId, offset, limit },
+    { accountId, offset, limit, mode },
   );
 
 export const countAccountUnreadArticles = (accountId: string) =>
@@ -433,11 +458,17 @@ export const untagArticle = (articleId: string, tagId: string) =>
 export const getArticleTags = (articleId: string) =>
   safeInvoke("get_article_tags", { response: z.array(TagDtoSchema), args: getArticleTagsArgs }, { articleId });
 
-export const listArticlesByTag = (tagId: string, offset?: number, limit?: number, accountId?: string) =>
+export const listArticlesByTag = (
+  tagId: string,
+  offset?: number,
+  limit?: number,
+  accountId?: string,
+  mode?: "all" | "unread" | "starred",
+) =>
   safeInvoke(
     "list_articles_by_tag",
     { response: z.array(ArticleDtoSchema), args: listArticlesByTagArgs },
-    { tagId, offset, limit, accountId },
+    { tagId, offset, limit, accountId, mode },
   );
 
 export const getTagArticleCounts = (accountId?: string) =>

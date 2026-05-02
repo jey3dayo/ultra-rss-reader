@@ -6,18 +6,22 @@ import {
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
 import { selectVisibleArticles } from "@/lib/article-list";
+import type { ReaderFilter } from "@/lib/reader-query";
 
-const FEED_LANDING_FEED_ID = "__feed_landing__";
-
-export function resolveFeedLandingArticle(params: { articles: ArticleDto[]; sortUnread: string }): ArticleDto | null {
+export function resolveFeedLandingArticle(params: {
+  articles: ArticleDto[];
+  sortUnread: string;
+  viewMode?: ReaderFilter;
+}): ArticleDto | null {
   const visibleArticles = selectVisibleArticles({
-    articles: params.articles,
-    accountArticles: undefined,
+    articles: undefined,
+    accountArticles: params.articles,
     tagArticles: undefined,
     searchResults: undefined,
-    feedId: FEED_LANDING_FEED_ID,
+    feedId: null,
     tagId: null,
-    viewMode: "unread",
+    viewMode: params.viewMode ?? "unread",
+    sourceFilter: null,
     showSearch: false,
     searchQuery: "",
     sortUnread: params.sortUnread,

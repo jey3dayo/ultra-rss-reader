@@ -21,7 +21,7 @@ function getArticleContentAnchors(contentContainer: HTMLElement): HTMLAnchorElem
 export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPreview }: ArticleReaderBodyProps) {
   const { i18n } = useTranslation();
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
-  const selectFeed = useUiStore((s) => s.selectFeed);
+  const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const previousArticleIdRef = useRef(article.id);
   const articleUrl = article.url;
@@ -137,7 +137,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
           onFeedClick={
             feedName
               ? () => {
-                  selectFeed(article.feed_id);
+                  selectFeedFromCurrentContext(article.feed_id);
                 }
               : undefined
           }

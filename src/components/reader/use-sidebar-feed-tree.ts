@@ -10,6 +10,8 @@ import {
   mapFeedsToFeedTreeViewModels,
 } from "./sidebar-feed-tree-helpers";
 
+const EMPTY_STARRED_COUNT_BY_FEED_ID = new Map<string, number>();
+
 export function useSidebarFeedTree({
   feeds,
   folders,
@@ -19,6 +21,7 @@ export function useSidebarFeedTree({
   sortSubscriptions: _sortSubscriptions,
   grayscaleFavicons,
   draggedFeedId,
+  starredCountByFeedId = EMPTY_STARRED_COUNT_BY_FEED_ID,
 }: UseSidebarFeedTreeParams): UseSidebarFeedTreeResult {
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
@@ -42,8 +45,8 @@ export function useSidebarFeedTree({
   const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
 
   const getVisibleFeeds = useCallback(
-    (candidateFeeds: FeedDto[]) => getVisibleSidebarFeeds(candidateFeeds, viewMode, sortFeeds),
-    [sortFeeds, viewMode],
+    (candidateFeeds: FeedDto[]) => getVisibleSidebarFeeds(candidateFeeds, viewMode, sortFeeds, starredCountByFeedId),
+    [sortFeeds, starredCountByFeedId, viewMode],
   );
 
   const { visibleFolderFeedsById, visibleUnfolderedFeeds, orderedFeedIds } = useMemo(
@@ -57,7 +60,7 @@ export function useSidebarFeedTree({
     [feedsByFolder, getVisibleFeeds, sortedFolderList, unfolderedFeeds],
   );
 
-  const hideEmptyFoldersInCurrentView = viewMode === "unread" && draggedFeedId === null;
+  const hideEmptyFoldersInCurrentView = viewMode !== "all" && draggedFeedId === null;
 
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
@@ -69,6 +72,8 @@ export function useSidebarFeedTree({
         selectedFolderId,
         selectedFeedId,
         grayscaleFavicons,
+        viewMode,
+        starredCountByFeedId,
         hideEmptyFoldersInCurrentView,
       }),
     [
@@ -78,8 +83,10 @@ export function useSidebarFeedTree({
       hideEmptyFoldersInCurrentView,
       selectedFeedId,
       selectedFolderId,
+      starredCountByFeedId,
       sortedFolderList,
       visibleFolderFeedsById,
+      viewMode,
     ],
   );
 
@@ -88,8 +95,10 @@ export function useSidebarFeedTree({
       mapFeedsToFeedTreeViewModels(visibleUnfolderedFeeds, {
         selectedFeedId,
         grayscaleFavicons,
+        viewMode,
+        starredCountByFeedId,
       }),
-    [grayscaleFavicons, selectedFeedId, visibleUnfolderedFeeds],
+    [grayscaleFavicons, selectedFeedId, starredCountByFeedId, viewMode, visibleUnfolderedFeeds],
   );
 
   return {

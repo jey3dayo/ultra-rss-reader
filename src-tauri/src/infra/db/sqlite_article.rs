@@ -9,7 +9,7 @@ use crate::infra::db::sqlite_mute_keyword::{
     build_mute_keyword_exclusion_clause, build_mute_keyword_match_clause,
     SqliteMuteKeywordRepository,
 };
-use crate::repository::article::{ArticleRepository, Pagination};
+use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::pending_mutation::PendingMutation;
 
@@ -78,6 +78,52 @@ impl<'a> SqliteArticleRepository<'a> {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(groups)
+    }
+
+    fn find_by_folder_with_filter(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+        article_filter: Option<&str>,
+    ) -> DomainResult<Vec<Article>> {
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let mut filters = vec!["f.folder_id = ?1".to_string()];
+
+        if let Some(filter) = article_filter {
+            filters.push(filter.to_string());
+        }
+
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE {where_clause}
+             ORDER BY a.published_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    folder_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
     }
 }
 
@@ -217,6 +263,51 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn find_starred_by_feed(
+        &self,
+        feed_id: &FeedId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let sql = format!(
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE feed_id = ?1
+                   AND is_starred = 1
+                 ORDER BY published_at DESC
+                 LIMIT ?2 OFFSET ?3"
+            );
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = stmt
+                .query_map(
+                    params![feed_id.0, pagination.limit as i64, pagination.offset as i64],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(articles);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+        );
+        let sql = format!(
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE feed_id = ?1
+               AND is_starred = 1
+               AND {mute_clause}
+             ORDER BY published_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![feed_id.0, pagination.limit as i64, pagination.offset as i64],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
     fn find_by_account(
         &self,
         account_id: &AccountId,
@@ -341,6 +432,30 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn find_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        self.find_by_folder_with_filter(folder_id, pagination, None)
+    }
+
+    fn find_unread_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        self.find_by_folder_with_filter(folder_id, pagination, Some("a.is_read = 0"))
+    }
+
+    fn find_starred_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        self.find_by_folder_with_filter(folder_id, pagination, Some("a.is_starred = 1"))
+    }
+
     fn find_starred_by_account(
         &self,
         account_id: &AccountId,
@@ -406,19 +521,27 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         &self,
         account_id: &AccountId,
         pagination: &Pagination,
+        mode: ArticleListMode,
     ) -> DomainResult<Vec<ArticleViewHistoryItem>> {
         let select_cols_prefixed = SELECT_COLS
             .split(", ")
             .map(|col| format!("a.{col}"))
             .collect::<Vec<_>>()
             .join(", ");
+        let mut filters = vec![
+            "h.account_id = ?1".to_string(),
+            "f.account_id = ?1".to_string(),
+        ];
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
+        }
+        let where_clause = filters.join(" AND ");
         let sql = format!(
             "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at
              FROM article_view_history h
              JOIN articles a ON h.article_id = a.id
              JOIN feeds f ON a.feed_id = f.id
-             WHERE h.account_id = ?1
-               AND f.account_id = ?1
+             WHERE {where_clause}
              ORDER BY h.viewed_at DESC
              LIMIT ?2 OFFSET ?3"
         );
@@ -950,6 +1073,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
 mod tests {
     use super::*;
     use crate::infra::db::connection::DbManager;
+    use crate::repository::article::ArticleListMode;
     use crate::repository::feed::FeedRepository;
 
     fn test_db() -> DbManager {
@@ -1532,10 +1656,15 @@ mod tests {
                     offset: 0,
                     limit: RECENT_ARTICLE_HISTORY_LIMIT + 5,
                 },
+                ArticleListMode::All,
             )
             .unwrap();
         let recent_b = repo
-            .find_recently_viewed_by_account(&account_b, &Pagination::default())
+            .find_recently_viewed_by_account(
+                &account_b,
+                &Pagination::default(),
+                ArticleListMode::All,
+            )
             .unwrap();
 
         assert_eq!(recent_a.len(), RECENT_ARTICLE_HISTORY_LIMIT);
@@ -1550,6 +1679,59 @@ mod tests {
         assert!(recent_a.iter().all(|item| item.account_id == account_a));
         assert_eq!(recent_b.len(), 1);
         assert_eq!(recent_b[0].article.id, article_b.id);
+    }
+
+    #[test]
+    fn find_recently_viewed_by_account_filters_mode_before_pagination_and_keeps_view_order() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest_read = make_article(&feed_id, "Newest read");
+        newest_read.is_read = true;
+        let mut middle_unread = make_article(&feed_id, "Middle unread");
+        middle_unread.is_read = false;
+        let mut oldest_starred = make_article(&feed_id, "Oldest starred");
+        oldest_starred.is_read = false;
+        oldest_starred.is_starred = true;
+        repo.upsert(&[
+            newest_read.clone(),
+            middle_unread.clone(),
+            oldest_starred.clone(),
+        ])
+        .unwrap();
+
+        for (article, viewed_at) in [
+            (&oldest_starred, "2026-04-20T10:00:00Z"),
+            (&middle_unread, "2026-04-20T11:00:00Z"),
+            (&newest_read, "2026-04-20T12:00:00Z"),
+        ] {
+            db.writer()
+                .execute(
+                    "INSERT INTO article_view_history (account_id, article_id, viewed_at) VALUES (?1, ?2, ?3)",
+                    params![account_id.0, article.id.0, viewed_at],
+                )
+                .unwrap();
+        }
+
+        let first_page = Pagination {
+            offset: 0,
+            limit: 1,
+        };
+        let all = repo
+            .find_recently_viewed_by_account(&account_id, &first_page, ArticleListMode::All)
+            .unwrap();
+        let unread = repo
+            .find_recently_viewed_by_account(&account_id, &first_page, ArticleListMode::Unread)
+            .unwrap();
+        let starred = repo
+            .find_recently_viewed_by_account(&account_id, &first_page, ArticleListMode::Starred)
+            .unwrap();
+
+        assert_eq!(all[0].article.title, "Newest read");
+        assert_eq!(unread[0].article.title, "Middle unread");
+        assert_eq!(starred[0].article.title, "Oldest starred");
     }
 
     #[test]
@@ -1571,13 +1753,21 @@ mod tests {
 
         assert_eq!(removed, 1);
         assert!(repo
-            .find_recently_viewed_by_account(&account_a, &Pagination::default())
+            .find_recently_viewed_by_account(
+                &account_a,
+                &Pagination::default(),
+                ArticleListMode::All
+            )
             .unwrap()
             .is_empty());
         assert_eq!(
-            repo.find_recently_viewed_by_account(&account_b, &Pagination::default())
-                .unwrap()
-                .len(),
+            repo.find_recently_viewed_by_account(
+                &account_b,
+                &Pagination::default(),
+                ArticleListMode::All
+            )
+            .unwrap()
+            .len(),
             1
         );
     }

@@ -254,6 +254,7 @@ pub fn run() {
             commands::sync_commands::trigger_automatic_sync,
             commands::article_commands::list_articles,
             commands::article_commands::list_account_articles,
+            commands::article_commands::list_folder_articles,
             commands::article_commands::list_starred_articles,
             commands::article_commands::list_recent_articles,
             commands::article_commands::count_account_unread_articles,

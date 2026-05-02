@@ -241,6 +241,8 @@ describe("ArticleList", () => {
             { ...sampleArticles[0], id: "art-tech", title: "Tech Article", feed_id: "feed-tech" },
             { ...sampleArticles[1], id: "art-news", title: "News Article", feed_id: "feed-news" },
           ];
+        case "list_folder_articles":
+          return [{ ...sampleArticles[0], id: "art-tech", title: "Tech Article", feed_id: "feed-tech" }];
         case "list_articles":
           return [];
         case "list_articles_by_tag":
@@ -1657,6 +1659,173 @@ describe("ArticleList", () => {
     expect(await screen.findByText("Older Starred Article")).toBeInTheDocument();
   });
 
+  it("shows starred folder articles from the starred source when account articles do not include them", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-starred" },
+      viewMode: "starred",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], folder_id: "folder-starred" },
+            { ...sampleFeeds[1], folder_id: "folder-other" },
+          ].filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_folder_articles":
+          return [
+            {
+              ...sampleArticles[1],
+              id: "folder-starred-article",
+              title: "Folder Starred Article",
+              feed_id: "feed-1",
+              is_read: true,
+              is_starred: true,
+            },
+            {
+              ...sampleArticles[1],
+              id: "other-folder-starred-article",
+              title: "Other Folder Starred Article",
+              feed_id: "feed-2",
+              is_read: true,
+              is_starred: true,
+            },
+          ].filter((article) => article.feed_id === "feed-1" && args.mode === "starred");
+        case "list_starred_articles":
+          return [
+            {
+              ...sampleArticles[1],
+              id: "folder-starred-article",
+              title: "Folder Starred Article",
+              feed_id: "feed-1",
+              is_read: true,
+              is_starred: true,
+            },
+            {
+              ...sampleArticles[1],
+              id: "other-folder-starred-article",
+              title: "Other Folder Starred Article",
+              feed_id: "feed-2",
+              is_read: true,
+              is_starred: true,
+            },
+          ];
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Folder Starred Article")).toBeInTheDocument();
+    expect(screen.queryByText("Other Folder Starred Article")).not.toBeInTheDocument();
+  });
+
+  it("shows starred feed articles from the feed source when account starred articles do not include them", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-2" },
+      viewMode: "starred",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+        case "list_starred_articles":
+          return [];
+        case "list_articles":
+          if (args.feedId === "feed-2" && args.starredOnly) {
+            return [
+              {
+                ...sampleArticles[1],
+                id: "feed-starred-article",
+                title: "Feed Starred Article",
+                feed_id: "feed-2",
+                is_read: true,
+                is_starred: true,
+              },
+            ];
+          }
+          return [];
+        case "list_articles_by_tag":
+        case "search_articles":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Feed Starred Article")).toBeInTheDocument();
+  });
+
+  it("shows unread folder articles from the folder source when account articles do not include them", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-comic" },
+      viewMode: "unread",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], folder_id: "folder-other" },
+            { ...sampleFeeds[1], folder_id: "folder-comic" },
+          ].filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_folder_articles":
+          return [
+            {
+              ...sampleArticles[0],
+              id: "comic-unread-article",
+              title: "Comic Unread Article",
+              feed_id: "feed-2",
+              is_read: false,
+              is_starred: false,
+            },
+            {
+              ...sampleArticles[1],
+              id: "comic-read-article",
+              title: "Comic Read Article",
+              feed_id: "feed-2",
+              is_read: true,
+              is_starred: false,
+            },
+          ].filter((article) => args.mode !== "unread" || !article.is_read);
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Comic Unread Article")).toBeInTheDocument();
+    expect(screen.queryByText("Comic Read Article")).not.toBeInTheDocument();
+  });
+
   it("clamps smart starred away from invalid starred mode", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -1681,6 +1850,34 @@ describe("ArticleList", () => {
       throw new Error("Expected smart view context strip to be rendered");
     }
     expect(within(context).queryByText("ALL")).not.toBeInTheDocument();
+  });
+
+  it("lets the recent smart view filter by unread, all, and starred articles", async () => {
+    const user = userEvent.setup();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "recent" },
+      viewMode: "all",
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText(sampleArticles[1].title)).toBeInTheDocument();
+    expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "UNREAD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "STARRED" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "UNREAD" }));
+
+    expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    expect(screen.queryByText(sampleArticles[1].title)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "STARRED" }));
+
+    expect(screen.getByText(sampleArticles[1].title)).toBeInTheDocument();
+    expect(screen.queryByText(sampleArticles[0].title)).not.toBeInTheDocument();
   });
 
   it("moves DOM focus to the newly selected row during keyboard article navigation", async () => {

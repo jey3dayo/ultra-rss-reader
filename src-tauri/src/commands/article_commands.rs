@@ -8,7 +8,7 @@ use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
-use crate::repository::article::{ArticleRepository, Pagination};
+use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationRepository};
 
@@ -77,6 +77,10 @@ fn has_blocking_frame_ancestors(headers: &HeaderMap) -> bool {
         })
 }
 
+fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
+    ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
+}
+
 #[tauri::command]
 pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
     let client = reqwest::Client::builder()
@@ -95,6 +99,7 @@ pub fn list_articles(
     state: State<'_, AppState>,
     feed_id: String,
     unread_only: Option<bool>,
+    starred_only: Option<bool>,
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
@@ -106,7 +111,9 @@ pub fn list_articles(
         offset: offset.unwrap_or(0),
         limit: limit.unwrap_or(50),
     };
-    let articles = if unread_only.unwrap_or(false) {
+    let articles = if starred_only.unwrap_or(false) {
+        repo.find_starred_by_feed(&FeedId(feed_id), &pagination)?
+    } else if unread_only.unwrap_or(false) {
         repo.find_unread_by_feed(&FeedId(feed_id), &pagination)?
     } else {
         repo.find_by_feed(&FeedId(feed_id), &pagination)?
@@ -139,6 +146,30 @@ pub fn list_account_articles(
 }
 
 #[tauri::command]
+pub fn list_folder_articles(
+    state: State<'_, AppState>,
+    folder_id: String,
+    mode: Option<String>,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<Vec<ArticleDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let pagination = Pagination {
+        offset: offset.unwrap_or(0),
+        limit: limit.unwrap_or(50),
+    };
+    let articles = match mode.as_deref().unwrap_or("all") {
+        "unread" => repo.find_unread_by_folder(&FolderId(folder_id), &pagination)?,
+        "starred" => repo.find_starred_by_folder(&FolderId(folder_id), &pagination)?,
+        _ => repo.find_by_folder(&FolderId(folder_id), &pagination)?,
+    };
+    Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[tauri::command]
 pub fn list_starred_articles(
     state: State<'_, AppState>,
     account_id: String,
@@ -161,6 +192,7 @@ pub fn list_starred_articles(
 pub fn list_recent_articles(
     state: State<'_, AppState>,
     account_id: String,
+    mode: Option<String>,
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
@@ -172,7 +204,9 @@ pub fn list_recent_articles(
         offset: offset.unwrap_or(0),
         limit: limit.unwrap_or(20),
     };
-    let articles = repo.find_recently_viewed_by_account(&AccountId(account_id), &pagination)?;
+    let mode = parse_article_list_mode(mode.as_deref())?;
+    let articles =
+        repo.find_recently_viewed_by_account(&AccountId(account_id), &pagination, mode)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 

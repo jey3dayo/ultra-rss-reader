@@ -13,6 +13,9 @@ import {
   FeedDtoSchema,
   FolderDtoSchema,
   listArticlesArgs,
+  listArticlesByTagArgs,
+  listFolderArticlesArgs,
+  listRecentArticlesArgs,
   listStarredArticlesArgs,
   MuteKeywordDtoSchema,
   markArticleReadArgs,
@@ -180,6 +183,14 @@ describe("command args schemas", () => {
       limit: 20,
     });
   });
+  it("parses listRecentArticlesArgs with mode", () => {
+    expect(listRecentArticlesArgs.parse({ accountId: "acc-1", mode: "unread", offset: 0, limit: 20 })).toEqual({
+      accountId: "acc-1",
+      mode: "unread",
+      offset: 0,
+      limit: 20,
+    });
+  });
   it("parses countAccountStarredArticlesArgs", () => {
     expect(countAccountStarredArticlesArgs.parse({ accountId: "acc-1" })).toEqual({ accountId: "acc-1" });
   });
@@ -204,8 +215,24 @@ describe("command args schemas", () => {
   it("parses setMuteAutoMarkReadArgs", () => {
     expect(setMuteAutoMarkReadArgs.parse({ enabled: true })).toEqual({ enabled: true });
   });
+  it("parses listFolderArticlesArgs", () => {
+    expect(listFolderArticlesArgs.parse({ folderId: "folder-1", mode: "starred", offset: 0, limit: 50 })).toEqual({
+      folderId: "folder-1",
+      mode: "starred",
+      offset: 0,
+      limit: 50,
+    });
+  });
+  it("parses listArticlesByTagArgs with mode", () => {
+    expect(listArticlesByTagArgs.parse({ tagId: "tag-1", mode: "starred", accountId: "acc-1" })).toEqual({
+      tagId: "tag-1",
+      mode: "starred",
+      accountId: "acc-1",
+    });
+  });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
+    expect(commandArgsSchemas.list_folder_articles).toBeDefined();
     expect(commandArgsSchemas.mark_article_read).toBeDefined();
     expect(commandArgsSchemas.create_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();

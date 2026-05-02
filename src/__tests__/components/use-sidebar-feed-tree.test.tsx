@@ -98,4 +98,74 @@ describe("useSidebarFeedTree", () => {
     expect(result.current.feedTreeFolders[1]?.feeds.map((feed) => feed.id)).toEqual(["feed-z-1", "feed-z-2"]);
     expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2", "feed-u-1"]);
   });
+
+  it("shows only unread feeds and folders in unread view", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds: feeds.map((feed) =>
+          feed.id === "feed-a-2" || feed.id === "feed-z-2" || feed.id === "feed-u-1"
+            ? { ...feed, unread_count: 0 }
+            : feed,
+        ),
+        folders,
+        selection: { type: "all" },
+        viewMode: "unread",
+        expandedFolderIds: new Set(["folder-a", "folder-z"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a", "folder-z"]);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-1"]);
+    expect(result.current.feedTreeFolders[1]?.feeds.map((feed) => feed.id)).toEqual(["feed-z-1"]);
+    expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2"]);
+  });
+
+  it("shows starred feed counts and visible feed counts for folders in starred view", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds,
+        folders,
+        selection: { type: "all" },
+        viewMode: "starred",
+        expandedFolderIds: new Set(["folder-a", "folder-z"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+        starredCountByFeedId: new Map([
+          ["feed-a-2", 2],
+          ["feed-u-1", 1],
+        ]),
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a"]);
+    expect(result.current.feedTreeFolders[0]?.unreadCount).toBe(1);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-2"]);
+    expect(result.current.feedTreeFolders[0]?.feeds[0]?.unreadCount).toBe(2);
+    expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-1"]);
+    expect(result.current.unfolderedFeedViews[0]?.unreadCount).toBe(1);
+  });
+
+  it("keeps starred feeds visible even when they have no unread articles", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds: feeds.map((feed) => (feed.id === "feed-a-2" ? { ...feed, unread_count: 0 } : feed)),
+        folders,
+        selection: { type: "all" },
+        viewMode: "starred",
+        expandedFolderIds: new Set(["folder-a"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+        starredCountByFeedId: new Map([["feed-a-2", 1]]),
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a"]);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-2"]);
+    expect(result.current.feedTreeFolders[0]?.feeds[0]?.unreadCount).toBe(1);
+  });
 });

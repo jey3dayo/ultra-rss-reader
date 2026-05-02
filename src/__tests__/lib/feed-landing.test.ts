@@ -40,6 +40,17 @@ describe("resolveFeedLandingArticle", () => {
     const allRead = baseArticles.map((article) => ({ ...article, is_read: true }));
     expect(resolveFeedLandingArticle({ articles: allRead, sortUnread: "newest_first" })).toBeNull();
   });
+
+  it("returns the first visible starred article in starred mode", () => {
+    const articles = baseArticles.map((article, index) => ({
+      ...article,
+      is_starred: index === 1,
+    }));
+
+    expect(resolveFeedLandingArticle({ articles, sortUnread: "newest_first", viewMode: "starred" })?.id).toBe(
+      "art-old",
+    );
+  });
 });
 
 describe("resolveFeedLandingDisplay", () => {

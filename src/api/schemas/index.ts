@@ -30,6 +30,7 @@ export {
   listArticlesArgs,
   listArticlesByTagArgs,
   listFeedsArgs,
+  listFolderArticlesArgs,
   listFoldersArgs,
   listRecentArticlesArgs,
   listStarredArticlesArgs,

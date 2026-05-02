@@ -7,7 +7,7 @@ use crate::domain::types::{AccountId, ArticleId, FeedId, TagId};
 use crate::infra::db::sqlite_mute_keyword::{
     build_mute_keyword_exclusion_clause, SqliteMuteKeywordRepository,
 };
-use crate::repository::article::Pagination;
+use crate::repository::article::{ArticleListMode, Pagination};
 use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::tag::TagRepository;
 
@@ -138,91 +138,45 @@ impl TagRepository for SqliteTagRepository<'_> {
         tag_id: &TagId,
         pagination: &Pagination,
         account_id: Option<&AccountId>,
+        mode: ArticleListMode,
     ) -> DomainResult<Vec<Article>> {
-        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
-            let sql = match account_id {
-                Some(_) => format!(
-                    "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
-                     JOIN article_tags at ON a.id = at.article_id \
-                     JOIN feeds f ON a.feed_id = f.id \
-                     WHERE at.tag_id = ?1 AND f.account_id = ?4 \
-                     ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
-                ),
-                None => format!(
-                    "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
-                     JOIN article_tags at ON a.id = at.article_id \
-                     WHERE at.tag_id = ?1 \
-                     ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
-                ),
-            };
-            let mut stmt = self.conn.prepare(&sql)?;
-            let articles = match account_id {
-                Some(aid) => stmt
-                    .query_map(
-                        params![
-                            tag_id.0,
-                            pagination.limit as i64,
-                            pagination.offset as i64,
-                            aid.0
-                        ],
-                        row_to_article,
-                    )?
-                    .collect::<Result<Vec<_>, _>>()?,
-                None => stmt
-                    .query_map(
-                        params![tag_id.0, pagination.limit as i64, pagination.offset as i64],
-                        row_to_article,
-                    )?
-                    .collect::<Result<Vec<_>, _>>()?,
-            };
-            return Ok(articles);
+        let mut filters = vec![
+            "at.tag_id = ?1".to_string(),
+            "(?4 IS NULL OR f.account_id = ?4)".to_string(),
+        ];
+
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
         }
 
-        let sql = match account_id {
-            Some(_) => format!(
-                "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
-                 JOIN article_tags at ON a.id = at.article_id \
-                 JOIN feeds f ON a.feed_id = f.id \
-                 WHERE at.tag_id = ?1 AND f.account_id = ?2 \
-                   AND {} \
-                 ORDER BY a.published_at DESC LIMIT ?3 OFFSET ?4",
-                build_mute_keyword_exclusion_clause(
-                    "a.title",
-                    "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
-                )
-            ),
-            None => format!(
-                "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
-                 JOIN article_tags at ON a.id = at.article_id \
-                 WHERE at.tag_id = ?1 \
-                   AND {} \
-                 ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3",
-                build_mute_keyword_exclusion_clause(
-                    "a.title",
-                    "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
-                )
-            ),
-        };
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
+             JOIN article_tags at ON a.id = at.article_id \
+             JOIN feeds f ON a.feed_id = f.id \
+             WHERE {where_clause} \
+             ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+        );
         let mut stmt = self.conn.prepare(&sql)?;
-        let articles = match account_id {
-            Some(aid) => stmt
-                .query_map(
-                    params![
-                        tag_id.0,
-                        aid.0,
-                        pagination.limit as i64,
-                        pagination.offset as i64
-                    ],
-                    row_to_article,
-                )?
-                .collect::<Result<Vec<_>, _>>()?,
-            None => stmt
-                .query_map(
-                    params![tag_id.0, pagination.limit as i64, pagination.offset as i64],
-                    row_to_article,
-                )?
-                .collect::<Result<Vec<_>, _>>()?,
-        };
+        let account_id_param = account_id.map(|aid| aid.0.as_str());
+        let articles = stmt
+            .query_map(
+                params![
+                    tag_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64,
+                    account_id_param
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(articles)
     }
 
@@ -269,6 +223,7 @@ mod tests {
     use super::*;
     use crate::domain::types::AccountId;
     use crate::infra::db::connection::DbManager;
+    use crate::repository::article::ArticleListMode;
 
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
@@ -442,7 +397,7 @@ mod tests {
             limit: 50,
         };
         let articles = repo
-            .find_articles_by_tag(&tag.id, &pagination, None)
+            .find_articles_by_tag(&tag.id, &pagination, None, ArticleListMode::All)
             .unwrap();
         assert_eq!(articles.len(), 1);
         assert_eq!(articles[0].title, "Test Article");
@@ -475,7 +430,7 @@ mod tests {
             limit: 50,
         };
         let articles = repo
-            .find_articles_by_tag(&tag.id, &pagination, None)
+            .find_articles_by_tag(&tag.id, &pagination, None, ArticleListMode::All)
             .unwrap();
         assert!(articles.is_empty());
     }
@@ -684,22 +639,116 @@ mod tests {
 
         // Without account filter: both articles
         let articles = repo
-            .find_articles_by_tag(&tag.id, &pagination, None)
+            .find_articles_by_tag(&tag.id, &pagination, None, ArticleListMode::All)
             .unwrap();
         assert_eq!(articles.len(), 2);
 
         // With account filter: only first account's article
         let articles = repo
-            .find_articles_by_tag(&tag.id, &pagination, Some(&account_id))
+            .find_articles_by_tag(
+                &tag.id,
+                &pagination,
+                Some(&account_id),
+                ArticleListMode::All,
+            )
             .unwrap();
         assert_eq!(articles.len(), 1);
         assert_eq!(articles[0].title, "Test Article");
 
         // With second account filter: only second account's article
         let articles = repo
-            .find_articles_by_tag(&tag.id, &pagination, Some(&account_id2))
+            .find_articles_by_tag(
+                &tag.id,
+                &pagination,
+                Some(&account_id2),
+                ArticleListMode::All,
+            )
             .unwrap();
         assert_eq!(articles.len(), 1);
         assert_eq!(articles[0].title, "Article 2");
+    }
+
+    #[test]
+    fn find_articles_by_tag_filters_mode_before_pagination() {
+        let db = test_db();
+        let (account_id, feed_id, _) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "mode".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+
+        let now = chrono::Utc::now();
+        let articles = [
+            (
+                ArticleId("tag-newest-read".to_string()),
+                "Newest read",
+                now + chrono::Duration::seconds(3),
+                true,
+                false,
+            ),
+            (
+                ArticleId("tag-middle-unread".to_string()),
+                "Middle unread",
+                now + chrono::Duration::seconds(2),
+                false,
+                false,
+            ),
+            (
+                ArticleId("tag-oldest-starred".to_string()),
+                "Oldest starred",
+                now + chrono::Duration::seconds(1),
+                false,
+                true,
+            ),
+        ];
+
+        for (article_id, title, published_at, is_read, is_starred) in &articles {
+            let timestamp = published_at.to_rfc3339();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![article_id.0, feed_id.0, title, "", "", 1, timestamp, is_read, is_starred, timestamp],
+                )
+                .unwrap();
+            repo.tag_article(article_id, &tag.id).unwrap();
+        }
+
+        let first_page = Pagination {
+            offset: 0,
+            limit: 1,
+        };
+        let all = repo
+            .find_articles_by_tag(
+                &tag.id,
+                &first_page,
+                Some(&account_id),
+                ArticleListMode::All,
+            )
+            .unwrap();
+        let unread = repo
+            .find_articles_by_tag(
+                &tag.id,
+                &first_page,
+                Some(&account_id),
+                ArticleListMode::Unread,
+            )
+            .unwrap();
+        let starred = repo
+            .find_articles_by_tag(
+                &tag.id,
+                &first_page,
+                Some(&account_id),
+                ArticleListMode::Starred,
+            )
+            .unwrap();
+
+        assert_eq!(all[0].title, "Newest read");
+        assert_eq!(unread[0].title, "Middle unread");
+        assert_eq!(starred[0].title, "Oldest starred");
     }
 }

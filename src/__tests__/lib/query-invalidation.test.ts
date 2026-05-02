@@ -31,6 +31,7 @@ describe("query-invalidation", () => {
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
       { queryKey: ["articles"] },
       { queryKey: ["accountArticles"] },
+      { queryKey: ["folderArticles"] },
       { queryKey: ["starredArticles"] },
       { queryKey: ["accountUnreadCount"] },
       { queryKey: ["accountStarredCount"] },

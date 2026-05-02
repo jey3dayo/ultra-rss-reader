@@ -14,6 +14,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
+import type { ReaderFilter } from "@/lib/reader-query";
 
 export type CreateTagMutationInput = {
   name: string;
@@ -59,11 +60,13 @@ function requireTagId(tagId: string | null): string {
   return tagId;
 }
 
-export function useArticlesByTag(tagId: string | null, accountId?: string | null) {
+export function useArticlesByTag(tagId: string | null, accountId?: string | null, options?: { mode?: ReaderFilter }) {
+  const mode = options?.mode ?? "all";
+
   return useQuery({
-    queryKey: ["articlesByTag", tagId, accountId],
+    queryKey: ["articlesByTag", tagId, accountId, { mode }],
     queryFn: () =>
-      listArticlesByTag(requireTagId(tagId), undefined, undefined, accountId ?? undefined).then(Result.unwrap()),
+      listArticlesByTag(requireTagId(tagId), undefined, undefined, accountId ?? undefined, mode).then(Result.unwrap()),
     enabled: !!tagId,
   });
 }

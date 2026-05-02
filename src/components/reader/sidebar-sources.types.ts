@@ -19,6 +19,7 @@ export type SidebarSourcesResult = {
   tags: TagDto[] | undefined;
   tagArticleCounts: Record<string, number> | undefined;
   accountArticles: ArticleDto[] | undefined;
+  starredCountByFeedId: ReadonlyMap<string, number>;
   feedList: FeedDto[];
   folderList: FolderDto[];
   totalUnread: number;

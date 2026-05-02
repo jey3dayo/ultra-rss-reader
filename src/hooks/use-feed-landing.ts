@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { listArticles, listFeeds } from "@/api/tauri-commands";
+import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
 import { resolveFeedLandingArticle, resolveFeedLandingDisplay } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -36,15 +36,25 @@ export function useFeedLanding() {
         return;
       }
 
-      store.selectFeed(feedId);
+      const preserveStarredContext =
+        store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
+
+      store.selectFeedFromCurrentContext(feedId);
 
       try {
         const articles = await queryClient.fetchQuery({
-          queryKey: ["articles", feedId],
-          queryFn: () => listArticles(feedId).then((result) => Result.unwrap(result)),
+          queryKey: ["articles", feedId, { mode: preserveStarredContext ? "starred" : "all" }],
+          queryFn: () =>
+            (preserveStarredContext ? listFeedStarredArticles(feedId) : listArticles(feedId)).then((result) =>
+              Result.unwrap(result),
+            ),
         });
 
-        const landingArticle = resolveFeedLandingArticle({ articles, sortUnread });
+        const landingArticle = resolveFeedLandingArticle({
+          articles,
+          sortUnread,
+          viewMode: preserveStarredContext ? "starred" : "unread",
+        });
         if (!landingArticle) {
           store.closeBrowser();
           return;

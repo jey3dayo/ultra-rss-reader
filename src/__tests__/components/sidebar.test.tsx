@@ -34,6 +34,8 @@ const { sidebarSourceOverrides } = vi.hoisted(() => ({
     foldersData: undefined as FolderDto[] | undefined,
     accountArticlesEnabled: false,
     accountArticlesData: undefined as ArticleDto[] | undefined,
+    starredArticlesEnabled: false,
+    starredArticlesData: undefined as ArticleDto[] | undefined,
     starredCountEnabled: false,
     starredCountData: undefined as number | undefined,
     tagArticleCountsEnabled: false,
@@ -129,6 +131,12 @@ vi.mock("@/hooks/use-articles", async () => {
         ? { ...result, data: sidebarSourceOverrides.accountArticlesData }
         : result;
     },
+    useStarredArticles: (accountId: string | null) => {
+      const result = actual.useStarredArticles(accountId);
+      return sidebarSourceOverrides.starredArticlesEnabled
+        ? { ...result, data: sidebarSourceOverrides.starredArticlesData }
+        : result;
+    },
     useAccountStarredCount: (_accountId: string | null) => {
       return sidebarSourceOverrides.starredCountEnabled
         ? ({ data: sidebarSourceOverrides.starredCountData } as ReturnType<typeof actual.useAccountStarredCount>)
@@ -177,6 +185,8 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.foldersData = undefined;
     sidebarSourceOverrides.accountArticlesEnabled = false;
     sidebarSourceOverrides.accountArticlesData = undefined;
+    sidebarSourceOverrides.starredArticlesEnabled = false;
+    sidebarSourceOverrides.starredArticlesData = undefined;
     sidebarSourceOverrides.starredCountEnabled = false;
     sidebarSourceOverrides.starredCountData = undefined;
     sidebarSourceOverrides.tagArticleCountsEnabled = false;
@@ -562,6 +572,107 @@ describe("Sidebar", () => {
 
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "starred" });
     expect(useUiStore.getState().viewMode).toBe("all");
+  });
+
+  it("keeps starred subscription context when selecting a feed from the starred smart view", async () => {
+    const user = userEvent.setup();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+
+    expect(await screen.findByRole("button", { name: /Tech Blog/ })).toHaveTextContent("1");
+    expect(screen.queryByRole("button", { name: /News/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Tech Blog/ }));
+
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    expect(useUiStore.getState().viewMode).toBe("starred");
+  });
+
+  it("keeps starred subscription context when selecting a folder from the starred smart view", async () => {
+    const user = userEvent.setup();
+    sidebarSourceOverrides.feedsEnabled = true;
+    sidebarSourceOverrides.feedsData = [
+      { ...sampleFeeds[0], id: "feed-starred", title: "Starred Feed", folder_id: "folder-starred", unread_count: 0 },
+      { ...sampleFeeds[1], id: "feed-plain", title: "Plain Feed", folder_id: "folder-plain", unread_count: 0 },
+    ];
+    sidebarSourceOverrides.foldersEnabled = true;
+    sidebarSourceOverrides.foldersData = [
+      { id: "folder-starred", account_id: "acc-1", name: "Starred Folder", sort_order: 0 },
+      { id: "folder-plain", account_id: "acc-1", name: "Plain Folder", sort_order: 1 },
+    ];
+    sidebarSourceOverrides.starredArticlesEnabled = true;
+    sidebarSourceOverrides.starredArticlesData = [
+      {
+        id: "star-1",
+        feed_id: "feed-starred",
+        title: "Starred article",
+        content_sanitized: "<p>starred</p>",
+        summary: null,
+        url: "https://example.com/starred",
+        author: null,
+        published_at: "2026-05-02T00:00:00Z",
+        thumbnail: null,
+        is_read: true,
+        is_starred: true,
+      },
+    ];
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+
+    expect(await screen.findByRole("button", { name: "Select folder Starred Folder" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select folder Plain Folder" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Select folder Starred Folder" }));
+
+    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-starred" });
+    expect(useUiStore.getState().viewMode).toBe("starred");
+    expect(screen.getByRole("button", { name: "Select folder Starred Folder" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select folder Plain Folder" })).not.toBeInTheDocument();
+  });
+
+  it("uses the starred article source for the starred subscription tree", async () => {
+    const user = userEvent.setup();
+    sidebarSourceOverrides.accountArticlesEnabled = true;
+    sidebarSourceOverrides.accountArticlesData = [];
+    sidebarSourceOverrides.starredArticlesEnabled = true;
+    sidebarSourceOverrides.starredArticlesData = [
+      {
+        id: "star-1",
+        feed_id: "feed-1",
+        title: "Starred article",
+        content_sanitized: "<p>starred</p>",
+        summary: null,
+        url: "https://example.com/starred",
+        author: null,
+        published_at: "2026-05-02T00:00:00Z",
+        thumbnail: null,
+        is_read: true,
+        is_starred: true,
+      },
+    ];
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+
+    expect(await screen.findByRole("button", { name: /Tech Blog/ })).toHaveTextContent("1");
+    expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
   });
 
   it("allows the feed list scroll area to shrink inside the sidebar column layout", () => {

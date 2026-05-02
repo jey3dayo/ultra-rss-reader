@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { useAccountArticles, useArticles, useRecentArticles, useStarredArticles } from "@/hooks/use-articles";
+import { useAccountArticles, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useArticlesByTag } from "@/hooks/use-tags";
@@ -10,88 +10,67 @@ import {
   mergeRetainedArticlesSnapshot,
   type RetainedArticlesSnapshot,
 } from "@/lib/article-list";
+import { type ReaderSourceKind, resolveReaderSourcePlan } from "@/lib/reader-query";
 import type {
-  ArticleListPrimarySourceContext,
   ArticleListPrimarySourceSnapshot,
-  ArticleListViewMode,
   UseArticleListSourcesParams,
   UseArticleListSourcesResult,
 } from "./article-list.types";
 
-function resolveArticleListSourceSelection(params: {
-  selection: UseArticleListSourcesParams["selection"];
-  selectedAccountId: string | null;
-  viewMode: ArticleListViewMode;
-}) {
-  const { selection, selectedAccountId, viewMode } = params;
-  const feedId = selection.type === "feed" ? selection.feedId : null;
-  const folderId = selection.type === "folder" ? selection.folderId : null;
-  const tagId = selection.type === "tag" ? selection.tagId : null;
-  const smartViewKind = selection.type === "smart" ? selection.kind : null;
-  const accountListScopeId = feedId || tagId ? null : selectedAccountId;
-
-  return {
-    feedId,
-    folderId,
-    tagId,
-    smartViewKind,
-    accountListScopeId,
-    unreadOnlyForFeed: smartViewKind !== "starred" && viewMode === "unread",
-    unreadOnlyForAccount: smartViewKind === "unread" || (smartViewKind !== "starred" && viewMode === "unread"),
-  };
-}
-
 function resolvePrimarySourceArticles(params: {
-  selectionContext: ArticleListPrimarySourceContext;
+  sourceKind: ReaderSourceKind;
   articles: ArticleDto[] | undefined;
   tagArticles: ArticleDto[] | undefined;
+  folderArticles: ArticleDto[] | undefined;
   accountSelectionArticles: ArticleDto[] | undefined;
 }): ArticleDto[] | undefined {
-  const { selectionContext, articles, tagArticles, accountSelectionArticles } = params;
+  const { sourceKind, articles, tagArticles, folderArticles, accountSelectionArticles } = params;
 
-  if (selectionContext.kind === "feed") {
+  if (sourceKind === "feed") {
     return articles;
   }
 
-  if (selectionContext.kind === "tag") {
+  if (sourceKind === "tag") {
     return tagArticles;
+  }
+
+  if (sourceKind === "folder") {
+    return folderArticles;
   }
 
   return accountSelectionArticles;
 }
 
 function resolvePrimarySourceLoading(params: {
-  selectionContext: ArticleListPrimarySourceContext;
+  sourceKind: ReaderSourceKind;
   isLoading: boolean;
   isLoadingTagArticles: boolean;
-  smartViewKind: "unread" | "starred" | "recent" | null;
-  isLoadingStarredArticles: boolean;
+  isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
   isLoadingAccountArticles: boolean;
 }): boolean {
   const {
-    selectionContext,
+    sourceKind,
     isLoading,
     isLoadingTagArticles,
-    smartViewKind,
-    isLoadingStarredArticles,
+    isLoadingFolderArticles,
     isLoadingRecentArticles,
     isLoadingAccountArticles,
   } = params;
 
-  if (selectionContext.kind === "feed") {
+  if (sourceKind === "feed") {
     return isLoading;
   }
 
-  if (selectionContext.kind === "tag") {
+  if (sourceKind === "tag") {
     return isLoadingTagArticles;
   }
 
-  if (smartViewKind === "starred") {
-    return isLoadingStarredArticles;
+  if (sourceKind === "folder") {
+    return isLoadingFolderArticles;
   }
 
-  if (smartViewKind === "recent") {
+  if (sourceKind === "recent") {
     return isLoadingRecentArticles;
   }
 
@@ -100,31 +79,30 @@ function resolvePrimarySourceLoading(params: {
 
 export function useArticleListSources({
   selection,
-  selectionContext,
   selectedAccountId,
   retainedArticleIds,
   viewMode,
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
-  const { feedId, folderId, tagId, smartViewKind, accountListScopeId, unreadOnlyForFeed, unreadOnlyForAccount } =
-    resolveArticleListSourceSelection({
-      selection,
-      selectedAccountId,
-      viewMode,
-    });
+  const sourcePlan = resolveReaderSourcePlan(selection, viewMode, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
-  const { data: allFeedArticles } = useArticles(feedId);
-  const { data: articles, isLoading } = useArticles(feedId, { unreadOnly: unreadOnlyForFeed });
-  const { data: allAccountArticles } = useAccountArticles(accountListScopeId);
-  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId, {
-    unreadOnly: unreadOnlyForAccount,
+  const { data: allFeedArticles } = useArticles(sourcePlan.feedId, { mode: "all" });
+  const { data: articles, isLoading } = useArticles(sourcePlan.feedId, { mode: sourcePlan.feedMode });
+  const { data: allAccountArticles } = useAccountArticles(sourcePlan.accountId, { mode: "all" });
+  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(sourcePlan.accountId, {
+    mode: sourcePlan.accountMode,
   });
-  const { data: starredArticles, isLoading: isLoadingStarredArticles } = useStarredArticles(
-    smartViewKind === "starred" ? accountListScopeId : null,
-  );
+  const { data: folderArticles, isLoading: isLoadingFolderArticles } = useFolderArticles(sourcePlan.folderId, {
+    mode: sourcePlan.folderMode,
+  });
   const { data: recentArticles, isLoading: isLoadingRecentArticles } = useRecentArticles(
-    smartViewKind === "recent" ? accountListScopeId : null,
+    sourcePlan.sourceKind === "recent" ? sourcePlan.accountId : null,
+    {
+      mode: sourcePlan.recentMode,
+    },
   );
-  const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId, selectedAccountId);
+  const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(sourcePlan.tagId, selectedAccountId, {
+    mode: sourcePlan.tagMode,
+  });
   const feedsSnapshotCandidate = useMemo(
     () => (selectedAccountId !== null && feeds !== undefined ? { accountId: selectedAccountId, feeds } : null),
     [feeds, selectedAccountId],
@@ -132,20 +110,19 @@ export function useArticleListSources({
   const { snapshot: feedsSnapshot } = useScreenSnapshot(feedsSnapshotCandidate, feedsSnapshotCandidate !== null);
   const adoptedFeedsSnapshot = adoptSnapshotByKey(feedsSnapshot, "accountId", selectedAccountId);
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
-  const accountSelectionArticles =
-    smartViewKind === "starred" ? starredArticles : smartViewKind === "recent" ? recentArticles : accountArticles;
+  const accountSelectionArticles = sourcePlan.sourceKind === "recent" ? recentArticles : accountArticles;
   const primarySourceArticles = resolvePrimarySourceArticles({
-    selectionContext,
+    sourceKind: sourcePlan.sourceKind,
     articles,
     tagArticles,
+    folderArticles,
     accountSelectionArticles,
   });
   const primarySourceLoading = resolvePrimarySourceLoading({
-    selectionContext,
+    sourceKind: sourcePlan.sourceKind,
     isLoading,
     isLoadingTagArticles,
-    smartViewKind,
-    isLoadingStarredArticles,
+    isLoadingFolderArticles,
     isLoadingRecentArticles,
     isLoadingAccountArticles,
   });
@@ -154,16 +131,16 @@ export function useArticleListSources({
       primarySourceArticles === undefined
         ? null
         : {
-            contextKey: selectionContext.key,
+            contextKey: sourcePlan.sourceKey,
             articles: primarySourceArticles,
           },
-    [primarySourceArticles, selectionContext.key],
+    [primarySourceArticles, sourcePlan.sourceKey],
   );
   const { snapshot: primarySourceSnapshot } = useScreenSnapshot(
     primarySourceSnapshotCandidate,
     primarySourceSnapshotCandidate !== null,
   );
-  const adoptedPrimarySourceSnapshot = adoptSnapshotByKey(primarySourceSnapshot, "contextKey", selectionContext.key);
+  const adoptedPrimarySourceSnapshot = adoptSnapshotByKey(primarySourceSnapshot, "contextKey", sourcePlan.sourceKey);
   const resolvedPrimarySourceArticles = adoptedPrimarySourceSnapshot?.articles ?? primarySourceArticles;
   const currentRetainedArticles = useMemo(() => {
     return collectRetainedArticlesFromSources({
@@ -171,6 +148,7 @@ export function useArticleListSources({
       sources: [
         primarySourceArticles,
         accountArticles,
+        folderArticles,
         recentArticles,
         articles,
         allFeedArticles,
@@ -183,6 +161,7 @@ export function useArticleListSources({
     articles,
     allFeedArticles,
     allAccountArticles,
+    folderArticles,
     primarySourceArticles,
     recentArticles,
     retainedArticleIds,
@@ -199,34 +178,43 @@ export function useArticleListSources({
     setRetainedArticlesSnapshot((previous) => {
       return mergeRetainedArticlesSnapshot({
         previous,
-        contextKey: selectionContext.key,
+        contextKey: sourcePlan.sourceKey,
         retainedArticleIds,
         currentRetainedArticles,
       });
     });
-  }, [currentRetainedArticles, retainedArticleIds, selectionContext.key]);
+  }, [currentRetainedArticles, retainedArticleIds, sourcePlan.sourceKey]);
   const resolvedPrimarySourceArticlesWithRetained = useMemo(() => {
     return mergeResolvedArticlesWithRetained({
       resolvedPrimarySourceArticles,
       retainedArticlesSnapshot,
       retainedArticleIds,
-      contextKey: selectionContext.key,
+      contextKey: sourcePlan.sourceKey,
     });
-  }, [resolvedPrimarySourceArticles, retainedArticleIds, retainedArticlesSnapshot, selectionContext.key]);
+  }, [resolvedPrimarySourceArticles, retainedArticleIds, retainedArticlesSnapshot, sourcePlan.sourceKey]);
   const isPrimarySourceLoading = primarySourceLoading && adoptedPrimarySourceSnapshot === null;
 
   return {
-    feedId,
-    folderId,
-    tagId,
-    smartViewKind,
-    accountListScopeId,
+    feedId: sourcePlan.feedId,
+    folderId: sourcePlan.folderId,
+    tagId: sourcePlan.tagId,
+    sourcePlan,
+    accountListScopeId:
+      sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
+        ? sourcePlan.sourceKey
+        : null,
     feeds: resolvedFeeds,
-    articles: selectionContext.kind === "feed" ? resolvedPrimarySourceArticlesWithRetained : articles,
-    accountArticles: selectionContext.kind === "account" ? resolvedPrimarySourceArticlesWithRetained : accountArticles,
-    tagArticles: selectionContext.kind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
-    isLoading: selectionContext.kind === "feed" ? isPrimarySourceLoading : isLoading,
-    isLoadingAccountArticles: selectionContext.kind === "account" ? isPrimarySourceLoading : isLoadingAccountArticles,
-    isLoadingTagArticles: selectionContext.kind === "tag" ? isPrimarySourceLoading : isLoadingTagArticles,
+    articles: sourcePlan.sourceKind === "feed" ? resolvedPrimarySourceArticlesWithRetained : articles,
+    accountArticles:
+      sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
+        ? resolvedPrimarySourceArticlesWithRetained
+        : accountArticles,
+    tagArticles: sourcePlan.sourceKind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
+    isLoading: sourcePlan.sourceKind === "feed" ? isPrimarySourceLoading : isLoading,
+    isLoadingAccountArticles:
+      sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
+        ? isPrimarySourceLoading
+        : isLoadingAccountArticles,
+    isLoadingTagArticles: sourcePlan.sourceKind === "tag" ? isPrimarySourceLoading : isLoadingTagArticles,
   };
 }

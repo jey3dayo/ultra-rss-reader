@@ -69,7 +69,12 @@ describe("getVisibleSidebarFeedTreeData", () => {
             web_preview_mode: "off",
           },
         ],
-        { selectedFeedId: "feed-b", grayscaleFavicons: true },
+        {
+          selectedFeedId: "feed-b",
+          grayscaleFavicons: true,
+          viewMode: "all",
+          starredCountByFeedId: new Map(),
+        },
       ),
     ).toMatchObject([
       {
@@ -162,6 +167,8 @@ describe("getVisibleSidebarFeedTreeData", () => {
       selectedFolderId: "folder-2",
       selectedFeedId: "feed-a",
       grayscaleFavicons: true,
+      viewMode: "unread",
+      starredCountByFeedId: new Map(),
       hideEmptyFoldersInCurrentView: true,
     });
 

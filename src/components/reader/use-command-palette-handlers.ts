@@ -12,8 +12,8 @@ export function useCommandPaletteHandlers({
   closePalette,
   openShortcutsHelp,
   showToast,
-  selectFeed,
-  selectTag,
+  selectFeedFromCurrentContext,
+  selectTagFromCurrentContext,
   selectArticle,
   openFeedLanding,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
@@ -36,13 +36,13 @@ export function useCommandPaletteHandlers({
 
   function handleTagSelect(tagId: string) {
     addToHistory(createCommandPaletteHistoryValue({ kind: "tag", id: tagId }));
-    selectTag(tagId);
+    selectTagFromCurrentContext(tagId);
     closePalette();
   }
 
   function handleArticleSelect(feedId: string, articleId: string) {
     addToHistory(createCommandPaletteHistoryValue({ kind: "article", id: articleId }));
-    selectFeed(feedId);
+    selectFeedFromCurrentContext(feedId);
     selectArticle(articleId);
     closePalette();
   }

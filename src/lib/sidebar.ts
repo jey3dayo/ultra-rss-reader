@@ -1,4 +1,4 @@
-import type { FeedDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { SortSubscriptions } from "@/stores/preferences-store";
 
 type GroupedFeeds = {
@@ -31,6 +31,19 @@ export function countFeedsInFolder(feeds: FeedDto[] | undefined, folderId: strin
 
 export function sumUnreadCounts(feeds: FeedDto[] | undefined): number {
   return (feeds ?? []).reduce((sum, feed) => sum + feed.unread_count, 0);
+}
+
+export function buildStarredCountByFeedId(articles: ArticleDto[] | undefined): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const article of articles ?? []) {
+    if (!article.is_starred) {
+      continue;
+    }
+
+    counts.set(article.feed_id, (counts.get(article.feed_id) ?? 0) + 1);
+  }
+
+  return counts;
 }
 
 export function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {

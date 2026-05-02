@@ -125,4 +125,35 @@ describe("useFeedLanding", () => {
       expect(useUiStore.getState().contentMode).toBe("empty");
     });
   });
+
+  it("preserves starred context and lands on a starred feed article", async () => {
+    useUiStore.setState({
+      selection: { type: "smart", kind: "starred" },
+      viewMode: "all",
+    });
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter(
+            (article) => article.feed_id === args.feedId && (!args.starredOnly || article.is_starred),
+          );
+        default:
+          return undefined;
+      }
+    });
+
+    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current("feed-1");
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().viewMode).toBe("starred");
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+    });
+  });
 });

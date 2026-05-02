@@ -8,6 +8,8 @@ import {
   getFeedIntegrityReport,
   listAccountArticles,
   listArticles,
+  listFeedStarredArticles,
+  listFolderArticles,
   listRecentArticles,
   listStarredArticles,
   markArticleRead,
@@ -21,6 +23,7 @@ import {
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 import { invalidateArticleQueries } from "@/lib/query-invalidation";
+import type { ReaderFilter } from "@/lib/reader-query";
 
 export type SetReadMutationInput = {
   id: string;
@@ -36,6 +39,19 @@ export type RecordArticleViewMutationInput = {
   accountId: string;
   articleId: string;
 };
+
+type ArticleQueryOptions = {
+  mode?: ReaderFilter;
+  unreadOnly?: boolean;
+};
+
+function resolveArticleQueryMode(options?: ArticleQueryOptions): ReaderFilter {
+  if (options?.mode) {
+    return options.mode;
+  }
+
+  return options?.unreadOnly ? "unread" : "all";
+}
 
 function requireEnabledQueryValue(value: string | null, label: string): string {
   if (!value) {
@@ -207,30 +223,66 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   });
 }
 
-export function useArticles(feedId: string | null, options?: { unreadOnly?: boolean }) {
-  const unreadOnly = options?.unreadOnly ?? false;
+export function useArticles(feedId: string | null, options?: ArticleQueryOptions) {
+  const mode = resolveArticleQueryMode(options);
 
   return useQuery({
-    queryKey: ["articles", feedId, { unreadOnly }],
-    queryFn: () => listArticles(requireEnabledQueryValue(feedId, "feedId"), unreadOnly).then(Result.unwrap()),
+    queryKey: ["articles", feedId, { mode }],
+    queryFn: () => {
+      const resolvedFeedId = requireEnabledQueryValue(feedId, "feedId");
+      return (
+        mode === "starred" ? listFeedStarredArticles(resolvedFeedId) : listArticles(resolvedFeedId, mode === "unread")
+      ).then(Result.unwrap());
+    },
     enabled: !!feedId,
   });
 }
 
-export function useAccountArticles(accountId: string | null, options?: { unreadOnly?: boolean }) {
-  const unreadOnly = options?.unreadOnly ?? false;
+export function useFeedStarredArticles(feedId: string | null) {
+  return useArticles(feedId, { mode: "starred" });
+}
+
+export function useAccountArticles(accountId: string | null, options?: ArticleQueryOptions) {
+  const mode = resolveArticleQueryMode(options);
 
   return useQuery({
-    queryKey: ["accountArticles", accountId, { unreadOnly }],
-    queryFn: () =>
-      listAccountArticles(requireEnabledQueryValue(accountId, "accountId"), unreadOnly).then(Result.unwrap()),
+    queryKey: ["accountArticles", accountId, { mode }],
+    queryFn: () => {
+      const resolvedAccountId = requireEnabledQueryValue(accountId, "accountId");
+      return (
+        mode === "starred"
+          ? listStarredArticles(resolvedAccountId)
+          : listAccountArticles(resolvedAccountId, mode === "unread")
+      ).then(Result.unwrap());
+    },
     enabled: !!accountId,
+  });
+}
+
+export function useFolderArticles(folderId: string | null, options?: { mode?: ReaderFilter }) {
+  const mode = options?.mode ?? "all";
+
+  return useQuery({
+    queryKey: ["folderArticles", folderId, { mode }],
+    queryFn: () => listFolderArticles(requireEnabledQueryValue(folderId, "folderId"), mode).then(Result.unwrap()),
+    enabled: !!folderId,
   });
 }
 
 export const useStarredArticles = createQuery("starredArticles", listStarredArticles);
 
-export const useRecentArticles = createQuery("recentArticles", listRecentArticles);
+export function useRecentArticles(accountId: string | null, options?: { mode?: ReaderFilter }) {
+  const mode = options?.mode ?? "all";
+
+  return useQuery({
+    queryKey: ["recentArticles", accountId, { mode }],
+    queryFn: () =>
+      listRecentArticles(requireEnabledQueryValue(accountId, "accountId"), undefined, undefined, mode).then(
+        Result.unwrap(),
+      ),
+    enabled: !!accountId,
+  });
+}
 
 export function useFeedIntegrityReport() {
   return useQuery({

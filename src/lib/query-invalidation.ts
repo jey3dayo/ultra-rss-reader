@@ -23,6 +23,7 @@ const QUERY_KEYS = {
   folders: ["folders"],
   articles: ["articles"],
   accountArticles: ["accountArticles"],
+  folderArticles: ["folderArticles"],
   starredArticles: ["starredArticles"],
   recentArticles: ["recentArticles"],
   accountUnreadCount: ["accountUnreadCount"],
@@ -77,6 +78,7 @@ export function invalidateArticleQueries(
 
   if (includeAccountArticles) {
     queryKeys.push(QUERY_KEYS.accountArticles);
+    queryKeys.push(QUERY_KEYS.folderArticles);
   }
 
   if (includeStarredArticles) {

@@ -9,6 +9,32 @@ pub struct Pagination {
     pub limit: usize,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ArticleListMode {
+    All,
+    Unread,
+    Starred,
+}
+
+impl ArticleListMode {
+    pub fn from_optional_str(value: Option<&str>) -> Result<Self, String> {
+        match value.unwrap_or("all") {
+            "all" => Ok(Self::All),
+            "unread" => Ok(Self::Unread),
+            "starred" => Ok(Self::Starred),
+            other => Err(format!("Invalid article list mode: {other}")),
+        }
+    }
+
+    pub fn sql_filter(self, article_alias: &str) -> Option<String> {
+        match self {
+            Self::All => None,
+            Self::Unread => Some(format!("{article_alias}.is_read = 0")),
+            Self::Starred => Some(format!("{article_alias}.is_starred = 1")),
+        }
+    }
+}
+
 impl Default for Pagination {
     fn default() -> Self {
         Self {
@@ -26,6 +52,11 @@ pub trait ArticleRepository {
         feed_id: &FeedId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
+    fn find_starred_by_feed(
+        &self,
+        feed_id: &FeedId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
     fn find_by_account(
         &self,
         account_id: &AccountId,
@@ -34,6 +65,21 @@ pub trait ArticleRepository {
     fn find_unread_by_account(
         &self,
         account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
+    fn find_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
+    fn find_unread_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
+    fn find_starred_by_folder(
+        &self,
+        folder_id: &FolderId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
     fn find_starred_by_account(
@@ -45,6 +91,7 @@ pub trait ArticleRepository {
         &self,
         account_id: &AccountId,
         pagination: &Pagination,
+        mode: ArticleListMode,
     ) -> DomainResult<Vec<ArticleViewHistoryItem>>;
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
     fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;

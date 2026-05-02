@@ -3,6 +3,7 @@ import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard-shortcuts";
+import type { ReaderSourcePlan } from "@/lib/reader-query";
 import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
@@ -384,18 +385,10 @@ export type UseArticleListSearchResult = {
 
 export type UseArticleListSourcesParams = {
   selection: UiSelection;
-  selectionContext: ArticleListPrimarySourceContext;
   selectedAccountId: string | null;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
   viewMode: ArticleListViewMode;
-};
-
-export type ArticleListPrimarySourceKind = "feed" | "account" | "tag";
-
-export type ArticleListPrimarySourceContext = {
-  kind: ArticleListPrimarySourceKind;
-  key: string;
 };
 
 export type ArticleListPrimarySourceSnapshot = {
@@ -407,7 +400,7 @@ export type UseArticleListSourcesResult = {
   feedId: string | null;
   folderId: string | null;
   tagId: string | null;
-  smartViewKind: "unread" | "starred" | "recent" | null;
+  sourcePlan: ReaderSourcePlan;
   accountListScopeId: string | null;
   feeds: FeedDto[] | undefined;
   articles: ArticleDto[] | undefined;
@@ -449,13 +442,11 @@ export type UseArticleListKeydownHandlerParams = {
 };
 
 export type UseArticleListDataParams = {
-  selection: UseArticleListSourcesParams["selection"];
   feedId: UseArticleListSourcesResult["feedId"];
   folderId: UseArticleListSourcesResult["folderId"];
   tagId: UseArticleListSourcesResult["tagId"];
-  smartViewKind: UseArticleListSourcesResult["smartViewKind"];
+  sourcePlan: UseArticleListSourcesResult["sourcePlan"];
   accountListScopeId: UseArticleListSourcesResult["accountListScopeId"];
-  viewMode: ArticleListViewMode;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
   feeds: UseArticleListSourcesResult["feeds"];

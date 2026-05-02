@@ -29,8 +29,13 @@ function createDefaultDevScenarioContext(): DevScenarioContext {
         listArticles(feedId, offset, limit).then(Result.unwrap()),
       listTags: async () => listTags().then(Result.unwrap()),
       getTagArticleCounts: async (accountId?: string) => getTagArticleCounts(accountId).then(Result.unwrap()),
-      listArticlesByTag: async (tagId: string, offset?: number, limit?: number, accountId?: string) =>
-        listArticlesByTag(tagId, offset, limit, accountId).then(Result.unwrap()),
+      listArticlesByTag: async (
+        tagId: string,
+        offset?: number,
+        limit?: number,
+        accountId?: string,
+        mode?: "all" | "unread" | "starred",
+      ) => listArticlesByTag(tagId, offset, limit, accountId, mode).then(Result.unwrap()),
     },
   };
 }

@@ -8,8 +8,8 @@ export function useCommandPaletteUiState() {
   const openShortcutsHelp = useUiStore((state) => state.openShortcutsHelp);
   const showToast = useUiStore((state) => state.showToast);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
-  const selectFeed = useUiStore((state) => state.selectFeed);
-  const selectTag = useUiStore((state) => state.selectTag);
+  const selectFeedFromCurrentContext = useUiStore((state) => state.selectFeedFromCurrentContext);
+  const selectTagFromCurrentContext = useUiStore((state) => state.selectTagFromCurrentContext);
   const selectArticle = useUiStore((state) => state.selectArticle);
 
   const platformKind = usePlatformStore((state) => state.platform.kind);
@@ -21,8 +21,8 @@ export function useCommandPaletteUiState() {
     openShortcutsHelp,
     showToast,
     selectedAccountId,
-    selectFeed,
-    selectTag,
+    selectFeedFromCurrentContext,
+    selectTagFromCurrentContext,
     selectArticle,
     platformKind,
     shortcutPrefs,

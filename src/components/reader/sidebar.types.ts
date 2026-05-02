@@ -108,6 +108,7 @@ export type SidebarControllerSectionsParams = {
   selectedAccountId: string | null;
   feeds: import("./sidebar-sources.types").SidebarSourcesResult["feeds"];
   folders: import("./sidebar-sources.types").SidebarSourcesResult["folders"];
+  starredCountByFeedId: import("./sidebar-sources.types").SidebarSourcesResult["starredCountByFeedId"];
   isFeedTreeLoading: import("./sidebar-sources.types").SidebarSourcesResult["isFeedTreeLoading"];
   showFeedTreeSkeleton: import("./sidebar-sources.types").SidebarSourcesResult["showFeedTreeSkeleton"];
   selection: SidebarSelection;
@@ -122,11 +123,11 @@ export type SidebarControllerSectionsParams = {
   showSidebarRecentArticles: boolean;
   showSidebarTags: boolean;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
-  selectFeed: (feedId: string) => void;
-  selectFolder: (folderId: string) => void;
+  selectFeedFromCurrentContext: (feedId: string) => void;
+  selectFolderFromCurrentContext: (folderId: string) => void;
   selectAll: () => void;
   selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
-  selectTag: SidebarContentSectionsProps["onSelectTag"];
+  selectTagFromCurrentContext: SidebarContentSectionsProps["onSelectTag"];
   setViewMode: (mode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode) => void;
   toggleFolder: (folderId: string) => void;
   displayFavicons: boolean;

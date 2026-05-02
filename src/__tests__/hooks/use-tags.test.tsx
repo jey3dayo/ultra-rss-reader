@@ -44,7 +44,7 @@ describe("useArticlesByTag", () => {
     rerender({ tagId: "tag-1", accountId: "acc-1" });
 
     await waitFor(() => {
-      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, "acc-1");
+      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, "acc-1", "all");
     });
   });
 });

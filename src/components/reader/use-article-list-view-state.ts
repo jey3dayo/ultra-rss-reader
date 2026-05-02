@@ -49,7 +49,7 @@ export function useArticleListViewState({
     }
 
     if (selection.kind === "recent") {
-      return ["all"];
+      return ["unread", "all", "starred"];
     }
 
     return ["unread", "all"];
@@ -58,10 +58,6 @@ export function useArticleListViewState({
   const footerDisabledModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
     if (selection.type === "smart" && selection.kind === "unread") {
       return ["unread"];
-    }
-
-    if (selection.type === "smart" && selection.kind === "recent") {
-      return ["all"];
     }
 
     return [];

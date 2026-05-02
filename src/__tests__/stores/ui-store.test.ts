@@ -57,6 +57,40 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().selectedArticleId).toBeNull();
   });
 
+  it("context-aware subscription selection returns to unread outside starred context", () => {
+    useUiStore.setState({ viewMode: "all", selection: { type: "all" } });
+
+    useUiStore.getState().selectFeedFromCurrentContext("feed-1");
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    expect(useUiStore.getState().viewMode).toBe("unread");
+
+    useUiStore.getState().selectFolderFromCurrentContext("folder-1");
+    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+    expect(useUiStore.getState().viewMode).toBe("unread");
+    expect(useUiStore.getState().expandedFolderIds.has("folder-1")).toBe(true);
+
+    useUiStore.getState().selectTagFromCurrentContext("tag-1");
+    expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+    expect(useUiStore.getState().viewMode).toBe("unread");
+  });
+
+  it("context-aware subscription selection preserves starred context", () => {
+    useUiStore.setState({ selection: { type: "smart", kind: "starred" }, viewMode: "all" });
+    useUiStore.getState().selectFeedFromCurrentContext("feed-1");
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    expect(useUiStore.getState().viewMode).toBe("starred");
+
+    useUiStore.setState({ selection: { type: "all" }, viewMode: "starred" });
+    useUiStore.getState().selectFolderFromCurrentContext("folder-1");
+    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+    expect(useUiStore.getState().viewMode).toBe("starred");
+
+    useUiStore.setState({ selection: { type: "smart", kind: "starred" }, viewMode: "all" });
+    useUiStore.getState().selectTagFromCurrentContext("tag-1");
+    expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+    expect(useUiStore.getState().viewMode).toBe("starred");
+  });
+
   it("selectSmartView('unread') keeps unread as a complete smart view without footer filtering", () => {
     useUiStore.getState().selectSmartView("unread");
 

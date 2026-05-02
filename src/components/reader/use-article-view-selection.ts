@@ -7,7 +7,6 @@ import { useTags } from "@/hooks/use-tags";
 import { type ArticleViewSummaryState, buildArticleViewSummary, findSelectedArticle } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { getPrimarySourceContext } from "./article-selection-context";
 import { useArticleListData } from "./use-article-list-data";
 import { useArticleListSources } from "./use-article-list-sources";
 
@@ -63,23 +62,19 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const { data: allFeedArticles } = useArticles(selectedFeedId);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
-  const selectionContext = getPrimarySourceContext(selection, selectedAccountId);
   const sources = useArticleListSources({
     selection,
-    selectionContext,
     selectedAccountId,
     selectedArticleId,
     retainedArticleIds,
     viewMode,
   });
   const data = useArticleListData({
-    selection,
     feedId: sources.feedId,
     folderId: sources.folderId,
     tagId: sources.tagId,
-    smartViewKind: sources.smartViewKind,
+    sourcePlan: sources.sourcePlan,
     accountListScopeId: sources.accountListScopeId,
-    viewMode,
     selectedArticleId,
     retainedArticleIds,
     feeds: sources.feeds,

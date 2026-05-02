@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import type { SidebarControllerSectionsParams, SidebarSectionPropsResult } from "./sidebar.types";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
@@ -9,6 +10,7 @@ export function useSidebarControllerSections({
   selectedAccountId,
   feeds,
   folders,
+  starredCountByFeedId,
   isFeedTreeLoading,
   showFeedTreeSkeleton,
   selection,
@@ -24,11 +26,11 @@ export function useSidebarControllerSections({
   showSidebarRecentArticles,
   showSidebarTags,
   setExpandedFolders,
-  selectFeed,
-  selectFolder,
+  selectFeedFromCurrentContext,
+  selectFolderFromCurrentContext,
   selectAll,
   selectSmartView,
-  selectTag,
+  selectTagFromCurrentContext,
   setViewMode,
   toggleFolder,
   displayFavicons,
@@ -91,10 +93,17 @@ export function useSidebarControllerSections({
     setExpandedFolders,
     onManageTags: handleOpenTagSettings,
   });
+  const handleSelectTag = useCallback(
+    (tagId: string) => {
+      selectTagFromCurrentContext(tagId);
+    },
+    [selectTagFromCurrentContext],
+  );
   const { feedTreeProps } = useSidebarFeedSectionController({
     selectedAccountId,
     feeds,
     folders,
+    starredCountByFeedId,
     selection,
     viewMode,
     expandedFolderIds,
@@ -109,8 +118,8 @@ export function useSidebarControllerSections({
     showSidebarTags,
     tags,
     setExpandedFolders,
-    selectFeed,
-    selectFolder,
+    selectFeed: selectFeedFromCurrentContext,
+    selectFolder: selectFolderFromCurrentContext,
     selectAll,
     selectSmartView,
     setViewMode,
@@ -161,7 +170,7 @@ export function useSidebarControllerSections({
     tags,
     tagArticleCounts,
     selection,
-    selectTag,
+    selectTag: handleSelectTag,
     renderTagSectionContextMenu,
     renderTagContextMenu,
     renderSubscriptionsSectionContextMenu,

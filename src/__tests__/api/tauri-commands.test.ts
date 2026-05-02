@@ -13,7 +13,9 @@ import {
   listAccountArticles,
   listAccounts,
   listArticles,
+  listArticlesByTag,
   listFeeds,
+  listFolderArticles,
   listMuteKeywords,
   listRecentArticles,
   listStarredArticles,
@@ -74,6 +76,20 @@ describe("tauri-commands with mockIPC", () => {
     });
   });
 
+  describe("listFolderArticles", () => {
+    it("returns unread articles for a given folder", async () => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "list_folder_articles" && args.folderId === "folder-1" && args.mode === "unread") {
+          return [sampleArticles[0]];
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await listFolderArticles("folder-1", "unread"));
+      expect(value.map((article) => article.id)).toEqual(["art-1"]);
+    });
+  });
+
   describe("recent article commands", () => {
     it("returns recently viewed articles for a given account", async () => {
       const value = Result.unwrap(await listRecentArticles("acc-1"));
@@ -81,9 +97,28 @@ describe("tauri-commands with mockIPC", () => {
       expect(value[0]?.viewed_at).toBe("2026-04-20T10:00:00Z");
     });
 
+    it("returns recently viewed articles filtered by mode", async () => {
+      const value = Result.unwrap(await listRecentArticles("acc-1", undefined, undefined, "unread"));
+      expect(value.map((article) => article.id)).toEqual(["art-1"]);
+    });
+
     it("records and clears recently viewed articles", async () => {
       Result.unwrap(await recordArticleView("acc-1", "art-1"));
       Result.unwrap(await clearArticleViewHistory("acc-1"));
+    });
+  });
+
+  describe("tag article commands", () => {
+    it("passes mode when listing articles by tag", async () => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "list_articles_by_tag" && args.tagId === "tag-1" && args.mode === "starred") {
+          return [sampleArticles[1]];
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await listArticlesByTag("tag-1", undefined, undefined, "acc-1", "starred"));
+      expect(value.map((article) => article.id)).toEqual(["art-2"]);
     });
   });
 

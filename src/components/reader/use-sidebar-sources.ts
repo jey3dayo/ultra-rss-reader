@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useAccountArticles, useAccountStarredCount } from "@/hooks/use-articles";
+import { useAccountArticles, useAccountStarredCount, useStarredArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
-import { sumUnreadCounts } from "@/lib/sidebar";
+import { buildStarredCountByFeedId, sumUnreadCounts } from "@/lib/sidebar";
 import type { SidebarSourcesParams, SidebarSourcesResult } from "./sidebar-sources.types";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 
@@ -16,6 +16,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const { data: tags } = useTags();
   const { data: tagArticleCounts } = useTagArticleCounts(selectedAccountId);
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
+  const { data: starredArticles } = useStarredArticles(selectedAccountId);
   const { data: accountStarredCount } = useAccountStarredCount(selectedAccountId);
 
   const accountStatusLabels = useSidebarAccountStatusLabels(accounts);
@@ -36,6 +37,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const showFeedTreeSkeleton = isFeedTreeLoading && adoptedSnapshot === null;
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
   const folderList = adoptedSnapshot?.folders ?? folders ?? [];
+  const starredCountByFeedId = useMemo(() => buildStarredCountByFeedId(starredArticles), [starredArticles]);
   const sidebarCountsSnapshotCandidate = useMemo(
     () =>
       selectedAccountId !== null && tagArticleCounts !== undefined && accountStarredCount !== undefined
@@ -67,6 +69,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     tags,
     tagArticleCounts: resolvedTagArticleCounts,
     accountArticles,
+    starredCountByFeedId,
     feedList,
     folderList,
     totalUnread,

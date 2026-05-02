@@ -16,12 +16,38 @@ import {
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
   resolveArticleGroupLabelToken,
-  resolveArticleListEffectiveViewMode,
   resolveArticleListMarkAllReadCount,
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/article-list";
+import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader-query";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
+
+function buildTestSourcePlan(params: {
+  sourceFilter: ReaderFilter;
+  effectiveViewMode: ReaderFilter;
+}): ReaderSourcePlan {
+  return {
+    query: {
+      source: "articles",
+      scope: { type: "account", accountId: "acc-1" },
+      filter: params.sourceFilter,
+    },
+    sourceKind: "account",
+    sourceKey: `account:acc-1:articles:${params.sourceFilter}`,
+    accountId: "acc-1",
+    folderId: null,
+    feedId: null,
+    tagId: null,
+    accountMode: params.sourceFilter,
+    folderMode: "all",
+    feedMode: "all",
+    tagMode: "all",
+    recentMode: "all",
+    effectiveViewMode: params.effectiveViewMode,
+    preservesRecentOrder: false,
+  };
+}
 
 describe("article-list utils", () => {
   it("filters and sorts account articles for unread view", () => {
@@ -47,6 +73,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "unread",
+      sourceFilter: null,
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
@@ -64,6 +91,7 @@ describe("article-list utils", () => {
       feedId: "feed-1",
       tagId: null,
       viewMode: "all",
+      sourceFilter: null,
       showSearch: true,
       searchQuery: "Second",
       sortUnread: "newest_first",
@@ -86,6 +114,7 @@ describe("article-list utils", () => {
       tagId: null,
       folderFeedIds: new Set(["feed-1"]),
       viewMode: "unread",
+      sourceFilter: null,
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
@@ -93,6 +122,28 @@ describe("article-list utils", () => {
     });
 
     expect(result.map((article) => article.id)).toEqual(["art-folder"]);
+  });
+
+  it("filters feed articles by feed id when the source is account-scoped starred articles", () => {
+    const result = selectVisibleArticles({
+      articles: [
+        { ...sampleArticles[0], id: "starred-feed", feed_id: "feed-1", is_starred: true, is_read: true },
+        { ...sampleArticles[1], id: "starred-other", feed_id: "feed-2", is_starred: true, is_read: true },
+      ],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [],
+      feedId: "feed-1",
+      tagId: null,
+      viewMode: "starred",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["starred-feed"]);
   });
 
   it("filters search results to the selected folder feed ids", () => {
@@ -108,6 +159,7 @@ describe("article-list utils", () => {
       tagId: null,
       folderFeedIds: new Set(["feed-1"]),
       viewMode: "all",
+      sourceFilter: null,
       showSearch: true,
       searchQuery: "Article",
       sortUnread: "newest_first",
@@ -129,7 +181,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "unread",
-      smartViewKind: "unread",
+      sourceFilter: "unread",
       showSearch: true,
       searchQuery: "search",
       sortUnread: "newest_first",
@@ -152,7 +204,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "unread",
-      smartViewKind: "starred",
+      sourceFilter: "starred",
       showSearch: true,
       searchQuery: "search",
       sortUnread: "newest_first",
@@ -179,7 +231,7 @@ describe("article-list utils", () => {
       searchQuery: "",
       sortUnread: "newest_first",
       retainedArticleIds: new Set(),
-      smartViewKind: "starred",
+      sourceFilter: "starred",
     });
 
     expect(result.map((article) => article.id)).toEqual(["starred-read", "starred-unread"]);
@@ -202,7 +254,7 @@ describe("article-list utils", () => {
       searchQuery: "",
       sortUnread: "newest_first",
       retainedArticleIds: new Set(),
-      smartViewKind: "starred",
+      sourceFilter: "starred",
     });
 
     expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
@@ -223,7 +275,8 @@ describe("article-list utils", () => {
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
-      smartViewKind: "recent",
+      sourceFilter: "all",
+      preservesSourceOrder: true,
     });
 
     expect(result.map((article) => article.id)).toEqual(["viewed-first", "viewed-second"]);
@@ -377,19 +430,10 @@ describe("article-list utils", () => {
     ).toBe(2);
   });
 
-  it("resolves effective list view mode for smart views", () => {
-    expect(resolveArticleListEffectiveViewMode("unread", "all")).toBe("unread");
-    expect(resolveArticleListEffectiveViewMode("starred", "unread")).toBe("unread");
-    expect(resolveArticleListEffectiveViewMode("starred", "starred")).toBe("all");
-    expect(resolveArticleListEffectiveViewMode("recent", "starred")).toBe("starred");
-    expect(resolveArticleListEffectiveViewMode(null, "all")).toBe("all");
-  });
-
   it("retains the selected starred smart-view row in all mode", () => {
     const retainedArticleIds = new Set(["art-1"]);
     const result = resolveEffectiveRetainedArticleIds({
-      selection: { type: "smart", kind: "starred" },
-      effectiveViewMode: "all",
+      sourcePlan: buildTestSourcePlan({ sourceFilter: "starred", effectiveViewMode: "all" }),
       retainedArticleIds,
       selectedArticleId: "art-2",
     });
@@ -403,16 +447,14 @@ describe("article-list utils", () => {
 
     expect(
       resolveEffectiveRetainedArticleIds({
-        selection: { type: "smart", kind: "starred" },
-        effectiveViewMode: "unread",
+        sourcePlan: buildTestSourcePlan({ sourceFilter: "starred", effectiveViewMode: "unread" }),
         retainedArticleIds,
         selectedArticleId: "art-2",
       }),
     ).toBe(retainedArticleIds);
     expect(
       resolveEffectiveRetainedArticleIds({
-        selection: { type: "feed", feedId: "feed-1" },
-        effectiveViewMode: "all",
+        sourcePlan: buildTestSourcePlan({ sourceFilter: "all", effectiveViewMode: "all" }),
         retainedArticleIds,
         selectedArticleId: "art-2",
       }),
@@ -532,6 +574,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "unread",
+      sourceFilter: null,
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
@@ -563,6 +606,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "unread",
+      sourceFilter: null,
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
@@ -593,6 +637,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "starred",
+      sourceFilter: null,
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
@@ -624,6 +669,7 @@ describe("article-list utils", () => {
       feedId: null,
       tagId: null,
       viewMode: "starred",
+      sourceFilter: null,
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",

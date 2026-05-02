@@ -142,12 +142,29 @@ function createDefaultHandler(): MockHandler {
       case "list_folders":
         return [];
       case "list_articles":
-        return sampleArticles.filter((a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read));
+        return sampleArticles.filter(
+          (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read) && (!args.starredOnly || a.is_starred),
+        );
       case "list_account_articles":
         return sampleArticles.filter((a) =>
           sampleFeeds.some(
             (f) => f.id === a.feed_id && f.account_id === args.accountId && (!args.unreadOnly || !a.is_read),
           ),
+        );
+      case "list_folder_articles":
+        return sampleArticles.filter((a) =>
+          sampleFeeds.some((f) => {
+            if (f.id !== a.feed_id || f.folder_id !== args.folderId) {
+              return false;
+            }
+            if (args.mode === "unread") {
+              return !a.is_read;
+            }
+            if (args.mode === "starred") {
+              return a.is_starred;
+            }
+            return true;
+          }),
         );
       case "list_starred_articles":
         return sampleArticles.filter(
@@ -156,6 +173,16 @@ function createDefaultHandler(): MockHandler {
       case "list_recent_articles":
         return [sampleArticles[1], sampleArticles[0]]
           .filter((article): article is ArticleDto => article !== undefined)
+          .filter((article) => {
+            if (args.mode === "unread") {
+              return !article.is_read;
+            }
+            if (args.mode === "starred") {
+              return article.is_starred;
+            }
+            return true;
+          })
+          .slice(Number(args.offset ?? 0), Number(args.offset ?? 0) + Number(args.limit ?? 20))
           .map((article) => ({ ...article, viewed_at: "2026-04-20T10:00:00Z" }));
       case "count_account_unread_articles":
         return sampleArticles.filter((a) =>

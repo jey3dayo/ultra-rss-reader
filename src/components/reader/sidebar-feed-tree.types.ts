@@ -12,6 +12,8 @@ export type SidebarSortFeeds = (candidateFeeds: FeedDto[]) => FeedDto[];
 export type SidebarFeedTreeViewModelOptions = {
   selectedFeedId: string | null;
   grayscaleFavicons: boolean;
+  viewMode: SidebarFeedTreeViewMode;
+  starredCountByFeedId: ReadonlyMap<string, number>;
 };
 
 export type SidebarFolderFeedVisibilityParams = {
@@ -46,6 +48,8 @@ export type SidebarFeedTreeFolderBuildParams = {
   selectedFolderId: string | null;
   selectedFeedId: string | null;
   grayscaleFavicons: boolean;
+  viewMode: SidebarFeedTreeViewMode;
+  starredCountByFeedId: ReadonlyMap<string, number>;
   hideEmptyFoldersInCurrentView: boolean;
 };
 
@@ -58,6 +62,7 @@ export type UseSidebarFeedTreeParams = {
   sortSubscriptions: SortSubscriptions;
   grayscaleFavicons: boolean;
   draggedFeedId: string | null;
+  starredCountByFeedId?: ReadonlyMap<string, number>;
 };
 
 export type UseSidebarFeedTreeResult = {

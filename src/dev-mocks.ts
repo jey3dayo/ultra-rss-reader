@@ -26,6 +26,7 @@ import {
   listArticlesArgs,
   listArticlesByTagArgs,
   listFeedsArgs,
+  listFolderArticlesArgs,
   listFoldersArgs,
   listRecentArticlesArgs,
   listStarredArticlesArgs,
@@ -262,14 +263,43 @@ export function setupDevMocks() {
       }
 
       case "list_articles": {
-        const { feedId } = listArticlesArgs.parse(payload);
-        return applyMuteKeywordFilter(mockArticles.filter((a) => a.feed_id === feedId));
+        const {
+          feedId,
+          unreadOnly = false,
+          starredOnly = false,
+          offset = 0,
+          limit = 50,
+        } = listArticlesArgs.parse(payload);
+        const articles = mockArticles.filter(
+          (article) =>
+            article.feed_id === feedId && (!unreadOnly || !article.is_read) && (!starredOnly || article.is_starred),
+        );
+        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
       }
 
       case "list_account_articles": {
-        const { accountId } = listAccountArticlesArgs.parse(payload);
+        const { accountId, unreadOnly = false, offset = 0, limit = 50 } = listAccountArticlesArgs.parse(payload);
         const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
-        return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.includes(a.feed_id)));
+        const articles = mockArticles.filter((a) => feedIds.includes(a.feed_id) && (!unreadOnly || !a.is_read));
+        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+      }
+
+      case "list_folder_articles": {
+        const { folderId, mode = "all", offset = 0, limit = 50 } = listFolderArticlesArgs.parse(payload);
+        const feedIds = new Set(mockFeeds.filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
+        const articles = mockArticles.filter((article) => {
+          if (!feedIds.has(article.feed_id)) {
+            return false;
+          }
+          if (mode === "unread") {
+            return !article.is_read;
+          }
+          if (mode === "starred") {
+            return article.is_starred;
+          }
+          return true;
+        });
+        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
       }
 
       case "count_account_unread_articles": {
@@ -289,11 +319,10 @@ export function setupDevMocks() {
       }
 
       case "list_recent_articles": {
-        const { accountId, offset = 0, limit = 20 } = listRecentArticlesArgs.parse(payload);
+        const { accountId, mode = "all", offset = 0, limit = 20 } = listRecentArticlesArgs.parse(payload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         const articles = mockArticleViewHistory
           .filter((item) => item.accountId === accountId)
-          .slice(offset, offset + limit)
           .map((item): ArticleDto | null => {
             const article = mockArticles.find((candidate) => candidate.id === item.articleId);
             if (!article || !feedIds.has(article.feed_id)) {
@@ -301,7 +330,17 @@ export function setupDevMocks() {
             }
             return { ...article, viewed_at: item.viewedAt };
           })
-          .filter((article): article is ArticleDto => article !== null);
+          .filter((article): article is ArticleDto => article !== null)
+          .filter((article) => {
+            if (mode === "unread") {
+              return !article.is_read;
+            }
+            if (mode === "starred") {
+              return article.is_starred;
+            }
+            return true;
+          })
+          .slice(offset, offset + limit);
         return applyMuteKeywordFilter(articles);
       }
 
@@ -558,14 +597,19 @@ export function setupDevMocks() {
       }
 
       case "list_articles_by_tag": {
-        const { tagId, accountId } = listArticlesByTagArgs.parse(payload);
+        const { tagId, accountId, mode = "all", offset = 0, limit = 50 } = listArticlesByTagArgs.parse(payload);
         const articleIds = mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id);
         let filtered = mockArticles.filter((a) => articleIds.includes(a.id));
         if (accountId) {
           const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
           filtered = filtered.filter((a) => feedIds.includes(a.feed_id));
         }
-        return applyMuteKeywordFilter(filtered);
+        if (mode === "unread") {
+          filtered = filtered.filter((article) => !article.is_read);
+        } else if (mode === "starred") {
+          filtered = filtered.filter((article) => article.is_starred);
+        }
+        return applyMuteKeywordFilter(filtered).slice(offset, offset + limit);
       }
 
       case "get_tag_article_counts": {

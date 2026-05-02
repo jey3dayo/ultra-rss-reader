@@ -9,6 +9,7 @@ import {
   getStartOfLocalDay,
   parseDateInput,
 } from "@/lib/datetime";
+import type { ReaderSourcePlan } from "@/lib/reader-query";
 
 type ViewMode = "all" | "unread" | "starred";
 
@@ -21,7 +22,8 @@ export type SelectVisibleArticlesParams = {
   tagId: string | null;
   folderFeedIds?: ReadonlySet<string> | null;
   viewMode: ViewMode;
-  smartViewKind?: "unread" | "starred" | "recent" | null;
+  sourceFilter: ViewMode | null;
+  preservesSourceOrder?: boolean;
   showSearch: boolean;
   searchQuery: string;
   sortUnread: string;
@@ -106,32 +108,44 @@ function filterByFolderFeedIds(
   return articles.filter((article) => folderFeedIds.has(article.feed_id));
 }
 
+function filterByFeedId(articles: ArticleDto[], feedId: string | null): ArticleDto[] {
+  if (!feedId) {
+    return articles;
+  }
+
+  return articles.filter((article) => article.feed_id === feedId);
+}
+
 function filterByViewMode(
   articles: ArticleDto[],
   viewMode: ViewMode,
-  smartViewKind: "unread" | "starred" | "recent" | null | undefined,
+  sourceFilter: ViewMode | null,
   retainedArticleIds: ReadonlySet<string> | undefined,
 ): ArticleDto[] {
-  const starredSmartView = smartViewKind === "starred";
-
   // In unread/starred views, keep the current row visible until the user changes
   // screens. Marking an article read/starred should not make it disappear mid-click.
-  if (starredSmartView) {
-    const starred = articles.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
-    return viewMode === "unread"
-      ? starred.filter((article) => !article.is_read || retainedArticleIds?.has(article.id))
-      : starred;
+  const applyMode = (candidates: ArticleDto[], mode: ViewMode): ArticleDto[] => {
+    if (mode === "unread") {
+      return candidates.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
+    }
+
+    if (mode === "starred") {
+      return candidates.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
+    }
+
+    return candidates;
+  };
+
+  let filtered = articles;
+  if (sourceFilter !== null && sourceFilter !== "all") {
+    filtered = applyMode(filtered, sourceFilter);
   }
 
-  if (viewMode === "unread") {
-    return articles.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
+  if (viewMode !== sourceFilter && viewMode !== "all") {
+    filtered = applyMode(filtered, viewMode);
   }
 
-  if (viewMode === "starred") {
-    return articles.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
-  }
-
-  return [...articles];
+  return [...filtered];
 }
 
 export function areArticleListsEquivalent(left: ArticleDto[], right: ArticleDto[]): boolean {
@@ -246,7 +260,8 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     tagId,
     folderFeedIds,
     viewMode,
-    smartViewKind,
+    sourceFilter,
+    preservesSourceOrder,
     showSearch,
     searchQuery,
     sortUnread,
@@ -258,21 +273,21 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     list = filterByViewMode(
       filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds),
       viewMode,
-      smartViewKind,
+      sourceFilter,
       retainedArticleIds,
     );
   } else if (tagId) {
-    list = [...(tagArticles ?? [])];
+    list = filterByViewMode([...(tagArticles ?? [])], viewMode, sourceFilter, retainedArticleIds);
   } else {
     list = filterByViewMode(
-      filterByFolderFeedIds(feedId ? (articles ?? []) : (accountArticles ?? []), folderFeedIds),
+      filterByFeedId(filterByFolderFeedIds(feedId ? (articles ?? []) : (accountArticles ?? []), folderFeedIds), feedId),
       viewMode,
-      smartViewKind,
+      sourceFilter,
       retainedArticleIds,
     );
   }
 
-  if (smartViewKind === "recent") {
+  if (preservesSourceOrder) {
     return list;
   }
 
@@ -303,29 +318,13 @@ export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllRea
   return getUnreadArticleIds(filteredArticles).length;
 }
 
-export function resolveArticleListEffectiveViewMode(
-  smartViewKind: "unread" | "starred" | "recent" | null,
-  viewMode: ViewMode,
-): ViewMode {
-  if (smartViewKind === "unread") {
-    return "unread";
-  }
-
-  if (smartViewKind === "starred") {
-    return viewMode === "unread" ? "unread" : "all";
-  }
-
-  return viewMode;
-}
-
 export function resolveEffectiveRetainedArticleIds(params: {
-  selection: ArticleListSelectionForDerivedState;
-  effectiveViewMode: ViewMode;
+  sourcePlan: ReaderSourcePlan;
   retainedArticleIds: ReadonlySet<string>;
   selectedArticleId: string | null;
 }): ReadonlySet<string> {
-  const { selection, effectiveViewMode, retainedArticleIds, selectedArticleId } = params;
-  if (selection.type === "smart" && selection.kind === "starred" && effectiveViewMode === "all" && selectedArticleId) {
+  const { sourcePlan, retainedArticleIds, selectedArticleId } = params;
+  if (sourcePlan.query?.filter === "starred" && sourcePlan.effectiveViewMode === "all" && selectedArticleId) {
     return new Set([...retainedArticleIds, selectedArticleId]);
   }
 
