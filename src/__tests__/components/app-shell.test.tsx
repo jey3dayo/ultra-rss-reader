@@ -21,6 +21,7 @@ vi.mock("@/hooks/use-breakpoint", () => ({ useBreakpoint: vi.fn() }));
 vi.mock("@/hooks/use-keyboard", () => ({ useKeyboard: vi.fn() }));
 vi.mock("@/hooks/use-menu-events", () => ({ useMenuEvents: vi.fn() }));
 vi.mock("@/hooks/use-updater", () => ({ useUpdater: vi.fn() }));
+vi.mock("@/hooks/use-window-always-on-top", () => ({ useWindowAlwaysOnTop: vi.fn() }));
 
 vi.mock("@/components/app-layout", () => ({
   AppLayout: () => <div>App Layout</div>,

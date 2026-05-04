@@ -279,6 +279,113 @@ pub fn load_browser_preview_prefs<R: Runtime>(
         .map_err(|error| std::io::Error::other(format!("Preference read error: {error}")))
 }
 
+pub fn browser_preview_focus_override_source(prefs: &HashMap<String, String>) -> Option<String> {
+    if prefs.get("web_preview_keep_focus").map(String::as_str) != Some("true") {
+        return None;
+    }
+
+    Some(
+        r#"
+(() => {
+  if (window.__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__) return;
+  Object.defineProperty(window, '__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__', {
+    configurable: false,
+    value: true,
+  });
+
+  const defineGetter = (target, property, value) => {
+    try {
+      Object.defineProperty(target, property, {
+        configurable: true,
+        get: () => value,
+      });
+    } catch (_) {}
+  };
+  const defineValue = (target, property, value) => {
+    try {
+      Object.defineProperty(target, property, {
+        configurable: true,
+        value,
+      });
+    } catch (_) {}
+  };
+
+  defineGetter(Document.prototype, 'hidden', false);
+  defineGetter(document, 'hidden', false);
+  defineGetter(Document.prototype, 'visibilityState', 'visible');
+  defineGetter(document, 'visibilityState', 'visible');
+  defineValue(Document.prototype, 'hasFocus', () => true);
+  defineValue(document, 'hasFocus', () => true);
+
+  const blockedEvents = new Set(['blur', 'focus', 'visibilitychange', 'webkitvisibilitychange']);
+  const shouldBlock = (target, type) => blockedEvents.has(type) && (target === window || target === document);
+  const isEventListener = (listener) => typeof listener === 'function' || (listener !== null && typeof listener === 'object');
+  const originalAddEventListener = EventTarget.prototype.addEventListener;
+  const originalRemoveEventListener = EventTarget.prototype.removeEventListener;
+  const blockedListeners = new WeakMap();
+
+  EventTarget.prototype.addEventListener = function(type, listener, options) {
+    if (shouldBlock(this, type) && isEventListener(listener)) {
+      let listenersByType = blockedListeners.get(this);
+      if (!listenersByType) {
+        listenersByType = new Map();
+        blockedListeners.set(this, listenersByType);
+      }
+      let listeners = listenersByType.get(type);
+      if (!listeners) {
+        listeners = new WeakSet();
+        listenersByType.set(type, listeners);
+      }
+      listeners.add(listener);
+      return;
+    }
+    return originalAddEventListener.call(this, type, listener, options);
+  };
+
+  EventTarget.prototype.removeEventListener = function(type, listener, options) {
+    if (shouldBlock(this, type) && isEventListener(listener)) {
+      const listenersByType = blockedListeners.get(this);
+      const listeners = listenersByType?.get(type);
+      if (listeners?.has(listener)) {
+        return;
+      }
+    }
+    return originalRemoveEventListener.call(this, type, listener, options);
+  };
+
+  const stopFocusVisibilityEvent = (event) => {
+    event.stopImmediatePropagation();
+  };
+  for (const type of blockedEvents) {
+    originalAddEventListener.call(window, type, stopFocusVisibilityEvent, true);
+    originalAddEventListener.call(document, type, stopFocusVisibilityEvent, true);
+  }
+})();
+"#
+        .to_string(),
+    )
+}
+
+#[cfg_attr(windows, allow(dead_code))]
+pub fn browser_preview_initialization_script(prefs: &HashMap<String, String>) -> Option<String> {
+    let mut scripts = Vec::new();
+
+    if let Some(script) = browser_preview_focus_override_source(prefs) {
+        scripts.push(script);
+    }
+
+    #[cfg(any(test, not(windows)))]
+    if let Some(script) = browser_preview_close_bridge_source(prefs) {
+        scripts.push(script);
+    }
+
+    if scripts.is_empty() {
+        None
+    } else {
+        Some(scripts.join("\n;\n"))
+    }
+}
+
 #[cfg(windows)]
 fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
     use windows::Win32::UI::{
@@ -1037,10 +1144,10 @@ mod tests {
 
     use super::{
         browser_preview_action_for_shortcut, browser_preview_close_bridge_source,
-        browser_preview_script_bindings, browser_webview_diagnostics_enabled,
-        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
-        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
-        BrowserWebviewTracker,
+        browser_preview_focus_override_source, browser_preview_script_bindings,
+        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
+        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewState, BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1327,5 +1434,29 @@ mod tests {
             .expect("saved close bridge script should exist");
 
         assert!(script.contains("\"Shift+X\""));
+    }
+
+    #[test]
+    fn browser_preview_focus_override_is_disabled_by_default() {
+        let prefs = HashMap::new();
+
+        assert!(browser_preview_focus_override_source(&prefs).is_none());
+    }
+
+    #[test]
+    fn browser_preview_focus_override_masks_visibility_and_focus_when_enabled() {
+        let prefs = HashMap::from([("web_preview_keep_focus".to_string(), "true".to_string())]);
+
+        let script = browser_preview_focus_override_source(&prefs)
+            .expect("focus override script should exist when preference is enabled");
+
+        assert!(script.contains("'hidden'"));
+        assert!(script.contains("'visibilityState'"));
+        assert!(script.contains("'hasFocus'"));
+        assert!(script.contains("stopImmediatePropagation"));
+        assert!(script.contains("originalAddEventListener.call(window"));
+        assert!(script.contains("typeof listener === 'object'"));
+        assert!(script.contains("visibilitychange"));
+        assert!(script.contains("blur"));
     }
 }

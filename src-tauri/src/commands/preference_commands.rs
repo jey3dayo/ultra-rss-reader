@@ -40,6 +40,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "reader_mode_default",
     "web_preview_mode_default",
     "web_preview_keep_focus",
+    "window_always_on_top",
     "reading_sort",
     "after_reading",
     "scroll_to_top_on_change",
@@ -73,6 +74,11 @@ mod tests {
     #[test]
     fn allows_web_preview_focus_preference() {
         assert!(is_allowed_preference_key("web_preview_keep_focus"));
+    }
+
+    #[test]
+    fn allows_window_always_on_top_preference() {
+        assert!(is_allowed_preference_key("window_always_on_top"));
     }
 
     #[test]

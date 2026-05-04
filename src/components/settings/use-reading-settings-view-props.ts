@@ -195,6 +195,13 @@ export function useReadingSettingsViewProps({
             checked: resolvePreferenceValue(prefs, "web_preview_keep_focus") === "true",
             onChange: (checked) => setPref("web_preview_keep_focus", String(checked)),
           },
+          {
+            id: "window-always-on-top",
+            type: "switch",
+            label: t("reading.window_always_on_top"),
+            checked: resolvePreferenceValue(prefs, "window_always_on_top") === "true",
+            onChange: (checked) => setPref("window_always_on_top", String(checked)),
+          },
           ...(supportsBackgroundBrowserOpen
             ? [
                 {

@@ -6,15 +6,13 @@ use tauri::{
 };
 use tokio::time::{sleep, Duration};
 
-#[cfg(not(windows))]
-use crate::browser_webview::{browser_preview_close_bridge_source, load_browser_preview_prefs};
 use crate::browser_webview::{
-    browser_webview, browser_webview_diagnostics_enabled, emit_browser_webview_closed,
-    emit_browser_webview_diagnostics, emit_browser_webview_fallback, emit_browser_webview_state,
-    go_back, go_forward, install_escape_accelerator_bridge, navigation_availability,
-    should_trigger_timeout_fallback, BrowserNavigationAvailability,
-    BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
-    BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
+    browser_preview_initialization_script, browser_webview, browser_webview_diagnostics_enabled,
+    emit_browser_webview_closed, emit_browser_webview_diagnostics, emit_browser_webview_fallback,
+    emit_browser_webview_state, go_back, go_forward, install_escape_accelerator_bridge,
+    load_browser_preview_prefs, navigation_availability, should_trigger_timeout_fallback,
+    BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload,
+    BrowserWebviewLogicalRect, BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
@@ -364,14 +362,13 @@ fn create_browser_webview(
     let app_handle = window.app_handle().clone();
     let navigation_app_handle = app_handle.clone();
     let page_load_app_handle = app_handle.clone();
-    #[cfg(not(windows))]
-    let close_bridge_script = load_browser_preview_prefs(&app_handle)
+    let initialization_script = load_browser_preview_prefs(&app_handle)
         .map_err(|error| {
             browser_webview_error(format!(
-                "Failed to load embedded browser shortcut preferences: {error}"
+                "Failed to load embedded browser preferences: {error}"
             ))
         })
-        .map(|prefs| browser_preview_close_bridge_source(&prefs))?;
+        .map(|prefs| browser_preview_initialization_script(&prefs))?;
 
     let builder = WebviewBuilder::new(BROWSER_WEBVIEW_LABEL, WebviewUrl::External(initial_url))
         .on_navigation(move |target_url| {
@@ -408,8 +405,7 @@ fn create_browser_webview(
                 tracing::warn!("Failed to update embedded browser state on page load: {error}");
             }
         });
-    #[cfg(not(windows))]
-    let builder = if let Some(script) = close_bridge_script {
+    let builder = if let Some(script) = initialization_script {
         builder.initialization_script(script)
     } else {
         builder

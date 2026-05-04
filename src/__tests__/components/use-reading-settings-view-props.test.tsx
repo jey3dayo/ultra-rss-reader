@@ -120,6 +120,34 @@ describe("useReadingSettingsViewProps", () => {
     expect(setPref).toHaveBeenCalledWith("web_preview_keep_focus", "true");
   });
 
+  it("exposes an always-on-top switch for manga-style web preview sites", () => {
+    const setPref = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t,
+          prefs: {},
+          setPref,
+          devIntent: null,
+          platformKind: "windows",
+          supportsBackgroundBrowserOpen: true,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    const alwaysOnTop = getSwitchControl(result.current, "window-always-on-top");
+
+    expect(alwaysOnTop).toEqual(
+      expect.objectContaining({
+        label: t("reading.window_always_on_top"),
+        checked: false,
+      }),
+    );
+
+    alwaysOnTop.onChange(true);
+    expect(setPref).toHaveBeenCalledWith("window_always_on_top", "true");
+  });
+
   it("moves article list grouping and scrolling controls into reading settings", () => {
     const setPref = vi.fn();
     const { result } = renderHook(

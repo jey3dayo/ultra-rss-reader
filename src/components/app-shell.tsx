@@ -10,6 +10,7 @@ import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
 import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
+import { useWindowAlwaysOnTop } from "../hooks/use-window-always-on-top";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
 import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "../lib/debug-hud-active-element";
@@ -308,6 +309,7 @@ export function AppShell() {
   useMouseNavigation();
   useMenuEvents();
   useUpdater();
+  useWindowAlwaysOnTop();
   const loadPlatformInfo = usePlatformStore((state) => state.loadPlatformInfo);
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);

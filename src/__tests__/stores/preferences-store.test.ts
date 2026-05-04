@@ -100,6 +100,7 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({}, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({}, "web_preview_mode_default")).toBe("false");
     expect(resolvePreferenceValue({}, "web_preview_keep_focus")).toBe("false");
+    expect(resolvePreferenceValue({}, "window_always_on_top")).toBe("false");
     expect(resolvePreferenceValue({}, "after_reading")).toBe("after_0_3s");
     expect(resolvePreferenceValue({}, "debug_browser_hud")).toBe("false");
     expect(resolvePreferenceValue({}, "debug_web_preview_url")).toBe("");
@@ -110,6 +111,7 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ reader_mode_default: "maybe" }, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({ web_preview_mode_default: "sometimes" }, "web_preview_mode_default")).toBe("false");
     expect(resolvePreferenceValue({ web_preview_keep_focus: "sometimes" }, "web_preview_keep_focus")).toBe("false");
+    expect(resolvePreferenceValue({ window_always_on_top: "sometimes" }, "window_always_on_top")).toBe("false");
     expect(resolvePreferenceValue({ debug_browser_hud: "sometimes" }, "debug_browser_hud")).toBe("false");
     expect(resolvePreferenceValue({ mute_auto_mark_read: "sometimes" }, "mute_auto_mark_read")).toBe("false");
   });

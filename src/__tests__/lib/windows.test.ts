@@ -1,13 +1,16 @@
 import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isWindowFullscreen, setWindowFullscreen, setWindowIcon } from "@/lib/windows";
+import { isWindowFullscreen, setWindowAlwaysOnTop, setWindowFullscreen, setWindowIcon } from "@/lib/windows";
 
-const { getCurrentWindowMock, isFullscreenMock, setFullscreenMock, setIconMock } = vi.hoisted(() => ({
-  getCurrentWindowMock: vi.fn(),
-  isFullscreenMock: vi.fn(),
-  setFullscreenMock: vi.fn(),
-  setIconMock: vi.fn(),
-}));
+const { getCurrentWindowMock, isFullscreenMock, setAlwaysOnTopMock, setFullscreenMock, setIconMock } = vi.hoisted(
+  () => ({
+    getCurrentWindowMock: vi.fn(),
+    isFullscreenMock: vi.fn(),
+    setAlwaysOnTopMock: vi.fn(),
+    setFullscreenMock: vi.fn(),
+    setIconMock: vi.fn(),
+  }),
+);
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: getCurrentWindowMock,
@@ -17,10 +20,12 @@ describe("windows", () => {
   beforeEach(() => {
     getCurrentWindowMock.mockReturnValue({
       isFullscreen: isFullscreenMock,
+      setAlwaysOnTop: setAlwaysOnTopMock,
       setFullscreen: setFullscreenMock,
       setIcon: setIconMock,
     });
     isFullscreenMock.mockReset();
+    setAlwaysOnTopMock.mockReset();
     setFullscreenMock.mockReset();
     setIconMock.mockReset();
   });
@@ -42,6 +47,15 @@ describe("windows", () => {
 
     expect(Result.unwrap(result)).toBeUndefined();
     expect(setFullscreenMock).toHaveBeenCalledWith(false);
+  });
+
+  it("sets always-on-top state on the current Tauri window", async () => {
+    setAlwaysOnTopMock.mockResolvedValue(undefined);
+
+    const result = await setWindowAlwaysOnTop(true);
+
+    expect(Result.unwrap(result)).toBeUndefined();
+    expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
   });
 
   it("sets the current Tauri window icon", async () => {

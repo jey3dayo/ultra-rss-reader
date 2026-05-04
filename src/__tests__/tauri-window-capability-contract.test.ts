@@ -17,6 +17,7 @@ describe("tauri window capability contract", () => {
     expect(capability.permissions).toEqual(
       expect.arrayContaining([
         "core:window:allow-center",
+        "core:window:allow-set-always-on-top",
         "core:window:allow-set-size",
         "core:window:allow-unmaximize",
       ]),

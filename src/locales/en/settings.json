@@ -83,6 +83,7 @@
     "original_article_and_web_preview": "Original Article and Web Preview",
     "default_display_mode": "Display when opening articles",
     "web_preview_keep_focus": "Keep Web Preview focused",
+    "window_always_on_top": "Keep window always on top",
     "standard": "Article text only",
     "preview": "Article text + Web Preview",
     "open_links": "Open original article links in",

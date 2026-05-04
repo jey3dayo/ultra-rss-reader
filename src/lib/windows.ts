@@ -24,6 +24,16 @@ export function setWindowFullscreen(enabled: boolean) {
   });
 }
 
+export function setWindowAlwaysOnTop(enabled: boolean) {
+  return Result.try({
+    try: async () => {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().setAlwaysOnTop(enabled);
+    },
+    catch: toError,
+  });
+}
+
 export function setWindowIcon(iconPath: string) {
   return Result.try({
     try: async () => {
