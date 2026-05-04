@@ -51,7 +51,7 @@ export type FeedTreeViewProps = {
   onToggleFolder: (folderId: string) => void;
   onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
-  onMarkFeedRead?: (feed: FeedTreeFeedViewModel) => void;
+  onOpenFeedSite?: (feed: FeedTreeFeedViewModel) => void;
   displayFavicons: boolean;
   emptyState: FeedTreeEmptyState;
   renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
@@ -75,7 +75,7 @@ export type FeedTreeFolderSectionProps = {
   onToggleFolder: (folderId: string) => void;
   onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
-  onMarkFeedRead?: FeedTreeViewProps["onMarkFeedRead"];
+  onOpenFeedSite?: FeedTreeViewProps["onOpenFeedSite"];
   displayFavicons: boolean;
   renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
   renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
@@ -91,7 +91,7 @@ export type FeedTreeRowProps = {
   feed: FeedTreeFeedViewModel;
   displayFavicons: boolean;
   onSelectFeed: (feedId: string) => void;
-  onMarkFeedRead?: FeedTreeViewProps["onMarkFeedRead"];
+  onOpenFeedSite?: FeedTreeViewProps["onOpenFeedSite"];
   renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
   canDragFeeds?: boolean;
   isDragged?: boolean;
@@ -115,7 +115,7 @@ export type FeedTreeUnfolderedSectionProps = {
   unfolderedFeeds: FeedTreeFeedViewModel[];
   unfolderedLabel?: string;
   onSelectFeed: FeedTreeRowProps["onSelectFeed"];
-  onMarkFeedRead?: FeedTreeRowProps["onMarkFeedRead"];
+  onOpenFeedSite?: FeedTreeRowProps["onOpenFeedSite"];
   displayFavicons: FeedTreeRowProps["displayFavicons"];
   renderFeedContextMenu?: FeedTreeRowProps["renderFeedContextMenu"];
   canDragFeeds: NonNullable<FeedTreeRowProps["canDragFeeds"]>;

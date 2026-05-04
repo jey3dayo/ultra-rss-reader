@@ -684,13 +684,13 @@ describe("Sidebar", () => {
     expect(scrollArea).toHaveClass("min-h-0");
   });
 
-  it("marks a subscription feed read from middle click", async () => {
+  it("opens a subscription feed site from middle click", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
       return undefined;
     });
-    usePreferencesStore.setState({ prefs: { ask_before_mark_all: "false" }, loaded: true });
+    usePreferencesStore.setState({ prefs: { open_links_background: "true" }, loaded: true });
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -705,9 +705,13 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(calls).toContainEqual({
-        cmd: "mark_feed_read",
-        args: { feedId: "feed-1" },
+        cmd: "open_in_browser",
+        args: { url: "https://example.com", background: true },
       });
+    });
+    expect(calls).not.toContainEqual({
+      cmd: "mark_feed_read",
+      args: { feedId: "feed-1" },
     });
   });
 

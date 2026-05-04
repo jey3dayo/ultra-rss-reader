@@ -24,7 +24,7 @@ export function FeedTreeView({
   onToggleFolder,
   onSelectFolder,
   onSelectFeed,
-  onMarkFeedRead,
+  onOpenFeedSite,
   displayFavicons,
   emptyState,
   renderFolderContextMenu,
@@ -92,7 +92,7 @@ export function FeedTreeView({
             onToggleFolder={onToggleFolder}
             onSelectFolder={onSelectFolder}
             onSelectFeed={onSelectFeed}
-            onMarkFeedRead={onMarkFeedRead}
+            onOpenFeedSite={onOpenFeedSite}
             displayFavicons={displayFavicons}
             renderFolderContextMenu={renderFolderContextMenu}
             renderFeedContextMenu={renderFeedContextMenu}
@@ -109,7 +109,7 @@ export function FeedTreeView({
             unfolderedFeeds={unfolderedFeeds}
             unfolderedLabel={unfolderedLabel}
             onSelectFeed={onSelectFeed}
-            onMarkFeedRead={onMarkFeedRead}
+            onOpenFeedSite={onOpenFeedSite}
             displayFavicons={displayFavicons}
             renderFeedContextMenu={renderFeedContextMenu}
             canDragFeeds={canDragFeeds}

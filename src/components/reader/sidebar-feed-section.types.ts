@@ -106,7 +106,7 @@ export type SidebarFeedTreePropsParams = {
   toggleFolder: FeedTreeViewProps["onToggleFolder"];
   selectFolder: FeedTreeViewProps["onSelectFolder"];
   selectFeed: FeedTreeViewProps["onSelectFeed"];
-  markFeedRead: NonNullable<FeedTreeViewProps["onMarkFeedRead"]>;
+  openFeedSite: NonNullable<FeedTreeViewProps["onOpenFeedSite"]>;
   displayFavicons: FeedTreeViewProps["displayFavicons"];
   canDragFeeds: boolean;
   draggedFeedId: SidebarFeedDragStateResult["draggedFeedId"];

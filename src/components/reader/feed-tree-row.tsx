@@ -55,7 +55,7 @@ export function FeedTreeRow({
   feed,
   displayFavicons,
   onSelectFeed,
-  onMarkFeedRead,
+  onOpenFeedSite,
   renderFeedContextMenu,
   canDragFeeds,
   isDragged = false,
@@ -73,7 +73,7 @@ export function FeedTreeRow({
     }
     event.preventDefault();
     event.stopPropagation();
-    onMarkFeedRead?.(feed);
+    onOpenFeedSite?.(feed);
   };
 
   return (
