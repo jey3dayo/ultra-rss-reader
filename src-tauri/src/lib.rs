@@ -271,6 +271,7 @@ pub fn run() {
             commands::article_commands::check_browser_embed_support,
             commands::browser_webview_commands::create_or_update_browser_webview,
             commands::browser_webview_commands::set_browser_webview_bounds,
+            commands::browser_webview_commands::focus_browser_webview,
             commands::browser_webview_commands::go_back_browser_webview,
             commands::browser_webview_commands::go_forward_browser_webview,
             commands::browser_webview_commands::reload_browser_webview,

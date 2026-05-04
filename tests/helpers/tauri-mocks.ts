@@ -317,6 +317,8 @@ function createDefaultHandler(): MockHandler {
         };
       case "set_browser_webview_bounds":
         return null;
+      case "focus_browser_webview":
+        return null;
       case "go_back_browser_webview":
       case "go_forward_browser_webview":
       case "reload_browser_webview":

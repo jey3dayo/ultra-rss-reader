@@ -30,6 +30,16 @@ function getSelectControl(props: ReadingSettingsViewProps, id: string) {
   return control;
 }
 
+function getSwitchControl(props: ReadingSettingsViewProps, id: string) {
+  const control = getControl(props, id);
+
+  if (control.type !== "switch") {
+    throw new Error(`Expected switch control: ${id}`);
+  }
+
+  return control;
+}
+
 function getActionControl(props: ReadingSettingsViewProps, id: string): SettingsPageActionControl {
   const control = getControl(props, id);
 
@@ -54,11 +64,14 @@ describe("useReadingSettingsViewProps", () => {
           prefs: { reader_mode_default: "true", web_preview_mode_default: "true" },
           setPref,
           devIntent: null,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
         }),
       { wrapper: createWrapper() },
     );
 
     const displayPreset = getSelectControl(result.current, "display-preset");
+    const originalArticleSection = result.current.sections.find((section) => section.id === "original-article");
 
     expect(displayPreset).toEqual(
       expect.objectContaining({
@@ -67,6 +80,8 @@ describe("useReadingSettingsViewProps", () => {
         value: "preview",
       }),
     );
+    expect(originalArticleSection?.heading).toBe(t("reading.original_article_and_web_preview"));
+    expect(originalArticleSection?.controls.map((control) => control.id)).toContain("display-preset");
     expect(displayPreset).not.toHaveProperty("open");
 
     displayPreset.onChange("invalid");
@@ -77,6 +92,117 @@ describe("useReadingSettingsViewProps", () => {
     expect(setPref).toHaveBeenCalledWith("web_preview_mode_default", "false");
   });
 
+  it("exposes an opt-in web preview focus retention switch", () => {
+    const setPref = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t,
+          prefs: {},
+          setPref,
+          devIntent: null,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    const keepFocus = getSwitchControl(result.current, "web-preview-keep-focus");
+
+    expect(keepFocus).toEqual(
+      expect.objectContaining({
+        label: t("reading.web_preview_keep_focus"),
+        checked: false,
+      }),
+    );
+
+    keepFocus.onChange(true);
+    expect(setPref).toHaveBeenCalledWith("web_preview_keep_focus", "true");
+  });
+
+  it("moves article list grouping and scrolling controls into reading settings", () => {
+    const setPref = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t,
+          prefs: {
+            group_by: "feed",
+            scroll_to_top_on_change: "true",
+          },
+          setPref,
+          devIntent: null,
+          platformKind: "windows",
+          supportsBackgroundBrowserOpen: false,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    const articleListSection = result.current.sections.find((section) => section.id === "article-list");
+    const groupBy = getSelectControl(result.current, "group-by");
+    const scrollToTop = getSwitchControl(result.current, "scroll-to-top-on-change");
+
+    expect(articleListSection?.controls.map((control) => control.id)).toEqual([
+      "reading-sort",
+      "group-by",
+      "open-first-article-on-feed-selection",
+      "scroll-to-top-on-change",
+    ]);
+    expect(groupBy).toEqual(expect.objectContaining({ value: "feed" }));
+    expect(scrollToTop).toEqual(expect.objectContaining({ checked: true }));
+
+    groupBy.onChange("none");
+    scrollToTop.onChange(false);
+
+    expect(setPref).toHaveBeenCalledWith("group_by", "none");
+    expect(setPref).toHaveBeenCalledWith("scroll_to_top_on_change", "false");
+  });
+
+  it("moves link and Web Preview behavior into reading settings", () => {
+    const setPref = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t,
+          prefs: {
+            open_links: "default_browser",
+            open_links_background: "true",
+            cmd_click_browser: "true",
+          },
+          setPref,
+          devIntent: null,
+          platformKind: "windows",
+          supportsBackgroundBrowserOpen: true,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    const originalArticleSection = result.current.sections.find((section) => section.id === "original-article");
+    const openLinks = getSelectControl(result.current, "open-links");
+    const backgroundControl = getSwitchControl(result.current, "open-links-background");
+    const shortcutControl = getSwitchControl(result.current, "cmd-click-browser");
+
+    expect(originalArticleSection?.note).toBe(
+      "Please note that some third-party browsers do not support opening links in the background.",
+    );
+    expect(openLinks).toEqual(expect.objectContaining({ value: "default_browser" }));
+    expect(backgroundControl).toEqual(expect.objectContaining({ checked: true, disabled: false }));
+    expect(shortcutControl).toEqual(
+      expect.objectContaining({
+        label: "Ctrl-click opens Web Preview",
+        checked: true,
+      }),
+    );
+
+    openLinks.onChange("in_app");
+    backgroundControl.onChange(false);
+    shortcutControl.onChange(false);
+
+    expect(setPref).toHaveBeenCalledWith("open_links", "in_app");
+    expect(setPref).toHaveBeenCalledWith("open_links_background", "false");
+    expect(setPref).toHaveBeenCalledWith("cmd_click_browser", "false");
+  });
+
   it("opens the display preset control for the reading display mode dev intent", () => {
     const { result } = renderHook(
       () =>
@@ -85,6 +211,8 @@ describe("useReadingSettingsViewProps", () => {
           prefs: {},
           setPref: vi.fn(),
           devIntent: DEV_SCENARIO_ID.openSettingsReadingDisplayMode,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
         }),
       { wrapper: createWrapper() },
     );
@@ -100,6 +228,8 @@ describe("useReadingSettingsViewProps", () => {
           prefs: {},
           setPref: vi.fn(),
           devIntent: null,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
         }),
       { wrapper: createWrapper() },
     );

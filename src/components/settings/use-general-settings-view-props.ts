@@ -1,30 +1,18 @@
-import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { GeneralSettingsViewProps } from "./general-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
-
-type UseGeneralSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
-  platformKind: keyof typeof SHORTCUT_MODIFIER_BY_PLATFORM;
-  supportsBackgroundBrowserOpen: boolean;
-};
 
 export function useGeneralSettingsViewProps({
   t,
   prefs,
   setPref,
-  platformKind,
-  supportsBackgroundBrowserOpen,
-}: UseGeneralSettingsViewPropsParams): GeneralSettingsViewProps {
-  const browserShortcutModifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
-  const openLinksPreference = resolvePreferenceValue(prefs, "open_links");
-  const opensInDefaultBrowser = openLinksPreference === "default_browser";
-
+}: SettingsPreferenceViewPropsParams): GeneralSettingsViewProps {
   return {
     title: t("general.heading"),
     sections: [
       {
-        id: "language",
-        heading: t("general.language"),
+        id: "app",
+        heading: t("general.app"),
         controls: [
           {
             id: "language",
@@ -39,12 +27,6 @@ export function useGeneralSettingsViewProps({
             ],
             onChange: (value) => setPref("language", value),
           },
-        ],
-      },
-      {
-        id: "app-icon",
-        heading: t("general.app_icon"),
-        controls: [
           {
             id: "unread-badge",
             type: "select",
@@ -61,8 +43,8 @@ export function useGeneralSettingsViewProps({
         ],
       },
       {
-        id: "sidebar",
-        heading: t("general.sidebar"),
+        id: "navigation",
+        heading: t("general.navigation"),
         controls: [
           {
             id: "show-sidebar-unread",
@@ -108,37 +90,6 @@ export function useGeneralSettingsViewProps({
         ],
       },
       {
-        id: "browser",
-        heading: t("general.browser"),
-        note: supportsBackgroundBrowserOpen ? t("general.open_links_background_note") : undefined,
-        controls: [
-          {
-            id: "open-links",
-            type: "select",
-            name: "open_links",
-            label: t("general.open_links"),
-            value: openLinksPreference,
-            options: [
-              { value: "in_app", label: t("general.in_app_browser") },
-              { value: "default_browser", label: t("general.default_browser") },
-            ],
-            onChange: (value) => setPref("open_links", value),
-          },
-          ...(supportsBackgroundBrowserOpen
-            ? [
-                {
-                  id: "open-links-background",
-                  type: "switch" as const,
-                  label: t("general.open_links_in_background"),
-                  checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
-                  onChange: (checked: boolean) => setPref("open_links_background", String(checked)),
-                  disabled: !opensInDefaultBrowser,
-                },
-              ]
-            : []),
-        ],
-      },
-      {
         id: "sync",
         heading: t("general.sync"),
         controls: [
@@ -148,57 +99,6 @@ export function useGeneralSettingsViewProps({
             label: t("general.sync_on_startup"),
             checked: resolvePreferenceValue(prefs, "sync_on_startup") === "true",
             onChange: (checked) => setPref("sync_on_startup", String(checked)),
-          },
-        ],
-      },
-      {
-        id: "article-list",
-        heading: t("general.article_list"),
-        controls: [
-          {
-            id: "sort-unread",
-            type: "select",
-            name: "sort_unread",
-            label: t("general.sort_unread_items"),
-            value: resolvePreferenceValue(prefs, "sort_unread"),
-            options: [
-              { value: "newest_first", label: t("general.newest_first") },
-              { value: "oldest_first", label: t("general.oldest_first") },
-            ],
-            onChange: (value) => setPref("sort_unread", value),
-          },
-          {
-            id: "group-by",
-            type: "select",
-            name: "group_by",
-            label: t("general.group_by"),
-            value: resolvePreferenceValue(prefs, "group_by"),
-            options: [
-              { value: "date", label: t("general.date") },
-              { value: "feed", label: t("general.feed") },
-              { value: "none", label: t("general.none") },
-            ],
-            onChange: (value) => setPref("group_by", value),
-          },
-          {
-            id: "cmd-click-browser",
-            type: "switch",
-            label: t("general.cmd_click_browser", { modifier: browserShortcutModifier }),
-            checked: resolvePreferenceValue(prefs, "cmd_click_browser") === "true",
-            onChange: (checked) => setPref("cmd_click_browser", String(checked)),
-          },
-        ],
-      },
-      {
-        id: "mark-all-read",
-        heading: t("general.mark_all_as_read"),
-        controls: [
-          {
-            id: "ask-before-mark-all",
-            type: "switch",
-            label: t("general.ask_before"),
-            checked: resolvePreferenceValue(prefs, "ask_before_mark_all") === "true",
-            onChange: (checked) => setPref("ask_before_mark_all", String(checked)),
           },
         ],
       },

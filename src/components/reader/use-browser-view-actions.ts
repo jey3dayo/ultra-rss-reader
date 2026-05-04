@@ -3,10 +3,12 @@ import { useCallback } from "react";
 import {
   type AppError,
   type BrowserWebviewState,
+  focusBrowserWebview,
   goBackBrowserWebview,
   goForwardBrowserWebview,
   reloadBrowserWebview,
 } from "@/api/tauri-commands";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { openUrlInExternalBrowser } from "./article-browser-actions";
 import type { UseBrowserViewActionsParams } from "./browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "./browser-webview-state";
@@ -24,6 +26,10 @@ export function useBrowserViewActions({
   initialBrowserState,
   fallbackInFlightRef,
 }: UseBrowserViewActionsParams) {
+  const keepWebPreviewFocus = usePreferencesStore(
+    (state) => resolvePreferenceValue(state.prefs, "web_preview_keep_focus") === "true",
+  );
+
   const applyBrowserState = useCallback(
     (nextState: BrowserWebviewState) => {
       setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
@@ -59,20 +65,28 @@ export function useBrowserViewActions({
 
   const runBrowserWebviewCommand = useCallback(
     async (command: BrowserWebviewCommand, errorLabel: string) => {
-      Result.pipe(
-        await command(),
-        Result.inspect(applyBrowserState),
-        Result.inspectError(async (error) => {
-          if (isMissingEmbeddedBrowserWebviewError(error)) {
-            await recoverMissingEmbeddedBrowserWebview();
-            return;
+      const result = await command();
+      if (Result.isSuccess(result)) {
+        applyBrowserState(Result.unwrap(result));
+        if (keepWebPreviewFocus) {
+          const focusResult = await focusBrowserWebview();
+          if (Result.isFailure(focusResult)) {
+            console.error("Failed to restore embedded browser focus:", Result.unwrapError(focusResult));
           }
-          console.error(errorLabel, error);
-          showToast(error.message);
-        }),
-      );
+        }
+        return;
+      }
+
+      const error = Result.unwrapError(result);
+      if (isMissingEmbeddedBrowserWebviewError(error)) {
+        await recoverMissingEmbeddedBrowserWebview();
+        return;
+      }
+
+      console.error(errorLabel, error);
+      showToast(error.message);
     },
-    [applyBrowserState, recoverMissingEmbeddedBrowserWebview, showToast],
+    [applyBrowserState, keepWebPreviewFocus, recoverMissingEmbeddedBrowserWebview, showToast],
   );
 
   const handleGoBack = useCallback(async () => {

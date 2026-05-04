@@ -11,47 +11,9 @@ export function useAppearanceSettingsViewProps({
     title: t("appearance.heading"),
     sections: [
       {
-        id: "appearance-general",
-        heading: t("appearance.general"),
+        id: "theme",
+        heading: t("appearance.theme"),
         controls: [
-          {
-            id: "list-selection-style",
-            type: "select",
-            name: "list_selection_style",
-            label: t("appearance.list_selection_style"),
-            value: resolvePreferenceValue(prefs, "list_selection_style"),
-            options: [
-              { value: "modern", label: t("appearance.modern") },
-              { value: "classic", label: t("appearance.classic") },
-            ],
-            onChange: (value) => setPref("list_selection_style", value),
-          },
-          {
-            id: "list-density",
-            type: "select",
-            name: "sidebar_density",
-            label: t("appearance.list_density"),
-            value: resolvePreferenceValue(prefs, "sidebar_density"),
-            options: [
-              { value: "compact", label: t("appearance.compact_density") },
-              { value: "normal", label: t("appearance.normal_density") },
-              { value: "spacious", label: t("appearance.spacious_density") },
-            ],
-            onChange: (value) => setPref("sidebar_density", value),
-          },
-          {
-            id: "layout",
-            type: "select",
-            name: "layout",
-            label: t("appearance.layout"),
-            value: resolvePreferenceValue(prefs, "layout"),
-            options: [
-              { value: "automatic", label: t("appearance.automatic") },
-              { value: "wide", label: t("appearance.wide") },
-              { value: "compact", label: t("appearance.compact") },
-            ],
-            onChange: (value) => setPref("layout", value),
-          },
           {
             id: "theme",
             type: "select",
@@ -65,19 +27,24 @@ export function useAppearanceSettingsViewProps({
             ],
             onChange: (value) => setPref("theme", value),
           },
+        ],
+      },
+      {
+        id: "layout",
+        heading: t("appearance.layout"),
+        controls: [
           {
-            id: "opaque-sidebars",
-            type: "switch",
-            label: t("appearance.opaque_sidebars"),
-            checked: resolvePreferenceValue(prefs, "opaque_sidebars") === "true",
-            onChange: (checked) => setPref("opaque_sidebars", String(checked)),
-          },
-          {
-            id: "grayscale-favicons",
-            type: "switch",
-            label: t("appearance.grayscale_favicons"),
-            checked: resolvePreferenceValue(prefs, "grayscale_favicons") === "true",
-            onChange: (checked) => setPref("grayscale_favicons", String(checked)),
+            id: "layout",
+            type: "select",
+            name: "layout",
+            label: t("appearance.layout"),
+            value: resolvePreferenceValue(prefs, "layout"),
+            options: [
+              { value: "automatic", label: t("appearance.automatic") },
+              { value: "wide", label: t("appearance.wide") },
+              { value: "compact", label: t("appearance.compact") },
+            ],
+            onChange: (value) => setPref("layout", value),
           },
         ],
       },
@@ -114,15 +81,42 @@ export function useAppearanceSettingsViewProps({
         ],
       },
       {
-        id: "display-counts",
-        heading: t("appearance.display_counts"),
+        id: "sidebar",
+        heading: t("appearance.sidebar"),
         controls: [
           {
-            id: "show-starred-count",
+            id: "sidebar-density",
+            type: "select",
+            name: "sidebar_density",
+            label: t("appearance.sidebar_density"),
+            value: resolvePreferenceValue(prefs, "sidebar_density"),
+            options: [
+              { value: "compact", label: t("appearance.compact_density") },
+              { value: "normal", label: t("appearance.normal_density") },
+              { value: "spacious", label: t("appearance.spacious_density") },
+            ],
+            onChange: (value) => setPref("sidebar_density", value),
+          },
+          {
+            id: "opaque-sidebars",
             type: "switch",
-            label: t("appearance.starred_list"),
-            checked: resolvePreferenceValue(prefs, "show_starred_count") === "true",
-            onChange: (checked) => setPref("show_starred_count", String(checked)),
+            label: t("appearance.opaque_sidebars"),
+            checked: resolvePreferenceValue(prefs, "opaque_sidebars") === "true",
+            onChange: (checked) => setPref("opaque_sidebars", String(checked)),
+          },
+          {
+            id: "display-favicons",
+            type: "switch",
+            label: t("appearance.display_favicons"),
+            checked: resolvePreferenceValue(prefs, "display_favicons") === "true",
+            onChange: (checked) => setPref("display_favicons", String(checked)),
+          },
+          {
+            id: "grayscale-favicons",
+            type: "switch",
+            label: t("appearance.grayscale_favicons"),
+            checked: resolvePreferenceValue(prefs, "grayscale_favicons") === "true",
+            onChange: (checked) => setPref("grayscale_favicons", String(checked)),
           },
           {
             id: "show-unread-count",
@@ -131,12 +125,31 @@ export function useAppearanceSettingsViewProps({
             checked: resolvePreferenceValue(prefs, "show_unread_count") === "true",
             onChange: (checked) => setPref("show_unread_count", String(checked)),
           },
+          {
+            id: "show-starred-count",
+            type: "switch",
+            label: t("appearance.starred_list"),
+            checked: resolvePreferenceValue(prefs, "show_starred_count") === "true",
+            onChange: (checked) => setPref("show_starred_count", String(checked)),
+          },
         ],
       },
       {
         id: "article-list",
         heading: t("appearance.article_list"),
         controls: [
+          {
+            id: "list-selection-style",
+            type: "select",
+            name: "list_selection_style",
+            label: t("appearance.list_selection_style"),
+            value: resolvePreferenceValue(prefs, "list_selection_style"),
+            options: [
+              { value: "modern", label: t("appearance.modern") },
+              { value: "classic", label: t("appearance.classic") },
+            ],
+            onChange: (value) => setPref("list_selection_style", value),
+          },
           {
             id: "image-previews",
             type: "select",
@@ -150,13 +163,6 @@ export function useAppearanceSettingsViewProps({
               { value: "large", label: t("appearance.large") },
             ],
             onChange: (value) => setPref("image_previews", value),
-          },
-          {
-            id: "display-favicons",
-            type: "switch",
-            label: t("appearance.display_favicons"),
-            checked: resolvePreferenceValue(prefs, "display_favicons") === "true",
-            onChange: (checked) => setPref("display_favicons", String(checked)),
           },
           {
             id: "text-preview",

@@ -55,6 +55,7 @@ export const preferenceSchemas = {
   dim_archived: booleanStringSchema,
   reader_mode_default: persistedBooleanPreferenceSchema,
   web_preview_mode_default: persistedBooleanPreferenceSchema,
+  web_preview_keep_focus: persistedBooleanPreferenceSchema,
   reading_sort: sortOrderSchema,
   after_reading: afterReadingSchema,
   scroll_to_top_on_change: booleanStringSchema,
@@ -113,6 +114,7 @@ const corePreferenceDefaults = {
   // Reading
   reader_mode_default: "true",
   web_preview_mode_default: "false",
+  web_preview_keep_focus: "false",
   reading_sort: "newest_first",
   after_reading: "after_0_3s",
   scroll_to_top_on_change: "true",

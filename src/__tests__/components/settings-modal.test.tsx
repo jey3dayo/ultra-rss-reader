@@ -556,7 +556,7 @@ describe("SettingsModal", () => {
     render(<SettingsModal />, { wrapper: createWrapper() });
 
     expect(screen.queryByRole("button", { name: "Debug" })).not.toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Show Unread" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show Unread in sidebar" })).toBeInTheDocument();
   });
 
   it("falls back to general settings when debug is selected outside development builds", async () => {
@@ -571,7 +571,7 @@ describe("SettingsModal", () => {
     });
 
     expect(screen.queryByRole("button", { name: "Debug" })).not.toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Show Unread" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show Unread in sidebar" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Show layout HUD" })).not.toBeInTheDocument();
   });
 
@@ -593,7 +593,9 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Preview");
+    expect(screen.getByRole("combobox", { name: "Display when opening articles" })).toHaveTextContent(
+      "Article text + Web Preview",
+    );
   });
 
   it("opens the default display mode select on click during normal reading settings usage", async () => {
@@ -606,13 +608,13 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    const combobox = screen.getByRole("combobox", { name: "Default display mode" });
+    const combobox = screen.getByRole("combobox", { name: "Display when opening articles" });
     expect(combobox).toHaveAttribute("aria-expanded", "false");
 
     await user.click(combobox);
 
-    expect(await screen.findByRole("option", { name: "Standard" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Preview" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Article text only" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Article text + Web Preview" })).toBeInTheDocument();
     expect(combobox).toHaveAttribute("aria-expanded", "true");
   });
 
@@ -626,9 +628,12 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveAttribute("aria-expanded", "true");
-    expect(await screen.findByRole("option", { name: "Standard" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Preview" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Display when opening articles" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(await screen.findByRole("option", { name: "Article text only" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Article text + Web Preview" })).toBeInTheDocument();
   });
 
   it("renders and updates the auto-open-first-article reading switch", async () => {

@@ -23,6 +23,7 @@ use crate::platform::PlatformKind;
 const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
     "Embedded browser bounds must be finite and have positive width/height";
+const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -93,6 +94,10 @@ fn browser_webview_error(message: impl Into<String>) -> AppError {
     AppError::UserVisible {
         message: message.into(),
     }
+}
+
+fn browser_webview_not_open_error() -> AppError {
+    browser_webview_error(BROWSER_WEBVIEW_NOT_OPEN_ERROR)
 }
 
 fn validated_bounds(bounds: BrowserWebviewBounds) -> Result<BrowserWebviewBounds, AppError> {
@@ -171,6 +176,14 @@ fn clear_browser_webview_tracker(state: &AppState) -> Result<bool, AppError> {
     let had_snapshot = tracker.snapshot().is_some();
     tracker.clear();
     Ok(had_snapshot)
+}
+
+fn focus_existing_browser_webview(window: &Window) -> Result<(), AppError> {
+    let browser_webview = browser_webview(window).ok_or_else(browser_webview_not_open_error)?;
+
+    browser_webview.set_focus().map_err(|error| {
+        browser_webview_error(format!("Failed to focus embedded browser webview: {error}"))
+    })
 }
 
 fn emit_closed_if_tracked(app_handle: &tauri::AppHandle, state: &AppState) -> Result<(), AppError> {
@@ -482,6 +495,11 @@ pub async fn create_or_update_browser_webview(
 }
 
 #[tauri::command]
+pub fn focus_browser_webview(window: Window) -> Result<(), AppError> {
+    focus_existing_browser_webview(&window)
+}
+
+#[tauri::command]
 pub fn set_browser_webview_bounds(
     window: Window,
     bounds: BrowserWebviewBounds,
@@ -584,10 +602,11 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 #[cfg(test)]
 mod tests {
     use super::{
-        browser_webview_initial_url, child_webview_rect_from_viewport_bounds, external_url,
-        is_placeholder_browser_webview_url, should_use_placeholder_browser_webview_url,
-        tracker_navigation_availability, validated_bounds, BrowserNavigationAvailability,
-        BrowserWebviewBounds, BrowserWebviewBoundsUnit, INVALID_BROWSER_BOUNDS_ERROR,
+        browser_webview_initial_url, browser_webview_not_open_error,
+        child_webview_rect_from_viewport_bounds, external_url, is_placeholder_browser_webview_url,
+        should_use_placeholder_browser_webview_url, tracker_navigation_availability,
+        validated_bounds, BrowserNavigationAvailability, BrowserWebviewBounds,
+        BrowserWebviewBoundsUnit, BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
@@ -642,6 +661,18 @@ mod tests {
         });
 
         assert!(matches!(result, Err(AppError::UserVisible { .. })));
+    }
+
+    #[test]
+    fn focus_missing_browser_webview_error_is_user_visible() {
+        let error = browser_webview_not_open_error();
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, BROWSER_WEBVIEW_NOT_OPEN_ERROR);
+            }
+            other => panic!("expected user-visible missing webview error, got {other:?}"),
+        }
     }
 
     #[test]

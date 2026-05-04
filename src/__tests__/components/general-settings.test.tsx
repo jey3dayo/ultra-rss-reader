@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { GeneralSettings } from "@/components/settings/general-settings";
-import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -11,21 +10,6 @@ describe("GeneralSettings", () => {
   beforeEach(() => {
     setupTauriMocks();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
-    usePlatformStore.setState({
-      ...usePlatformStore.getInitialState(),
-      platform: {
-        kind: "windows",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-    });
   });
 
   it("renders sidebar section switches and updates preferences", async () => {
@@ -33,10 +17,10 @@ describe("GeneralSettings", () => {
 
     render(<GeneralSettings />, { wrapper: createWrapper() });
 
-    const unread = screen.getByRole("switch", { name: "Show Unread" });
-    const starred = screen.getByRole("switch", { name: "Show Starred" });
-    const recent = screen.getByRole("switch", { name: "Show Recently Viewed" });
-    const tags = screen.getByRole("switch", { name: "Show Tags" });
+    const unread = screen.getByRole("switch", { name: "Show Unread in sidebar" });
+    const starred = screen.getByRole("switch", { name: "Show Starred in sidebar" });
+    const recent = screen.getByRole("switch", { name: "Show Recently Viewed in sidebar" });
+    const tags = screen.getByRole("switch", { name: "Show Tags in sidebar" });
 
     expect(unread).toBeChecked();
     expect(starred).toBeChecked();
@@ -58,7 +42,7 @@ describe("GeneralSettings", () => {
 
     render(<GeneralSettings />, { wrapper: createWrapper() });
 
-    const syncOnStartup = screen.getByRole("switch", { name: "Sync on startup" });
+    const syncOnStartup = screen.getByRole("switch", { name: "Sync when the app starts" });
     expect(syncOnStartup).toBeChecked();
 
     await user.click(syncOnStartup);
@@ -86,70 +70,11 @@ describe("GeneralSettings", () => {
     expect(screen.queryByRole("combobox", { name: "Sort subscriptions" })).not.toBeInTheDocument();
   });
 
-  it("renders the browser shortcut hint with the current platform modifier", () => {
+  it("does not expose reading behavior controls in general settings", () => {
     render(<GeneralSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("switch", { name: "Ctrl-click opens in-app browser" })).toBeInTheDocument();
-  });
-
-  it("hides background browser opening on unsupported platforms", () => {
-    render(<GeneralSettings />, { wrapper: createWrapper() });
-
+    expect(screen.queryByRole("switch", { name: "Ctrl-click opens Web Preview" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Open original article links in" })).not.toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Open links in background" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Opening links in the background is not supported on this OS.")).not.toBeInTheDocument();
-  });
-
-  it("keeps background browser opening configurable on supported platforms", () => {
-    usePlatformStore.setState({
-      ...usePlatformStore.getInitialState(),
-      platform: {
-        kind: "macos",
-        capabilities: {
-          supports_reading_list: true,
-          supports_background_browser_open: true,
-          supports_runtime_window_icon_replacement: false,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-    });
-
-    render(<GeneralSettings />, { wrapper: createWrapper() });
-
-    expect(screen.getByRole("combobox", { name: "Open original article" })).toHaveTextContent("Web Preview");
-    expect(screen.getByRole("switch", { name: "Open links in background" })).toHaveAttribute("aria-disabled", "true");
-    expect(
-      screen.getByText("Please note that some third-party browsers do not support opening links in the background."),
-    ).toBeInTheDocument();
-  });
-
-  it("enables background browser opening only when opening the original article in the default browser", async () => {
-    const user = userEvent.setup();
-
-    usePlatformStore.setState({
-      ...usePlatformStore.getInitialState(),
-      platform: {
-        kind: "macos",
-        capabilities: {
-          supports_reading_list: true,
-          supports_background_browser_open: true,
-          supports_runtime_window_icon_replacement: false,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-    });
-
-    render(<GeneralSettings />, { wrapper: createWrapper() });
-
-    await user.click(screen.getByRole("combobox", { name: "Open original article" }));
-    await user.click(await screen.findByRole("option", { name: "Default browser" }));
-
-    expect(usePreferencesStore.getState().prefs.open_links).toBe("default_browser");
-    expect(screen.getByRole("switch", { name: "Open links in background" })).not.toHaveAttribute("aria-disabled");
   });
 });

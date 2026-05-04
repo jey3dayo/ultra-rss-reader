@@ -651,6 +651,9 @@ export function setupDevMocks() {
         setBrowserWebviewBoundsArgs.parse(payload);
         return null;
 
+      case "focus_browser_webview":
+        return null;
+
       case "delete_feed": {
         const { feedId } = deleteFeedArgs.parse(payload);
         const feedIdx = mockFeeds.findIndex((f) => f.id === feedId);

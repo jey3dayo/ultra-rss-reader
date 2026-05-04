@@ -406,6 +406,8 @@ export const createOrUpdateBrowserWebview = (url: string, bounds: BrowserWebview
 export const setBrowserWebviewBounds = (bounds: BrowserWebviewBounds) =>
   safeInvoke("set_browser_webview_bounds", { response: z.null(), args: setBrowserWebviewBoundsArgs }, { bounds });
 
+export const focusBrowserWebview = () => safeInvoke("focus_browser_webview", { response: z.null() });
+
 export const goBackBrowserWebview = () =>
   safeInvoke("go_back_browser_webview", { response: BrowserWebviewStateSchema });
 

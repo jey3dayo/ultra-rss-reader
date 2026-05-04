@@ -5,73 +5,50 @@ import i18n from "@/lib/i18n";
 const t = i18n.getFixedT("en", "settings");
 
 describe("useGeneralSettingsViewProps", () => {
-  it("omits background browser controls on unsupported platforms", () => {
+  it("keeps general settings scoped to app navigation and sync controls", () => {
     const props = buildGeneralSettingsViewProps({
       t,
-      prefs: { open_links: "default_browser" },
+      prefs: {},
       setPref: vi.fn(),
-      platformKind: "linux",
-      supportsBackgroundBrowserOpen: false,
     });
 
-    const browserSection = props.sections.find((section) => section.id === "browser");
-
-    expect(browserSection?.note).toBeUndefined();
-    expect(browserSection?.controls.map((control) => control.id)).toEqual(["open-links"]);
+    expect(props.sections.map((section) => section.id)).toEqual(["app", "navigation", "sync"]);
+    expect(props.sections.flatMap((section) => section.controls).map((control) => control.id)).toEqual([
+      "language",
+      "unread-badge",
+      "show-sidebar-unread",
+      "show-sidebar-starred",
+      "show-sidebar-recent-articles",
+      "show-sidebar-tags",
+      "startup-folder-expansion",
+      "sync-on-startup",
+    ]);
   });
 
-  it("enables background browser controls only for default browser links", () => {
+  it("writes app startup sync from the general sync section", () => {
     const setPref = vi.fn();
     const props = buildGeneralSettingsViewProps({
       t,
       prefs: {
-        open_links: "default_browser",
-        open_links_background: "true",
+        sync_on_startup: "true",
       },
       setPref,
-      platformKind: "macos",
-      supportsBackgroundBrowserOpen: true,
     });
 
-    const browserSection = props.sections.find((section) => section.id === "browser");
-    const backgroundControl = browserSection?.controls.find((control) => control.id === "open-links-background");
+    const syncSection = props.sections.find((section) => section.id === "sync");
+    const syncControl = syncSection?.controls.find((control) => control.id === "sync-on-startup");
 
-    expect(browserSection?.note).toBe(
-      "Please note that some third-party browsers do not support opening links in the background.",
-    );
-    expect(backgroundControl).toEqual(
+    expect(syncControl).toEqual(
       expect.objectContaining({
         type: "switch",
         checked: true,
-        disabled: false,
       }),
     );
 
-    if (backgroundControl?.type === "switch") {
-      backgroundControl.onChange(false);
+    if (syncControl?.type === "switch") {
+      syncControl.onChange(false);
     }
 
-    expect(setPref).toHaveBeenCalledWith("open_links_background", "false");
-  });
-
-  it("uses the platform shortcut modifier in cmd-click browser copy", () => {
-    const props = buildGeneralSettingsViewProps({
-      t,
-      prefs: { cmd_click_browser: "true" },
-      setPref: vi.fn(),
-      platformKind: "windows",
-      supportsBackgroundBrowserOpen: false,
-    });
-
-    const articleListSection = props.sections.find((section) => section.id === "article-list");
-    const cmdClickControl = articleListSection?.controls.find((control) => control.id === "cmd-click-browser");
-
-    expect(cmdClickControl).toEqual(
-      expect.objectContaining({
-        type: "switch",
-        label: "Ctrl-click opens in-app browser",
-        checked: true,
-      }),
-    );
+    expect(setPref).toHaveBeenCalledWith("sync_on_startup", "false");
   });
 });

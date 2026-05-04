@@ -16,9 +16,12 @@ describe("useAppearanceSettingsViewProps", () => {
       setPref,
     });
 
-    const generalSection = props.sections.find((section) => section.id === "appearance-general");
-    const densityControl = generalSection?.controls.find((control) => control.id === "list-density");
-    const themeControl = generalSection?.controls.find((control) => control.id === "theme");
+    expect(props.sections.map((section) => section.id)).toEqual(["theme", "layout", "text", "sidebar", "article-list"]);
+
+    const sidebarSection = props.sections.find((section) => section.id === "sidebar");
+    const themeSection = props.sections.find((section) => section.id === "theme");
+    const densityControl = sidebarSection?.controls.find((control) => control.id === "sidebar-density");
+    const themeControl = themeSection?.controls.find((control) => control.id === "theme");
 
     expect(densityControl).toEqual(
       expect.objectContaining({
@@ -57,10 +60,9 @@ describe("useAppearanceSettingsViewProps", () => {
       setPref,
     });
 
-    const generalSection = props.sections.find((section) => section.id === "appearance-general");
-    const articleListSection = props.sections.find((section) => section.id === "article-list");
-    const opaqueSidebarsControl = generalSection?.controls.find((control) => control.id === "opaque-sidebars");
-    const displayFaviconsControl = articleListSection?.controls.find((control) => control.id === "display-favicons");
+    const sidebarSection = props.sections.find((section) => section.id === "sidebar");
+    const opaqueSidebarsControl = sidebarSection?.controls.find((control) => control.id === "opaque-sidebars");
+    const displayFaviconsControl = sidebarSection?.controls.find((control) => control.id === "display-favicons");
 
     expect(opaqueSidebarsControl).toEqual(
       expect.objectContaining({

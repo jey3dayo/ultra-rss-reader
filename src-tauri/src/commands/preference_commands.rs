@@ -39,6 +39,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "dim_archived",
     "reader_mode_default",
     "web_preview_mode_default",
+    "web_preview_keep_focus",
     "reading_sort",
     "after_reading",
     "scroll_to_top_on_change",
@@ -58,6 +59,28 @@ const ALLOWED_KEYS: &[&str] = &[
 /// Key prefixes that are allowed dynamically (e.g. shortcut_next_article).
 const ALLOWED_PREFIXES: &[&str] = &["shortcut_"];
 
+fn is_allowed_preference_key(key: &str) -> bool {
+    ALLOWED_KEYS.contains(&key)
+        || ALLOWED_PREFIXES
+            .iter()
+            .any(|prefix| key.starts_with(prefix))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_allowed_preference_key;
+
+    #[test]
+    fn allows_web_preview_focus_preference() {
+        assert!(is_allowed_preference_key("web_preview_keep_focus"));
+    }
+
+    #[test]
+    fn rejects_unknown_preference_keys() {
+        assert!(!is_allowed_preference_key("unknown_web_preview_key"));
+    }
+}
+
 #[tauri::command]
 pub fn get_preferences(state: State<'_, AppState>) -> Result<HashMap<String, String>, AppError> {
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
@@ -75,11 +98,7 @@ pub fn set_preference(
     key: String,
     value: String,
 ) -> Result<(), AppError> {
-    let is_allowed = ALLOWED_KEYS.contains(&key.as_str())
-        || ALLOWED_PREFIXES
-            .iter()
-            .any(|prefix| key.starts_with(prefix));
-    if !is_allowed {
+    if !is_allowed_preference_key(&key) {
         return Err(AppError::UserVisible {
             message: format!("Unknown preference key: {key}"),
         });

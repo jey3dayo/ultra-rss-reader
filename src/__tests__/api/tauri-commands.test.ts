@@ -7,6 +7,7 @@ import {
   countAccountUnreadArticles,
   createMuteKeyword,
   createOrUpdateBrowserWebview,
+  focusBrowserWebview,
   getAccountSyncStatus,
   getPlatformInfo,
   goBackBrowserWebview,
@@ -269,6 +270,10 @@ describe("tauri-commands with mockIPC", () => {
         can_go_forward: false,
         is_loading: false,
       });
+    });
+
+    it("focuses the dedicated browser webview", async () => {
+      Result.unwrap(await focusBrowserWebview());
     });
   });
 
