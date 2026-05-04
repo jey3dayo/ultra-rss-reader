@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-05-05
+
+### Features
+
+- Web プレビューのフォーカス維持を強化し、非表示・フォーカス喪失を検知するサイトでもプレビューを読み続けやすくした
+- ウィンドウを常に最前面へ固定する設定を追加し、Web プレビューを見ながら別操作をしやすくした
+
+### Maintenance
+
+- GitHub Actions のバージョン指定を更新し、CI と release workflow の実行環境を最新化した
+
 ## [0.25.0] - 2026-05-04
 
 ### Features
