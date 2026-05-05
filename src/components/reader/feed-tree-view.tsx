@@ -25,6 +25,7 @@ export function FeedTreeView({
   onSelectFolder,
   onSelectFeed,
   onMarkFeedRead,
+  onMarkFolderRead,
   displayFavicons,
   emptyState,
   renderFolderContextMenu,
@@ -93,6 +94,7 @@ export function FeedTreeView({
             onSelectFolder={onSelectFolder}
             onSelectFeed={onSelectFeed}
             onMarkFeedRead={onMarkFeedRead}
+            onMarkFolderRead={onMarkFolderRead}
             displayFavicons={displayFavicons}
             renderFolderContextMenu={renderFolderContextMenu}
             renderFeedContextMenu={renderFeedContextMenu}

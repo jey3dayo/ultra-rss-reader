@@ -52,6 +52,7 @@ export type FeedTreeViewProps = {
   onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
   onMarkFeedRead?: (feed: FeedTreeFeedViewModel) => void;
+  onMarkFolderRead?: (folder: FeedTreeFolderViewModel) => void;
   displayFavicons: boolean;
   emptyState: FeedTreeEmptyState;
   renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
@@ -76,6 +77,7 @@ export type FeedTreeFolderSectionProps = {
   onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
   onMarkFeedRead?: FeedTreeViewProps["onMarkFeedRead"];
+  onMarkFolderRead?: FeedTreeViewProps["onMarkFolderRead"];
   displayFavicons: boolean;
   renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
   renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;

@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ export function FeedTreeFolderSection({
   onSelectFolder,
   onSelectFeed,
   onMarkFeedRead,
+  onMarkFolderRead,
   displayFavicons,
   renderFolderContextMenu,
   renderFeedContextMenu,
@@ -33,6 +35,14 @@ export function FeedTreeFolderSection({
   const showDropOverlay = canDragFeeds && draggedFeedId !== null;
   const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
   const panelId = `feed-tree-folder-panel-${folder.id}`;
+  const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
+    if (event.button !== 1) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    onMarkFolderRead?.(folder);
+  };
 
   return (
     <div
@@ -104,6 +114,7 @@ export function FeedTreeFolderSection({
               />
             }
             onClick={() => onSelectFolder?.(folder.id)}
+            onMouseDown={handleMiddleMouseDown}
           >
             <span className="font-medium tracking-[-0.01em]">{folder.name}</span>
           </ContextMenu.Trigger>

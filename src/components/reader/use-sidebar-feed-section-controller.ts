@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useMarkFeedRead } from "@/hooks/use-articles";
+import { useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -46,6 +46,7 @@ export function useSidebarFeedSectionController({
   const openFeedLanding = useFeedLanding();
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const { mutate: markFeedRead } = useMarkFeedRead();
+  const { mutate: markFolderRead } = useMarkFolderRead();
   const openFirstArticleOnFeedSelection =
     usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "open_first_article_on_feed_selection")) ===
     "true";
@@ -119,6 +120,15 @@ export function useSidebarFeedSectionController({
     },
     [confirmMarkAllRead, markFeedRead],
   );
+  const handleMarkFolderRead = useCallback(
+    (folder: { id: string; unreadCount: number }) => {
+      confirmMarkAllRead({
+        count: folder.unreadCount,
+        onConfirm: () => markFolderRead(folder.id),
+      });
+    },
+    [confirmMarkAllRead, markFolderRead],
+  );
 
   useSidebarStartupFolderExpansion({
     selectedAccountId,
@@ -165,6 +175,7 @@ export function useSidebarFeedSectionController({
     selectFolder: handleSelectFolder,
     selectFeed: handleSelectFeed,
     markFeedRead: handleMarkFeedRead,
+    markFolderRead: handleMarkFolderRead,
     displayFavicons,
     sidebarDensity,
     canDragFeeds,
