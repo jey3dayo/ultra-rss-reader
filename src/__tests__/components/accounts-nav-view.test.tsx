@@ -152,6 +152,7 @@ describe("AccountsNavView", () => {
     expect(debugButton.querySelector("span")?.className).toContain("bg-surface-1/72");
     expect(within(freshRssButton).getByText("alice")).toHaveClass("text-sidebar-foreground/38");
     expect(localButton).toHaveClass("w-auto");
+    expect(localButton).toHaveClass("before:left-0", "before:w-1.5", "before:bg-border-strong", "shadow-none");
     expect(localButton.parentElement).toHaveClass("flex");
     expect(localButton.parentElement).toHaveClass("flex-wrap");
     expect(localButton.parentElement).toHaveClass("overflow-visible");

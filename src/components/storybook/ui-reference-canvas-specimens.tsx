@@ -707,12 +707,14 @@ export function SpecializedButtonPatternsSpecimen() {
             <AccountSwitcherTriggerButton
               accountName="Local"
               lastSyncedLabel="Today at 10:42"
+              canOpenAccountList
               hasMultipleAccounts
               isExpanded={false}
             />
             <AccountSwitcherTriggerButton
               accountName="Single"
               lastSyncedLabel="Not synced yet"
+              canOpenAccountList
               hasMultipleAccounts={false}
             />
           </div>

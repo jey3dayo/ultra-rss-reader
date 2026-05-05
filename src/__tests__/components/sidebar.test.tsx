@@ -636,6 +636,27 @@ describe("Sidebar", () => {
     );
   });
 
+  it("opens account settings from the account title context menu", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /Local/ }));
+
+    const settingsItem = await screen.findByRole("menuitem", { name: "Account settings" });
+    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+
+    fireEvent.click(settingsItem);
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().settingsCategory).toBe("accounts");
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-1");
+    expect(useUiStore.getState().settingsAddAccount).toBe(false);
+  });
+
   it("keeps starred subscription context when selecting a feed from the starred smart view", async () => {
     const user = userEvent.setup();
     useUiStore.setState({
@@ -1747,6 +1768,52 @@ describe("Sidebar", () => {
     });
   });
 
+  it("opens the account pane from the account title on wide layout even when only one account exists", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [sampleAccounts[0]];
+        case "list_folders":
+          return [];
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      focusedPane: "sidebar",
+      layoutMode: "wide",
+    });
+
+    render(
+      <>
+        <AccountPane />
+        <Sidebar />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
+    await user.click(await within(sidebar).findByRole("button", { name: /Local/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountPaneOpen).toBe(true);
+      expect(
+        within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", { name: /Local/ }),
+      ).toHaveFocus();
+    });
+  });
+
   it("moves focus inside the account pane with Up and Down keys", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -1789,8 +1856,8 @@ describe("Sidebar", () => {
 
     expect(localAccount).toHaveAttribute("aria-current", "true");
     expect(localAccount).toHaveAttribute("data-account-pane-selected-target", "true");
-    expect(localAccount).toHaveClass("after:right-0", "after:bg-sidebar-foreground/48");
-    expect(localAccount.querySelector("svg")).not.toBeNull();
+    expect(localAccount).toHaveClass("before:left-0", "before:w-1.5", "before:bg-border-strong");
+    expect(localAccount.querySelector("svg")).toBeNull();
     expect(freshRssAccount).toHaveFocus();
     expect(freshRssAccount).not.toHaveAttribute("aria-current");
     expect(freshRssAccount).not.toHaveAttribute("data-account-pane-selected-target");

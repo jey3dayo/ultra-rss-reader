@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -105,10 +104,10 @@ export function AccountPane() {
                 {...(selected ? { "aria-current": "true" } : {})}
                 data-active-pane={selected ? "true" : undefined}
                 className={cn(
-                  "motion-contextual-surface relative flex min-h-11 w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 pr-9 text-left text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none motion-reduce:transition-none",
+                  "motion-contextual-surface relative flex min-h-10 w-full flex-col items-start gap-0.5 overflow-hidden rounded-md px-3 py-2 text-left text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none motion-reduce:transition-none",
                   selected
-                    ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_84%,var(--sidebar-hover-surface))_100%)] text-sidebar-foreground shadow-[var(--sidebar-selection-shadow)] after:absolute after:inset-y-1.5 after:right-0 after:w-0.5 after:rounded-full after:bg-sidebar-foreground/48 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_92%,var(--sidebar-hover-surface))_100%)] focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_18%,transparent)]"
-                    : "text-sidebar-foreground/82 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground focus-visible:bg-[linear-gradient(90deg,color-mix(in_srgb,var(--sidebar-hover-surface)_72%,transparent)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_34%,transparent)_100%)] focus-visible:text-sidebar-foreground focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_10%,transparent)]",
+                    ? "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong focus-visible:bg-[var(--bg-selected)] focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_14%,transparent)]"
+                    : "text-sidebar-foreground hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)] focus-visible:text-sidebar-foreground",
                 )}
                 onClick={() => {
                   selectAccount(account.id);
@@ -116,20 +115,14 @@ export function AccountPane() {
                   focusSidebarSmartViewTargetWhenReady("unread");
                 }}
               >
-                <span className="flex max-w-full items-center gap-2">
+                <span className="flex max-w-full items-center gap-2 pl-1.5">
                   <span className={cn("truncate", selected ? "font-semibold" : "font-medium")}>{account.name}</span>
                   {showKindLabel ? (
                     <span className="shrink-0 text-xs text-sidebar-foreground/54">{account.kind}</span>
                   ) : null}
                 </span>
                 {statusLabel ? (
-                  <span className="max-w-full truncate text-xs text-sidebar-foreground/56">{statusLabel}</span>
-                ) : null}
-                {selected ? (
-                  <Check
-                    aria-hidden="true"
-                    className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-sidebar-foreground/72"
-                  />
+                  <span className="max-w-full truncate pl-1.5 text-xs text-sidebar-foreground/56">{statusLabel}</span>
                 ) : null}
               </button>
             );

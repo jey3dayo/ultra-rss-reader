@@ -194,7 +194,8 @@ describe("UI Reference canvases", () => {
     );
 
     const accountSection = screen.getByText("Account card stack").closest("section") ?? document.body;
-    expect(within(accountSection).getByText("Local")).toBeInTheDocument();
+    const activeAccountButton = within(accountSection).getByRole("button", { name: "Local" });
+    expect(activeAccountButton).toHaveClass("before:left-0", "before:w-1.5", "before:bg-border-strong");
     expect(within(accountSection).getAllByText("FreshRSS").length).toBeGreaterThan(0);
     expect(within(accountSection).getByText("debug")).toBeInTheDocument();
     expect(within(accountSection).getByRole("button", { name: "アカウントを追加..." })).toBeInTheDocument();
