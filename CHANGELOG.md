@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.26.2] - 2026-05-05
+
+### Bug Fixes
+
+- フィード一覧のミドルクリックで、対象フィードの既読化確認を起動するようにした
+
 ## [0.26.1] - 2026-05-05
 
 ### Bug Fixes
