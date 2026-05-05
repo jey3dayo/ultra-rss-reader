@@ -79,25 +79,23 @@ describe("FeedTreeRow", () => {
     expect(screen.getByText("4")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/52");
   });
 
-  it("opens the feed site on middle click without selecting it", () => {
+  it("marks the feed read on middle click without selecting it", () => {
     const onSelectFeed = vi.fn();
-    const onOpenFeedSite = vi.fn();
+    const onMarkFeedRead = vi.fn();
 
     render(
       <FeedTreeRow
         feed={{ ...baseFeed, isSelected: false }}
         displayFavicons={false}
         onSelectFeed={onSelectFeed}
-        onOpenFeedSite={onOpenFeedSite}
+        onMarkFeedRead={onMarkFeedRead}
         canDragFeeds={false}
       />,
     );
 
     fireEvent.mouseDown(screen.getByRole("button", { name: /Alpha/ }), { button: 1 });
 
-    expect(onOpenFeedSite).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "feed-1", siteUrl: "https://example.com/alpha" }),
-    );
+    expect(onMarkFeedRead).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", unreadCount: 4 }));
     expect(onSelectFeed).not.toHaveBeenCalled();
   });
 

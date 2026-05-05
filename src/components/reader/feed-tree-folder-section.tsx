@@ -18,7 +18,7 @@ export function FeedTreeFolderSection({
   onToggleFolder,
   onSelectFolder,
   onSelectFeed,
-  onOpenFeedSite,
+  onMarkFeedRead,
   displayFavicons,
   renderFolderContextMenu,
   renderFeedContextMenu,
@@ -127,7 +127,7 @@ export function FeedTreeFolderSection({
                 feed={feed}
                 displayFavicons={displayFavicons}
                 onSelectFeed={onSelectFeed}
-                onOpenFeedSite={onOpenFeedSite}
+                onMarkFeedRead={onMarkFeedRead}
                 renderFeedContextMenu={renderFeedContextMenu}
                 canDragFeeds={canDragFeeds}
                 isDragged={draggedFeedId === feed.id}

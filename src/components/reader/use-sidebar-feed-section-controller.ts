@@ -1,8 +1,9 @@
-import { Result } from "@praha/byethrow";
 import { useCallback, useMemo } from "react";
-import { openInBrowser } from "@/api/tauri-commands";
+import { useMarkFeedRead } from "@/hooks/use-articles";
+import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "./sidebar-feed-section.types";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
@@ -43,6 +44,8 @@ export function useSidebarFeedSectionController({
   renderFeedContextMenu,
 }: SidebarFeedSectionParams): SidebarFeedSectionResult {
   const openFeedLanding = useFeedLanding();
+  const confirmMarkAllRead = useConfirmMarkAllRead();
+  const { mutate: markFeedRead } = useMarkFeedRead();
   const openFirstArticleOnFeedSelection =
     usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "open_first_article_on_feed_selection")) ===
     "true";
@@ -98,25 +101,23 @@ export function useSidebarFeedSectionController({
     },
     [feedTreeViewMode, openFeedLanding, openFirstArticleOnFeedSelection, selectFeed],
   );
-  const handleOpenFeedSite = useCallback((feed: { siteUrl: string; url: string }) => {
-    const url = feed.siteUrl || feed.url;
-    if (!url) {
-      return;
-    }
-
-    const background = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-    openInBrowser(url, background).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspectError((error) => console.error("Failed to open site:", error)),
-      ),
-    );
-  }, []);
   const handleSelectFolder = useCallback(
     (folderId: string) => {
       selectFolder(folderId);
     },
     [selectFolder],
+  );
+  const handleMarkFeedRead = useCallback(
+    (feed: { id: string; unreadCount: number }) => {
+      confirmMarkAllRead(
+        buildFeedMarkAllReadConfirmation({
+          feedId: feed.id,
+          unreadCount: feed.unreadCount,
+          onConfirmRead: markFeedRead,
+        }),
+      );
+    },
+    [confirmMarkAllRead, markFeedRead],
   );
 
   useSidebarStartupFolderExpansion({
@@ -163,7 +164,7 @@ export function useSidebarFeedSectionController({
     toggleFolder,
     selectFolder: handleSelectFolder,
     selectFeed: handleSelectFeed,
-    openFeedSite: handleOpenFeedSite,
+    markFeedRead: handleMarkFeedRead,
     displayFavicons,
     sidebarDensity,
     canDragFeeds,
