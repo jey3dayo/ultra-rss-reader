@@ -562,8 +562,13 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
   });
 
-  it("selects starred smart view with all-mode semantics so the article list can show all starred items", async () => {
+  it("selects starred smart view without changing the active all filter", async () => {
     const user = userEvent.setup();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      viewMode: "all",
+    });
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const starredButton = screen.getByRole("button", { name: /Starred/ });

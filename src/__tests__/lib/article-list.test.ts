@@ -260,6 +260,45 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
   });
 
+  it("applies the active footer filter to tag articles", () => {
+    const tagArticles = [
+      { ...sampleArticles[0], id: "tag-unread", is_read: false, is_starred: false },
+      { ...sampleArticles[1], id: "tag-starred", is_read: true, is_starred: true },
+    ];
+
+    const unreadResult = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles,
+      searchResults: [],
+      feedId: null,
+      tagId: "tag-1",
+      viewMode: "unread",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+      sourceFilter: null,
+    });
+    const starredResult = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles,
+      searchResults: [],
+      feedId: null,
+      tagId: "tag-1",
+      viewMode: "starred",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+      sourceFilter: null,
+    });
+
+    expect(unreadResult.map((article) => article.id)).toEqual(["tag-unread"]);
+    expect(starredResult.map((article) => article.id)).toEqual(["tag-starred"]);
+  });
+
   it("keeps recently viewed articles in history order", () => {
     const result = selectVisibleArticles({
       articles: [],

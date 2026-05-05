@@ -91,18 +91,48 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().viewMode).toBe("starred");
   });
 
+  it("keeps the current footer filter when selecting a feed", () => {
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectFeed("f1");
+    expect(useUiStore.getState().viewMode).toBe("all");
+
+    useUiStore.getState().setViewMode("starred");
+    useUiStore.getState().selectFeed("f2");
+    expect(useUiStore.getState().viewMode).toBe("starred");
+  });
+
   it("selectSmartView('unread') keeps unread as a complete smart view without footer filtering", () => {
+    useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectSmartView("unread");
 
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
     expect(useUiStore.getState().viewMode).toBe("unread");
   });
 
-  it("selectSmartView('starred') keeps starred as the selection source and defaults the footer mode to all", () => {
+  it("selectSmartView('starred') keeps starred as the selection source without changing the footer filter", () => {
+    useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectSmartView("starred");
 
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "starred" });
+    expect(useUiStore.getState().viewMode).toBe("starred");
+
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectSmartView("starred");
     expect(useUiStore.getState().viewMode).toBe("all");
+  });
+
+  it("keeps the current footer filter when changing list scopes", () => {
+    useUiStore.getState().setViewMode("starred");
+    useUiStore.getState().selectFolder("folder-1");
+    expect(useUiStore.getState().viewMode).toBe("starred");
+
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectTag("tag-1");
+    expect(useUiStore.getState().viewMode).toBe("all");
+
+    useUiStore.getState().setViewMode("starred");
+    useUiStore.getState().selectAll();
+    expect(useUiStore.getState().viewMode).toBe("starred");
   });
 
   it("selectArticle sets reader mode", () => {

@@ -1899,6 +1899,7 @@ describe("ArticleView", () => {
       selectedAccountId: "acc-1",
       selection: { type: "tag", tagId: "tag-1" },
       selectedArticleId: null,
+      viewMode: "all",
       contentMode: "empty",
     });
 
@@ -1906,7 +1907,7 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
-    expectSummaryMetricMotionValue(summary, "Articles", "1");
+    expectSummaryMetricMotionValue(summary, "Articles", "2");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
   });

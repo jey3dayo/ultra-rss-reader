@@ -1583,8 +1583,9 @@ describe("ArticleList", () => {
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
   });
 
-  it("shows smart starred context and limits footer controls to unread and all", async () => {
+  it("shows smart starred context and limits footer controls to unread and all while all filter is active", async () => {
     useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().setViewMode("all");
     useUiStore.getState().selectSmartView("starred");
 
     render(<ArticleList />, { wrapper: createWrapper() });

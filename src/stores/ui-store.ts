@@ -356,7 +356,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       accountPaneOpen: false,
       selection: { type: "feed", feedId },
-      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -378,7 +377,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set((state) => ({
       accountPaneOpen: false,
       selection: { type: "folder", folderId },
-      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -399,21 +397,20 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       retainedArticleIds: new Set(),
     })),
   selectSmartView: (kind) =>
-    set({
+    set((state) => ({
       accountPaneOpen: false,
       selection: { type: "smart", kind },
-      viewMode: kind === "unread" ? "unread" : "all",
+      viewMode: kind === "unread" ? "unread" : state.viewMode,
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
-    }),
+    })),
   selectTag: (tagId) =>
     set({
       accountPaneOpen: false,
       selection: { type: "tag", tagId },
-      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -435,7 +432,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       accountPaneOpen: false,
       selection: { type: "all" },
-      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
