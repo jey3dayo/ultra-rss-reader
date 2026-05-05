@@ -212,6 +212,50 @@ describe("CommandPalette", () => {
     });
   });
 
+  it("keeps settings discoverable by Japanese and previous settings terms", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">サイドバー");
+
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, ">ナビゲーション");
+
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, ">データ管理");
+
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, ">データ");
+
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+  });
+
+  it("keeps theme actions discoverable by Japanese settings terms", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">テーマ");
+
+    expect(await screen.findByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Theme: Dark/ })).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, ">外観");
+
+    expect(await screen.findByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Theme: Dark/ })).toBeInTheDocument();
+  });
+
   it("filters to tag results for the tag prefix and selects the tag", async () => {
     const user = userEvent.setup();
 

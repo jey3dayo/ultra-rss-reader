@@ -56,6 +56,18 @@ describe("dev scenario registry", () => {
     });
   });
 
+  it("keeps renamed settings scenarios searchable by Japanese and previous terms", () => {
+    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsGeneral)?.keywords).toEqual(
+      expect.arrayContaining(["一般", "サイドバー", "ナビゲーション"]),
+    );
+    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsReading)?.keywords).toEqual(
+      expect.arrayContaining(["閲覧", "記事一覧", "表示"]),
+    );
+    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsData)?.keywords).toEqual(
+      expect.arrayContaining(["データ", "データ管理"]),
+    );
+  });
+
   it("returns null for an unknown id", () => {
     expect(getDevScenario("unknown-scenario")).toBeNull();
   });

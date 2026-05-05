@@ -27,7 +27,18 @@ export function useCommandPaletteActions({
         id: "open-settings",
         label: t("shortcuts.open_settings"),
         shortcut: getShortcutDisplay("open_settings", shortcutPrefs, platformKind),
-        keywords: ["settings", "preferences"],
+        keywords: [
+          "settings",
+          "preferences",
+          "設定",
+          "環境設定",
+          "一般",
+          "閲覧",
+          "外観",
+          "サイドバー",
+          "ナビゲーション",
+          "データ管理",
+        ],
         icon: SettingsIcon,
       },
       {
@@ -42,7 +53,16 @@ export function useCommandPaletteActions({
         label: t("command_palette.theme_action", {
           theme: tSettings("appearance.light"),
         }),
-        keywords: ["theme", "appearance", "light", tSettings("appearance.theme"), tSettings("appearance.light")],
+        keywords: [
+          "theme",
+          "appearance",
+          "light",
+          "テーマ",
+          "外観",
+          "ライト",
+          tSettings("appearance.theme"),
+          tSettings("appearance.light"),
+        ],
         icon: SunIcon,
       },
       {
@@ -50,7 +70,16 @@ export function useCommandPaletteActions({
         label: t("command_palette.theme_action", {
           theme: tSettings("appearance.dark"),
         }),
-        keywords: ["theme", "appearance", "dark", tSettings("appearance.theme"), tSettings("appearance.dark")],
+        keywords: [
+          "theme",
+          "appearance",
+          "dark",
+          "テーマ",
+          "外観",
+          "ダーク",
+          tSettings("appearance.theme"),
+          tSettings("appearance.dark"),
+        ],
         icon: MoonIcon,
       },
       {

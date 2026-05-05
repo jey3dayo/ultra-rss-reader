@@ -50,12 +50,12 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   },
   [DEV_SCENARIO_ID.openSettingsGeneral]: {
     title: "Open settings general",
-    keywords: ["settings", "general"],
+    keywords: ["settings", "general", "一般", "サイドバー", "ナビゲーション"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("general")),
   },
   [DEV_SCENARIO_ID.openSettingsAppearance]: {
     title: "Open settings appearance",
-    keywords: ["settings", "appearance"],
+    keywords: ["settings", "appearance", "外観", "テーマ", "サイドバー"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("appearance")),
   },
   [DEV_SCENARIO_ID.openSettingsMute]: {
@@ -65,7 +65,7 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   },
   [DEV_SCENARIO_ID.openSettingsReading]: {
     title: "Open settings reading",
-    keywords: ["settings", "reading", "display", "mode"],
+    keywords: ["settings", "reading", "display", "mode", "閲覧", "記事一覧", "表示"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
   [DEV_SCENARIO_ID.openSettingsTags]: {
@@ -85,7 +85,7 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   },
   [DEV_SCENARIO_ID.openSettingsData]: {
     title: "Open settings data",
-    keywords: ["settings", "data"],
+    keywords: ["settings", "data", "データ", "データ管理"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("data")),
   },
   [DEV_SCENARIO_ID.openSettingsDebug]: {
@@ -110,7 +110,7 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   },
   [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: {
     title: "Open settings reading display mode",
-    keywords: ["settings", "reading", "display", "mode", "dropdown"],
+    keywords: ["settings", "reading", "display", "mode", "dropdown", "閲覧", "表示"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
   [DEV_SCENARIO_ID.openCommandPalette]: {
