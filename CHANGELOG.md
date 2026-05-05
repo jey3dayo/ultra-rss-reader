@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.26.1] - 2026-05-05
+
+### Bug Fixes
+
+- フィードを中クリックしたときに、対象サイトを開く挙動が戻るようにした
+
 ## [0.26.0] - 2026-05-05
 
 ### Features
