@@ -12,13 +12,19 @@ import {
   listFolderArticles,
   listRecentArticles,
   listStarredArticles,
+  markAccountRead,
+  markAccountStarredRead,
   markArticleRead,
   markArticlesRead,
   markFeedRead,
   markFolderRead,
+  markOldUnreadRead,
+  type OldUnreadDays,
+  type OldUnreadScopeKind,
   recordArticleView,
   searchArticles,
   toggleArticleStar,
+  unstarAccountArticles,
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
@@ -38,6 +44,12 @@ export type ToggleStarMutationInput = {
 export type RecordArticleViewMutationInput = {
   accountId: string;
   articleId: string;
+};
+
+export type MarkOldUnreadReadMutationInput = {
+  scopeKind: OldUnreadScopeKind;
+  targetId: string;
+  olderThanDays: OldUnreadDays;
 };
 
 type ArticleQueryOptions = {
@@ -315,6 +327,18 @@ export const useMarkAllRead = createMutation(
   (articleIds: string[]) => markArticlesRead(articleIds),
   (qc) => invalidateArticleQueries(qc),
 );
+
+export const useMarkAccountRead = createMutation(markAccountRead, (qc) => invalidateArticleQueries(qc));
+
+export const useMarkAccountStarredRead = createMutation(markAccountStarredRead, (qc) => invalidateArticleQueries(qc));
+
+export const useMarkOldUnreadRead = createMutation(
+  ({ scopeKind, targetId, olderThanDays }: MarkOldUnreadReadMutationInput) =>
+    markOldUnreadRead(scopeKind, targetId, olderThanDays),
+  (qc) => invalidateArticleQueries(qc),
+);
+
+export const useUnstarAccountArticles = createMutation(unstarAccountArticles, (qc) => invalidateArticleQueries(qc));
 
 export function useRecordArticleView() {
   const qc = useQueryClient();

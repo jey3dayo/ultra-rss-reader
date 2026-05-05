@@ -11,6 +11,7 @@ import {
   resolveFolderDisplayPreset,
 } from "@/lib/article-display";
 import { FolderContextMenuView } from "./folder-context-menu-view";
+import { useOldUnreadReadAction } from "./use-old-unread-read-action";
 
 export type FolderContextMenuContentProps = {
   folder: FolderDto;
@@ -35,6 +36,7 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
   const { t } = useTranslation("reader");
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFolderRead = useMarkFolderRead();
+  const markOldUnreadRead = useOldUnreadReadAction("folder", folder.id);
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const selectedDisplayPreset = resolveFolderDisplayPreset(feeds);
   const displayPresetOptions = buildFeedDisplayPresetOptions({
@@ -70,10 +72,15 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
   return (
     <FolderContextMenuView
       markAllReadLabel={t("mark_all_as_read")}
+      markOldUnreadReadLabel={t("mark_old_unread_read")}
+      oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
       displayModeLabel={t("display_mode")}
       displayPresetOptions={displayPresetOptions}
       selectedDisplayPreset={selectedDisplayPreset}
       onMarkAllRead={handleMarkAllRead}
+      onMarkOldUnreadRead={(days) => {
+        void markOldUnreadRead(days);
+      }}
       onSetDisplayPreset={(value) => {
         void handleSetDisplayPreset(value);
       }}

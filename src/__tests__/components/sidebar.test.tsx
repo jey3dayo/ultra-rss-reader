@@ -579,6 +579,63 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().viewMode).toBe("all");
   });
 
+  it("opens smart view context menus and confirms unstar-all separately from mark-read preference", async () => {
+    const commandCalls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      commandCalls.push({ cmd, args });
+      return undefined;
+    });
+    sidebarSourceOverrides.starredCountEnabled = true;
+    sidebarSourceOverrides.starredCountData = 2;
+    usePreferencesStore.setState({ prefs: { ask_before_mark_all: "false" }, loaded: true });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /Unread/ }));
+    expect(await screen.findByRole("menuitem", { name: "Mark all as read" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Mark old unread as read" })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menuitem", { name: "Mark old unread as read" })).toBeNull());
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /Starred/ }));
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Unstar all" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("menuitem", { name: "Unstar all" }));
+
+    expect(useUiStore.getState().confirmDialog.message).toMatch(/^Unstar \d+ articles\?$/);
+    expect(commandCalls.some((call) => call.cmd === "unstar_account_articles")).toBe(false);
+
+    act(() => {
+      useUiStore.getState().confirmDialog.onConfirm?.();
+    });
+
+    await waitFor(() =>
+      expect(commandCalls).toContainEqual({
+        cmd: "unstar_account_articles",
+        args: { accountId: "acc-1" },
+      }),
+    );
+  });
+
+  it("clears recently viewed history from the recent smart view context menu", async () => {
+    const commandCalls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      commandCalls.push({ cmd, args });
+      return undefined;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /Recently Viewed/ }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Clear history" }));
+
+    await waitFor(() =>
+      expect(commandCalls).toContainEqual({
+        cmd: "clear_article_view_history",
+        args: { accountId: "acc-1" },
+      }),
+    );
+  });
+
   it("keeps starred subscription context when selecting a feed from the starred smart view", async () => {
     const user = userEvent.setup();
     useUiStore.setState({
@@ -709,6 +766,45 @@ describe("Sidebar", () => {
       expect(calls).toContainEqual({
         cmd: "mark_feed_read",
         args: { feedId: "feed-1" },
+      });
+    });
+  });
+
+  it("marks a subscription folder read from middle click", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [{ ...sampleFeeds[0], folder_id: "folder-1", unread_count: 5 }];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+    usePreferencesStore.setState({ prefs: { ask_before_mark_all: "false" }, loaded: true });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.mouseDown(await screen.findByRole("button", { name: "Select folder Work" }), { button: 1 });
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "mark_folder_read",
+        args: { folderId: "folder-1" },
       });
     });
   });

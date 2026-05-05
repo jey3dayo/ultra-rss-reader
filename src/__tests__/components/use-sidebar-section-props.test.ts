@@ -82,6 +82,7 @@ describe("sidebar section props builders", () => {
 
     const props = useSidebarSmartViewsProps({
       t,
+      selectedAccountId: null,
       visibleSmartViews: views,
       selectSmartView: onSelectSmartView,
     });

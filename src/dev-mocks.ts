@@ -30,10 +30,12 @@ import {
   listFoldersArgs,
   listRecentArticlesArgs,
   listStarredArticlesArgs,
+  markAccountReadArgs,
   markArticleReadArgs,
   markArticlesReadArgs,
   markFeedReadArgs,
   markFolderReadArgs,
+  oldUnreadArticlesArgs,
   openInBrowserArgs,
   recordArticleViewArgs,
   renameAccountArgs,
@@ -46,6 +48,7 @@ import {
   tagArticleArgs,
   testAccountConnectionArgs,
   toggleArticleStarArgs,
+  unstarAccountArticlesArgs,
   untagArticleArgs,
   updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
@@ -100,6 +103,25 @@ function countUnreadByAccount(accountId: string) {
 function countStarredByAccount(accountId: string) {
   const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
   return mockArticles.filter((article) => feedIds.includes(article.feed_id) && article.is_starred).length;
+}
+
+function resolveOldUnreadFeedIds(scopeKind: "account" | "feed" | "folder", targetId: string) {
+  if (scopeKind === "account") {
+    return mockFeeds.filter((feed) => feed.account_id === targetId).map((feed) => feed.id);
+  }
+  if (scopeKind === "folder") {
+    return mockFeeds.filter((feed) => feed.folder_id === targetId).map((feed) => feed.id);
+  }
+  return [targetId];
+}
+
+function findOldUnreadArticles(scopeKind: "account" | "feed" | "folder", targetId: string, olderThanDays: 7 | 30 | 90) {
+  const feedIds = new Set(resolveOldUnreadFeedIds(scopeKind, targetId));
+  const threshold = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
+  return mockArticles.filter((article) => {
+    const publishedAt = Date.parse(article.published_at);
+    return feedIds.has(article.feed_id) && !article.is_read && Number.isFinite(publishedAt) && publishedAt < threshold;
+  });
 }
 
 function applyMuteKeywordFilter<T extends { title: string; content_sanitized: string; summary: string | null }>(
@@ -310,6 +332,59 @@ export function setupDevMocks() {
       case "count_account_starred_articles": {
         const { accountId } = countAccountStarredArticlesArgs.parse(payload);
         return countStarredByAccount(accountId);
+      }
+
+      case "mark_account_read": {
+        const { accountId } = markAccountReadArgs.parse(payload);
+        const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+        for (const article of mockArticles) {
+          if (feedIds.includes(article.feed_id)) {
+            article.is_read = true;
+          }
+        }
+        for (const feedId of feedIds) recalcUnread(feedId);
+        return null;
+      }
+
+      case "mark_account_starred_read": {
+        const { accountId } = markAccountReadArgs.parse(payload);
+        const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+        const affectedFeedIds = new Set<string>();
+        for (const article of mockArticles) {
+          if (feedIds.includes(article.feed_id) && article.is_starred) {
+            article.is_read = true;
+            affectedFeedIds.add(article.feed_id);
+          }
+        }
+        for (const feedId of affectedFeedIds) recalcUnread(feedId);
+        return null;
+      }
+
+      case "count_old_unread_articles": {
+        const { scopeKind, targetId, olderThanDays } = oldUnreadArticlesArgs.parse(payload);
+        return findOldUnreadArticles(scopeKind, targetId, olderThanDays).length;
+      }
+
+      case "mark_old_unread_read": {
+        const { scopeKind, targetId, olderThanDays } = oldUnreadArticlesArgs.parse(payload);
+        const affectedFeedIds = new Set<string>();
+        for (const article of findOldUnreadArticles(scopeKind, targetId, olderThanDays)) {
+          article.is_read = true;
+          affectedFeedIds.add(article.feed_id);
+        }
+        for (const feedId of affectedFeedIds) recalcUnread(feedId);
+        return null;
+      }
+
+      case "unstar_account_articles": {
+        const { accountId } = unstarAccountArticlesArgs.parse(payload);
+        const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+        for (const article of mockArticles) {
+          if (feedIds.includes(article.feed_id)) {
+            article.is_starred = false;
+          }
+        }
+        return null;
       }
 
       case "list_starred_articles": {

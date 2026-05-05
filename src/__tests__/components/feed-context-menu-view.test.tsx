@@ -7,6 +7,7 @@ describe("FeedContextMenuView", () => {
   it("renders feed actions and delegates clicks", async () => {
     const onOpenSite = vi.fn();
     const onMarkAllRead = vi.fn();
+    const onMarkOldUnreadRead = vi.fn();
     const onSetDisplayPreset = vi.fn();
     const onUnsubscribe = vi.fn();
     const onEdit = vi.fn();
@@ -16,6 +17,8 @@ describe("FeedContextMenuView", () => {
         <FeedContextMenuView
           openSiteLabel="Open site"
           markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
           displayModeLabel="Display mode"
           displayPresetOptions={[
             { value: "default", label: "Default" },
@@ -27,6 +30,7 @@ describe("FeedContextMenuView", () => {
           editLabel="Edit…"
           onOpenSite={onOpenSite}
           onMarkAllRead={onMarkAllRead}
+          onMarkOldUnreadRead={onMarkOldUnreadRead}
           onSetDisplayPreset={onSetDisplayPreset}
           onUnsubscribe={onUnsubscribe}
           onEdit={onEdit}
@@ -68,6 +72,8 @@ describe("FeedContextMenuView", () => {
         <FeedContextMenuView
           openSiteLabel="Open site"
           markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
           displayModeLabel="Display mode"
           displayPresetOptions={[
             { value: "default", label: "Default" },
@@ -79,6 +85,7 @@ describe("FeedContextMenuView", () => {
           editLabel="Edit…"
           onOpenSite={vi.fn()}
           onMarkAllRead={vi.fn()}
+          onMarkOldUnreadRead={vi.fn()}
           onSetDisplayPreset={vi.fn()}
           onUnsubscribe={vi.fn()}
           onEdit={vi.fn()}
@@ -92,6 +99,7 @@ describe("FeedContextMenuView", () => {
       "Edit…",
       "Open site",
       "Mark all as read",
+      "Mark old unread as read",
       "✓Default",
       "Standard",
       "Preview",

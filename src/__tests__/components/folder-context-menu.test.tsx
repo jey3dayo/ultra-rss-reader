@@ -15,6 +15,8 @@ vi.mock("react-i18next", () => ({
       (
         ({
           mark_all_as_read: "Mark all as read",
+          mark_old_unread_read: "Mark old unread as read",
+          old_unread_older_than_days: "{{count}} days",
           display_mode: "Display mode",
           display_mode_default: "Default",
           display_mode_standard: "Standard",
@@ -23,6 +25,8 @@ vi.mock("react-i18next", () => ({
       )[
         key as
           | "mark_all_as_read"
+          | "mark_old_unread_read"
+          | "old_unread_older_than_days"
           | "display_mode"
           | "display_mode_default"
           | "display_mode_standard"
@@ -34,6 +38,9 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/hooks/use-articles", () => ({
   useMarkFolderRead: () => ({
     mutate: markFolderReadMutate,
+  }),
+  useMarkOldUnreadRead: () => ({
+    mutate: vi.fn(),
   }),
 }));
 

@@ -19,6 +19,7 @@ import {
   listStarredArticlesArgs,
   MuteKeywordDtoSchema,
   markArticleReadArgs,
+  oldUnreadArticlesArgs,
   PlatformInfoSchema,
   setMuteAutoMarkReadArgs,
   TagDtoSchema,
@@ -194,6 +195,14 @@ describe("command args schemas", () => {
   it("parses countAccountStarredArticlesArgs", () => {
     expect(countAccountStarredArticlesArgs.parse({ accountId: "acc-1" })).toEqual({ accountId: "acc-1" });
   });
+  it("parses oldUnreadArticlesArgs and rejects arbitrary periods", () => {
+    expect(oldUnreadArticlesArgs.parse({ scopeKind: "feed", targetId: "feed-1", olderThanDays: 30 })).toEqual({
+      scopeKind: "feed",
+      targetId: "feed-1",
+      olderThanDays: 30,
+    });
+    expect(() => oldUnreadArticlesArgs.parse({ scopeKind: "feed", targetId: "feed-1", olderThanDays: 14 })).toThrow();
+  });
   it("parses toggleArticleStarArgs", () => {
     expect(toggleArticleStarArgs.parse({ articleId: "a-1", starred: true })).toEqual({
       articleId: "a-1",
@@ -234,6 +243,9 @@ describe("command args schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
     expect(commandArgsSchemas.list_folder_articles).toBeDefined();
     expect(commandArgsSchemas.mark_article_read).toBeDefined();
+    expect(commandArgsSchemas.count_old_unread_articles).toBeDefined();
+    expect(commandArgsSchemas.mark_old_unread_read).toBeDefined();
+    expect(commandArgsSchemas.unstar_account_articles).toBeDefined();
     expect(commandArgsSchemas.create_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.set_mute_auto_mark_read).toBeDefined();

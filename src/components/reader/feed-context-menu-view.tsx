@@ -1,9 +1,12 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
+import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";
 
 export type FeedContextMenuViewProps = {
   openSiteLabel: string;
   markAllReadLabel: string;
+  markOldUnreadReadLabel: string;
+  oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
   displayModeLabel: string;
   displayPresetOptions: Array<{ value: string; label: string }>;
   selectedDisplayPreset: string;
@@ -11,6 +14,7 @@ export type FeedContextMenuViewProps = {
   editLabel: string;
   onOpenSite: () => void;
   onMarkAllRead: () => void;
+  onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
   onSetDisplayPreset: (value: string) => void;
   onUnsubscribe: () => void;
   onEdit: () => void;
@@ -19,6 +23,8 @@ export type FeedContextMenuViewProps = {
 export function FeedContextMenuView({
   openSiteLabel,
   markAllReadLabel,
+  markOldUnreadReadLabel,
+  oldUnreadDayLabel,
   displayModeLabel,
   displayPresetOptions,
   selectedDisplayPreset,
@@ -26,6 +32,7 @@ export function FeedContextMenuView({
   editLabel,
   onOpenSite,
   onMarkAllRead,
+  onMarkOldUnreadRead,
   onSetDisplayPreset,
   onUnsubscribe,
   onEdit,
@@ -43,6 +50,11 @@ export function FeedContextMenuView({
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
             {markAllReadLabel}
           </ContextMenu.Item>
+          <OldUnreadContextMenuItems
+            label={markOldUnreadReadLabel}
+            dayLabel={oldUnreadDayLabel}
+            onSelect={onMarkOldUnreadRead}
+          />
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <div className="px-3 py-1 text-xs font-medium text-foreground-soft">{displayModeLabel}</div>
           {displayPresetOptions.map((option) => (

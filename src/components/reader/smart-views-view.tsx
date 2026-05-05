@@ -1,3 +1,4 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { SidebarSmartViewsProps } from "./sidebar.types";
@@ -21,7 +22,7 @@ const SMART_VIEW_TONE_CLASSNAMES = {
   },
 } as const;
 
-export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmartViewsProps) {
+export function SmartViewsView({ title, views, onSelectSmartView, renderContextMenu }: SidebarSmartViewsProps) {
   return (
     <div className="space-y-2.5 px-3 py-2">
       {title ? (
@@ -30,25 +31,31 @@ export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmart
         </div>
       ) : null}
       {views.map((view) => (
-        <SidebarNavButton
-          key={view.kind}
-          onClick={() => onSelectSmartView(view.kind)}
-          aria-pressed={view.isSelected}
-          selected={view.isSelected}
-          selectedIndicatorMode="always"
-          {...{ [SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE]: view.kind }}
-          {...(view.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
-          size="default"
-          trailing={view.showCount ? view.count.toLocaleString() : undefined}
-          className={cn(
-            "rounded-lg shadow-none",
-            SMART_VIEW_TONE_CLASSNAMES[view.kind].hover,
-            view.isSelected && SMART_VIEW_TONE_CLASSNAMES[view.kind].selected,
-          )}
-          trailingClassName={view.isSelected ? SMART_VIEW_TONE_CLASSNAMES[view.kind].trailing : undefined}
-        >
-          <span className="font-semibold tracking-[-0.01em]">{view.label}</span>
-        </SidebarNavButton>
+        <ContextMenu.Root key={view.kind}>
+          <ContextMenu.Trigger
+            render={
+              <SidebarNavButton
+                aria-pressed={view.isSelected}
+                selected={view.isSelected}
+                selectedIndicatorMode="always"
+                {...{ [SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE]: view.kind }}
+                {...(view.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+                size="default"
+                trailing={view.showCount ? view.count.toLocaleString() : undefined}
+                className={cn(
+                  "rounded-lg shadow-none",
+                  SMART_VIEW_TONE_CLASSNAMES[view.kind].hover,
+                  view.isSelected && SMART_VIEW_TONE_CLASSNAMES[view.kind].selected,
+                )}
+                trailingClassName={view.isSelected ? SMART_VIEW_TONE_CLASSNAMES[view.kind].trailing : undefined}
+              />
+            }
+            onClick={() => onSelectSmartView(view.kind)}
+          >
+            <span className="font-semibold tracking-[-0.01em]">{view.label}</span>
+          </ContextMenu.Trigger>
+          {renderContextMenu?.(view)}
+        </ContextMenu.Root>
       ))}
     </div>
   );

@@ -52,6 +52,22 @@ export const countAccountUnreadArticlesArgs = z.object({ accountId: z.string() }
 // --- countAccountStarredArticles ---
 export const countAccountStarredArticlesArgs = z.object({ accountId: z.string() });
 
+export const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
+export const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
+
+// --- markAccountRead ---
+export const markAccountReadArgs = z.object({ accountId: z.string() });
+
+// --- old unread articles ---
+export const oldUnreadArticlesArgs = z.object({
+  scopeKind: oldUnreadScopeKindSchema,
+  targetId: z.string(),
+  olderThanDays: oldUnreadDaysSchema,
+});
+
+// --- unstarAccountArticles ---
+export const unstarAccountArticlesArgs = z.object({ accountId: z.string() });
+
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({
   accountId: z.string(),
@@ -295,6 +311,11 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_recent_articles: listRecentArticlesArgs,
   count_account_unread_articles: countAccountUnreadArticlesArgs,
   count_account_starred_articles: countAccountStarredArticlesArgs,
+  mark_account_read: markAccountReadArgs,
+  mark_account_starred_read: markAccountReadArgs,
+  count_old_unread_articles: oldUnreadArticlesArgs,
+  mark_old_unread_read: oldUnreadArticlesArgs,
+  unstar_account_articles: unstarAccountArticlesArgs,
   search_articles: searchArticlesArgs,
   mark_article_read: markArticleReadArgs,
   record_article_view: recordArticleViewArgs,

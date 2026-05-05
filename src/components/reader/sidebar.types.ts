@@ -82,6 +82,7 @@ export type SidebarSmartViewsProps = {
   title?: string;
   views: SmartViewItemViewModel[];
   onSelectSmartView: (kind: SmartViewKind) => void;
+  renderContextMenu?: (view: SmartViewItemViewModel) => ReactNode;
 };
 
 export type SidebarAccountSectionProps = AccountSwitcherProps & {
@@ -200,6 +201,7 @@ export type SidebarSmartViewsResult = SidebarSmartViewsProps["views"];
 
 export type SidebarSmartViewsPropsParams = {
   t: TFunction<"sidebar">;
+  selectedAccountId: string | null;
   visibleSmartViews: SidebarSmartViewsResult;
   selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
 };

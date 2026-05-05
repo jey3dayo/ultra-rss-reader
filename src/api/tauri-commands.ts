@@ -56,12 +56,16 @@ import {
   listStarredArticlesArgs,
   type MuteKeywordDto,
   MuteKeywordDtoSchema,
+  markAccountReadArgs,
   markArticleReadArgs,
   markArticlesReadArgs,
   markFeedReadArgs,
   markFolderReadArgs,
   NullableStarredArticlesSchema,
   NullableStarredCountSchema,
+  oldUnreadArticlesArgs,
+  type oldUnreadDaysSchema,
+  type oldUnreadScopeKindSchema,
   openInBrowserArgs,
   type PlatformInfo,
   PlatformInfoSchema,
@@ -84,6 +88,7 @@ import {
   toggleArticleStarArgs,
   type UpdateInfoDto,
   UpdateInfoDtoSchema,
+  unstarAccountArticlesArgs,
   untagArticleArgs,
   updateAccountCredentialsArgs,
   updateAccountSyncArgs,
@@ -111,6 +116,9 @@ export type {
   TagDto,
   UpdateInfoDto,
 };
+
+export type OldUnreadScopeKind = z.infer<typeof oldUnreadScopeKindSchema>;
+export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
 // --- safeInvoke infrastructure ---
 
@@ -264,6 +272,29 @@ export const countAccountStarredArticles = (accountId: string) =>
     { response: NullableStarredCountSchema, args: countAccountStarredArticlesArgs },
     { accountId },
   );
+
+export const markAccountRead = (accountId: string) =>
+  safeInvoke("mark_account_read", { response: z.null(), args: markAccountReadArgs }, { accountId });
+
+export const markAccountStarredRead = (accountId: string) =>
+  safeInvoke("mark_account_starred_read", { response: z.null(), args: markAccountReadArgs }, { accountId });
+
+export const countOldUnreadArticles = (scopeKind: OldUnreadScopeKind, targetId: string, olderThanDays: OldUnreadDays) =>
+  safeInvoke(
+    "count_old_unread_articles",
+    { response: z.number().int(), args: oldUnreadArticlesArgs },
+    { scopeKind, targetId, olderThanDays },
+  );
+
+export const markOldUnreadRead = (scopeKind: OldUnreadScopeKind, targetId: string, olderThanDays: OldUnreadDays) =>
+  safeInvoke(
+    "mark_old_unread_read",
+    { response: z.null(), args: oldUnreadArticlesArgs },
+    { scopeKind, targetId, olderThanDays },
+  );
+
+export const unstarAccountArticles = (accountId: string) =>
+  safeInvoke("unstar_account_articles", { response: z.null(), args: unstarAccountArticlesArgs }, { accountId });
 
 export const getFeedIntegrityReport = () =>
   safeInvoke("get_feed_integrity_report", { response: FeedIntegrityReportDtoSchema });

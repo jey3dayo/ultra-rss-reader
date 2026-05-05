@@ -22,6 +22,7 @@ vi.mock("@/components/reader/unsubscribe-feed-dialog", () => ({
 
 vi.mock("@/hooks/use-articles", () => ({
   useMarkFeedRead: () => ({ mutate: vi.fn() }),
+  useMarkOldUnreadRead: () => ({ mutate: vi.fn() }),
 }));
 
 vi.mock("@/hooks/use-confirm-mark-all-read", () => ({

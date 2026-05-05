@@ -8,12 +8,15 @@ describe("FolderContextMenuView", () => {
   it("renders folder actions and delegates clicks", async () => {
     const user = userEvent.setup();
     const onMarkAllRead = vi.fn();
+    const onMarkOldUnreadRead = vi.fn();
     const onSetDisplayPreset = vi.fn();
 
     render(
       <ContextMenu.Root open>
         <FolderContextMenuView
           markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
           displayModeLabel="Display mode"
           displayPresetOptions={[
             { value: "default", label: "Default" },
@@ -22,6 +25,7 @@ describe("FolderContextMenuView", () => {
           ]}
           selectedDisplayPreset="preview"
           onMarkAllRead={onMarkAllRead}
+          onMarkOldUnreadRead={onMarkOldUnreadRead}
           onSetDisplayPreset={onSetDisplayPreset}
         />
       </ContextMenu.Root>,
@@ -41,6 +45,8 @@ describe("FolderContextMenuView", () => {
       <ContextMenu.Root open>
         <FolderContextMenuView
           markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
           displayModeLabel="Display mode"
           displayPresetOptions={[
             { value: "default", label: "Default" },
@@ -49,6 +55,7 @@ describe("FolderContextMenuView", () => {
           ]}
           selectedDisplayPreset={null}
           onMarkAllRead={vi.fn()}
+          onMarkOldUnreadRead={vi.fn()}
           onSetDisplayPreset={vi.fn()}
         />
       </ContextMenu.Root>,

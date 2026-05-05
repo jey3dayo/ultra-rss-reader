@@ -10,6 +10,8 @@ const meta = {
   args: {
     openSiteLabel: "Open site",
     markAllReadLabel: "Mark all as read",
+    markOldUnreadReadLabel: "Mark old unread as read",
+    oldUnreadDayLabel: (days) => `${days} days`,
     displayModeLabel: "Display mode",
     displayPresetOptions: [
       { value: "default", label: "Default" },
@@ -21,6 +23,7 @@ const meta = {
     editLabel: "Edit…",
     onOpenSite: fn(),
     onMarkAllRead: fn(),
+    onMarkOldUnreadRead: fn(),
     onSetDisplayPreset: fn(),
     onUnsubscribe: fn(),
     onEdit: fn(),

@@ -105,6 +105,7 @@ export function useSidebarSectionProps({
   });
   const smartViewsProps = useSidebarSmartViewsProps({
     t,
+    selectedAccountId,
     visibleSmartViews,
     selectSmartView,
   });

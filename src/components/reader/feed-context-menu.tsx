@@ -19,6 +19,7 @@ import { FeedContextMenuView } from "./feed-context-menu-view";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
+import { useOldUnreadReadAction } from "./use-old-unread-read-action";
 
 export type FeedContextMenuContentProps = {
   feed: FeedDto;
@@ -55,6 +56,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const { showRenameDialog, showUnsubscribeDialog } = state;
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
+  const markOldUnreadRead = useOldUnreadReadAction("feed", feed.id);
   const deleteFeedMutation = useDeleteFeed();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
 
@@ -126,6 +128,8 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       <FeedContextMenuView
         openSiteLabel={t("open_site", { host: siteHost })}
         markAllReadLabel={t("mark_all_as_read")}
+        markOldUnreadReadLabel={t("mark_old_unread_read")}
+        oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
         displayModeLabel={t("display_mode")}
         displayPresetOptions={displayPresetOptions}
         selectedDisplayPreset={selectedDisplayPreset}
@@ -133,6 +137,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         editLabel={t("edit_ellipsis")}
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
+        onMarkOldUnreadRead={(days) => {
+          void markOldUnreadRead(days);
+        }}
         onSetDisplayPreset={handleSetDisplayPreset}
         onUnsubscribe={handleOpenUnsubscribeDialog}
         onEdit={handleOpenRenameDialog}

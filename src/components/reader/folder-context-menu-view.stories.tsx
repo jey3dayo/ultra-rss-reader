@@ -9,6 +9,8 @@ const meta = {
   tags: ["autodocs"],
   args: {
     markAllReadLabel: "Mark all as read",
+    markOldUnreadReadLabel: "Mark old unread as read",
+    oldUnreadDayLabel: (days) => `${days} days`,
     displayModeLabel: "Display mode",
     displayPresetOptions: [
       { value: "default", label: "Default" },
@@ -17,6 +19,7 @@ const meta = {
     ],
     selectedDisplayPreset: "default",
     onMarkAllRead: fn(),
+    onMarkOldUnreadRead: fn(),
     onSetDisplayPreset: fn(),
   },
   render: (args) => (

@@ -5,6 +5,7 @@ import {
   clearArticleViewHistory,
   countAccountStarredArticles,
   countAccountUnreadArticles,
+  countOldUnreadArticles,
   createMuteKeyword,
   createOrUpdateBrowserWebview,
   focusBrowserWebview,
@@ -20,9 +21,13 @@ import {
   listMuteKeywords,
   listRecentArticles,
   listStarredArticles,
+  markAccountRead,
+  markAccountStarredRead,
   markArticleRead,
+  markOldUnreadRead,
   recordArticleView,
   setMuteAutoMarkRead,
+  unstarAccountArticles,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
@@ -246,6 +251,27 @@ describe("tauri-commands with mockIPC", () => {
   describe("markArticleRead", () => {
     it("succeeds without error", async () => {
       Result.unwrap(await markArticleRead("art-1"));
+    });
+  });
+
+  describe("bulk article commands", () => {
+    it("marks account articles as read", async () => {
+      Result.unwrap(await markAccountRead("acc-1"));
+    });
+
+    it("marks account starred articles as read", async () => {
+      Result.unwrap(await markAccountStarredRead("acc-1"));
+    });
+
+    it("counts and marks old unread articles", async () => {
+      const count = Result.unwrap(await countOldUnreadArticles("feed", "feed-1", 30));
+
+      expect(count).toBe(1);
+      Result.unwrap(await markOldUnreadRead("feed", "feed-1", 30));
+    });
+
+    it("unstars account articles", async () => {
+      Result.unwrap(await unstarAccountArticles("acc-1"));
     });
   });
 

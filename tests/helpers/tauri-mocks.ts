@@ -208,8 +208,14 @@ function createDefaultHandler(): MockHandler {
         } satisfies AccountDto;
       case "mark_article_read":
       case "mark_articles_read":
+      case "mark_account_read":
+      case "mark_account_starred_read":
+      case "mark_old_unread_read":
+      case "unstar_account_articles":
       case "record_article_view":
         return null;
+      case "count_old_unread_articles":
+        return 1;
       case "clear_article_view_history":
         return 1;
       case "toggle_article_star":
@@ -267,6 +273,8 @@ function createDefaultHandler(): MockHandler {
       case "delete_mute_keyword":
         return null;
       case "set_mute_auto_mark_read":
+        return null;
+      case "set_preference":
         return null;
       case "get_tag_article_counts":
         return {};

@@ -1,21 +1,28 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
+import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";
 
 export type FolderContextMenuViewProps = {
   markAllReadLabel: string;
+  markOldUnreadReadLabel: string;
+  oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
   displayModeLabel: string;
   displayPresetOptions: Array<{ value: string; label: string }>;
   selectedDisplayPreset: string | null;
   onMarkAllRead: () => void;
+  onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
   onSetDisplayPreset: (value: string) => void;
 };
 
 export function FolderContextMenuView({
   markAllReadLabel,
+  markOldUnreadReadLabel,
+  oldUnreadDayLabel,
   displayModeLabel,
   displayPresetOptions,
   selectedDisplayPreset,
   onMarkAllRead,
+  onMarkOldUnreadRead,
   onSetDisplayPreset,
 }: FolderContextMenuViewProps) {
   return (
@@ -25,6 +32,11 @@ export function FolderContextMenuView({
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
             {markAllReadLabel}
           </ContextMenu.Item>
+          <OldUnreadContextMenuItems
+            label={markOldUnreadReadLabel}
+            dayLabel={oldUnreadDayLabel}
+            onSelect={onMarkOldUnreadRead}
+          />
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <div className="px-3 py-1 text-xs font-medium text-foreground-soft">{displayModeLabel}</div>
           {displayPresetOptions.map((option) => (
