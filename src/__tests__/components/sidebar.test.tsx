@@ -698,10 +698,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    fireEvent(
-      await screen.findByRole("button", { name: /Tech Blog/ }),
-      new MouseEvent("auxclick", { bubbles: true, button: 1 }),
-    );
+    fireEvent.mouseDown(await screen.findByRole("button", { name: /Tech Blog/ }), { button: 1 });
 
     await waitFor(() => {
       expect(calls).toContainEqual({

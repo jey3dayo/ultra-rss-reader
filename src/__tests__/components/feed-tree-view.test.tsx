@@ -87,7 +87,7 @@ describe("FeedTreeView", () => {
     await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
     await user.click(screen.getByRole("button", { name: /Beta/ }));
-    fireEvent(screen.getByRole("button", { name: /Alpha/ }), new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+    fireEvent.mouseDown(screen.getByRole("button", { name: /Alpha/ }), { button: 1 });
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(1, "feed-1");

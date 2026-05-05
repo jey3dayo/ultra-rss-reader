@@ -93,7 +93,7 @@ describe("FeedTreeRow", () => {
       />,
     );
 
-    fireEvent(screen.getByRole("button", { name: /Alpha/ }), new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+    fireEvent.mouseDown(screen.getByRole("button", { name: /Alpha/ }), { button: 1 });
 
     expect(onOpenFeedSite).toHaveBeenCalledWith(
       expect.objectContaining({ id: "feed-1", siteUrl: "https://example.com/alpha" }),

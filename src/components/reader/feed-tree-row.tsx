@@ -67,7 +67,7 @@ export function FeedTreeRow({
   const rowStyle = {
     "--feed-tree-rail-offset": tokens.treeRailOffset,
   } as CSSProperties;
-  const handleAuxClick = (event: ReactMouseEvent<HTMLElement>) => {
+  const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 1) {
       return;
     }
@@ -116,7 +116,7 @@ export function FeedTreeRow({
             />
           }
           onClick={() => onSelectFeed(feed.id)}
-          onAuxClick={handleAuxClick}
+          onMouseDown={handleMiddleMouseDown}
         >
           {displayFavicons && (
             <span className="flex h-5 w-5 shrink-0 items-center justify-center">
