@@ -89,4 +89,31 @@ describe("AccountSwitcherView", () => {
     fireEvent.keyDown(menu, { key: "Escape" });
     expect(onClose).toHaveBeenCalledWith(true);
   });
+
+  it("opens the account target when only one account exists", async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+
+    render(
+      <AccountSwitcherView
+        title="Ultra RSS"
+        lastSyncedLabel="Not synced yet"
+        accounts={[sampleAccounts[0]]}
+        accountStatusLabels={{}}
+        selectedAccountId="acc-1"
+        isExpanded={false}
+        menuId="account-menu"
+        menuLabel="Accounts"
+        triggerRef={createRef<HTMLButtonElement>()}
+        itemRefs={{ current: [] }}
+        onToggle={onToggle}
+        onSelectAccount={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Local/ }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
 });

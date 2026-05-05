@@ -147,6 +147,28 @@ describe("executeAction", () => {
       expect(useUiStore.getState().settingsOpen).toBe(true);
     });
 
+    it("opens current account settings when an account is selected", () => {
+      useUiStore.setState({ selectedAccountId: "acc-1" });
+
+      executeAction("open-current-account-settings");
+
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-1");
+      expect(useUiStore.getState().settingsAddAccount).toBe(false);
+    });
+
+    it("opens the accounts settings category when no account is selected", () => {
+      useUiStore.setState({ selectedAccountId: null });
+
+      executeAction("open-current-account-settings");
+
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAccountId).toBeNull();
+      expect(useUiStore.getState().settingsAddAccount).toBe(false);
+    });
+
     it("opens settings at accounts tab", () => {
       executeAction("open-settings-accounts");
       expect(useUiStore.getState().settingsOpen).toBe(true);

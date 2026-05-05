@@ -33,6 +33,7 @@ describe("sidebar section props builders", () => {
       toggleAccountList: onToggle,
       handleSelectAccount: onSelectAccount,
       closeAccountList: onClose,
+      handleOpenAccountSettings: vi.fn(),
     });
 
     expect(props).toEqual({
@@ -50,6 +51,7 @@ describe("sidebar section props builders", () => {
       onToggle,
       onSelectAccount,
       onClose,
+      renderContextMenu: expect.any(Function),
     });
   });
 
@@ -68,6 +70,7 @@ describe("sidebar section props builders", () => {
       toggleAccountList: vi.fn(),
       handleSelectAccount: vi.fn(),
       closeAccountList: vi.fn(),
+      handleOpenAccountSettings: vi.fn(),
     });
 
     expect(props.title).toBe(t("app_name"));

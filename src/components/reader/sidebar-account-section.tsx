@@ -16,6 +16,7 @@ export function SidebarAccountSection({
   onToggle,
   onSelectAccount,
   onClose,
+  renderContextMenu,
 }: SidebarAccountSectionProps) {
   return (
     <div ref={containerRef}>
@@ -33,6 +34,7 @@ export function SidebarAccountSection({
         onToggle={onToggle}
         onSelectAccount={onSelectAccount}
         onClose={onClose}
+        renderContextMenu={renderContextMenu}
       />
     </div>
   );

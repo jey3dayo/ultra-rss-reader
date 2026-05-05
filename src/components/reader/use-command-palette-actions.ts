@@ -42,6 +42,12 @@ export function useCommandPaletteActions({
         icon: SettingsIcon,
       },
       {
+        id: "open-current-account-settings",
+        label: tSidebar("account_settings"),
+        keywords: ["account", "settings", "preferences", "アカウント", "設定"],
+        icon: SettingsIcon,
+      },
+      {
         id: "open-shortcuts-help",
         label: t("shortcuts.open_shortcuts_help"),
         shortcut: "?",

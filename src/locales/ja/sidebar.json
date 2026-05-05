@@ -16,6 +16,7 @@
   "manage_tags": "タグを管理",
   "accounts": "アカウント",
   "settings": "設定",
+  "account_settings": "アカウント設定",
   "checking_sync_status": "同期履歴を確認中…",
   "not_synced_yet": "未同期",
   "today_at": "今日 {{time}}",

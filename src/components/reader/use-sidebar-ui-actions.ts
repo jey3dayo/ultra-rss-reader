@@ -7,6 +7,7 @@ export function useSidebarUiActions({
   setSelectedAccountPreference,
   openSettings,
   openSubscriptionsIndex,
+  openSettingsAccount,
   openSettingsAddAccount,
   openAddFeedDialog,
   closeAddFeedDialog,
@@ -42,8 +43,13 @@ export function useSidebarUiActions({
   }, [openSettings]);
 
   const handleOpenAccountSettings = useCallback(() => {
+    if (selectedAccountId) {
+      openSettingsAccount(selectedAccountId);
+      return;
+    }
+
     openSettingsAddAccount();
-  }, [openSettingsAddAccount]);
+  }, [openSettingsAccount, openSettingsAddAccount, selectedAccountId]);
 
   const handleAddFeed = useCallback(() => {
     if (selectedAccountId) {

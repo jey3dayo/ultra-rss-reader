@@ -21,6 +21,7 @@ export type AppAction =
   | "toggle-fullscreen"
   | "sync-all"
   | "open-settings"
+  | "open-current-account-settings"
   | "open-settings-accounts"
   | "open-settings-accounts-add"
   | "open-settings-accounts-add-freshrss"
@@ -58,6 +59,7 @@ const APP_ACTIONS: readonly AppAction[] = [
   "toggle-fullscreen",
   "sync-all",
   "open-settings",
+  "open-current-account-settings",
   "open-settings-accounts",
   "open-settings-accounts-add",
   "open-settings-accounts-add-freshrss",
@@ -294,6 +296,13 @@ export function executeAction(action: AppAction): void {
     // --- Settings & dialogs ---
     case "open-settings":
       store.openSettings();
+      break;
+    case "open-current-account-settings":
+      if (store.selectedAccountId) {
+        store.openSettingsAccount(store.selectedAccountId);
+      } else {
+        store.openSettings("accounts");
+      }
       break;
     case "open-settings-accounts":
       store.openSettings("accounts");

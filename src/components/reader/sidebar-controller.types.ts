@@ -9,6 +9,7 @@ export type SidebarUiActionsParams = {
   setSelectedAccountPreference: SidebarSetSelectedAccountPreference;
   openSettings: (category?: SettingsCategory) => void;
   openSubscriptionsIndex: () => void;
+  openSettingsAccount: (accountId: string) => void;
   openSettingsAddAccount: () => void;
   openAddFeedDialog: () => void;
   closeAddFeedDialog: () => void;

@@ -256,6 +256,43 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("option", { name: /Theme: Dark/ })).toBeInTheDocument();
   });
 
+  it("opens the selected account settings from the action list and closes the palette", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">account");
+    await user.click(await screen.findByRole("option", { name: /Account settings/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-1");
+      expect(useUiStore.getState().settingsAddAccount).toBe(false);
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
+  it("opens the accounts settings category from the palette when no account is selected", async () => {
+    const user = userEvent.setup();
+    useUiStore.setState({ selectedAccountId: null });
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">account");
+    await user.click(await screen.findByRole("option", { name: /Account settings/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAccountId).toBeNull();
+      expect(useUiStore.getState().settingsAddAccount).toBe(false);
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
   it("filters to tag results for the tag prefix and selects the tag", async () => {
     const user = userEvent.setup();
 

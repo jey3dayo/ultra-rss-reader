@@ -1,3 +1,4 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
 import { type ButtonHTMLAttributes, forwardRef, useEffect } from "react";
 import { SIDEBAR_FALLBACK_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
@@ -10,6 +11,7 @@ type AccountSwitcherTriggerButtonProps = Omit<
   "aria-controls" | "aria-expanded" | "aria-haspopup"
 > & {
   accountName: string;
+  canOpenAccountList: boolean;
   controlsId?: string;
   hasMultipleAccounts: boolean;
   isExpanded?: boolean;
@@ -20,6 +22,7 @@ export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, Accoun
   (
     {
       accountName,
+      canOpenAccountList,
       className,
       controlsId,
       hasMultipleAccounts,
@@ -38,15 +41,15 @@ export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, Accoun
       aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
       aria-controls={hasMultipleAccounts ? controlsId : undefined}
       className={cn(
-        "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
-        hasMultipleAccounts
+        "group flex w-full flex-col items-start gap-1 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
+        canOpenAccountList
           ? "cursor-pointer text-sidebar-foreground/92 hover:text-sidebar-foreground"
           : "cursor-default text-sidebar-foreground",
         className,
       )}
       {...props}
     >
-      <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-medium tracking-[-0.055em] text-current">
+      <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[1.03] font-medium tracking-[-0.055em] text-current">
         {accountName}
         {hasMultipleAccounts ? (
           <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78 motion-reduce:transition-none" />
@@ -88,8 +91,10 @@ export function AccountSwitcherView({
   onToggle,
   onSelectAccount,
   onClose,
+  renderContextMenu,
 }: AccountSwitcherProps) {
   const { selectedAccountName, selectedIndex } = resolveSelectedAccountViewModel(accounts, selectedAccountId);
+  const canOpenAccountList = accounts.length > 0;
   const hasMultipleAccounts = accounts.length > 1;
 
   useEffect(() => {
@@ -102,26 +107,34 @@ export function AccountSwitcherView({
 
   return (
     <div className="relative px-5 pt-4 pb-4">
-      <AccountSwitcherTriggerButton
-        ref={triggerRef}
-        accountName={selectedAccountName ?? title}
-        controlsId={menuId}
-        hasMultipleAccounts={hasMultipleAccounts}
-        isExpanded={isExpanded}
-        lastSyncedLabel={lastSyncedLabel}
-        onClick={() => hasMultipleAccounts && onToggle()}
-        onKeyDown={(e) => {
-          if (!hasMultipleAccounts) return;
-          if (e.key === "ArrowDown" && !isExpanded) {
-            e.preventDefault();
-            onToggle();
+      <ContextMenu.Root>
+        <ContextMenu.Trigger
+          render={
+            <AccountSwitcherTriggerButton
+              ref={triggerRef}
+              accountName={selectedAccountName ?? title}
+              canOpenAccountList={canOpenAccountList}
+              controlsId={menuId}
+              hasMultipleAccounts={hasMultipleAccounts}
+              isExpanded={isExpanded}
+              lastSyncedLabel={lastSyncedLabel}
+            />
           }
-          if (e.key === "Escape" && isExpanded) {
-            e.preventDefault();
-            onClose(true);
-          }
-        }}
-      />
+          onClick={() => canOpenAccountList && onToggle()}
+          onKeyDown={(e) => {
+            if (!hasMultipleAccounts) return;
+            if (e.key === "ArrowDown" && !isExpanded) {
+              e.preventDefault();
+              onToggle();
+            }
+            if (e.key === "Escape" && isExpanded) {
+              e.preventDefault();
+              onClose(true);
+            }
+          }}
+        />
+        {renderContextMenu?.()}
+      </ContextMenu.Root>
 
       {isExpanded && accounts.length > 0 ? (
         <AccountSwitcherMenu

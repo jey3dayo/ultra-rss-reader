@@ -221,6 +221,7 @@ export type SidebarAccountSectionPropsParams = {
   toggleAccountList: () => void;
   handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
   closeAccountList: () => void;
+  handleOpenAccountSettings: () => void;
 };
 
 export type SidebarContentSectionsPropsParams = {

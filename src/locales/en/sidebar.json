@@ -16,6 +16,7 @@
   "manage_tags": "Manage tags",
   "accounts": "Accounts",
   "settings": "Settings",
+  "account_settings": "Account settings",
   "checking_sync_status": "Checking sync history…",
   "not_synced_yet": "Not synced yet",
   "today_at": "Today at {{time}}",

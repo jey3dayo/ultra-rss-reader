@@ -75,6 +75,7 @@ export function useSidebarSectionProps({
     toggleAccountList,
     handleSelectAccount,
     closeAccountList,
+    handleOpenAccountSettings,
   });
   const contentSectionsProps = useSidebarContentSectionsProps({
     t,

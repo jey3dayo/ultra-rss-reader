@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 
 export type AccountSwitcherProps = {
@@ -15,6 +15,7 @@ export type AccountSwitcherProps = {
   onToggle: () => void;
   onSelectAccount: (accountId: string) => void;
   onClose: (restoreFocus: boolean) => void;
+  renderContextMenu?: () => ReactNode;
 };
 
 export type AccountSwitcherMenuProps = Pick<

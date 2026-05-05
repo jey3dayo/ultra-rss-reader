@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import { AccountContextMenuContent } from "./account-context-menu";
 import type { SidebarAccountSectionProps, SidebarAccountSectionPropsParams } from "./sidebar.types";
 
 export function useSidebarAccountSectionProps({
@@ -15,8 +17,9 @@ export function useSidebarAccountSectionProps({
   toggleAccountList,
   handleSelectAccount,
   closeAccountList,
+  handleOpenAccountSettings,
 }: SidebarAccountSectionPropsParams): SidebarAccountSectionProps {
-  return {
+  const props: SidebarAccountSectionProps = {
     containerRef: accountDropdownRef,
     title: selectedAccountName ?? t("app_name"),
     lastSyncedLabel,
@@ -32,4 +35,14 @@ export function useSidebarAccountSectionProps({
     onSelectAccount: handleSelectAccount,
     onClose: closeAccountList,
   };
+
+  if (selectedAccountId) {
+    props.renderContextMenu = () =>
+      createElement(AccountContextMenuContent, {
+        settingsLabel: t("account_settings"),
+        onOpenSettings: handleOpenAccountSettings,
+      });
+  }
+
+  return props;
 }
