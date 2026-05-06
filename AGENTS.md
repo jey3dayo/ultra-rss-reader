@@ -7,7 +7,7 @@ Use `./CLAUDE.md` as the master document for repository-local agent instructions
 ## Instructions
 
 - Read order for repository-local guidance: `AGENTS.md` -> `CLAUDE.md` -> linked documents from `CLAUDE.md`.
-- Start with `./CLAUDE.md` for coding standards, workflows, and linked project rules.
-- Keep this file as a thin router. Put day-to-day guidance in `CLAUDE.md`, and longer operational detail in skills or `README.md` / `docs/`.
-- For reader article list behavior, follow the `docs/reader-article-scope-matrix.md` route documented in `CLAUDE.md`.
+- Keep this file as a thin router only.
+- Put day-to-day agent guidance, coding standards, workflows, and project-rule links in `CLAUDE.md`.
+- Put longer operational detail in skills, `README.md`, or `docs/`.
 - Do not deviate from `CLAUDE.md` or the documents it routes to unless explicitly instructed.

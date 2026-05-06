@@ -61,7 +61,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 ## Agent Routing
 
-- `AGENTS.md` is only the entry point. Keep repository-local operating guidance centralized in this file.
+- `AGENTS.md` is only the thin entry point for agents that read it first.
+- Keep repository-local operating guidance centralized in this file.
 - Put longer debugging, recovery, or diagnostic workflows in skills or `README.md` / `docs/`, not in `AGENTS.md`.
 
 ## MCP and Skills
