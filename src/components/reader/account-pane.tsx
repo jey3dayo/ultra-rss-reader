@@ -104,6 +104,7 @@ export function AccountPane() {
                 {...(selected ? { "aria-current": "true" } : {})}
                 selected={selected}
                 activePane={true}
+                registerSidebarNavigationTarget={false}
                 selectedIndicatorTone="neutral"
                 size="default"
                 contentClassName="flex-col items-start gap-0.5"

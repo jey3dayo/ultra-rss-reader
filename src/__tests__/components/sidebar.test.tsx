@@ -1856,6 +1856,7 @@ describe("Sidebar", () => {
 
     expect(localAccount).toHaveAttribute("aria-current", "true");
     expect(localAccount).toHaveAttribute("data-account-pane-selected-target", "true");
+    expect(localAccount).not.toHaveAttribute("data-sidebar-navigation-target");
     expect(localAccount).toHaveClass(
       "before:left-0",
       "before:w-0.5",

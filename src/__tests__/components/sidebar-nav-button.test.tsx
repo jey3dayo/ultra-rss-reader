@@ -51,6 +51,14 @@ describe("SidebarNavButton", () => {
     expect(button).not.toHaveClass("before:bg-primary/85");
   });
 
+  it("can opt out of sidebar arrow navigation target registration", () => {
+    render(<SidebarNavButton registerSidebarNavigationTarget={false}>Account pane row</SidebarNavButton>);
+
+    expect(screen.getByRole("button", { name: "Account pane row" })).not.toHaveAttribute(
+      "data-sidebar-navigation-target",
+    );
+  });
+
   it("can hide the selected indicator while the row is hovered or focused", () => {
     render(
       <SidebarNavButton selected selectedIndicatorMode="hide-on-row-hover">

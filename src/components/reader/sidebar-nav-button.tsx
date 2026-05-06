@@ -29,6 +29,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
       contentClassName,
       selected = false,
       activePane: activePaneProp,
+      registerSidebarNavigationTarget = true,
       selectedIndicatorMode = "always",
       selectedIndicatorTone = "accent",
       size = "compact",
@@ -53,7 +54,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
       <button
         ref={ref}
         type={type}
-        data-sidebar-navigation-target="true"
+        data-sidebar-navigation-target={registerSidebarNavigationTarget ? "true" : undefined}
         data-active-pane={selected ? String(activePane) : undefined}
         className={cn(
           "motion-contextual-surface relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none motion-reduce:transition-none",
