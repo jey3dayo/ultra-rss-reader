@@ -30,6 +30,7 @@ depends = ["format:biome", "format:rust", "format:toml", "format:md"]
 [tasks."format:biome"]
 description = "Biome format + lint + import sort autofix"
 run = "biome check --write --formatter-enabled=true --linter-enabled=true ."
+run_windows = "biome.CMD check --write --formatter-enabled=true --linter-enabled=true ."
 
 [tasks."format:rust"]
 description = "Rust format"
@@ -42,6 +43,7 @@ run = "taplo fmt mise.toml src-tauri/Cargo.toml"
 [tasks."format:md"]
 description = "Markdown format + lint autofix"
 run = "pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/** --fix"
+run_windows = "markdownlint-cli2.CMD **/*.md #**/node_modules/** #**/.worktrees/** #**/target/** --fix"
 
 # ========================================
 # フォーマットチェック（書き込みなし、CI用）
@@ -59,17 +61,17 @@ depends = [
 [tasks."format:biome:check"]
 description = "Biome format + lint check (no writes)"
 run = "rtk err biome check --formatter-enabled=true --linter-enabled=true ."
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec biome check --formatter-enabled=true --linter-enabled=true ."
+run_windows = "biome.CMD check --formatter-enabled=true --linter-enabled=true ."
 
 [tasks."format:rust:check"]
 description = "Rust format check (no writes)"
 run = "rtk err cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
-run_windows = "node ./scripts/windows-command-dispatch.ts cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
+run_windows = "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
 
 [tasks."format:toml:check"]
 description = "TOML format check (no writes)"
 run = "rtk err taplo fmt --check mise.toml src-tauri/Cargo.toml"
-run_windows = "node ./scripts/windows-command-dispatch.ts taplo fmt --check mise.toml src-tauri/Cargo.toml"
+run_windows = "taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 # ========================================
 # リント
@@ -89,22 +91,22 @@ depends = [
 [tasks."lint:types"]
 description = "TypeScript type check"
 run = "rtk pnpm exec tsc --noEmit"
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec tsc --noEmit"
+run_windows = "tsc.CMD --noEmit"
 
 [tasks."lint:biome"]
 description = "Biome lint check"
 run = "rtk pnpm run lint"
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec biome lint ."
+run_windows = "biome.CMD lint ."
 
 [tasks."lint:clippy"]
 description = "Rust clippy"
 run = "rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
-run_windows = "node ./scripts/windows-command-dispatch.ts cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
 run = "pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
+run_windows = "markdownlint-cli2.CMD **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
 
 [tasks."lint:yaml"]
 description = "YAML lint check"
@@ -129,22 +131,22 @@ depends = ["test:rust", "test:unit:ci"]
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
-run_windows = "node ./scripts/windows-command-dispatch.ts cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
+run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
 run = "rtk test pnpm run test"
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec vitest run"
+run_windows = "vitest.CMD run"
 
 [tasks."test:unit:ci"]
 description = "Run Vitest unit tests with quieter CI output"
 run = "rtk test pnpm exec vitest run --reporter=dot --silent=passed-only"
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec vitest run --reporter=dot --silent=passed-only"
+run_windows = "vitest.CMD run --reporter=dot --silent=passed-only"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
 run = "rtk test pnpm exec playwright test"
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm exec playwright test"
+run_windows = "playwright.CMD test"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
@@ -161,7 +163,7 @@ run = "dotenvx run -- rtk test cargo test --manifest-path src-tauri/Cargo.toml f
 [tasks.build]
 description = "Build frontend"
 run = ["pnpm build"]
-run_windows = "node ./scripts/windows-command-dispatch.ts pnpm build"
+run_windows = "tsc.CMD && vite.CMD build"
 
 # ========================================
 # アプリ（Tauri）
