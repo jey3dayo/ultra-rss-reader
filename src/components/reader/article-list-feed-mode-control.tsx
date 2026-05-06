@@ -1,6 +1,6 @@
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
+import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
 import { isFeedDisplayPresetOption } from "@/lib/article-display";
-import { getOptionLabelByValue } from "@/lib/options";
 import type { ArticleListFeedModeControlProps } from "./article-list.types";
 
 export function ArticleListFeedModeControl({
@@ -20,14 +20,10 @@ export function ArticleListFeedModeControl({
       }}
     >
       <SelectTrigger aria-label={ariaLabel} className="min-w-[168px]">
-        <SelectValue>{(selectedValue: string | null) => getOptionLabelByValue(options, selectedValue)}</SelectValue>
+        <SelectOptionValue options={options} />
       </SelectTrigger>
       <SelectPopup>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
+        <SelectOptionItems options={options} />
       </SelectPopup>
     </Select>
   );

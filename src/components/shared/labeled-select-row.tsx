@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getOptionLabelByValue } from "@/lib/options";
+import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
+import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { LabeledSelectRowProps } from "./form-row.types";
 
@@ -28,14 +28,10 @@ export function LabeledSelectRow({
         open={open}
       >
         <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
-          <SelectValue>{(selectedValue: string | null) => getOptionLabelByValue(options, selectedValue)}</SelectValue>
+          <SelectOptionValue options={options} />
         </SelectTrigger>
         <SelectPopup>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
+          <SelectOptionItems options={options} />
         </SelectPopup>
       </Select>
     </LabeledControlRow>
