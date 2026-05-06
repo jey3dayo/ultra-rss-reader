@@ -54,17 +54,17 @@ describe("Settings surface views", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("min-h-[4.5rem]");
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("flex");
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("items-center");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4.5rem]");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("flex");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("items-center");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
     );
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveStyle({
+    expect(screen.getByTestId("settings-content-header")).toHaveStyle({
       backgroundColor: "var(--settings-shell-content-header)",
     });
-    expect(screen.getByTestId("settings-page-root")).toHaveClass("pt-0");
-    expect(screen.getByTestId("settings-page-root")).toHaveClass("px-5");
+    expect(screen.getByTestId("settings-page-root")).toHaveClass("flex");
+    expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass("h-full");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("System default");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");
     expect(screen.getByText("Open links in the background when possible.")).toBeInTheDocument();

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 
 describe("SettingsPageView", () => {
-  it("keeps the title sticky and tightens low-height page spacing", () => {
+  it("keeps the title fixed above the settings content scroll area", () => {
     const { container } = render(
       <SettingsPageView
         title="General"
@@ -32,15 +32,13 @@ describe("SettingsPageView", () => {
       />,
     );
 
-    expect(screen.getByTestId("settings-page-root")).toHaveClass("px-5");
-    expect(screen.getByTestId("settings-page-root")).toHaveClass("pb-5");
-    expect(screen.getByTestId("settings-page-root")).toHaveClass("pt-0");
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("sticky");
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("top-0");
+    expect(screen.getByTestId("settings-page-root")).toHaveClass("flex", "h-full", "min-h-0");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4.5rem]", "shrink-0");
+    expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass("h-full", "min-h-0");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
     );
-    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveStyle({
+    expect(screen.getByTestId("settings-content-header")).toHaveStyle({
       backgroundColor: "var(--settings-shell-content-header)",
     });
     expect(container.querySelector('[data-surface-card="section"]')).toBeNull();

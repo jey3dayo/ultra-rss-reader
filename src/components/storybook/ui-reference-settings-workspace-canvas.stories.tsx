@@ -145,7 +145,10 @@ function SettingsWorkspaceShell({
         </div>
       </div>
 
-      <div className="min-h-0 min-w-0 overflow-y-auto" style={{ backgroundColor: "var(--settings-shell-content)" }}>
+      <div
+        className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+        style={{ backgroundColor: "var(--settings-shell-content)" }}
+      >
         {content}
       </div>
     </div>
@@ -299,19 +302,17 @@ export function SettingsWorkspaceCanvas() {
                 accounts={addAccountAccounts}
                 isAddAccountActive={true}
                 content={
-                  <div className="mx-auto w-full max-w-[640px]">
-                    <AddAccountForm
-                      initialKind="FreshRss"
-                      debugState={{
-                        name: "FreshRSS",
-                        serverUrl: "https://freshrss.example.com",
-                        username: "alice",
-                        password: "secret",
-                        submitMessage:
-                          "Storybook preview does not submit real accounts. Use the desktop app to test registration.",
-                      }}
-                    />
-                  </div>
+                  <AddAccountForm
+                    initialKind="FreshRss"
+                    debugState={{
+                      name: "FreshRSS",
+                      serverUrl: "https://freshrss.example.com",
+                      username: "alice",
+                      password: "secret",
+                      submitMessage:
+                        "Storybook preview does not submit real accounts. Use the desktop app to test registration.",
+                    }}
+                  />
                 }
               />
             </div>

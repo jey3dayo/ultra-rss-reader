@@ -3,6 +3,7 @@ import type {
   AddAccountFormSelectRowProps,
   AddAccountFormViewProps,
 } from "@/components/settings/add-account-form.types";
+import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
@@ -56,10 +57,7 @@ export function AddAccountFormView({
   onCancel,
 }: AddAccountFormViewProps) {
   return (
-    <div className="p-6">
-      <h2 className="mb-5 border-b border-border/60 pb-4 text-center font-sans text-[19px] font-medium tracking-[-0.02em] text-foreground">
-        {title}
-      </h2>
+    <SettingsContentLayout title={title} maxWidthClassName="max-w-[640px]" contentTestId="add-account-form-layout">
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -99,6 +97,6 @@ export function AddAccountFormView({
           />
         </div>
       </form>
-    </div>
+    </SettingsContentLayout>
   );
 }

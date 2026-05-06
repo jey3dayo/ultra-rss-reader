@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 
 const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
@@ -61,6 +63,10 @@ function notifyResizeObservers() {
   });
 }
 
+function settingsContent(children: ReactNode) {
+  return <SettingsContentLayout title="General">{children}</SettingsContentLayout>;
+}
+
 describe("SettingsModalView", () => {
   it("renders header, navigation slots, and content", () => {
     const onClose = vi.fn();
@@ -74,7 +80,7 @@ describe("SettingsModalView", () => {
         navigation={<div data-testid="settings-nav">Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div data-testid="accounts-nav">Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={onClose}
         onOpenChange={onOpenChange}
@@ -105,7 +111,7 @@ describe("SettingsModalView", () => {
         navigation={<div data-testid="settings-nav">Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div data-testid="accounts-nav">Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         isCloseDisabled={true}
         lockMessage="Finish the first sync before closing this screen."
@@ -131,7 +137,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -156,7 +162,7 @@ describe("SettingsModalView", () => {
         navigation={<div data-testid="settings-nav">Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div data-testid="settings-content">Settings content</div>}
+        content={settingsContent(<div data-testid="settings-content">Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -167,7 +173,7 @@ describe("SettingsModalView", () => {
     const contentLane = screen.getByTestId("settings-content").closest('[data-slot="scroll-area-content"]');
 
     expect(navLane).toHaveClass("pr-3");
-    expect(contentLane).toHaveClass("pr-3");
+    expect(contentLane).toHaveClass("px-5", "py-5");
   });
 
   it("adds visual scroll affordances and a taller modal surface", () => {
@@ -179,7 +185,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -232,7 +238,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -263,7 +269,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -299,7 +305,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentScrollBehavior="always"
         contentResetKey="general::false"
         onClose={vi.fn()}
@@ -337,7 +343,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -364,7 +370,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -383,7 +389,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         isLoading={false}
         contentResetKey="general::false"
         onClose={vi.fn()}
@@ -401,7 +407,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div>Settings content</div>}
+        content={settingsContent(<div>Settings content</div>)}
         isLoading={true}
         contentResetKey="general::false"
         onClose={vi.fn()}
@@ -421,7 +427,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div style={{ height: 1200 }}>Settings content</div>}
+        content={settingsContent(<div style={{ height: 1200 }}>Settings content</div>)}
         contentResetKey="accounts:acc-1:false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
@@ -445,7 +451,7 @@ describe("SettingsModalView", () => {
         navigation={<div>Settings navigation</div>}
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
-        content={<div style={{ height: 1200 }}>Other settings content</div>}
+        content={settingsContent(<div style={{ height: 1200 }}>Other settings content</div>)}
         contentResetKey="accounts:acc-2:false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}

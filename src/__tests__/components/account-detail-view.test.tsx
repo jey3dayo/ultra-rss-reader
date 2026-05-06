@@ -68,8 +68,10 @@ describe("AccountDetailView", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Personal FreshRSS" })).toBeInTheDocument();
     expect(screen.getByText("FreshRss")).toBeInTheDocument();
-    expect(screen.getByTestId("account-detail-layout")).toHaveClass("max-w-[640px]");
-    expect(screen.getByTestId("account-detail-layout")).toHaveClass("mx-auto");
+    expect(screen.getByTestId("account-detail-layout").closest('[data-slot="scroll-area-content"]')).toHaveClass(
+      "max-w-[640px]",
+      "mx-auto",
+    );
     expect(screen.getByRole("heading", { level: 3, name: "General" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Syncing" })).toBeInTheDocument();
     expect(screen.getByText("Next automatic retry")).toBeInTheDocument();
