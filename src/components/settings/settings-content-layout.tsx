@@ -83,7 +83,7 @@ export function SettingsContentLayout({
       ) : (
         <header
           data-testid="settings-content-header"
-          className="shrink-0 border-b border-border/80 px-5 py-4 backdrop-blur-sm sm:px-6"
+          className="flex min-h-[4.5rem] shrink-0 items-center border-b border-border/80 px-5 py-0 backdrop-blur-sm sm:px-6"
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <div
