@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-05-07
+
+### Bug Fixes
+
+- 設定画面の左ナビと右コンテンツのヘッダー区切り線を揃え、アカウント詳細の表示を自然にした
+
+### Maintenance
+
+- npm 依存関係を更新した
+- 危険ゾーンの OPML エクスポート操作が標準ボタンサイズを保つように回帰テストを補強した
+
 ## [0.29.0] - 2026-05-07
 
 ### Bug Fixes
