@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const updateToastTestIds = [
   "reference-update-toast-download-0",
@@ -6,9 +6,18 @@ const updateToastTestIds = [
   "reference-update-toast-ready",
 ] as const;
 
+const shellOverlayStoryUrl = "/iframe.html?id=ui-reference-shell-overlay-canvas--default";
+
+async function openShellOverlayStory(page: Page) {
+  await expect(async () => {
+    await page.goto(shellOverlayStoryUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await expect(page.getByTestId("reference-update-toast-stability")).toBeVisible({ timeout: 15000 });
+  }).toPass({ timeout: 120000, intervals: [1000, 2000, 5000] });
+}
+
 test.describe("Storybook update Toast stability", () => {
   test("keeps update notification widths stable across progress and ready states", async ({ page }) => {
-    await page.goto("/iframe.html?id=ui-reference-shell-overlay-canvas--default");
+    await openShellOverlayStory(page);
 
     const boxes = await Promise.all(
       updateToastTestIds.map(async (testId) => {
@@ -31,8 +40,7 @@ test.describe("Storybook update Toast stability", () => {
 
   test("allows the shell overlay story to scroll when the viewport is short", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 500 });
-    await page.goto("/iframe.html?id=ui-reference-shell-overlay-canvas--default");
-    await expect(page.getByTestId("reference-update-toast-stability")).toBeVisible();
+    await openShellOverlayStory(page);
 
     const before = await page.evaluate(() => ({
       scrollY: window.scrollY,

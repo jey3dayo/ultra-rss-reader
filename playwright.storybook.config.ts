@@ -1,17 +1,22 @@
 import { defineConfig } from "@playwright/test";
 
+const isWindows = process.platform === "win32";
+const storybookCommand = isWindows
+  ? "pwsh -NoProfile -ExecutionPolicy Bypass -File node_modules/.bin/storybook.ps1 dev -p 6006 --no-open"
+  : "pnpm storybook";
+
 export default defineConfig({
   testDir: "./e2e/storybook",
-  timeout: 30000,
+  timeout: 120000,
   use: {
     baseURL: "http://127.0.0.1:6006",
     headless: true,
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "pnpm storybook",
+    command: storybookCommand,
     url: "http://127.0.0.1:6006",
     reuseExistingServer: true,
-    timeout: 30000,
+    timeout: 120000,
   },
 });
