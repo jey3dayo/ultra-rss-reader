@@ -19,6 +19,7 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Bionic reading — Bold-emphasis rendering for faster reading
 - Keyboard shortcuts — `m` read/unread, `s` star, `v` in-app view, `b` browser, `a` mark all read, `/` search
 - Theming — Light/dark with system detection, OKLch color tokens
+- Japanese localization — Reader, settings, sidebar, and subscription-management copy tuned for concise in-app Japanese
 - Secure credentials — OS keyring (Keychain / Credential Manager / Secret Service), never SQLite
 
 ## Start Here
@@ -91,6 +92,11 @@ Use the detailed command table below when you need a specialized workflow such a
 | Testing              | Vitest + cargo test + Playwright (E2E)                |
 | Component dev        | Storybook 10                                          |
 | Package manager      | pnpm (managed via mise)                               |
+
+## Localization
+
+Japanese locale files live under `src/locales/ja/` and are treated as product UI, not mechanical translation.
+Keep labels short enough for dense controls, prefer natural Japanese over literal English, and avoid repeating context that is already provided by the surrounding section. When a visible label changes, update tests that intentionally assert that copy.
 
 ## Prerequisites
 

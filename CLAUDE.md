@@ -18,6 +18,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Put screenshots and other temporary artifacts under `tmp/`.
 - For UI changes, check `DESIGN.md` before introducing new reusable patterns.
 - For UI review or abstraction decisions, follow `DESIGN_REVIEW.md`.
+- Treat `src/locales/ja/` as product UI copy. Keep Japanese labels concise, natural, and context-aware; update copy-sensitive tests when changing visible labels.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
 ## Operational Notes
@@ -33,6 +34,14 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - `TODO.md` tracks in-progress and upcoming work only.
 - `CHANGELOG.md` records completed user-visible changes.
 - Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
+
+## Localization Notes
+
+- Japanese UI copy lives in `src/locales/ja/`.
+- Prefer short labels for controls, tabs, and dense lists.
+- Avoid repeating context already implied by the current page or category.
+- Keep technical terms only when they help debugging or match the product surface.
+- Run focused locale/copy tests after changing labels, then use `mise run check` before finishing.
 
 ## Temporary Artifacts
 

@@ -15,6 +15,7 @@ Important implementation constraints:
 - Put temporary artifacts under `tmp/`.
 - Do not claim work complete without running at least `mise run check` unless the task is explicitly docs-only.
 - Reader article list behavior is governed by `docs/reader-article-scope-matrix.md`. Use it as the source of truth for `ReaderQuery`, smart views, subscription scopes, footer filters, source hooks, and paging order.
+- Japanese locale files under `src/locales/ja/` are product copy. Keep wording concise and natural, avoid literal translation, and update copy-sensitive tests when labels change.
 
 ## Fast Path
 
@@ -37,6 +38,7 @@ Important implementation constraints:
 
 - [src-tauri/src](src-tauri/src/): Rust application code including Tauri commands, services, repositories, domain types, providers, browser webview, and platform integration.
 - [src](src/): React application code including the app shell, reader UI, settings UI, accounts flow, feed cleanup, subscriptions index, hooks, stores, API schemas, and utilities.
+- [src/locales/ja](src/locales/ja/): Japanese UI copy for reader, settings, sidebar, subscriptions, and shared actions.
 - [src-tauri/migrations](src-tauri/migrations/): SQLite schema migrations and persistence history.
 - [src/api/tauri-commands.ts](src/api/tauri-commands.ts): Canonical TypeScript IPC boundary and `safeInvoke` wrapper.
 - [src/App.tsx](src/App.tsx): Frontend entry composition.
