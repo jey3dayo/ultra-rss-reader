@@ -56,6 +56,8 @@ paths:
 2. Phase 2: Changes + Release Notes — CHANGELOG 生成、リリースノート作成（`gh release edit/create` 経由）
 3. Phase 3: Commit + Tag + Publish — コミット、タグ作成、プッシュ、GitHub Release ワークフローのトリガー
 
+ユーザーが bump 種別と公開意図を明示している場合、各フェーズ間で同じ確認を繰り返さず、必須チェックと検証に失敗した場合だけ停止する。公開意図がない場合は、リリースノート確認と push 前確認を行う。
+
 ## 根拠
 
 Tauri アプリのクロスプラットフォームビルドは OS 固有のツールチェーンが必要なため、GitHub Actions のマトリクスビルドで各プラットフォーム用 runner を使い分ける。`tauri-action` が Tauri CLI のインストールからビルド、Release 作成まで一括で行うため、手動構成より安全かつ簡潔。

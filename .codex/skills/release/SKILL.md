@@ -7,7 +7,7 @@ description: Use when cutting an Ultra RSS Reader release from `main`, choosing 
 
 ## Overview
 
-Cut releases in three gated phases. Complete every step inside a phase, stop on the first failure, and ask for confirmation between phases so the workflow cannot silently skip versioning, notes, or tag publication.
+Cut releases in three phases with explicit approval carry-forward. Complete every step inside a phase, stop on the first failure, and ask only for missing decisions so the workflow cannot silently skip versioning, notes, or tag publication.
 
 ## Preconditions
 
@@ -20,6 +20,18 @@ Cut releases in three gated phases. Complete every step inside a phase, stop on 
 - If the user already provided a valid bump type (`patch`, `minor`, or `major`), treat it as approved after pre-checks pass. Ask for a bump only when it is absent or invalid.
 - Write release notes and `CHANGELOG.md` entries in concise Japanese by default, grounded in the actual commit history, unless the user explicitly asks for another language.
 - When asking for a fixed choice or confirmation in the Codex app, prefer the app's button or wizard UI if available. If that UI is unavailable, ask a concise plain-text confirmation such as `OK`.
+
+## Approval Model
+
+Minimize repeat confirmations by carrying forward explicit user intent.
+
+- Treat a user request that includes a valid bump and publication intent (`push`, `publish`, `tag`, `release`, `最後まで`, `リリースして`) as approval to run Phases 1-3 after required checks pass.
+- Treat a later reply such as `OK`, `push`, `進めて`, or `そのまま` as approval for the next blocked step and every remaining step that matches the reply's intent.
+- Ask for the bump type only when it is absent or invalid.
+- Ask for release-note edits only when the user has not already approved publication, or when the generated notes are ambiguous enough that publishing them would be risky.
+- Ask for push approval only when publication intent has not already been given.
+- Even when approval carries forward, show a concise progress report after Phase 2 with `current_version -> new_version`, changed files, and generated release notes, then continue without waiting.
+- Never carry approval across a failed check, dirty working tree, branch mismatch, version mismatch, unexpected generated file, or user correction request. Stop and report the blocker instead.
 
 ## Phase 1: Pre-Checks And Version Choice
 
@@ -117,13 +129,13 @@ Update `CHANGELOG.md` so it looks like this:
 - If `## [Unreleased]` does not exist, insert both `## [Unreleased]` and the new version section near the top of the file after the header.
 - Mark matching release tasks in `TODO.md` as `[x]` only when the mapping is clear from the release contents. Otherwise leave the file unchanged.
 
-### User Confirmation 2
+### Release Notes Review
 
-Show the generated release notes and ask the user to confirm or request edits before moving on.
+Show the generated release notes. If publication intent has already been approved and the notes are grounded in the inspected commits, continue to Phase 3 without waiting. Otherwise ask the user to confirm or request edits before moving on.
 
 ## Phase 3: Commit, Tag, And Publish
 
-Only start this phase after the user approves the notes.
+Start this phase after the user approves the notes, or immediately when the approval model already covers publication.
 
 ### Create Commit And Tag
 
@@ -156,7 +168,7 @@ Before any push, show:
 - the release commit hash
 - the tag name
 
-Ask explicitly whether pushing is okay.
+Ask explicitly whether pushing is okay only when publication intent has not already been approved. If approval already carries forward, report the same details and continue to the push.
 
 ### Push Safely
 
