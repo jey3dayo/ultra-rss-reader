@@ -3,6 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccountDangerZoneView } from "@/components/settings/account-danger-zone-view";
 
+function expectStandardSettingsActionButton(button: HTMLElement) {
+  expect(button).toHaveClass("w-full");
+  expect(button).toHaveClass("sm:w-auto");
+  expect(button).toHaveClass("h-10", "px-4");
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+}
+
 describe("AccountDangerZoneView", () => {
   it("renders export and delete actions before confirmation", async () => {
     const user = userEvent.setup();
@@ -28,7 +35,7 @@ describe("AccountDangerZoneView", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toHaveClass(
       "text-state-danger-foreground/72",
     );
-    expect(screen.getByRole("button", { name: "Export OPML" })).toHaveClass("w-full");
+    expectStandardSettingsActionButton(screen.getByRole("button", { name: "Export OPML" }));
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "Export OPML" }).parentElement).toHaveClass("pl-2");
