@@ -15,6 +15,7 @@ import {
 } from "@/lib/reader-pane-navigation";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+import { SidebarNavButton } from "./sidebar-nav-button";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 
 function shouldShowKindLabel(name: string, kind: string): boolean {
@@ -92,22 +93,24 @@ export function AccountPane() {
             const showKindLabel = shouldShowKindLabel(account.name, account.kind);
 
             return (
-              <button
+              <SidebarNavButton
                 key={account.id}
                 ref={(element) => {
                   itemRefs.current[index] = element;
                 }}
-                type="button"
                 data-account-pane-navigation-target="true"
                 {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
                 {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
                 {...(selected ? { "aria-current": "true" } : {})}
-                data-active-pane={selected ? "true" : undefined}
+                selected={selected}
+                activePane={true}
+                selectedIndicatorTone="neutral"
+                size="default"
+                contentClassName="flex-col items-start gap-0.5"
                 className={cn(
-                  "motion-contextual-surface relative flex min-h-10 w-full flex-col items-start gap-0.5 overflow-hidden rounded-md px-3 py-2 text-left text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none motion-reduce:transition-none",
-                  selected
-                    ? "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong focus-visible:bg-[var(--bg-selected)] focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_14%,transparent)]"
-                    : "text-sidebar-foreground hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)] focus-visible:text-sidebar-foreground",
+                  "rounded-md px-3 text-left",
+                  selected &&
+                    "focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_14%,transparent)]",
                 )}
                 onClick={() => {
                   selectAccount(account.id);
@@ -124,7 +127,7 @@ export function AccountPane() {
                 {statusLabel ? (
                   <span className="max-w-full truncate pl-1.5 text-xs text-sidebar-foreground/56">{statusLabel}</span>
                 ) : null}
-              </button>
+              </SidebarNavButton>
             );
           })}
         </div>

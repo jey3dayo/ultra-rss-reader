@@ -9,6 +9,8 @@ export type { AccountNavItem, AccountsNavViewProps } from "./settings-nav.types"
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),
 );
+const ACCOUNT_SELECTED_CLASS_NAME =
+  "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] text-[var(--sidebar-selection-foreground)] shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong/70 before:opacity-70 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]";
 
 function normalizeDetail(value?: string | null): string | null {
   const normalized = value?.trim();
@@ -81,9 +83,8 @@ export function AccountsNavView({
             disabled={disabled}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
-              "relative w-auto max-w-full shrink-0 rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
-              account.isActive &&
-                "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong",
+              "relative w-auto max-w-full shrink-0 overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
+              account.isActive && ACCOUNT_SELECTED_CLASS_NAME,
             )}
             leading={
               <span
@@ -99,9 +100,7 @@ export function AccountsNavView({
             description={
               description ? (
                 <div
-                  className={
-                    account.isActive ? "text-[color:var(--settings-shell-section-label)]" : "text-sidebar-foreground/38"
-                  }
+                  className={account.isActive ? "text-[var(--sidebar-selection-muted)]" : "text-sidebar-foreground/54"}
                 >
                   {description}
                 </div>
@@ -117,9 +116,8 @@ export function AccountsNavView({
         disabled={disabled}
         onClick={onAddAccount}
         className={cn(
-          "relative w-auto max-w-full shrink-0 items-center rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
-          isAddAccountActive &&
-            "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong",
+          "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
+          isAddAccountActive && ACCOUNT_SELECTED_CLASS_NAME,
         )}
         leading={
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-1/72">

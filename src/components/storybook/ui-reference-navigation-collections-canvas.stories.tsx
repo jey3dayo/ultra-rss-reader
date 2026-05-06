@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
+  AccountArticleNavigationAlignmentSpecimen,
   AccountCardStackSpecimen,
   AnnotatedNote,
   NavigationStackSpecimen,
@@ -18,6 +19,7 @@ export function NavigationCollectionsCanvas() {
         />
         <div className="grid gap-4 xl:grid-cols-2">
           <ReaderFilterStripSpecimen />
+          <AccountArticleNavigationAlignmentSpecimen />
           <AccountCardStackSpecimen />
           <NavigationStackSpecimen />
           <TagPaletteSpecimen />

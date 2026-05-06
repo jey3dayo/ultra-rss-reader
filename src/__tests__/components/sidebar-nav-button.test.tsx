@@ -39,6 +39,18 @@ describe("SidebarNavButton", () => {
     expect(button).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
   });
 
+  it("can use a neutral selected indicator for non-feed navigation", () => {
+    render(
+      <SidebarNavButton selected selectedIndicatorTone="neutral">
+        Selected account
+      </SidebarNavButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Selected account" });
+    expect(button).toHaveClass("before:bg-border-strong/70", "before:opacity-70");
+    expect(button).not.toHaveClass("before:bg-primary/85");
+  });
+
   it("can hide the selected indicator while the row is hovered or focused", () => {
     render(
       <SidebarNavButton selected selectedIndicatorMode="hide-on-row-hover">

@@ -127,10 +127,10 @@ describe("AccountsNavView", () => {
     const addAccountButton = screen.getByRole("button", { name: "Add account…" });
 
     expect(within(localButton).getAllByText("Local", { exact: true })).toHaveLength(1);
-    expect(within(freshRssButton).getByText("alice", { exact: true })).toHaveClass("text-sidebar-foreground/38");
+    expect(within(freshRssButton).getByText("alice", { exact: true })).toHaveClass("text-sidebar-foreground/54");
     expect(within(freshRssButton).queryByText("FrEsHrSs", { exact: true })).not.toBeInTheDocument();
     expect(within(debugButton).getByText("feeds.example.com", { exact: true })).toHaveClass(
-      "text-sidebar-foreground/38",
+      "text-sidebar-foreground/54",
     );
     expect(within(localButton).queryByText("Local", { exact: true })).toBeInTheDocument();
     expect(within(archiveButton).queryByText("Account", { exact: true })).not.toBeInTheDocument();
@@ -150,9 +150,18 @@ describe("AccountsNavView", () => {
     expect(localButton.querySelector("span")?.className).toContain("h-7");
     expect(freshRssButton.querySelector("span")?.className).toContain("w-7");
     expect(debugButton.querySelector("span")?.className).toContain("bg-surface-1/72");
-    expect(within(freshRssButton).getByText("alice")).toHaveClass("text-sidebar-foreground/38");
+    expect(within(freshRssButton).getByText("alice")).toHaveClass("text-sidebar-foreground/54");
     expect(localButton).toHaveClass("w-auto");
-    expect(localButton).toHaveClass("before:left-0", "before:w-1.5", "before:bg-border-strong", "shadow-none");
+    expect(localButton).toHaveClass(
+      "before:left-0",
+      "before:w-0.5",
+      "before:bg-border-strong/70",
+      "before:opacity-70",
+      "shadow-none",
+    );
+    expect(localButton).toHaveClass(
+      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
+    );
     expect(localButton.parentElement).toHaveClass("flex");
     expect(localButton.parentElement).toHaveClass("flex-wrap");
     expect(localButton.parentElement).toHaveClass("overflow-visible");

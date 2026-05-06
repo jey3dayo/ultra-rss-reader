@@ -2,11 +2,12 @@ import { Copy } from "lucide-react";
 import type { ComponentProps } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import type { AccountCredentialInputRow } from "./account-detail.types";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
-const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
+const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";
 
 export type AccountCredentialsSectionViewProps = {
   heading: string;
@@ -137,18 +138,20 @@ export function AccountCredentialsSectionView({
         disabled={disabled}
       />
       {onTestConnection && (
-        <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
-          <SettingsLoadingActionButton
-            className="mt-4 h-10 w-full justify-center px-4 sm:min-w-[10rem] sm:w-auto"
-            tone={testConnectionTone}
-            onClick={onTestConnection}
-            loading={isTestingConnection}
-            loadingLabel={testingConnectionLabel}
-            disabled={disabled}
-          >
-            {testConnectionLabel}
-          </SettingsLoadingActionButton>
-        </div>
+        <LabeledControlRow label={testConnectionLabel ?? ""} labelClassName={labelColumnClassName}>
+          <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
+            <SettingsLoadingActionButton
+              className="h-10 w-full justify-center px-4 sm:min-w-[10rem] sm:w-auto"
+              tone={testConnectionTone}
+              onClick={onTestConnection}
+              loading={isTestingConnection}
+              loadingLabel={testingConnectionLabel}
+              disabled={disabled}
+            >
+              {testConnectionLabel}
+            </SettingsLoadingActionButton>
+          </div>
+        </LabeledControlRow>
       )}
     </SettingsSection>
   );

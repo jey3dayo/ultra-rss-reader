@@ -1856,7 +1856,12 @@ describe("Sidebar", () => {
 
     expect(localAccount).toHaveAttribute("aria-current", "true");
     expect(localAccount).toHaveAttribute("data-account-pane-selected-target", "true");
-    expect(localAccount).toHaveClass("before:left-0", "before:w-1.5", "before:bg-border-strong");
+    expect(localAccount).toHaveClass(
+      "before:left-0",
+      "before:w-0.5",
+      "before:bg-border-strong/70",
+      "before:opacity-70",
+    );
     expect(localAccount.querySelector("svg")).toBeNull();
     expect(freshRssAccount).toHaveFocus();
     expect(freshRssAccount).not.toHaveAttribute("aria-current");

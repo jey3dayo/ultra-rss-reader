@@ -182,6 +182,7 @@ describe("UI Reference canvases", () => {
 
     expect(screen.getByText("Navigation & collections")).toBeInTheDocument();
     expect(screen.getByTestId("reference-filter-strip-frame")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-account-article-nav-alignment")).toBeInTheDocument();
     expect(screen.getByTestId("reference-account-card-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-folder-stack-frame")).toHaveClass("rounded-md");
 
@@ -193,9 +194,14 @@ describe("UI Reference canvases", () => {
       "data-[pressed]:bg-[var(--sidebar-pressed-surface)]",
     );
 
-    const accountSection = screen.getByText("Account card stack").closest("section") ?? document.body;
-    const activeAccountButton = within(accountSection).getByRole("button", { name: "Local" });
-    expect(activeAccountButton).toHaveClass("before:left-0", "before:w-1.5", "before:bg-border-strong");
+    const accountSection = screen.getByTestId("reference-account-card-frame");
+    const activeAccountButton = within(accountSection).getByRole("button", { name: "FreshRSS jey3dayo" });
+    expect(activeAccountButton).toHaveClass(
+      "before:left-0",
+      "before:w-0.5",
+      "before:bg-border-strong/70",
+      "before:opacity-70",
+    );
     expect(within(accountSection).getAllByText("FreshRSS").length).toBeGreaterThan(0);
     expect(within(accountSection).getByText("debug")).toBeInTheDocument();
     expect(within(accountSection).getByRole("button", { name: "アカウントを追加..." })).toBeInTheDocument();

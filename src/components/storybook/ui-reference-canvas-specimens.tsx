@@ -134,9 +134,16 @@ const REFERENCE_NAV_ITEMS: SettingsNavItem[] = [
 ];
 
 const ACCOUNT_CARDS: AccountNavItem[] = [
-  { id: "acc-1", name: "Local", kind: "local", isActive: true },
-  { id: "acc-2", name: "FreshRSS", kind: "freshrss", isActive: false },
-  { id: "acc-3", name: "debug", kind: "freshrss", isActive: false },
+  { id: "acc-1", name: "FreshRSS", kind: "freshrss", username: "jey3dayo", isActive: true },
+  {
+    id: "acc-2",
+    name: "debug",
+    kind: "freshrss",
+    username: "debug",
+    serverUrl: "https://jey3dayo.asuscomm.com:5556/api/greader.php",
+    isActive: false,
+  },
+  { id: "acc-3", name: "Local", kind: "local", isActive: false },
 ];
 
 const NAV_SAMPLE_FOLDER: FolderDto = {
@@ -1640,6 +1647,72 @@ export function AccountCardStackSpecimen() {
       </div>
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         avatar とタイトル、補足行をまとめて見せたいときの密度見本。settings の account list に近い。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function AccountArticleNavigationAlignmentSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Account / article navigation alignment</SectionHeading>
+      <div data-testid="reference-account-article-nav-alignment" className="grid gap-3 lg:grid-cols-3">
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1">
+          <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
+            Settings accounts
+          </div>
+          <AccountsNavView
+            accounts={ACCOUNT_CARDS}
+            addAccountLabel="アカウントを追加..."
+            isAddAccountActive={false}
+            onSelectAccount={() => {}}
+            onAddAccount={() => {}}
+          />
+        </div>
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1">
+          <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
+            Reader account pane
+          </div>
+          <div className="space-y-1">
+            <SidebarNavButton
+              selected
+              activePane
+              selectedIndicatorTone="neutral"
+              size="default"
+              contentClassName="flex-col items-start gap-0.5"
+            >
+              <span className="flex max-w-full items-center gap-2 pl-1.5">
+                <span className="truncate font-semibold">FreshRSS</span>
+              </span>
+              <span className="max-w-full truncate pl-1.5 text-xs text-sidebar-foreground/56">今日 01:24</span>
+            </SidebarNavButton>
+            <SidebarNavButton size="default" contentClassName="flex-col items-start gap-0.5">
+              <span className="flex max-w-full items-center gap-2 pl-1.5">
+                <span className="truncate font-medium">debug</span>
+                <span className="shrink-0 text-xs text-sidebar-foreground/54">FreshRSS</span>
+              </span>
+            </SidebarNavButton>
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1">
+          <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
+            Article nav rows
+          </div>
+          <div className="space-y-1">
+            <SidebarNavButton selected activePane size="default" trailing="1,988" className="rounded-lg">
+              <UnreadIcon unread forceTone className="h-3.5 w-3.5" />
+              <span className="truncate font-semibold">未読</span>
+            </SidebarNavButton>
+            <SidebarNavButton size="default" trailing="2" className="rounded-lg">
+              <StarIcon starred forceTone className="h-3.5 w-3.5" />
+              <span className="truncate font-medium">スター</span>
+            </SidebarNavButton>
+          </div>
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        account row と article row は同じ選択背景、focus 面を使う。左バーは account を neutral、article/feed を accent
+        に分ける。
       </p>
     </SurfaceCard>
   );

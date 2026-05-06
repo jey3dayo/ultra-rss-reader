@@ -9,7 +9,7 @@ export const settingsActionButtonVariants = cva(
     variants: {
       tone: {
         content:
-          "bg-surface-1/72 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-surface-2/84 hover:text-foreground focus-visible:bg-surface-2/84 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45",
+          "border border-border/65 bg-surface-2/82 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-border-strong hover:bg-surface-3/88 hover:text-foreground focus-visible:border-border-strong focus-visible:bg-surface-3/88 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45",
         header:
           "bg-surface-1/84 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.45)] hover:bg-surface-2/92 hover:text-foreground focus-visible:bg-surface-2/92 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45",
         rail: "text-sidebar-foreground/40 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground focus-visible:bg-[var(--sidebar-hover-surface)] focus-visible:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring/45",

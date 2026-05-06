@@ -1,9 +1,25 @@
+import { cva } from "class-variance-authority";
 import { forwardRef } from "react";
 import { MotionNumber } from "@/components/shared/motion-number";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarNavButtonProps } from "./sidebar.types";
 import { getSidebarDensityTokens } from "./sidebar-density";
+
+const selectedIndicatorVariants = cva(
+  "before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:transition-opacity before:duration-150",
+  {
+    variants: {
+      tone: {
+        accent: "before:bg-primary/85",
+        neutral: "before:bg-border-strong/70 before:opacity-70",
+      },
+    },
+    defaultVariants: {
+      tone: "accent",
+    },
+  },
+);
 
 export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonProps>(
   (
@@ -14,6 +30,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
       selected = false,
       activePane: activePaneProp,
       selectedIndicatorMode = "always",
+      selectedIndicatorTone = "accent",
       size = "compact",
       density = "normal",
       trailing,
@@ -48,10 +65,9 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
                   ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] text-[var(--sidebar-selection-foreground)] focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]"
                   : "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)] text-[var(--sidebar-foreground-strong)] focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
                 selectedIndicatorMode !== "hidden" &&
-                  cn(
-                    "before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:transition-opacity before:duration-150",
-                    activePane ? "before:bg-primary/85" : "before:bg-border-strong/70 before:opacity-70",
-                  ),
+                  selectedIndicatorVariants({
+                    tone: activePane ? selectedIndicatorTone : "neutral",
+                  }),
                 selectedIndicatorMode === "hide-on-row-hover" &&
                   "group-hover/feed-row:before:opacity-0 group-focus-within/feed-row:before:opacity-0",
               )

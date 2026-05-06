@@ -28,6 +28,7 @@ export type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   selected?: boolean;
   activePane?: boolean;
   selectedIndicatorMode?: "always" | "hide-on-row-hover" | "hidden";
+  selectedIndicatorTone?: "accent" | "neutral";
   size?: "default" | "compact";
   density?: SidebarDensity;
   contentClassName?: string;
