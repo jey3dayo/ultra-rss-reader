@@ -206,6 +206,11 @@ describe("UI Reference canvases", () => {
     expect(within(accountSection).getByText("debug")).toBeInTheDocument();
     expect(within(accountSection).getByRole("button", { name: "アカウントを追加..." })).toBeInTheDocument();
 
+    const alignmentSection = screen.getByTestId("reference-account-article-nav-alignment");
+    const unreadSmartView = within(alignmentSection).getByRole("button", { name: "未読1,988" });
+    expect(unreadSmartView).toHaveClass("bg-[var(--semantic-tone-unread-surface)]");
+    expect(unreadSmartView).not.toHaveClass("before:bg-primary/85");
+
     expect(screen.getByText("Folder stack")).toBeInTheDocument();
     expect(screen.getByText("Interior")).toBeInTheDocument();
     expect(screen.getByText("99% DIY -DIYブログ-")).toBeInTheDocument();
@@ -303,6 +308,12 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Debug" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Add account…" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Test Connection" })).toHaveClass(
+      "border",
+      "border-border/65",
+      "bg-surface-2/82",
+      "text-foreground",
+    );
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });

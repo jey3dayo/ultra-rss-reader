@@ -37,7 +37,7 @@ export function SmartViewsView({ title, views, onSelectSmartView, renderContextM
               <SidebarNavButton
                 aria-pressed={view.isSelected}
                 selected={view.isSelected}
-                selectedIndicatorMode="always"
+                selectedIndicatorMode="hidden"
                 {...{ [SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE]: view.kind }}
                 {...(view.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
                 size="default"

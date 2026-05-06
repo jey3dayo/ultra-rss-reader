@@ -26,6 +26,7 @@ import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-v
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
 import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
+import { SmartViewsView } from "@/components/reader/smart-views-view";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
@@ -1677,6 +1678,7 @@ export function AccountArticleNavigationAlignmentSpecimen() {
             <SidebarNavButton
               selected
               activePane
+              registerSidebarNavigationTarget={false}
               selectedIndicatorTone="neutral"
               size="default"
               contentClassName="flex-col items-start gap-0.5"
@@ -1686,7 +1688,11 @@ export function AccountArticleNavigationAlignmentSpecimen() {
               </span>
               <span className="max-w-full truncate pl-1.5 text-xs text-sidebar-foreground/56">今日 01:24</span>
             </SidebarNavButton>
-            <SidebarNavButton size="default" contentClassName="flex-col items-start gap-0.5">
+            <SidebarNavButton
+              registerSidebarNavigationTarget={false}
+              size="default"
+              contentClassName="flex-col items-start gap-0.5"
+            >
               <span className="flex max-w-full items-center gap-2 pl-1.5">
                 <span className="truncate font-medium">debug</span>
                 <span className="shrink-0 text-xs text-sidebar-foreground/54">FreshRSS</span>
@@ -1698,21 +1704,18 @@ export function AccountArticleNavigationAlignmentSpecimen() {
           <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
             Article nav rows
           </div>
-          <div className="space-y-1">
-            <SidebarNavButton selected activePane size="default" trailing="1,988" className="rounded-lg">
-              <UnreadIcon unread forceTone className="h-3.5 w-3.5" />
-              <span className="truncate font-semibold">未読</span>
-            </SidebarNavButton>
-            <SidebarNavButton size="default" trailing="2" className="rounded-lg">
-              <StarIcon starred forceTone className="h-3.5 w-3.5" />
-              <span className="truncate font-medium">スター</span>
-            </SidebarNavButton>
-          </div>
+          <SmartViewsView
+            views={[
+              { kind: "unread", label: "未読", count: 1988, showCount: true, isSelected: true },
+              { kind: "starred", label: "スター", count: 2, showCount: true, isSelected: false },
+            ]}
+            onSelectSmartView={() => {}}
+          />
         </div>
       </div>
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
-        account row と article row は同じ選択背景、focus 面を使う。左バーは account を neutral、article/feed を accent
-        に分ける。
+        account row は neutral の左バー、smart view は semantic surface で選択を示す。primary accent は購読/feed row
+        と行動フィードに限定する。
       </p>
     </SurfaceCard>
   );

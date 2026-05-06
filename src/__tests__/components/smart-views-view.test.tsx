@@ -33,7 +33,8 @@ describe("SmartViewsView", () => {
     expect(starredButton).toHaveClass("rounded-lg");
     expect(unreadButton).toHaveClass("bg-[var(--semantic-tone-unread-surface)]");
     expect(unreadButton).toHaveClass("text-[var(--semantic-tone-unread-sidebar-foreground)]");
-    expect(unreadButton).toHaveClass("before:bg-primary/85");
+    expect(unreadButton).not.toHaveClass("before:bg-primary/85");
+    expect(unreadButton).not.toHaveClass("before:absolute");
     expect(screen.getByText("Unread")).toHaveClass("font-semibold");
     expect(unreadButton).not.toHaveAttribute("style");
     expect(starredButton).toHaveClass("hover:text-[var(--semantic-tone-starred-sidebar-foreground)]");
