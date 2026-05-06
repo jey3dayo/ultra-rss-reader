@@ -212,6 +212,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
     });
+    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("h-[18rem]");
+    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[18rem]");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
@@ -355,7 +357,9 @@ describe("SettingsModalView", () => {
     expect(surface).toHaveClass("flex-col");
     expect(surface).toHaveClass("sm:flex-row");
     expect(navPane).toHaveClass("w-full");
-    expect(navPane).toHaveClass("max-h-[15rem]");
+    expect(navPane).toHaveClass("h-[18rem]");
+    expect(navPane).toHaveClass("max-h-[18rem]");
+    expect(navPane).toHaveClass("sm:h-auto");
     expect(navPane).toHaveClass("sm:w-[292px]");
     expect(navPane).toHaveClass("border-b");
     expect(navPane).toHaveClass("sm:border-r");
