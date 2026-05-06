@@ -134,7 +134,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByRole("heading", { name: "全購読" })).toBeInTheDocument();
     expect(screen.getByText("総購読数")).toBeInTheDocument();
     expect(screen.getByText("要確認")).toBeInTheDocument();
-    expect(screen.getByText("90日停止")).toBeInTheDocument();
+    expect(screen.getByText("90日更新なし")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(document.querySelectorAll('img[src*="google.com/s2/favicons?domain=example.com"]').length).toBeGreaterThan(
       0,
@@ -214,7 +214,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
-    expect(await screen.findByRole("button", { name: /90日停止/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /90日更新なし/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("button", { name: /参照エラー/ })).not.toBeInTheDocument();
   });
 
@@ -420,9 +420,9 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(screen.queryByRole("button", { name: "まとめて処理" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: /90日停止/ }));
+    await user.click(screen.getByRole("button", { name: /90日更新なし/ }));
 
-    expect(await screen.findByRole("heading", { name: "90日停止" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "90日更新なし" })).toBeInTheDocument();
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });
