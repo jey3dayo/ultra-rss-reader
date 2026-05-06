@@ -4,6 +4,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-05-07
+
+### Documentation
+
+- 日本語 UI 文言の扱いと agent 向け指示の参照順を整理し、開発時に確認すべき文書を追いやすくした
+
+### Maintenance
+
+- 日本語ロケールの表現を調整し、reader / settings / sidebar / subscriptions の表示文言を自然にした
+- 購読レビューと購読一覧で使うスター記事数の集計処理を共通化し、関連テストを補強した
+- select option の表示と項目描画を共有部品へ寄せ、reader と shared form controls の重複を減らした
+- Storybook の update toast E2E を安定化し、Windows でも Storybook 起動と表示待機が通りやすいようにした
+
 ## [0.27.0] - 2026-05-06
 
 ### Features
