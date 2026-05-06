@@ -300,6 +300,10 @@ export function countUnreadArticles(articles: ArticleDto[]): number {
   return getUnreadArticleIds(articles).length;
 }
 
+export function countStarredArticles(articles: ArticleDto[]): number {
+  return articles.filter((article) => article.is_starred).length;
+}
+
 export function getUnreadArticleIds(articles: ArticleDto[]): string[] {
   return articles.filter((article) => !article.is_read).map((article) => article.id);
 }

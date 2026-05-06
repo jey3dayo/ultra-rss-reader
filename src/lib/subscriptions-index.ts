@@ -9,6 +9,7 @@ import type {
   SubscriptionSummaryFilterKey,
 } from "@/components/subscriptions-index/subscriptions-index.types";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
+import { countStarredArticles } from "@/lib/article-list";
 import { findLatestArticleOrNull } from "@/lib/article-view";
 import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
@@ -17,6 +18,8 @@ import {
   hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscription-review-candidates";
+
+export { countStarredArticles } from "@/lib/article-list";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
@@ -34,10 +37,6 @@ export function countReviewCandidates(candidates: SubscriptionReviewCandidate[])
 
 export function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
   return candidates.filter((candidate) => hasSubscriptionReviewReason(candidate, "stale_90d")).length;
-}
-
-export function countStarredArticles(articles: ArticleDto[]): number {
-  return articles.filter((article) => article.is_starred).length;
 }
 
 export function findLatestArticleTimestamp(articles: ArticleDto[]): string | null {

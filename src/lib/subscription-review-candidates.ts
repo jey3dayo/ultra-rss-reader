@@ -1,6 +1,7 @@
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import { countStarredArticles } from "@/lib/article-list";
+import { findLatestArticleOrNull } from "@/lib/article-view";
 import { differenceInDays, parseDateInput } from "@/lib/datetime";
-import { countStarredArticles, findLatestArticleTimestamp } from "@/lib/subscriptions-index";
 
 export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
@@ -169,7 +170,7 @@ export function buildSubscriptionReviewCandidates({
     .filter((feed) => !hiddenFeedIds.has(feed.id))
     .map((feed) => {
       const feedArticles = articleGroups.get(feed.id) ?? [];
-      const latestArticleAt = findLatestArticleTimestamp(feedArticles);
+      const latestArticleAt = findLatestArticleOrNull(feedArticles)?.published_at ?? null;
 
       const latestArticleDate = parseDateInput(latestArticleAt);
       const staleDays = latestArticleDate === null ? null : differenceInDays(now, latestArticleDate);

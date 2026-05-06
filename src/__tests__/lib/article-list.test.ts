@@ -8,6 +8,7 @@ import {
   buildFolderFeedIdSet,
   calculateArticleNavigationScrollTop,
   collectRetainedArticlesFromSources,
+  countStarredArticles,
   countUnreadArticles,
   getAdjacentArticleId,
   getAdjacentItemId,
@@ -434,6 +435,7 @@ describe("article-list utils", () => {
   it("returns unread ids and unread count from the currently visible list", () => {
     expect(getUnreadArticleIds(sampleArticles)).toEqual(["art-1"]);
     expect(countUnreadArticles(sampleArticles)).toBe(1);
+    expect(countStarredArticles(sampleArticles)).toBe(1);
   });
 
   it("resolves the mark-all-read confirmation count for each article list selection", () => {
