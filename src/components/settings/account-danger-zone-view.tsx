@@ -19,7 +19,7 @@ export function AccountDangerZoneView({
         className="mt-6 border-t border-border pt-6"
         contentClassName="pl-2 sm:pl-3"
       >
-        <SettingsActionButton onClick={onExport} disabled={disabled} className="justify-center text-sm">
+        <SettingsActionButton onClick={onExport} disabled={disabled}>
           {exportLabel}
         </SettingsActionButton>
       </SettingsSection>

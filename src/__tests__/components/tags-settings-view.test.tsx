@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
 
+function expectNoButtonMinWidth(button: HTMLElement) {
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+}
+
 describe("TagsSettingsView", () => {
   it("uses softened helper tones for intro and empty state", () => {
     render(
@@ -84,7 +88,7 @@ describe("TagsSettingsView", () => {
     expect(screen.queryByTestId("tags-settings-swatch-tag-1")).toBeNull();
   });
 
-  it("uses the shared labeled input row for the tag creation control", async () => {
+  it("uses the shared settings action button for the tag creation control", async () => {
     const user = userEvent.setup();
     const onNameChange = vi.fn();
     const onCreate = vi.fn();
@@ -122,9 +126,12 @@ describe("TagsSettingsView", () => {
     const input = screen.getByRole("textbox", { name: "Name" });
     expect(input).toHaveClass("h-10", "flex-1");
     expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(input.id).toBeTruthy();
+    expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Name");
 
     const createButton = screen.getByRole("button", { name: "Create" });
     expect(createButton).toHaveClass("h-10", "px-4");
+    expectNoButtonMinWidth(createButton);
 
     await user.type(input, " tag");
     await user.click(createButton);

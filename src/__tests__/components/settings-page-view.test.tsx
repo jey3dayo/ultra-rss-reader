@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 
+function expectNoButtonMinWidth(button: HTMLElement) {
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+}
+
 describe("SettingsPageView", () => {
   it("keeps the title fixed above the settings content scroll area", () => {
     const { container } = render(
@@ -135,9 +139,12 @@ describe("SettingsPageView", () => {
     expect(input).toHaveValue("Main reader");
     expect(input).toHaveClass("h-10", "flex-1");
     expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(input.id).toBeTruthy();
+    expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Display name");
 
     const action = screen.getByRole("button", { name: "Reset: Display name" });
     expect(action).toHaveClass("h-10", "px-4");
+    expectNoButtonMinWidth(action);
 
     await user.clear(input);
     await user.type(input, "Reader");

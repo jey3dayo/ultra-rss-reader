@@ -3,6 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSyncSectionView } from "@/components/settings/account-sync-section-view";
 
+function expectStandardSettingsActionButton(button: HTMLElement) {
+  expect(button).toHaveClass("w-full");
+  expect(button).toHaveClass("sm:w-auto");
+  expect(button).toHaveClass("h-10", "px-4");
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+}
+
 describe("AccountSyncSectionView", () => {
   it("renders normalized sync controls with accessible labels", () => {
     render(
@@ -147,9 +154,7 @@ describe("AccountSyncSectionView", () => {
     const button = screen.getByRole("button", { name: "Syncing..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
-    expect(button).toHaveClass("w-full");
-    expect(button).toHaveClass("sm:w-auto");
-    expect(button).toHaveClass("h-10", "px-4");
+    expectStandardSettingsActionButton(button);
     expect(button).toHaveClass("border", "border-border/65", "bg-surface-2/82", "text-foreground");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
@@ -248,7 +253,9 @@ describe("AccountSyncSectionView", () => {
     expect(screen.getByRole("switch", { name: "Sync on startup" })).toHaveAttribute("aria-disabled", "true");
 
     await user.click(screen.getByRole("button", { name: "Retry setup" }));
-    await user.click(screen.getByRole("button", { name: "Edit credentials" }));
+    const editCredentialsButton = screen.getByRole("button", { name: "Edit credentials" });
+    expectStandardSettingsActionButton(editCredentialsButton);
+    await user.click(editCredentialsButton);
 
     expect(onRetry).toHaveBeenCalledOnce();
     expect(onEditCredentials).toHaveBeenCalledOnce();

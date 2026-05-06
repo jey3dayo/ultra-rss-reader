@@ -1,10 +1,11 @@
 import { Pencil, Trash2 } from "lucide-react";
+import { useId } from "react";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
+import { Input } from "@/components/ui/input";
 
 export type TagsSettingsListItem = {
   id: string;
@@ -67,25 +68,32 @@ export function TagsSettingsView({
   onEdit,
   onDelete,
 }: TagsSettingsViewProps) {
+  const nameInputId = useId();
+
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
       <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledInputRow
+        <LabeledControlRow
           label={nameLabel}
-          name="tag_name"
-          value={nameValue}
-          placeholder={namePlaceholder}
-          onChange={onNameChange}
-          rowClassName="items-start sm:items-center"
+          htmlFor={nameInputId}
+          className="items-start sm:items-center"
           labelClassName="sm:w-40 sm:shrink-0"
-          controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
-          inputClassName="h-10 flex-1"
-          actionLabel={createLabel}
-          actionAriaLabel={createLabel}
-          onAction={onCreate}
-          actionDisabled={createDisabled}
-          actionClassName="h-10 px-4 text-sm font-medium"
-        />
+        >
+          <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
+            <Input
+              id={nameInputId}
+              name="tag_name"
+              value={nameValue}
+              placeholder={namePlaceholder}
+              onChange={(event) => onNameChange(event.target.value)}
+              className="h-10 flex-1"
+              aria-label={nameLabel}
+            />
+            <SettingsActionButton type="button" size="compact" onClick={onCreate} disabled={createDisabled}>
+              {createLabel}
+            </SettingsActionButton>
+          </div>
+        </LabeledControlRow>
         <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
           <div className="w-full sm:max-w-[400px]">
             <TagColorPicker

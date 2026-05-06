@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 
+function expectNoButtonMinWidth(button: HTMLElement) {
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+}
+
 describe("ShortcutsSettingsView", () => {
   it("renders shortcut categories, conflicts, and static bindings", async () => {
     const user = userEvent.setup();
@@ -69,7 +73,9 @@ describe("ShortcutsSettingsView", () => {
     await user.click(screen.getByRole("button", { name: "J" }));
 
     expect(onStartRecording).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeDisabled();
+    const resetButton = screen.getByRole("button", { name: "Reset to defaults" });
+    expect(resetButton).toBeDisabled();
+    expectNoButtonMinWidth(resetButton);
   });
 
   it("focuses the active badge and captures the next window key press while recording", async () => {

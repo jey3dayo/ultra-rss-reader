@@ -62,17 +62,10 @@ export function AccountSyncSectionView({
       {(onSyncNow || onSecondaryAction) && (
         <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
           {onSecondaryAction && secondaryActionLabel ? (
-            <SettingsActionButton onClick={onSecondaryAction} className="h-10 justify-center">
-              {secondaryActionLabel}
-            </SettingsActionButton>
+            <SettingsActionButton onClick={onSecondaryAction}>{secondaryActionLabel}</SettingsActionButton>
           ) : null}
           {onSyncNow ? (
-            <SettingsLoadingActionButton
-              className="h-10 w-full justify-center px-4 sm:w-auto"
-              onClick={onSyncNow}
-              loading={isSyncing}
-              loadingLabel={syncingLabel}
-            >
+            <SettingsLoadingActionButton onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>
               {syncNowLabel}
             </SettingsLoadingActionButton>
           ) : null}

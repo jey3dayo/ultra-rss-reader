@@ -141,7 +141,6 @@ export function AccountCredentialsSectionView({
         <LabeledControlRow label={testConnectionLabel ?? ""} labelClassName={labelColumnClassName}>
           <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
             <SettingsLoadingActionButton
-              className="h-10 w-full justify-center px-4 sm:min-w-[10rem] sm:w-auto"
               tone={testConnectionTone}
               onClick={onTestConnection}
               loading={isTestingConnection}

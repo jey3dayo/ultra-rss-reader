@@ -3,6 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
 
+function expectStandardSettingsActionButton(button: HTMLElement) {
+  expect(button).toHaveClass("w-full");
+  expect(button).toHaveClass("sm:w-auto");
+  expect(button).toHaveClass("h-10", "px-4");
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+}
+
 describe("DataSettingsView", () => {
   it("renders the current database size and delegates actions", async () => {
     const user = userEvent.setup();
@@ -32,8 +39,13 @@ describe("DataSettingsView", () => {
     expect(screen.getByText("Optimize the database.")).toHaveClass("font-serif", "text-foreground-soft");
     expect(screen.getByText("Open the log directory.")).toHaveClass("font-serif", "text-foreground-soft");
 
-    await user.click(screen.getByRole("button", { name: "Optimize now" }));
-    await user.click(screen.getByRole("button", { name: "Open log directory" }));
+    const optimizeButton = screen.getByRole("button", { name: "Optimize now" });
+    const openLogDirectoryButton = screen.getByRole("button", { name: "Open log directory" });
+    expectStandardSettingsActionButton(optimizeButton);
+    expectStandardSettingsActionButton(openLogDirectoryButton);
+
+    await user.click(optimizeButton);
+    await user.click(openLogDirectoryButton);
 
     expect(onVacuum).toHaveBeenCalledTimes(1);
     expect(onOpenLogDir).toHaveBeenCalledTimes(1);

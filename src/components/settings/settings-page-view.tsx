@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import type {
@@ -13,6 +14,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
@@ -42,6 +44,36 @@ function SettingsPageSwitchRow({ control }: SettingsPageSwitchRowProps) {
 }
 
 function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
+  const inputId = useId();
+
+  if (control.actionLabel && control.onAction) {
+    return (
+      <LabeledControlRow label={control.label} htmlFor={inputId} className="gap-4" labelClassName="w-40 shrink-0">
+        <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
+          <Input
+            id={inputId}
+            name={control.name}
+            value={control.value}
+            onChange={(event) => control.onChange(event.target.value)}
+            placeholder={control.placeholder}
+            disabled={control.disabled}
+            className="h-10 flex-1"
+            aria-label={control.label}
+          />
+          <SettingsActionButton
+            type="button"
+            size={control.actionSize ?? "compact"}
+            onClick={control.onAction}
+            disabled={control.actionDisabled}
+            aria-label={control.actionAriaLabel ?? `${control.actionLabel}: ${control.label}`}
+          >
+            {control.actionLabel}
+          </SettingsActionButton>
+        </div>
+      </LabeledControlRow>
+    );
+  }
+
   return (
     <LabeledInputRow
       label={control.label}
@@ -54,11 +86,6 @@ function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
       labelClassName="w-40 shrink-0"
       controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
       inputClassName="h-10 flex-1"
-      actionLabel={control.actionLabel}
-      actionAriaLabel={control.actionAriaLabel}
-      onAction={control.onAction}
-      actionDisabled={control.actionDisabled}
-      actionClassName={cn("h-10 px-4 text-sm font-medium", control.actionSize === "text" && "w-full sm:w-auto")}
     />
   );
 }
