@@ -273,6 +273,13 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Interior")).toBeInTheDocument();
     expect(screen.getByText("99% DIY -DIYブログ-")).toBeInTheDocument();
     expect(screen.getByText("CAFICT")).toBeInTheDocument();
+    expect(screen.getByText("Primitive collection states")).toBeInTheDocument();
+    const primitiveCollections = screen.getByTestId("reference-primitive-collection-states");
+    expect(primitiveCollections).toHaveClass("rounded-md");
+    expect(primitiveCollections.querySelector("[data-slot='scroll-area']")).toBeInTheDocument();
+    expect(primitiveCollections.querySelectorAll("[data-slot='skeleton']")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Primitive disclosure open" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Tooltip target" })).toBeInTheDocument();
     expect(screen.getByText("Tag palette")).toBeInTheDocument();
     expect(screen.getByText("カラー")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "色なし" })).toBeInTheDocument();

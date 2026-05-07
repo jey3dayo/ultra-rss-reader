@@ -72,10 +72,13 @@ import { SubscriptionsListPane } from "@/components/subscriptions-index/subscrip
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import type { ToastData } from "@/stores/ui-store";
@@ -1990,6 +1993,61 @@ export function NavigationStackSpecimen() {
       </div>
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
         folder trigger と feed row の組み合わせ見本。数値列と favicon の密度を見るための断片。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function PrimitiveCollectionStatesSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Primitive collection states</SectionHeading>
+      <div
+        data-testid="reference-primitive-collection-states"
+        className={cn(
+          STACK_SPECIMEN_FRAME_RADIUS_CLASS,
+          "grid gap-3 border border-border/70 bg-surface-1/88 p-3 shadow-elevation-1",
+        )}
+      >
+        <ScrollArea
+          className="h-32 rounded-md border border-border/60 bg-background/86"
+          contentClassName="grid gap-1 p-2"
+        >
+          {["FreshRSS", "Debug", "Local feeds", "Archive", "Design", "Engineering"].map((item) => (
+            <div key={item} className="rounded-md border border-border/45 bg-surface-1/78 px-3 py-2 text-sm">
+              {item}
+            </div>
+          ))}
+        </ScrollArea>
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger
+            className="flex w-full items-center justify-between rounded-md border border-border/60 bg-background/86 px-3 py-2 text-left text-sm font-medium text-foreground"
+            aria-label="Primitive disclosure open"
+          >
+            Primitive disclosure
+            <span className="text-xs text-foreground/56">open</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 rounded-md border border-border/55 bg-background/74 px-3 py-2 font-serif text-xs leading-[1.45] text-foreground/72">
+            Collapsible content keeps disclosure behavior in the primitive layer while feature rows own copy and
+            density.
+          </CollapsibleContent>
+        </Collapsible>
+        <div className="grid gap-2 rounded-md border border-border/60 bg-background/86 p-3">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <TooltipProvider>
+          <AppTooltip label="Tooltip copy stays short">
+            <Button variant="outline" size="sm" className="w-fit">
+              Tooltip target
+            </Button>
+          </AppTooltip>
+        </TooltipProvider>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        Scroll, disclosure, loading, and tooltip primitives stay as behavior affordances. Promote only repeated product
+        semantics into shared.
       </p>
     </SurfaceCard>
   );

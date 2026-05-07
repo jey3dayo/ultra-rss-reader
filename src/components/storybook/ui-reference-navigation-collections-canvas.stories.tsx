@@ -4,6 +4,7 @@ import {
   AccountCardStackSpecimen,
   AnnotatedNote,
   NavigationStackSpecimen,
+  PrimitiveCollectionStatesSpecimen,
   ReaderFilterStripSpecimen,
   ReferencePage,
   TagPaletteSpecimen,
@@ -22,6 +23,7 @@ export function NavigationCollectionsCanvas() {
           <AccountArticleNavigationAlignmentSpecimen />
           <AccountCardStackSpecimen />
           <NavigationStackSpecimen />
+          <PrimitiveCollectionStatesSpecimen />
           <TagPaletteSpecimen />
         </div>
       </div>
