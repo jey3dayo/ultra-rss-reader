@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
@@ -54,6 +55,7 @@ export function SubscriptionsIndexPage() {
   const { data: feedArticleSummaries = [] } = useFeedArticleSummaries(selectedAccountId);
   const deleteFeedMutation = useDeleteFeed();
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
+  const [editTargetFeed, setEditTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
   const [listScrollTop, setListScrollTop] = useState(indexReturnState?.listScrollTop ?? 0);
 
@@ -163,6 +165,24 @@ export function SubscriptionsIndexPage() {
     },
   }) satisfies SubscriptionDecisionActions | null;
 
+  const managementActions =
+    state.selectedRow && !decisionActions
+      ? {
+          editLabel: tc("edit"),
+          deleteLabel: tc("delete"),
+          onEdit: () => {
+            if (state.selectedRow) {
+              setEditTargetFeed(state.selectedRow.feed);
+            }
+          },
+          onDelete: () => {
+            if (state.selectedRow) {
+              setDeleteTargetFeed(state.selectedRow.feed);
+            }
+          },
+        }
+      : null;
+
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
       const target = event.target;
@@ -234,6 +254,7 @@ export function SubscriptionsIndexPage() {
         displayModeLabel={tr("display_mode")}
         displayModeValue={selectedDisplayModeLabel}
         decisionActions={decisionActions}
+        managementActions={managementActions}
         backLabel={tc("back")}
         closeLabel={tc("close")}
         isGroupExpanded={state.isGroupExpanded}
@@ -244,6 +265,18 @@ export function SubscriptionsIndexPage() {
         onBack={() => closeSubscriptionsWorkspace()}
         onClose={() => closeSubscriptionsWorkspace()}
       />
+
+      {editTargetFeed ? (
+        <RenameDialog
+          feed={editTargetFeed}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditTargetFeed(null);
+            }
+          }}
+        />
+      ) : null}
 
       {deleteTargetFeed ? (
         <UnsubscribeDialog

@@ -279,7 +279,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(firstGroupButton).toHaveClass("motion-disclosure-trigger");
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
-    expect(firstGroupButton.style.borderColor).toBe("var(--subscriptions-list-divider)");
+    expect(firstGroupButton).not.toHaveClass("border");
+    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-1")).toHaveClass("border-l");
   });
 
   it("collapses and re-expands a single group while keeping the current detail selection", async () => {
@@ -301,7 +302,8 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(firstGroupButton);
 
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
-    expect(firstGroupButton).toHaveClass("shadow-[var(--subscriptions-list-group-collapsed-shadow)]");
+    expect(firstGroupButton).toHaveClass("text-foreground-soft");
+    expect(firstGroupButton).not.toHaveClass("shadow-[var(--subscriptions-list-group-collapsed-shadow)]");
     expect(firstGroupPanel).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
@@ -403,6 +405,12 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
 
     expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
+    expect(within(detailPane).getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
+    await user.click(within(detailPane).getByRole("button", { name: "編集" }));
+    const editDialog = await screen.findByRole("dialog", { name: "フィードを編集" });
+    expect(within(editDialog).getByDisplayValue("Fresh Feed")).toBeInTheDocument();
+    await user.click(within(editDialog).getByRole("button", { name: "キャンセル" }));
+    expect(within(detailPane).getByRole("button", { name: "削除" })).toBeInTheDocument();
   });
 
   it("removes deferred feeds from the active review filter and clears the detail pane", async () => {

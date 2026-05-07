@@ -39,7 +39,7 @@ describe("FeedDetailPanel", () => {
       .getByTestId("feed-detail-leading-visual")
       .closest('[data-surface-card="section"]')?.firstElementChild;
     expect(panelBody).not.toBeNull();
-    expect(panelBody).toHaveClass("space-y-5");
+    expect(panelBody).toHaveClass("space-y-4");
     expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass(
       "h-10",
       "w-10",
@@ -71,7 +71,8 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("フォルダ").closest("dt")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
     expect(screen.getByRole("link", { name: "https://example.com/help" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("最近の記事").parentElement).toHaveClass("border-t", "pt-4");
+    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
+    expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
     expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
       "h-9",

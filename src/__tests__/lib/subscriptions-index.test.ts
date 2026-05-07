@@ -206,10 +206,17 @@ describe("subscriptions index helpers", () => {
   });
 
   it("builds latest-article metrics and preview rows for the right detail pane", () => {
+    const thirdPreviewArticle: ArticleDto = {
+      ...articles[1],
+      id: "art-old-3",
+      title: "Oldest hidden preview post",
+      published_at: "2025-09-01T10:00:00Z",
+    };
+
     expect(
       buildSubscriptionDetailMetrics({
         feed: feeds[0],
-        articles,
+        articles: [...articles, thirdPreviewArticle],
         feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
       }),
     ).toEqual({

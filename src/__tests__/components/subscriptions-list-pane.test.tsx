@@ -40,7 +40,7 @@ const reasonTooltipLabels = {
   no_stars: "取得済みの記事にスターがありません",
 } satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
-function renderListPane(rows: SubscriptionListRow[]) {
+function renderListPane(rows: SubscriptionListRow[], options?: { isGroupExpanded?: (groupKey: string) => boolean }) {
   const groups: SubscriptionListGroup[] = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows }];
 
   return render(
@@ -53,7 +53,7 @@ function renderListPane(rows: SubscriptionListRow[]) {
       reasonTooltipLabels={reasonTooltipLabels}
       formatUnreadCountLabel={(count) => `未読 ${count}件`}
       formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
-      isGroupExpanded={() => true}
+      isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
       onSelectFeed={vi.fn()}
       onToggleGroup={vi.fn()}
     />,
@@ -104,5 +104,51 @@ describe("SubscriptionsListPane", () => {
     await user.tab();
 
     expect(await screen.findByText("取得済みの記事に未読がありません")).toHaveClass("motion-popup-surface");
+  });
+
+  it("renders folder disclosure rows as a tree section with count and rail", () => {
+    renderListPane([
+      {
+        feed: buildFeed({ title: "Tree Feed", unread_count: 2 }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: "2026-05-07T00:00:00Z",
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      },
+    ]);
+
+    const folderButton = screen.getByTestId("subscriptions-folder-row-ungrouped");
+    expect(folderButton).toHaveAttribute("aria-expanded", "true");
+    expect(folderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-__ungrouped__");
+    expect(folderButton).not.toHaveClass("border");
+    expect(folderButton).toHaveTextContent("1");
+
+    const rail = screen.getByTestId("subscriptions-folder-tree-rail-ungrouped");
+    expect(rail).toHaveClass("border-l");
+    expect(rail).toHaveClass("pl-3");
+  });
+
+  it("keeps collapsed folder panels hidden and inert", () => {
+    renderListPane(
+      [
+        {
+          feed: buildFeed({ title: "Collapsed Feed" }),
+          folderId: null,
+          folderName: null,
+          latestArticleAt: null,
+          status: { tone: "neutral", labelKey: "normal" },
+          reasonTooltipKey: null,
+        },
+      ],
+      { isGroupExpanded: () => false },
+    );
+
+    const folderButton = screen.getByTestId("subscriptions-folder-row-ungrouped");
+    const panel = document.getElementById("subscriptions-group-panel-__ungrouped__");
+
+    expect(folderButton).toHaveAttribute("aria-expanded", "false");
+    expect(panel).toHaveAttribute("aria-hidden", "true");
+    expect(panel).toHaveAttribute("inert");
   });
 });

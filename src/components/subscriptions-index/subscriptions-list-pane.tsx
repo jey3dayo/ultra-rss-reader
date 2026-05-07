@@ -50,24 +50,20 @@ export function SubscriptionGroupDisclosureButton({
       aria-controls={controlsId}
       onClick={() => onToggleGroup(group.key)}
       className={cn(
-        "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:bg-[color:var(--subscriptions-list-row-hover)]",
-        expanded ? "shadow-none" : "shadow-[var(--subscriptions-list-group-collapsed-shadow)]",
+        "motion-disclosure-trigger flex min-h-9 w-full items-center justify-between rounded-md px-1.5 py-1 text-left text-foreground transition-[background-color,color,box-shadow] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
+        !expanded && "text-foreground-soft",
       )}
-      style={{
-        borderColor: "var(--subscriptions-list-divider)",
-        backgroundColor: "var(--subscriptions-list-group-surface)",
-      }}
     >
-      <span className="flex items-center gap-1.5">
+      <span className="flex min-w-0 items-center gap-1.5">
         <ChevronDown
           className={cn(
-            "motion-disclosure-icon h-3.5 w-3.5 text-foreground-soft",
+            "motion-disclosure-icon h-3 w-3 shrink-0 text-foreground-soft",
             expanded ? "rotate-0" : "-rotate-90",
           )}
         />
-        <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
+        <h3 className="min-w-0 truncate text-sm font-medium tracking-[-0.01em]">{group.label}</h3>
       </span>
-      <LabelChip tone="neutral" size="compact">
+      <LabelChip tone="neutral" size="compact" className="shrink-0 bg-surface-1/70 text-[0.72rem]">
         {group.rows.length}
       </LabelChip>
     </button>
@@ -150,7 +146,7 @@ export function SubscriptionsListPane({
             const groupBodyId = `subscriptions-group-panel-${group.key}`;
 
             return (
-              <div key={group.key} className="space-y-2.5">
+              <div key={group.key} className="space-y-1.5">
                 <SubscriptionGroupDisclosureButton
                   group={group}
                   expanded={expanded}
@@ -165,7 +161,10 @@ export function SubscriptionsListPane({
                   className="motion-disclosure-panel"
                 >
                   <div className="motion-disclosure-body">
-                    <div className="space-y-1.5 pl-1 pt-2.5">
+                    <div
+                      data-testid={`subscriptions-folder-tree-rail-${group.folderId ?? "ungrouped"}`}
+                      className="space-y-1.5 border-l border-[color:var(--subscriptions-list-divider)] pl-3 pt-2"
+                    >
                       {group.rows.map((row) => {
                         const isSelected = selectedFeedId === row.feed.id;
                         const rowButton = (

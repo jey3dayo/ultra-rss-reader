@@ -101,6 +101,7 @@ const meta = {
       onDefer: fn(),
       onDelete: fn(),
     },
+    managementActions: null,
   },
   decorators: [
     (Story) => (
@@ -122,11 +123,18 @@ export const Empty: Story = {
     metrics: null,
     detailCandidate: null,
     decisionActions: null,
+    managementActions: null,
   },
 };
 
 export const WithoutDecisionActions: Story = {
   args: {
     decisionActions: null,
+    managementActions: {
+      editLabel: "Edit",
+      deleteLabel: "Delete",
+      onEdit: fn(),
+      onDelete: fn(),
+    },
   },
 };

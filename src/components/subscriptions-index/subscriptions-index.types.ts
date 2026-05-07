@@ -53,3 +53,10 @@ export type SubscriptionDecisionActions = {
   onDefer: () => void;
   onDelete: () => void;
 };
+
+export type SubscriptionManagementActions = {
+  editLabel: string;
+  deleteLabel: string;
+  onEdit: () => void;
+  onDelete: () => void;
+};

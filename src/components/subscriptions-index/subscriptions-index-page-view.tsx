@@ -12,6 +12,7 @@ import type {
   SubscriptionDetailMetrics,
   SubscriptionListGroup,
   SubscriptionListRow,
+  SubscriptionManagementActions,
   SubscriptionSummaryCard,
 } from "./subscriptions-index.types";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
@@ -47,6 +48,7 @@ export function SubscriptionsIndexPageView({
   displayModeLabel,
   displayModeValue,
   decisionActions,
+  managementActions,
   backLabel,
   closeLabel,
   isGroupExpanded,
@@ -93,6 +95,7 @@ export function SubscriptionsIndexPageView({
     onDefer: () => void;
     onDelete: () => void;
   } | null;
+  managementActions: SubscriptionManagementActions | null;
   backLabel: string;
   closeLabel: string;
   isGroupExpanded: (groupKey: string) => boolean;
@@ -167,6 +170,7 @@ export function SubscriptionsIndexPageView({
               displayModeValue={displayModeValue}
               dateLocale={dateLocale}
               decisionActions={decisionActions}
+              managementActions={managementActions}
             />
           </div>
         </div>

@@ -1,8 +1,9 @@
-import { Check, Clock3, Trash2 } from "lucide-react";
+import { Check, Clock3, Pencil, Trash2 } from "lucide-react";
 import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import { Button } from "@/components/ui/button";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { formatSubscriptionDate } from "@/lib/subscriptions-index";
 import type {
@@ -10,6 +11,7 @@ import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
+  SubscriptionManagementActions,
 } from "./subscriptions-index.types";
 
 type DecisionActionConfig = {
@@ -63,6 +65,7 @@ export function SubscriptionDetailPane({
   displayModeValue,
   dateLocale,
   decisionActions,
+  managementActions,
 }: {
   heading: string;
   emptyLabel: string;
@@ -80,6 +83,7 @@ export function SubscriptionDetailPane({
   displayModeValue: string;
   dateLocale: string;
   decisionActions: SubscriptionDecisionActions | null;
+  managementActions: SubscriptionManagementActions | null;
 }) {
   return (
     <section
@@ -174,6 +178,35 @@ export function SubscriptionDetailPane({
                   );
                 })}
               </SurfaceCard>
+            ) : managementActions ? (
+              <div
+                data-testid="subscriptions-detail-management-bar"
+                {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-2 gap-2`}
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  aria-label={managementActions.editLabel}
+                  onClick={managementActions.onEdit}
+                  className="justify-center rounded-md bg-surface-1/88 px-3 font-medium text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground sm:px-3.5 [&_svg]:size-3.5"
+                >
+                  <Pencil className="h-4 w-4" />
+                  {managementActions.editLabel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  aria-label={managementActions.deleteLabel}
+                  onClick={managementActions.onDelete}
+                  className="justify-center rounded-md bg-state-danger-surface px-3 font-medium text-state-danger-foreground shadow-none hover:bg-state-danger-surface sm:px-3.5 [&_svg]:size-3.5"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {managementActions.deleteLabel}
+                </Button>
+              </div>
             ) : null}
           </div>
         </div>

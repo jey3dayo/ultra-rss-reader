@@ -110,7 +110,7 @@ export function FeedDetailPanel({
 }: FeedDetailPanelProps) {
   return (
     <FeedDetailCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
           {leadingVisual ? (
             <div
@@ -139,7 +139,7 @@ export function FeedDetailPanel({
           </div>
         </div>
 
-        <div data-testid="feed-detail-secondary-column" className="space-y-3.5">
+        <div data-testid="feed-detail-secondary-column" className="space-y-3">
           {badgeLabel ? (
             <LabelChip
               data-testid="feed-detail-status"
@@ -186,8 +186,8 @@ export function FeedDetailPanel({
           ) : null}
         </div>
 
-        <div className="grid gap-4">
-          <dl className="grid gap-3.5 border-t border-border/55 pt-3.5 text-sm">
+        <div className="grid gap-3">
+          <dl className="grid gap-3 border-t border-border/55 pt-3 text-sm">
             {metrics.map((metric) => (
               <FeedDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
             ))}
@@ -205,11 +205,17 @@ export function FeedDetailPanel({
           ) : null}
 
           {recentArticles.length > 0 ? (
-            <div className="space-y-3 border-t border-border/55 pt-4">
+            <div data-testid="feed-detail-recent-articles" className="space-y-2 border-t border-border/55 pt-3">
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {recentArticles.map((article) => (
-                  <SurfaceCard key={article.id} variant="info" tone="subtle" padding="compact" className="shadow-none">
+                  <SurfaceCard
+                    key={article.id}
+                    variant="info"
+                    tone="subtle"
+                    padding="compact"
+                    className="px-3 py-2 shadow-none"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       {article.url ? (
                         <a
@@ -218,13 +224,13 @@ export function FeedDetailPanel({
                           rel="noreferrer"
                           className={cn(detailLinkClassName, "line-clamp-2 no-underline")}
                         >
-                          <span className="font-serif text-[0.95rem] font-normal leading-6 text-foreground">
+                          <span className="font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                             {article.title}
                           </span>
                           <ExternalLink aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         </a>
                       ) : (
-                        <span className="line-clamp-2 font-serif text-[0.95rem] font-normal leading-6 text-foreground">
+                        <span className="line-clamp-2 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                           {article.title}
                         </span>
                       )}

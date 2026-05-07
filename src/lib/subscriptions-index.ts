@@ -443,7 +443,7 @@ export function buildSubscriptionDetailMetrics({
   const feedArticles = articles.filter((article) => article.feed_id === feed.id);
   const previewArticles = [...feedArticles]
     .sort((left, right) => compareDateInputsAsc(right.published_at, left.published_at))
-    .slice(0, 3);
+    .slice(0, 2);
 
   return {
     latestArticleAt: feedArticleSummary?.latest_article_at ?? findLatestArticleTimestamp(feedArticles),

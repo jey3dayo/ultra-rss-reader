@@ -66,6 +66,73 @@ const groups = [
   { key: "ungrouped", label: "Unfoldered", folderId: null, rows: [rows[2]] },
 ] satisfies SubscriptionListGroup[];
 
+const readerAlignedRows = [
+  {
+    feed: buildFeed({
+      id: "automation",
+      folder_id: "misc",
+      title: "AUTOMATON",
+      unread_count: 3,
+    }),
+    folderId: "misc",
+    folderName: "Misc",
+    latestArticleAt: "2026-05-07T10:00:00Z",
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: "normal",
+  },
+  {
+    feed: buildFeed({
+      id: "hatena",
+      folder_id: "misc",
+      title: "はちま起稿",
+      url: "https://example.com/hatena.xml",
+      site_url: "https://example.com/hatena",
+      unread_count: 0,
+    }),
+    folderId: "misc",
+    folderName: "Misc",
+    latestArticleAt: null,
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: "no_articles",
+  },
+  {
+    feed: buildFeed({
+      id: "nhk",
+      folder_id: "news",
+      title: "NHKニュース",
+      url: "https://example.com/nhk.xml",
+      site_url: "https://example.com/nhk",
+      unread_count: 8,
+    }),
+    folderId: "news",
+    folderName: "News",
+    latestArticleAt: "2026-05-07T10:00:00Z",
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: null,
+  },
+  {
+    feed: buildFeed({
+      id: "internet-watch",
+      folder_id: "tech",
+      title: "INTERNET Watch",
+      url: "https://example.com/watch.xml",
+      site_url: "https://example.com/watch",
+      unread_count: 2,
+    }),
+    folderId: "tech",
+    folderName: "Tech",
+    latestArticleAt: "2026-05-06T10:00:00Z",
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: null,
+  },
+] satisfies SubscriptionListRow[];
+
+const readerAlignedGroups = [
+  { key: "misc", label: "Misc", folderId: "misc", rows: [readerAlignedRows[0], readerAlignedRows[1]] },
+  { key: "news", label: "News", folderId: "news", rows: [readerAlignedRows[2]] },
+  { key: "tech", label: "Tech", folderId: "tech", rows: [readerAlignedRows[3]] },
+] satisfies SubscriptionListGroup[];
+
 const statusLabels = {
   normal: "No action",
   review: "Review",
@@ -89,6 +156,15 @@ function isEveryGroupExpanded(_groupKey?: string) {
 
 function isOnlyDesignGroupCollapsed(groupKey?: string) {
   return groupKey !== "folder-2";
+}
+
+function formatJapaneseStoryLatestArticleLabel(value: string | null) {
+  if (!value) {
+    return "取得記事なし";
+  }
+
+  const date = new Date(value);
+  return `最終更新 ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 const meta = {
@@ -133,5 +209,19 @@ export const Empty: Story = {
 export const Collapsed: Story = {
   args: {
     isGroupExpanded: isOnlyDesignGroupCollapsed,
+  },
+};
+
+export const ReaderAligned: Story = {
+  args: {
+    groups: readerAlignedGroups,
+    selectedFeedId: "automation",
+    heading: "全購読",
+    statusLabels: {
+      ...statusLabels,
+      normal: "対応不要",
+    },
+    formatUnreadCountLabel: (count: number) => `未読 ${count}件`,
+    formatLatestArticleLabel: formatJapaneseStoryLatestArticleLabel,
   },
 };
