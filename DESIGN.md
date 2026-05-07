@@ -255,11 +255,12 @@ Surface governance:
 ### Theme Transition
 
 - Theme changes should feel soft and atmospheric rather than flashy or theatrical.
-- Prefer app-wide transitions on color, border, and shadow only when switching between light and dark themes.
+- Treat theme switching as one consistent, app-shell-level tonal shift across surfaces.
+- Prefer app-wide paint transitions on `color`, `background-color`, `border-color`, and `box-shadow` only when switching between light and dark themes.
 - Keep theme transition duration short, typically in the 150-200ms range.
 - Use smooth easing that feels editorial and restrained rather than playful or bouncy.
-- Avoid large transforms, blurs, zooms, or full-screen wipes for theme switching.
-- Respect `prefers-reduced-motion` by removing or minimizing theme transition animation.
+- Avoid layout shifts, content movement, large transforms, blurs, zooms, or full-screen wipes for theme switching.
+- Respect `prefers-reduced-motion` by switching immediately or reducing theme transition animation to the minimum paint change needed.
 
 ## Responsive Behavior
 
