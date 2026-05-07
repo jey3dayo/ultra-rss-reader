@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { TagsSettingsView } from "./tags-settings-view";
 
 const meta = {
@@ -14,8 +15,8 @@ const meta = {
     nameValue: "Later",
     namePlaceholder: "Enter a tag name",
     colorLabel: "Color",
-    colorValue: "#f97316",
-    colorOptions: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7"],
+    colorValue: TAG_COLOR_PRESETS[0],
+    colorOptions: TAG_COLOR_PRESETS,
     noColorLabel: "No color",
     colorOptionAriaLabel: (color: string) => `Select ${color}`,
     createLabel: "Create",
@@ -29,7 +30,7 @@ const meta = {
       {
         id: "tag-1",
         name: "Later",
-        color: "#f97316",
+        color: TAG_COLOR_PRESETS[0],
       },
       {
         id: "tag-2",

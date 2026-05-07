@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import tagsSettingsMeta, { Default, Empty } from "@/components/settings/tags-settings-view.stories";
+import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { renderStory } from "../../../tests/helpers/render-story";
 
 describe("TagsSettingsView stories", () => {
@@ -21,6 +22,12 @@ describe("TagsSettingsView stories", () => {
     expect(within(secondRow).getByText("Reference")).toBeInTheDocument();
     expect(firstRow).toHaveTextContent(/^Later$/);
     expect(secondRow).toHaveTextContent(/^Reference$/);
+  });
+
+  it("keeps the story fixture on the centralized tag palette", () => {
+    expect(tagsSettingsMeta.args.colorValue).toBe(TAG_COLOR_PRESETS[0]);
+    expect(tagsSettingsMeta.args.colorOptions).toBe(TAG_COLOR_PRESETS);
+    expect(tagsSettingsMeta.args.tags[0]?.color).toBe(TAG_COLOR_PRESETS[0]);
   });
 
   it("renders the empty state without any saved-tag rows", () => {
