@@ -4,6 +4,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-05-07
+
+### Features
+
+- デバッグ設定から Web プレビュー上の通知表示を再現できるチェック画面を開けるようにした
+
+### Bug Fixes
+
+- Web プレビューの native WebView bounds と overlay chrome の座標を整理し、余計な上部 gap や端のずれを抑えた
+- Web プレビューの戻るボタンを、履歴がない場合はプレビューを閉じる挙動に揃えた
+- Web プレビュー上の copy / toast / tooltip が native WebView の背面に隠れにくいよう、chrome rail 内で見える配置にした
+- スマートビュー選択時の下部フィルターを表示内容に合わせて同期するようにした
+- 記事一覧と Web プレビュー chrome の見た目を調整し、スクロールバー、選択面、コンパクト操作の視認性を改善した
+
+### Maintenance
+
+- WebView geometry と browser chrome の回帰テストを補強した
+- browser tooltip 周辺の formatting を適用した
+
 ## [0.30.1] - 2026-05-07
 
 ### Features
