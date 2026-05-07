@@ -12,7 +12,7 @@ MD_EXCLUDE_WORKTREES = "#**/.worktrees/**"
 
 [tools]
 node = "24"
-pnpm = "latest"
+pnpm = "10.33.4"
 rust = "stable"
 taplo = "latest"
 rtk = "latest"
