@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
@@ -48,6 +49,41 @@ describe("shared form controls", () => {
 
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving" })).toBeDisabled();
+  });
+
+  it("renders the shared form dialog shell with separated header, body, and footer", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onSubmit = vi.fn();
+
+    render(
+      <FormDialogShell
+        open={true}
+        title="Edit feed"
+        description="Adjust the feed settings."
+        cancelLabel="Cancel"
+        submitLabel="Save"
+        submittingLabel="Saving"
+        onOpenChange={onOpenChange}
+        onSubmit={onSubmit}
+      >
+        <LabeledInputRow label="Feed URL" name="feed-url" value="" onChange={vi.fn()} />
+      </FormDialogShell>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Edit feed" });
+    expect(dialog).toHaveClass("rounded-xl", "bg-surface-2", "shadow-elevation-3");
+    expect(screen.getByText("Adjust the feed settings.")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("button", { name: "Save" }).closest('[data-slot="dialog-footer"]')).toHaveClass(
+      "border-t",
+      "bg-surface-1/72",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("associates labeled input rows with their input and inline action", async () => {

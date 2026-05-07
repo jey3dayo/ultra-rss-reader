@@ -1,9 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const EMPTY_COLOR_OPTIONS: string[] = [];
 const NO_OP_COLOR_CHANGE = () => {};
@@ -49,52 +48,38 @@ export function RenameTagDialogView({
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("edit_tag")}</DialogTitle>
-        </DialogHeader>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSubmit();
-          }}
-          className="space-y-4"
-        >
-          <StackedInputField
-            label={t("name")}
-            inputRef={inputRef}
-            name="tag-name"
-            type="text"
-            value={name}
-            onChange={onNameChange}
-            inputClassName="mt-1"
-            disabled={loading}
-          />
-          {colorOptions.length > 0 && (
-            <TagColorPicker
-              label={t("color")}
-              color={color}
-              colorOptions={colorOptions}
-              noColorLabel={noColorLabel ?? t("no_color")}
-              optionAriaLabel={(option) => `${t("color")} ${option}`}
-              onChange={onColorChange}
-            />
-          )}
-        </form>
-        <DialogFooter>
-          <FormActionButtons
-            cancelLabel={tc("cancel")}
-            submitLabel={tc("save")}
-            submittingLabel={tc("saving")}
-            loading={loading}
-            submitDisabled={!name.trim() || loading}
-            cancelDisabled={loading}
-            onCancel={() => onOpenChange(false)}
-            onSubmit={onSubmit}
-          />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialogShell
+      open={open}
+      title={t("edit_tag")}
+      cancelLabel={tc("cancel")}
+      submitLabel={tc("save")}
+      submittingLabel={tc("saving")}
+      loading={loading}
+      submitDisabled={!name.trim() || loading}
+      cancelDisabled={loading}
+      onOpenChange={onOpenChange}
+      onSubmit={onSubmit}
+    >
+      <StackedInputField
+        label={t("name")}
+        inputRef={inputRef}
+        name="tag-name"
+        type="text"
+        value={name}
+        onChange={onNameChange}
+        inputClassName="mt-1"
+        disabled={loading}
+      />
+      {colorOptions.length > 0 && (
+        <TagColorPicker
+          label={t("color")}
+          color={color}
+          colorOptions={colorOptions}
+          noColorLabel={noColorLabel ?? t("no_color")}
+          optionAriaLabel={(option) => `${t("color")} ${option}`}
+          onChange={onColorChange}
+        />
+      )}
+    </FormDialogShell>
   );
 }
