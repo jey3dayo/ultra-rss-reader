@@ -73,6 +73,15 @@ import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/s
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -2230,6 +2239,54 @@ export function ShellExamplesSpecimen() {
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Unsubscribe…</div>
             </div>
           </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function CommandPaletteShellSpecimen() {
+  return (
+    <SurfaceCard variant="section" data-testid="reference-command-palette-shell">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <div>
+          <SectionHeading className="mb-2">Command palette shell</SectionHeading>
+          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+            Command stays a primitive-backed overlay surface. Feature commands provide the grouping, labels, and
+            shortcuts.
+          </p>
+        </div>
+        <div className={cn(SHELL_SPECIMEN_OUTER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
+          <Command className="rounded-lg border border-border bg-popover text-popover-foreground shadow-elevation-2">
+            <CommandInput aria-label="Reference command search" placeholder="Search reader actions..." />
+            <CommandList className="max-h-none">
+              <CommandGroup heading="Reader">
+                <CommandItem value="sync-all">
+                  <RefreshCw className="size-4" />
+                  Sync all feeds
+                  <CommandShortcut>⌘R</CommandShortcut>
+                </CommandItem>
+                <CommandItem value="save-reader-layout">
+                  <Save className="size-4" />
+                  Save reader layout
+                  <CommandShortcut>⌘S</CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
+              <CommandSeparator />
+              <CommandGroup heading="Navigation">
+                <CommandItem value="open-settings">
+                  <Settings2 className="size-4" />
+                  Open settings
+                  <CommandShortcut>⌘,</CommandShortcut>
+                </CommandItem>
+                <CommandItem value="copy-link">
+                  <Share className="size-4" />
+                  Copy current link
+                  <CommandShortcut>⇧⌘C</CommandShortcut>
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </div>
       </div>
     </SurfaceCard>

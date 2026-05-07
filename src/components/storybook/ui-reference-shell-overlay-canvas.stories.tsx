@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   AnnotatedNote,
+  CommandPaletteShellSpecimen,
   LeftBandShellSpecimen,
   MainContentShellSpecimen,
   MotionTransitionsSpecimen,
@@ -28,6 +29,7 @@ export function ShellOverlayCanvas() {
         </div>
         <MotionTransitionsSpecimen />
         <UpdateToastStabilitySpecimen />
+        <CommandPaletteShellSpecimen />
         <ShellExamplesSpecimen />
       </div>
     </ReferencePage>

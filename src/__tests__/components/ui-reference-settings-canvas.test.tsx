@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ButtonControlsCanvas } from "@/components/storybook/ui-reference-button-controls-canvas.stories";
 import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
@@ -11,6 +11,18 @@ import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-ov
 import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 
 describe("UI Reference canvases", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
   it("renders the button controls canvas with action family specimens", () => {
     render(<ButtonControlsCanvas />);
 
@@ -201,6 +213,19 @@ describe("UI Reference canvases", () => {
         .closest("div"),
     ).toHaveClass("rounded-xl");
     expect(screen.getByText("Context menu shell frame").parentElement).toHaveClass("rounded-lg");
+
+    const commandShell = screen.getByTestId("reference-command-palette-shell");
+    expect(commandShell).toHaveClass("rounded-md");
+    expect(within(commandShell).getByText("Command palette shell")).toBeInTheDocument();
+    expect(within(commandShell).getByPlaceholderText("Search reader actions...")).toHaveAttribute(
+      "aria-label",
+      "Reference command search",
+    );
+    expect(commandShell.querySelector("[data-slot='command']")).toBeInTheDocument();
+    expect(commandShell.querySelector("[data-slot='command-list']")).toBeInTheDocument();
+    expect(within(commandShell).getByText("Sync all feeds")).toBeInTheDocument();
+    expect(within(commandShell).getByText("Open settings")).toBeInTheDocument();
+    expect(within(commandShell).getByText("⌘R")).toBeInTheDocument();
   });
 
   it("renders the foundations canvas with typography and semantic surfaces", () => {
