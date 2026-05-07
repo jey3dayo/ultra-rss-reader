@@ -25,7 +25,7 @@ describe("FeedItemView", () => {
 
     const button = screen.getByRole("button", { name: /AUTOMATON/i });
 
-    expect(button).toHaveClass("bg-[var(--bg-selected)]");
+    expect(button).toHaveClass("bg-surface-selected");
     expect(button).toHaveClass("border-border-strong");
     expect(button).toHaveClass("before:bg-border-strong");
     expect(button).toHaveClass("min-h-9");

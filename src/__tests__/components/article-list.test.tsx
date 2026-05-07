@@ -217,7 +217,7 @@ describe("ArticleList", () => {
     expect(container.firstElementChild).toHaveClass(
       "border-r",
       "border-[var(--subscriptions-pane-divider)]",
-      "dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.94)_0%,rgba(28,25,21,0.88)_100%)]",
+      "bg-[var(--reader-list-pane-surface)]",
     );
   });
 

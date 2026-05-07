@@ -62,7 +62,7 @@ describe("FolderSectionView", () => {
     expect(trigger).toHaveClass("focus-visible:ring-2");
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "text-foreground-soft", "tabular-nums");
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
-    expect(feedButton).toHaveClass("bg-[var(--bg-selected)]");
+    expect(feedButton).toHaveClass("bg-surface-selected");
     expect(feedButton).toHaveClass("before:bg-border-strong");
     expect(feedButton).toHaveClass("min-h-9");
     expect(feedButton).not.toHaveAttribute("aria-haspopup");

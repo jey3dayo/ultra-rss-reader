@@ -26,13 +26,13 @@ describe("SettingsNavView", () => {
     const generalButton = screen.getByRole("button", { name: "General" });
     const appearanceButton = screen.getByRole("button", { name: "Custom category" });
 
-    expect(generalButton).toHaveClass("bg-[var(--bg-selected)]");
+    expect(generalButton).toHaveClass("bg-surface-selected");
     expect(generalButton).toHaveClass("rounded-md");
     expect(generalButton).toHaveClass("shrink-0");
     expect(generalButton).toHaveClass("text-[13px]");
     expect(generalButton).toHaveClass("focus-visible:ring-0");
     expect(generalButton).toHaveAttribute("aria-pressed", "true");
-    expect(appearanceButton).not.toHaveClass("bg-[var(--bg-selected)]");
+    expect(appearanceButton).not.toHaveClass("bg-surface-selected");
     expect(appearanceButton).toHaveClass("rounded-md");
     expect(appearanceButton).toHaveClass("shrink-0");
     expect(screen.getByText("A").parentElement).toHaveClass("h-5");
