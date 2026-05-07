@@ -117,6 +117,9 @@ importers:
       markdownlint-cli2:
         specifier: ^0.22.1
         version: 0.22.1
+      portless:
+        specifier: ^0.12.0
+        version: 0.12.0
       storybook:
         specifier: ^10.3.6
         version: 10.3.6(@testing-library/dom@10.4.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -2881,6 +2884,12 @@ packages:
   playwright@1.59.1:
     resolution: {integrity: sha512-C8oWjPR3F81yljW9o5OxcWzfh6avkVwDD2VYdwIGqTkl+OGFISgypqzfu7dOe4QNLL2aqcWBmI3PMtLIK233lw==}
     engines: {node: '>=18'}
+    hasBin: true
+
+  portless@0.12.0:
+    resolution: {integrity: sha512-zE8EYJ5xIEtKEBu1wnD+FavOE90/GNxRixF4Mu2hxMvDuVx1ftUbA6VbjbxI9sP9LUt0L26l6OiENGo4EFtLfw==}
+    engines: {node: '>=20'}
+    os: [darwin, linux, win32]
     hasBin: true
 
   postcss-selector-parser@7.1.1:
@@ -6174,6 +6183,8 @@ snapshots:
       playwright-core: 1.59.1
     optionalDependencies:
       fsevents: 2.3.2
+
+  portless@0.12.0: {}
 
   postcss-selector-parser@7.1.1:
     dependencies:
