@@ -8,6 +8,7 @@ import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
 import { triggerManualSyncWithCooldown } from "@/lib/manual-sync";
 import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
+import { isWindowFullscreen, setWindowFullscreen } from "@/lib/windows";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -210,14 +211,12 @@ export function flushPendingBrowserCloseAction(): void {
  * Silently no-ops in browser (non-Tauri) contexts.
  */
 async function toggleFullscreen(): Promise<void> {
-  try {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    const win = getCurrentWindow();
-    const isFullscreen = await win.isFullscreen();
-    await win.setFullscreen(!isFullscreen);
-  } catch {
-    // Non-Tauri context (browser dev mode) — no-op
+  const fullscreenResult = await isWindowFullscreen();
+  if (Result.isFailure(fullscreenResult)) {
+    return;
   }
+
+  await setWindowFullscreen(!Result.unwrap(fullscreenResult));
 }
 
 /**

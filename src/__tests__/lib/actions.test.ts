@@ -7,7 +7,7 @@ import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
-const { triggerSyncMock, i18nTMock } = vi.hoisted(() => ({
+const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({
   triggerSyncMock: vi.fn(),
   i18nTMock: vi.fn((key: string, options?: Record<string, string>) => {
     if (options?.accounts) {
@@ -18,6 +18,8 @@ const { triggerSyncMock, i18nTMock } = vi.hoisted(() => ({
     }
     return `translated:${key}`;
   }),
+  isWindowFullscreenMock: vi.fn(),
+  setWindowFullscreenMock: vi.fn(),
 }));
 
 const runManualUpdateCheckMock = vi.fn();
@@ -70,6 +72,11 @@ vi.mock("@/hooks/use-updater", () => ({
   showUpdateAvailableToast: showUpdateAvailableToastMock,
 }));
 
+vi.mock("@/lib/windows", () => ({
+  isWindowFullscreen: isWindowFullscreenMock,
+  setWindowFullscreen: setWindowFullscreenMock,
+}));
+
 // Mock preferences store
 vi.mock("@/stores/preferences-store", () => {
   const prefs: Record<string, string> = {};
@@ -106,6 +113,10 @@ beforeEach(async () => {
       warnings: [],
     }),
   );
+  isWindowFullscreenMock.mockReset();
+  isWindowFullscreenMock.mockResolvedValue(Result.succeed(false));
+  setWindowFullscreenMock.mockReset();
+  setWindowFullscreenMock.mockResolvedValue(Result.succeed(undefined));
   const { resetManualSyncCooldownForTests } = await import("@/lib/manual-sync");
   resetManualSyncCooldownForTests();
   const mod = await import("@/lib/actions");
@@ -415,6 +426,15 @@ describe("executeAction", () => {
       executeAction("set-theme-dark");
 
       expect(setPref).toHaveBeenCalledWith("theme", "dark");
+    });
+
+    it("toggles fullscreen through Result-based window helpers", async () => {
+      executeAction("toggle-fullscreen");
+
+      await waitFor(() => {
+        expect(isWindowFullscreenMock).toHaveBeenCalledOnce();
+        expect(setWindowFullscreenMock).toHaveBeenCalledWith(true);
+      });
     });
   });
 
