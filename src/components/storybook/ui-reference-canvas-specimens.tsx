@@ -104,8 +104,8 @@ const darkReaderToolbarTokens: CssVariableProperties = {
   "--foreground-soft": "rgba(242, 241, 237, 0.68)",
   "--surface-2": "rgba(242, 241, 237, 0.08)",
   "--surface-3": "rgba(242, 241, 237, 0.12)",
-  "--primary": "#c0a8dd",
-  "--ring": "rgba(192, 168, 221, 0.34)",
+  "--primary": "#f54e00",
+  "--ring": "rgba(245, 78, 0, 0.38)",
   "--tone-unread": "#9fbbe0",
   "--tone-starred": "#facc15",
   "--semantic-tone-starred-surface": "rgba(250, 204, 21, 0.16)",
@@ -2089,12 +2089,18 @@ export function ShellExamplesSpecimen() {
             <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
               Sidebar or toolbar chrome
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-[#202122] px-3 py-3 text-white">
+            <div
+              data-testid="reference-utility-action-chrome-strip"
+              className="flex items-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--foreground)_86%,var(--background))] px-3 py-3 text-[color:var(--background)]"
+            >
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Refresh"
-                className={cn(iconToolbarButtonClassName, "hover:bg-white/8 hover:text-white focus-visible:bg-white/8")}
+                className={cn(
+                  iconToolbarButtonClassName,
+                  "hover:bg-[color-mix(in_srgb,var(--foreground)_78%,var(--background))] hover:text-[color:var(--background)] focus-visible:bg-[color-mix(in_srgb,var(--foreground)_78%,var(--background))]",
+                )}
               >
                 <Clock3 className="h-4 w-4" />
               </Button>
@@ -2102,7 +2108,10 @@ export function ShellExamplesSpecimen() {
                 variant="ghost"
                 size="icon"
                 aria-label="Unread"
-                className={cn(iconToolbarButtonClassName, "hover:bg-white/8 hover:text-white focus-visible:bg-white/8")}
+                className={cn(
+                  iconToolbarButtonClassName,
+                  "hover:bg-[color-mix(in_srgb,var(--foreground)_78%,var(--background))] hover:text-[color:var(--background)] focus-visible:bg-[color-mix(in_srgb,var(--foreground)_78%,var(--background))]",
+                )}
               >
                 <UnreadIcon unread={true} className="h-2.5 w-2.5" />
               </Button>
@@ -2269,11 +2278,11 @@ export function MotionTransitionsSpecimen() {
       </div>
 
       <div className="grid gap-3 xl:grid-cols-3">
-        <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+        <div className="rounded-md border border-border/70 bg-background/70 p-4">
           <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Resize surface</div>
           <div
             className={cn(
-              "motion-resize-surface overflow-hidden rounded-lg border border-border bg-surface-2 shadow-elevation-1",
+              "motion-resize-surface overflow-hidden rounded-md border border-border bg-surface-2 shadow-elevation-1",
               expanded ? "h-[168px] max-w-[360px]" : "h-[112px] max-w-[250px]",
             )}
           >
@@ -2292,7 +2301,7 @@ export function MotionTransitionsSpecimen() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+        <div className="rounded-md border border-border/70 bg-background/70 p-4">
           <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Popup surface</div>
           <Button size="sm" variant="outline" aria-expanded={popupOpen}>
             Feed
@@ -2316,9 +2325,9 @@ export function MotionTransitionsSpecimen() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+        <div className="rounded-md border border-border/70 bg-background/70 p-4">
           <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Dialog and popover</div>
-          <div className="relative h-[210px] overflow-hidden rounded-lg border border-border/70 bg-surface-1/80">
+          <div className="relative h-[210px] overflow-hidden rounded-md border border-border/70 bg-surface-1/80">
             <div
               className="motion-popup-overlay absolute inset-0 bg-dialog-overlay bg-dialog-scrim"
               {...(dialogOpen ? { "data-open": "" } : { "data-closed": "" })}

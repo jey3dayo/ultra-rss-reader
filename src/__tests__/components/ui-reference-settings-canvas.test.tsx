@@ -76,6 +76,8 @@ describe("UI Reference canvases", () => {
     const previewButton = darkStrip.getByRole("button", { name: "Close Web Preview" });
 
     expect(darkStripElement).toHaveClass("dark", "bg-[#191712]");
+    expect(darkStripElement).toHaveStyle("--primary: #f54e00");
+    expect(darkStripElement).toHaveStyle("--ring: rgba(245, 78, 0, 0.38)");
     expect(readButton).toHaveAttribute("aria-pressed", "false");
     expect(starButton).toHaveAttribute("aria-pressed", "true");
     expect(previewButton).toHaveAttribute("aria-pressed", "true");
@@ -174,6 +176,15 @@ describe("UI Reference canvases", () => {
       screen.getByText("Section containers stay inside").closest('[data-testid="reference-annotated-note"]')
         ?.parentElement?.parentElement,
     ).toHaveClass("rounded-lg");
+    const utilityChrome = screen.getByTestId("reference-utility-action-chrome-strip");
+    expect(utilityChrome).toHaveClass(
+      "bg-[color-mix(in_srgb,var(--foreground)_86%,var(--background))]",
+      "text-[color:var(--background)]",
+    );
+    expect(within(utilityChrome).getByRole("button", { name: "Refresh" })).toHaveClass(
+      "hover:bg-[color-mix(in_srgb,var(--foreground)_78%,var(--background))]",
+      "hover:text-[color:var(--background)]",
+    );
     expect(screen.getByText("Dialog shell")).toBeInTheDocument();
     expect(screen.getByText("この購読を削除しますか？")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument();
