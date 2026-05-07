@@ -21,6 +21,7 @@ export function SubscriptionsIndexPageView({
   title,
   subtitle,
   summaryCards,
+  reviewCriteriaLabel,
   inventoryHeading,
   detailHeading,
   groups,
@@ -59,6 +60,7 @@ export function SubscriptionsIndexPageView({
   title: string;
   subtitle: string;
   summaryCards: SubscriptionSummaryCard[];
+  reviewCriteriaLabel: string;
   inventoryHeading: string;
   detailHeading: string;
   groups: SubscriptionListGroup[];
@@ -120,7 +122,11 @@ export function SubscriptionsIndexPageView({
       />
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1 sm:pt-1.5`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-3.5 sm:gap-4 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
-          <SubscriptionsOverviewSummary cards={summaryCards} onSelectFilter={onSelectSummaryFilter} />
+          <SubscriptionsOverviewSummary
+            cards={summaryCards}
+            reviewCriteriaLabel={reviewCriteriaLabel}
+            onSelectFilter={onSelectSummaryFilter}
+          />
           <div
             data-testid="subscriptions-workspace-shell"
             className={workspaceSplitShellClassName("mt-0 border-border/55")}

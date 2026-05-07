@@ -1,7 +1,9 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { LabelChip } from "@/components/shared/label-chip";
 import { MotionNumber } from "@/components/shared/motion-number";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
 
@@ -86,6 +88,7 @@ function canSelectSummaryFilterCard(card: SubscriptionSummaryCard) {
 
 type SummaryFilterCardButtonProps = {
   onSelect: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  reviewCriteriaLabel?: string;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
   summaryCard: SubscriptionSummaryCard;
 };
@@ -163,6 +166,10 @@ function resolveActionChipLabel({
   return filterKey === "all" ? "すべて表示" : "絞り込む";
 }
 
+function resolveCriteriaChipLabel() {
+  return "条件";
+}
+
 function isNumericSummaryValue(value: string) {
   return value.trim() !== "" && !Number.isNaN(Number(value));
 }
@@ -187,7 +194,12 @@ function buildSummaryCardRenderModel(params: {
   };
 }
 
-function SummaryFilterCardButton({ onSelect, renderValue, summaryCard }: SummaryFilterCardButtonProps) {
+function SummaryFilterCardButton({
+  onSelect,
+  reviewCriteriaLabel,
+  renderValue,
+  summaryCard,
+}: SummaryFilterCardButtonProps) {
   const {
     value,
     viewState: { className: cardClassName, isProminent, toneClasses },
@@ -195,8 +207,9 @@ function SummaryFilterCardButton({ onSelect, renderValue, summaryCard }: Summary
     card: summaryCard,
     renderValue,
   });
+  const shouldShowCriteria = summaryCard.filterKey === "review" && Boolean(reviewCriteriaLabel);
 
-  return (
+  const cardButton = (
     <button
       type="button"
       className={cn(
@@ -258,8 +271,24 @@ function SummaryFilterCardButton({ onSelect, renderValue, summaryCard }: Summary
         >
           {resolveActionChipLabel({ filterKey: summaryCard.filterKey, isActive: summaryCard.isActive })}
         </LabelChip>
+        {shouldShowCriteria ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
+            <Info className="h-3 w-3" aria-hidden="true" />
+            {resolveCriteriaChipLabel()}
+          </span>
+        ) : null}
       </div>
     </button>
+  );
+
+  return shouldShowCriteria && reviewCriteriaLabel ? (
+    <TooltipProvider>
+      <AppTooltip label={reviewCriteriaLabel} side="bottom" align="start">
+        {cardButton}
+      </AppTooltip>
+    </TooltipProvider>
+  ) : (
+    cardButton
   );
 }
 
@@ -267,10 +296,12 @@ export function SubscriptionsOverviewSummary({
   cards,
   onSelectFilter,
   renderValue,
+  reviewCriteriaLabel,
 }: {
   cards: SubscriptionSummaryCard[];
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
+  reviewCriteriaLabel?: string;
 }) {
   return (
     <section
@@ -288,6 +319,7 @@ export function SubscriptionsOverviewSummary({
               <SummaryFilterCardButton
                 key={card.label}
                 onSelect={onSelectFilter}
+                reviewCriteriaLabel={reviewCriteriaLabel}
                 renderValue={renderValue}
                 summaryCard={card}
               />

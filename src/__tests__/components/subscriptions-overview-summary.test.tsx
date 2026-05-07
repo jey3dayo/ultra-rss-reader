@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 
@@ -21,6 +22,7 @@ describe("SubscriptionsOverviewSummary", () => {
             caption: "All good",
           },
         ]}
+        reviewCriteriaLabel="Needs review: no updates for 90+ days, or no unread and no stars."
         onSelectFilter={vi.fn()}
       />,
     );
@@ -34,6 +36,7 @@ describe("SubscriptionsOverviewSummary", () => {
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
       "gap-3",
     );
+    expect(screen.queryByText("Needs review: no updates for 90+ days, or no unread and no stars.")).toBeNull();
 
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
     expect(actionableCard).toHaveClass("w-full", "min-w-0");
@@ -42,11 +45,38 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("絞り込む").closest("span")).toHaveAttribute("data-label-chip", "neutral");
+    expect(within(actionableCard).getByText("条件")).toHaveClass("text-foreground-soft");
 
     const neutralCard = screen.getByRole("button", { name: /Healthy/ });
     expect(neutralCard).not.toBeNull();
     expect(within(neutralCard).getByText("Healthy")).toHaveClass("text-foreground-soft");
     expect(within(neutralCard).getByText("All good")).toHaveClass("text-foreground-soft");
+  });
+
+  it("shows review criteria from the review summary card tooltip", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "2",
+            caption: "Check these feeds",
+            tone: "review",
+          },
+        ]}
+        reviewCriteriaLabel="Needs review: no updates for 90+ days, or no unread and no stars."
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    await user.hover(screen.getByRole("button", { name: "Needs review を表示" }));
+
+    expect(await screen.findByText("Needs review: no updates for 90+ days, or no unread and no stars.")).toHaveClass(
+      "motion-popup-surface",
+    );
   });
 
   it("reserves the active badge slot to avoid layout shift", () => {

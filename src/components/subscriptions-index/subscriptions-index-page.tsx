@@ -191,6 +191,7 @@ export function SubscriptionsIndexPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         summaryCards={summaryCards}
+        reviewCriteriaLabel={t("summary_review_criteria")}
         inventoryHeading={inventoryHeading}
         detailHeading={t("detail_heading")}
         groups={groupedRows}
