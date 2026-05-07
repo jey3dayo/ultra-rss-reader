@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
-import { createFolderIfNeeded } from "./feed-folder-flow";
+import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
 import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
@@ -27,20 +27,19 @@ export async function submitFeedEdits({
   updateDisplaySettings,
 }: SubmitFeedEditsParams) {
   const trimmed = title.trim();
-  const resolvedFolderId = await createFolderIfNeeded({
+  const folderResult = await createFolderIfNeededResult({
     accountId: feed.account_id,
     selectedFolderId,
     isCreatingFolder,
     newFolderName,
-    onError: (error) => {
-      showToast(createFolderErrorMessage(error));
-    },
   });
 
-  if (resolvedFolderId === undefined) {
+  if (Result.isFailure(folderResult)) {
+    showToast(createFolderErrorMessage(Result.unwrapError(folderResult)));
     return false;
   }
 
+  const resolvedFolderId = Result.unwrap(folderResult);
   const didRename = trimmed !== feed.title;
   const didMoveFolder = resolvedFolderId !== feed.folder_id;
   const currentDisplayPreset = resolveFeedDisplayPreset(feed);

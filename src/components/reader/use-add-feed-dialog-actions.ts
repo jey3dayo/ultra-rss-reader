@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useCallback } from "react";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import type { UseAddFeedDialogActionsParams, UseAddFeedDialogActionsResult } from "./add-feed-dialog.types";
-import { createFolderIfNeeded } from "./feed-folder-flow";
+import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
 
 export function useAddFeedDialogActions({
@@ -57,22 +57,22 @@ export function useAddFeedDialogActions({
 
     dispatch({ type: "set-loading", loading: true });
 
-    const folderId = await createFolderIfNeeded({
+    const folderResult = await createFolderIfNeededResult({
       accountId,
       selectedFolderId,
       isCreatingFolder,
       newFolderName,
-      onError: (error) => {
-        const message = t("failed_to_create_folder", { message: error.message });
-        dispatch({ type: "set-submit-error", error: message });
-        showToast(message);
-      },
     });
-    if (folderId === undefined) {
+    if (Result.isFailure(folderResult)) {
+      const error = Result.unwrapError(folderResult);
+      const message = t("failed_to_create_folder", { message: error.message });
+      dispatch({ type: "set-submit-error", error: message });
+      showToast(message);
       dispatch({ type: "set-loading", loading: false });
       return;
     }
 
+    const folderId = Result.unwrap(folderResult);
     let feedId: string | null = null;
     let hasError = false;
 
