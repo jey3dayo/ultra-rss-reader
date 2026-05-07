@@ -61,6 +61,8 @@ describe("IconToolbarControl", () => {
     expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass(
       "data-[pressed]:bg-primary/12",
       "data-[pressed]:text-primary",
+      "data-[pressed]:hover:bg-primary/12",
+      "data-[pressed]:focus-visible:bg-primary/12",
     );
   });
 
@@ -76,10 +78,12 @@ describe("IconToolbarControl", () => {
     expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass(
       "data-[pressed]:bg-surface-3/88",
       "data-[pressed]:text-foreground",
+      "data-[pressed]:hover:bg-surface-3/88",
+      "data-[pressed]:focus-visible:bg-surface-3/88",
     );
   });
 
-  it("keeps starred pressed styling borderless for shared toolbar toggles", () => {
+  it("keeps starred pressed styling on the same active shell for shared toolbar toggles", () => {
     render(
       <TooltipProvider>
         <IconToolbarToggle label="Toggle star" pressed={true} pressedTone="starred" onPressedChange={vi.fn()}>
@@ -89,9 +93,10 @@ describe("IconToolbarControl", () => {
     );
 
     expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass(
-      "data-[pressed]:bg-transparent",
-      "data-[pressed]:text-[var(--tone-starred)]",
-      "data-[pressed]:focus-visible:bg-transparent",
+      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+      "data-[pressed]:hover:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:focus-visible:bg-[var(--semantic-tone-starred-surface)]",
     );
   });
 

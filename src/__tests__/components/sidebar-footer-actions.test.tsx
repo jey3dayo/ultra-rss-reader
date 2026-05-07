@@ -7,18 +7,26 @@ describe("SidebarFooterActions", () => {
     render(
       <SidebarFooterActions
         subscriptionsIndexLabel="購読一覧"
+        subscriptionsIndexShortLabel="購読"
         settingsLabel="設定"
+        themeToggleLabel="テーマを切り替え"
         onOpenSubscriptionsIndex={vi.fn()}
         onOpenSettings={vi.fn()}
       />,
     );
 
     const subscriptionsButton = screen.getByRole("button", { name: "購読一覧" });
+    const themeButton = screen.getByRole("button", { name: "テーマを切り替え" });
     const settingsButton = screen.getByRole("button", { name: "設定" });
 
     expect(subscriptionsButton.querySelector("svg.lucide-rss")).toBeInTheDocument();
+    expect(themeButton.querySelector("svg.lucide-moon")).toBeInTheDocument();
     expect(settingsButton.querySelector("svg.lucide-settings")).toBeInTheDocument();
-    expect(subscriptionsButton).toHaveClass("h-9", "rounded-xl", "font-semibold");
-    expect(settingsButton).toHaveClass("h-9", "rounded-xl", "font-semibold");
+    expect(subscriptionsButton).toHaveTextContent("購読");
+    expect(subscriptionsButton).not.toHaveTextContent("購読一覧");
+    expect(subscriptionsButton).toHaveClass("h-8", "rounded-md", "border-0", "justify-start");
+    expect(screen.getByText("購読")).toHaveClass("truncate");
+    expect(themeButton).toHaveClass("size-8", "rounded-md", "border-0");
+    expect(settingsButton).toHaveClass("size-8", "rounded-md", "border-0");
   });
 });

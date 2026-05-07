@@ -12,6 +12,17 @@ import { useUiStore } from "@/stores/ui-store";
 import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
+const articleToolbarVisualActiveClassNames = {
+  unread:
+    "bg-[var(--semantic-tone-unread-surface)] text-[var(--semantic-tone-unread-content-foreground)] hover:bg-[var(--semantic-tone-unread-surface)] hover:text-[var(--semantic-tone-unread-content-foreground)] focus-visible:bg-[var(--semantic-tone-unread-surface)] focus-visible:text-[var(--semantic-tone-unread-content-foreground)]",
+  neutral:
+    "bg-surface-3/72 text-foreground hover:bg-surface-3/72 hover:text-foreground focus-visible:bg-surface-3/72 focus-visible:text-foreground",
+  accent:
+    "bg-primary/12 text-primary hover:bg-primary/12 hover:text-primary focus-visible:bg-primary/12 focus-visible:text-primary",
+  starred:
+    "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)] focus-visible:bg-[var(--semantic-tone-starred-surface)] focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
+} as const;
+
 function ArticleToolbarMoreMenu({
   showCopyLinkButton,
   canCopyLink,
@@ -80,16 +91,9 @@ function ArticleToolbarMobilePrimaryButton({
   onPressedChange: (nextPressed: boolean) => void;
   disabled?: boolean;
   active?: boolean;
-  activeTone?: "neutral" | "accent" | "starred";
+  activeTone?: keyof typeof articleToolbarVisualActiveClassNames;
   children: ReactNode;
 }) {
-  const activeClassName =
-    activeTone === "starred"
-      ? "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)]"
-      : activeTone === "accent"
-        ? "bg-primary/12 text-primary"
-        : "bg-surface-3/72 text-foreground";
-
   return (
     <Toggle
       pressed={pressed}
@@ -98,7 +102,7 @@ function ArticleToolbarMobilePrimaryButton({
       disabled={disabled}
       className={cn(
         "inline-flex size-9 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0",
-        active && activeClassName,
+        active && articleToolbarVisualActiveClassNames[activeTone],
       )}
     >
       {children}
@@ -140,6 +144,8 @@ export function ArticleToolbarActionStrip({
             pressed={isRead}
             disabled={!canToggleRead}
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
+            active={hasArticle && !isRead}
+            activeTone="unread"
           >
             <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
           </ArticleToolbarMobilePrimaryButton>
@@ -180,7 +186,7 @@ export function ArticleToolbarActionStrip({
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
             disabled={!canToggleRead}
             pressedTone="none"
-            className="text-foreground-soft hover:text-foreground"
+            className={cn(hasArticle && !isRead && articleToolbarVisualActiveClassNames.unread)}
           >
             <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
           </IconToolbarToggle>
@@ -189,7 +195,7 @@ export function ArticleToolbarActionStrip({
             pressed={isStarred}
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             disabled={!canToggleStar}
-            pressedTone="none"
+            pressedTone="starred"
           >
             <StarIcon starred={isStarred} className="h-4 w-4" />
           </IconToolbarToggle>

@@ -42,7 +42,9 @@ export type SidebarContentSectionsProps = {
   onToggleFeedsSection: () => void;
   viewportRef: RefObject<HTMLDivElement | null>;
   subscriptionsIndexLabel: string;
+  subscriptionsIndexShortLabel: string;
   settingsLabel: string;
+  themeToggleLabel: string;
   onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
   selectedAccountId: string | null;
@@ -319,7 +321,9 @@ export type SidebarFeedSectionViewProps = {
 
 export type SidebarFooterActionsViewProps = {
   subscriptionsIndexLabel: string;
+  subscriptionsIndexShortLabel: string;
   settingsLabel: string;
+  themeToggleLabel: string;
   onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
 };
@@ -333,7 +337,9 @@ export type SidebarContentViewProps = {
   feedTree: ReactNode;
   tagSection: ReactNode;
   subscriptionsIndexLabel: string;
+  subscriptionsIndexShortLabel: string;
   settingsLabel: string;
+  themeToggleLabel: string;
   onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
   addFeedDialog?: ReactNode;

@@ -15,7 +15,9 @@ export function SidebarContentSections({
   renderSubscriptionsSectionContextMenu,
   viewportRef,
   subscriptionsIndexLabel,
+  subscriptionsIndexShortLabel,
   settingsLabel,
+  themeToggleLabel,
   onOpenSubscriptionsIndex,
   onOpenSettings,
   selectedAccountId,
@@ -89,7 +91,9 @@ export function SidebarContentSections({
       }
       tagSection={tagSection}
       subscriptionsIndexLabel={subscriptionsIndexLabel}
+      subscriptionsIndexShortLabel={subscriptionsIndexShortLabel}
       settingsLabel={settingsLabel}
+      themeToggleLabel={themeToggleLabel}
       onOpenSubscriptionsIndex={onOpenSubscriptionsIndex}
       onOpenSettings={onOpenSettings}
       onFocusAccountList={onFocusAccountList}

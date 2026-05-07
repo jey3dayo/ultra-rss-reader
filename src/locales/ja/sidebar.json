@@ -16,6 +16,7 @@
   "manage_tags": "タグを管理",
   "accounts": "アカウント",
   "settings": "設定",
+  "theme_toggle": "テーマを切り替え",
   "account_settings": "アカウント設定",
   "checking_sync_status": "同期履歴を確認中…",
   "not_synced_yet": "未同期",

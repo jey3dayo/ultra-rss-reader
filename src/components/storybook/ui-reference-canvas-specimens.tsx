@@ -25,6 +25,7 @@ import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/
 import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
+import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions";
 import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
 import { SmartViewsView } from "@/components/reader/smart-views-view";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
@@ -612,9 +613,9 @@ export function ReaderHeaderActionStripSpecimen() {
   const [isRead, setIsRead] = useState(false);
   const [isStarred, setIsStarred] = useState(true);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
-  const [darkIsRead, setDarkIsRead] = useState(true);
-  const [darkIsStarred, setDarkIsStarred] = useState(false);
-  const [darkIsBrowserOpen, setDarkIsBrowserOpen] = useState(false);
+  const [darkIsRead, setDarkIsRead] = useState(false);
+  const [darkIsStarred, setDarkIsStarred] = useState(true);
+  const [darkIsBrowserOpen, setDarkIsBrowserOpen] = useState(true);
 
   useEffect(() => {
     const previousLayoutMode = useUiStore.getState().layoutMode;
@@ -853,6 +854,21 @@ export function NavigationButtonPatternsSpecimen() {
               <StarIcon starred forceTone className="h-3.5 w-3.5" />
               <span className="truncate">Starred</span>
             </SidebarNavButton>
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/45 uppercase">
+            Sidebar footer actions
+          </div>
+          <div className="overflow-hidden rounded-md">
+            <SidebarFooterActions
+              subscriptionsIndexLabel="購読一覧"
+              subscriptionsIndexShortLabel="購読"
+              settingsLabel="設定"
+              themeToggleLabel="テーマを切り替え"
+              onOpenSubscriptionsIndex={() => undefined}
+              onOpenSettings={() => undefined}
+            />
           </div>
         </div>
       </div>

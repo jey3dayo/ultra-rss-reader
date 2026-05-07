@@ -73,20 +73,20 @@ describe("UI Reference canvases", () => {
     const darkStrip = within(darkStripElement);
     const readButton = darkStrip.getByRole("button", { name: "Toggle read" });
     const starButton = darkStrip.getByRole("button", { name: "Toggle star" });
-    const previewButton = darkStrip.getByRole("button", { name: "Open Web Preview" });
+    const previewButton = darkStrip.getByRole("button", { name: "Close Web Preview" });
 
     expect(darkStripElement).toHaveClass("dark", "bg-[#191712]");
-    expect(readButton).toHaveAttribute("aria-pressed", "true");
-    expect(starButton).toHaveAttribute("aria-pressed", "false");
-    expect(previewButton).toHaveAttribute("aria-pressed", "false");
+    expect(readButton).toHaveAttribute("aria-pressed", "false");
+    expect(starButton).toHaveAttribute("aria-pressed", "true");
+    expect(previewButton).toHaveAttribute("aria-pressed", "true");
 
     await user.click(readButton);
     await user.click(starButton);
     await user.click(previewButton);
 
-    expect(readButton).toHaveAttribute("aria-pressed", "false");
-    expect(starButton).toHaveAttribute("aria-pressed", "true");
-    expect(darkStrip.getByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
+    expect(readButton).toHaveAttribute("aria-pressed", "true");
+    expect(starButton).toHaveAttribute("aria-pressed", "false");
+    expect(darkStrip.getByRole("button", { name: "Open Web Preview" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("renders the settings sections canvas with form specimens", () => {

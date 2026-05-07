@@ -46,7 +46,9 @@ export function SidebarContentView({
   feedTree,
   tagSection,
   subscriptionsIndexLabel,
+  subscriptionsIndexShortLabel,
   settingsLabel,
+  themeToggleLabel,
   onOpenSubscriptionsIndex,
   onOpenSettings,
   onFocusAccountList,
@@ -76,7 +78,9 @@ export function SidebarContentView({
 
       <SidebarFooterActions
         subscriptionsIndexLabel={subscriptionsIndexLabel}
+        subscriptionsIndexShortLabel={subscriptionsIndexShortLabel}
         settingsLabel={settingsLabel}
+        themeToggleLabel={themeToggleLabel}
         onOpenSubscriptionsIndex={onOpenSubscriptionsIndex}
         onOpenSettings={onOpenSettings}
       />

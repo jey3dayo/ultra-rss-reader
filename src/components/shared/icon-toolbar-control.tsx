@@ -8,7 +8,7 @@ import type { IconToolbarButtonProps, IconToolbarMenuTriggerProps, IconToolbarTo
 import { OverlayActionSurface } from "./overlay-action-surface";
 
 export const iconToolbarButtonClassName = cn(
-  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none outline-none select-none transition-none md:size-8 hover:bg-surface-2/72 hover:text-foreground aria-expanded:bg-surface-3/88 aria-expanded:text-foreground focus-visible:bg-surface-2/72 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none outline-none select-none transition-none md:size-8 hover:bg-surface-2/64 hover:text-foreground aria-expanded:bg-surface-3/88 aria-expanded:text-foreground focus-visible:bg-surface-2/64 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 );
 
 export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
@@ -16,11 +16,11 @@ export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
     pressedTone: {
       none: "data-[pressed]:bg-transparent data-[pressed]:text-foreground-soft data-[pressed]:shadow-none data-[pressed]:focus-visible:bg-transparent",
       neutral:
-        "data-[pressed]:bg-surface-3/88 data-[pressed]:text-foreground data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "data-[pressed]:bg-surface-3/88 data-[pressed]:text-foreground data-[pressed]:hover:bg-surface-3/88 data-[pressed]:hover:text-foreground data-[pressed]:focus-visible:bg-surface-3/88 data-[pressed]:focus-visible:text-foreground",
       accent:
-        "data-[pressed]:bg-primary/12 data-[pressed]:text-primary data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "data-[pressed]:bg-primary/12 data-[pressed]:text-primary data-[pressed]:hover:bg-primary/12 data-[pressed]:hover:text-primary data-[pressed]:focus-visible:bg-primary/12 data-[pressed]:focus-visible:text-primary",
       starred:
-        "data-[pressed]:bg-transparent data-[pressed]:text-[var(--tone-starred)] data-[pressed]:shadow-none data-[pressed]:focus-visible:bg-transparent",
+        "data-[pressed]:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:hover:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:hover:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:focus-visible:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
     },
   },
   defaultVariants: {
