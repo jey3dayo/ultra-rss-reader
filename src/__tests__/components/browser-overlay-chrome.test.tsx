@@ -281,7 +281,9 @@ describe("BrowserOverlayChrome", () => {
     );
 
     expect(screen.getByRole("button", { name: "Custom Action A" })).toBeInTheDocument();
-    const firstSurface = screen.getByRole("button", { name: "Custom Action A" }).closest("[data-overlay-shell='action']");
+    const firstSurface = screen
+      .getByRole("button", { name: "Custom Action A" })
+      .closest("[data-overlay-shell='action']");
 
     expect(firstSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(firstSurface).toHaveClass("bg-transparent");
