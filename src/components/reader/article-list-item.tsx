@@ -66,7 +66,7 @@ export function ArticleListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-lg px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
+        "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
         selectionStyle === "classic"
           ? cn(
               "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
@@ -83,7 +83,7 @@ export function ArticleListItem({
                   activePane
                     ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] after:bg-border-strong focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]"
                     : "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)] after:bg-border-strong/60 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
-                  "after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full",
+                  "after:absolute after:inset-y-1.5 after:left-1 after:w-1 after:rounded-sm",
                 ),
             ),
         !isSelected &&

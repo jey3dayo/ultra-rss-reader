@@ -16,6 +16,34 @@ const articleFixture = {
   is_starred: false,
 };
 
+const selectedJapaneseArticleFixture = {
+  id: "art-selected-japanese",
+  feed_id: "feed-1",
+  title: "爆裂インフレ麻雀ローグライク『Hell Wait』発表。ジョーカー牌で点数爆盛り、敗北すれば“指…”",
+  content_sanitized: "<p>個人ゲーム開発者のMondbekker氏は5月6日、『Hell Wait』を発表した。</p>",
+  summary: "個人ゲーム開発者のMondbekker氏は5月6日、『Hell Wait』を発表した。",
+  url: "https://example.com/hell-wait",
+  author: null,
+  published_at: "2026-05-06T07:30:00Z",
+  thumbnail: null,
+  is_read: false,
+  is_starred: false,
+};
+
+const scrollbarFillerArticles = Array.from({ length: 7 }, (_, index) => ({
+  id: `art-scrollbar-${index + 1}`,
+  feed_id: "feed-1",
+  title: `スクロール確認用の記事 ${index + 1}`,
+  content_sanitized: "<p>Scrollbar filler article.</p>",
+  summary: "スクロールバーが出る高さを確保するための確認用テキストです。",
+  url: `https://example.com/scrollbar-${index + 1}`,
+  author: null,
+  published_at: `2026-05-0${Math.min(index + 1, 9)}T08:00:00Z`,
+  thumbnail: null,
+  is_read: index % 2 === 0,
+  is_starred: false,
+}));
+
 const meta = {
   title: "Reader/Article/ArticleListScreenView",
   component: ArticleListScreenView,
@@ -80,5 +108,31 @@ export const SetupEmpty: Story = {
     emptyStateVariant: "setup",
     emptyMessage: "Add an account and your articles will appear here.",
     emptyDescription: "The list stays empty until the initial setup is complete.",
+  },
+};
+
+export const SelectedJapaneseUnreadWithScrollbar: Story = {
+  args: {
+    groups: [
+      {
+        id: "today",
+        label: "今日",
+        showLabel: true,
+        items: [
+          {
+            article: selectedJapaneseArticleFixture,
+            feedName: "AUTOMATON",
+            isSelected: true,
+            isRecentlyRead: false,
+          },
+          ...scrollbarFillerArticles.map((article) => ({
+            article,
+            feedName: "AUTOMATON",
+            isSelected: false,
+            isRecentlyRead: false,
+          })),
+        ],
+      },
+    ],
   },
 };
