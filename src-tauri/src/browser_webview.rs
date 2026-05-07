@@ -580,6 +580,20 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     return parts.join('+');
   }};
   const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;
+  const getSpaceScrollDirection = (event) => {{
+    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
+      return 0;
+    }}
+    return event.shiftKey ? -1 : 1;
+  }};
+  const scrollByPageStep = (direction) => {{
+    const scrollTarget = document.scrollingElement || document.documentElement || document.body;
+    if (!scrollTarget) {{
+      return;
+    }}
+    const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
+    scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
+  }};
   const closeBrowserPreview = async () => {{
     if (closeInFlight) {{
       return;
@@ -600,6 +614,13 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
   }};
   window.addEventListener('keydown', (event) => {{
     if (event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+    const spaceScrollDirection = getSpaceScrollDirection(event);
+    if (spaceScrollDirection !== 0) {{
+      event.preventDefault();
+      event.stopPropagation();
+      scrollByPageStep(spaceScrollDirection);
       return;
     }}
     const normalized = normalize(event);
@@ -699,8 +720,29 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     parts.push(key);
     return parts.join('+');
   }};
+  const getSpaceScrollDirection = (event) => {{
+    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
+      return 0;
+    }}
+    return event.shiftKey ? -1 : 1;
+  }};
+  const scrollByPageStep = (direction) => {{
+    const scrollTarget = document.scrollingElement || document.documentElement || document.body;
+    if (!scrollTarget) {{
+      return;
+    }}
+    const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
+    scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
+  }};
   window.addEventListener('keydown', (event) => {{
     if (event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+    const spaceScrollDirection = getSpaceScrollDirection(event);
+    if (spaceScrollDirection !== 0) {{
+      event.preventDefault();
+      event.stopPropagation();
+      scrollByPageStep(spaceScrollDirection);
       return;
     }}
     const normalized = normalize(event);
@@ -1422,6 +1464,8 @@ mod tests {
         assert!(script.contains("close_browser_webview"));
         assert!(script.contains("go_back_browser_webview"));
         assert!(script.contains("go_forward_browser_webview"));
+        assert!(script.contains("getSpaceScrollDirection"));
+        assert!(script.contains("window.innerHeight * 0.8"));
         assert!(script.contains("event.button === 3"));
         assert!(script.contains("event.button !== 4"));
     }

@@ -18,6 +18,26 @@ function getArticleContentAnchors(contentContainer: HTMLElement): HTMLAnchorElem
   return Array.from(contentContainer.querySelectorAll<HTMLAnchorElement>("a[href]"));
 }
 
+function getReaderScrollDirection(event: KeyboardEvent<HTMLDivElement>): 1 | -1 | null {
+  if (event.metaKey || event.ctrlKey || event.altKey) {
+    return null;
+  }
+
+  if (event.key === "ArrowDown") {
+    return 1;
+  }
+
+  if (event.key === "ArrowUp") {
+    return -1;
+  }
+
+  if (event.key === " ") {
+    return event.shiftKey ? -1 : 1;
+  }
+
+  return null;
+}
+
 export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPreview }: ArticleReaderBodyProps) {
   const { i18n } = useTranslation();
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
@@ -88,7 +108,8 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   }, [articleContentHtml, contentContainerElement]);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+    const direction = getReaderScrollDirection(event);
+    if (direction === null) {
       return;
     }
 
@@ -98,7 +119,6 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     }
 
     event.preventDefault();
-    const direction = event.key === "ArrowDown" ? 1 : -1;
     const scrollAmount = Math.max(72, Math.round(viewport.clientHeight * 0.8));
     viewport.scrollTop += direction * scrollAmount;
   }, []);

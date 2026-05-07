@@ -2,7 +2,6 @@ import { Result } from "@praha/byethrow";
 import { useCallback, useRef } from "react";
 import { createOrUpdateBrowserWebview, focusBrowserWebview, setBrowserWebviewBounds } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewSyncParams } from "./browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "./browser-webview-state";
@@ -20,9 +19,6 @@ export function useBrowserWebviewSync({
   const webviewCreatedRef = useRef(false);
   const createInFlightRef = useRef(false);
   const pendingBoundsRef = useRef<BrowserWebviewBounds | null>(null);
-  const keepWebPreviewFocus = usePreferencesStore(
-    (state) => resolvePreferenceValue(state.prefs, "web_preview_keep_focus") === "true",
-  );
 
   const resetBrowserWebviewSyncState = useCallback(() => {
     webviewCreatedRef.current = false;
@@ -112,11 +108,9 @@ export function useBrowserWebviewSync({
         setBrowserStateWithRef(browserStateRef, setBrowserState, state);
       }
 
-      if (keepWebPreviewFocus) {
-        const focusResult = await focusBrowserWebview();
-        if (Result.isFailure(focusResult)) {
-          console.error("Failed to restore embedded browser focus after create:", Result.unwrapError(focusResult));
-        }
+      const focusResult = await focusBrowserWebview();
+      if (Result.isFailure(focusResult)) {
+        console.error("Failed to focus embedded browser after create:", Result.unwrapError(focusResult));
       }
 
       await flushPendingBounds(requestedUrl);
@@ -126,7 +120,6 @@ export function useBrowserWebviewSync({
       captureLayoutDiagnostics,
       flushPendingBounds,
       hostRef,
-      keepWebPreviewFocus,
       platformKind,
       setBrowserState,
       showSurfaceFailure,

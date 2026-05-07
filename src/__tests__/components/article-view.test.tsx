@@ -2203,7 +2203,7 @@ describe("ArticleView", () => {
     expect(warning).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
   });
 
-  it("scrolls the reader viewport with ArrowUp and ArrowDown", async () => {
+  it("scrolls the reader viewport with arrows, Space, and Shift+Space", async () => {
     setupTauriMocks((cmd) => {
       switch (cmd) {
         case "list_tags":
@@ -2236,6 +2236,12 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(400);
 
     fireEvent.keyDown(viewport, { key: "ArrowUp" });
+    expect(viewport.scrollTop).toBe(0);
+
+    fireEvent.keyDown(viewport, { key: " " });
+    expect(viewport.scrollTop).toBe(400);
+
+    fireEvent.keyDown(viewport, { key: " ", shiftKey: true });
     expect(viewport.scrollTop).toBe(0);
   });
 

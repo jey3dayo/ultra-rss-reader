@@ -59,7 +59,7 @@ describe("useBrowserWebviewSync", () => {
     useUiStore.setState({ ...useUiStore.getInitialState(), browserUrl });
   });
 
-  it("does not restore focus after creating the webview when focus retention is disabled", async () => {
+  it("focuses the webview after creating it even when focus retention is disabled", async () => {
     const hostElement = createHostElement();
     const { result } = renderHook(() => {
       const hostRef = useRef<HTMLDivElement | null>(hostElement);
@@ -83,11 +83,10 @@ describe("useBrowserWebviewSync", () => {
     });
 
     expect(createOrUpdateBrowserWebviewMock).toHaveBeenCalledTimes(1);
-    expect(focusBrowserWebviewMock).not.toHaveBeenCalled();
+    expect(focusBrowserWebviewMock).toHaveBeenCalledTimes(1);
   });
 
-  it("restores focus after creating the webview when focus retention is enabled", async () => {
-    usePreferencesStore.setState({ prefs: { web_preview_keep_focus: "true" }, loaded: true });
+  it("focuses the webview after creating it when focus retention is not configured", async () => {
     const hostElement = createHostElement();
     const { result } = renderHook(() => {
       const hostRef = useRef<HTMLDivElement | null>(hostElement);
