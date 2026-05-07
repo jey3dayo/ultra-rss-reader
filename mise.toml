@@ -17,7 +17,7 @@ taplo = "latest"
 rtk = "latest"
 actionlint = "latest"
 "pipx:yamllint" = "latest"
-pnpm = "10.29.3"
+"npm:pnpm" = "10.33.4"
 
 # ========================================
 # フォーマット（自動修正）
