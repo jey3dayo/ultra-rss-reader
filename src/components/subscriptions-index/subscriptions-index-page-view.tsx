@@ -31,6 +31,7 @@ export function SubscriptionsIndexPageView({
   emptyLabel,
   detailEmptyLabel,
   statusLabels,
+  reasonTooltipLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   dateLocale,
@@ -68,6 +69,7 @@ export function SubscriptionsIndexPageView({
   emptyLabel: string;
   detailEmptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   dateLocale: string;
@@ -133,6 +135,7 @@ export function SubscriptionsIndexPageView({
               selectedFeedId={selectedFeedId}
               emptyLabel={emptyLabel}
               statusLabels={statusLabels}
+              reasonTooltipLabels={reasonTooltipLabels}
               formatUnreadCountLabel={formatUnreadCountLabel}
               formatLatestArticleLabel={formatLatestArticleLabel}
               isGroupExpanded={isGroupExpanded}

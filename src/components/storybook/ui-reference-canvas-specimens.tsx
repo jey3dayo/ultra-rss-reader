@@ -297,6 +297,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderName: "Design",
         latestArticleAt: "2026-04-29T08:00:00Z",
         status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
         feed: {
           id: "feed-cafict",
           account_id: "account-local",
@@ -314,6 +315,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderName: "Design",
         latestArticleAt: "2026-04-21T11:30:00Z",
         status: { tone: "medium", labelKey: "review" },
+        reasonTooltipKey: "review",
         feed: {
           id: "feed-99diy",
           account_id: "account-local",
@@ -338,6 +340,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderName: null,
         latestArticleAt: null,
         status: { tone: "medium", labelKey: "stale_90d" },
+        reasonTooltipKey: "stale_90d",
         feed: {
           id: "feed-archive",
           account_id: "account-local",
@@ -1454,6 +1457,14 @@ export function SubscriptionGroupDisclosureSpecimen() {
             stale_90d: "90日以上更新なし",
             no_unread: "未読なし",
             no_stars: "スターなし",
+          }}
+          reasonTooltipLabels={{
+            no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
+            normal: "最近も動きがあります",
+            review: "見直しの判断材料があります",
+            stale_90d: "最後に取得した記事から90日以上たっています",
+            no_unread: "取得済みの記事に未読がありません",
+            no_stars: "取得済みの記事にスターがありません",
           }}
           formatUnreadCountLabel={(count) => `${count} unread`}
           formatLatestArticleLabel={(value) => (value ? "最終更新あり" : "更新なし")}

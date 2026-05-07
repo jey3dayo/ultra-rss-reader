@@ -29,6 +29,7 @@ export {
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
+  listFeedArticleSummariesArgs,
   listFeedsArgs,
   listFolderArticlesArgs,
   listFoldersArgs,
@@ -69,6 +70,7 @@ export { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "./database-info";
 export { type DiscoveredFeedDto, DiscoveredFeedDtoSchema } from "./discovered-feed";
 export { type AppError, AppErrorSchema } from "./error";
 export { type FeedDto, FeedDtoSchema } from "./feed";
+export { type FeedArticleSummaryDto, FeedArticleSummaryDtoSchema } from "./feed-article-summary";
 export { type FeedIntegrityReportDto, FeedIntegrityReportDtoSchema } from "./feed-integrity";
 export { type FolderDto, FolderDtoSchema } from "./folder";
 export { type MuteKeywordDto, MuteKeywordDtoSchema, MuteKeywordScopeSchema } from "./mute-keyword";

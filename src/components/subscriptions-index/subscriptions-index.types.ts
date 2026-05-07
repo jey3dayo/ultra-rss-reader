@@ -20,6 +20,7 @@ export type SubscriptionListRow = {
   folderName: string | null;
   latestArticleAt: string | null;
   status: SubscriptionRowStatus;
+  reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | null;
 };
 
 export type SubscriptionListGroup = {

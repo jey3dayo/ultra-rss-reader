@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
 import {
+  buildFeedArticleSummaryMap,
   buildSubscriptionDecisionActions,
   buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
@@ -147,12 +148,21 @@ const articles: ArticleDto[] = [
   },
 ];
 
+const feedArticleSummaries: FeedArticleSummaryDto[] = [
+  { feed_id: "feed-stale", latest_article_at: "2025-11-01T10:00:00Z", starred_count: 1 },
+  { feed_id: "feed-active", latest_article_at: "2026-04-01T09:00:00Z", starred_count: 1 },
+  { feed_id: "feed-mid", latest_article_at: "2026-01-01T12:00:00Z", starred_count: 0 },
+  { feed_id: "feed-dormant", latest_article_at: "2026-03-15T12:00:00Z", starred_count: 0 },
+];
+
+const feedArticleSummaryMap = buildFeedArticleSummaryMap(feedArticleSummaries);
+
 describe("subscriptions index helpers", () => {
   it("builds summary counts from all feeds and review candidates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
@@ -170,7 +180,7 @@ describe("subscriptions index helpers", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
@@ -200,6 +210,7 @@ describe("subscriptions index helpers", () => {
       buildSubscriptionDetailMetrics({
         feed: feeds[0],
         articles,
+        feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
       }),
     ).toEqual({
       latestArticleAt: "2025-11-01T10:00:00Z",
@@ -248,13 +259,14 @@ describe("subscriptions index helpers", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
       candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
 
@@ -264,6 +276,7 @@ describe("subscriptions index helpers", () => {
       folderName: "Work",
       latestArticleAt: "2025-11-01T10:00:00Z",
       status: { tone: "medium", labelKey: "stale_90d" },
+      reasonTooltipKey: "stale_90d",
     });
     expect(
       resolveSelectedSubscriptionCandidate({
@@ -276,12 +289,13 @@ describe("subscriptions index helpers", () => {
       resolveSelectedSubscriptionDetailMetrics({
         selectedRow: rows[0],
         articles,
+        feedArticleSummaryMap,
       }),
     ).toMatchObject({
       latestArticleAt: "2025-11-01T10:00:00Z",
       starredCount: 1,
     });
-    expect(resolveSelectedSubscriptionDetailMetrics({ selectedRow: null, articles })).toBeNull();
+    expect(resolveSelectedSubscriptionDetailMetrics({ selectedRow: null, articles, feedArticleSummaryMap })).toBeNull();
   });
 
   it("builds decision actions only for flagged subscription rows", () => {
@@ -303,6 +317,7 @@ describe("subscriptions index helpers", () => {
           },
         ],
       ]),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
     const onKeep = vi.fn();
@@ -341,13 +356,14 @@ describe("subscriptions index helpers", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
       candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
 
@@ -378,6 +394,7 @@ describe("subscriptions index helpers", () => {
     const rows = buildSubscriptionListRows({
       feeds,
       candidateMap: new Map(),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
 
@@ -407,13 +424,14 @@ describe("subscriptions index helpers", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
     const rows = buildSubscriptionListRows({
       feeds,
       candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     }).map((row, index) => ({
       ...row,
@@ -436,6 +454,7 @@ describe("subscriptions index helpers", () => {
     const rows = buildSubscriptionListRows({
       feeds,
       candidateMap: new Map(),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
 
@@ -459,6 +478,7 @@ describe("subscriptions index helpers", () => {
     const baseRow = buildSubscriptionListRows({
       feeds,
       candidateMap: new Map(),
+      feedArticleSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     })[0];
 
@@ -482,7 +502,7 @@ describe("subscriptions index helpers", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
@@ -495,6 +515,7 @@ describe("subscriptions index helpers", () => {
         folderName: "Work",
         latestArticleAt: selectedCandidate?.latestArticleAt ?? null,
         status: { tone: "medium", labelKey: "stale_90d" },
+        reasonTooltipKey: "stale_90d",
       },
       selectedCandidate,
       labels: {

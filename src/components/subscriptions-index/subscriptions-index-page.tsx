@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
+import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { getCurrentDate } from "@/lib/datetime";
@@ -13,6 +14,7 @@ import {
   resolveSubscriptionReviewSummaryTranslationKey,
 } from "@/lib/subscription-review-candidates";
 import {
+  buildFeedArticleSummaryMap,
   buildSubscriptionDecisionActions,
   buildSubscriptionDetailCandidate,
   buildSubscriptionListGroups,
@@ -49,6 +51,7 @@ export function SubscriptionsIndexPage() {
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
+  const { data: feedArticleSummaries = [] } = useFeedArticleSummaries(selectedAccountId);
   const deleteFeedMutation = useDeleteFeed();
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
@@ -59,18 +62,19 @@ export function SubscriptionsIndexPage() {
       buildSubscriptionReviewCandidates({
         feeds,
         folders,
-        articles: accountArticles,
+        feedArticleSummaries,
         now: getCurrentDate(),
         hiddenFeedIds: new Set(),
       }),
-    [accountArticles, feeds, folders],
+    [feedArticleSummaries, feeds, folders],
   );
 
   const candidateMap = useMemo(() => buildSubscriptionReviewCandidateMap(candidates), [candidates]);
+  const feedArticleSummaryMap = useMemo(() => buildFeedArticleSummaryMap(feedArticleSummaries), [feedArticleSummaries]);
   const folderNameById = useMemo(() => buildFolderNameByIdMap(folders), [folders]);
   const rows = useMemo<SubscriptionListRow[]>(
-    () => buildSubscriptionListRows({ feeds, candidateMap, folderNameById }),
-    [candidateMap, feeds, folderNameById],
+    () => buildSubscriptionListRows({ feeds, candidateMap, feedArticleSummaryMap, folderNameById }),
+    [candidateMap, feedArticleSummaryMap, feeds, folderNameById],
   );
 
   const state = useSubscriptionsIndexState(rows, {
@@ -83,6 +87,7 @@ export function SubscriptionsIndexPage() {
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
     articles: accountArticles,
+    feedArticleSummaryMap,
   });
   const selectedCandidate = resolveSelectedSubscriptionCandidate({ selectedRow: state.selectedRow, candidateMap });
   const selectedDetailCandidate = useMemo<SubscriptionDetailCandidate | null>(
@@ -201,6 +206,14 @@ export function SubscriptionsIndexPage() {
           stale_90d: t("status_stale_90d"),
           no_unread: t("status_no_unread"),
           no_stars: t("status_no_stars"),
+        }}
+        reasonTooltipLabels={{
+          no_articles: t("tooltip_reason_no_articles"),
+          normal: t("detail_reason_normal"),
+          review: t("tooltip_reason_review"),
+          stale_90d: t("tooltip_reason_stale_90d"),
+          no_unread: t("tooltip_reason_no_unread"),
+          no_stars: t("tooltip_reason_no_stars"),
         }}
         formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
         formatLatestArticleLabel={(value) =>

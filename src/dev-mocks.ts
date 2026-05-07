@@ -25,6 +25,7 @@ import {
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
+  listFeedArticleSummariesArgs,
   listFeedsArgs,
   listFolderArticlesArgs,
   listFoldersArgs,
@@ -304,6 +305,26 @@ export function setupDevMocks() {
         const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
         const articles = mockArticles.filter((a) => feedIds.includes(a.feed_id) && (!unreadOnly || !a.is_read));
         return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+      }
+
+      case "list_feed_article_summaries": {
+        const { accountId } = listFeedArticleSummariesArgs.parse(payload);
+        const visibleArticles = applyMuteKeywordFilter(mockArticles);
+        return mockFeeds
+          .filter((feed) => feed.account_id === accountId)
+          .map((feed) => {
+            const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
+            const latestArticleAt =
+              feedArticles
+                .map((article) => article.published_at)
+                .filter((value) => !Number.isNaN(Date.parse(value)))
+                .sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
+            return {
+              feed_id: feed.id,
+              latest_article_at: latestArticleAt,
+              starred_count: feedArticles.filter((article) => article.is_starred).length,
+            };
+          });
       }
 
       case "list_folder_articles": {

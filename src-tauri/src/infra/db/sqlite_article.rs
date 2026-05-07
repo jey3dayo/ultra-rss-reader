@@ -25,6 +25,13 @@ pub struct OrphanedFeedGroup {
     pub latest_article_published_at: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeedArticleSummary {
+    pub feed_id: FeedId,
+    pub latest_article_at: Option<String>,
+    pub starred_count: i32,
+}
+
 impl<'a> SqliteArticleRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
@@ -78,6 +85,44 @@ impl<'a> SqliteArticleRepository<'a> {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(groups)
+    }
+
+    pub fn list_feed_article_summaries_by_account(
+        &self,
+        account_id: &AccountId,
+    ) -> DomainResult<Vec<FeedArticleSummary>> {
+        let article_visible_clause = if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let mute_clause = build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            );
+            format!("a.id IS NOT NULL AND {mute_clause}")
+        } else {
+            "a.id IS NOT NULL".to_string()
+        };
+
+        let sql = format!(
+            "SELECT
+                f.id,
+                MAX(CASE WHEN {article_visible_clause} THEN a.published_at ELSE NULL END) AS latest_article_at,
+                COALESCE(SUM(CASE WHEN {article_visible_clause} AND a.is_starred = 1 THEN 1 ELSE 0 END), 0) AS starred_count
+             FROM feeds f
+             LEFT JOIN articles a ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+             GROUP BY f.id
+             ORDER BY f.title ASC, f.id ASC"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let summaries = stmt
+            .query_map(params![account_id.0], |row| {
+                Ok(FeedArticleSummary {
+                    feed_id: FeedId(row.get(0)?),
+                    latest_article_at: row.get(1)?,
+                    starred_count: row.get(2)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(summaries)
     }
 
     fn find_by_folder_with_filter(
@@ -1132,6 +1177,70 @@ mod tests {
                 params![uuid::Uuid::new_v4().to_string(), keyword, scope, now, now],
             )
             .unwrap();
+    }
+
+    #[test]
+    fn list_feed_article_summaries_returns_latest_and_starred_count_per_feed() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let old_feed_id = insert_test_feed(&db, &account_id);
+        let fresh_feed_id = insert_test_feed(&db, &account_id);
+        let empty_feed_id = insert_test_feed(&db, &account_id);
+        let other_account_id = insert_test_account(&db);
+        let other_feed_id = insert_test_feed(&db, &other_account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut old_article = make_article(&old_feed_id, "Old article");
+        old_article.published_at = DateTime::parse_from_rfc3339("2025-01-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        old_article.is_starred = true;
+        let mut newer_old_article = make_article(&old_feed_id, "Newer old article");
+        newer_old_article.published_at = DateTime::parse_from_rfc3339("2025-02-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut fresh_article = make_article(&fresh_feed_id, "Fresh article");
+        fresh_article.published_at = DateTime::parse_from_rfc3339("2026-04-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        fresh_article.is_starred = true;
+        let other_article = make_article(&other_feed_id, "Other account article");
+        repo.upsert(&[old_article, newer_old_article, fresh_article, other_article])
+            .unwrap();
+
+        let summaries = repo
+            .list_feed_article_summaries_by_account(&account_id)
+            .unwrap();
+        let summary_by_feed_id = summaries
+            .into_iter()
+            .map(|summary| (summary.feed_id.0.clone(), summary))
+            .collect::<std::collections::HashMap<_, _>>();
+
+        assert_eq!(
+            summary_by_feed_id
+                .get(&old_feed_id.0)
+                .and_then(|summary| summary.latest_article_at.as_deref()),
+            Some("2025-02-01T00:00:00+00:00")
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&old_feed_id.0)
+                .map(|summary| summary.starred_count),
+            Some(1)
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&fresh_feed_id.0)
+                .and_then(|summary| summary.latest_article_at.as_deref()),
+            Some("2026-04-01T00:00:00+00:00")
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&empty_feed_id.0)
+                .and_then(|summary| summary.latest_article_at.as_deref()),
+            None
+        );
+        assert!(!summary_by_feed_id.contains_key(&other_feed_id.0));
     }
 
     #[test]

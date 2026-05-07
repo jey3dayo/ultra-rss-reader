@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
@@ -54,59 +54,10 @@ const folders: FolderDto[] = [
   },
 ];
 
-const articles: ArticleDto[] = [
-  {
-    id: "art-old-1",
-    feed_id: "feed-stale",
-    title: "Very old post",
-    content_sanitized: "<p>old</p>",
-    summary: null,
-    url: "https://example.com/old/1",
-    author: null,
-    published_at: "2025-11-01T10:00:00Z",
-    thumbnail: null,
-    is_read: true,
-    is_starred: false,
-  },
-  {
-    id: "art-old-2",
-    feed_id: "feed-stale",
-    title: "Older starred post",
-    content_sanitized: "<p>older</p>",
-    summary: null,
-    url: "https://example.com/old/2",
-    author: null,
-    published_at: "2025-10-15T10:00:00Z",
-    thumbnail: null,
-    is_read: true,
-    is_starred: true,
-  },
-  {
-    id: "art-new-1",
-    feed_id: "feed-active",
-    title: "Fresh post",
-    content_sanitized: "<p>fresh</p>",
-    summary: null,
-    url: "https://example.com/active/1",
-    author: null,
-    published_at: "2026-04-01T09:00:00Z",
-    thumbnail: null,
-    is_read: false,
-    is_starred: true,
-  },
-  {
-    id: "art-mid-1",
-    feed_id: "feed-mid",
-    title: "Quiet post",
-    content_sanitized: "<p>quiet</p>",
-    summary: null,
-    url: "https://example.com/quiet/1",
-    author: null,
-    published_at: "2026-01-01T12:00:00Z",
-    thumbnail: null,
-    is_read: true,
-    is_starred: false,
-  },
+const feedArticleSummaries: FeedArticleSummaryDto[] = [
+  { feed_id: "feed-stale", latest_article_at: "2025-11-01T10:00:00Z", starred_count: 1 },
+  { feed_id: "feed-active", latest_article_at: "2026-04-01T09:00:00Z", starred_count: 1 },
+  { feed_id: "feed-mid", latest_article_at: "2026-01-01T12:00:00Z", starred_count: 0 },
 ];
 
 describe("buildSubscriptionReviewCandidates", () => {
@@ -118,7 +69,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
@@ -138,7 +89,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
@@ -154,7 +105,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(["feed-stale", "feed-mid"]),
     });
@@ -162,11 +113,44 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-active"]);
   });
 
+  it("does not mark feeds with no fetched articles as review candidates just because counts are zero", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        {
+          id: "feed-empty",
+          account_id: "acc-1",
+          folder_id: null,
+          title: "Empty Feed",
+          url: "https://example.com/empty.xml",
+          site_url: "https://example.com/empty",
+          unread_count: 0,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      ],
+      folders,
+      feedArticleSummaries: [],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates[0]).toMatchObject({
+      feedId: "feed-empty",
+      latestArticleAt: null,
+      reasonKeys: [],
+      starredCount: 0,
+    });
+    expect(summarizeSubscriptionReviewCandidate(candidates[0])).toMatchObject({
+      tone: "low",
+      titleKey: "keep",
+    });
+  });
+
   it("summarizes candidate urgency for the review panel", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
@@ -194,7 +178,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
-      articles,
+      feedArticleSummaries,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });

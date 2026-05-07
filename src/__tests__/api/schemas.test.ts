@@ -10,10 +10,12 @@ import {
   createMuteKeywordArgs,
   DiscoveredFeedDtoSchema,
   deleteMuteKeywordArgs,
+  FeedArticleSummaryDtoSchema,
   FeedDtoSchema,
   FolderDtoSchema,
   listArticlesArgs,
   listArticlesByTagArgs,
+  listFeedArticleSummariesArgs,
   listFolderArticlesArgs,
   listRecentArticlesArgs,
   listStarredArticlesArgs,
@@ -71,6 +73,18 @@ describe("DTO schemas", () => {
       web_preview_mode: "off",
     };
     expect(FeedDtoSchema.parse(data)).toEqual(data);
+  });
+  it("parses valid FeedArticleSummaryDto", () => {
+    const data = {
+      feed_id: "feed-1",
+      latest_article_at: "2026-04-01T10:00:00Z",
+      starred_count: 2,
+    };
+    expect(FeedArticleSummaryDtoSchema.parse(data)).toEqual(data);
+    expect(FeedArticleSummaryDtoSchema.parse({ ...data, latest_article_at: null })).toEqual({
+      ...data,
+      latest_article_at: null,
+    });
   });
   it("parses valid ArticleDto", () => {
     const data = {
@@ -232,6 +246,9 @@ describe("command args schemas", () => {
       limit: 50,
     });
   });
+  it("parses listFeedArticleSummariesArgs", () => {
+    expect(listFeedArticleSummariesArgs.parse({ accountId: "acc-1" })).toEqual({ accountId: "acc-1" });
+  });
   it("parses listArticlesByTagArgs with mode", () => {
     expect(listArticlesByTagArgs.parse({ tagId: "tag-1", mode: "starred", accountId: "acc-1" })).toEqual({
       tagId: "tag-1",
@@ -242,6 +259,7 @@ describe("command args schemas", () => {
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
     expect(commandArgsSchemas.list_folder_articles).toBeDefined();
+    expect(commandArgsSchemas.list_feed_article_summaries).toBeDefined();
     expect(commandArgsSchemas.mark_article_read).toBeDefined();
     expect(commandArgsSchemas.count_old_unread_articles).toBeDefined();
     expect(commandArgsSchemas.mark_old_unread_read).toBeDefined();

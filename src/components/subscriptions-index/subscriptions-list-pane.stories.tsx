@@ -26,6 +26,7 @@ const rows = [
     folderName: "Work",
     latestArticleAt: "2024-01-01T10:00:00Z",
     status: { tone: "medium", labelKey: "stale_90d" },
+    reasonTooltipKey: "stale_90d",
   },
   {
     feed: buildFeed({
@@ -40,6 +41,7 @@ const rows = [
     folderName: "Design",
     latestArticleAt: "2026-04-01T10:00:00Z",
     status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: null,
   },
   {
     feed: buildFeed({
@@ -54,6 +56,7 @@ const rows = [
     folderName: null,
     latestArticleAt: null,
     status: { tone: "medium", labelKey: "review" },
+    reasonTooltipKey: "review",
   },
 ] satisfies SubscriptionListRow[];
 
@@ -70,6 +73,15 @@ const statusLabels = {
   no_unread: "No unread",
   no_stars: "No stars",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
+
+const reasonTooltipLabels = {
+  no_articles: "No fetched articles yet",
+  normal: "No action needed",
+  review: "Review signal",
+  stale_90d: "Latest article is older than 90 days",
+  no_unread: "No unread articles",
+  no_stars: "No starred articles",
+} satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
 function isEveryGroupExpanded(_groupKey?: string) {
   return true;
@@ -89,6 +101,7 @@ const meta = {
     selectedFeedId: "feed-1",
     emptyLabel: "No subscriptions match this filter.",
     statusLabels,
+    reasonTooltipLabels,
     formatUnreadCountLabel: (count: number) => `Unread ${count}`,
     formatLatestArticleLabel: (value: string | null) => (value ? `Updated ${value.slice(0, 10)}` : "No updates"),
     isGroupExpanded: isEveryGroupExpanded,

@@ -1,6 +1,4 @@
-import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { countStarredArticles } from "@/lib/article-list";
-import { findLatestArticleOrNull } from "@/lib/article-view";
+import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { differenceInDays, parseDateInput } from "@/lib/datetime";
 
 export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
@@ -52,7 +50,7 @@ export type SubscriptionReviewCandidate = {
 export type BuildSubscriptionReviewCandidatesParams = {
   feeds: FeedDto[];
   folders: FolderDto[];
-  articles: ArticleDto[];
+  feedArticleSummaries: FeedArticleSummaryDto[];
   now: Date;
   hiddenFeedIds: ReadonlySet<string>;
 };
@@ -150,40 +148,32 @@ export function buildFolderNameByIdMap(folders: FolderDto[]): Map<string, string
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
-  articles,
+  feedArticleSummaries,
   now,
   hiddenFeedIds,
 }: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
   const folderNameById = buildFolderNameByIdMap(folders);
-  const articleGroups = new Map<string, ArticleDto[]>();
-
-  for (const article of articles) {
-    const current = articleGroups.get(article.feed_id);
-    if (current) {
-      current.push(article);
-    } else {
-      articleGroups.set(article.feed_id, [article]);
-    }
-  }
+  const summaryByFeedId = new Map(feedArticleSummaries.map((summary) => [summary.feed_id, summary]));
 
   return feeds
     .filter((feed) => !hiddenFeedIds.has(feed.id))
     .map((feed) => {
-      const feedArticles = articleGroups.get(feed.id) ?? [];
-      const latestArticleAt = findLatestArticleOrNull(feedArticles)?.published_at ?? null;
+      const summary = summaryByFeedId.get(feed.id);
+      const latestArticleAt = summary?.latest_article_at ?? null;
 
       const latestArticleDate = parseDateInput(latestArticleAt);
       const staleDays = latestArticleDate === null ? null : differenceInDays(now, latestArticleDate);
-      const starredCount = countStarredArticles(feedArticles);
+      const starredCount = summary?.starred_count ?? 0;
+      const hasFetchedArticle = latestArticleAt !== null;
       const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
       if (staleDays != null && staleDays >= 90) {
         reasonKeys.push("stale_90d");
       }
-      if (feed.unread_count === 0) {
+      if (hasFetchedArticle && feed.unread_count === 0) {
         reasonKeys.push("no_unread");
       }
-      if (starredCount === 0) {
+      if (hasFetchedArticle && starredCount === 0) {
         reasonKeys.push("no_stars");
       }
 

@@ -2,7 +2,9 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use tauri::State;
 
-use crate::commands::dto::{AppError, ArticleDto, FeedIntegrityIssueDto, FeedIntegrityReportDto};
+use crate::commands::dto::{
+    AppError, ArticleDto, FeedArticleSummaryDto, FeedIntegrityIssueDto, FeedIntegrityReportDto,
+};
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
@@ -397,6 +399,26 @@ pub fn list_account_articles(
         repo.find_by_account(&AccountId(account_id), &pagination)?
     };
     Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[tauri::command]
+pub fn list_feed_article_summaries(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<Vec<FeedArticleSummaryDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let summaries = repo.list_feed_article_summaries_by_account(&AccountId(account_id))?;
+    Ok(summaries
+        .into_iter()
+        .map(|summary| FeedArticleSummaryDto {
+            feed_id: summary.feed_id.0,
+            latest_article_at: summary.latest_article_at,
+            starred_count: summary.starred_count,
+        })
+        .collect())
 }
 
 #[tauri::command]

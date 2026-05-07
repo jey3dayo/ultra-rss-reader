@@ -43,6 +43,11 @@
   "reason_stale_90d": "No new article for 90+ days",
   "reason_no_unread": "No unread",
   "reason_no_stars": "No stars",
+  "tooltip_reason_no_articles": "No articles have been fetched yet, so this is not a review candidate.",
+  "tooltip_reason_review": "This feed has review signals.",
+  "tooltip_reason_stale_90d": "The latest fetched article is more than 90 days old.",
+  "tooltip_reason_no_unread": "Fetched articles have no unread items.",
+  "tooltip_reason_no_stars": "Fetched articles have no stars.",
   "fact_stale_days": "Updated {{count}} days ago",
   "fact_unread_count": "Unread {{count}}",
   "fact_starred_count": "Starred {{count}}"

@@ -46,6 +46,13 @@ pub struct PlatformInfoDto {
     pub capabilities: PlatformCapabilitiesDto,
 }
 
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+pub struct FeedArticleSummaryDto {
+    pub feed_id: String,
+    pub latest_article_at: Option<String>,
+    pub starred_count: i32,
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct DevRuntimeOptionsDto {
     pub dev_intent: Option<String>,

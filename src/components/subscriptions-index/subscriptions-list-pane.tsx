@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -79,6 +80,7 @@ export function SubscriptionsListPane({
   selectedFeedId,
   emptyLabel,
   statusLabels,
+  reasonTooltipLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   isGroupExpanded,
@@ -92,6 +94,7 @@ export function SubscriptionsListPane({
   selectedFeedId: string | null;
   emptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   isGroupExpanded: (groupKey: string) => boolean;
@@ -165,8 +168,7 @@ export function SubscriptionsListPane({
                     <div className="space-y-1.5 pl-1 pt-2.5">
                       {group.rows.map((row) => {
                         const isSelected = selectedFeedId === row.feed.id;
-
-                        return (
+                        const rowButton = (
                           <NavRowButton
                             key={row.feed.id}
                             selected={isSelected}
@@ -222,6 +224,16 @@ export function SubscriptionsListPane({
                               </div>
                             }
                           />
+                        );
+
+                        return row.reasonTooltipKey ? (
+                          <TooltipProvider key={row.feed.id}>
+                            <AppTooltip label={reasonTooltipLabels[row.reasonTooltipKey]} side="top" align="start">
+                              {rowButton}
+                            </AppTooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <div key={row.feed.id}>{rowButton}</div>
                         );
                       })}
                     </div>

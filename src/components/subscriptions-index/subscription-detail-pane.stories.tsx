@@ -26,6 +26,7 @@ const row = {
   folderName: "Work",
   latestArticleAt: "2024-01-01T10:00:00Z",
   status: { tone: "medium", labelKey: "stale_90d" },
+  reasonTooltipKey: "stale_90d",
 } satisfies SubscriptionListRow;
 
 const previewArticles = [

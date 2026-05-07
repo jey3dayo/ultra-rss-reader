@@ -37,6 +37,7 @@ import {
   deleteTagArgs,
   discoverFeedsArgs,
   exportOpmlArgs,
+  FeedArticleSummaryDtoSchema,
   type FeedDto,
   FeedDtoSchema,
   type FeedIntegrityReportDto,
@@ -49,6 +50,7 @@ import {
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
+  listFeedArticleSummariesArgs,
   listFeedsArgs,
   listFolderArticlesArgs,
   listFoldersArgs,
@@ -227,6 +229,13 @@ export const listAccountArticles = (
     { accountId, unreadOnly, offset, limit: resolvedLimit },
   );
 };
+
+export const listFeedArticleSummaries = (accountId: string) =>
+  safeInvoke(
+    "list_feed_article_summaries",
+    { response: z.array(FeedArticleSummaryDtoSchema), args: listFeedArticleSummariesArgs },
+    { accountId },
+  );
 
 export const listFolderArticles = (
   folderId: string,
@@ -534,3 +543,5 @@ export const vacuumDatabase = () => safeInvoke("vacuum_database", { response: Da
 
 // Logs
 export const getLogDir = () => safeInvoke("get_log_dir", { response: z.string() });
+
+export type { FeedArticleSummaryDto } from "@/api/schemas";

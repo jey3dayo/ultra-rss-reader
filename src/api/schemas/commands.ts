@@ -23,6 +23,11 @@ export const listAccountArticlesArgs = z.object({
   limit: z.number().optional(),
 });
 
+// --- listFeedArticleSummaries ---
+export const listFeedArticleSummariesArgs = z.object({
+  accountId: z.string(),
+});
+
 // --- listFolderArticles ---
 export const listFolderArticlesArgs = z.object({
   folderId: z.string(),
@@ -306,6 +311,7 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,
   list_account_articles: listAccountArticlesArgs,
+  list_feed_article_summaries: listFeedArticleSummariesArgs,
   list_folder_articles: listFolderArticlesArgs,
   list_starred_articles: listStarredArticlesArgs,
   list_recent_articles: listRecentArticlesArgs,

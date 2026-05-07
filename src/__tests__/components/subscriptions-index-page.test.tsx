@@ -103,6 +103,12 @@ describe("SubscriptionsIndexPage", () => {
               is_starred: false,
             },
           ];
+        case "list_feed_article_summaries":
+          return [
+            { feed_id: "feed-1", latest_article_at: "2024-01-01T10:00:00Z", starred_count: 0 },
+            { feed_id: "feed-2", latest_article_at: "2026-04-01T10:00:00Z", starred_count: 1 },
+            { feed_id: "feed-3", latest_article_at: "2026-03-15T10:00:00Z", starred_count: 0 },
+          ];
         case "get_feed_integrity_report":
           return {
             orphaned_article_count: 1,
@@ -512,6 +518,8 @@ describe("SubscriptionsIndexPage", () => {
           ];
         case "list_account_articles":
           return [];
+        case "list_feed_article_summaries":
+          return [];
         case "get_feed_integrity_report":
           return {
             orphaned_article_count: 0,
@@ -548,6 +556,8 @@ describe("SubscriptionsIndexPage", () => {
             { id: "folder-2", account_id: args.accountId, name: "Work", sort_order: 1 },
           ];
         case "list_account_articles":
+          return [];
+        case "list_feed_article_summaries":
           return [];
         case "get_feed_integrity_report":
           return {

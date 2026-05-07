@@ -1,4 +1,4 @@
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
 import type {
   SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
@@ -259,6 +259,10 @@ export function buildSubscriptionReviewCandidateMap(
   return new Map(candidates.map((candidate) => [candidate.feedId, candidate]));
 }
 
+export function buildFeedArticleSummaryMap(summaries: FeedArticleSummaryDto[]): Map<string, FeedArticleSummaryDto> {
+  return new Map(summaries.map((summary) => [summary.feed_id, summary]));
+}
+
 export function resolveSelectedSubscriptionCandidate(params: {
   selectedRow: SubscriptionListRow | null;
   candidateMap: Map<string, SubscriptionReviewCandidate>;
@@ -270,9 +274,16 @@ export function resolveSelectedSubscriptionCandidate(params: {
 export function resolveSelectedSubscriptionDetailMetrics(params: {
   selectedRow: SubscriptionListRow | null;
   articles: ArticleDto[];
+  feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>;
 }): SubscriptionDetailMetrics | null {
-  const { selectedRow, articles } = params;
-  return selectedRow ? buildSubscriptionDetailMetrics({ feed: selectedRow.feed, articles }) : null;
+  const { selectedRow, articles, feedArticleSummaryMap } = params;
+  return selectedRow
+    ? buildSubscriptionDetailMetrics({
+        feed: selectedRow.feed,
+        articles,
+        feedArticleSummary: feedArticleSummaryMap.get(selectedRow.feed.id) ?? null,
+      })
+    : null;
 }
 
 export function resolveSelectedSubscriptionDisplayModeLabel(params: {
@@ -355,19 +366,41 @@ export function countSubscriptionGroupRows(groups: SubscriptionListGroup[]): num
 export function buildSubscriptionListRows({
   feeds,
   candidateMap,
+  feedArticleSummaryMap,
   folderNameById,
 }: {
   feeds: FeedDto[];
   candidateMap: Map<string, SubscriptionReviewCandidate>;
+  feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>;
   folderNameById: Map<string, string>;
 }): SubscriptionListRow[] {
-  return feeds.map((feed) => ({
-    feed,
-    folderId: feed.folder_id,
-    folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
-    latestArticleAt: candidateMap.get(feed.id)?.latestArticleAt ?? null,
-    status: resolveSubscriptionRowStatus({ candidate: candidateMap.get(feed.id) }),
-  }));
+  return feeds.map((feed) => {
+    const latestArticleAt = feedArticleSummaryMap.get(feed.id)?.latest_article_at ?? null;
+    const status = resolveSubscriptionRowStatus({ candidate: candidateMap.get(feed.id) });
+
+    return {
+      feed,
+      folderId: feed.folder_id,
+      folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
+      latestArticleAt,
+      status,
+      reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({ latestArticleAt, status }),
+    };
+  });
+}
+
+export function resolveSubscriptionRowReasonTooltipKey({
+  latestArticleAt,
+  status,
+}: {
+  latestArticleAt: string | null;
+  status: SubscriptionRowStatus;
+}): SubscriptionListRow["reasonTooltipKey"] {
+  if (status.labelKey !== "normal") {
+    return status.labelKey;
+  }
+
+  return latestArticleAt === null ? "no_articles" : null;
 }
 
 export function resolveSubscriptionRowStatus({
@@ -394,7 +427,15 @@ export function resolveSubscriptionRowStatus({
   return { tone: "medium", labelKey: "review" };
 }
 
-export function buildSubscriptionDetailMetrics({ feed, articles }: { feed: FeedDto; articles: ArticleDto[] }): {
+export function buildSubscriptionDetailMetrics({
+  feed,
+  articles,
+  feedArticleSummary,
+}: {
+  feed: FeedDto;
+  articles: ArticleDto[];
+  feedArticleSummary: FeedArticleSummaryDto | null;
+}): {
   latestArticleAt: string | null;
   starredCount: number;
   previewArticles: ArticleDto[];
@@ -405,8 +446,8 @@ export function buildSubscriptionDetailMetrics({ feed, articles }: { feed: FeedD
     .slice(0, 3);
 
   return {
-    latestArticleAt: findLatestArticleTimestamp(feedArticles),
-    starredCount: countStarredArticles(feedArticles),
+    latestArticleAt: feedArticleSummary?.latest_article_at ?? findLatestArticleTimestamp(feedArticles),
+    starredCount: feedArticleSummary?.starred_count ?? countStarredArticles(feedArticles),
     previewArticles,
   };
 }
