@@ -15,11 +15,12 @@ const DEV_WEB_URL_ENV_KEYS = ["VITE_DEV_WEB_URL"] as const;
 const DEV_WINDOW_WIDTH_ENV_KEYS = ["VITE_DEV_WINDOW_WIDTH"] as const;
 const DEV_WINDOW_HEIGHT_ENV_KEYS = ["VITE_DEV_WINDOW_HEIGHT"] as const;
 let runtimeDevOptionsCache: DevRuntimeOptions | null | undefined;
-let runtimeDevOptionsPromise: Promise<DevRuntimeOptions | null> | null = null;
+let runtimeDevOptionsErrorCache: LoadDevRuntimeOptionsError | null = null;
+let runtimeDevOptionsPromise: Result.ResultAsync<DevRuntimeOptions, LoadDevRuntimeOptionsError> | null = null;
 
 type ParsePositiveIntegerError = "missing_value" | "invalid_integer" | "non_positive_integer";
 type ParseDevIntentError = "missing_value" | "unknown_dev_intent";
-type LoadDevRuntimeOptionsError = "request_failed";
+export type LoadDevRuntimeOptionsError = "not_dev_build" | "tauri_unavailable" | "request_failed";
 type ReadDevWindowSizeFieldState =
   | { kind: "missing" }
   | { kind: "invalid"; reason: ParsePositiveIntegerError }
@@ -159,31 +160,37 @@ export function readDevWindowSize(): DevWindowSize | null {
   };
 }
 
-export async function loadDevRuntimeOptions(): Promise<DevRuntimeOptions | null> {
+export async function loadDevRuntimeOptionsResult(): Result.ResultAsync<DevRuntimeOptions, LoadDevRuntimeOptionsError> {
   if (!import.meta.env.DEV) {
     runtimeDevOptionsCache = null;
-    return null;
+    runtimeDevOptionsErrorCache = "not_dev_build";
+    return Result.fail("not_dev_build");
   }
 
   if (runtimeDevOptionsCache !== undefined) {
-    return runtimeDevOptionsCache;
+    return runtimeDevOptionsCache
+      ? Result.succeed(runtimeDevOptionsCache)
+      : Result.fail(runtimeDevOptionsErrorCache ?? "request_failed");
   }
 
   if (!hasTauriRuntime()) {
     runtimeDevOptionsCache = null;
-    return null;
+    runtimeDevOptionsErrorCache = "tauri_unavailable";
+    return Result.fail("tauri_unavailable");
   }
 
   runtimeDevOptionsPromise ??= getDevRuntimeOptions().then((result) => {
     const resolved = resolveLoadedDevRuntimeOptions(result);
     if (Result.isFailure(resolved)) {
       runtimeDevOptionsCache = null;
-      return null;
+      runtimeDevOptionsErrorCache = Result.unwrapError(resolved);
+      return resolved;
     }
 
     const options = Result.unwrap(resolved);
     runtimeDevOptionsCache = options;
-    return options;
+    runtimeDevOptionsErrorCache = null;
+    return resolved;
   });
 
   const resolved = await runtimeDevOptionsPromise;
@@ -191,7 +198,13 @@ export async function loadDevRuntimeOptions(): Promise<DevRuntimeOptions | null>
   return resolved;
 }
 
+export async function loadDevRuntimeOptions(): Promise<DevRuntimeOptions | null> {
+  const result = await loadDevRuntimeOptionsResult();
+  return Result.isSuccess(result) ? Result.unwrap(result) : null;
+}
+
 export function resetDevRuntimeOptionsCacheForTests(): void {
   runtimeDevOptionsCache = undefined;
+  runtimeDevOptionsErrorCache = null;
   runtimeDevOptionsPromise = null;
 }

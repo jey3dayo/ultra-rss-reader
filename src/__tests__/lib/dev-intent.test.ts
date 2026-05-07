@@ -1,8 +1,46 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseDevIntent, readDevIntent, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
+import { Result } from "@praha/byethrow";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { getDevRuntimeOptionsMock, hasTauriRuntimeMock } = vi.hoisted(() => ({
+  getDevRuntimeOptionsMock: vi.fn(),
+  hasTauriRuntimeMock: vi.fn(),
+}));
+
+vi.mock("@/api/tauri-commands", () => ({
+  getDevRuntimeOptions: getDevRuntimeOptionsMock,
+}));
+
+vi.mock("@/lib/window-chrome", () => ({
+  hasTauriRuntime: hasTauriRuntimeMock,
+}));
+
+import {
+  loadDevRuntimeOptions,
+  loadDevRuntimeOptionsResult,
+  parseDevIntent,
+  readDevIntent,
+  readDevWebUrl,
+  readDevWindowSize,
+  resetDevRuntimeOptionsCacheForTests,
+} from "@/lib/dev-intent";
 
 describe("dev-intent helpers", () => {
+  beforeEach(() => {
+    vi.stubEnv("DEV", true);
+    resetDevRuntimeOptionsCacheForTests();
+    getDevRuntimeOptionsMock.mockReset().mockResolvedValue(
+      Result.succeed({
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+    hasTauriRuntimeMock.mockReset().mockReturnValue(true);
+  });
+
   afterEach(() => {
+    resetDevRuntimeOptionsCacheForTests();
     vi.unstubAllEnvs();
   });
 
@@ -92,5 +130,55 @@ describe("dev-intent helpers", () => {
       width: 520,
       height: null,
     });
+  });
+
+  it("loads runtime dev options as a typed Result", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-command-palette",
+        dev_web_url: "https://example.com/runtime",
+        dev_window_width: 640,
+        dev_window_height: 820,
+      }),
+    );
+
+    const result = await loadDevRuntimeOptionsResult();
+
+    expect(Result.unwrap(result)).toEqual({
+      dev_intent: "open-command-palette",
+      dev_web_url: "https://example.com/runtime",
+      dev_window_width: 640,
+      dev_window_height: 820,
+    });
+    expect(await loadDevRuntimeOptions()).toEqual({
+      dev_intent: "open-command-palette",
+      dev_web_url: "https://example.com/runtime",
+      dev_window_width: 640,
+      dev_window_height: 820,
+    });
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns typed runtime option failures for unavailable contexts", async () => {
+    vi.stubEnv("DEV", false);
+    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe("not_dev_build");
+    expect(await loadDevRuntimeOptions()).toBeNull();
+
+    vi.stubEnv("DEV", true);
+    resetDevRuntimeOptionsCacheForTests();
+    hasTauriRuntimeMock.mockReturnValue(false);
+
+    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe("tauri_unavailable");
+    expect(await loadDevRuntimeOptions()).toBeNull();
+  });
+
+  it("returns a typed runtime option failure when the Tauri request fails", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }));
+
+    const result = await loadDevRuntimeOptionsResult();
+
+    expect(Result.unwrapError(result)).toBe("request_failed");
+    expect(await loadDevRuntimeOptions()).toBeNull();
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
   });
 });
