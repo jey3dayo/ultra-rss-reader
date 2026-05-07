@@ -305,6 +305,20 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-toast").className).not.toContain("w-[min(320px,calc(100vw-2rem))]");
   });
 
+  it("places toast in the browser rail while the native web preview is open", () => {
+    setDebugHudUiState({
+      browserUrl: "https://example.com/article",
+      toastMessage: {
+        message: "Link copied",
+      },
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("app-toast")).toHaveClass("top-1", "left-1/2", "-translate-x-1/2");
+    expect(screen.getByTestId("app-toast")).not.toHaveClass("bottom-4");
+  });
+
   it("applies a stable width to update toasts", () => {
     setDebugHudUiState({
       toastMessage: {

@@ -100,9 +100,16 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
 function Toast() {
   const toastMessage = useUiStore((state) => state.toastMessage);
   const clearToast = useUiStore((state) => state.clearToast);
+  const browserUrl = useUiStore((state) => state.browserUrl);
   if (!toastMessage) return null;
 
-  return <AppToastView toastMessage={toastMessage} onClose={clearToast} />;
+  return (
+    <AppToastView
+      toastMessage={toastMessage}
+      onClose={clearToast}
+      placement={browserUrl ? "browser-rail" : "bottom-right"}
+    />
+  );
 }
 
 function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
