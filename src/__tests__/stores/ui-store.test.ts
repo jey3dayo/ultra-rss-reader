@@ -109,7 +109,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().viewMode).toBe("unread");
   });
 
-  it("selectSmartView('starred') keeps starred as the selection source without changing the footer filter", () => {
+  it("selectSmartView('starred') selects the starred footer filter", () => {
     useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectSmartView("starred");
 
@@ -118,6 +118,18 @@ describe("useUiStore", () => {
 
     useUiStore.getState().setViewMode("all");
     useUiStore.getState().selectSmartView("starred");
+    expect(useUiStore.getState().viewMode).toBe("starred");
+  });
+
+  it("selectSmartView('recent') selects the all footer filter", () => {
+    useUiStore.getState().setViewMode("starred");
+    useUiStore.getState().selectSmartView("recent");
+
+    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "recent" });
+    expect(useUiStore.getState().viewMode).toBe("all");
+
+    useUiStore.getState().setViewMode("unread");
+    useUiStore.getState().selectSmartView("recent");
     expect(useUiStore.getState().viewMode).toBe("all");
   });
 

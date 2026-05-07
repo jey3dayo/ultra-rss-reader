@@ -562,7 +562,7 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
   });
 
-  it("selects starred smart view without changing the active all filter", async () => {
+  it("selects starred smart view and the starred footer filter", async () => {
     const user = userEvent.setup();
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -576,7 +576,7 @@ describe("Sidebar", () => {
     await user.click(starredButton);
 
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "starred" });
-    expect(useUiStore.getState().viewMode).toBe("all");
+    expect(useUiStore.getState().viewMode).toBe("starred");
   });
 
   it("opens smart view context menus and confirms unstar-all separately from mark-read preference", async () => {

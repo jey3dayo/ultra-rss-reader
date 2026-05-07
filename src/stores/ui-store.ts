@@ -101,6 +101,14 @@ function getContextAwareScopeViewMode(state: Pick<UiState, "selection" | "viewMo
     : "unread";
 }
 
+function getSmartViewMode(kind: Extract<UiSelection, { type: "smart" }>["kind"]): UiState["viewMode"] {
+  if (kind === "starred") {
+    return "starred";
+  }
+
+  return kind === "recent" ? "all" : "unread";
+}
+
 function getSettingsAccountsViewState(
   accountId: string | null,
   addAccount: boolean,
@@ -397,16 +405,16 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       retainedArticleIds: new Set(),
     })),
   selectSmartView: (kind) =>
-    set((state) => ({
+    set({
       accountPaneOpen: false,
       selection: { type: "smart", kind },
-      viewMode: kind === "unread" ? "unread" : state.viewMode,
+      viewMode: getSmartViewMode(kind),
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
-    })),
+    }),
   selectTag: (tagId) =>
     set({
       accountPaneOpen: false,
