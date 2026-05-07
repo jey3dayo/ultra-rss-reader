@@ -4,6 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-05-07
+
+### Features
+
+- テーマ切り替えを View Transition API の縦ワイプ演出に更新し、reduced motion や未対応環境では即時切り替えにフォールバックするようにした
+
+### Bug Fixes
+
+- Windows の Tauri デバッグビルドで pnpm shim を起動できるようにし、release / native smoke の検証を復旧した
+
+### Maintenance
+
+- pnpm を最新の 10.33.4 に更新し、mise の npm backend 経由で CI とローカルの実行環境を揃えた
+- Tauri CLI dispatch の platform 依存テストを明示化し、Windows CI でも同じ期待値で検証できるようにした
+
 ## [0.30.0] - 2026-05-07
 
 ### Bug Fixes
