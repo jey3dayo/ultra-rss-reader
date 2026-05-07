@@ -320,6 +320,8 @@
     "scenarios": "Screen States",
     "scenarios_note": "Open common debug states from here without changing env vars.",
     "web_preview_geometry_check": "Open web preview geometry check",
+    "web_preview_toast_check": "Open web preview toast check",
+    "web_preview_toast_check_toast": "Link copied",
     "reading_display_mode": "Open reading display mode settings",
     "open_short": "Open",
     "open_now": "Open now",

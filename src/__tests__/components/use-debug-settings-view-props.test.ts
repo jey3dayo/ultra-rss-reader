@@ -13,6 +13,7 @@ function createProps(overrides: Partial<Parameters<typeof buildDebugSettingsView
     credentialsBackendValue: "OS keyring",
     openWebPreviewUrl: vi.fn(),
     openWebPreviewGeometryCheck: vi.fn(),
+    openWebPreviewToastCheck: vi.fn(),
     runReadingDisplayModeScenario: vi.fn(),
     ...overrides,
   });
@@ -59,19 +60,22 @@ describe("useDebugSettingsViewProps", () => {
 
   it("disables scenario actions outside dev builds", () => {
     const openWebPreviewGeometryCheck = vi.fn();
+    const openWebPreviewToastCheck = vi.fn();
     const runReadingDisplayModeScenario = vi.fn();
     const props = createProps({
       devBuild: false,
       openWebPreviewGeometryCheck,
+      openWebPreviewToastCheck,
       runReadingDisplayModeScenario,
     });
 
     const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
     const scenarioControls = scenariosSection?.controls ?? [];
 
-    expect(scenarioControls).toHaveLength(2);
+    expect(scenarioControls).toHaveLength(3);
     expect(scenarioControls).toEqual([
       expect.objectContaining({ id: "debug-web-preview-geometry-check", type: "action", disabled: true }),
+      expect.objectContaining({ id: "debug-web-preview-toast-check", type: "action", disabled: true }),
       expect.objectContaining({ id: "debug-reading-display-mode", type: "action", disabled: true }),
     ]);
 
@@ -82,6 +86,7 @@ describe("useDebugSettingsViewProps", () => {
     }
 
     expect(openWebPreviewGeometryCheck).toHaveBeenCalledOnce();
+    expect(openWebPreviewToastCheck).toHaveBeenCalledOnce();
     expect(runReadingDisplayModeScenario).toHaveBeenCalledOnce();
   });
 });

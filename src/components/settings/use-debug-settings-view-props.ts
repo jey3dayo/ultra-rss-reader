@@ -6,6 +6,7 @@ type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   credentialsBackendValue: string;
   openWebPreviewUrl: () => void;
   openWebPreviewGeometryCheck: () => void;
+  openWebPreviewToastCheck: () => void;
   runReadingDisplayModeScenario: () => void;
 };
 
@@ -17,6 +18,7 @@ export function useDebugSettingsViewProps({
   credentialsBackendValue,
   openWebPreviewUrl,
   openWebPreviewGeometryCheck,
+  openWebPreviewToastCheck,
   runReadingDisplayModeScenario,
 }: UseDebugSettingsViewPropsParams): SettingsPageViewProps {
   return {
@@ -75,6 +77,16 @@ export function useDebugSettingsViewProps({
             labelClassName: "whitespace-nowrap",
             disabled: !devBuild,
             onAction: openWebPreviewGeometryCheck,
+          },
+          {
+            id: "debug-web-preview-toast-check",
+            type: "action",
+            label: t("debug.web_preview_toast_check"),
+            actionLabel: t("debug.open_short"),
+            rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
+            labelClassName: "whitespace-nowrap",
+            disabled: !devBuild,
+            onAction: openWebPreviewToastCheck,
           },
           {
             id: "debug-reading-display-mode",

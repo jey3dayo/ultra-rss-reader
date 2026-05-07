@@ -86,10 +86,27 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().settingsOpen).toBe(false);
   });
 
+  it("opens the web preview toast check state", async () => {
+    const user = userEvent.setup();
+    const geometryCheckUrl = new URL("/dev-web-preview-geometry.html", window.location.origin).toString();
+
+    useUiStore.setState({ settingsOpen: true });
+
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Open: Open web preview toast check" }));
+
+    expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().settingsOpen).toBe(false);
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Link copied" });
+  });
+
   it("keeps long debug action labels on one line", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Open web preview geometry check")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Open web preview toast check")).toHaveClass("whitespace-nowrap");
     expect(screen.getByText("Open reading display mode settings")).toHaveClass("whitespace-nowrap");
   });
 

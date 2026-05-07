@@ -41,6 +41,12 @@ export function DebugSettings() {
     openBrowser(resolveDevWebPreviewGeometryUrl());
   }, [closeSettings, openBrowser]);
 
+  const openWebPreviewToastCheck = useCallback(() => {
+    closeSettings();
+    openBrowser(resolveDevWebPreviewGeometryUrl());
+    showToast(t("debug.web_preview_toast_check_toast"));
+  }, [closeSettings, openBrowser, showToast, t]);
+
   const runScenario = useCallback(
     async (id: DevScenarioId) => {
       if (id !== DEV_SCENARIO_ID.openSettingsReadingDisplayMode) {
@@ -71,6 +77,7 @@ export function DebugSettings() {
     credentialsBackendValue,
     openWebPreviewUrl,
     openWebPreviewGeometryCheck,
+    openWebPreviewToastCheck,
     runReadingDisplayModeScenario: () => void runScenario(DEV_SCENARIO_ID.openSettingsReadingDisplayMode),
   });
 
