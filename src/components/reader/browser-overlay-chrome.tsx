@@ -1,18 +1,6 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  RotateCw,
-  X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, RotateCw, X } from "lucide-react";
 import type { ReactNode } from "react";
-import {
-  cloneElement,
-  isValidElement,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,11 +20,7 @@ function BrowserOverlayCloseOnlyChrome({
   onClose,
 }: Extract<BrowserOverlayChromeProps, { closeLabel: string }>) {
   return (
-    <IconToolbarSurfaceButton
-      label={closeLabel}
-      onClick={onClose}
-      variant="chrome"
-    >
+    <IconToolbarSurfaceButton label={closeLabel} onClick={onClose} variant="chrome">
       <X aria-hidden="true" className="size-4" />
     </IconToolbarSurfaceButton>
   );
@@ -86,9 +70,7 @@ function BrowserOverlayIconAction({
 
 export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const { t } = useTranslation("reader");
-  const [activeFeedbackAction, setActiveFeedbackAction] = useState<
-    string | null
-  >(null);
+  const [activeFeedbackAction, setActiveFeedbackAction] = useState<string | null>(null);
   const feedbackTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -103,8 +85,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
     return <BrowserOverlayCloseOnlyChrome {...props} />;
   }
 
-  const { controller, presentation, closeWebPreviewLabel, toolbarActions } =
-    props;
+  const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;
 
   const startAcceptedFeedback = (actionKey: string) => {
     setActiveFeedbackAction(actionKey);
@@ -129,10 +110,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         }}
         className="pointer-events-none absolute z-[60]"
       >
-        <div
-          data-testid="browser-overlay-chrome"
-          className="pointer-events-auto flex items-center gap-2"
-        >
+        <div data-testid="browser-overlay-chrome" className="pointer-events-auto flex items-center gap-2">
           <BrowserOverlayIconAction
             actionKey="close-web-preview"
             compact={presentation.leadingActionSurface.compact}
@@ -147,9 +125,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             label={t("web_back")}
             onClick={() => {
               startAcceptedFeedback("browser-back");
-              return controller.browserState?.can_go_back
-                ? controller.handleGoBack()
-                : controller.handleCloseOverlay();
+              return controller.browserState?.can_go_back ? controller.handleGoBack() : controller.handleCloseOverlay();
             }}
             disabled={!controller.browserState}
             spinning={activeFeedbackAction === "browser-back"}

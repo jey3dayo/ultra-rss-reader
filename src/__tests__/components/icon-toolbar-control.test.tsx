@@ -45,31 +45,20 @@ describe("IconToolbarControl", () => {
 
     await user.hover(screen.getByRole("button", { name: "Copy link" }));
 
-    expect(await screen.findByText("Copy link")).toHaveClass(
-      "motion-popup-surface",
-    );
+    expect(await screen.findByText("Copy link")).toHaveClass("motion-popup-surface");
   });
 
   it("renders a shared icon toggle with accent pressed styling", () => {
     render(
       <TooltipProvider>
-        <IconToolbarToggle
-          label="Close browser window"
-          pressed={true}
-          pressedTone="accent"
-          onPressedChange={vi.fn()}
-        >
+        <IconToolbarToggle label="Close browser window" pressed={true} pressedTone="accent" onPressedChange={vi.fn()}>
           <Globe className="h-4 w-4" />
         </IconToolbarToggle>
       </TooltipProvider>,
     );
 
-    expect(
-      screen.getByRole("button", { name: "Close browser window" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByRole("button", { name: "Close browser window" }),
-    ).toHaveClass(
+    expect(screen.getByRole("button", { name: "Close browser window" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass(
       "data-[pressed]:bg-primary/12",
       "data-[pressed]:text-primary",
       "data-[pressed]:hover:bg-primary/12",
@@ -80,11 +69,7 @@ describe("IconToolbarControl", () => {
   it("uses neutral pressed styling by default for shared toggles", () => {
     render(
       <TooltipProvider>
-        <IconToolbarToggle
-          label="Toggle read"
-          pressed={true}
-          onPressedChange={vi.fn()}
-        >
+        <IconToolbarToggle label="Toggle read" pressed={true} onPressedChange={vi.fn()}>
           <Globe className="h-4 w-4" />
         </IconToolbarToggle>
       </TooltipProvider>,
@@ -101,12 +86,7 @@ describe("IconToolbarControl", () => {
   it("keeps starred pressed styling on the same active shell for shared toolbar toggles", () => {
     render(
       <TooltipProvider>
-        <IconToolbarToggle
-          label="Toggle star"
-          pressed={true}
-          pressedTone="starred"
-          onPressedChange={vi.fn()}
-        >
+        <IconToolbarToggle label="Toggle star" pressed={true} pressedTone="starred" onPressedChange={vi.fn()}>
           <Globe className="h-4 w-4" />
         </IconToolbarToggle>
       </TooltipProvider>,
@@ -125,11 +105,7 @@ describe("IconToolbarControl", () => {
 
     render(
       <TooltipProvider>
-        <IconToolbarButton
-          label="Sync now"
-          tooltipLabel="Refresh subscriptions"
-          onClick={vi.fn()}
-        >
+        <IconToolbarButton label="Sync now" tooltipLabel="Refresh subscriptions" onClick={vi.fn()}>
           <Globe className="h-4 w-4" />
         </IconToolbarButton>
       </TooltipProvider>,
@@ -138,9 +114,7 @@ describe("IconToolbarControl", () => {
     const button = screen.getByRole("button", { name: "Sync now" });
     await user.hover(button);
 
-    expect(
-      await screen.findByText("Refresh subscriptions"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Refresh subscriptions")).toBeInTheDocument();
   });
 
   it("passes toolbar tooltip placement through to the shared popup", async () => {
@@ -148,24 +122,15 @@ describe("IconToolbarControl", () => {
 
     render(
       <TooltipProvider>
-        <IconToolbarSurfaceButton
-          label="Open in External Browser"
-          onClick={vi.fn()}
-          tooltipSide="left"
-        >
+        <IconToolbarSurfaceButton label="Open in External Browser" onClick={vi.fn()} tooltipSide="left">
           <Globe className="h-4 w-4" />
         </IconToolbarSurfaceButton>
       </TooltipProvider>,
     );
 
-    await user.hover(
-      screen.getByRole("button", { name: "Open in External Browser" }),
-    );
+    await user.hover(screen.getByRole("button", { name: "Open in External Browser" }));
 
-    expect(await screen.findByText("Open in External Browser")).toHaveAttribute(
-      "data-app-tooltip-side",
-      "left",
-    );
+    expect(await screen.findByText("Open in External Browser")).toHaveAttribute("data-app-tooltip-side", "left");
   });
 
   it("renders a shared icon menu trigger with tooltip semantics", async () => {
@@ -207,26 +172,16 @@ describe("IconToolbarControl", () => {
   it("exports overlay-safe toolbar classes that preserve shared sizing and rounded corners", () => {
     expect(iconToolbarSurfaceButtonClassName).toContain("size-11");
     expect(iconToolbarSurfaceButtonClassName).toContain("md:size-8");
-    expect(iconToolbarSurfaceButtonClassName).toContain(
-      "motion-interactive-surface",
-    );
+    expect(iconToolbarSurfaceButtonClassName).toContain("motion-interactive-surface");
     expect(iconToolbarSurfaceButtonClassName).toContain("rounded-lg");
     expect(iconToolbarSurfaceButtonClassName).toContain("text-inherit");
     expect(iconToolbarSurfaceButtonClassName).toContain("disabled:opacity-100");
-    expect(iconToolbarSurfaceButtonClassName).toContain(
-      "disabled:text-foreground-soft",
-    );
-    expect(
-      iconToolbarSurfaceControlVariants({ pressedTone: "accent" }),
-    ).toContain("data-[pressed]:text-primary");
+    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:text-foreground-soft");
+    expect(iconToolbarSurfaceControlVariants({ pressedTone: "accent" })).toContain("data-[pressed]:text-primary");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("rounded-lg");
-    expect(iconToolbarSurfaceLabelButtonClassName).toContain(
-      "motion-interactive-surface",
-    );
+    expect(iconToolbarSurfaceLabelButtonClassName).toContain("motion-interactive-surface");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("text-inherit");
-    expect(iconToolbarSurfaceLabelButtonClassName).toContain(
-      "disabled:text-foreground-soft",
-    );
+    expect(iconToolbarSurfaceLabelButtonClassName).toContain("disabled:text-foreground-soft");
   });
 
   it("renders a shared overlay surface button with the same icon treatment used by browser chrome", async () => {
@@ -244,12 +199,7 @@ describe("IconToolbarControl", () => {
     const button = screen.getByRole("button", { name: "Close Web Preview" });
     const surface = button.closest("[data-overlay-shell='action']");
 
-    expect(surface).toHaveClass(
-      "motion-pressable-surface",
-      "rounded-lg",
-      "size-11",
-      "md:size-8",
-    );
+    expect(surface).toHaveClass("motion-pressable-surface", "rounded-lg", "size-11", "md:size-8");
     expect(button).toHaveClass("rounded-lg");
 
     await user.click(button);
@@ -260,11 +210,7 @@ describe("IconToolbarControl", () => {
   it("supports a chrome variant for borderless browser chrome buttons", () => {
     render(
       <TooltipProvider>
-        <IconToolbarSurfaceButton
-          label="Web back"
-          onClick={vi.fn()}
-          variant="chrome"
-        >
+        <IconToolbarSurfaceButton label="Web back" onClick={vi.fn()} variant="chrome">
           <Globe className="h-4 w-4" />
         </IconToolbarSurfaceButton>
       </TooltipProvider>,
@@ -277,8 +223,6 @@ describe("IconToolbarControl", () => {
     expect(surface).not.toHaveClass("border");
     expect(surface).not.toHaveClass("border-transparent");
     expect(surface?.className).toContain("hover:bg-transparent");
-    expect(surface?.className).toContain(
-      "has-[:active]:bg-overlay-action-surface-chrome-active",
-    );
+    expect(surface?.className).toContain("has-[:active]:bg-overlay-action-surface-chrome-active");
   });
 });

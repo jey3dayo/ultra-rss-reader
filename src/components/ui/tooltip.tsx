@@ -18,13 +18,7 @@ export function TooltipProvider({ children }: TooltipProviderProps) {
   return <Tooltip.Provider>{children}</Tooltip.Provider>;
 }
 
-export function AppTooltip({
-  label,
-  children,
-  side = "bottom",
-  align = "center",
-  sideOffset = 8,
-}: AppTooltipProps) {
+export function AppTooltip({ label, children, side = "bottom", align = "center", sideOffset = 8 }: AppTooltipProps) {
   return (
     <Tooltip.Root>
       <Tooltip.Trigger render={children} />
