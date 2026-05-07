@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import {
   compareDateInputsAsc,
@@ -10,9 +11,19 @@ import {
   formatShortDateTime,
   getDateInputTimeMs,
   parseDateInput,
+  parseDateInputResult,
 } from "@/lib/datetime";
 
 describe("datetime helpers", () => {
+  it("returns typed parse results for valid and invalid date inputs", () => {
+    const parsed = parseDateInputResult("2026-05-01T10:30:00Z");
+
+    expect(Result.isSuccess(parsed)).toBe(true);
+    expect(Result.unwrap(parsed)).toEqual(new Date("2026-05-01T10:30:00Z"));
+    expect(Result.unwrapError(parseDateInputResult(undefined))).toBe("missing_value");
+    expect(Result.unwrapError(parseDateInputResult("not-a-date"))).toBe("invalid_date");
+  });
+
   it("returns null for missing and invalid date inputs", () => {
     expect(parseDateInput(undefined)).toBeNull();
     expect(parseDateInput("not-a-date")).toBeNull();

@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import {
   addHours as addDateFnsHours,
   addDays,
@@ -12,7 +13,7 @@ import {
 } from "date-fns";
 
 export type DateInput = string | Date | null | undefined;
-type ParseDateInputError = "missing_value" | "invalid_date";
+export type ParseDateInputError = "missing_value" | "invalid_date";
 
 export function getCurrentDate(): Date {
   return new Date();
@@ -34,22 +35,22 @@ export function formatDebugTimestamp(date: Date = getCurrentDate()): string {
   return date.toISOString().slice(11, 23);
 }
 
-function parseDateInputResult(value: DateInput): { ok: true; value: Date } | { ok: false; error: ParseDateInputError } {
+export function parseDateInputResult(value: DateInput): Result.Result<Date, ParseDateInputError> {
   if (!value) {
-    return { ok: false, error: "missing_value" };
+    return Result.fail("missing_value");
   }
 
   if (value instanceof Date) {
-    return isValid(value) ? { ok: true, value } : { ok: false, error: "invalid_date" };
+    return isValid(value) ? Result.succeed(value) : Result.fail("invalid_date");
   }
 
   const date = new Date(value);
-  return isValid(date) ? { ok: true, value: date } : { ok: false, error: "invalid_date" };
+  return isValid(date) ? Result.succeed(date) : Result.fail("invalid_date");
 }
 
 export function parseDateInput(value: DateInput): Date | null {
   const parsed = parseDateInputResult(value);
-  return parsed.ok ? parsed.value : null;
+  return Result.isSuccess(parsed) ? Result.unwrap(parsed) : null;
 }
 
 export function getDateInputTimeMs(value: DateInput): number | null {
