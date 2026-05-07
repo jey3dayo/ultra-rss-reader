@@ -18,7 +18,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
 import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
@@ -75,6 +75,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import type { ToastData } from "@/stores/ui-store";
+import { useUiStore } from "@/stores/ui-store";
 
 type AnnotatedNoteProps = {
   title: string;
@@ -90,6 +91,23 @@ type MainContentShellSpecimenProps = {
   title?: string;
   subtitle?: string;
   children?: ReactNode;
+};
+
+type CssVariableProperties = CSSProperties & Record<`--${string}`, string>;
+
+const darkReaderToolbarTokens: CssVariableProperties = {
+  "--foreground": "rgba(242, 241, 237, 0.92)",
+  "--foreground-soft": "rgba(242, 241, 237, 0.68)",
+  "--surface-2": "rgba(242, 241, 237, 0.08)",
+  "--surface-3": "rgba(242, 241, 237, 0.12)",
+  "--primary": "#c0a8dd",
+  "--ring": "rgba(192, 168, 221, 0.34)",
+  "--tone-unread": "#9fbbe0",
+  "--tone-starred": "#facc15",
+  "--semantic-tone-starred-surface": "rgba(250, 204, 21, 0.16)",
+  "--semantic-tone-starred-content-foreground": "#facc15",
+  "--semantic-tone-unread-surface": "rgba(159, 187, 224, 0.16)",
+  "--semantic-tone-unread-content-foreground": "#9fbbe0",
 };
 
 type FormRowsSpecimenProps = {
@@ -594,56 +612,113 @@ export function ReaderHeaderActionStripSpecimen() {
   const [isRead, setIsRead] = useState(false);
   const [isStarred, setIsStarred] = useState(true);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
+  const [darkIsRead, setDarkIsRead] = useState(true);
+  const [darkIsStarred, setDarkIsStarred] = useState(false);
+  const [darkIsBrowserOpen, setDarkIsBrowserOpen] = useState(false);
+
+  useEffect(() => {
+    const previousLayoutMode = useUiStore.getState().layoutMode;
+    useUiStore.setState({ layoutMode: "mobile" });
+    return () => useUiStore.setState({ layoutMode: previousLayoutMode });
+  }, []);
 
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Reader header action strip</SectionHeading>
       <TooltipProvider>
-        <div
-          data-testid="reference-reader-header-action-strip"
-          className="flex items-center justify-end rounded-md border border-border/70 px-3 py-2 shadow-elevation-1"
-          style={{ backgroundColor: "var(--reader-toolbar-surface)" }}
-        >
-          <ArticleToolbarActionStrip
-            hasArticle
-            canToggleRead
-            canToggleStar
-            isRead={isRead}
-            isStarred={isStarred}
-            isBrowserOpen={isBrowserOpen}
-            showCopyLinkButton
-            canCopyLink
-            showOpenInBrowserButton
-            canOpenInBrowser
-            showOpenInExternalBrowserButton
-            canOpenInExternalBrowser
-            labels={{
-              closeView: "Close article",
-              toggleRead: "Toggle read",
-              toggleReadShort: "Read",
-              toggleStar: "Toggle star",
-              toggleStarShort: "Star",
-              copyLink: "Copy link",
-              previewToggleOff: "Open Web Preview",
-              previewToggleOffShort: "Preview",
-              previewToggleOn: "Close Web Preview",
-              previewToggleOnShort: "Close",
-              openInExternalBrowser: "Open in External Browser",
-              moreActions: "More actions",
-            }}
-            onToggleRead={setIsRead}
-            onToggleStar={setIsStarred}
-            onCopyLink={() => undefined}
-            onOpenInBrowser={() => setIsBrowserOpen((current) => !current)}
-            onOpenInExternalBrowser={() => undefined}
-            shareMenuControl={
-              <Menu.Root>
-                <IconToolbarMenuTrigger label="Share">
-                  <Share className="h-4 w-4" />
-                </IconToolbarMenuTrigger>
-              </Menu.Root>
-            }
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div
+            data-testid="reference-reader-header-action-strip"
+            className="flex min-h-12 items-center justify-end rounded-md bg-surface-1/72 px-2.5 py-1.5 shadow-elevation-1"
+            style={{ backgroundColor: "var(--reader-toolbar-surface)" }}
+          >
+            <ArticleToolbarActionStrip
+              hasArticle
+              canToggleRead
+              canToggleStar
+              isRead={isRead}
+              isStarred={isStarred}
+              isBrowserOpen={isBrowserOpen}
+              showCopyLinkButton
+              canCopyLink
+              showOpenInBrowserButton
+              canOpenInBrowser
+              showOpenInExternalBrowserButton
+              canOpenInExternalBrowser
+              labels={{
+                closeView: "Close article",
+                toggleRead: "Toggle read",
+                toggleReadShort: "Read",
+                toggleStar: "Toggle star",
+                toggleStarShort: "Star",
+                copyLink: "Copy link",
+                previewToggleOff: "Open Web Preview",
+                previewToggleOffShort: "Preview",
+                previewToggleOn: "Close Web Preview",
+                previewToggleOnShort: "Close",
+                openInExternalBrowser: "Open in External Browser",
+                moreActions: "More actions",
+              }}
+              onToggleRead={setIsRead}
+              onToggleStar={setIsStarred}
+              onCopyLink={() => undefined}
+              onOpenInBrowser={() => setIsBrowserOpen((current) => !current)}
+              onOpenInExternalBrowser={() => undefined}
+              shareMenuControl={
+                <Menu.Root>
+                  <IconToolbarMenuTrigger label="Share">
+                    <Share className="h-4 w-4" />
+                  </IconToolbarMenuTrigger>
+                </Menu.Root>
+              }
+            />
+          </div>
+          <div
+            data-testid="reference-reader-header-action-strip-dark"
+            className="dark flex min-h-12 items-center justify-end rounded-md bg-[#191712] px-2.5 py-1.5 text-foreground shadow-[0_12px_32px_-24px_rgba(0,0,0,0.72)]"
+            style={darkReaderToolbarTokens}
+          >
+            <ArticleToolbarActionStrip
+              hasArticle
+              canToggleRead
+              canToggleStar
+              isRead={darkIsRead}
+              isStarred={darkIsStarred}
+              isBrowserOpen={darkIsBrowserOpen}
+              showCopyLinkButton
+              canCopyLink
+              showOpenInBrowserButton
+              canOpenInBrowser
+              showOpenInExternalBrowserButton
+              canOpenInExternalBrowser
+              labels={{
+                closeView: "Close article",
+                toggleRead: "Toggle read",
+                toggleReadShort: "Read",
+                toggleStar: "Toggle star",
+                toggleStarShort: "Star",
+                copyLink: "Copy link",
+                previewToggleOff: "Open Web Preview",
+                previewToggleOffShort: "Preview",
+                previewToggleOn: "Close Web Preview",
+                previewToggleOnShort: "Close",
+                openInExternalBrowser: "Open in External Browser",
+                moreActions: "More actions",
+              }}
+              onToggleRead={setDarkIsRead}
+              onToggleStar={setDarkIsStarred}
+              onCopyLink={() => undefined}
+              onOpenInBrowser={() => setDarkIsBrowserOpen((current) => !current)}
+              onOpenInExternalBrowser={() => undefined}
+              shareMenuControl={
+                <Menu.Root>
+                  <IconToolbarMenuTrigger label="Share">
+                    <Share className="h-4 w-4" />
+                  </IconToolbarMenuTrigger>
+                </Menu.Root>
+              }
+            />
+          </div>
         </div>
       </TooltipProvider>
     </SurfaceCard>

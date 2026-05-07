@@ -43,9 +43,10 @@ describe("UI Reference canvases", () => {
     const user = userEvent.setup();
     render(<ButtonControlsCanvas />);
 
-    const readButton = screen.getByRole("button", { name: "Toggle read" });
-    const starButton = screen.getByRole("button", { name: "Toggle star" });
-    const previewButton = screen.getByRole("button", { name: "Open Web Preview" });
+    const lightStrip = within(screen.getByTestId("reference-reader-header-action-strip"));
+    const readButton = lightStrip.getByRole("button", { name: "Toggle read" });
+    const starButton = lightStrip.getByRole("button", { name: "Toggle star" });
+    const previewButton = lightStrip.getByRole("button", { name: "Open Web Preview" });
 
     expect(readButton).toHaveAttribute("aria-pressed", "false");
     expect(starButton).toHaveAttribute("aria-pressed", "true");
@@ -58,10 +59,34 @@ describe("UI Reference canvases", () => {
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
     expect(
-      within(screen.getByTestId("reference-reader-header-action-strip")).getByRole("button", {
+      lightStrip.getByRole("button", {
         name: "Close Web Preview",
       }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("renders the reader header action strip dark compact reference from the shared toolbar control", async () => {
+    const user = userEvent.setup();
+    render(<ButtonControlsCanvas />);
+
+    const darkStripElement = screen.getByTestId("reference-reader-header-action-strip-dark");
+    const darkStrip = within(darkStripElement);
+    const readButton = darkStrip.getByRole("button", { name: "Toggle read" });
+    const starButton = darkStrip.getByRole("button", { name: "Toggle star" });
+    const previewButton = darkStrip.getByRole("button", { name: "Open Web Preview" });
+
+    expect(darkStripElement).toHaveClass("dark", "bg-[#191712]");
+    expect(readButton).toHaveAttribute("aria-pressed", "true");
+    expect(starButton).toHaveAttribute("aria-pressed", "false");
+    expect(previewButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(readButton);
+    await user.click(starButton);
+    await user.click(previewButton);
+
+    expect(readButton).toHaveAttribute("aria-pressed", "false");
+    expect(starButton).toHaveAttribute("aria-pressed", "true");
+    expect(darkStrip.getByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders the settings sections canvas with form specimens", () => {

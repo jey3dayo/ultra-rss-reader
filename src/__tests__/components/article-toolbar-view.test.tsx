@@ -453,9 +453,12 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Toggle read" })).not.toHaveTextContent("Read");
     expect(screen.getByRole("button", { name: "Toggle star" })).not.toHaveTextContent("Star");
     expect(screen.getByRole("button", { name: "Open Web Preview" })).not.toHaveTextContent("Preview");
-    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("size-11", "rounded-md");
-    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("size-11", "rounded-md");
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("size-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("size-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("size-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("size-9", "rounded-md");
+    for (const label of ["Toggle read", "Toggle star", "Open Web Preview"]) {
+      expect(screen.getByRole("button", { name: label })).toHaveClass("inline-flex", "items-center", "justify-center");
+    }
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in External Browser" })).not.toBeInTheDocument();
 
@@ -509,6 +512,9 @@ describe("ArticleToolbarView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Close Web Preview" })).not.toHaveTextContent("Close");
-    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("size-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("size-9", "rounded-md");
+    expect(
+      screen.getByRole("button", { name: "Close Web Preview" }).querySelector(motionIconSwapSelector),
+    ).toHaveAttribute(MOTION_DATA_STATE_ATTRIBUTE, MOTION_ICON_SWAP_STATE_B);
   });
 });

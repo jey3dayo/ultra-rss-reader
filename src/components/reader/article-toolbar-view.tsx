@@ -1,10 +1,10 @@
 import { Menu } from "@base-ui/react/menu";
+import { Toggle } from "@base-ui/react/toggle";
 import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
 import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
-import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
 import { cn } from "@/lib/utils";
@@ -67,44 +67,42 @@ function ArticleToolbarMoreMenu({
 function ArticleToolbarMobilePrimaryButton({
   label,
   shortLabel: _shortLabel,
-  ariaPressed,
+  pressed,
+  onPressedChange,
   disabled = false,
-  onClick,
   active = false,
   activeTone = "neutral",
   children,
 }: {
   label: string;
   shortLabel?: string;
-  ariaPressed?: boolean;
+  pressed: boolean;
+  onPressedChange: (nextPressed: boolean) => void;
   disabled?: boolean;
-  onClick: () => void;
   active?: boolean;
   activeTone?: "neutral" | "accent" | "starred";
   children: ReactNode;
 }) {
   const activeClassName =
     activeTone === "starred"
-      ? "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+      ? "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)]"
       : activeTone === "accent"
-        ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-        : "bg-surface-3/92 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]";
+        ? "bg-primary/12 text-primary"
+        : "bg-surface-3/72 text-foreground";
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
+    <Toggle
+      pressed={pressed}
+      onPressedChange={onPressedChange}
       aria-label={label}
-      aria-pressed={ariaPressed}
       disabled={disabled}
-      onClick={onClick}
       className={cn(
-        "size-11 rounded-md border border-transparent bg-transparent text-foreground-soft shadow-none hover:bg-surface-2/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft",
+        "inline-flex size-9 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0",
         active && activeClassName,
       )}
     >
       {children}
-    </Button>
+    </Toggle>
   );
 }
 
@@ -139,18 +137,18 @@ export function ArticleToolbarActionStrip({
           <ArticleToolbarMobilePrimaryButton
             label={labels.toggleRead}
             shortLabel={labels.toggleReadShort}
-            ariaPressed={isRead}
+            pressed={isRead}
             disabled={!canToggleRead}
-            onClick={() => onToggleRead(!isRead)}
+            onPressedChange={(nextRead) => onToggleRead(nextRead)}
           >
             <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
           </ArticleToolbarMobilePrimaryButton>
           <ArticleToolbarMobilePrimaryButton
             label={labels.toggleStar}
             shortLabel={labels.toggleStarShort}
-            ariaPressed={isStarred}
+            pressed={isStarred}
             disabled={!canToggleStar}
-            onClick={() => onToggleStar(!isStarred)}
+            onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             active={isStarred}
             activeTone="starred"
           >
@@ -160,13 +158,17 @@ export function ArticleToolbarActionStrip({
             <ArticleToolbarMobilePrimaryButton
               label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
               shortLabel={isBrowserOpen ? labels.previewToggleOnShort : labels.previewToggleOffShort}
-              ariaPressed={isBrowserOpen}
+              pressed={isBrowserOpen}
               disabled={!canOpenInBrowser}
-              onClick={onOpenInBrowser}
+              onPressedChange={() => onOpenInBrowser()}
               active={isBrowserOpen}
               activeTone="accent"
             >
-              <Eye className="h-4 w-4" />
+              <MotionIconSwap
+                state={isBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
+                iconA={<Eye className="h-4 w-4" />}
+                iconB={<X className="h-4 w-4" />}
+              />
             </ArticleToolbarMobilePrimaryButton>
           ) : null}
         </>
