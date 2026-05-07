@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MotionNumber } from "@/components/shared/motion-number";
+import { MOTION_DIGIT_ANIMATING_CLASS_NAME } from "@/constants";
 
 describe("MotionNumber", () => {
   it("uses the shared content-swap treatment by default", () => {
@@ -29,5 +30,19 @@ describe("MotionNumber", () => {
     expect(number.children[1]).toHaveClass("t-digit");
     expect(number.children[1]).toHaveTextContent("2");
     expect(number.children[1]).toHaveAttribute("data-stagger", "2");
+  });
+
+  it("does not restart digit animation when the value is unchanged", () => {
+    const { container, rerender } = render(<MotionNumber value={42} variant="digit-pop" className="inline-flex" />);
+    const number = container.querySelector(".t-digit-group");
+
+    if (!number) {
+      throw new Error("MotionNumber digit group was not rendered");
+    }
+
+    number.classList.remove(MOTION_DIGIT_ANIMATING_CLASS_NAME);
+    rerender(<MotionNumber value={42} variant="digit-pop" className="inline-flex" />);
+
+    expect(number).not.toHaveClass(MOTION_DIGIT_ANIMATING_CLASS_NAME);
   });
 });

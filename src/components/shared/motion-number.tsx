@@ -51,17 +51,23 @@ function createMotionDigitItems(chars: readonly string[], textValue: string): Mo
 
 export function MotionNumber({ value, variant = "content-swap", className, ...props }: MotionNumberProps) {
   const groupRef = useRef<HTMLSpanElement>(null);
+  const animatedTextValueRef = useRef<string | null>(null);
   const textValue = String(value);
   const chars = Array.from(textValue);
   const digitItems = createMotionDigitItems(chars, textValue);
 
   useLayoutEffect(() => {
+    if (animatedTextValueRef.current === textValue) {
+      return;
+    }
+
     const group = groupRef.current;
 
     if (!group) {
       return;
     }
 
+    animatedTextValueRef.current = textValue;
     group.classList.remove(MOTION_DIGIT_ANIMATING_CLASS_NAME);
     void group.offsetHeight;
     group.classList.add(MOTION_DIGIT_ANIMATING_CLASS_NAME);
