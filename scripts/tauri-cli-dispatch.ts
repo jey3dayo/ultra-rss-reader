@@ -31,6 +31,7 @@ export function buildLocalTauriSpawnSpec(
   return {
     command: buildPnpmCommand(platform),
     args: ["exec", "tauri", ...cliArgs],
+    shell: platform === "win32",
   };
 }
 
@@ -120,6 +121,7 @@ async function main(): Promise<void> {
   const child = spawn(spawnSpec.command, spawnSpec.args, {
     stdio: "inherit",
     env: process.env,
+    shell: spawnSpec.shell,
   });
 
   const forwardSignal = (signal: NodeJS.Signals): void => {

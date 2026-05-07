@@ -10,6 +10,7 @@ const FORWARDED_ENV_PREFIXES = ["DEV_", "VITE_", "TAURI_", "RUST_"];
 export type SpawnSpec = {
   command: string;
   args: string[];
+  shell?: boolean;
 };
 
 export type WslEnvironmentOptions = {

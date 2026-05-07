@@ -62,6 +62,7 @@ describe("buildLocalTauriSpawnSpec", () => {
 
     expect(spawnSpec.command).toBe("pnpm");
     expect(spawnSpec.args).toEqual(["exec", "tauri", "dev", "-c", "src-tauri/tauri.dev.conf.json"]);
+    expect(spawnSpec.shell).toBe(false);
   });
 
   it("uses the pnpm command shim on native Windows", () => {
@@ -73,6 +74,7 @@ describe("buildLocalTauriSpawnSpec", () => {
 
     expect(spawnSpec.command).toBe("pnpm.cmd");
     expect(spawnSpec.args).toEqual(["exec", "tauri", "build", "--debug"]);
+    expect(spawnSpec.shell).toBe(true);
   });
 });
 
