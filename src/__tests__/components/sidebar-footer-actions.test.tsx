@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions";
 
@@ -28,5 +29,29 @@ describe("SidebarFooterActions", () => {
     expect(screen.getByText("購読")).toHaveClass("truncate");
     expect(themeButton).toHaveClass("size-8", "rounded-md", "border-0");
     expect(settingsButton).toHaveClass("size-8", "rounded-md", "border-0");
+  });
+
+  it("shows tooltips for footer actions", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SidebarFooterActions
+        subscriptionsIndexLabel="購読一覧"
+        subscriptionsIndexShortLabel="購読"
+        settingsLabel="設定"
+        themeToggleLabel="テーマを切り替え"
+        onOpenSubscriptionsIndex={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    await user.hover(screen.getByRole("button", { name: "購読一覧" }));
+    expect(await screen.findByText("購読一覧")).toHaveClass("motion-popup-surface");
+
+    await user.hover(screen.getByRole("button", { name: "テーマを切り替え" }));
+    expect(await screen.findByText("テーマを切り替え")).toHaveClass("motion-popup-surface");
+
+    await user.hover(screen.getByRole("button", { name: "設定" }));
+    expect(await screen.findByText("設定")).toHaveClass("motion-popup-surface");
   });
 });

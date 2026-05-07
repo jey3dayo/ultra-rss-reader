@@ -1,8 +1,23 @@
 import { Moon, Rss, Settings, Sun } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import type { SidebarFooterActionsViewProps } from "./sidebar.types";
+
+type SidebarFooterTooltipButtonProps = ComponentProps<typeof Button> & {
+  tooltipLabel: string;
+  children: ReactNode;
+};
+
+function SidebarFooterTooltipButton({ tooltipLabel, children, ...buttonProps }: SidebarFooterTooltipButtonProps) {
+  return (
+    <AppTooltip label={tooltipLabel}>
+      <Button {...buttonProps}>{children}</Button>
+    </AppTooltip>
+  );
+}
 
 export function SidebarFooterActions({
   subscriptionsIndexLabel,
@@ -27,35 +42,40 @@ export function SidebarFooterActions({
   );
 
   return (
-    <div className="flex h-10 items-center gap-1.5 border-t border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        aria-label={subscriptionsIndexLabel}
-        onClick={onOpenSubscriptionsIndex}
-        className={subscriptionsButtonClassName}
-      >
-        <Rss className="size-3.5 shrink-0" />
-        <span className="min-w-0 truncate">{subscriptionsIndexShortLabel}</span>
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label={themeToggleLabel}
-        onClick={() => setPref("theme", isDarkTheme ? "light" : "dark")}
-        className={iconButtonClassName}
-      >
-        {isDarkTheme ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label={settingsLabel}
-        onClick={onOpenSettings}
-        className={iconButtonClassName}
-      >
-        <Settings className="size-3.5" />
-      </Button>
-    </div>
+    <TooltipProvider>
+      <div className="flex h-10 items-center gap-1.5 border-t border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2">
+        <SidebarFooterTooltipButton
+          tooltipLabel={subscriptionsIndexLabel}
+          variant="ghost"
+          size="sm"
+          aria-label={subscriptionsIndexLabel}
+          onClick={onOpenSubscriptionsIndex}
+          className={subscriptionsButtonClassName}
+        >
+          <Rss className="size-3.5 shrink-0" />
+          <span className="min-w-0 truncate">{subscriptionsIndexShortLabel}</span>
+        </SidebarFooterTooltipButton>
+        <SidebarFooterTooltipButton
+          tooltipLabel={themeToggleLabel}
+          variant="ghost"
+          size="icon-sm"
+          aria-label={themeToggleLabel}
+          onClick={() => setPref("theme", isDarkTheme ? "light" : "dark")}
+          className={iconButtonClassName}
+        >
+          {isDarkTheme ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+        </SidebarFooterTooltipButton>
+        <SidebarFooterTooltipButton
+          tooltipLabel={settingsLabel}
+          variant="ghost"
+          size="icon-sm"
+          aria-label={settingsLabel}
+          onClick={onOpenSettings}
+          className={iconButtonClassName}
+        >
+          <Settings className="size-3.5" />
+        </SidebarFooterTooltipButton>
+      </div>
+    </TooltipProvider>
   );
 }
