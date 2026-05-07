@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
+import { readerPassiveCardOffsetClassName } from "./reader-passive-card";
 
 type EmptyStateScenario = "default" | "no-accounts" | "no-feeds";
 type ArticleEmptyStateStoryProps = {
@@ -39,7 +40,7 @@ function getScenarioContent(scenario: EmptyStateScenario) {
     message: "Select an article to read",
     description: "Choose a scope on the left, then open something from the middle queue to start reading.",
     hints: ["Choose an article from the list", "Open Web Preview from the toolbar"],
-    containerClassName: "-translate-y-[10%] md:-translate-y-[12%]",
+    containerClassName: readerPassiveCardOffsetClassName,
     cardClassName: undefined,
     actions: [],
   };
