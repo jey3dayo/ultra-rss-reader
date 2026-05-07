@@ -85,7 +85,15 @@ describe("AddFeedDialogView", () => {
       "bg-surface-1/80",
     );
     expect(screen.getByText("Feed or Site URL")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Paste a feed or site URL.")).toHaveClass("motion-content-swap", "text-foreground-soft");
+    expect(screen.queryByText("Paste a feed or site URL.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Discover" })).toHaveClass(
+      "absolute",
+      "right-1",
+      "h-7",
+      "min-w-14",
+      "px-2",
+      "text-xs",
+    );
     expect(screen.getByText("Found 2 feeds").parentElement).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("motion-content-swap", "bg-surface-1/80");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveAttribute("data-motion-phase", "entering");
@@ -197,6 +205,7 @@ describe("AddFeedDialogView", () => {
       "bg-state-danger-surface",
     );
     expect(urlInput).toHaveAttribute("aria-describedby", helperText.id);
+    expect(urlInput).toHaveAttribute("aria-errormessage", helperText.id);
     expect(urlInput).toHaveAttribute("aria-invalid", "true");
     expect(onSubmit).not.toHaveBeenCalled();
   });

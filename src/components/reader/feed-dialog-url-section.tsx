@@ -23,12 +23,14 @@ export function FeedDialogUrlSection({
   helperText,
   helperTone,
 }: FeedDialogUrlSectionViewProps) {
+  const hasError = helperTone === "error" && Boolean(helperText);
+
   return (
     <div
       data-testid="feed-dialog-url-section"
-      className="motion-contextual-surface rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
+      className="motion-contextual-surface rounded-md border border-border/70 bg-surface-1/80 px-4 py-3"
     >
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <LabeledInputRow
           label={label}
           name="feed-url"
@@ -41,14 +43,12 @@ export function FeedDialogUrlSection({
           labelClassName="text-foreground-soft"
           rowClassName="border-b-0 py-0"
           controlClassName="sm:max-w-none"
-          ariaDescribedBy={helperText ? helperTextId : undefined}
-          ariaErrorMessage={helperTone === "error" ? helperTextId : undefined}
-          ariaInvalid={helperTone === "error"}
+          ariaDescribedBy={hasError ? helperTextId : undefined}
+          ariaErrorMessage={hasError ? helperTextId : undefined}
+          ariaInvalid={hasError}
           actionLabel={discovering ? discoveringLabel : discoverLabel}
           actionAriaLabel={discovering ? discoveringLabel : discoverLabel}
-          actionVariant="outline"
-          actionSize="sm"
-          actionClassName="min-w-24 shrink-0"
+          actionPlacement="inside"
           actionDisabled={discoverDisabled}
           onAction={onDiscover}
         />
@@ -64,15 +64,11 @@ export function FeedDialogUrlSection({
         />
       )}
 
-      {helperText ? (
+      {hasError ? (
         <p
           id={helperTextId}
           data-motion-phase="entering"
-          className={
-            helperTone === "error"
-              ? `${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground`
-              : `${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 text-sm leading-6 text-foreground-soft`
-          }
+          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground`}
         >
           {helperText}
         </p>
