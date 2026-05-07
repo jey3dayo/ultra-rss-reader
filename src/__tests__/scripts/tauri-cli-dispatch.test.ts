@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildLocalTauriSpawnSpec,
+  buildPnpmCommand,
   buildWslTauriSpawnSpec,
   isWslEnvironment,
   pickWindowsEnvOverrides,
@@ -61,6 +62,28 @@ describe("buildLocalTauriSpawnSpec", () => {
 
     expect(spawnSpec.command).toBe("pnpm");
     expect(spawnSpec.args).toEqual(["exec", "tauri", "dev", "-c", "src-tauri/tauri.dev.conf.json"]);
+  });
+
+  it("uses the pnpm command shim on native Windows", () => {
+    const spawnSpec = buildLocalTauriSpawnSpec(
+      ["build", "--debug"],
+      "file:///C:/repo/scripts/tauri-cli-dispatch.ts",
+      "win32",
+    );
+
+    expect(spawnSpec.command).toBe("pnpm.cmd");
+    expect(spawnSpec.args).toEqual(["exec", "tauri", "build", "--debug"]);
+  });
+});
+
+describe("buildPnpmCommand", () => {
+  it("uses pnpm directly outside native Windows", () => {
+    expect(buildPnpmCommand("darwin")).toBe("pnpm");
+    expect(buildPnpmCommand("linux")).toBe("pnpm");
+  });
+
+  it("uses pnpm.cmd on native Windows", () => {
+    expect(buildPnpmCommand("win32")).toBe("pnpm.cmd");
   });
 });
 

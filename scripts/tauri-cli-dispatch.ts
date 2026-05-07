@@ -17,11 +17,19 @@ export { isWslEnvironment, pickWindowsEnvOverrides } from "./lib/windows-dispatc
 type ReadFileImpl = (targetPath: string, encoding: "utf8") => Promise<string>;
 type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
 
-export function buildLocalTauriSpawnSpec(cliArgs: string[], scriptUrl: string = import.meta.url): SpawnSpec {
+export function buildPnpmCommand(platform: NodeJS.Platform = process.platform): string {
+  return platform === "win32" ? "pnpm.cmd" : "pnpm";
+}
+
+export function buildLocalTauriSpawnSpec(
+  cliArgs: string[],
+  scriptUrl: string = import.meta.url,
+  platform: NodeJS.Platform = process.platform,
+): SpawnSpec {
   void scriptUrl;
 
   return {
-    command: "pnpm",
+    command: buildPnpmCommand(platform),
     args: ["exec", "tauri", ...cliArgs],
   };
 }
