@@ -56,18 +56,25 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const trimmedDebouncedQuery = debouncedQuery.trim();
   const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
 
+  const focusSearchInput = useCallback(() => {
+    const focus = () => searchInputRef.current?.focus({ preventScroll: true });
+    focus();
+    requestAnimationFrame(focus);
+    window.setTimeout(focus, 0);
+  }, []);
+
   const openSearch = useCallback(() => {
     dispatch({ type: "open-search" });
-    requestAnimationFrame(() => searchInputRef.current?.focus());
-  }, []);
+    focusSearchInput();
+  }, [focusSearchInput]);
 
   const handleToggleSearch = useCallback(() => {
     if (!showSearch) {
       openSearch();
     } else {
-      dispatch({ type: "close-search" });
+      focusSearchInput();
     }
-  }, [openSearch, showSearch]);
+  }, [focusSearchInput, openSearch, showSearch]);
 
   const handleCloseSearch = useCallback(() => {
     dispatch({ type: "close-search" });

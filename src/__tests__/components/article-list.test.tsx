@@ -305,6 +305,33 @@ describe("ArticleList", () => {
     });
   });
 
+  it("focuses the article search input when clicking the active search button", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "unread",
+    });
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const searchButton = await screen.findByRole("button", { name: "Search articles" });
+    await user.click(searchButton);
+
+    const searchInput = screen.getByRole("textbox", { name: "Search articles" });
+    await waitFor(() => expect(searchInput).toHaveFocus());
+
+    const markAllReadButton = screen.getByRole("button", { name: "Mark all as read" });
+    markAllReadButton.focus();
+    expect(markAllReadButton).toHaveFocus();
+
+    await user.click(searchButton);
+
+    await waitFor(() => expect(searchInput).toHaveFocus());
+    expect(searchInput).toBeInTheDocument();
+  });
+
   it("keeps smart unread search results limited to unread articles", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

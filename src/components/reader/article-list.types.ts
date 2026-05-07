@@ -18,6 +18,7 @@ export type ArticleListHeaderSearchProps = {
   searchArticlesLabel: string;
   searchArticlesPlaceholder: string;
   onSearchQueryChange: (query: string) => void;
+  onCloseSearch: () => void;
 };
 
 export type ArticleListHeaderProps = {

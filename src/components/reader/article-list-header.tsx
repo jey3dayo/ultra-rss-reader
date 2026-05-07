@@ -54,6 +54,7 @@ export function ArticleListHeader({
           searchArticlesLabel={searchArticlesLabel}
           searchArticlesPlaceholder={searchArticlesPlaceholder}
           onSearchQueryChange={onSearchQueryChange}
+          onCloseSearch={onCloseSearch}
         />
       )}
     </>

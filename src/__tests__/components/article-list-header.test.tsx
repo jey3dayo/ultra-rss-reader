@@ -51,8 +51,42 @@ describe("ArticleListHeader", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute("placeholder", "Search articles…");
+    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveClass(
+      "focus:ring-2",
+      "focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
+      "focus-visible:ring-2",
+      "focus-visible:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
+    );
     expect(screen.getByTestId("article-list-search-motion")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute("data-motion-phase", "entering");
+  });
+
+  it("closes search when pressing Escape in the focused search input", async () => {
+    const user = userEvent.setup();
+    const onCloseSearch = vi.fn();
+
+    render(
+      <ArticleListHeader
+        showSearch
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={onCloseSearch}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const searchInput = screen.getByRole("textbox", { name: "Search articles" });
+    searchInput.focus();
+
+    await user.keyboard("{Escape}");
+
+    expect(onCloseSearch).toHaveBeenCalledTimes(1);
   });
 
   it("shows a sidebar toggle button when requested", async () => {
