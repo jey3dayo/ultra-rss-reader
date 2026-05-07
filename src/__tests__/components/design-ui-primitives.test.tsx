@@ -113,6 +113,11 @@ describe("Design-themed UI primitives", () => {
       `.${MOTION_CONTENT_SWAP_CLASS_NAME}[${MOTION_DATA_PHASE_ATTRIBUTE}="${MOTION_PHASE_ENTERING}"]`,
     );
     expect(globalCss).toContain(`@keyframes ${MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME}`);
+    expect(globalCss).toContain(".motion-article-slide");
+    expect(globalCss).toContain("@keyframes motion-article-slide-next");
+    expect(globalCss).toContain("@keyframes motion-article-slide-prev");
+    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="next"]');
+    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="prev"]');
     expect(globalCss).toContain("@keyframes vertical-wipe");
     expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-old(root)");
     expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-new(root)");
@@ -120,6 +125,8 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(`.${MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME}`);
     expect(globalCss).toContain("will-change: clip-path;");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="next"],');
+    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="prev"],');
     expect(globalCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(
       "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",

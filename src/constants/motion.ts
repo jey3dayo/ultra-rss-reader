@@ -3,6 +3,7 @@ export const MOTION_BUTTON_SURFACE_CLASS_NAME = "motion-button-surface";
 export const MOTION_DISCLOSURE_PANEL_CLASS_NAME = "motion-disclosure-panel";
 export const MOTION_DISCLOSURE_TRIGGER_CLASS_NAME = "motion-disclosure-trigger";
 export const MOTION_CONTENT_SWAP_CLASS_NAME = "motion-content-swap";
+export const MOTION_ARTICLE_SLIDE_CLASS_NAME = "motion-article-slide";
 export const MOTION_CONTEXTUAL_SURFACE_CLASS_NAME = "motion-contextual-surface";
 export const MOTION_STATIC_HOVER_SURFACE_CLASS_NAME = "motion-static-hover-surface";
 export const MOTION_RESIZE_SURFACE_CLASS_NAME = "motion-resize-surface";
@@ -20,6 +21,7 @@ export type MotionClassName =
   | typeof MOTION_DISCLOSURE_PANEL_CLASS_NAME
   | typeof MOTION_DISCLOSURE_TRIGGER_CLASS_NAME
   | typeof MOTION_CONTENT_SWAP_CLASS_NAME
+  | typeof MOTION_ARTICLE_SLIDE_CLASS_NAME
   | typeof MOTION_CONTEXTUAL_SURFACE_CLASS_NAME
   | typeof MOTION_STATIC_HOVER_SURFACE_CLASS_NAME
   | typeof MOTION_RESIZE_SURFACE_CLASS_NAME
@@ -33,9 +35,15 @@ export type MotionClassName =
   | typeof MOTION_DIGIT_ANIMATING_CLASS_NAME;
 
 export const MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME = "motion-content-swap-enter";
-export type MotionKeyframesName = typeof MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME;
+export const MOTION_ARTICLE_SLIDE_NEXT_KEYFRAMES_NAME = "motion-article-slide-next";
+export const MOTION_ARTICLE_SLIDE_PREV_KEYFRAMES_NAME = "motion-article-slide-prev";
+export type MotionKeyframesName =
+  | typeof MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME
+  | typeof MOTION_ARTICLE_SLIDE_NEXT_KEYFRAMES_NAME
+  | typeof MOTION_ARTICLE_SLIDE_PREV_KEYFRAMES_NAME;
 
 export const MOTION_DATA_PHASE_ATTRIBUTE = "data-motion-phase";
+export const MOTION_DATA_DIRECTION_ATTRIBUTE = "data-motion-direction";
 export const MOTION_DATA_STATE_ATTRIBUTE = "data-state";
 export const MOTION_DATA_ICON_ATTRIBUTE = "data-icon";
 export const MOTION_DATA_SIDE_ATTRIBUTE = "data-side";
@@ -43,6 +51,7 @@ export const MOTION_DATA_STAGGER_ATTRIBUTE = "data-stagger";
 export const MOTION_DATA_STARTING_STYLE_ATTRIBUTE = "data-starting-style";
 export type MotionDataAttribute =
   | typeof MOTION_DATA_PHASE_ATTRIBUTE
+  | typeof MOTION_DATA_DIRECTION_ATTRIBUTE
   | typeof MOTION_DATA_STATE_ATTRIBUTE
   | typeof MOTION_DATA_ICON_ATTRIBUTE
   | typeof MOTION_DATA_SIDE_ATTRIBUTE
@@ -55,6 +64,14 @@ export type MotionPopupSide = typeof MOTION_POPUP_SIDE_TOP;
 export const MOTION_PHASE_STEADY = "steady";
 export const MOTION_PHASE_ENTERING = "entering";
 export type MotionPhase = typeof MOTION_PHASE_STEADY | typeof MOTION_PHASE_ENTERING;
+
+export const MOTION_DIRECTION_NEXT = "next";
+export const MOTION_DIRECTION_PREV = "prev";
+export const MOTION_DIRECTION_NEUTRAL = "neutral";
+export type MotionDirection =
+  | typeof MOTION_DIRECTION_NEXT
+  | typeof MOTION_DIRECTION_PREV
+  | typeof MOTION_DIRECTION_NEUTRAL;
 
 export const MOTION_STATE_OPEN = "open";
 export const MOTION_STATE_CLOSED = "closed";

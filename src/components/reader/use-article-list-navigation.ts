@@ -21,7 +21,7 @@ export function useArticleListNavigation({
       const viewport = viewportRef.current;
       const button = listRef.current?.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
 
-      selectArticle(articleId);
+      selectArticle(articleId, { navigationDirection: direction });
 
       if (!viewport || !button) {
         return;

@@ -62,6 +62,7 @@ export type LayoutMode = "wide" | "compact" | "mobile";
 export type FocusedPane = "sidebar" | "list" | "content";
 export type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type PendingBrowserCloseAction = "prev-article" | "next-article" | "prev-feed" | "next-feed";
+export type ArticleNavigationDirection = 1 | -1;
 export type BrowserNavigationState = {
   canGoBack: boolean;
   canGoForward: boolean;
@@ -144,6 +145,7 @@ interface UiState {
   browserNavigationState: BrowserNavigationState | null;
   browserCloseInFlight: boolean;
   pendingBrowserCloseAction: PendingBrowserCloseAction | null;
+  articleNavigationDirection: ArticleNavigationDirection | null;
   expandedFolderIds: Set<string>;
   settingsOpen: boolean;
   settingsCategory: SettingsCategory;
@@ -190,7 +192,7 @@ interface UiActions {
   selectTag: (tagId: string) => void;
   selectTagFromCurrentContext: (tagId: string) => void;
   selectAll: () => void;
-  selectArticle: (id: string) => void;
+  selectArticle: (id: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
   clearArticle: () => void;
   openBrowser: (url: string) => void;
   closeBrowser: () => void;
@@ -265,6 +267,7 @@ const initialState: UiState = {
   browserNavigationState: null,
   browserCloseInFlight: false,
   pendingBrowserCloseAction: null,
+  articleNavigationDirection: null,
   expandedFolderIds: new Set(),
   settingsOpen: false,
   settingsCategory: "general",
@@ -446,12 +449,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
-  selectArticle: (id) =>
+  selectArticle: (id, options) =>
     set((state) => ({
       accountPaneOpen: false,
       selectedArticleId: id,
       contentMode: "reader",
       focusedPane: "content",
+      articleNavigationDirection: options?.navigationDirection ?? null,
       retainedArticleIds: getRetainedArticleIdsAfterSelectingArticle({
         articleId: id,
         viewMode: state.viewMode,

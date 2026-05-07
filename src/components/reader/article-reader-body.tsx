@@ -131,7 +131,11 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       viewportRef={viewportRef}
       onKeyDown={handleReaderKeyDown}
     >
-      <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-10 md:px-11 md:pt-13">
+      <article
+        key={article.id}
+        data-article-slide-content="true"
+        className="mx-auto max-w-[44rem] px-7 pb-20 pt-10 md:px-11 md:pt-13"
+      >
         <ArticleMetaView
           title={article.title}
           author={article.author}

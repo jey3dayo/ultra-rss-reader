@@ -4,7 +4,7 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard-shortcuts";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
-import type { UiSelection } from "@/stores/ui-store";
+import type { ArticleNavigationDirection, UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
@@ -415,7 +415,7 @@ export type UseArticleListSourcesResult = {
 export type UseArticleListNavigationParams = {
   filteredArticles: ArticleDto[];
   selectedArticleId: string | null;
-  selectArticle: ArticleListBodyProps["onSelectArticle"];
+  selectArticle: (articleId: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
   listRef: ArticleListBodyProps["listRef"];
   viewportRef: ArticleListBodyProps["viewportRef"];
 };

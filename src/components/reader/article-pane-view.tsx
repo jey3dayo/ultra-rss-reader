@@ -1,3 +1,11 @@
+import {
+  MOTION_ARTICLE_SLIDE_CLASS_NAME,
+  MOTION_DATA_DIRECTION_ATTRIBUTE,
+  MOTION_DIRECTION_NEUTRAL,
+  MOTION_DIRECTION_NEXT,
+  MOTION_DIRECTION_PREV,
+  type MotionDirection,
+} from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleReaderBody } from "./article-reader-body";
@@ -27,6 +35,13 @@ export function ArticleToolbar({ article, isBrowserOpen, onCloseView, onToggleBr
 
 export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const focusedPane = useUiStore((state) => state.focusedPane);
+  const articleNavigationDirection = useUiStore((state) => state.articleNavigationDirection);
+  const motionDirection: MotionDirection =
+    articleNavigationDirection === 1
+      ? MOTION_DIRECTION_NEXT
+      : articleNavigationDirection === -1
+        ? MOTION_DIRECTION_PREV
+        : MOTION_DIRECTION_NEUTRAL;
   const {
     toolbarProps,
     browserOverlayProps,
@@ -58,7 +73,12 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
           </div>
         ) : null}
         {showReaderBody ? (
-          <div {...readerBodyStateProps} className="min-h-0 flex-1" data-testid="article-reader-body">
+          <div
+            {...readerBodyStateProps}
+            {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}
+            className={cn("min-h-0 flex-1", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
+            data-testid="article-reader-body"
+          >
             <ArticleReaderBody
               article={article}
               feedName={feedName}

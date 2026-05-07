@@ -567,6 +567,7 @@ describe("ArticleList", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().articleNavigationDirection).toBe(1);
       expect(screen.getByRole("option", { name: /Second Article/ })).toHaveFocus();
     });
   });
@@ -587,6 +588,7 @@ describe("ArticleList", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().articleNavigationDirection).toBe(1);
       expect(screen.getByRole("option", { name: /Second Article/ })).toHaveFocus();
     });
 
@@ -594,6 +596,7 @@ describe("ArticleList", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().articleNavigationDirection).toBe(-1);
       expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
     });
   });
@@ -830,6 +833,7 @@ describe("ArticleList", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().articleNavigationDirection).toBe(1);
       expect(useUiStore.getState().contentMode).toBe("browser");
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/2");
     });
@@ -1076,6 +1080,7 @@ describe("ArticleList", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().articleNavigationDirection).toBe(-1);
       expect(viewport.scrollTop).toBe(316);
     });
   });

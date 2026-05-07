@@ -2278,6 +2278,71 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(0);
   });
 
+  it("marks the reader body with the next-article slide direction", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+    useUiStore.setState({ articleNavigationDirection: 1 } as Partial<ReturnType<typeof useUiStore.getState>>);
+
+    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
+    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "next");
+  });
+
+  it("marks the reader body with the previous-article slide direction", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+    useUiStore.setState({ articleNavigationDirection: -1 } as Partial<ReturnType<typeof useUiStore.getState>>);
+
+    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
+    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "prev");
+  });
+
+  it("uses the neutral article slide direction for direct selection", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
+    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "neutral");
+  });
+
   it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
