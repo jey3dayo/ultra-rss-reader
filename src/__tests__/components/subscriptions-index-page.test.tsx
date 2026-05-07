@@ -250,7 +250,12 @@ describe("SubscriptionsIndexPage", () => {
     expect(leftPaneScrollRegion).toHaveClass("lg:flex-1");
     expect(leftPaneScrollRegion).toHaveClass("lg:overflow-y-auto");
 
-    expect(screen.getByTestId("subscriptions-detail-pane")).toHaveClass("rounded-md");
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    expect(detailPane).toHaveClass("rounded-md");
+
+    const detailScrollRegion = detailPane.querySelector(".motion-content-swap");
+    expect(detailScrollRegion).toBeTruthy();
+    expect(detailScrollRegion).not.toHaveClass("pr-2");
 
     expect(container.querySelector("[data-browser-overlay-root]")).toBeNull();
   });
@@ -336,8 +341,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(articleLink).toHaveClass("cursor-pointer");
     expect(within(detailPane).queryByRole("button", { name: "購読の整理" })).toBeNull();
 
-    const detailScrollRegion = detailPane.querySelector("div.pr-2");
-    expect(detailScrollRegion).toBeTruthy();
+    const detailScrollRegion = within(detailPane).getByTestId("subscriptions-detail-scroll-region");
+    expect(detailScrollRegion).not.toHaveClass("pr-2");
     expect(detailScrollRegion).toHaveClass("lg:min-h-0");
     expect(detailScrollRegion).toHaveClass("lg:flex-1");
     expect(detailScrollRegion).toHaveClass("lg:overflow-y-auto");

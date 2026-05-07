@@ -103,9 +103,10 @@ export function SubscriptionDetailPane({
         </div>
       ) : (
         <div
+          data-testid="subscriptions-detail-scroll-region"
           key={row.feed.id}
           {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
+          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
         >
           <div className="flex w-full flex-col gap-4 pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
