@@ -7,7 +7,7 @@
   "summary_review": "Needs review",
   "summary_review_caption_one": "1 feed needs a decision",
   "summary_review_caption_other": "{{count}} feeds need a decision",
-  "summary_review_criteria": "Needs review: feeds with no updates for 90+ days, or fetched articles with no unread items and no stars.",
+  "summary_review_criteria": "Needs review: feeds that have gone quiet, or fetched articles show weak usage signals with no unread items or stars.",
   "summary_stale": "90-day stale",
   "summary_stale_caption_one": "1 feed has gone quiet",
   "summary_stale_caption_other": "{{count}} feeds have gone quiet",

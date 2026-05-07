@@ -141,7 +141,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByText("総購読数")).toBeInTheDocument();
     expect(screen.getByText("要確認")).toBeInTheDocument();
     expect(screen.getByText("条件")).toBeInTheDocument();
-    expect(screen.queryByText("要確認: 90日以上更新なし、または取得済み記事に未読もスターもない購読")).toBeNull();
+    expect(
+      screen.queryByText("要確認: 更新が長く止まっているか、取得済み記事に未読・スターがなく利用シグナルが弱い購読"),
+    ).toBeNull();
     expect(screen.getByText("90日更新なし")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(document.querySelectorAll('img[src*="google.com/s2/favicons?domain=example.com"]').length).toBeGreaterThan(

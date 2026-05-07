@@ -7,7 +7,7 @@
   "summary_review": "要確認",
   "summary_review_caption_one": "1 件が判断待ちです",
   "summary_review_caption_other": "{{count}} 件が判断待ちです",
-  "summary_review_criteria": "要確認: 90日以上更新なし、または取得済み記事に未読もスターもない購読",
+  "summary_review_criteria": "要確認: 更新が長く止まっているか、取得済み記事に未読・スターがなく利用シグナルが弱い購読",
   "summary_stale": "90日更新なし",
   "summary_stale_caption_one": "1 件が長く止まっています",
   "summary_stale_caption_other": "{{count}} 件が長く止まっています",

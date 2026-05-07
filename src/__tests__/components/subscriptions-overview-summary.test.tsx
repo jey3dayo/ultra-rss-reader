@@ -22,7 +22,7 @@ describe("SubscriptionsOverviewSummary", () => {
             caption: "All good",
           },
         ]}
-        reviewCriteriaLabel="Needs review: no updates for 90+ days, or no unread and no stars."
+        reviewCriteriaLabel="Needs review: quiet feeds or weak usage signals."
         onSelectFilter={vi.fn()}
       />,
     );
@@ -36,7 +36,7 @@ describe("SubscriptionsOverviewSummary", () => {
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
       "gap-3",
     );
-    expect(screen.queryByText("Needs review: no updates for 90+ days, or no unread and no stars.")).toBeNull();
+    expect(screen.queryByText("Needs review: quiet feeds or weak usage signals.")).toBeNull();
 
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
     expect(actionableCard).toHaveClass("w-full", "min-w-0");
@@ -67,14 +67,14 @@ describe("SubscriptionsOverviewSummary", () => {
             tone: "review",
           },
         ]}
-        reviewCriteriaLabel="Needs review: no updates for 90+ days, or no unread and no stars."
+        reviewCriteriaLabel="Needs review: quiet feeds or weak usage signals."
         onSelectFilter={vi.fn()}
       />,
     );
 
     await user.hover(screen.getByRole("button", { name: "Needs review を表示" }));
 
-    expect(await screen.findByText("Needs review: no updates for 90+ days, or no unread and no stars.")).toHaveClass(
+    expect(await screen.findByText("Needs review: quiet feeds or weak usage signals.")).toHaveClass(
       "motion-popup-surface",
     );
   });
