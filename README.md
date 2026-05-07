@@ -41,6 +41,7 @@ mise run check        # format + lint + test
 mise run ci           # CI-equivalent local gate
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:live    # FreshRSS live integration tests
+pnpm storybook        # component development on port 6006
 ```
 
 Use the detailed command table below when you need a specialized workflow such as native keyring validation, signed macOS runs, or focused dev entry points.
@@ -134,6 +135,8 @@ Use `mise run app:dev:native-keyring` when you need to verify Keychain or Creden
   Starts the native app and jumps directly into the subscriptions index workspace.
 - Web Preview development: `mise run app:dev:web-preview`
   Starts the native app and opens `VITE_DEV_WEB_URL` directly in Web Preview. Optional sizing comes from `VITE_DEV_WINDOW_WIDTH` and `VITE_DEV_WINDOW_HEIGHT`.
+- Seed dev data from packaged app data: `mise run app:dev:seed-from-prod`
+  Copies the packaged app database into the development app data location when you need to reproduce behavior against production-like local data.
 - Web-only frontend debugging: `mise run app:dev:browser`
   Starts the browser-mode dev server on `http://127.0.0.1:4173/` without the Tauri shell.
 - Preview the production frontend build: `pnpm build && pnpm preview`
@@ -179,9 +182,12 @@ mise run app:install  # Build and install the current-platform packaged app
 mise run app:dev:signed              # macOS-only: build, codesign, and run the dev binary (no Keychain dialog)
 mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
 mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL
+mise run app:dev:seed-from-prod      # Seed the dev app database from packaged app data
 mise run app:dev:browser         # Launch browser-mode UI testing
 mise run app:dev:feed-cleanup         # Launch the native app directly into Feed Cleanup
 mise run app:dev:browser:feed-cleanup # Launch browser-mode UI directly into Feed Cleanup
+pnpm storybook                       # Launch Storybook for component development
+pnpm build-storybook                 # Build Storybook static output
 ```
 
 Always run `mise run check` before committing.
@@ -218,6 +224,7 @@ Always run `mise run check` before committing.
 - Use [docs/release-manual-verification.md](docs/release-manual-verification.md) for packaged builds, updater checks, and release sign-off.
 - Use [docs/incident-runbook.md](docs/incident-runbook.md) for logs, backups, recovery, updater, keyring, and sync triage.
 - Use [docs/feed-content-privacy.md](docs/feed-content-privacy.md) for privacy and CSP rules around remote article content.
+- Use [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md) for reader pane keyboard navigation, focus return behavior, and focus styling contracts.
 - Use [docs/superpowers/README.md](docs/superpowers/README.md) for dated design and implementation records.
 
 ## Documentation Map
@@ -227,6 +234,7 @@ Always run `mise run check` before committing.
 - [docs/release-manual-verification.md](docs/release-manual-verification.md) — packaged-build and live-service release checklist
 - [docs/incident-runbook.md](docs/incident-runbook.md) — failure triage for logs, backups, updater, keyring, and sync issues
 - [docs/feed-content-privacy.md](docs/feed-content-privacy.md) — privacy and CSP policy for remote article content
+- [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md) — reader pane keyboard navigation and focus styling contract
 - [.claude/rules/README.md](.claude/rules/README.md) — project-specific engineering rules by topic
 
 ## Architecture
