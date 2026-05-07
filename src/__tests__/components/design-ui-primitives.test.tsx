@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME,
@@ -115,7 +116,9 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("@keyframes vertical-wipe");
     expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-old(root)");
     expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-new(root)");
-    expect(globalCss).toContain("animation: vertical-wipe 0.5s ease-in-out forwards;");
+    expect(globalCss).toContain("animation: vertical-wipe 0.75s ease-in-out forwards;");
+    expect(globalCss).toContain(`.${MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME}`);
+    expect(globalCss).toContain("will-change: clip-path;");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(globalCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(

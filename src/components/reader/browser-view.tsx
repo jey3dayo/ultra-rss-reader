@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MOTION_BROWSER_OVERLAY_CLASS_NAME } from "@/constants/motion";
+import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { cn } from "@/lib/utils";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
@@ -13,6 +14,94 @@ function prefersReducedMotion() {
     typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+const BROWSER_THEME_WIPE_DURATION_MS = 750;
+
+function getSystemTheme() {
+  return typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function BrowserThemeWipeOverlay() {
+  const themePreference = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "theme"));
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() => getSystemTheme());
+  const resolvedTheme = useMemo(
+    () => (themePreference === "system" ? systemTheme : themePreference),
+    [systemTheme, themePreference],
+  );
+  const cleanupTimeoutRef = useRef<number | null>(null);
+  const previousResolvedThemeRef = useRef<typeof resolvedTheme | null>(null);
+  const [wipeKey, setWipeKey] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setSystemTheme(event.matches ? "dark" : "light");
+    };
+    setSystemTheme(mediaQuery.matches ? "dark" : "light");
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (previousResolvedThemeRef.current === null) {
+      previousResolvedThemeRef.current = resolvedTheme;
+      return undefined;
+    }
+
+    if (previousResolvedThemeRef.current === resolvedTheme) {
+      return undefined;
+    }
+    previousResolvedThemeRef.current = resolvedTheme;
+
+    if (prefersReducedMotion()) {
+      return undefined;
+    }
+
+    setWipeKey((value) => value + 1);
+    if (cleanupTimeoutRef.current !== null) {
+      window.clearTimeout(cleanupTimeoutRef.current);
+    }
+    cleanupTimeoutRef.current = window.setTimeout(() => {
+      cleanupTimeoutRef.current = null;
+      setWipeKey(0);
+    }, BROWSER_THEME_WIPE_DURATION_MS);
+
+    return undefined;
+  }, [resolvedTheme]);
+
+  useEffect(() => {
+    return () => {
+      if (cleanupTimeoutRef.current !== null) {
+        window.clearTimeout(cleanupTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  if (wipeKey === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      key={wipeKey}
+      aria-hidden="true"
+      data-testid="browser-theme-wipe-overlay"
+      className={cn(
+        MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME,
+        "pointer-events-none absolute inset-0 z-[45] bg-background",
+      )}
+    />
   );
 }
 
@@ -99,6 +188,7 @@ function BrowserOverlayShell({
         toolbarActions={toolbarActions}
       />
       <BrowserOverlayStage controller={controller} />
+      <BrowserThemeWipeOverlay />
     </div>
   );
 }

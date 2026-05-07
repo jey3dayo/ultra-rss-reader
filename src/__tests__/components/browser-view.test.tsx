@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
-import { MOTION_BROWSER_OVERLAY_CLASS_NAME } from "@/constants/motion";
+import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -259,7 +259,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+          bounds: { x: 0, y: 40, width: 1400, height: 860 },
         },
       });
     });
@@ -353,7 +353,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 60, width: 1750, height: 1065, unit: "physical" },
+          bounds: { x: 0, y: 50, width: 1750, height: 1075, unit: "physical" },
         },
       });
     });
@@ -427,10 +427,42 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+          bounds: { x: 0, y: 40, width: 1400, height: 860 },
         },
       });
     });
+  });
+
+  it("masks the browser overlay surface with a vertical wipe when the app theme changes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("browser-overlay-shell")).toHaveAttribute("data-open", "true");
+    });
+    expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
+
+    act(() => {
+      usePreferencesStore.getState().setPref("theme", "dark");
+    });
+
+    const wipeOverlay = screen.getByTestId("browser-theme-wipe-overlay");
+    expect(wipeOverlay).toHaveClass(MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME, "bg-background");
+    expect(wipeOverlay).toHaveAttribute("aria-hidden", "true");
+
+    act(() => {
+      vi.advanceTimersByTime(750);
+    });
+
+    expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
   });
 
   it("wraps custom toolbar actions in the shared action shell", () => {
@@ -514,7 +546,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "48px",
+      top: "40px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -546,7 +578,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "48px",
+      top: "40px",
       bottom: "0px",
     });
     expect(topRail).toBeInTheDocument();
@@ -557,7 +589,7 @@ describe("BrowserView", () => {
       left: "0px",
       right: "0px",
       top: "0px",
-      height: "48px",
+      height: "40px",
     });
     expect(host).toHaveStyle({
       left: "0px",
@@ -612,14 +644,14 @@ describe("BrowserView", () => {
       const topRail = screen.getByTestId("browser-overlay-top-rail");
 
       expectInlineStyles(stage, {
-        top: "48px",
+        top: "40px",
       });
       expectInlineStyles(topRail, {
-        height: "48px",
+        height: "40px",
       });
       expectInlineStyles(leadingAction, {
         left: "72px",
-        top: "8px",
+        top: "4px",
       });
       const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
         name: "Close Web Preview",
@@ -680,7 +712,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "48px" });
+    expect(stage).toHaveStyle({ top: "40px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -701,7 +733,7 @@ describe("BrowserView", () => {
 
     expectInlineStyles(screen.getByTestId("browser-overlay-stage-shell"), {
       left: "0px",
-      top: "48px",
+      top: "40px",
       right: "0px",
       bottom: "0px",
     });
@@ -716,7 +748,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+          bounds: { x: 0, y: 40, width: 1400, height: 860 },
         },
       });
     });
@@ -742,7 +774,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "56px",
+      top: "48px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -773,7 +805,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "56px" });
+    expect(stage).toHaveStyle({ top: "48px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -954,7 +986,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+          bounds: { x: 0, y: 40, width: 1400, height: 860 },
         },
       });
     });
@@ -973,7 +1005,7 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 0, y: 48, width: 1200, height: 752 },
+          bounds: { x: 0, y: 40, width: 1200, height: 760 },
         },
       });
     });
@@ -1013,7 +1045,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 48, width: 1400, height: 852 },
+          bounds: { x: 0, y: 40, width: 1400, height: 860 },
         },
       });
     });

@@ -158,11 +158,11 @@
   --browser-overlay-shell-veil: linear-gradient(180deg, rgba(242, 241, 237, 0.96) 0%, rgba(242, 241, 237, 0.82) 100%);
   --browser-overlay-rail: linear-gradient(
     180deg,
-    rgba(242, 241, 237, 0.86) 0%,
-    rgba(242, 241, 237, 0.6) 66%,
-    rgba(242, 241, 237, 0.15) 100%
+    rgba(242, 241, 237, 0.94) 0%,
+    rgba(242, 241, 237, 0.82) 72%,
+    rgba(242, 241, 237, 0.42) 100%
   );
-  --browser-overlay-rail-border: rgba(38, 37, 30, 0.08);
+  --browser-overlay-rail-border: rgba(38, 37, 30, 0.14);
   --browser-overlay-state-detail-surface: rgba(247, 247, 244, 0.85);
   --browser-overlay-state-detail-border: rgba(38, 37, 30, 0.14);
   --overlay-action-surface: rgba(242, 241, 237, 0.78);
@@ -386,11 +386,11 @@
   --browser-overlay-shell-veil: linear-gradient(180deg, rgba(28, 25, 21, 0.96) 0%, rgba(28, 25, 21, 0.82) 100%);
   --browser-overlay-rail: linear-gradient(
     180deg,
-    rgba(28, 25, 21, 0.88) 0%,
-    rgba(28, 25, 21, 0.64) 66%,
-    rgba(28, 25, 21, 0.18) 100%
+    rgba(28, 25, 21, 0.94) 0%,
+    rgba(28, 25, 21, 0.82) 72%,
+    rgba(28, 25, 21, 0.42) 100%
   );
-  --browser-overlay-rail-border: rgba(243, 239, 230, 0.12);
+  --browser-overlay-rail-border: rgba(243, 239, 230, 0.18);
   --browser-overlay-state-detail-surface: rgba(38, 34, 29, 0.88);
   --browser-overlay-state-detail-border: rgba(243, 239, 230, 0.16);
   --overlay-action-surface: rgba(28, 25, 21, 0.78);
@@ -606,7 +606,18 @@ html.vertical-wipe-transition::view-transition-old(root) {
 
 html.vertical-wipe-transition::view-transition-new(root) {
   z-index: 2;
-  animation: vertical-wipe 0.5s ease-in-out forwards;
+  animation: vertical-wipe 0.75s ease-in-out forwards;
+}
+
+.motion-browser-theme-wipe-overlay {
+  animation: vertical-wipe 0.75s ease-in-out forwards;
+  will-change: clip-path;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-browser-theme-wipe-overlay {
+    animation: none;
+  }
 }
 
 .motion-disclosure-panel {

@@ -10,6 +10,7 @@ export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
 export const MOTION_POPUP_OVERLAY_CLASS_NAME = "motion-popup-overlay";
 export const MOTION_POPUP_DIALOG_CLASS_NAME = "motion-popup-dialog";
 export const MOTION_BROWSER_OVERLAY_CLASS_NAME = "motion-browser-overlay-panel";
+export const MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME = "motion-browser-theme-wipe-overlay";
 export const MOTION_DIGIT_GROUP_CLASS_NAME = "t-digit-group";
 export const MOTION_DIGIT_CLASS_NAME = "t-digit";
 export const MOTION_DIGIT_ANIMATING_CLASS_NAME = "is-animating";
@@ -26,6 +27,7 @@ export type MotionClassName =
   | typeof MOTION_POPUP_OVERLAY_CLASS_NAME
   | typeof MOTION_POPUP_DIALOG_CLASS_NAME
   | typeof MOTION_BROWSER_OVERLAY_CLASS_NAME
+  | typeof MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME
   | typeof MOTION_DIGIT_GROUP_CLASS_NAME
   | typeof MOTION_DIGIT_CLASS_NAME
   | typeof MOTION_DIGIT_ANIMATING_CLASS_NAME;
