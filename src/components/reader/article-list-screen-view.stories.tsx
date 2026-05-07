@@ -1,6 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
 import { fn } from "storybook/test";
 import { ArticleListScreenView } from "./article-list-screen-view";
+
+function StoryFrame({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
+  return (
+    <div className={dark ? "dark" : undefined}>
+      <div className="h-[480px] w-full max-w-[380px] overflow-hidden border border-border bg-card text-foreground">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const articleFixture = {
   id: "art-1",
@@ -77,9 +88,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="h-[480px] w-full max-w-[380px] overflow-hidden border border-border bg-card">
+      <StoryFrame>
         <Story />
-      </div>
+      </StoryFrame>
     ),
   ],
 } satisfies Meta<typeof ArticleListScreenView>;
@@ -135,4 +146,21 @@ export const SelectedJapaneseUnreadWithScrollbar: Story = {
       },
     ],
   },
+};
+
+export const SelectedJapaneseUnreadWithScrollbarLight: Story = {
+  args: SelectedJapaneseUnreadWithScrollbar.args,
+  name: "Selected Japanese Unread With Scrollbar / Light",
+};
+
+export const SelectedJapaneseUnreadWithScrollbarDark: Story = {
+  args: SelectedJapaneseUnreadWithScrollbar.args,
+  name: "Selected Japanese Unread With Scrollbar / Dark",
+  decorators: [
+    (Story) => (
+      <StoryFrame dark={true}>
+        <Story />
+      </StoryFrame>
+    ),
+  ],
 };

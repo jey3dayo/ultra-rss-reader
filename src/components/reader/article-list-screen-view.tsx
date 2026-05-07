@@ -115,7 +115,13 @@ export function ArticleListScreenView({
   }
 
   return (
-    <ScrollArea className="h-full" contentClassName="pb-4 pr-3" viewportRef={viewportRef}>
+    <ScrollArea
+      className="h-full"
+      contentClassName="pb-4 pr-3"
+      scrollbarClassName="data-vertical:bg-[color-mix(in_srgb,var(--background)_42%,var(--surface-2)_58%)] data-vertical:border-l-[color-mix(in_srgb,var(--color-border)_58%,transparent)]"
+      thumbClassName="bg-[color-mix(in_srgb,var(--color-border-strong)_72%,transparent)]"
+      viewportRef={viewportRef}
+    >
       <div data-testid="article-list-scroll-content">
         <div
           ref={listRef}
