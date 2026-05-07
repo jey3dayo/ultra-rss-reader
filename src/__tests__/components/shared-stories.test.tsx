@@ -13,6 +13,7 @@ import iconToolbarSurfaceButtonMeta, {
 import labeledInputRowMeta, {
   Disabled as LabeledInputRowDisabled,
   InsideIconAction as LabeledInputRowInsideIconAction,
+  InsideTextAction as LabeledInputRowInsideTextAction,
 } from "@/components/shared/labeled-input-row.stories";
 import labeledSelectRowMeta, { Open as LabeledSelectRowOpen } from "@/components/shared/labeled-select-row.stories";
 import labeledSwitchRowMeta, { On as LabeledSwitchRowOn } from "@/components/shared/labeled-switch-row.stories";
@@ -41,6 +42,14 @@ describe("Shared stories", () => {
     renderStory(labeledInputRowMeta, LabeledInputRowInsideIconAction);
     expect(screen.getByRole("textbox", { name: "Username" })).toHaveValue("ultra-reader");
     expect(screen.getByRole("button", { name: "Reset username" })).toBeInTheDocument();
+
+    cleanup();
+    renderStory(labeledInputRowMeta, LabeledInputRowInsideTextAction);
+    expect(screen.getByRole("textbox", { name: "Feed or Site URL" })).toHaveAttribute(
+      "placeholder",
+      "https://example.com/feed.xml",
+    );
+    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("h-7", "min-w-14");
 
     cleanup();
     renderStory(labeledInputRowMeta, LabeledInputRowDisabled);

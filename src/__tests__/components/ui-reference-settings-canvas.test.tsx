@@ -100,8 +100,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Reset: Display name" })).toHaveClass("h-10", "px-4");
     expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveClass("h-10", "flex-1");
     expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-10", "px-4");
-    expect(screen.getByRole("textbox", { name: "API token" })).toHaveClass("pr-11");
-    expect(screen.getByRole("button", { name: "Reset token" })).toHaveClass("absolute", "right-1");
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("pr-20");
+    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("absolute", "right-1", "h-7", "min-w-14");
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
 

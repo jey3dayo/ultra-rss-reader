@@ -11,7 +11,6 @@ import {
   Palette,
   Plus,
   RefreshCw,
-  RotateCcw,
   Save,
   Settings2,
   Share,
@@ -1073,19 +1072,15 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
         actionDisabled={false}
       />
       <LabeledInputRow
-        label="API token"
-        name="api_token"
-        value="sk_live_••••••••••••••••"
+        label="Feed URL"
+        name="feed_url"
+        type="url"
+        value=""
         onChange={() => {}}
-        placeholder="sk_live_..."
-        inputClassName="h-10"
-        actionLabel="Reset token"
-        actionAriaLabel="Reset token"
-        actionTooltipLabel="Reset token"
-        actionIcon={<RotateCcw />}
+        placeholder="https://example.com/feed.xml"
+        actionLabel="Discover"
+        actionAriaLabel="Discover feed"
         actionPlacement="inside"
-        actionVariant="ghost"
-        actionSize="icon-sm"
         onAction={() => {}}
       />
       <LabeledSelectRow

@@ -53,6 +53,20 @@ export const InsideIconAction: Story = {
   },
 };
 
+export const InsideTextAction: Story = {
+  args: {
+    label: "Feed or Site URL",
+    name: "feed-url",
+    type: "url",
+    value: "",
+    placeholder: "https://example.com/feed.xml",
+    actionLabel: "Discover",
+    actionAriaLabel: "Discover feed",
+    actionPlacement: "inside",
+    onAction: fn(),
+  },
+};
+
 export const LongLabelActions: Story = {
   args: {
     label: "Workspace synchronization endpoint URL",

@@ -108,6 +108,28 @@ describe("shared form controls", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it("renders inside text actions with the shared compact treatment", () => {
+    render(
+      <LabeledInputRow
+        label="Feed URL"
+        name="feed-url"
+        value=""
+        onChange={vi.fn()}
+        placeholder="https://example.com/feed.xml"
+        actionLabel="Discover"
+        actionAriaLabel="Discover feed"
+        actionPlacement="inside"
+        onAction={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Feed URL" });
+    const actionButton = screen.getByRole("button", { name: "Discover feed" });
+
+    expect(input).toHaveClass("pr-20");
+    expect(actionButton).toHaveClass("absolute", "right-1", "h-7", "min-w-14", "px-2", "text-xs");
+  });
+
   it("exposes select and switch rows with label-driven accessible names", async () => {
     const user = userEvent.setup();
     const onSelectChange = vi.fn();
