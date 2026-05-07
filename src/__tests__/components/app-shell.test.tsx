@@ -315,7 +315,8 @@ describe("AppShell", () => {
 
     render(<AppShell />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId("app-toast")).toHaveClass("top-1", "left-1/2", "-translate-x-1/2");
+    expect(screen.getByTestId("app-toast")).toHaveClass("top-1", "right-20");
+    expect(screen.getByTestId("app-toast")).not.toHaveClass("left-1/2");
     expect(screen.getByTestId("app-toast")).not.toHaveClass("bottom-4");
   });
 

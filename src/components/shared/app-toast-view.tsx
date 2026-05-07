@@ -33,10 +33,11 @@ export function AppToastView({
       className={cn(
         MOTION_POPUP_SURFACE_CLASS_NAME,
         position === "fixed" && placement === "bottom-right" && "fixed right-4 bottom-4 z-[100]",
-        showInBrowserRail && "fixed top-1 left-1/2 z-[100] -translate-x-1/2",
+        showInBrowserRail && "fixed top-1 right-20 z-[100]",
         position === "static" && "relative",
         "flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-elevation-2",
-        showInBrowserRail && "max-w-[min(26rem,calc(100vw-10rem))] gap-0 px-3 py-1 text-xs shadow-elevation-1",
+        showInBrowserRail &&
+          "max-w-[min(22rem,calc(100vw-12rem))] gap-0 rounded-md px-3 py-1 text-xs shadow-elevation-1",
         variant === "update" && UPDATE_TOAST_WIDTH_CLASS_NAME,
       )}
     >
