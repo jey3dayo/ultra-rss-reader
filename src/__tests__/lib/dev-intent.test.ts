@@ -156,7 +156,31 @@ describe("dev-intent helpers", () => {
       dev_window_width: 640,
       dev_window_height: 820,
     });
+    expect(readDevIntent()).toBe("open-command-palette");
+    expect(readDevWebUrl()).toBe("https://example.com/runtime");
+    expect(readDevWindowSize()).toEqual({ width: 640, height: 820 });
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps explicit env dev options ahead of loaded runtime values", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "open-web-preview-url");
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/env");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-command-palette",
+        dev_web_url: "https://example.com/runtime",
+        dev_window_width: 640,
+        dev_window_height: 820,
+      }),
+    );
+
+    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+
+    expect(readDevIntent()).toBe("open-web-preview-url");
+    expect(readDevWebUrl()).toBe("https://example.com/env");
+    expect(readDevWindowSize()).toEqual({ width: 520, height: 900 });
   });
 
   it("returns typed runtime option failures for unavailable contexts", async () => {
