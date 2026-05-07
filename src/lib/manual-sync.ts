@@ -60,22 +60,42 @@ type TriggerManualSyncWithCooldownParams = {
   onError: (error: AppError) => void;
 };
 
-export async function triggerManualSyncWithCooldown({
-  onRequestStart,
-  onCooldown,
-  onSuccess,
-  onError,
-}: TriggerManualSyncWithCooldownParams) {
+export type TriggerManualSyncWithCooldownError = AppError | { type: "cooling_down" };
+
+export async function triggerManualSyncWithCooldownResult(
+  onRequestStart?: () => void,
+): Result.ResultAsync<SyncResultDto, TriggerManualSyncWithCooldownError> {
   if (isManualSyncCoolingDown()) {
-    onCooldown();
-    return;
+    return Result.fail({ type: "cooling_down" });
   }
 
   onRequestStart?.();
   const result = await triggerSync();
   setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
 
-  Result.pipe(result, Result.inspect(onSuccess), Result.inspectError(onError));
+  return result;
+}
+
+export async function triggerManualSyncWithCooldown({
+  onRequestStart,
+  onCooldown,
+  onSuccess,
+  onError,
+}: TriggerManualSyncWithCooldownParams) {
+  const result = await triggerManualSyncWithCooldownResult(onRequestStart);
+
+  if (Result.isFailure(result)) {
+    const error = Result.unwrapError(result);
+    if (error.type === "cooling_down") {
+      onCooldown();
+      return;
+    }
+
+    onError(error);
+    return;
+  }
+
+  onSuccess(Result.unwrap(result));
 }
 
 export function resetManualSyncCooldownForTests() {

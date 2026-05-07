@@ -1,14 +1,14 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
-import { checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
+import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import { attachTauriListeners } from "@/lib/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
 type UpdateInfo = { version: string; body: string | null };
 
 /** Share a single in-flight update check across startup and manual triggers. */
-let checkInFlight: Promise<UpdateInfo | null> | null = null;
+let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
 
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
@@ -107,21 +107,11 @@ export function showRestartToast(): void {
   });
 }
 
-/**
- * Perform an update check with concurrency guard.
- * Returns the update info if available, null otherwise.
- * Rejects if the check fails.
- */
-export async function performUpdateCheck(): Promise<UpdateInfo | null> {
+export async function performUpdateCheckResult(): Result.ResultAsync<UpdateInfo | null, AppError> {
   if (checkInFlight) return checkInFlight;
 
   checkInFlight = (async () => {
-    const result = await checkForUpdate();
-    return Result.pipe(
-      result,
-      Result.map((info) => info),
-      Result.unwrap(),
-    );
+    return await checkForUpdate();
   })();
 
   try {
@@ -131,34 +121,54 @@ export async function performUpdateCheck(): Promise<UpdateInfo | null> {
   }
 }
 
+/**
+ * Perform an update check with concurrency guard.
+ * Returns the update info if available, null otherwise.
+ * Rejects if the check fails.
+ */
+export async function performUpdateCheck(): Promise<UpdateInfo | null> {
+  const result = await performUpdateCheckResult();
+  if (Result.isFailure(result)) {
+    throw Result.unwrapError(result);
+  }
+
+  return Result.unwrap(result);
+}
+
 export async function runManualUpdateCheck(): Promise<void> {
   const store = useUiStore.getState();
 
-  try {
-    const info = await performUpdateCheck();
-    if (info) {
-      showUpdateAvailableToast(info.version);
-      return;
-    }
-    store.showToast("最新バージョンです");
-  } catch (e: unknown) {
-    console.error("Manual update check failed:", e);
+  const result = await performUpdateCheckResult();
+  if (Result.isFailure(result)) {
+    console.error("Manual update check failed:", Result.unwrapError(result));
     store.showToast("アップデートの確認に失敗しました");
+    return;
   }
+
+  const info = Result.unwrap(result);
+  if (info) {
+    showUpdateAvailableToast(info.version);
+    return;
+  }
+  store.showToast("最新バージョンです");
 }
 
 export function useUpdater(): void {
   useEffect(() => {
     // Startup check (silent on failure)
-    performUpdateCheck()
-      .then((info) => {
-        if (info) {
-          showUpdateAvailableToast(info.version);
-        }
-      })
-      .catch((e: unknown) => {
-        console.warn("Startup update check failed (silent):", e);
-      });
+    performUpdateCheckResult().then((result) => {
+      Result.pipe(
+        result,
+        Result.inspect((info) => {
+          if (info) {
+            showUpdateAvailableToast(info.version);
+          }
+        }),
+        Result.inspectError((error) => {
+          console.warn("Startup update check failed (silent):", error);
+        }),
+      );
+    });
 
     return attachTauriListeners(
       [

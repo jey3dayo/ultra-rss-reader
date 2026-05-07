@@ -27,7 +27,7 @@ describe("extractSiteHost", () => {
   it("returns the raw string when URL parsing fails", () => {
     const result = extractSiteHost("", "not-a-url");
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result)).toBe("not-a-url");
+    expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "not-a-url" });
   });
 
   it("prefers site_url over feed url", () => {
@@ -38,18 +38,25 @@ describe("extractSiteHost", () => {
   it("returns error with raw string when both site_url and feed url are unparseable", () => {
     const result = extractSiteHost("not-valid", "");
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result)).toBe("not-valid");
+    expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "not-valid" });
   });
 
   it("uses site_url even if invalid (matches original behavior)", () => {
     // When site_url is truthy but invalid, the function tries to parse it and fails
     const result = extractSiteHost("not-valid", "https://feed.example.com/rss");
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result)).toBe("not-valid");
+    expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "not-valid" });
+  });
+
+  it("returns a typed error when both urls are missing", () => {
+    const result = extractSiteHost("", "");
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({ type: "missing_url" });
   });
 
   it("resolves a host label without exposing Result handling to callers", () => {
     expect(resolveSiteHostLabel("https://example.com/path", "https://fallback.com/feed.xml")).toBe("example.com");
     expect(resolveSiteHostLabel("", "not-a-url")).toBe("not-a-url");
+    expect(resolveSiteHostLabel("", "")).toBe("");
   });
 });

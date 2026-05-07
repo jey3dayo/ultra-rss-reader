@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
   type ResolvedArticleDisplay,
@@ -8,11 +9,13 @@ import {
 import { selectVisibleArticles } from "@/lib/article-list";
 import type { ReaderFilter } from "@/lib/reader-query";
 
-export function resolveFeedLandingArticle(params: {
+export type ResolveFeedLandingArticleError = "no_visible_article";
+
+export function resolveFeedLandingArticleResult(params: {
   articles: ArticleDto[];
   sortUnread: string;
   viewMode?: ReaderFilter;
-}): ArticleDto | null {
+}): Result.Result<ArticleDto, ResolveFeedLandingArticleError> {
   const visibleArticles = selectVisibleArticles({
     articles: undefined,
     accountArticles: params.articles,
@@ -28,7 +31,17 @@ export function resolveFeedLandingArticle(params: {
     retainedArticleIds: new Set<string>(),
   });
 
-  return visibleArticles[0] ?? null;
+  const landingArticle = visibleArticles[0];
+  return landingArticle ? Result.succeed(landingArticle) : Result.fail("no_visible_article");
+}
+
+export function resolveFeedLandingArticle(params: {
+  articles: ArticleDto[];
+  sortUnread: string;
+  viewMode?: ReaderFilter;
+}): ArticleDto | null {
+  const result = resolveFeedLandingArticleResult(params);
+  return Result.isSuccess(result) ? Result.unwrap(result) : null;
 }
 
 export function resolveFeedLandingDisplay(params: {

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
-import { resolveFeedLandingArticle, resolveFeedLandingDisplay } from "@/lib/feed-landing";
+import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -50,16 +50,17 @@ export function useFeedLanding() {
             ),
         });
 
-        const landingArticle = resolveFeedLandingArticle({
+        const landingArticleResult = resolveFeedLandingArticleResult({
           articles,
           sortUnread,
           viewMode: preserveStarredContext ? "starred" : "unread",
         });
-        if (!landingArticle) {
+        if (Result.isFailure(landingArticleResult)) {
           store.closeBrowser();
           return;
         }
 
+        const landingArticle = Result.unwrap(landingArticleResult);
         store.selectArticle(landingArticle.id);
 
         const resolvedDisplay = resolveFeedLandingDisplay({

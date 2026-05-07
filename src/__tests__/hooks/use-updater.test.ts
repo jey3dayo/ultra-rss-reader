@@ -64,6 +64,30 @@ describe("performUpdateCheck", () => {
     await expect(secondCheck).resolves.toEqual({ version: "1.2.3", body: null });
   });
 
+  it("returns a typed result when no update is available", async () => {
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+
+    const { performUpdateCheckResult } = await import("@/hooks/use-updater");
+
+    const result = await performUpdateCheckResult();
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(Result.unwrap(result)).toBeNull();
+  });
+
+  it("returns a typed error and keeps the compatibility wrapper rejection on failure", async () => {
+    const error = { type: "UserVisible", message: "network down" };
+    mockCheckForUpdate.mockResolvedValue(Result.fail(error));
+
+    const { performUpdateCheck, performUpdateCheckResult } = await import("@/hooks/use-updater");
+
+    const result = await performUpdateCheckResult();
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual(error);
+
+    await expect(performUpdateCheck()).rejects.toEqual(error);
+  });
+
   it("shows a fallback toast that keeps the current version when download fails", async () => {
     mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail({ type: "UserVisible", message: "network down" }));
 

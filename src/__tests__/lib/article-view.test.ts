@@ -233,6 +233,23 @@ describe("buildArticleViewSummary", () => {
     ).toBeUndefined();
   });
 
+  it("uses the feed id from the selection when resolving feed summaries", () => {
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedFeedId: null,
+      feeds: sampleFeeds,
+      folders: [],
+      tags: [],
+      filteredArticles: sampleArticles,
+      allFeedArticles: sampleArticles,
+    });
+
+    expect(Result.unwrap(result)).toMatchObject({
+      kind: "feed",
+      feed: expect.objectContaining({ id: "feed-1" }),
+    });
+  });
+
   it("counts folder feeds and unread visible articles for folder summaries", () => {
     const folders: FolderDto[] = [
       {

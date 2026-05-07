@@ -1,6 +1,11 @@
+import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { resolveFeedLandingArticle, resolveFeedLandingDisplay } from "@/lib/feed-landing";
+import {
+  resolveFeedLandingArticle,
+  resolveFeedLandingArticleResult,
+  resolveFeedLandingDisplay,
+} from "@/lib/feed-landing";
 
 const baseArticles: ArticleDto[] = [
   {
@@ -39,6 +44,9 @@ describe("resolveFeedLandingArticle", () => {
   it("returns null when the unread landing list would be empty", () => {
     const allRead = baseArticles.map((article) => ({ ...article, is_read: true }));
     expect(resolveFeedLandingArticle({ articles: allRead, sortUnread: "newest_first" })).toBeNull();
+    expect(Result.unwrapError(resolveFeedLandingArticleResult({ articles: allRead, sortUnread: "newest_first" }))).toBe(
+      "no_visible_article",
+    );
   });
 
   it("returns the first visible starred article in starred mode", () => {

@@ -6,6 +6,7 @@ import {
   resetManualSyncCooldownForTests,
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
+  triggerManualSyncWithCooldownResult,
 } from "@/lib/manual-sync";
 
 const { triggerSyncMock } = vi.hoisted(() => ({
@@ -80,6 +81,40 @@ describe("manual-sync", () => {
     expect(triggerSyncMock).toHaveBeenCalledTimes(1);
     expect(onRequestStart).toHaveBeenCalledTimes(1);
     expect(onCooldown).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a typed cooldown error from the Result API", async () => {
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    const result = await triggerManualSyncWithCooldownResult();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({ type: "cooling_down" });
+    expect(triggerSyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns AppError from the Result API and preserves wrapper error callback", async () => {
+    const appError = { type: "UserVisible", message: "sync failed" };
+    const onError = vi.fn();
+    triggerSyncMock.mockResolvedValue(Result.fail(appError));
+
+    const result = await triggerManualSyncWithCooldownResult();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual(appError);
+
+    resetManualSyncCooldownForTests();
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess: vi.fn(),
+      onError,
+    });
+
+    expect(onError).toHaveBeenCalledWith(appError);
   });
 
   it("stops notifying an unsubscribed cooldown listener", () => {

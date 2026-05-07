@@ -209,7 +209,7 @@ export function resolveArticleSummaryWebsiteLabel(feed: FeedDto): string | null 
 export function buildArticleViewSummaryResult(
   params: BuildArticleViewSummaryParams,
 ): Result.Result<ArticleViewSummaryState, BuildArticleViewSummaryError> {
-  const { selection, selectedFeedId, feeds, folders, tags, filteredArticles, allFeedArticles } = params;
+  const { selection, feeds, folders, tags, filteredArticles, allFeedArticles } = params;
   if (selection.type === "all") {
     return Result.fail("summary_not_available");
   }
@@ -217,7 +217,7 @@ export function buildArticleViewSummaryResult(
   const summaryStats = buildArticleViewSummaryStats(filteredArticles);
 
   if (selection.type === "feed") {
-    const feed = selectedFeedId ? feeds?.find((candidate) => candidate.id === selectedFeedId) : undefined;
+    const feed = feeds?.find((candidate) => candidate.id === selection.feedId);
     const latestFeedArticleResult = findLatestArticle(allFeedArticles);
     const latestFeedArticle = Result.isSuccess(latestFeedArticleResult) ? Result.unwrap(latestFeedArticleResult) : null;
 
