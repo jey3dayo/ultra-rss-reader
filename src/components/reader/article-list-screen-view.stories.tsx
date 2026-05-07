@@ -1,15 +1,40 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { fn } from "storybook/test";
 import { ArticleListScreenView } from "./article-list-screen-view";
 
-function StoryFrame({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
+type CssVariableProperties = CSSProperties & Record<`--${string}`, string | number>;
+
+const darkStoryFrameStyle: CssVariableProperties = {
+  colorScheme: "dark",
+  "--background": "#1c1915",
+  "--foreground": "#f3efe6",
+  "--card": "#26221d",
+  "--border": "rgba(243, 239, 230, 0.12)",
+  "--border-strong": "rgba(243, 239, 230, 0.22)",
+  "--surface-1": "#221e19",
+  "--surface-2": "#27231d",
+  "--surface-3": "#2d2822",
+  "--surface-4": "#363028",
+  "--color-border": "rgba(243, 239, 230, 0.12)",
+  "--color-border-strong": "rgba(243, 239, 230, 0.22)",
+};
+
+function StoryFrame({ children, theme = "light" }: { children: ReactNode; theme?: "light" | "dark" }) {
   return (
-    <div className={dark ? "dark" : undefined}>
+    <div className={theme === "dark" ? "dark" : undefined} style={theme === "dark" ? darkStoryFrameStyle : undefined}>
       <div className="h-[480px] w-full max-w-[380px] overflow-hidden border border-border bg-card text-foreground">
         {children}
       </div>
     </div>
+  );
+}
+
+function withTheme(theme: "light" | "dark") {
+  return (Story: () => ReactNode) => (
+    <StoryFrame theme={theme}>
+      <Story />
+    </StoryFrame>
   );
 }
 
@@ -86,13 +111,7 @@ const meta = {
     selectionStyle: "modern",
     onSelectArticle: fn(),
   },
-  decorators: [
-    (Story) => (
-      <StoryFrame>
-        <Story />
-      </StoryFrame>
-    ),
-  ],
+  decorators: [withTheme("light")],
 } satisfies Meta<typeof ArticleListScreenView>;
 
 export default meta;
@@ -151,16 +170,11 @@ export const SelectedJapaneseUnreadWithScrollbar: Story = {
 export const SelectedJapaneseUnreadWithScrollbarLight: Story = {
   args: SelectedJapaneseUnreadWithScrollbar.args,
   name: "Selected Japanese Unread With Scrollbar / Light",
+  decorators: [withTheme("light")],
 };
 
 export const SelectedJapaneseUnreadWithScrollbarDark: Story = {
   args: SelectedJapaneseUnreadWithScrollbar.args,
   name: "Selected Japanese Unread With Scrollbar / Dark",
-  decorators: [
-    (Story) => (
-      <StoryFrame dark={true}>
-        <Story />
-      </StoryFrame>
-    ),
-  ],
+  decorators: [withTheme("dark")],
 };
