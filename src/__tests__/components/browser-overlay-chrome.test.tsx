@@ -8,7 +8,9 @@ import type {
   BrowserViewSurfacePresentation,
 } from "@/components/reader/browser-view.types";
 
-function createController(overrides?: Partial<BrowserOverlayChromeController>): BrowserOverlayChromeController {
+function createController(
+  overrides?: Partial<BrowserOverlayChromeController>,
+): BrowserOverlayChromeController {
   return {
     browserState: {
       url: "https://example.com/article",
@@ -102,18 +104,32 @@ describe("BrowserOverlayChrome", () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
 
-    render(<BrowserOverlayChrome closeLabel="Close browser overlay" onClose={onClose} />);
+    render(
+      <BrowserOverlayChrome
+        closeLabel="Close browser overlay"
+        onClose={onClose}
+      />,
+    );
 
     expect(screen.getAllByRole("button")).toHaveLength(1);
-    await user.click(screen.getByRole("button", { name: "Close browser overlay" }));
+    await user.click(
+      screen.getByRole("button", { name: "Close browser overlay" }),
+    );
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the close control as a chrome shell affordance with keyboard-visible focus and tactile active feedback", () => {
-    render(<BrowserOverlayChrome closeLabel="Close browser overlay" onClose={() => {}} />);
+    render(
+      <BrowserOverlayChrome
+        closeLabel="Close browser overlay"
+        onClose={() => {}}
+      />,
+    );
 
-    const closeButton = screen.getByRole("button", { name: "Close browser overlay" });
+    const closeButton = screen.getByRole("button", {
+      name: "Close browser overlay",
+    });
     const closeSurface = closeButton.closest("[data-overlay-shell='action']");
 
     expect(closeSurface).not.toBeNull();
@@ -125,7 +141,9 @@ describe("BrowserOverlayChrome", () => {
     expect(closeSurface).toHaveClass("hover:bg-transparent");
     expect(closeSurface).toHaveClass("has-[:focus-visible]:bg-transparent");
     expect(closeSurface).toHaveClass("has-[:focus-visible]:ring-0");
-    expect(closeSurface).toHaveClass("has-[:active]:bg-overlay-action-surface-chrome-active");
+    expect(closeSurface).toHaveClass(
+      "has-[:active]:bg-overlay-action-surface-chrome-active",
+    );
     expect(closeSurface).not.toHaveClass("border");
     expect(closeSurface).not.toHaveClass("border-transparent");
   });
@@ -151,13 +169,23 @@ describe("BrowserOverlayChrome", () => {
     );
 
     const leadingChrome = within(screen.getByTestId("browser-overlay-chrome"));
-    const closeButton = leadingChrome.getByRole("button", { name: "Close Web Preview" });
+    const closeButton = leadingChrome.getByRole("button", {
+      name: "Close Web Preview",
+    });
     const backButton = leadingChrome.getByRole("button", { name: "Web back" });
-    const forwardButton = leadingChrome.getByRole("button", { name: "Web forward" });
+    const forwardButton = leadingChrome.getByRole("button", {
+      name: "Web forward",
+    });
 
-    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass(
+      "size-11",
+    );
+    expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass(
+      "size-11",
+    );
+    expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass(
+      "size-11",
+    );
     expect(backButton.querySelector(".lucide-chevron-left")).not.toBeNull();
     expect(closeButton.querySelector(".lucide-x")).not.toBeNull();
     expect(backButton).toBeEnabled();
@@ -189,7 +217,9 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    const backButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+    const backButton = within(
+      screen.getByTestId("browser-overlay-chrome"),
+    ).getByRole("button", {
       name: "Web back",
     });
     expect(backButton).toBeEnabled();
@@ -256,13 +286,21 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+    const closeButton = within(
+      screen.getByTestId("browser-overlay-chrome"),
+    ).getByRole("button", {
       name: "Close Web Preview",
     });
-    const externalButton = screen.getByRole("button", { name: /open in external browser/i });
+    const externalButton = screen.getByRole("button", {
+      name: /open in external browser/i,
+    });
 
-    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(externalButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass(
+      "size-11",
+    );
+    expect(externalButton.closest("[data-overlay-shell='action']")).toHaveClass(
+      "size-11",
+    );
   });
 
   it("keeps custom toolbar actions inside the shared chrome shell action lane", async () => {
@@ -276,11 +314,20 @@ describe("BrowserOverlayChrome", () => {
         controller={controller}
         presentation={presentation}
         closeWebPreviewLabel="Close Web Preview"
-        toolbarActions={[{ key: "a", label: "Custom Action A", onClick: onCustomAction, icon: <span>A</span> }]}
+        toolbarActions={[
+          {
+            key: "a",
+            label: "Custom Action A",
+            onClick: onCustomAction,
+            icon: <span>A</span>,
+          },
+        ]}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Custom Action A" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Custom Action A" }),
+    ).toBeInTheDocument();
     const firstSurface = screen
       .getByRole("button", { name: "Custom Action A" })
       .closest("[data-overlay-shell='action']");
@@ -312,7 +359,33 @@ describe("BrowserOverlayChrome", () => {
       .map((button) => button.getAttribute("aria-label"))
       .filter((label): label is string => label !== null);
 
-    expect(toolbarButtons).toEqual(["Reload page", "Open in External Browser", "Share"]);
+    expect(toolbarButtons).toEqual([
+      "Reload page",
+      "Open in External Browser",
+      "Share",
+    ]);
+  });
+
+  it("keeps trailing chrome tooltips out of the native webview area", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <BrowserOverlayChrome
+        controller={createController()}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+        toolbarActions={shareToolbarActions}
+      />,
+    );
+
+    await user.hover(
+      screen.getByRole("button", { name: "Open in External Browser" }),
+    );
+
+    expect(await screen.findByText("Open in External Browser")).toHaveAttribute(
+      "data-app-tooltip-side",
+      "left",
+    );
   });
 
   it("spins the back icon briefly after an accepted click", async () => {

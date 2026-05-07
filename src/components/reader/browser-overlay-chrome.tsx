@@ -1,6 +1,18 @@
-import { ChevronLeft, ChevronRight, ExternalLink, RotateCw, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  RotateCw,
+  X,
+} from "lucide-react";
 import type { ReactNode } from "react";
-import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,7 +32,11 @@ function BrowserOverlayCloseOnlyChrome({
   onClose,
 }: Extract<BrowserOverlayChromeProps, { closeLabel: string }>) {
   return (
-    <IconToolbarSurfaceButton label={closeLabel} onClick={onClose} variant="chrome">
+    <IconToolbarSurfaceButton
+      label={closeLabel}
+      onClick={onClose}
+      variant="chrome"
+    >
       <X aria-hidden="true" className="size-4" />
     </IconToolbarSurfaceButton>
   );
@@ -33,6 +49,7 @@ function BrowserOverlayIconAction({
   onClick,
   disabled = false,
   spinning = false,
+  tooltipSide,
   children,
 }: {
   actionKey: string;
@@ -41,6 +58,7 @@ function BrowserOverlayIconAction({
   onClick: () => void | Promise<void>;
   disabled?: boolean;
   spinning?: boolean;
+  tooltipSide?: "top" | "right" | "bottom" | "left";
   children: ReactNode;
 }) {
   const content = isValidElement<{ className?: string }>(children)
@@ -59,6 +77,7 @@ function BrowserOverlayIconAction({
         void onClick();
       }}
       disabled={disabled}
+      tooltipSide={tooltipSide}
     >
       {content}
     </IconToolbarSurfaceButton>
@@ -67,7 +86,9 @@ function BrowserOverlayIconAction({
 
 export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const { t } = useTranslation("reader");
-  const [activeFeedbackAction, setActiveFeedbackAction] = useState<string | null>(null);
+  const [activeFeedbackAction, setActiveFeedbackAction] = useState<
+    string | null
+  >(null);
   const feedbackTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -82,7 +103,8 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
     return <BrowserOverlayCloseOnlyChrome {...props} />;
   }
 
-  const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;
+  const { controller, presentation, closeWebPreviewLabel, toolbarActions } =
+    props;
 
   const startAcceptedFeedback = (actionKey: string) => {
     setActiveFeedbackAction(actionKey);
@@ -107,7 +129,10 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         }}
         className="pointer-events-none absolute z-[60]"
       >
-        <div data-testid="browser-overlay-chrome" className="pointer-events-auto flex items-center gap-2">
+        <div
+          data-testid="browser-overlay-chrome"
+          className="pointer-events-auto flex items-center gap-2"
+        >
           <BrowserOverlayIconAction
             actionKey="close-web-preview"
             compact={presentation.leadingActionSurface.compact}
@@ -122,7 +147,9 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             label={t("web_back")}
             onClick={() => {
               startAcceptedFeedback("browser-back");
-              return controller.browserState?.can_go_back ? controller.handleGoBack() : controller.handleCloseOverlay();
+              return controller.browserState?.can_go_back
+                ? controller.handleGoBack()
+                : controller.handleCloseOverlay();
             }}
             disabled={!controller.browserState}
             spinning={activeFeedbackAction === "browser-back"}
@@ -157,6 +184,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="reload-web-preview"
             compact={presentation.actionButtonSurface.compact}
             label={t("reload_page")}
+            tooltipSide="left"
             onClick={() => {
               startAcceptedFeedback("reload-web-preview");
               return controller.handleReload();
@@ -170,6 +198,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="open-external-browser"
             compact={presentation.actionButtonSurface.compact}
             label={t("open_in_external_browser")}
+            tooltipSide="left"
             onClick={controller.handleOpenExternal}
             disabled={!controller.browserState}
           >
@@ -181,6 +210,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
               actionKey={action.key}
               compact={presentation.actionButtonSurface.compact}
               label={action.label}
+              tooltipSide="left"
               onClick={action.onClick}
               disabled={action.disabled}
             >

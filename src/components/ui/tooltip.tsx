@@ -9,19 +9,29 @@ export type TooltipProviderProps = {
 export type AppTooltipProps = {
   label: string;
   children: React.ReactElement;
+  side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
+  sideOffset?: number;
 };
 
 export function TooltipProvider({ children }: TooltipProviderProps) {
   return <Tooltip.Provider>{children}</Tooltip.Provider>;
 }
 
-export function AppTooltip({ label, children }: AppTooltipProps) {
+export function AppTooltip({
+  label,
+  children,
+  side = "bottom",
+  align = "center",
+  sideOffset = 8,
+}: AppTooltipProps) {
   return (
     <Tooltip.Root>
       <Tooltip.Trigger render={children} />
       <Tooltip.Portal>
-        <Tooltip.Positioner side="bottom" sideOffset={8}>
+        <Tooltip.Positioner side={side} align={align} sideOffset={sideOffset}>
           <Tooltip.Popup
+            data-app-tooltip-side={side}
             className={cn(
               MOTION_POPUP_SURFACE_CLASS_NAME,
               "z-[80] rounded-md border border-border/70 bg-surface-1/96 px-2 py-1 text-xs text-foreground shadow-elevation-1",
