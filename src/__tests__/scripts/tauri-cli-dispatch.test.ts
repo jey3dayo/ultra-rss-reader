@@ -58,6 +58,7 @@ describe("buildLocalTauriSpawnSpec", () => {
     const spawnSpec = buildLocalTauriSpawnSpec(
       ["dev", "-c", "src-tauri/tauri.dev.conf.json"],
       "file:///C:/repo/scripts/tauri-cli-dispatch.ts",
+      "darwin",
     );
 
     expect(spawnSpec.command).toBe("pnpm");
