@@ -38,7 +38,7 @@ export function SidebarFooterActions({
   const iconButtonClassName = cn(footerButtonClassName, "size-8 px-0");
   const subscriptionsButtonClassName = cn(
     footerButtonClassName,
-    "mr-auto min-w-0 max-w-[calc(100%-4.5rem)] justify-start gap-1.5 px-2 text-[0.82rem] font-medium",
+    "mr-auto min-w-0 max-w-[calc(100%-4.5rem)] justify-start gap-1.5 px-2 text-[0.86rem] font-medium",
   );
 
   return (
@@ -52,7 +52,7 @@ export function SidebarFooterActions({
           onClick={onOpenSubscriptionsIndex}
           className={subscriptionsButtonClassName}
         >
-          <Rss className="size-3.5 shrink-0" />
+          <Rss className="size-4 shrink-0" />
           <span className="min-w-0 truncate">{subscriptionsIndexShortLabel}</span>
         </SidebarFooterTooltipButton>
         <SidebarFooterTooltipButton
@@ -63,7 +63,7 @@ export function SidebarFooterActions({
           onClick={() => setPref("theme", isDarkTheme ? "light" : "dark")}
           className={iconButtonClassName}
         >
-          {isDarkTheme ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+          {isDarkTheme ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </SidebarFooterTooltipButton>
         <SidebarFooterTooltipButton
           tooltipLabel={settingsLabel}
@@ -73,7 +73,7 @@ export function SidebarFooterActions({
           onClick={onOpenSettings}
           className={iconButtonClassName}
         >
-          <Settings className="size-3.5" />
+          <Settings className="size-4" />
         </SidebarFooterTooltipButton>
       </div>
     </TooltipProvider>

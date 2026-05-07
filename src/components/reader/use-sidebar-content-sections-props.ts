@@ -33,7 +33,7 @@ export function useSidebarContentSectionsProps({
     renderSubscriptionsSectionContextMenu,
     viewportRef: feedViewportRef,
     subscriptionsIndexLabel: t("subscriptions_index"),
-    subscriptionsIndexShortLabel: t("subscriptions"),
+    subscriptionsIndexShortLabel: t("subscriptions_index"),
     settingsLabel: t("settings"),
     themeToggleLabel: t("theme_toggle"),
     onOpenSubscriptionsIndex: openSubscriptionsIndex,
