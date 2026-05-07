@@ -23,6 +23,9 @@ const articleToolbarVisualActiveClassNames = {
     "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)] focus-visible:bg-[var(--semantic-tone-starred-surface)] focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
 } as const;
 
+const articleToolbarUnavailableClassName =
+  "disabled:opacity-35 disabled:saturate-0 disabled:hover:bg-transparent disabled:focus-visible:bg-transparent";
+
 function ArticleToolbarMoreMenu({
   showCopyLinkButton,
   canCopyLink,
@@ -102,6 +105,7 @@ function ArticleToolbarMobilePrimaryButton({
       disabled={disabled}
       className={cn(
         "inline-flex size-9 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        articleToolbarUnavailableClassName,
         active && articleToolbarVisualActiveClassNames[activeTone],
       )}
     >
@@ -186,7 +190,10 @@ export function ArticleToolbarActionStrip({
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
             disabled={!canToggleRead}
             pressedTone="none"
-            className={cn(hasArticle && !isRead && articleToolbarVisualActiveClassNames.unread)}
+            className={cn(
+              articleToolbarUnavailableClassName,
+              hasArticle && !isRead && articleToolbarVisualActiveClassNames.unread,
+            )}
           >
             <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
           </IconToolbarToggle>
@@ -196,6 +203,7 @@ export function ArticleToolbarActionStrip({
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             disabled={!canToggleStar}
             pressedTone="starred"
+            className={articleToolbarUnavailableClassName}
           >
             <StarIcon starred={isStarred} className="h-4 w-4" />
           </IconToolbarToggle>
@@ -207,6 +215,7 @@ export function ArticleToolbarActionStrip({
               disabled={!canOpenInBrowser}
               pressedTone="accent"
               focusTargetKey="open-in-browser"
+              className={articleToolbarUnavailableClassName}
             >
               <MotionIconSwap
                 state={isBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
@@ -222,12 +231,18 @@ export function ArticleToolbarActionStrip({
           label={labels.openInExternalBrowser}
           onClick={onOpenInExternalBrowser}
           disabled={!canOpenInExternalBrowser}
+          className={articleToolbarUnavailableClassName}
         >
           <ExternalLink className="h-4 w-4" />
         </IconToolbarButton>
       )}
       {showCopyLinkButton && !isMobile && (
-        <IconToolbarButton label={labels.copyLink} onClick={onCopyLink} disabled={!canCopyLink}>
+        <IconToolbarButton
+          label={labels.copyLink}
+          onClick={onCopyLink}
+          disabled={!canCopyLink}
+          className={articleToolbarUnavailableClassName}
+        >
           <Copy className="h-4 w-4" />
         </IconToolbarButton>
       )}

@@ -7,10 +7,17 @@ import { addArticleToReadingList, copyArticleLink } from "./article-browser-acti
 import type { ArticleShareMenuProps } from "./article-menu.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
+const articleShareMenuUnavailableClassName =
+  "disabled:opacity-35 disabled:saturate-0 disabled:hover:bg-transparent disabled:focus-visible:bg-transparent";
+
 export function ArticleShareMenu({ article, supportsReadingList, showToast, labels }: ArticleShareMenuProps) {
   return (
     <Menu.Root>
-      <IconToolbarMenuTrigger label={labels.share} disabled={!article?.url}>
+      <IconToolbarMenuTrigger
+        label={labels.share}
+        disabled={!article?.url}
+        className={articleShareMenuUnavailableClassName}
+      >
         <Share className="h-4 w-4" />
       </IconToolbarMenuTrigger>
       <Menu.Portal>

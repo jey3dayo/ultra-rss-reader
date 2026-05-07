@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ArticleShareMenu } from "@/components/reader/article-share-menu";
 import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
 import {
   MOTION_DATA_ICON_ATTRIBUTE,
@@ -70,12 +71,16 @@ describe("ArticleToolbarView", () => {
 
     expect(container.firstElementChild).toHaveClass("h-12");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
-    expect(container.firstElementChild).toHaveStyle({ backgroundColor: "var(--reader-toolbar-surface)" });
+    expect(container.firstElementChild).toHaveStyle({
+      backgroundColor: "var(--reader-toolbar-surface)",
+    });
     expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
     const readButton = screen.getByRole("button", { name: "Toggle read" });
     const starButton = screen.getByRole("button", { name: "Toggle star" });
-    const previewButton = screen.getByRole("button", { name: "Open Web Preview" });
+    const previewButton = screen.getByRole("button", {
+      name: "Open Web Preview",
+    });
     const readIcon = readButton.querySelector("span");
     const starIcon = starButton.querySelector("svg");
     const previewIconSwap = previewButton.querySelector(motionIconSwapSelector);
@@ -274,6 +279,73 @@ describe("ArticleToolbarView", () => {
     expect(readIcon).not.toBeNull();
     expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+  });
+
+  it("dims toolbar actions when they are unavailable without an article selection", () => {
+    render(
+      <ArticleToolbarView
+        showCloseButton={false}
+        hasArticle={false}
+        canToggleRead={false}
+        canToggleStar={false}
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen={false}
+        showCopyLinkButton
+        canCopyLink={false}
+        showOpenInBrowserButton
+        canOpenInBrowser={false}
+        showOpenInExternalBrowserButton
+        canOpenInExternalBrowser={false}
+        shareMenuControl={
+          <ArticleShareMenu
+            article={null}
+            supportsReadingList={false}
+            showToast={vi.fn()}
+            labels={{
+              share: "Share",
+              copyLink: "Copy link",
+              addToReadingList: "Add to Reading List",
+              addedToReadingList: "Added to Reading List",
+              shareViaEmail: "Share via Email",
+              linkCopied: "Link copied",
+            }}
+          />
+        }
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    for (const label of [
+      "Toggle read",
+      "Toggle star",
+      "Open Web Preview",
+      "Open in External Browser",
+      "Copy link",
+      "Share",
+    ]) {
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
+      expect(screen.getByRole("button", { name: label })).toHaveClass("disabled:opacity-35", "disabled:saturate-0");
+    }
   });
 
   it("limits the drag region to the center spacer so action buttons stay clickable on overlay title bars", () => {
