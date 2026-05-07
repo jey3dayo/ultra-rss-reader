@@ -585,22 +585,28 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-:root.theme-transitioning body,
-:root.theme-transitioning body *,
-:root.theme-transitioning body *::before,
-:root.theme-transitioning body *::after {
-  transition-property: background-color, border-color, color, fill, stroke, text-decoration-color, outline-color;
-  transition-duration: var(--motion-duration-theme);
-  transition-timing-function: var(--motion-ease-standard);
+@keyframes vertical-wipe {
+  0% {
+    clip-path: inset(0 0 100% 0);
+  }
+  100% {
+    clip-path: inset(0);
+  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root.theme-transitioning body,
-  :root.theme-transitioning body *,
-  :root.theme-transitioning body *::before,
-  :root.theme-transitioning body *::after {
-    transition-duration: 0ms;
-  }
+html.vertical-wipe-transition::view-transition-old(root),
+html.vertical-wipe-transition::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.vertical-wipe-transition::view-transition-old(root) {
+  z-index: 1;
+}
+
+html.vertical-wipe-transition::view-transition-new(root) {
+  z-index: 2;
+  animation: vertical-wipe 0.5s ease-in-out forwards;
 }
 
 .motion-disclosure-panel {

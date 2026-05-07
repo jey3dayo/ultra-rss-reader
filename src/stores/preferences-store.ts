@@ -19,14 +19,13 @@ import { useUiStore } from "@/stores/ui-store";
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
-const THEME_TRANSITION_CLASS = "theme-transitioning";
-const THEME_TRANSITION_DURATION_MS = 180;
+const THEME_VIEW_TRANSITION_CLASS = "vertical-wipe-transition";
 
 export type { AfterReadingPreference, SortSubscriptions, Theme };
 export { preferenceDefaults, resolvePreferenceValue };
 
 let systemThemeCleanup: (() => void) | null = null;
-let themeTransitionCleanupTimeout: number | null = null;
+let themeViewTransitionId = 0;
 
 function getSystemPrefersDark(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -52,33 +51,36 @@ function readMirroredThemePreference(): Theme | null {
   }
 }
 
-function scheduleThemeTransition(root: HTMLElement): void {
-  const prefersReducedMotion =
-    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function getPrefersReducedMotion(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
-  if (prefersReducedMotion) {
-    root.classList.remove(THEME_TRANSITION_CLASS);
-    return;
-  }
-
-  root.classList.add(THEME_TRANSITION_CLASS);
-  if (themeTransitionCleanupTimeout !== null) {
-    window.clearTimeout(themeTransitionCleanupTimeout);
-  }
-  themeTransitionCleanupTimeout = window.setTimeout(() => {
-    root.classList.remove(THEME_TRANSITION_CLASS);
-    themeTransitionCleanupTimeout = null;
-  }, THEME_TRANSITION_DURATION_MS);
+function updateResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark"): void {
+  root.classList.toggle("dark", resolvedTheme === "dark");
+  root.style.colorScheme = resolvedTheme;
 }
 
 function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", withTransition: boolean): void {
-  if (withTransition) {
-    scheduleThemeTransition(root);
-  } else {
-    root.classList.remove(THEME_TRANSITION_CLASS);
+  const canUseViewTransition = typeof document.startViewTransition === "function";
+
+  if (!withTransition || !canUseViewTransition || getPrefersReducedMotion()) {
+    root.classList.remove(THEME_VIEW_TRANSITION_CLASS);
+    updateResolvedTheme(root, resolvedTheme);
+    return;
   }
-  root.classList.toggle("dark", resolvedTheme === "dark");
-  root.style.colorScheme = resolvedTheme;
+
+  root.classList.add(THEME_VIEW_TRANSITION_CLASS);
+  const transitionId = themeViewTransitionId + 1;
+  themeViewTransitionId = transitionId;
+  const transition = document.startViewTransition(() => {
+    updateResolvedTheme(root, resolvedTheme);
+  });
+  const cleanupTransitionClass = () => {
+    if (transitionId === themeViewTransitionId) {
+      root.classList.remove(THEME_VIEW_TRANSITION_CLASS);
+    }
+  };
+  void transition.finished.then(cleanupTransitionClass, cleanupTransitionClass);
 }
 
 function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void {

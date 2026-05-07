@@ -112,10 +112,12 @@ describe("Design-themed UI primitives", () => {
       `.${MOTION_CONTENT_SWAP_CLASS_NAME}[${MOTION_DATA_PHASE_ATTRIBUTE}="${MOTION_PHASE_ENTERING}"]`,
     );
     expect(globalCss).toContain(`@keyframes ${MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME}`);
+    expect(globalCss).toContain("@keyframes vertical-wipe");
+    expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-old(root)");
+    expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-new(root)");
+    expect(globalCss).toContain("animation: vertical-wipe 0.5s ease-in-out forwards;");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(globalCss).toContain(
-      "background-color, border-color, color, fill, stroke, text-decoration-color, outline-color",
-    );
+    expect(globalCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(
       "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",
     );

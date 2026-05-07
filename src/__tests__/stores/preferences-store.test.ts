@@ -10,20 +10,59 @@ vi.mock("@/api/tauri-commands", () => ({
 
 import { preferenceDefaults, resolvePreferenceValue, usePreferencesStore } from "../../stores/preferences-store";
 
+function createDeferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolvePromise: () => void = () => {};
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
+  });
+  return { promise, resolve: resolvePromise };
+}
+
+function createViewTransition(finished: Promise<void>): ViewTransition {
+  return {
+    finished,
+    ready: Promise.resolve(),
+    types: new Set<string>(),
+    updateCallbackDone: Promise.resolve(),
+    skipTransition: vi.fn(),
+  };
+}
+
+function mockReducedMotion(matches: boolean): void {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn((query: string): MediaQueryList => {
+      return {
+        matches: query === "(prefers-reduced-motion: reduce)" ? matches : false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(() => false),
+      };
+    }),
+  });
+}
+
 describe("usePreferencesStore preferences", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
     usePreferencesStore.setState({ prefs: {}, loaded: false });
-    document.documentElement.classList.remove("dark", "theme-transitioning");
+    document.documentElement.classList.remove("dark", "theme-transitioning", "vertical-wipe-transition");
     document.documentElement.style.colorScheme = "";
+    Object.defineProperty(document, "startViewTransition", { configurable: true, value: undefined });
+    mockReducedMotion(false);
     window.localStorage.clear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    document.documentElement.classList.remove("dark", "theme-transitioning");
+    document.documentElement.classList.remove("dark", "theme-transitioning", "vertical-wipe-transition");
     document.documentElement.style.colorScheme = "";
+    Object.defineProperty(document, "startViewTransition", { configurable: true, value: undefined });
     window.localStorage.clear();
   });
 
@@ -34,17 +73,50 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().theme()).toBe("light");
   });
 
-  it("adds a temporary transition class when switching themes", () => {
-    vi.useFakeTimers();
+  it("wraps manual theme switches in a vertical wipe view transition when supported", async () => {
+    const transitionDone = createDeferred();
+    const startViewTransition = vi.fn((callback: ViewTransitionUpdateCallback): ViewTransition => {
+      callback();
+      return createViewTransition(transitionDone.promise);
+    });
+    Object.defineProperty(document, "startViewTransition", { configurable: true, value: startViewTransition });
 
     usePreferencesStore.getState().setPref("theme", "dark");
 
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
     expect(document.documentElement).toHaveClass("dark");
-    expect(document.documentElement).toHaveClass("theme-transitioning");
-
-    vi.advanceTimersByTime(180);
-
+    expect(document.documentElement).toHaveClass("vertical-wipe-transition");
     expect(document.documentElement).not.toHaveClass("theme-transitioning");
+
+    transitionDone.resolve();
+    await transitionDone.promise;
+    await Promise.resolve();
+
+    expect(document.documentElement).not.toHaveClass("vertical-wipe-transition");
+  });
+
+  it("switches themes immediately when view transitions are unsupported", () => {
+    usePreferencesStore.getState().setPref("theme", "dark");
+
+    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement).not.toHaveClass("theme-transitioning");
+    expect(document.documentElement).not.toHaveClass("vertical-wipe-transition");
+  });
+
+  it("switches themes immediately when reduced motion is requested", () => {
+    const startViewTransition = vi.fn((callback: ViewTransitionUpdateCallback): ViewTransition => {
+      callback();
+      return createViewTransition(Promise.resolve());
+    });
+    Object.defineProperty(document, "startViewTransition", { configurable: true, value: startViewTransition });
+    mockReducedMotion(true);
+
+    usePreferencesStore.getState().setPref("theme", "dark");
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement).not.toHaveClass("theme-transitioning");
+    expect(document.documentElement).not.toHaveClass("vertical-wipe-transition");
   });
 
   it("does not add a transition class when applying the persisted theme during startup", async () => {
@@ -54,6 +126,7 @@ describe("usePreferencesStore preferences", () => {
 
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement).not.toHaveClass("theme-transitioning");
+    expect(document.documentElement).not.toHaveClass("vertical-wipe-transition");
     expect(document.documentElement.style.colorScheme).toBe("dark");
   });
 
