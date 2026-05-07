@@ -55,6 +55,27 @@ type ArticleViewSummaryStats = {
   latestArticlePublishedAt: string | null;
 };
 
+export type BuildArticleViewSummaryParams = {
+  selection:
+    | { type: "all" }
+    | { type: "feed"; feedId: string }
+    | { type: "folder"; folderId: string }
+    | { type: "tag"; tagId: string }
+    | { type: "smart"; kind: "unread" | "starred" | "recent" };
+  selectedFeedId: string | null;
+  feeds: FeedDto[] | undefined;
+  folders: FolderDto[] | undefined;
+  tags: TagDto[] | undefined;
+  filteredArticles: ArticleDto[];
+  allFeedArticles: ArticleDto[] | undefined;
+};
+
+export type BuildArticleViewSummaryError =
+  | "summary_not_available"
+  | "feed_not_found"
+  | "folder_not_found"
+  | "tag_not_found";
+
 function buildArticleViewSummaryStats(filteredArticles: ArticleDto[]): ArticleViewSummaryStats {
   const visibleFeedIds = new Set(filteredArticles.map((article) => article.feed_id));
   const latestVisibleArticleResult = findLatestArticle(filteredArticles);
@@ -185,23 +206,12 @@ export function resolveArticleSummaryWebsiteLabel(feed: FeedDto): string | null 
   return href ? resolveSiteHostLabel(feed.site_url, feed.url) : null;
 }
 
-export function buildArticleViewSummary(params: {
-  selection:
-    | { type: "all" }
-    | { type: "feed"; feedId: string }
-    | { type: "folder"; folderId: string }
-    | { type: "tag"; tagId: string }
-    | { type: "smart"; kind: "unread" | "starred" | "recent" };
-  selectedFeedId: string | null;
-  feeds: FeedDto[] | undefined;
-  folders: FolderDto[] | undefined;
-  tags: TagDto[] | undefined;
-  filteredArticles: ArticleDto[];
-  allFeedArticles: ArticleDto[] | undefined;
-}): ArticleViewSummaryState | undefined {
+export function buildArticleViewSummaryResult(
+  params: BuildArticleViewSummaryParams,
+): Result.Result<ArticleViewSummaryState, BuildArticleViewSummaryError> {
   const { selection, selectedFeedId, feeds, folders, tags, filteredArticles, allFeedArticles } = params;
   if (selection.type === "all") {
-    return undefined;
+    return Result.fail("summary_not_available");
   }
 
   const summaryStats = buildArticleViewSummaryStats(filteredArticles);
@@ -212,46 +222,51 @@ export function buildArticleViewSummary(params: {
     const latestFeedArticle = Result.isSuccess(latestFeedArticleResult) ? Result.unwrap(latestFeedArticleResult) : null;
 
     return feed
-      ? {
+      ? Result.succeed({
           kind: "feed",
           feed,
           latestArticleTitle: latestFeedArticle?.title ?? null,
           latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
-        }
-      : undefined;
+        })
+      : Result.fail("feed_not_found");
   }
 
   if (selection.type === "folder") {
     const folder = folders?.find((candidate) => candidate.id === selection.folderId);
     if (!folder) {
-      return undefined;
+      return Result.fail("folder_not_found");
     }
 
-    return {
+    return Result.succeed({
       kind: "folder",
       folder,
       feedCount: countFeedsInFolder(feeds, folder.id),
       unreadCount: countUnreadArticles(filteredArticles),
       latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
-    };
+    });
   }
 
   if (selection.type === "tag") {
     const tag = tags?.find((candidate) => candidate.id === selection.tagId);
     if (!tag) {
-      return undefined;
+      return Result.fail("tag_not_found");
     }
 
-    return {
+    return Result.succeed({
       kind: "tag",
       tag,
       ...summaryStats,
-    };
+    });
   }
 
-  return {
+  return Result.succeed({
     kind: "smart",
     smartKind: selection.kind,
     ...summaryStats,
-  };
+  });
+}
+
+export function buildArticleViewSummary(params: BuildArticleViewSummaryParams): ArticleViewSummaryState | undefined {
+  const result = buildArticleViewSummaryResult(params);
+  return Result.isSuccess(result) ? Result.unwrap(result) : undefined;
 }

@@ -4,7 +4,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
-import { type ArticleViewSummaryState, buildArticleViewSummary, findSelectedArticle } from "@/lib/article-view";
+import { type ArticleViewSummaryState, buildArticleViewSummaryResult, findSelectedArticle } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useArticleListData } from "./use-article-list-data";
@@ -97,7 +97,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   }
 
   if (contentMode === "empty" || !selectedArticleId) {
-    const summary = buildArticleViewSummary({
+    const summaryResult = buildArticleViewSummaryResult({
       selection,
       selectedFeedId,
       feeds: sources.feeds,
@@ -106,6 +106,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       filteredArticles: data.filteredArticles,
       allFeedArticles,
     });
+    const summary = Result.isSuccess(summaryResult) ? Result.unwrap(summaryResult) : undefined;
 
     return resolveEmptyArticleViewState({
       accountsCount: accounts?.length,

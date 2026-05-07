@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { FolderDto } from "@/api/tauri-commands";
 import {
   buildArticleViewSummary,
+  buildArticleViewSummaryResult,
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
@@ -193,6 +194,45 @@ describe("article summary website helpers", () => {
 });
 
 describe("buildArticleViewSummary", () => {
+  it("returns an explicit error when a selection has no summary", () => {
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "all" },
+      selectedFeedId: null,
+      feeds: sampleFeeds,
+      folders: [],
+      tags: [],
+      filteredArticles: sampleArticles,
+      allFeedArticles: sampleArticles,
+    });
+
+    expect(Result.unwrapError(result)).toBe("summary_not_available");
+  });
+
+  it("returns an explicit error when the selected folder is missing", () => {
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "folder", folderId: "missing-folder" },
+      selectedFeedId: null,
+      feeds: sampleFeeds,
+      folders: [],
+      tags: [],
+      filteredArticles: sampleArticles,
+      allFeedArticles: sampleArticles,
+    });
+
+    expect(Result.unwrapError(result)).toBe("folder_not_found");
+    expect(
+      buildArticleViewSummary({
+        selection: { type: "folder", folderId: "missing-folder" },
+        selectedFeedId: null,
+        feeds: sampleFeeds,
+        folders: [],
+        tags: [],
+        filteredArticles: sampleArticles,
+        allFeedArticles: sampleArticles,
+      }),
+    ).toBeUndefined();
+  });
+
   it("counts folder feeds and unread visible articles for folder summaries", () => {
     const folders: FolderDto[] = [
       {
@@ -211,6 +251,22 @@ describe("buildArticleViewSummary", () => {
       { ...sampleArticles[1], is_read: true, published_at: "2026-03-02T10:00:00Z" },
     ];
 
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedFeedId: null,
+      feeds: folderFeeds,
+      folders,
+      tags: [],
+      filteredArticles,
+      allFeedArticles: [],
+    });
+
+    expect(Result.unwrap(result)).toMatchObject({
+      kind: "folder",
+      feedCount: 2,
+      unreadCount: 1,
+      latestArticlePublishedAt: "2026-03-02T10:00:00Z",
+    });
     expect(
       buildArticleViewSummary({
         selection: { type: "folder", folderId: "folder-1" },
