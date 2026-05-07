@@ -30,7 +30,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.diagnostics.top).toBe(16);
   });
 
-  it("exposes the compact main-stage top rail contract", () => {
+  it("exposes the compact main-stage floating rail contract", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 620,
@@ -82,7 +82,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(visibleDiagnostics).toEqual(hiddenDiagnostics);
   });
 
-  it("exposes the desktop main-stage top rail contract", () => {
+  it("exposes the desktop main-stage floating rail contract", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 1280,

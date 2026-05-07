@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
-import { OverlayActionSurface } from "@/components/shared/overlay-action-surface";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { BrowserOverlayChromeProps } from "./browser-view.types";
@@ -66,19 +65,6 @@ function BrowserOverlayIconAction({
   );
 }
 
-function renderBrowserOverlayActionSurface(
-  content: ReactNode,
-  compact: boolean,
-  tone: "default" | "subtle",
-  options?: { key?: string },
-) {
-  return (
-    <OverlayActionSurface key={options?.key} compact={compact} tone={tone} variant="chrome">
-      {content}
-    </OverlayActionSurface>
-  );
-}
-
 export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const { t } = useTranslation("reader");
   const [activeFeedbackAction, setActiveFeedbackAction] = useState<string | null>(null);
@@ -136,9 +122,9 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             label={t("web_back")}
             onClick={() => {
               startAcceptedFeedback("browser-back");
-              return controller.handleGoBack();
+              return controller.browserState?.can_go_back ? controller.handleGoBack() : controller.handleCloseOverlay();
             }}
-            disabled={!controller.browserState?.can_go_back}
+            disabled={!controller.browserState}
             spinning={activeFeedbackAction === "browser-back"}
           >
             <ChevronLeft aria-hidden="true" className="size-4" />
@@ -189,14 +175,18 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
           >
             <ExternalLink aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
-          {toolbarActions?.map((action) =>
-            renderBrowserOverlayActionSurface(
-              action.content,
-              presentation.actionButtonSurface.compact,
-              presentation.actionButtonSurface.tone,
-              { key: action.key },
-            ),
-          )}
+          {toolbarActions?.map((action) => (
+            <BrowserOverlayIconAction
+              key={action.key}
+              actionKey={action.key}
+              compact={presentation.actionButtonSurface.compact}
+              label={action.label}
+              onClick={action.onClick}
+              disabled={action.disabled}
+            >
+              {action.icon}
+            </BrowserOverlayIconAction>
+          ))}
         </div>
       </div>
     </TooltipProvider>

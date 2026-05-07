@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
+import { APP_EVENTS } from "@/constants/events";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -188,8 +189,8 @@ function BrowserViewHarness({ scope = "main-stage", onCloseOverlay }: BrowserVie
 }
 
 const browserViewToolbarActions: BrowserOverlayToolbarAction[] = [
-  { key: "a", content: <button type="button">Toolbar Action A</button> },
-  { key: "b", content: <button type="button">Toolbar Action B</button> },
+  { key: "a", label: "Toolbar Action A", onClick: vi.fn(), icon: <span aria-hidden="true">A</span> },
+  { key: "b", label: "Toolbar Action B", onClick: vi.fn(), icon: <span aria-hidden="true">B</span> },
 ];
 
 describe("BrowserView", () => {
@@ -244,7 +245,7 @@ describe("BrowserView", () => {
   });
 
   it("creates the embedded browser webview with fullscreen bounds on first create", async () => {
-    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+    mockRootRect({ left: 0, top: 18, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -319,6 +320,47 @@ describe("BrowserView", () => {
 
     expect(commands.some((call) => call.cmd === "go_back_browser_webview")).toBe(true);
     expect(commands.some((call) => call.cmd === "reload_browser_webview")).toBe(true);
+  });
+
+  it("closes browser mode when the web back control has no browser history", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        };
+      }
+      if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
+        return null;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    const backButton = await screen.findByRole("button", { name: "Web back" });
+    await waitFor(() => {
+      expect(backButton).toBeEnabled();
+    });
+
+    await user.click(backButton);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+    });
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    expect(commands.some((call) => call.cmd === "go_back_browser_webview")).toBe(false);
   });
 
   it("uses physical bounds for Windows child webviews", async () => {
@@ -400,7 +442,7 @@ describe("BrowserView", () => {
     expect(closeButton).toBeInTheDocument();
     expect(closeSurface).not.toBeNull();
     expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
-    expect(backButton).toBeDisabled();
+    expect(backButton).toBeEnabled();
     expect(forwardButton).toBeDisabled();
     expect(reloadButton).toBeInTheDocument();
     expect(externalButton).toBeInTheDocument();
@@ -531,7 +573,7 @@ describe("BrowserView", () => {
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the main-stage content aligned under the rail", () => {
+  it("keeps the main-stage content aligned below the floating rail", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
@@ -717,41 +759,58 @@ describe("BrowserView", () => {
   });
 
   it("keeps native bounds tied to the host rect when diagnostics are visible", async () => {
-    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+    mockRootRect({ left: 0, top: 18, width: 1400, height: 900 });
     usePreferencesStore.setState({
       prefs: { debug_browser_hud: "true" },
       loaded: true,
     });
+    const geometryEvents: CustomEvent[] = [];
+    const handleGeometryEvent = (event: Event) => {
+      geometryEvents.push(event as CustomEvent);
+    };
+    window.addEventListener(APP_EVENTS.browserDebugGeometry, handleGeometryEvent);
 
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://example.com/article",
-    });
-
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    expectInlineStyles(screen.getByTestId("browser-overlay-stage-shell"), {
-      left: "0px",
-      top: "40px",
-      right: "0px",
-      bottom: "0px",
-    });
-    expectInlineStyles(screen.getByTestId("browser-webview-host"), {
-      left: "0px",
-      top: "0px",
-      right: "0px",
-      bottom: "0px",
-    });
-    await waitFor(() => {
-      expect(commands).toContainEqual({
-        cmd: "create_or_update_browser_webview",
-        args: {
-          url: "https://example.com/article",
-          bounds: { x: 0, y: 40, width: 1400, height: 860 },
-        },
+    try {
+      useUiStore.setState({
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
       });
-    });
+
+      render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+      expectInlineStyles(screen.getByTestId("browser-overlay-stage-shell"), {
+        left: "0px",
+        top: "40px",
+        right: "0px",
+        bottom: "0px",
+      });
+      expectInlineStyles(screen.getByTestId("browser-webview-host"), {
+        left: "0px",
+        top: "0px",
+        right: "0px",
+        bottom: "0px",
+      });
+      await waitFor(() => {
+        expect(commands).toContainEqual({
+          cmd: "create_or_update_browser_webview",
+          args: {
+            url: "https://example.com/article",
+            bounds: { x: 0, y: 40, width: 1400, height: 860 },
+          },
+        });
+      });
+      await waitFor(() => {
+        expect(geometryEvents[geometryEvents.length - 1]?.detail.layoutDiagnostics.hostLogical).toEqual({
+          x: 0,
+          y: 40,
+          width: 1400,
+          height: 860,
+        });
+      });
+    } finally {
+      window.removeEventListener(APP_EVENTS.browserDebugGeometry, handleGeometryEvent);
+    }
   });
 
   it("keeps the fullscreen surface full bleed at narrow widths", async () => {

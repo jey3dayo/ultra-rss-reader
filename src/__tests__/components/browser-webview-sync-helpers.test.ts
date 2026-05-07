@@ -20,6 +20,38 @@ function createHostRef(rect: Partial<DOMRect>) {
   return { current: host };
 }
 
+function createRootRelativeHostRef(rootRect: Partial<DOMRect>, hostRect: Partial<DOMRect>) {
+  const root = document.createElement("div");
+  const host = document.createElement("div");
+  root.setAttribute("data-browser-overlay-client-root", "");
+  root.append(host);
+  root.getBoundingClientRect = vi.fn(
+    () =>
+      ({
+        left: 0,
+        top: 18,
+        width: 1400,
+        height: 900,
+        right: 1400,
+        bottom: 918,
+        ...rootRect,
+      }) as DOMRect,
+  );
+  host.getBoundingClientRect = vi.fn(
+    () =>
+      ({
+        left: 0,
+        top: 58,
+        width: 1400,
+        height: 860,
+        right: 1400,
+        bottom: 918,
+        ...hostRect,
+      }) as DOMRect,
+  );
+  return { current: host };
+}
+
 function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWebviewState {
   return {
     url: "https://example.com/article",
@@ -40,6 +72,15 @@ describe("browser-webview-sync-helpers", () => {
     });
   });
 
+  it("resolves browser webview bounds relative to the overlay root", () => {
+    expect(resolveBrowserWebviewBounds(createRootRelativeHostRef({}, {}), "macos")).toEqual({
+      x: 0,
+      y: 40,
+      width: 1400,
+      height: 860,
+    });
+  });
+
   it("resolves browser webview bounds using physical units on Windows", () => {
     const originalDevicePixelRatio = window.devicePixelRatio;
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
@@ -47,6 +88,22 @@ describe("browser-webview-sync-helpers", () => {
     expect(resolveBrowserWebviewBounds(createHostRef({ width: 120, height: 80 }), "windows")).toEqual({
       x: 20,
       y: 40,
+      width: 240,
+      height: 160,
+      unit: "physical",
+    });
+
+    expect(
+      resolveBrowserWebviewBounds(
+        createRootRelativeHostRef(
+          { left: 11, top: 18, right: 1411, bottom: 918 },
+          { left: 31, top: 58, width: 120, height: 80, right: 151, bottom: 138 },
+        ),
+        "windows",
+      ),
+    ).toEqual({
+      x: 40,
+      y: 80,
       width: 240,
       height: 160,
       unit: "physical",

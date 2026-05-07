@@ -167,7 +167,7 @@ describe("AppShell", () => {
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
       expect(container.firstElementChild).not.toHaveClass("desktop-overlay-titlebar");
-      expect(overlayRoot).toHaveClass("desktop-titlebar-offset");
+      expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
       expect(container.querySelector("[data-testid='desktop-titlebar-drag-strip']")).toBeNull();
     } finally {
@@ -212,7 +212,7 @@ describe("AppShell", () => {
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
-      expect(overlayRoot).toHaveClass("desktop-titlebar-offset");
+      expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
     } finally {
       Object.defineProperty(window.navigator, "platform", {

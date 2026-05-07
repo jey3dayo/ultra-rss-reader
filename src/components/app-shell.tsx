@@ -339,9 +339,8 @@ export function AppShell() {
         className={cn(
           "absolute inset-0 z-40",
           browserUrl ? "pointer-events-auto" : "pointer-events-none",
-          // Browser overlay geometry is measured against the shell, not AppLayout,
-          // so the titlebar helper classes stay here.
-          overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
+          // Keep the overlay root aligned to the shell; traffic-light safe area is handled by browser geometry.
+          overlayTitlebar && "desktop-overlay-titlebar",
         )}
       />
       <div className="min-h-0 flex-1">

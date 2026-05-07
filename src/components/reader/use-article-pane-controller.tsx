@@ -1,3 +1,4 @@
+import { Copy } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
@@ -104,8 +105,16 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
       onCloseOverlay: handleCloseBrowserOverlay,
       showBrowserView: isBrowserOpen,
     },
-    browserOverlayToolbarActions: actionStripProps.shareMenuControl
-      ? [{ key: "share-menu", content: actionStripProps.shareMenuControl }]
+    browserOverlayToolbarActions: actionStripProps.canCopyLink
+      ? [
+          {
+            key: "copy-link",
+            label: actionStripProps.labels.copyLink,
+            onClick: actionStripProps.onCopyLink,
+            disabled: !actionStripProps.canCopyLink,
+            icon: <Copy aria-hidden="true" className="size-4" />,
+          },
+        ]
       : undefined,
     showWebPreviewUnavailableWarning: resolvedDisplay.fallbackReason === "missing_web_preview",
     webPreviewUnavailableLabel: t("web_preview_unavailable"),

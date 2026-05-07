@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import type { BrowserDebugGeometryLayoutDiagnostics } from "@/lib/browser-debug-geometry";
 import { toBrowserWebviewBounds } from "@/lib/browser-webview";
 import type { UseBrowserLayoutDiagnosticsParams } from "./browser-view.types";
+import { resolveBrowserOverlayClientRelativeRect } from "./browser-webview-sync-helpers";
 
 export function useBrowserLayoutDiagnostics({
   browserUrl,
@@ -20,10 +21,16 @@ export function useBrowserLayoutDiagnostics({
     const overlayRect = overlayRef.current?.getBoundingClientRect();
     const stageRect = stageRef.current?.getBoundingClientRect();
     const hostRect = hostRef.current?.getBoundingClientRect();
-    const overlayBounds = overlayRect ? toBrowserWebviewBounds(overlayRect) : null;
-    const stageBounds = stageRect ? toBrowserWebviewBounds(stageRect) : null;
-    const hostBounds = hostRect ? toBrowserWebviewBounds(hostRect) : null;
-    if (!overlayRect || !stageRect || !hostRect || !overlayBounds || !stageBounds || !hostBounds) {
+    if (!overlayRef.current || !stageRef.current || !hostRef.current || !overlayRect || !stageRect || !hostRect) {
+      return;
+    }
+
+    const overlayBounds = toBrowserWebviewBounds(
+      resolveBrowserOverlayClientRelativeRect(overlayRef.current, overlayRect),
+    );
+    const stageBounds = toBrowserWebviewBounds(resolveBrowserOverlayClientRelativeRect(stageRef.current, stageRect));
+    const hostBounds = toBrowserWebviewBounds(resolveBrowserOverlayClientRelativeRect(hostRef.current, hostRect));
+    if (!overlayBounds || !stageBounds || !hostBounds) {
       return;
     }
 

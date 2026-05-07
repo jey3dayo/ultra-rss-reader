@@ -143,6 +143,7 @@ function BrowserOverlayShell({
   return (
     <div
       ref={controller.overlayRef}
+      data-browser-overlay-client-root=""
       data-testid="browser-overlay-shell"
       data-open={overlayOpen ? "true" : "false"}
       className={cn(

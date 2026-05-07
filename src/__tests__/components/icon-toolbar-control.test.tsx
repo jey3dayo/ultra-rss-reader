@@ -203,8 +203,10 @@ describe("IconToolbarControl", () => {
     const button = screen.getByRole("button", { name: "Web back" });
     const surface = button.closest("[data-overlay-shell='action']");
 
-    expect(surface).toHaveClass("border-transparent", "bg-transparent", "shadow-none");
-    expect(surface?.className).toContain("hover:bg-overlay-action-surface-chrome-hover");
+    expect(surface).toHaveClass("bg-transparent", "shadow-none");
+    expect(surface).not.toHaveClass("border");
+    expect(surface).not.toHaveClass("border-transparent");
+    expect(surface?.className).toContain("hover:bg-transparent");
     expect(surface?.className).toContain("has-[:active]:bg-overlay-action-surface-chrome-active");
   });
 });

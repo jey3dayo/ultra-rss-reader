@@ -34,7 +34,7 @@ pub enum BrowserWebviewBoundsUnit {
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BrowserWebviewBounds {
-    /// Bounds captured from the app webview viewport.
+    /// Bounds captured from the browser overlay client root.
     x: f64,
     y: f64,
     width: f64,
@@ -102,8 +102,8 @@ fn validated_bounds(bounds: BrowserWebviewBounds) -> Result<BrowserWebviewBounds
     bounds.validated()
 }
 
-fn child_webview_rect_from_viewport_bounds(bounds: BrowserWebviewBounds) -> Rect {
-    // Child webviews use the same logical coordinate space as `window.inner_size()`.
+fn child_webview_rect_from_browser_bounds(bounds: BrowserWebviewBounds) -> Rect {
+    // Child webviews use the browser overlay client root coordinate space.
     // Do not add native title bar or menu insets here.
     bounds.rect()
 }
@@ -355,7 +355,7 @@ fn create_browser_webview(
     url: String,
     bounds: BrowserWebviewBounds,
 ) -> Result<BrowserWebviewState, AppError> {
-    let rect = child_webview_rect_from_viewport_bounds(bounds);
+    let rect = child_webview_rect_from_browser_bounds(bounds);
     let platform_kind = crate::platform::PlatformInfo::current().kind;
     let uses_placeholder_url = should_use_placeholder_browser_webview_url(platform_kind);
     let initial_url = browser_webview_initial_url(&url, platform_kind)?;
@@ -463,7 +463,7 @@ pub async fn create_or_update_browser_webview(
     let app_handle = window.app_handle();
 
     if let Some(browser_webview) = browser_webview(&window) {
-        let rect = child_webview_rect_from_viewport_bounds(bounds);
+        let rect = child_webview_rect_from_browser_bounds(bounds);
         browser_webview.set_bounds(rect).map_err(|error| {
             browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
         })?;
@@ -503,7 +503,7 @@ pub fn set_browser_webview_bounds(
     let bounds = validated_bounds(bounds)?;
     let browser_webview = browser_webview(&window)
         .ok_or_else(|| browser_webview_error("Embedded browser webview is not open"))?;
-    let rect = child_webview_rect_from_viewport_bounds(bounds);
+    let rect = child_webview_rect_from_browser_bounds(bounds);
 
     browser_webview.set_bounds(rect).map_err(|error| {
         browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
@@ -599,7 +599,7 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 mod tests {
     use super::{
         browser_webview_initial_url, browser_webview_not_open_error,
-        child_webview_rect_from_viewport_bounds, external_url, is_placeholder_browser_webview_url,
+        child_webview_rect_from_browser_bounds, external_url, is_placeholder_browser_webview_url,
         should_use_placeholder_browser_webview_url, tracker_navigation_availability,
         validated_bounds, BrowserNavigationAvailability, BrowserWebviewBounds,
         BrowserWebviewBoundsUnit, BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
@@ -690,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn child_webview_rect_uses_viewport_origin_unchanged() {
+    fn child_webview_rect_uses_browser_bounds_origin_unchanged() {
         let bounds = validated_bounds(BrowserWebviewBounds {
             x: 380.0,
             y: 48.0,
@@ -700,7 +700,7 @@ mod tests {
         })
         .expect("valid bounds should pass");
 
-        let rect = child_webview_rect_from_viewport_bounds(bounds);
+        let rect = child_webview_rect_from_browser_bounds(bounds);
 
         assert_eq!(rect.position.to_logical::<f64>(1.0).x, 380.0);
         assert_eq!(rect.position.to_logical::<f64>(1.0).y, 48.0);

@@ -31,7 +31,10 @@ export type BrowserViewSurfacePresentation = {
 
 export type BrowserOverlayToolbarAction = {
   key: string;
-  content: ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  icon: ReactNode;
 };
 
 export type BrowserViewPresentation = BrowserViewSurfacePresentation & {

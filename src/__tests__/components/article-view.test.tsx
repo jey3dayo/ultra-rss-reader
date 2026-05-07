@@ -581,7 +581,7 @@ describe("ArticleView", () => {
     ).toBeInTheDocument();
     expect(within(overlayActions).getByRole("button", { name: "Reload page" })).toBeInTheDocument();
     expect(within(overlayActions).getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
-    expect(within(overlayActions).getByRole("button", { name: "Share" })).toBeInTheDocument();
+    expect(within(overlayActions).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
   });
 
   it("renders compact overlay toolbar actions as separate shell surfaces", async () => {
@@ -624,6 +624,7 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
+    useUiStore.setState({ contentMode: "reader", browserUrl: null });
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
@@ -2288,11 +2289,15 @@ describe("ArticleView", () => {
   });
 
   it("renders the share menu button when an article is selected", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    render(<ArticleView />, { wrapper: createWrapper() });
+    render(
+      <ArticleToolbar
+        article={primaryArticle ?? null}
+        isBrowserOpen={false}
+        onCloseView={() => {}}
+        onToggleBrowserOverlay={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
 
     const shareButton = (await screen.findAllByRole("button", { name: "Share" }))[0];
     expect(shareButton).toBeInTheDocument();
