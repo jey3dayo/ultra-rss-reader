@@ -105,6 +105,28 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
 
+    expect(screen.getByText("Primitive control states")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-primitive-control-matrix")).toHaveClass("rounded-md");
+    expect(screen.getByRole("textbox", { name: "Primitive input default" })).toHaveClass(
+      "bg-surface-1",
+      "border-border",
+    );
+    expect(screen.getByRole("textbox", { name: "Primitive input invalid" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("textbox", { name: "Primitive input disabled" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Primitive select default" })).toHaveTextContent("Comfortable");
+    expect(screen.getByRole("combobox", { name: "Primitive select invalid" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("combobox", { name: "Primitive select disabled" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Primitive checkbox checked" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByRole("checkbox", { name: "Primitive checkbox disabled" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("switch", { name: "Primitive switch checked" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "Primitive switch disabled" })).toHaveAttribute("aria-disabled", "true");
+
     expect(screen.getByText("Validation row")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Server URL" })).toBeInTheDocument();
     expect(screen.getByText("URL は `https://` から始めてください。")).toBeInTheDocument();

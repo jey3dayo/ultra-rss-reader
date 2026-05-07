@@ -71,6 +71,10 @@ import type {
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
@@ -1098,6 +1102,107 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
       <LabeledSwitchRow label="Live Preview" checked={livePreview} onChange={onLivePreviewChange} />
       <ReferenceRadioGroup />
     </SettingsSection>
+  );
+}
+
+export function PrimitiveControlMatrixSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Primitive control states</SectionHeading>
+      <div
+        data-testid="reference-primitive-control-matrix"
+        className="grid gap-3 rounded-md border border-border/70 bg-surface-1/90 p-3 md:grid-cols-2"
+      >
+        <div className="grid gap-2">
+          <label htmlFor="reference-primitive-input-default" className="font-sans text-xs text-foreground/72">
+            Input / default
+          </label>
+          <Input
+            id="reference-primitive-input-default"
+            aria-label="Primitive input default"
+            defaultValue="https://example.com/feed.xml"
+          />
+        </div>
+        <div className="grid gap-2">
+          <label htmlFor="reference-primitive-input-invalid" className="font-sans text-xs text-foreground/72">
+            Input / invalid
+          </label>
+          <Input
+            id="reference-primitive-input-invalid"
+            aria-label="Primitive input invalid"
+            defaultValue="freshrss.local"
+            aria-invalid="true"
+          />
+        </div>
+        <div className="grid gap-2">
+          <label htmlFor="reference-primitive-input-disabled" className="font-sans text-xs text-foreground/72">
+            Input / disabled
+          </label>
+          <Input
+            id="reference-primitive-input-disabled"
+            aria-label="Primitive input disabled"
+            defaultValue="Locked account"
+            disabled
+          />
+        </div>
+        <div className="grid gap-2">
+          <span className="font-sans text-xs text-foreground/72">Select / default</span>
+          <Select defaultValue="Comfortable">
+            <SelectTrigger aria-label="Primitive select default" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="Compact">Compact</SelectItem>
+              <SelectItem value="Comfortable">Comfortable</SelectItem>
+              <SelectItem value="Spacious">Spacious</SelectItem>
+            </SelectPopup>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <span className="font-sans text-xs text-foreground/72">Select / invalid</span>
+          <Select defaultValue="Missing folder">
+            <SelectTrigger aria-label="Primitive select invalid" aria-invalid="true" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="Missing folder">Missing folder</SelectItem>
+              <SelectItem value="Inbox">Inbox</SelectItem>
+            </SelectPopup>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <span className="font-sans text-xs text-foreground/72">Select / disabled</span>
+          <Select defaultValue="Offline">
+            <SelectTrigger aria-label="Primitive select disabled" className="w-full" disabled>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="Offline">Offline</SelectItem>
+            </SelectPopup>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+          <span className="font-sans text-xs text-foreground/72">Checkbox / checked</span>
+          <Checkbox aria-label="Primitive checkbox checked" checked onCheckedChange={() => {}} />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+          <span className="font-sans text-xs text-foreground/72">Checkbox / disabled</span>
+          <Checkbox aria-label="Primitive checkbox disabled" disabled />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+          <span className="font-sans text-xs text-foreground/72">Switch / checked</span>
+          <Switch aria-label="Primitive switch checked" checked onCheckedChange={() => {}} />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+          <span className="font-sans text-xs text-foreground/72">Switch / disabled</span>
+          <Switch aria-label="Primitive switch disabled" disabled />
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        Low-level primitives stay thin. Use this matrix to verify base states before promoting a repeated product
+        pattern into shared.
+      </p>
+    </SurfaceCard>
   );
 }
 

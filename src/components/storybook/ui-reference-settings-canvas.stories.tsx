@@ -4,6 +4,7 @@ import {
   AnnotatedNote,
   DisabledSwitchSpecimen,
   FormRowsSpecimen,
+  PrimitiveControlMatrixSpecimen,
   ReferencePage,
   ValidationRowSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
@@ -19,6 +20,7 @@ export function InputControlsCanvas() {
           body="Form rows, validation states, and disabled controls live here. Shell examples stay in Shell & Overlay Canvas."
         />
         <FormRowsSpecimen livePreview={livePreview} onLivePreviewChange={setLivePreview} />
+        <PrimitiveControlMatrixSpecimen />
         <ValidationRowSpecimen />
         <DisabledSwitchSpecimen />
       </div>
