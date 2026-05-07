@@ -13,11 +13,11 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
   if (!url) {
     return Result.fail("");
   }
-  try {
-    return Result.succeed(new URL(url).hostname);
-  } catch {
-    return Result.fail(url);
-  }
+
+  return Result.try({
+    try: () => new URL(url).hostname,
+    catch: () => url,
+  });
 }
 
 export function resolveSiteHostLabel(siteUrl: string, feedUrl: string): string {
