@@ -16,6 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - Web プレビューの戻るボタンを、履歴がない場合はプレビューを閉じる挙動に揃えた
 - Web プレビュー上の copy / toast / tooltip が native WebView の背面に隠れにくいよう、chrome rail 内で見える配置にした
 - スマートビュー選択時の下部フィルターを表示内容に合わせて同期するようにした
+- 購読レビュー条件の説明文を読みやすくし、購読詳細ペインの右端余白を揃えた
 - 記事一覧と Web プレビュー chrome の見た目を調整し、スクロールバー、選択面、コンパクト操作の視認性を改善した
 
 ### Maintenance
