@@ -9,7 +9,10 @@ import { AddAccountForm } from "@/components/settings/add-account-form";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const servicePickerSource = readFileSync(join(process.cwd(), "src/components/settings/service-picker.tsx"), "utf8");
+const servicePickerSource = readFileSync(
+  join(process.cwd(), "src/components/settings/add-account/service-picker.tsx"),
+  "utf8",
+);
 const accountConfigFormSource = readFileSync(
   join(process.cwd(), "src/components/settings/account-config-form.tsx"),
   "utf8",

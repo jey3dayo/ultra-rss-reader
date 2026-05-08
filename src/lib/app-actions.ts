@@ -1,4 +1,4 @@
-import type { ViewMode } from "@/lib/view-mode.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 /** All valid action identifiers dispatched via executeAction. */
 export type AppAction =

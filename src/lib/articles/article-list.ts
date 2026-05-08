@@ -11,7 +11,7 @@ import {
 } from "@/lib/datetime";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
-import type { ViewMode } from "@/lib/view-mode.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 export type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;

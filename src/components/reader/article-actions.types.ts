@@ -1,6 +1,6 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ArticleDto } from "@/api/tauri-commands";
-import type { ViewMode } from "@/lib/view-mode.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preferences";
 
 export type ArticleStatusViewMode = ViewMode;

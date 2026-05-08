@@ -1,4 +1,4 @@
-import type { ViewMode } from "@/lib/view-mode.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 type ArticleRetentionViewMode = ViewMode;
 

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ViewMode } from "@/lib/view-mode.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "../../article-list.types";
 
 export function useArticleListViewState({

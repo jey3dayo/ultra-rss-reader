@@ -1,5 +1,5 @@
+import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 import type { AccountGeneralSectionViewProps } from "@/components/settings/account-detail/types";
-import { SettingsRow } from "@/components/settings/settings-components";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 
@@ -39,7 +39,7 @@ export function AccountGeneralSectionView({
         disabled={disabled || isSavingName}
       />
       {infoRows.map((row) => (
-        <SettingsRow
+        <AccountDetailSettingsRow
           key={row.label}
           label={row.label}
           labelClassName={labelColumnClassName}

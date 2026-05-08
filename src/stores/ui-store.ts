@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type {
   AccountSetupSession,
@@ -20,7 +21,6 @@ import type {
   ToastData,
   UiSelection,
 } from "@/lib/ui-state.types";
-import type { ViewMode } from "@/lib/view-mode.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;

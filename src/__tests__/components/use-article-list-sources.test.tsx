@@ -4,8 +4,8 @@ import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { UiSelection } from "@/lib/ui-state.types";
-import type { ViewMode } from "@/lib/view-mode.types";
 
 const {
   useFeedsMock,

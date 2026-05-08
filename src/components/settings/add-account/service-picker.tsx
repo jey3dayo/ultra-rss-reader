@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { cn } from "@/lib/utils";
-import { SERVICE_CATEGORIES } from "./add-account/services";
-import type { ServicePickerProps } from "./add-account/services.types";
+import { SERVICE_CATEGORIES } from "./services";
+import type { ServicePickerProps } from "./services.types";
 
 export function ServicePicker({ onSelect }: ServicePickerProps) {
   const { t } = useTranslation("settings");

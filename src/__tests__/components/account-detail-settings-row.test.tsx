@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SettingsRow } from "@/components/settings/settings-components";
+import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 
-describe("SettingsRow", () => {
+describe("AccountDetailSettingsRow", () => {
   it("left-aligns read-only text values with the same inset as input controls", () => {
-    render(<SettingsRow label="Type" type="text" value="FreshRSS" />);
+    render(<AccountDetailSettingsRow label="Type" type="text" value="FreshRSS" />);
 
     const value = screen.getByText("FreshRSS");
     expect(value.parentElement).toHaveClass("w-full");
@@ -15,7 +15,7 @@ describe("SettingsRow", () => {
   });
 
   it("renders read-only select values without a literal triangle glyph", () => {
-    render(<SettingsRow label="Theme" type="select" value="Dark" />);
+    render(<AccountDetailSettingsRow label="Theme" type="select" value="Dark" />);
 
     expect(screen.getByText(/Dark/)).toBeInTheDocument();
     expect(screen.getByText("Dark").parentElement).toHaveClass("text-foreground-soft");
