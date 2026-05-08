@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useUiStore } from "@/stores/ui-store";
-import type {
-  UseBrowserOverlayFocusReturnParams,
-  UseBrowserOverlayFocusReturnResult,
-} from "../../browser-view.types";
+import type { UseBrowserOverlayFocusReturnParams, UseBrowserOverlayFocusReturnResult } from "../../browser-view.types";
 
 export function useBrowserOverlayFocusReturn({
   articleId,

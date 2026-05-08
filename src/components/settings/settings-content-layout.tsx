@@ -17,8 +17,7 @@ type SettingsContentLayoutProps = {
   scrollBehavior?: "auto" | "always" | "never";
 };
 
-type SettingsToneVariables = CSSProperties &
-  Record<"--section-heading-color" | "--form-row-label", string>;
+type SettingsToneVariables = CSSProperties & Record<"--section-heading-color" | "--form-row-label", string>;
 
 const SettingsContentScrollBehaviorContext = createContext<SettingsContentLayoutProps["scrollBehavior"]>("auto");
 

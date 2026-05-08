@@ -197,9 +197,7 @@ function EmptyState({
           hints: [],
           containerClassName: undefined,
           cardClassName: undefined,
-          actions: [
-            { label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" },
-          ],
+          actions: [{ label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" }],
         }
       : emptyReason === "no-feeds"
         ? {
