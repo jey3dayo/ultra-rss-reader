@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
@@ -11,15 +11,13 @@ import { useUiStore } from "@/stores/ui-store";
 
 describe("useUpdateFeedFolder", () => {
   let queryClient: QueryClient;
+  let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
   let showToastMock: ReturnType<typeof vi.fn<(message: string | ToastData) => void>>;
 
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    const queryWrapper = createQueryWrapper({ queryClientConfig: { defaultOptions: { mutations: { retry: false } } } });
+    queryClient = queryWrapper.queryClient;
+    wrapper = queryWrapper.wrapper;
     showToastMock = vi.fn();
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({ showToast: showToastMock });
@@ -54,10 +52,6 @@ describe("useUpdateFeedFolder", () => {
     const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
     const updateFeedFolderSpy = vi.spyOn(tauriCommands, "updateFeedFolder").mockResolvedValue(Result.succeed(null));
 
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
 
     await result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-1" });
@@ -72,10 +66,6 @@ describe("useUpdateFeedFolder", () => {
   it("optimistically updates cached feeds before the folder update resolves", async () => {
     seedFeeds();
     vi.spyOn(tauriCommands, "updateFeedFolder").mockImplementation(() => new Promise<never>(() => {}));
-
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
 
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
 
@@ -98,10 +88,6 @@ describe("useUpdateFeedFolder", () => {
       Result.fail({ type: "UserVisible", message: "boom" }),
     );
 
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
 
     await expect(result.current.mutateAsync({ feedId: "feed-1", folderId: null })).rejects.toBeDefined();
@@ -119,10 +105,6 @@ describe("useUpdateFeedFolder", () => {
         new Promise((resolve) => {
           resolveUpdate = resolve;
         }),
-    );
-
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
