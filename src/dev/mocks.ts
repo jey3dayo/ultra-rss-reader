@@ -73,6 +73,7 @@ import {
   mockArticleTags,
   mockFeeds,
   mockFolders,
+  resetMockDataForDevMocks,
   mockTags,
 } from "@/dev/mock-data";
 import {
@@ -94,7 +95,8 @@ const mockArticleViewHistory: {
   accountId: string;
   articleId: string;
   viewedAt: string;
-}[] = [
+}[] = [];
+const initialMockArticleViewHistory: typeof mockArticleViewHistory = [
   {
     accountId: "acc-freshrss",
     articleId: "art-2",
@@ -106,6 +108,22 @@ const mockArticleViewHistory: {
     viewedAt: "2026-04-20T09:30:00Z",
   },
 ];
+
+function resetDevMockState() {
+  nextAccountId = 100;
+  nextFeedId = 100;
+  nextFolderId = 100;
+  nextTagId = 100;
+  nextMuteKeywordId = 100;
+  mockPreferences.clear();
+  mockMuteKeywords.splice(0);
+  mockArticleViewHistory.splice(
+    0,
+    mockArticleViewHistory.length,
+    ...initialMockArticleViewHistory.map((item) => structuredClone(item)),
+  );
+  resetMockDataForDevMocks();
+}
 
 function titleFromUrl(feedUrl: string): string {
   try {
@@ -211,7 +229,8 @@ function applyMuteKeywordFilter<
 }
 
 export function setupDevMocks() {
-  if (window.__TAURI_INTERNALS__) return;
+  if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return;
+  resetDevMockState();
   window.__DEV_BROWSER_MOCKS__ = true;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
 

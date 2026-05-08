@@ -589,16 +589,6 @@
   - visual snapshot、canvas 名変更、Storybook fixture runtime 整理とは混ぜず、loadable smoke gate だけを見る
   - 既存 1 canvas smoke から対象 URL の小さい matrix へ広げる
 
-- [ ] dev mock state reset boundary 候補を別バッチで追加する
-  - `src/dev/mocks.ts` と `mock-data.ts` の mutable mock 配列、採番 counter、preference map が `setupDevMocks()` 間で初期化されることを固定する
-  - mock data の表示文言、scenario 追加、browser geometry / dev intent とは混ぜない
-  - dev mock の state leak を focused test で検出できるようにする
-
-- [ ] browser debug input trace lifecycle 候補を別バッチで追加する
-  - `browser-webview-debug-input` が Debug HUD に流れる条件、diagnostics off 時に出ないこと、trace の保持 / 解除を小さい test で固定する
-  - geometry diagnostics 表示、incident runbook、native shortcut 挙動変更とは混ぜない
-  - debug input trace の source と lifetime だけを扱う
-
 - [ ] browser webview pending bounds flush 候補を別バッチで検証する
   - `use-browser-webview-sync.ts` と `use-browser-webview-bounds-sync.ts` で、create 中 resize が pending bounds に積まれ、create 成功後に最新 bounds だけ flush されることを固定する
   - bounds args validation、native WebView 実装、dev geometry diagnostics とは混ぜず、hook 内の pending flush contract に限定する
@@ -628,11 +618,6 @@
   - `get_feed_integrity_report` で見つかる orphaned articles を削除する backend command と TS wrapper / schema を追加できるか確認する
   - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
   - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
-
-- [ ] rich translation fallback render guard 候補を別バッチで追加する
-  - `<Trans>` の rich text key が missing / mock fallback でも destructive dialog の accessible name と本文が壊れないことを固定する
-  - destructive dialog tone / variant、確認文言の全面変更とは混ぜず、fallback render contract だけを見る
-  - delete tag / unsubscribe feed の代表ケースに限定する
 
 - [ ] log directory native-open command 候補を別バッチで追加する
   - `log_commands.rs` と data settings controller で、webview に log dir path を返さず Rust 側で app log dir のみ open する command へ寄せられるか確認する
@@ -668,21 +653,6 @@
   - `use-account-sync-status.ts` と sidebar sync hook で、sync status query failure が `not_synced_yet` と同じ表示に落ちないよう error / loading / retry の最小 contract を固定する
   - provider error mapping、sidebar layout、同期実行処理とは混ぜない
   - single account と all accounts status の fallback を分けて見る
-
-- [ ] feed landing fetchQuery fallback 候補を別バッチで追加する
-  - `use-feed-landing.ts` の `fetchQuery` 失敗時に、cached articles がある場合の fallback と完全失敗時の挙動を分けて test する
-  - reader scope matrix、feed display preference、article selection UX 全体とは混ぜない
-  - browser close / keep-open の条件を feed landing helper の contract として固定する
-
-- [ ] local IPC query retry policy 候補を別バッチで追加する
-  - `query-client.ts` と test wrapper の React Query retry 設定を照合し、Tauri IPC read query に default retry を効かせるかを明示する
-  - 個別 hook の cache key 整理、staleTime 調整、network provider retry とは混ぜない
-  - production client と test helper の差分を小さい contract test で固定する
-
-- [ ] reader passive card surface unification 候補を別バッチで追加する
-  - `reader-passive-card.tsx`、article empty state、article list screen の empty / search empty / selection summary が shared passive surface を通ることを固定する
-  - welcome card の装飾変更、radius 変更、copy 変更とは混ぜない
-  - shared class または shared component の利用だけを contract test にする
 
 - [ ] startup sync timestamp storage recovery 候補を別バッチで追加する
   - `App.tsx` と storage constants の `startupSyncLastTriggeredAt` を helper 化し、invalid / future timestamp / 旧 key 移行の扱いを固定する

@@ -5,13 +5,18 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commandArgsSchemas } from "@/api/schemas";
 import {
+  addLocalFeed,
   countAccountStarredArticles,
+  createTag,
   createOrUpdateBrowserWebview,
   getAccountSyncStatus,
   getDevRuntimeOptions,
   getFeedIntegrityReport,
   getPlatformInfo,
+  getPreferences,
+  listFeeds,
   listStarredArticles,
+  setPreference,
   testAccountConnection,
   updateAccountCredentials,
 } from "@/api/tauri-commands";
@@ -140,6 +145,49 @@ describe("setupDevMocks", () => {
     expect(starredCount).toBe(2);
     expect(starredArticles).toHaveLength(2);
     expect(starredArticles[0]?.is_starred).toBe(true);
+  });
+
+  it("resets mutable browser-only mock state on each setup", async () => {
+    setupDevMocks();
+
+    const firstFeed = Result.unwrap(
+      await addLocalFeed("acc-local", "https://stateful.example.com/feed.xml"),
+    );
+    const firstTag = Result.unwrap(await createTag("stateful"));
+    Result.unwrap(await setPreference("reader_mode_default", "false"));
+
+    expect(firstFeed.id).toBe("dev-feed-100");
+    expect(firstTag.id).toBe("dev-tag-100");
+    expect(Result.unwrap(await getPreferences()).reader_mode_default).toBe(
+      "false",
+    );
+    expect(
+      Result.unwrap(await listFeeds("acc-local")).some(
+        (feed) => feed.id === firstFeed.id,
+      ),
+    ).toBe(true);
+
+    setupDevMocks();
+
+    expect(
+      Result.unwrap(await listFeeds("acc-local")).some(
+        (feed) => feed.id === firstFeed.id,
+      ),
+    ).toBe(false);
+
+    const secondFeed = Result.unwrap(
+      await addLocalFeed("acc-local", "https://stateful.example.com/feed.xml"),
+    );
+    const secondTag = Result.unwrap(await createTag("stateful"));
+
+    expect(secondFeed.id).toBe("dev-feed-100");
+    expect(secondTag.id).toBe("dev-tag-100");
+    expect(Result.unwrap(await getPreferences())).toEqual({});
+    expect(
+      Result.unwrap(await listFeeds("acc-local")).filter(
+        (feed) => feed.id === firstFeed.id,
+      ),
+    ).toHaveLength(1);
   });
 
   it("keeps every schema-validated command covered by the browser-only mock switch", () => {

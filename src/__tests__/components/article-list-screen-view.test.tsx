@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
+import { readerPassiveCardClassName } from "@/components/reader/reader-passive-card";
 
 describe("ArticleListScreenView", () => {
   it("renders the loading state inside the article list body", () => {
@@ -51,11 +52,7 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.getByText("No articles")).toBeInTheDocument();
     expect(container.querySelector(".rounded-3xl")).toHaveClass(
-      "bg-card/38",
-      "shadow-none",
-      "dark:border-border/90",
-      "dark:bg-card/38",
-      "dark:shadow-none",
+      ...readerPassiveCardClassName.split(" "),
     );
 
     rerender(
@@ -85,13 +82,19 @@ describe("ArticleListScreenView", () => {
         imagePreviews="off"
         selectionStyle="modern"
         onSelectArticle={vi.fn()}
-        renderRow={({ articleId, content }) => <div data-testid={`screen-row-${articleId}`}>{content}</div>}
+        renderRow={({ articleId, content }) => (
+          <div data-testid={`screen-row-${articleId}`}>{content}</div>
+        )}
       />,
     );
 
     expect(screen.getByText("Today")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /First Article/i })).toBeInTheDocument();
-    expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /First Article/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`screen-row-${sampleArticles[0].id}`),
+    ).toBeInTheDocument();
   });
 
   it("renders a quieter setup placeholder when the list is waiting for initial setup", () => {
@@ -114,7 +117,9 @@ describe("ArticleListScreenView", () => {
       />,
     );
 
-    expect(screen.getByText("Add an account and your articles will appear here.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Add an account and your articles will appear here."),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Queue")).not.toBeInTheDocument();
     expect(container.querySelector(".rounded-2xl")).toHaveClass(
       "border-border/65",
@@ -146,7 +151,9 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.queryByText("Unused")).not.toBeInTheDocument();
     expect(screen.queryByText("Queue")).not.toBeInTheDocument();
-    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("listbox", { name: "Article list" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps article rows inside a dedicated scroll content lane so the scrollbar does not overlap selections", () => {
@@ -181,7 +188,9 @@ describe("ArticleListScreenView", () => {
       />,
     );
 
-    const contentLane = screen.getByTestId("article-list-scroll-content").closest('[data-slot="scroll-area-content"]');
+    const contentLane = screen
+      .getByTestId("article-list-scroll-content")
+      .closest('[data-slot="scroll-area-content"]');
 
     expect(contentLane).toHaveClass("pr-3", "pb-4");
   });
@@ -222,12 +231,18 @@ describe("ArticleListScreenView", () => {
         imagePreviews="off"
         selectionStyle="modern"
         onSelectArticle={vi.fn()}
-        renderRow={({ articleId, content }) => <div data-testid={`screen-row-${articleId}`}>{content}</div>}
+        renderRow={({ articleId, content }) => (
+          <div data-testid={`screen-row-${articleId}`}>{content}</div>
+        )}
       />,
     );
 
-    const rowBefore = screen.getByRole("option", { name: "Retained unread article (starred)" });
-    expect(rowBefore.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).toBeNull();
+    const rowBefore = screen.getByRole("option", {
+      name: "Retained unread article (starred)",
+    });
+    expect(
+      rowBefore.querySelector(".bg-\\[var\\(--tone-unread\\)\\]"),
+    ).toBeNull();
 
     rerender(
       <ArticleListScreenView
@@ -256,12 +271,18 @@ describe("ArticleListScreenView", () => {
         imagePreviews="off"
         selectionStyle="modern"
         onSelectArticle={vi.fn()}
-        renderRow={({ articleId, content }) => <div data-testid={`screen-row-${articleId}`}>{content}</div>}
+        renderRow={({ articleId, content }) => (
+          <div data-testid={`screen-row-${articleId}`}>{content}</div>
+        )}
       />,
     );
 
-    const rowAfter = screen.getByRole("option", { name: "Retained unread article (unread) (starred)" });
-    expect(rowAfter.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).not.toBeNull();
+    const rowAfter = screen.getByRole("option", {
+      name: "Retained unread article (unread) (starred)",
+    });
+    expect(
+      rowAfter.querySelector(".bg-\\[var\\(--tone-unread\\)\\]"),
+    ).not.toBeNull();
   });
 
   it("renders empty-state actions outside the article listbox", () => {
@@ -285,17 +306,25 @@ describe("ArticleListScreenView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Clear search" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
-    expect(screen.getByText('No matches for "Nope"').closest(".rounded-3xl")).toHaveClass("-translate-y-[5%]");
+    expect(
+      screen.getByText('No matches for "Nope"').closest(".rounded-3xl"),
+    ).toHaveClass("-translate-y-[5%]");
     expect(screen.getByText('No matches for "Nope"')).toHaveClass("min-h-11");
-    expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(
+    expect(
+      screen.getByText("Try a different keyword or clear the current search."),
+    ).toHaveClass(
       "mt-3",
       "min-h-12",
       "text-sm",
       "leading-6",
       "text-foreground-soft",
     );
-    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("listbox", { name: "Article list" }),
+    ).not.toBeInTheDocument();
   });
 });

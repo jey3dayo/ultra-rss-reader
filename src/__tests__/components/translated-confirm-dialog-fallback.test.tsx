@@ -43,17 +43,41 @@ const feed: FeedDto = {
 describe("translated destructive confirmation fallbacks", () => {
   it("renders the delete-tag fallback copy without crashing", () => {
     expect(() =>
-      render(<DeleteTagDialogView open={true} tagName="Work" onOpenChange={vi.fn()} onConfirm={vi.fn()} />),
+      render(
+        <DeleteTagDialogView
+          open={true}
+          tagName="Work"
+          onOpenChange={vi.fn()}
+          onConfirm={vi.fn()}
+        />,
+      ),
     ).not.toThrow();
 
-    expect(screen.getByRole("dialog")).toHaveTextContent("Are you sure you want to delete Work?");
+    expect(
+      screen.getByRole("dialog", { name: "Delete Tag" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Are you sure you want to delete Work?",
+    );
   });
 
   it("renders the unsubscribe fallback copy without crashing", () => {
     expect(() =>
-      render(<UnsubscribeDialog feed={feed} open={true} onOpenChange={vi.fn()} onConfirm={vi.fn()} />),
+      render(
+        <UnsubscribeDialog
+          feed={feed}
+          open={true}
+          onOpenChange={vi.fn()}
+          onConfirm={vi.fn()}
+        />,
+      ),
     ).not.toThrow();
 
-    expect(screen.getByRole("dialog")).toHaveTextContent("Are you sure you want to unsubscribe from Tech News?");
+    expect(
+      screen.getByRole("dialog", { name: "Unsubscribe" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Are you sure you want to unsubscribe from Tech News?",
+    );
   });
 });

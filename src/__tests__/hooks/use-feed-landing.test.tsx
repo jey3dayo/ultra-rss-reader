@@ -1,5 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import {
+  createQueryWrapper,
+  createWrapper,
+} from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -14,15 +17,23 @@ describe("useFeedLanding", () => {
       selectedAccountId: "acc-1",
     });
     usePreferencesStore.setState({
-      prefs: { reader_mode_default: "true", web_preview_mode_default: "false", reading_sort: "newest_first" },
+      prefs: {
+        reader_mode_default: "true",
+        web_preview_mode_default: "false",
+        reading_sort: "newest_first",
+      },
       loaded: true,
     });
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return sampleFeeds.filter(
+            (feed) => feed.account_id === args.accountId,
+          );
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return sampleArticles.filter(
+            (article) => article.feed_id === args.feedId,
+          );
         default:
           return undefined;
       }
@@ -30,14 +41,19 @@ describe("useFeedLanding", () => {
   });
 
   it("lands on the first visible article in reader mode for normal feeds", async () => {
-    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       await result.current("feed-1");
     });
 
     await waitFor(() => {
-      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
@@ -50,15 +66,23 @@ describe("useFeedLanding", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+            .map((feed) =>
+              feed.id === "feed-1"
+                ? { ...feed, reader_mode: "on", web_preview_mode: "on" }
+                : feed,
+            );
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return sampleArticles.filter(
+            (article) => article.feed_id === args.feedId,
+          );
         default:
           return undefined;
       }
     });
 
-    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       await result.current("feed-1");
@@ -77,17 +101,25 @@ describe("useFeedLanding", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+            .map((feed) =>
+              feed.id === "feed-1"
+                ? { ...feed, reader_mode: "on", web_preview_mode: "on" }
+                : feed,
+            );
         case "list_articles":
           return sampleArticles
             .filter((article) => article.feed_id === args.feedId)
-            .map((article) => (article.id === "art-1" ? { ...article, url: null } : article));
+            .map((article) =>
+              article.id === "art-1" ? { ...article, url: null } : article,
+            );
         default:
           return undefined;
       }
     });
 
-    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       await result.current("feed-1");
@@ -104,7 +136,9 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return sampleFeeds.filter(
+            (feed) => feed.account_id === args.accountId,
+          );
         case "list_articles":
           return sampleArticles
             .filter((article) => article.feed_id === args.feedId)
@@ -114,14 +148,19 @@ describe("useFeedLanding", () => {
       }
     });
 
-    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       await result.current("feed-1");
     });
 
     await waitFor(() => {
-      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
       expect(useUiStore.getState().selectedArticleId).toBeNull();
       expect(useUiStore.getState().contentMode).toBe("empty");
     });
@@ -135,26 +174,108 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return sampleFeeds.filter(
+            (feed) => feed.account_id === args.accountId,
+          );
         case "list_articles":
           return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId && (!args.starredOnly || article.is_starred),
+            (article) =>
+              article.feed_id === args.feedId &&
+              (!args.starredOnly || article.is_starred),
           );
         default:
           return undefined;
       }
     });
 
-    const { result } = renderHook(() => useFeedLanding(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       await result.current("feed-1");
     });
 
     await waitFor(() => {
-      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
       expect(useUiStore.getState().viewMode).toBe("starred");
       expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+    });
+  });
+
+  it("falls back to cached feed articles when landing fetch fails", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter(
+            (feed) => feed.account_id === args.accountId,
+          );
+        case "list_articles":
+          throw new Error("temporary list failure");
+        default:
+          return undefined;
+      }
+    });
+
+    const { queryClient, wrapper } = createQueryWrapper();
+    queryClient.setQueryData(
+      ["articles", "feed-1", { mode: "all" }],
+      sampleArticles.filter((article) => article.feed_id === "feed-1"),
+    );
+
+    const { result } = renderHook(() => useFeedLanding(), { wrapper });
+
+    await act(async () => {
+      await result.current("feed-1");
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+  });
+
+  it("closes the browser when landing fetch fails without cached articles", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter(
+            (feed) => feed.account_id === args.accountId,
+          );
+        case "list_articles":
+          throw new Error("temporary list failure");
+        default:
+          return undefined;
+      }
+    });
+    useUiStore.setState({
+      browserUrl: "https://example.com/open",
+      contentMode: "browser",
+    });
+
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current("feed-1");
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
+      expect(useUiStore.getState().selectedArticleId).toBeNull();
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(useUiStore.getState().contentMode).toBe("empty");
     });
   });
 });
