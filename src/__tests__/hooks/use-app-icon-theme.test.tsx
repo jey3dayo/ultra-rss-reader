@@ -27,8 +27,10 @@ function HookHarness() {
   return null;
 }
 
+type MatchMediaChangeEvent = Pick<MediaQueryListEvent, "matches">;
+
 function createMatchMedia(matches: boolean) {
-  const listeners = new Set<(event: MediaQueryListEvent) => void>();
+  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
 
   return {
     get matches() {
@@ -36,15 +38,15 @@ function createMatchMedia(matches: boolean) {
     },
     media: "(prefers-color-scheme: dark)",
     onchange: null,
-    addEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) => {
+    addEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
       listeners.add(listener);
     },
-    removeEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) => {
+    removeEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
       listeners.delete(listener);
     },
     dispatch(nextMatches: boolean) {
       matches = nextMatches;
-      const event = { matches: nextMatches } as MediaQueryListEvent;
+      const event: MatchMediaChangeEvent = { matches: nextMatches };
       for (const listener of listeners) {
         listener(event);
       }

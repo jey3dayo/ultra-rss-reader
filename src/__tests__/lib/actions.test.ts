@@ -55,6 +55,14 @@ function expectCustomEvent<T>(value: unknown): asserts value is CustomEvent<T> {
   expect(value).toBeInstanceOf(CustomEvent);
 }
 
+function stubWindowLocationReload(reload: Location["reload"]) {
+  const location: Location = {
+    ...window.location,
+    reload,
+  };
+  return vi.spyOn(window, "location", "get").mockReturnValue(location);
+}
+
 vi.mock("@/api/tauri-commands", () => ({
   goBackBrowserWebview: goBackBrowserWebviewMock,
   goForwardBrowserWebview: goForwardBrowserWebviewMock,
@@ -234,10 +242,7 @@ describe("executeAction", () => {
     it("reloads the current window instead of calling the native app restart in dev builds", async () => {
       vi.stubEnv("DEV", true);
       const reloadSpy = vi.fn();
-      vi.spyOn(window, "location", "get").mockReturnValue({
-        ...window.location,
-        reload: reloadSpy,
-      } as Location);
+      stubWindowLocationReload(reloadSpy);
 
       executeAction("restart-app");
 
@@ -250,10 +255,7 @@ describe("executeAction", () => {
     it("does not restart the app outside dev builds", async () => {
       vi.stubEnv("DEV", false);
       const reloadSpy = vi.fn();
-      vi.spyOn(window, "location", "get").mockReturnValue({
-        ...window.location,
-        reload: reloadSpy,
-      } as Location);
+      stubWindowLocationReload(reloadSpy);
 
       executeAction("restart-app");
 

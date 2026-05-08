@@ -5,18 +5,13 @@ import {
   shouldApplySyncedBrowserState,
 } from "@/components/reader/browser-webview-sync-helpers";
 
+function createDomRect({ left = 10, top = 20, width = 300, height = 200 }: Partial<DOMRect>): DOMRect {
+  return new DOMRect(left, top, width, height);
+}
+
 function createHostRef(rect: Partial<DOMRect>) {
   const host = document.createElement("div");
-  host.getBoundingClientRect = vi.fn(
-    () =>
-      ({
-        left: 10,
-        top: 20,
-        width: 300,
-        height: 200,
-        ...rect,
-      }) as DOMRect,
-  );
+  host.getBoundingClientRect = vi.fn(() => createDomRect(rect));
   return { current: host };
 }
 
@@ -25,30 +20,8 @@ function createRootRelativeHostRef(rootRect: Partial<DOMRect>, hostRect: Partial
   const host = document.createElement("div");
   root.setAttribute("data-browser-overlay-client-root", "");
   root.append(host);
-  root.getBoundingClientRect = vi.fn(
-    () =>
-      ({
-        left: 0,
-        top: 18,
-        width: 1400,
-        height: 900,
-        right: 1400,
-        bottom: 918,
-        ...rootRect,
-      }) as DOMRect,
-  );
-  host.getBoundingClientRect = vi.fn(
-    () =>
-      ({
-        left: 0,
-        top: 58,
-        width: 1400,
-        height: 860,
-        right: 1400,
-        bottom: 918,
-        ...hostRect,
-      }) as DOMRect,
-  );
+  root.getBoundingClientRect = vi.fn(() => createDomRect({ left: 0, top: 18, width: 1400, height: 900, ...rootRect }));
+  host.getBoundingClientRect = vi.fn(() => createDomRect({ left: 0, top: 58, width: 1400, height: 860, ...hostRect }));
   return { current: host };
 }
 
