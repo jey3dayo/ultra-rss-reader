@@ -292,3 +292,33 @@
   - `src/schemas/parse.ts`、`src/schemas/storage.ts`、API schemas の parse failure handling を、typed result と fallback default の境界で整理する
   - preferences schema、Tauri command schema、local storage schema は失敗時の recovery が違うため、schema group ごとに worker scope を分ける
   - 表示 copy や toast 変更は含めず、parse error kind と caller fallback の契約 test に限定する
+
+- [ ] share / clipboard action contract 候補を別バッチで見直す
+  - `src-tauri/src/commands/share_commands.rs`、`src/lib/runtime/clipboard.ts`、article share menu の copy/open action を、native command と frontend fallback で分けて棚卸しする
+  - clipboard unavailable / permission denied / invalid URL はユーザー表示が違うため、toast copy 変更ではなく action result category の test を先に固定する
+  - native share menu の表示や shortcut 変更は menu/copy batch に残し、ここでは copy link / open external / readonly field copy の実行契約に限定する
+
+- [ ] feed display mode precedence 候補を別バッチで検証する
+  - feed-level display mode、folder inherited mode、reader preview default preference の優先順位を `feed.ts` / hooks / migrations の対応表で確認する
+  - feed selection auto-open と preview mode change は UX 影響が大きいため、display mode resolver の pure helper test を先に追加する
+  - settings copy や toolbar visual 変更は含めず、stored value と resolved mode の compatibility に限定する
+
+- [ ] article retention / cleanup candidate 候補を別バッチで追加する
+  - `src/lib/articles/article-retention.ts` と subscription review candidates の stale/no unread/no stars 判定を、retention policy と cleanup recommendation で分ける
+  - feed cleanup page の decision flow は subscriptions index と重なるため、まずは pure helper の boundary test に限定する
+  - 実データ削除や bulk action は destructive flow に関わるため、confirm dialog batch と同時に変更しない
+
+- [ ] feed tree drag/drop interaction contract 候補を別バッチで見直す
+  - `feed-tree-drag-session.ts`、drop target、hover target、folder flow の drag outcome を、pointer session と repository update action で分けて棚卸しする
+  - drag overlay motion や visual token は motion/browser 実機検証に残し、ここでは valid/invalid drop target と folder assignment result を固定する
+  - touch/mobile drag は desktop pointer drag と前提が違うため、mobile recovery layout とは別の manual verification にする
+
+- [ ] roving focus / mouse navigation contract 候補を別バッチで追加する
+  - `roving-focus.ts`、`use-mouse-navigation.ts`、feed/account/tag row focus の keyboard/mouse ownership を、pane ごとに小さい test へ分ける
+  - focus ring visual や hover class は UI token batch に残し、ここでは active descendant / tab stop / selected row の契約に限定する
+  - browser overlay focus return と article list focus return は既存候補に残し、sidebar/feed tree 内の navigation を先に扱う
+
+- [ ] datetime / options helper contract 候補を別バッチで追加する
+  - `src/lib/datetime.ts`、`src/lib/ui/options.ts`、account sync status formatting の locale-independent helper を境界値で固定する
+  - relative time / date formatting は locale copy と混ざりやすいため、まずは ISO timestamp、local date、invalid value fallback の pure test に限定する
+  - select option label の文言変更は settings/view copy batch に残し、option value と disabled state の契約だけを見る
