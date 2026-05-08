@@ -2,10 +2,38 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { cva } from "class-variance-authority";
+import type { ReactNode } from "react";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { IconToolbarButtonProps, IconToolbarMenuTriggerProps, IconToolbarToggleProps } from "./icon-toolbar.types";
 import { OverlayActionSurface } from "./overlay-action-surface";
+
+type IconToolbarPressedTone = "none" | "neutral" | "accent" | "starred";
+
+type IconToolbarControlBaseProps = {
+  label: string;
+  tooltipLabel?: string;
+  tooltipSide?: "top" | "right" | "bottom" | "left";
+  tooltipAlign?: "start" | "center" | "end";
+  tooltipSideOffset?: number;
+  disabled?: boolean;
+  ariaDisabled?: boolean;
+  ariaPressed?: boolean;
+  className?: string;
+  children: ReactNode;
+};
+
+type IconToolbarButtonProps = IconToolbarControlBaseProps & {
+  onClick: () => void;
+};
+
+type IconToolbarToggleProps = IconToolbarControlBaseProps & {
+  pressed: boolean;
+  onPressedChange: (nextPressed: boolean) => void;
+  pressedTone?: IconToolbarPressedTone;
+  focusTargetKey?: string;
+};
+
+type IconToolbarMenuTriggerProps = IconToolbarControlBaseProps;
 
 export const iconToolbarButtonClassName = cn(
   "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none outline-none select-none transition-none md:size-8 hover:bg-surface-2/64 hover:text-foreground aria-expanded:bg-surface-3/88 aria-expanded:text-foreground focus-visible:bg-surface-2/64 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

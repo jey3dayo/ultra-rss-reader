@@ -1,7 +1,14 @@
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import type { DestructiveDialogFooterProps } from "./button.types";
+
+type DestructiveDialogFooterProps = {
+  cancelLabel: string;
+  confirmLabel: string;
+  pending?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
 
 export function DestructiveDialogFooter({
   cancelLabel,

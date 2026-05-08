@@ -1,7 +1,11 @@
 import { Trash2 } from "lucide-react";
+import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DeleteButtonProps } from "./button.types";
+
+type DeleteButtonProps = ComponentProps<typeof Button> & {
+  showIcon?: boolean;
+};
 
 export function DeleteButton({
   className,

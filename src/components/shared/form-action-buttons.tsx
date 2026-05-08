@@ -1,5 +1,17 @@
-import type { FormActionButtonsProps } from "@/components/shared/button.types";
 import { Button } from "@/components/ui/button";
+
+type FormActionButtonsProps = {
+  cancelLabel: string;
+  submitLabel: string;
+  submittingLabel?: string;
+  loading?: boolean;
+  submitDisabled?: boolean;
+  cancelDisabled?: boolean;
+  onCancel: () => void;
+  onSubmit?: () => void;
+  cancelType?: "button" | "submit";
+  submitType?: "button" | "submit";
+};
 
 export function FormActionButtons({
   cancelLabel,
