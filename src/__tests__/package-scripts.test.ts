@@ -1,31 +1,18 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
-type PackageJson = {
-  scripts?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-};
+const packageJsonSchema = z.object({
+  scripts: z.record(z.string(), z.string()).optional(),
+  devDependencies: z.record(z.string(), z.string()).optional(),
+});
 
-function isStringRecord(value: unknown): value is Record<string, string> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    Object.values(value).every((candidate) => typeof candidate === "string")
-  );
-}
+type PackageJson = z.infer<typeof packageJsonSchema>;
 
 function parsePackageJson(value: string): PackageJson {
-  const parsed: unknown = JSON.parse(value);
-  if (typeof parsed !== "object" || parsed === null) {
-    return {};
-  }
-
-  return {
-    scripts: "scripts" in parsed && isStringRecord(parsed.scripts) ? parsed.scripts : undefined,
-    devDependencies:
-      "devDependencies" in parsed && isStringRecord(parsed.devDependencies) ? parsed.devDependencies : undefined,
-  };
+  const parsed = packageJsonSchema.safeParse(JSON.parse(value));
+  return parsed.success ? parsed.data : {};
 }
 
 function readPackageJson(): PackageJson {
