@@ -1,5 +1,5 @@
 import { FolderClosed, Inbox, Star, Tag as TagIcon } from "lucide-react";
-import { lazy, type ReactNode, Suspense } from "react";
+import { type ComponentProps, lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
@@ -14,7 +14,7 @@ import {
   resolveArticleSummaryWebsiteLabel,
 } from "@/lib/articles/article-view";
 import { useUiStore } from "@/stores/ui-store";
-import { ArticleEmptyStateView, type ArticleEmptyStateViewProps } from "./article-empty-state-view";
+import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
 import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
@@ -27,6 +27,8 @@ const LazySubscriptionsIndexPage = lazy(async () => {
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
 const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[42rem] ${readerPassiveCardOffsetClassName}`;
+
+type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 
 type SummaryCardProps = {
   title: string;
