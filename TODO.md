@@ -219,6 +219,69 @@
   - discovery failure と submit failure は表示 copy と retry 導線が違うため、dialog view props 整理とは混ぜない
   - 実 network が必要な確認は manual verification に回し、parser/DTO/command response は fixture test で固定する
 
+- [ ] Article action shortcut listener contract 候補を別バッチで追加する
+  - `src/components/reader/hooks/article/use-article-action-shortcuts.ts` で、`keyboardShortcuts` が未指定の時に各 `keyboardEvents` handler を登録しない契約を固定する
+  - action shortcut の label / i18n copy / browser overlay shortcut とは混ぜず、listener ownership と cleanup の小さい hook test に限定する
+
+- [ ] Browser overlay close in-flight guard 候補を別バッチで追加する
+  - `src/components/reader/hooks/article/use-article-browser-overlay-close.ts` で、`browserCloseInFlight=true` の間に `closeBrowserWebview` が二重実行されない契約を固定する
+  - close 後の list focus と preference close は一度だけ実行されることを、fake timer と mocked command で確認する
+  - focus return fallback / WebView geometry / close animation の見た目変更は同じバッチに混ぜない
+
+- [ ] Sidebar account switcher popover contract 候補を別バッチで追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts` で toggle、outside mousedown close、inside click 維持、trigger focus restore を契約化する
+  - account selection restore / sync status labels / account pane navigation は別 worker scope に残す
+
+- [ ] Article list header controls layout contract 候補を別バッチで追加する
+  - `src/components/reader/hooks/article-list/use-article-list-header-controls.tsx` で wide は toggle、compact/mobile は open、compact のみ `sidebarButtonText` を持つ契約を固定する
+  - feed 未選択時に feed mode control を出さないことを、hook/component-light test で確認する
+  - article scope matrix / search reset / footer mode / visual density の調整は混ぜない
+
+- [ ] Browser webview cleanup unmount contract 候補を別バッチで追加する
+  - `src/components/reader/hooks/browser/use-browser-webview-cleanup.ts` で unmount 時に `closeBrowserWebview()` が一度だけ呼ばれる契約を固定する
+  - failure は console error に留め、UI state を直接触らないことを mocked Tauri command で確認する
+  - event listener cleanup / requested-url merge / native WebView payload / runtime unavailable handling は別バッチにする
+
+- [ ] feed discovery relative link base URL contract 候補を別バッチで追加する
+  - `src-tauri/src/infra/feed_discovery.rs` で HTML `<link rel="alternate" href="/feed.xml">` が最終ページ URL を base に解決される契約を fixture test で固定する
+  - redirect SSRF hardening、duplicate title display、add feed dialog UI は同じバッチに混ぜない
+
+- [ ] feed discovery content-type fallback contract 候補を別バッチで追加する
+  - `src-tauri/src/infra/feed_discovery.rs` で RSS / Atom / XML body が misleading または missing content-type の時にどう扱われるかを明示的な契約にする
+  - JSON Feed body parsing、provider HTTP policy、UI error copy は別スコープに残す
+
+- [ ] embed support HEAD-to-GET fallback contract 候補を別バッチで追加する
+  - `src-tauri/src/commands/article_commands.rs` の `check_browser_embed_support` で、HEAD を拒否して GET は許可する server の扱いを contract test 化する
+  - browser surface issue UI、webview load timeout、CSP interpretation の変更は混ぜない
+
+- [ ] old unread days validation upper-bound contract 候補を別バッチで追加する
+  - `src-tauri/src/commands/article_commands.rs` の `validate_older_than_days` で zero / negative / 過大値の reject 条件を一貫して固定する
+  - old unread submenu UI、mark-all-read confirmation、bulk mutation execution は別バッチにする
+
+- [ ] bulk article mutation feed count dedupe contract 候補を別バッチで追加する
+  - `src-tauri/src/commands/article_commands.rs` の bulk mark operations 後に、affected feed の unread count recalculation が重複しない契約を固定する
+  - pending mutation queue、UI cache invalidation、provider sync は同じ変更に混ぜない
+
+- [ ] settings modal deleted account snapshot contract 候補を別バッチで追加する
+  - `src/components/settings/settings-modal.tsx` で deleted account IDs と accounts snapshot により、削除済み account detail が stale rendering しない契約を固定する
+  - account delete keyring cleanup、account nav sorting、settings modal type split は別バッチにする
+
+- [ ] settings scroll overflow observer cleanup contract 候補を別バッチで追加する
+  - `src/components/settings/hooks/use-scroll-overflow-state.ts` で ResizeObserver / MutationObserver が viewport 変更・dependency 変更・unmount 時に disconnect される契約を固定する
+  - settings content fade helper、layout dimensions、visual scroll behavior は同じバッチに混ぜない
+
+- [ ] mute settings reducer transition contract 候補を別バッチで追加する
+  - `src/components/settings/mute-settings.tsx` 周辺で add / edit / delete modal state transition と draft reset の契約を focused test で固定する
+  - mute SQL/Rust match parity、auto mark preference guard、settings copy は別スコープに残す
+
+- [ ] test helper fixture referential integrity guard 候補を別バッチで追加する
+  - `tests/helpers/fixtures.ts` と fixture test で sample article / feed / account / tag の cross-reference と required fields の整合性を固定する
+  - mock response schema validation、dev mock state reset、fixture display copy は同じバッチに混ぜない
+
+- [ ] Tauri mock argument coercion strictness contract 候補を別バッチで追加する
+  - `tests/helpers/tauri-mocks.ts` と `tests/helpers/tauri-types.ts` 周辺で、代表 command の mock handler が invalid args を暗黙 coercion しない契約を固定する
+  - mock response schema validation、real command schema changes、mock data copy は別バッチにする
+
 - [ ] reader query / article scope matrix 整理候補を別バッチで見直す
   - `src/lib/reader/reader-query.ts` と `docs/reader-article-scope-matrix.md` の feed/folder/tag/recent/starred/unread scope が実装とズレていないか棚卸しする
   - article list sources / search / grouping / footer mode control は参照範囲が広いため、scope resolver の pure helper test を先に追加する
