@@ -279,7 +279,15 @@ export const setPreferenceArgs = z
 export const copyToClipboardArgs = z.object({ text: z.string() });
 
 // --- addToReadingList ---
-export const addToReadingListArgs = z.object({ url: z.string() });
+const readingListUrlSchema = z
+  .string()
+  .refine((url) => url.startsWith("http://") || url.startsWith("https://"), {
+    message: "Only http:// and https:// URLs are supported",
+  })
+  .refine((url) => !url.includes("\n") && !url.includes("\r"), {
+    message: "Reading List URLs must not contain newlines",
+  });
+export const addToReadingListArgs = z.object({ url: readingListUrlSchema });
 
 // --- createTag ---
 export const createTagArgs = z.object({

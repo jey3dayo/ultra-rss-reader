@@ -8,6 +8,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
+  addToReadingList,
   clearArticleViewHistory,
   countAccountStarredArticles,
   countAccountUnreadArticles,
@@ -532,6 +533,54 @@ describe("safeInvoke args validation", () => {
     expect(Result.unwrapError(result).message).toContain(
       "Invalid value for preference key: shortcut_next_article",
     );
+    expect(invoked).toBe(false);
+  });
+
+  it("accepts Reading List http URLs including quote characters", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "add_to_reading_list") {
+        expect(args).toEqual({
+          url: 'https://example.com/article?title="quoted"',
+        });
+        return null;
+      }
+      return null;
+    });
+
+    Result.unwrap(
+      await addToReadingList('https://example.com/article?title="quoted"'),
+    );
+  });
+
+  it("rejects Reading List newline URLs before invoking Tauri", async () => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_to_reading_list") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await addToReadingList("https://example.com/article\nnext");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("validation failed");
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects Reading List non-http URLs before invoking Tauri", async () => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_to_reading_list") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await addToReadingList("mailto:hello@example.com");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
   });
 });
