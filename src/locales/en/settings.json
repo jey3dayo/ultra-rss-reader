@@ -291,6 +291,8 @@
     "heading": "Data Management",
     "database": "Database",
     "database_size": "Database size",
+    "database_size_loading": "Loading…",
+    "database_size_error": "Unavailable",
     "optimization": "Optimization",
     "vacuum": "Optimize",
     "vacuum_description": "Reclaim unused space by optimizing the database.",

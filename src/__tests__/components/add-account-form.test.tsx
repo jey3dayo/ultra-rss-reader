@@ -17,6 +17,10 @@ const accountConfigFormSource = readFileSync(
   join(process.cwd(), "src/components/settings/add-account/account-config-form.tsx"),
   "utf8",
 );
+const accountConfigFormViewSource = readFileSync(
+  join(process.cwd(), "src/components/settings/add-account/account-config-form-view.tsx"),
+  "utf8",
+);
 
 async function selectService(user: ReturnType<typeof userEvent.setup>, serviceName: string) {
   await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
@@ -173,9 +177,15 @@ describe("AddAccountForm", () => {
     expect(servicePickerSource).toContain(
       'className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}',
     );
-    expect(accountConfigFormSource).toContain(
-      'className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceDef.iconBg)}',
+    expect(accountConfigFormViewSource).toContain(
+      'className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceSummary.iconBg)}',
     );
+  });
+
+  it("keeps the config controller focused on view props and submit effects", () => {
+    expect(accountConfigFormSource).toContain("AccountConfigFormView");
+    expect(accountConfigFormSource).not.toContain("<form");
+    expect(accountConfigFormSource).not.toContain("SurfaceCard");
   });
 
   it("navigates to config form on service selection and back", async () => {

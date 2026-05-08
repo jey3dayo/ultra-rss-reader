@@ -2,12 +2,16 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
 
 type DataSettingsViewProps = {
   title: string;
   databaseHeading: string;
   databaseSizeLabel: string;
+  databaseSizeStatus: DatabaseSizeStatus;
   databaseSizeValue: string;
+  databaseSizeLoadingLabel: string;
+  databaseSizeErrorLabel: string;
   optimizationHeading: string;
   vacuumDescription: string;
   vacuumLabel: string;
@@ -23,7 +27,10 @@ export function DataSettingsView({
   title,
   databaseHeading,
   databaseSizeLabel,
+  databaseSizeStatus,
   databaseSizeValue,
+  databaseSizeLoadingLabel,
+  databaseSizeErrorLabel,
   optimizationHeading,
   vacuumDescription,
   vacuumLabel,
@@ -34,11 +41,20 @@ export function DataSettingsView({
   onVacuum,
   onOpenLogDir,
 }: DataSettingsViewProps) {
+  const databaseSizeDisplayValue =
+    databaseSizeStatus === "ready"
+      ? databaseSizeValue
+      : databaseSizeStatus === "loading"
+        ? databaseSizeLoadingLabel
+        : databaseSizeErrorLabel;
+
   return (
     <SettingsContentLayout title={title} outerTestId="data-settings-root">
       <SettingsSection heading={databaseHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={databaseSizeLabel}>
-          <span className="text-sm text-foreground-soft">{databaseSizeValue}</span>
+          <span className="text-sm text-foreground-soft" data-database-size-status={databaseSizeStatus}>
+            {databaseSizeDisplayValue}
+          </span>
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">

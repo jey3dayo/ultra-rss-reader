@@ -11,22 +11,28 @@ type UseDataSettingsControllerParams = {
 };
 
 type UseDataSettingsControllerResult = {
+  databaseSizeStatus: DatabaseSizeStatus;
   databaseSizeValue: string;
   vacuuming: boolean;
   handleVacuum: () => Promise<void>;
   handleOpenLogDir: () => Promise<void>;
 };
 
+export type DatabaseSizeStatus = "loading" | "ready" | "error";
+
 type DataSettingsControllerState = {
+  databaseSizeStatus: DatabaseSizeStatus;
   totalSize: number | null;
   vacuuming: boolean;
 };
 
 type DataSettingsControllerAction =
-  | { type: "set-total-size"; value: number | null }
+  | { type: "set-database-size-ready"; value: number }
+  | { type: "set-database-size-error" }
   | { type: "set-vacuuming"; value: boolean };
 
 const initialDataSettingsControllerState: DataSettingsControllerState = {
+  databaseSizeStatus: "loading",
   totalSize: null,
   vacuuming: false,
 };
@@ -36,8 +42,10 @@ function dataSettingsControllerReducer(
   action: DataSettingsControllerAction,
 ): DataSettingsControllerState {
   switch (action.type) {
-    case "set-total-size":
-      return { ...state, totalSize: action.value };
+    case "set-database-size-ready":
+      return { ...state, databaseSizeStatus: "ready", totalSize: action.value };
+    case "set-database-size-error":
+      return { ...state, databaseSizeStatus: "error", totalSize: null };
     case "set-vacuuming":
       return { ...state, vacuuming: action.value };
     default:
@@ -61,13 +69,16 @@ export function useDataSettingsController({
   setSettingsLoading,
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
   const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
-  const { totalSize, vacuuming } = state;
+  const { databaseSizeStatus, totalSize, vacuuming } = state;
 
   const fetchDbInfo = useCallback(async () => {
     Result.pipe(
       await getDatabaseInfo(),
-      Result.inspect((info) => dispatch({ type: "set-total-size", value: info.total_size_bytes })),
-      Result.inspectError((error) => console.error("Failed to get database info:", error)),
+      Result.inspect((info) => dispatch({ type: "set-database-size-ready", value: info.total_size_bytes })),
+      Result.inspectError((error) => {
+        console.error("Failed to get database info:", error);
+        dispatch({ type: "set-database-size-error" });
+      }),
     );
   }, []);
 
@@ -87,7 +98,7 @@ export function useDataSettingsController({
       Result.pipe(
         await vacuumDatabase(),
         Result.inspect((info) => {
-          dispatch({ type: "set-total-size", value: info.total_size_bytes });
+          dispatch({ type: "set-database-size-ready", value: info.total_size_bytes });
           const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
           showToast(
             t("data.vacuum_success", {
@@ -117,7 +128,8 @@ export function useDataSettingsController({
   };
 
   return {
-    databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "…",
+    databaseSizeStatus,
+    databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "",
     vacuuming,
     handleVacuum,
     handleOpenLogDir,

@@ -18,7 +18,10 @@ export function DataSettings() {
       title={t("data.heading")}
       databaseHeading={t("data.database")}
       databaseSizeLabel={t("data.database_size")}
+      databaseSizeStatus={controller.databaseSizeStatus}
       databaseSizeValue={controller.databaseSizeValue}
+      databaseSizeLoadingLabel={t("data.database_size_loading")}
+      databaseSizeErrorLabel={t("data.database_size_error")}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
       vacuumLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}

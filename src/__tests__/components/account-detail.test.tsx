@@ -613,7 +613,7 @@ describe("AccountDetail", () => {
   it("waits for credential persistence before testing the connection", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    let resolveCredentialSave: (() => void) | undefined;
+    const resolveCredentialSaves: Array<() => void> = [];
 
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -635,7 +635,7 @@ describe("AccountDetail", () => {
           ];
         case "update_account_credentials":
           return new Promise((resolve) => {
-            resolveCredentialSave = () =>
+            resolveCredentialSaves.push(() =>
               resolve({
                 id: "acc-1",
                 kind: "FreshRss",
@@ -646,7 +646,8 @@ describe("AccountDetail", () => {
                 sync_on_startup: true,
                 sync_on_wake: false,
                 keep_read_items_days: 30,
-              });
+              }),
+            );
           });
         case "test_account_connection":
           return {
@@ -683,10 +684,10 @@ describe("AccountDetail", () => {
     expect(calls.some((call) => call.cmd === "test_account_connection")).toBe(false);
     expect(useUiStore.getState().settingsLoading).toBe(false);
 
-    if (!resolveCredentialSave) {
+    if (!resolveCredentialSaves[0]) {
       throw new Error("credential save promise was never created");
     }
-    resolveCredentialSave();
+    resolveCredentialSaves[0]();
     await clickPromise;
 
     await waitFor(() => {
@@ -749,6 +750,94 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       expect(passwordInput).toHaveValue("");
     });
+  });
+
+  it("keeps newer credential drafts when an older blur save finishes", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const resolveCredentialSaves: Array<() => void> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "update_account_credentials":
+          return new Promise((resolve) => {
+            resolveCredentialSaves.push(() =>
+              resolve({
+                id: "acc-1",
+                kind: "FreshRss",
+                name: "FreshRSS",
+                username: "saved-user",
+                server_url: "https://saved.example.com",
+                sync_interval_secs: 3600,
+                sync_on_startup: true,
+                sync_on_wake: false,
+                keep_read_items_days: 30,
+              }),
+            );
+          });
+        case "copy_to_clipboard":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const serverUrlInput = await screen.findByRole("textbox", { name: "Server URL" });
+    await user.clear(serverUrlInput);
+    await user.type(serverUrlInput, "https://first-draft.example.com");
+    fireEvent.blur(serverUrlInput);
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
+    });
+
+    await user.clear(serverUrlInput);
+    await user.type(serverUrlInput, "https://second-draft.example.com");
+    fireEvent.blur(serverUrlInput);
+    await user.click(screen.getByRole("button", { name: "Copy Server URL" }));
+
+    expect(calls).toContainEqual({
+      cmd: "copy_to_clipboard",
+      args: { text: "https://second-draft.example.com" },
+    });
+
+    if (!resolveCredentialSaves[0]) {
+      throw new Error("credential save promise was never created");
+    }
+    resolveCredentialSaves[0]();
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(2);
+      expect(calls).toContainEqual({
+        cmd: "update_account_credentials",
+        args: expect.objectContaining({
+          accountId: "acc-1",
+          serverUrl: "https://second-draft.example.com",
+          username: "user",
+        }),
+      });
+      expect(serverUrlInput).toHaveValue("https://second-draft.example.com");
+    });
+
+    resolveCredentialSaves[1]?.();
   });
 
   it("shows the persisted connection summary for a verified FreshRSS account", async () => {
@@ -1044,6 +1133,119 @@ describe("AccountDetail", () => {
     await user.click(await screen.findByRole("button", { name: "Sync Now" }));
 
     expect(useUiStore.getState().settingsLoading).toBe(false);
+  });
+
+  it("guards manual sync against duplicate in-flight actions", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    let resolveSync: (() => void) | undefined;
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "trigger_sync_account":
+          return new Promise((resolve) => {
+            resolveSync = () => resolve({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+    expect(await screen.findByRole("button", { name: /Syncing/ })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /Syncing/ }));
+
+    expect(calls.filter((call) => call.cmd === "trigger_sync_account")).toHaveLength(1);
+
+    if (!resolveSync) {
+      throw new Error("sync promise was never created");
+    }
+    resolveSync();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Sync Now" })).not.toBeDisabled();
+    });
+  });
+
+  it("guards setup retry against duplicate in-flight actions and disables edit credentials", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    let resolveSync: (() => void) | undefined;
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "trigger_sync_account":
+          return new Promise((resolve) => {
+            resolveSync = () => resolve({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-1",
+      selectedAccountId: "acc-1",
+      accountSetupSession: {
+        accountId: "acc-1",
+        state: "failed",
+        errorMessage: "Sync failed: Authentication failed",
+      },
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Retry setup" }));
+    expect(await screen.findByRole("button", { name: "Setting up…" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Edit credentials" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Setting up…" }));
+
+    expect(calls.filter((call) => call.cmd === "trigger_sync_account")).toHaveLength(1);
+
+    if (!resolveSync) {
+      throw new Error("sync promise was never created");
+    }
+    resolveSync();
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toBeNull();
+    });
   });
 
   it("uses the localized server heading for FreshRSS credentials", async () => {

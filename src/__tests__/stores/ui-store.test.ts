@@ -290,4 +290,63 @@ describe("useUiStore", () => {
     useUiStore.getState().openSubscriptionsIndex();
     expect(useUiStore.getState().accountPaneOpen).toBe(false);
   });
+
+  it("falls back the selected reader account when the current account is deleted", () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      accountPaneOpen: true,
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "article-1",
+      contentMode: "reader",
+      viewMode: "starred",
+      focusedPane: "content",
+      recentlyReadIds: new Set(["article-1"]),
+      retainedArticleIds: new Set(["article-1"]),
+    });
+
+    useUiStore.getState().handleAccountDeleted("acc-1", ["acc-2"]);
+
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-2");
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
+    expect(useUiStore.getState().selection).toEqual({ type: "all" });
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("empty");
+    expect(useUiStore.getState().viewMode).toBe("unread");
+    expect(useUiStore.getState().focusedPane).toBe("list");
+    expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+
+    useUiStore.getState().handleAccountDeleted("acc-2", []);
+
+    expect(useUiStore.getState().selectedAccountId).toBeNull();
+    expect(useUiStore.getState().focusedPane).toBe("sidebar");
+  });
+
+  it("falls back settings account detail without changing an unrelated reader selection", () => {
+    useUiStore.setState({
+      selectedAccountId: "reader-acc",
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-1",
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+    });
+
+    useUiStore.getState().handleAccountDeleted("acc-1", ["acc-2"]);
+
+    expect(useUiStore.getState().selectedAccountId).toBe("reader-acc");
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().settingsCategory).toBe("accounts");
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    expect(useUiStore.getState().settingsAddAccount).toBe(false);
+    expect(useUiStore.getState().settingsAddAccountInitialKind).toBeNull();
+
+    useUiStore.getState().handleAccountDeleted("acc-2", []);
+
+    expect(useUiStore.getState().selectedAccountId).toBe("reader-acc");
+    expect(useUiStore.getState().settingsCategory).toBe("accounts");
+    expect(useUiStore.getState().settingsAccountId).toBeNull();
+    expect(useUiStore.getState().settingsAddAccount).toBe(false);
+    expect(useUiStore.getState().settingsAddAccountInitialKind).toBeNull();
+  });
 });

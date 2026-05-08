@@ -197,7 +197,7 @@ export function useAccountDetailViewProps({
       syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
       syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
       onSyncNow: isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
-      isSyncing,
+      isSyncing: isSyncing || controller.syncActionInFlight,
       secondaryActionLabel: isSetupFailed ? t("account.setup_edit_credentials") : undefined,
       onSecondaryAction: isSetupFailed ? controller.focusCredentialsEditor : undefined,
     },

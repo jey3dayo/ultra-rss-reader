@@ -260,4 +260,49 @@ describe("AccountSyncSectionView", () => {
     expect(onRetry).toHaveBeenCalledOnce();
     expect(onEditCredentials).toHaveBeenCalledOnce();
   });
+
+  it("disables the secondary action while a sync action is in flight", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Initial setup failed"
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+          disabled: true,
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+          disabled: true,
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+          disabled: true,
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+          disabled: true,
+        }}
+        syncNowLabel="Retry setup"
+        syncingLabel="Syncing now"
+        onSyncNow={() => {}}
+        isSyncing={true}
+        secondaryActionLabel="Edit credentials"
+        onSecondaryAction={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Edit credentials" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Syncing now" })).toBeDisabled();
+  });
 });

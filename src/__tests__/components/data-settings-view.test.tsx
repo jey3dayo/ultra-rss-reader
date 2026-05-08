@@ -21,7 +21,10 @@ describe("DataSettingsView", () => {
         title="Data"
         databaseHeading="Database"
         databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
         databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -60,7 +63,10 @@ describe("DataSettingsView", () => {
         title="Data"
         databaseHeading="Database"
         databaseSizeLabel="Database size"
+        databaseSizeStatus="loading"
         databaseSizeValue="..."
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimizing..."
@@ -79,5 +85,39 @@ describe("DataSettingsView", () => {
     await user.click(vacuumButton);
 
     expect(onVacuum).not.toHaveBeenCalled();
+  });
+
+  it("renders distinct database size labels for loading, ready, and error states", () => {
+    const props = {
+      title: "Data",
+      databaseHeading: "Database",
+      databaseSizeLabel: "Database size",
+      databaseSizeValue: "1.50 MB",
+      databaseSizeLoadingLabel: "Loading database size",
+      databaseSizeErrorLabel: "Database size unavailable",
+      optimizationHeading: "Optimization",
+      vacuumDescription: "Optimize the database.",
+      vacuumLabel: "Optimize now",
+      vacuuming: false,
+      logsHeading: "Logs",
+      openLogDirDescription: "Open the log directory.",
+      openLogDirLabel: "Open log directory",
+      onVacuum: vi.fn(),
+      onOpenLogDir: vi.fn(),
+    };
+
+    const { rerender } = render(<DataSettingsView {...props} databaseSizeStatus="loading" />);
+
+    expect(screen.getByText("Loading database size")).toHaveAttribute("data-database-size-status", "loading");
+    expect(screen.queryByText("1.50 MB")).not.toBeInTheDocument();
+
+    rerender(<DataSettingsView {...props} databaseSizeStatus="ready" />);
+
+    expect(screen.getByText("1.50 MB")).toHaveAttribute("data-database-size-status", "ready");
+
+    rerender(<DataSettingsView {...props} databaseSizeStatus="error" />);
+
+    expect(screen.getByText("Database size unavailable")).toHaveAttribute("data-database-size-status", "error");
+    expect(screen.queryByText("Loading database size")).not.toBeInTheDocument();
   });
 });

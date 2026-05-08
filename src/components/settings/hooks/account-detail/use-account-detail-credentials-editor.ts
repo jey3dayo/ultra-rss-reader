@@ -40,6 +40,7 @@ type AccountDetailCredentialsEditorState = {
   credPassword: string | null;
   hasSavedPassword: boolean;
   testingConnection: boolean;
+  draftRevision: number;
 };
 
 type AccountDetailCredentialsEditorAction =
@@ -47,7 +48,7 @@ type AccountDetailCredentialsEditorAction =
   | { type: "set-cred-username"; value: string | null }
   | { type: "set-cred-password"; value: string | null }
   | { type: "set-testing-connection"; value: boolean }
-  | { type: "clear-credential-drafts"; passwordWasSaved: boolean }
+  | { type: "clear-credential-drafts"; passwordWasSaved: boolean; draftRevision: number }
   | { type: "clear-password-input" };
 
 function createInitialAccountDetailCredentialsEditorState(
@@ -59,6 +60,7 @@ function createInitialAccountDetailCredentialsEditorState(
     credPassword: null,
     hasSavedPassword: account.kind === "FreshRss",
     testingConnection: false,
+    draftRevision: 0,
   };
 }
 
@@ -68,14 +70,20 @@ function accountDetailCredentialsEditorReducer(
 ): AccountDetailCredentialsEditorState {
   switch (action.type) {
     case "set-cred-server-url":
-      return { ...state, credServerUrl: action.value };
+      return { ...state, credServerUrl: action.value, draftRevision: state.draftRevision + 1 };
     case "set-cred-username":
-      return { ...state, credUsername: action.value };
+      return { ...state, credUsername: action.value, draftRevision: state.draftRevision + 1 };
     case "set-cred-password":
-      return { ...state, credPassword: action.value };
+      return { ...state, credPassword: action.value, draftRevision: state.draftRevision + 1 };
     case "set-testing-connection":
       return { ...state, testingConnection: action.value };
     case "clear-credential-drafts":
+      if (state.draftRevision !== action.draftRevision) {
+        return {
+          ...state,
+          hasSavedPassword: state.hasSavedPassword || action.passwordWasSaved,
+        };
+      }
       return {
         ...state,
         credServerUrl: null,
@@ -102,6 +110,7 @@ export function useAccountDetailCredentialsEditor({
   );
   const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection } = state;
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
+  const pendingCredentialSaveRevisionRef = useRef<number | null>(null);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
@@ -110,9 +119,13 @@ export function useAccountDetailCredentialsEditor({
 
   const commitCredentials = async (): Promise<boolean> => {
     if (pendingCredentialSaveRef.current) {
-      return pendingCredentialSaveRef.current;
+      if (state.draftRevision === pendingCredentialSaveRevisionRef.current) {
+        return pendingCredentialSaveRef.current;
+      }
+      return pendingCredentialSaveRef.current.then(() => commitCredentials());
     }
 
+    const draftRevision = state.draftRevision;
     const saveTask = (async () => {
       const serverUrl = (credServerUrl ?? account.server_url ?? "").trim() || undefined;
       const username = (credUsername ?? account.username ?? "").trim() || undefined;
@@ -133,7 +146,7 @@ export function useAccountDetailCredentialsEditor({
         Result.inspect((updated) => {
           saved = true;
           updateCachedAccount(queryClient, updated);
-          dispatch({ type: "clear-credential-drafts", passwordWasSaved: passwordChanged });
+          dispatch({ type: "clear-credential-drafts", passwordWasSaved: passwordChanged, draftRevision });
           useUiStore.getState().showToast(t("account.credentials_saved"));
         }),
       );
@@ -141,8 +154,10 @@ export function useAccountDetailCredentialsEditor({
       return saved;
     })();
 
+    pendingCredentialSaveRevisionRef.current = draftRevision;
     pendingCredentialSaveRef.current = saveTask.finally(() => {
       pendingCredentialSaveRef.current = null;
+      pendingCredentialSaveRevisionRef.current = null;
     });
 
     return pendingCredentialSaveRef.current;

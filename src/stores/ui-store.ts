@@ -122,6 +122,7 @@ interface UiActions {
   closeAccountPane: () => void;
   toggleAccountPane: () => void;
   selectAccount: (id: string) => void;
+  handleAccountDeleted: (deletedAccountId: string, remainingAccountIds: readonly string[]) => void;
   restoreAccountSelection: (id: string, options?: { focusedPane?: FocusedPane }) => void;
   clearSelectedAccount: () => void;
   selectFeed: (feedId: string) => void;
@@ -278,6 +279,31 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: "list",
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
+    }),
+  handleAccountDeleted: (deletedAccountId, remainingAccountIds) =>
+    set((state) => {
+      const fallbackAccountId = remainingAccountIds[0] ?? null;
+      const nextState: Partial<UiState> = {};
+
+      if (state.selectedAccountId === deletedAccountId) {
+        Object.assign(nextState, {
+          selectedAccountId: fallbackAccountId,
+          accountPaneOpen: false,
+          selection: { type: "all" },
+          viewMode: "unread",
+          selectedArticleId: null,
+          contentMode: "empty",
+          focusedPane: fallbackAccountId ? "list" : "sidebar",
+          recentlyReadIds: new Set(),
+          retainedArticleIds: new Set(),
+        });
+      }
+
+      if (state.settingsAccountId === deletedAccountId) {
+        Object.assign(nextState, getSettingsAccountsViewState(fallbackAccountId, false));
+      }
+
+      return nextState;
     }),
   restoreAccountSelection: (id, options) =>
     set({

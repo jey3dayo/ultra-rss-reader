@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
+import { useRef, useState } from "react";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
@@ -22,6 +23,7 @@ export type AccountDetailSyncControlsResult = {
   handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
   handleSyncNow: () => Promise<void>;
   handleSetupRetry: () => Promise<void>;
+  syncActionInFlight: boolean;
   syncIntervalOptions: AccountSelectOption[];
   keepReadItemsOptions: AccountSelectOption[];
 };
@@ -92,6 +94,8 @@ export function useAccountDetailSyncControls({
 }: AccountDetailSyncControlsParams): AccountDetailSyncControlsResult {
   const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed");
+  const syncActionInFlightRef = useRef(false);
+  const [syncActionInFlight, setSyncActionInFlight] = useState(false);
 
   const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
     Result.pipe(
@@ -110,45 +114,64 @@ export function useAccountDetailSyncControls({
   };
 
   const handleSyncNow = async () => {
-    const result = await syncAccount(account.id);
-    Result.pipe(
-      result,
-      Result.inspect((syncResult) => {
-        invalidateFeedQueries(queryClient, { includeFolders: false });
-        queryClient.invalidateQueries({ queryKey: ["articles"] });
-        onSyncStatusChanged?.();
-        useUiStore.getState().showToast(
-          resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
-            alreadyInProgress: t("account.syncing_now"),
-            partialFailure: (accounts) => t("account.sync_failed", { message: accounts }),
-            retryScheduled: () => t("account.sync_completed_with_retry_pending"),
-            retryPending: () => t("account.sync_completed_with_retry_pending"),
-            warnings: () => t("account.sync_completed_with_warnings"),
-            success: t("account.sync_complete"),
-          }),
-        );
-      }),
-      Result.inspectError(showSyncError),
-    );
-  };
-
-  const handleSetupRetry = async () => {
-    if (accountSetupState === null) {
+    if (syncActionInFlightRef.current) {
       return;
     }
 
-    await runAccountSetupSync({
-      accountId: account.id,
-      queryClient,
-      t,
-      onSyncStatusChanged,
-    });
+    syncActionInFlightRef.current = true;
+    setSyncActionInFlight(true);
+    try {
+      const result = await syncAccount(account.id);
+      Result.pipe(
+        result,
+        Result.inspect((syncResult) => {
+          invalidateFeedQueries(queryClient, { includeFolders: false });
+          queryClient.invalidateQueries({ queryKey: ["articles"] });
+          onSyncStatusChanged?.();
+          useUiStore.getState().showToast(
+            resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
+              alreadyInProgress: t("account.syncing_now"),
+              partialFailure: (accounts) => t("account.sync_failed", { message: accounts }),
+              retryScheduled: () => t("account.sync_completed_with_retry_pending"),
+              retryPending: () => t("account.sync_completed_with_retry_pending"),
+              warnings: () => t("account.sync_completed_with_warnings"),
+              success: t("account.sync_complete"),
+            }),
+          );
+        }),
+        Result.inspectError(showSyncError),
+      );
+    } finally {
+      syncActionInFlightRef.current = false;
+      setSyncActionInFlight(false);
+    }
+  };
+
+  const handleSetupRetry = async () => {
+    if (accountSetupState === null || syncActionInFlightRef.current) {
+      return;
+    }
+
+    syncActionInFlightRef.current = true;
+    setSyncActionInFlight(true);
+    try {
+      await runAccountSetupSync({
+        accountId: account.id,
+        queryClient,
+        t,
+        onSyncStatusChanged,
+      });
+    } finally {
+      syncActionInFlightRef.current = false;
+      setSyncActionInFlight(false);
+    }
   };
 
   return {
     handleSyncUpdate,
     handleSyncNow,
     handleSetupRetry,
+    syncActionInFlight,
     syncIntervalOptions: [
       { value: "900", label: t("account.every_15_minutes") },
       { value: "1800", label: t("account.every_30_minutes") },
