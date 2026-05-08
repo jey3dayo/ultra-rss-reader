@@ -1533,3 +1533,53 @@
   - `sqlite_tag.rs` の `find_articles_by_tag` で mute exclusion、mode filter、account filter が pagination より前に適用される契約を repository test で固定する
   - SQL/Rust mute match parity、article same-timestamp pagination stability、tag count cache は混ぜない
   - muted article が 1 ページ目から消えた後に次の visible article が詰めて返る case を追加する
+
+- [ ] Tag rename duplicate case-insensitive contract 候補を別バッチで追加する
+  - `tag_commands.rs` / `sqlite_tag.rs` で既存 tag と大文字小文字だけ違う名前へ rename できるかを明示し、禁止するなら `COLLATE NOCASE` の重複判定を固定する
+  - tag color validation、tag chip visual、settings tag row UI、article tag assignment は同じバッチに混ぜない
+  - exact duplicate と case-only duplicate、self rename を別 fixture にする
+
+- [ ] Tag article counts muted-article inclusion contract 候補を別バッチで追加する
+  - `sqlite_tag.rs` の `find_articles_by_tag` は muted articles を除外する一方、`count_articles_per_tag` が muted articles を数える / 数えないどちらを正とするか固定する
+  - mute keyword SQL/Rust match parity、settings mute form、tag count cache invalidation、reader tag chip visual は混ぜない
+  - account filter あり / なしで muted tagged article の count が一貫するか repository test に分ける
+
+- [ ] Tag/mute delete missing-row command contract 候補を別バッチで追加する
+  - `delete_tag` / `delete_mute_keyword` に存在しない id を渡した時、成功 no-op にするか user-visible not found にするかを affected rows test で明示する
+  - cascade cleanup、article_tags orphan detection、delete confirmation UI、toast copy は同じバッチに混ぜない
+  - repository delete と command wrapper の error projection を別 assertion にする
+
+- [ ] Mute settings unchanged-scope no-op contract 候補を別バッチで追加する
+  - `mute-settings.tsx` で saved mute rule の scope select に現在値と同じ値を選んだ時、`update_mute_keyword` を呼ばず toast も出さない契約を固定する
+  - scope label copy、select visual、backend scope validation、auto mark read 挙動は混ぜない
+  - draft editing 中の no-op と saved row の no-op を別 case にする
+
+- [ ] Subscription sort tie-break stability contract 候補を別バッチで追加する
+  - `subscriptions-index.ts` の `updated_at` / `unread_count` sort で同値 row がある時、title/id の安定 tie-break を入れるか入力順維持を正とするか固定する
+  - summary filter semantics、group disclosure state、selected row fallback、row visual density は同じバッチに混ぜない
+  - sort key ごとに同値 row の並びが snapshot ではなく id order assertion で分かる test にする
+
+- [ ] Feed folder sort_order renumber contract 候補を別バッチで追加する
+  - `sqlite_folder.rs` と folder command で folder delete / create / reorder 後の `sort_order` が account 内で安定し、別 account の順序に影響しない契約を固定する
+  - folder drag/drop UI、remote folder sync、sidebar disclosure state は混ぜない
+  - same sort_order が既にある破損データ時の tie-break は別 TODO に残す
+
+- [ ] Folder delete feed detach contract 候補を別バッチで追加する
+  - `sqlite_folder.rs` / `feed_commands.rs` で folder delete 時に所属 feed の `folder_id` を null に戻す / cascade しない方針を repository test で固定する
+  - stale remote folder detach policy、folder selection UI、sync provider folder mutation は同じバッチに混ぜない
+  - empty folder delete と feeds あり folder delete を別 fixture にする
+
+- [ ] Account delete selected fallback contract 候補を別バッチで追加する
+  - `ui-store.ts` と settings modal 周辺で selected account が delete された時、次 account / null への fallback と settings page state の扱いを store contract として固定する
+  - keyring cleanup、account delete command、accounts nav sorting、settings modal type split は混ぜない
+  - selected reader account と settings detail account の fallback を別 assertion にする
+
+- [ ] Feed unread recalculation muted article contract 候補を別バッチで追加する
+  - `sqlite_feed.rs` / `sqlite_article.rs` の unread count recalculation が muted unread article を含む / 除外するどちらを正とするかを DB fixture で固定する
+  - mute SQL/Rust parity、badge count projection、startup unread reconcile は別バッチに残す
+  - mute keyword なし / あり、read state change 後の recalculation を分ける
+
+- [ ] OPML export folder order contract 候補を別バッチで追加する
+  - `opml.rs` / `opml_commands.rs` で export 時の folder outline と feed outline の順序を name / sort_order / input order のどれにするか固定する
+  - OPML duplicate import policy、outline text fallback、feed discovery title normalization は混ぜない
+  - no-folder feeds と foldered feeds の混在 case を fixture に分ける
