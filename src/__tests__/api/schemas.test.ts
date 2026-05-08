@@ -29,6 +29,7 @@ import {
   oldUnreadArticlesArgs,
   PlatformInfoSchema,
   setMuteAutoMarkReadArgs,
+  setPreferenceArgs,
   TagArticleCountsSchema,
   TagDtoSchema,
   toggleArticleStarArgs,
@@ -418,6 +419,18 @@ describe("command args schemas", () => {
     expect(() => addToReadingListArgs.parse({ url: "ftp://example.com/article" })).toThrow();
     expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\nnext" })).toThrow();
     expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\rnext" })).toThrow();
+  });
+  it("rejects unknown shortcut preference keys and validates known shortcut values", () => {
+    expect(setPreferenceArgs.parse({ key: "shortcut_next_article", value: "Shift+J" })).toEqual({
+      key: "shortcut_next_article",
+      value: "Shift+J",
+    });
+    expect(() => setPreferenceArgs.parse({ key: "shortcut_unknown_action", value: "x" })).toThrow();
+    expect(() => setPreferenceArgs.parse({ key: "shortcut_next_article", value: "   " })).toThrow();
+    expect(setPreferenceArgs.parse({ key: "selected_account_id", value: "acc-1" })).toEqual({
+      key: "selected_account_id",
+      value: "acc-1",
+    });
   });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
