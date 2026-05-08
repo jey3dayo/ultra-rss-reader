@@ -1,8 +1,8 @@
 import { useDeferredValue } from "react";
 
-export type SearchPrefix = ">" | "@" | "#" | null;
+type SearchPrefix = ">" | "@" | "#" | null;
 
-export type CommandSearchResult = {
+type CommandSearchResult = {
   prefix: SearchPrefix;
   query: string;
 };
