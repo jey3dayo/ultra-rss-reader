@@ -90,6 +90,66 @@
   - `src-tauri/src/infra/provider/greader.rs` の label remote id 正規化で、label 欠落時 percent decode と label 優先分岐を追加検証する
   - 外部サービス互換の実通信検証ではなく、provider adapter の unit contract に限定する
 
+- [ ] Debug HUD locale / accessibility copy 候補を追加する
+  - `src/components/debug/focus-debug-hud-view.tsx` の見出し、aria-label、`Show` / `Hide` / `No trace yet` を dev-only English として contract 化するか locale 化する
+  - `src/components/settings/hooks/use-debug-settings-view-props.ts` の `Open: Open web preview geometry check` のような重複 accessible name を、短い専用 aria copy に分ける
+  - Debug HUD の visual layout や geometry diagnostics 追加とは混ぜない
+
+- [ ] Debug settings URL / platform fallback 候補を小粒で直す
+  - `src/components/settings/debug-settings.tsx` の Web Preview URL 入力で、空文字だけでなく URL 不正時の localized toast を追加する
+  - platform info 取得失敗時に credentials backend が既定値由来で OS keyring 表示になり得るため、`loadError` 用の debug copy を追加する
+  - dev-only 設定画面の copy 変更に限定し、runtime platform store の contract 変更とは分ける
+
+- [ ] locale source-of-truth / leaf sanity 候補を追加する
+  - `src/lib/i18n.ts` の `supportedLanguages` と `src/lib/ui/ui-language.ts` の `UiLanguagePreference` が drift しない contract を追加する
+  - `src/__tests__/lib/locale-placeholders.test.ts` に、空文字・空配列・未展開 key 文字列の混入を拾う locale leaf sanity test を追加する
+  - settings copy polish は同じ検証基盤が入った後の別バッチにする
+
+- [ ] API numeric schema contract 候補を追加する
+  - `src/api/schemas/account.ts` の `sync_interval_secs` / `keep_read_items_days` を、command args 側と同じく整数・範囲 contract に寄せる
+  - `src/api/schemas/folder.ts` の `sort_order` を folder DTO の順序値として整数 contract にする
+  - Rust DTO 変更ではなく frontend runtime schema の境界値 test に限定する
+
+- [ ] API bulk / count response schema 候補を追加する
+  - `src/api/schemas/common.ts` の `IntResponseSchema` から、count 系と `clearArticleViewHistory` 向けの nonnegative int response を分けられるか確認する
+  - `src/api/schemas/commands.ts` の `markArticlesReadArgs.articleIds` が空配列を許すため、frontend API 境界で no-op bulk mutation を弾く contract を追加する
+  - backend command validation や UI confirm flow とは別に、schema parser の契約だけを扱う
+
+- [ ] account sync status query key drift 候補を追加する
+  - `src/hooks/use-account-sync-statuses.ts` の query key を `accountSyncStatusQueryKey` と共有し、status invalidation と drift しないようにする
+  - account detail sync section の row 表示や sidebar feedback copy とは混ぜない
+
+- [ ] article search whitespace query 候補を追加する
+  - `src/hooks/use-articles.ts` の `useSearchArticles` が whitespace-only query でも有効になるため、trim 後 empty を disable する query contract を追加する
+  - search input UI の copy や debouncing 変更は別バッチにする
+
+- [ ] updater progress runtime guard 候補を追加する
+  - `src/hooks/use-updater.ts` の `update-download-progress` payload を型注釈だけで信頼せず、schema / guard で malformed progress を無視する
+  - updater UI copy や release artifact 検証とは混ぜず、runtime event payload の contract に限定する
+
+- [ ] Tauri dev Vite port contract 候補を追加する
+  - `scripts/tauri-dev-vite-manager.ts` で `TAURI_DEV_PORT` 指定時、既存プロセス確認だけでなく Vite 起動ポートも同じ値になる contract を追加する
+  - `src/__tests__/scripts/tauri-dev-vite-manager.test.ts` に静的な env / args 検証として足す
+
+- [ ] Tauri CLI config argument cleanup 候補を追加する
+  - `scripts/tauri-cli-dispatch.ts` で `--config=src-tauri/tauri.dev.conf.json` 形式でも stale macOS dev bundle cleanup が発火するよう固定する
+  - Windows dispatch や Vite process 管理とは混ぜず、config argument parsing だけを扱う
+
+- [ ] Storybook E2E port / registry drift 候補を追加する
+  - `playwright.storybook.config.ts` の `webServer.command` と `baseURL` の port / host が drift しない静的 contract を追加する
+  - `e2e/storybook/ui-reference-canvas-smoke.spec.ts` の iframe URL 手書きリストを、story registry 由来で検証できるようにする
+  - visual regression や screenshot 更新は同じバッチに混ぜない
+
+- [ ] test helper fixture parity 候補を追加する
+  - `tests/helpers/render-story.tsx` で `parameters` / `globals` を Storybook decorator context に渡す contract を追加する
+  - `tests/helpers/fixtures.test.ts` で `sampleMuteKeywords` も `MuteKeywordDtoSchema` parse 対象にし、他 DTO fixture と同じ schema parity に揃える
+  - fixture 表示 copy や mock response の追加は別バッチにする
+
+- [ ] repo docs / labeler contract 候補を追加する
+  - `src/__tests__/config/repo-contracts.test.ts` に、`CLAUDE.md` と `.claude/rules/README.md` 配下の相対リンクも markdown link contract 対象として追加する
+  - `.github/labeler.yml` で `scripts/**` と `mise.toml` 変更に `ci` か maintenance 系ラベルが付く contract を追加する
+  - workflow 実行条件や issue template 文面の変更とは別に、repo metadata の drift 防止だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
