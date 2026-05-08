@@ -899,11 +899,6 @@
   - preference default / migration、settings UI option parity、shortcut preference registry、表示 copy とは混ぜない
   - max-length と UTF-8 byte / char count の扱いを先に固定する
 
-- [ ] i18n test helper resource parity guard 候補を別バッチで追加する
-  - `i18n.ts`、`tests/helpers/i18n-setup.ts`、`i18next.d.ts` で app 本体 resources / ns と test helper namespace 構成が drift しないことを static test にする
-  - locale 文言改善、placeholder parity、native menu language resolver、missing key 全般とは混ぜない
-  - test helper にだけ存在する namespace と app にだけ存在する namespace を別 assertion にする
-
 - [ ] sync result numeric schema guard 候補を別バッチで追加する
   - `sync-result.ts` と `schemas.test.ts` で `total` / `succeeded` / `retry_in_seconds` を nonnegative integer として固定する
   - provider warning DTO 追加、manual sync toast、scheduler backoff、sync result feedback copy とは混ぜない
@@ -1291,11 +1286,6 @@
   - `use-command-palette-runtime.ts` で dev scenario load 中に unmount された場合、resolve/reject 後に state update しない契約を固定する
   - dev runtime invalid module cache、production bundle leak、debug settings dev action guard は混ぜない
   - success resolve と failure reject の cancelled branch を別 case にする
-
-- [ ] Article browser action success toast contract 候補を別バッチで追加する
-  - `article-browser-actions.ts` の copy link / Reading List 追加で command success 時だけ success toast を出し、open external browser success では toast を出さない契約を固定する
-  - clipboard runtime category、share command unsupported scheme、article share menu visual は混ぜない
-  - copy / reading list / open external の success と failure projection を別 assertion にする
 
 - [ ] Command palette resource history before navigation contract 候補を別バッチで追加する
   - `use-command-palette-handlers.ts` で feed/tag/article 選択時に history 追加、navigation/select、close の順序を固定する
