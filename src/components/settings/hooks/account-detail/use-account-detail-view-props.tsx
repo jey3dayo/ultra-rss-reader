@@ -1,5 +1,5 @@
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
-import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
+import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import type { UseAccountDetailViewPropsParams, UseAccountDetailViewPropsResult } from "../../account-detail/types";
 

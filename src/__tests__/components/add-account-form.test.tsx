@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AddAccountForm } from "@/components/settings/add-account-form";
+import { AddAccountForm } from "@/components/settings/add-account/controller";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -14,7 +14,7 @@ const servicePickerSource = readFileSync(
   "utf8",
 );
 const accountConfigFormSource = readFileSync(
-  join(process.cwd(), "src/components/settings/account-config-form.tsx"),
+  join(process.cwd(), "src/components/settings/add-account/account-config-form.tsx"),
   "utf8",
 );
 

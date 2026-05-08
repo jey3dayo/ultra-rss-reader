@@ -1,10 +1,10 @@
-import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "@/components/settings/account-detail/types";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { cn } from "@/lib/utils";
+import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "./types";
 
 const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
 

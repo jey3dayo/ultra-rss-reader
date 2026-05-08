@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { AccountGeneralSectionView } from "./account-general-section-view";
+import { AccountGeneralSectionView } from "./general-section-view";
 
 const meta = {
   title: "Settings/Section/AccountGeneralSectionView",

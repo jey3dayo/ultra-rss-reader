@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { AccountDetailView } from "@/components/settings/account-detail-view";
+import { AccountDetailView } from "@/components/settings/account-detail/view";
 
 describe("AccountDetailView", () => {
   it("composes the account detail sections from view props", () => {

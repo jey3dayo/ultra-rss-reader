@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { AddAccountFormView } from "@/components/settings/add-account-form-view";
+import { AddAccountFormView } from "@/components/settings/add-account/form-view";
 
 describe("AddAccountFormView", () => {
   it("renders credential fields only when a credentials section is provided", () => {

@@ -4,7 +4,7 @@ import { SettingsLoadingActionButton } from "@/components/settings/settings-load
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import type { AccountCredentialInputRow } from "./account-detail/types";
+import type { AccountCredentialInputRow } from "./types";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";

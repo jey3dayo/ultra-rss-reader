@@ -1,7 +1,7 @@
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
-import type { AccountGeneralSectionViewProps } from "@/components/settings/account-detail/types";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
+import type { AccountGeneralSectionViewProps } from "./types";
 
 export function AccountGeneralSectionView({
   heading,

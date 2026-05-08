@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { AccountDangerZoneView } from "@/components/settings/account-danger-zone-view";
+import { AccountDangerZoneView } from "@/components/settings/account-detail/danger-zone-view";
 
 function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("w-full");

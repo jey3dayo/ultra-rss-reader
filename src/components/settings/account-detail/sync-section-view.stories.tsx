@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { AccountSyncSectionView } from "./account-sync-section-view";
+import { AccountSyncSectionView } from "./sync-section-view";
 
 const syncIntervalOptions = [
   { value: "900", label: "Every 15 minutes" },

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
+import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 
 function expectNoButtonMinWidth(button: HTMLElement) {
   expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);

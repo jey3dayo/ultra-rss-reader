@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
-import { AddAccountForm, type AddAccountFormProps } from "./add-account-form";
+import { AddAccountForm, type AddAccountFormProps } from "./controller";
 
 const meta = {
   title: "Settings/Page/AddAccountForm",

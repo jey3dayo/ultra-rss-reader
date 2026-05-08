@@ -6,7 +6,7 @@ import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks"
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
-import { AddAccountForm } from "@/components/settings/add-account-form";
+import { AddAccountForm } from "@/components/settings/add-account/controller";
 
 const sampleFolders = [
   { id: "folder-1", account_id: "acc-1", name: "Work", sort_order: 0 },

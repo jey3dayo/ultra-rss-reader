@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { AddAccountFormView } from "./add-account-form-view";
+import { AddAccountFormView } from "./form-view";
 
 const meta = {
   title: "Settings/Page/AddAccountFormView",

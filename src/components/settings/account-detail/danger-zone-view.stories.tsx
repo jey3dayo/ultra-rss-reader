@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { AccountDangerZoneView } from "./account-danger-zone-view";
+import { AccountDangerZoneView } from "./danger-zone-view";
 
 const meta = {
   title: "Settings/Section/AccountDangerZoneView",

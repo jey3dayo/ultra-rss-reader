@@ -21,7 +21,7 @@ async function findPasswordInput() {
   return input;
 }
 
-vi.mock("@/components/settings/account-detail-view", () => ({
+vi.mock("@/components/settings/account-detail/view", () => ({
   AccountDetailView: (props: {
     title: string;
     headerSummary?: ReactNode;

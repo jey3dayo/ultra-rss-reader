@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { AccountCredentialsSectionView } from "./account-credentials-section-view";
+import { AccountCredentialsSectionView } from "./credentials-section-view";
 
 const meta = {
   title: "Settings/Section/AccountCredentialsSectionView",

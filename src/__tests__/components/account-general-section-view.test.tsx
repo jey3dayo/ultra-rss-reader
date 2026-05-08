@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { AccountGeneralSectionView } from "@/components/settings/account-general-section-view";
+import { AccountGeneralSectionView } from "@/components/settings/account-detail/general-section-view";
 
 describe("AccountGeneralSectionView", () => {
   it("renders the account name row and static account info", async () => {
