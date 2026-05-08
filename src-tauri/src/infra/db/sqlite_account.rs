@@ -68,7 +68,7 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
 impl AccountRepository for SqliteAccountRepository<'_> {
     fn find_all(&self) -> DomainResult<Vec<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts ORDER BY name COLLATE NOCASE, id",
         )?;
         let accounts = stmt
             .query_map([], row_to_account)?
@@ -256,6 +256,38 @@ mod tests {
         let all = repo.find_all().unwrap();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].name, "Updated");
+    }
+
+    #[test]
+    fn find_all_returns_accounts_in_stable_name_order() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        for account in [
+            Account {
+                id: AccountId("account-z".to_string()),
+                ..make_account("Zeta")
+            },
+            Account {
+                id: AccountId("account-b".to_string()),
+                ..make_account("alpha")
+            },
+            Account {
+                id: AccountId("account-a".to_string()),
+                ..make_account("Alpha")
+            },
+        ] {
+            repo.save(&account).unwrap();
+        }
+
+        let account_ids = repo
+            .find_all()
+            .unwrap()
+            .into_iter()
+            .map(|account| account.id.0)
+            .collect::<Vec<_>>();
+
+        assert_eq!(account_ids, vec!["account-a", "account-b", "account-z"]);
     }
 
     #[test]

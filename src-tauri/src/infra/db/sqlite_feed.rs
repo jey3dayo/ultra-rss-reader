@@ -42,7 +42,9 @@ const SELECT_COLS: &str =
 impl FeedRepository for SqliteFeedRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>> {
         let sql = if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
-            format!("SELECT {SELECT_COLS} FROM feeds WHERE account_id = ?1")
+            format!(
+                "SELECT {SELECT_COLS} FROM feeds WHERE account_id = ?1 ORDER BY title COLLATE NOCASE, id"
+            )
         } else {
             let mute_clause = build_mute_keyword_exclusion_clause(
                 "a.title",
@@ -68,7 +70,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                     f.reader_mode,
                     f.web_preview_mode
                  FROM feeds f
-                 WHERE f.account_id = ?1"
+                 WHERE f.account_id = ?1
+                 ORDER BY f.title COLLATE NOCASE, f.id"
             )
         };
         let mut stmt = self.conn.prepare(&sql)?;
@@ -320,6 +323,39 @@ mod tests {
 
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].unread_count, 1);
+    }
+
+    #[test]
+    fn find_by_account_returns_feeds_in_stable_title_order() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        for feed in [
+            Feed {
+                id: FeedId("feed-z".to_string()),
+                ..make_feed(&account_id, "Zeta", "http://z.example/rss")
+            },
+            Feed {
+                id: FeedId("feed-b".to_string()),
+                ..make_feed(&account_id, "alpha", "http://b.example/rss")
+            },
+            Feed {
+                id: FeedId("feed-a".to_string()),
+                ..make_feed(&account_id, "Alpha", "http://a.example/rss")
+            },
+        ] {
+            repo.save(&feed).unwrap();
+        }
+
+        let feed_ids = repo
+            .find_by_account(&account_id)
+            .unwrap()
+            .into_iter()
+            .map(|feed| feed.id.0)
+            .collect::<Vec<_>>();
+
+        assert_eq!(feed_ids, vec!["feed-a", "feed-b", "feed-z"]);
     }
 
     #[test]
