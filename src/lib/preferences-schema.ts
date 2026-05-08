@@ -24,6 +24,8 @@ export type Theme = z.infer<typeof themeSchema>;
 export type LanguagePreference = z.infer<typeof languageSchema>;
 export type SortSubscriptions = z.infer<typeof sortSubscriptionsSchema>;
 export type AfterReadingPreference = z.infer<typeof afterReadingSchema>;
+export type SidebarDensityPreference = z.infer<typeof sidebarDensitySchema>;
+export type StartupFolderExpansionPreference = z.infer<typeof startupFolderExpansionSchema>;
 
 export const preferenceSchemas = {
   language: languageSchema,

@@ -1,8 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { setWindowIcon } from "@/lib/windows";
 import { usePlatformStore } from "@/stores/platform-store";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 const DARK_ICON_PATH = "/icons/app-icon-dark.png";
 const LIGHT_ICON_PATH = "/icons/app-icon-light.png";

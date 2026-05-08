@@ -2,8 +2,9 @@ import { Moon, Rss, Settings, Sun } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { cn } from "@/lib/utils";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import type { SidebarFooterActionsViewProps } from "./sidebar.types";
 
 type SidebarFooterTooltipButtonProps = ComponentProps<typeof Button> & {

@@ -8,7 +8,7 @@ import {
 } from "@/lib/article-display";
 import type { DevIntent } from "@/lib/dev-intent";
 import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
-import { resolvePreferenceValue } from "@/stores/preferences-store";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { useUiStore } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "./reading-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";

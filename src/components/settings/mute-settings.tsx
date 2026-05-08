@@ -11,7 +11,8 @@ import {
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
 import { getErrorMessage } from "@/lib/errors";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 type MuteSettingsState = {

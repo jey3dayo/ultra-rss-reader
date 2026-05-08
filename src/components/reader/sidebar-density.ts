@@ -1,4 +1,6 @@
-export type SidebarDensity = "compact" | "normal" | "spacious";
+import type { SidebarDensityPreference } from "@/lib/preferences-schema";
+
+export type SidebarDensity = SidebarDensityPreference;
 
 export type SidebarDensityTokens = {
   navButton: string;

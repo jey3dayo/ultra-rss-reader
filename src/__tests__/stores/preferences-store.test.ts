@@ -2,13 +2,14 @@ import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { preferenceDefaults, resolvePreferenceValue } from "@/lib/preferences-schema";
 
 vi.mock("@/api/tauri-commands", () => ({
   getPreferences: vi.fn(),
   setPreference: vi.fn(async () => Result.succeed(null)),
 }));
 
-import { preferenceDefaults, resolvePreferenceValue, usePreferencesStore } from "../../stores/preferences-store";
+import { usePreferencesStore } from "../../stores/preferences-store";
 
 function createDeferred(): { promise: Promise<void>; resolve: () => void } {
   let resolvePromise: () => void = () => {};

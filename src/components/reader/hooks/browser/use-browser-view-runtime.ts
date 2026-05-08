@@ -2,8 +2,9 @@ import { useCallback, useRef, useState } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserNativeDiagnostics } from "@/components/reader/hooks/browser/use-browser-native-diagnostics";
 import { useBrowserOverlayViewportWidth } from "@/components/reader/hooks/browser/use-browser-overlay-viewport-width";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { usePlatformStore } from "@/stores/platform-store";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserViewRuntimeParams, UseBrowserViewRuntimeResult } from "../../browser-view.types";
 

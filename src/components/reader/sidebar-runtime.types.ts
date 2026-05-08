@@ -1,5 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { DevIntent } from "@/lib/dev-intent";
+import type { StartupFolderExpansionPreference } from "@/lib/preferences-schema";
 import type { SortSubscriptions } from "@/lib/sidebar";
 import type { UiStoreState } from "@/stores/ui-store";
 import type { SidebarDensity } from "./sidebar-density";
@@ -60,7 +61,7 @@ export type SidebarUiStateResult = Pick<
   displayFavicons: boolean;
   grayscaleFavicons: boolean;
   sortSubscriptions: SortSubscriptions;
-  startupFolderExpansion: "all_collapsed" | "restore_previous" | "unread_folders";
+  startupFolderExpansion: StartupFolderExpansionPreference;
   sidebarDensity: SidebarDensity;
   opaqueSidebars: boolean;
   savedAccountId: string;

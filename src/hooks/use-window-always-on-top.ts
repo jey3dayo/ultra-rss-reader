@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { setWindowAlwaysOnTop } from "@/lib/windows";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 export function useWindowAlwaysOnTop() {
   const enabled = usePreferencesStore(

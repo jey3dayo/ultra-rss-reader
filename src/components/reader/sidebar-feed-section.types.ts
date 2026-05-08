@@ -1,4 +1,5 @@
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import type { StartupFolderExpansionPreference } from "@/lib/preferences-schema";
 import type { SortSubscriptions } from "@/lib/sidebar";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
@@ -6,7 +7,7 @@ import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-t
 
 export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;
 
-export type StartupFolderExpansionMode = "all_collapsed" | "restore_previous" | "unread_folders";
+export type StartupFolderExpansionMode = StartupFolderExpansionPreference;
 
 export type SidebarFeedDragStateFeed = {
   folder_id: string | null;

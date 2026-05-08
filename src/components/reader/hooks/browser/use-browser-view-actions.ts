@@ -8,7 +8,8 @@ import {
   goForwardBrowserWebview,
   reloadBrowserWebview,
 } from "@/api/tauri-commands";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { openUrlInExternalBrowser } from "../../article-browser-actions";
 import type { UseBrowserViewActionsParams } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";

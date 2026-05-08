@@ -1,5 +1,5 @@
 import { Copy } from "lucide-react";
-import { resolvePreferenceValue } from "@/stores/preferences-store";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import type { ActionsSettingsViewProps } from "./actions-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 

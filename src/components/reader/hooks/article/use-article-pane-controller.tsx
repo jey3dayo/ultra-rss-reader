@@ -6,7 +6,8 @@ import { useArticleBrowserOverlay } from "@/components/reader/hooks/article/use-
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import type { ArticlePaneControllerResult, ArticlePaneProps } from "../../article-view.types";
 
 export function useArticlePaneController({ article, feed }: ArticlePaneProps): ArticlePaneControllerResult {
