@@ -10,7 +10,7 @@ import type { ToastData } from "@/lib/ui-state.types";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 
-export type BrowserViewScope = "content-pane" | "main-stage";
+export type BrowserViewScope = BrowserViewerScope;
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 export type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
 export type BrowserViewGeometry = BrowserViewerGeometry;

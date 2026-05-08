@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
-import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
+import type { BrowserOverlayToolbarAction, BrowserViewScope } from "@/components/reader/browser-view.types";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { APP_EVENTS } from "@/constants/events";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
@@ -167,7 +167,7 @@ function setReducedMotionPreference(matches: boolean) {
 }
 
 type BrowserViewHarnessProps = {
-  scope?: "content-pane" | "main-stage";
+  scope?: BrowserViewScope;
   onCloseOverlay?: () => void;
 };
 
