@@ -54,49 +54,20 @@
   - さらに state type を分割する場合は、`src/stores/ui-store.ts` 自体を slice 化できる段階で実施する。store action / selector / dev scenario への参照が広いため別バッチにする
 
 - [ ] 参照範囲が広い reader type surface を別バッチで分割する
-  - `article-list.types.ts` は list view / header / footer / hooks にまたがるため、article-list controller 境界を見直す時に分割する
-  - `add-feed-dialog.types.ts` / `rename-feed-dialog.types.ts` は dialog state / controller hooks / shared form parts にまたがるため、feed dialog flow の責務分割時に再評価する
-  - `sidebar.types.ts` は sidebar view / section props / smart views / content props にまたがるため、sidebar controller と view contract の分割単位を先に決める
-  - `browser-view.types.ts` は browser overlay / webview sync / diagnostics hooks / tests にまたがるため、native webview 境界の変更と同じバッチで扱う
   - `command-palette.types.ts` は palette data / runtime / action groups / result rendering にまたがるため、command palette hooks の責務分割時に再評価する
 
 - [ ] 小粒 cleanup 候補を別バッチで見直す
   - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
-  - pure helper の追加テストは、境界値・source selection・query plan など挙動の契約として価値があるものだけ残す
+  - pure helper の追加テストは、article list selection / navigation / grouping / mark-all-read count など挙動の契約として価値があるものだけ残す
   - view-level props の `export type` は hook / Storybook / tests の contract として使うものだけ残す。外部 import がない helper props は触るファイルごとに local type へ戻す
-  - reader の残りは sidebar / article-list / browser geometry / command palette / feed dialog flow など参照範囲が広い単位で見直す
+  - reader の残りは browser geometry / command palette / article actions など参照範囲が広い単位で見直す
   - `src/components/ui/` の primitive wrapper props は shadcn/Base UI wrapper API として扱う。外部 import がなくても、公開 wrapper contract の方針を決めるまでは一括 local 化しない
   - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`dialog.types.ts` の `ConfirmDialogVariant` のように store / view にまたがるものは、呼び出し境界が変わる時に見直す
   - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
 
-- [ ] reader article-list 分割候補を別バッチで見直す
-  - `article-list.types.ts` の header / header actions / feed mode control / footer / item props は、各 view file へ colocate できるか確認する
-  - `UseArticleList*Params` / `UseArticleList*Result` は controller / hook contract として残し、view props local 化とは同じコミットに混ぜない
-  - article list は keyboard navigation / selection / scroll / grouping にまたがるため、header 系・body/item 系・controller hook 系の順で worker scope を分ける
-
-- [ ] reader sidebar 分割候補を別バッチで見直す
-  - `sidebar.types.ts` の header / nav button / footer actions / smart views / account section / content view props は、component ごとに colocate できるか確認する
-  - `SidebarControllerResult` / `SidebarSectionPropsResult` / hook params は controller contract として扱い、view props の移動と分ける
-  - `SidebarTagListProps` / `SidebarFeedTreeProps` は feed tree / tag section / sidebar hooks にまたがるため、先に参照単位を決めてから移動する
-
-- [ ] browser hook type surface 分割候補を別バッチで見直す
-  - `browser-view.types.ts` の runtime / event bridge / webview sync / diagnostics / focus return hook params/results を、hook 群ごとの type file へ分けられるか確認する
-  - geometry / presentation / diagnostics payload は browser overlay と native webview 境界の共有 contract として残す
-  - WebView bounds、layout 数値、overlay resize 挙動は型整理と混ぜず、実機検証バッチで扱う
-
-- [ ] feed dialog controller contract 整理候補を別バッチで見直す
-  - add / rename feed dialog の controller folder select props、submit params、derived params を hook / controller 単位で整理できるか確認する
-  - view props は local 化済みのため、次は `use-add-feed-dialog-*` / `use-rename-feed-dialog-*` の入出力 contract に限定する
-  - `FolderSelectViewProps` は add / rename dialog の共有境界なので、移動する場合は folder select contract の単独バッチにする
-
-- [ ] settings account-detail contract 整理候補を別バッチで見直す
-  - `account-detail/types.ts` の section view props と hook/controller params/results を、view / hook / controller の責務単位に分けられるか確認する
-  - account detail views / hooks / tests / account config form にまたがるため、settings 全体の配置変更とは混ぜない
-  - sync status rows / danger zone / credentials editor は挙動テストの境界が違うため、必要なら worker scope を分ける
-
 - [ ] pure helper test 候補を別バッチで追加する
   - article list selection / navigation scroll / grouping / mark-all-read count は、境界値と source selection の契約テストを追加する価値がある
-  - sidebar smart views / feed tree visibility / subscription review candidates は、入力セットが小さい pure helper から優先する
+  - feed tree visibility は、入力セットが小さい pure helper から優先する
   - UI snapshot、hover class 全量、motion class の見た目固定は避け、失敗時に仕様差分が分かる assertion に限定する
 
 - [ ] motion / browser 実機検証候補を別バッチで整理する
