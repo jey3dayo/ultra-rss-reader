@@ -1288,3 +1288,23 @@
 - [ ] Reading List URL quote escaping contract 候補を別バッチで追加する
   - `share_commands.rs` の macOS Reading List command で URL 内の double quote が AppleScript 文字列を壊さないよう escape 方針を contract test 化する
   - unsupported scheme guard、clipboard runtime category、Safari 実機 verification は別バッチにする
+
+- [ ] Settings overflow observer fallback contract 候補を別バッチで追加する
+  - `use-scroll-overflow-state.ts` で ResizeObserver / MutationObserver が未定義でも resize listener と animation frame により overflow state が安定する契約を fixed test で固定する
+  - settings layout の見た目調整、scrollbar styling、各 settings page の配置変更は混ぜない
+
+- [ ] SettingsLoadingActionButton busy/disabled contract 候補を別バッチで追加する
+  - `settings-loading-action-button.tsx` で `loading=true` 時の `aria-busy`、spinner slot、`loadingLabel`、`disabledWhenLoading=false` の挙動を component test で固定する
+  - button visual token、SettingsActionButton variants、実際の保存処理や DB 操作は別バッチにする
+
+- [ ] Subscriptions list scroll restore idempotency contract 候補を別バッチで追加する
+  - `subscriptions-list-pane.tsx` で `initialScrollTop` が同じ値で再 render された時は再代入せず、値が変わった時だけ scrollTop を復元する契約を固定する
+  - selection flow、keep/defer/delete、summary filter、visual density は混ぜない
+
+- [ ] Subscriptions duplicated folder label accessibility contract 候補を別バッチで追加する
+  - `subscriptions-list-pane.tsx` で同名 folder が複数ある場合も `aria-controls`、panel id、`data-testid` が folderId ベースで衝突しない契約を固定する
+  - folder rename、drag/drop 実装、購読整理 decision flow は別バッチに残す
+
+- [ ] Local feed subscription metadata fallback contract 候補を別バッチで追加する
+  - `local.rs` の `create_subscription()` で feed title が無い時は URL を title にし、site link が無い時は `site_url=\"\"`、icon があれば `icon_url` に入る契約を fixture test で固定する
+  - feed discovery、add feed dialog UI、network policy、provider sync flow は混ぜない
