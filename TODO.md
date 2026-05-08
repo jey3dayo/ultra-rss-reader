@@ -399,11 +399,6 @@
   - CI 常時実行、manual workflow、release 前手動確認のどこに置くかを分ける
   - Storybook fixture runtime 整理とは混ぜず、実行ゲートと失敗時ログだけに限定する
 
-- [ ] shared test fixture invariant 候補を別バッチで追加する
-  - `tests/helpers/fixtures.ts` の account/feed/article/tag 間の参照整合、重複 ID、必須 field を固定する
-  - `tests/helpers/tauri-mocks.ts` と API command tests が期待する fixture contract を小さい test に分ける
-  - dev mock data や Storybook fixture の整理とは混ぜず、test helper 専用 fixture に限定する
-
 - [ ] sync scheduler backoff visibility 候補を別バッチで検証する
   - `sync_scheduler.rs` の backoff / retry_at / warning DTO と frontend account sync status 表示の対応を棚卸しする
   - retry scheduled / retry pending / credential failure はユーザー対応が違うため、status category と表示行を分けて test する
