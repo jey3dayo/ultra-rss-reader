@@ -413,3 +413,33 @@
   - `tests/helpers/fixtures.ts` の account/feed/article/tag 間の参照整合、重複 ID、必須 field を固定する
   - `tests/helpers/tauri-mocks.ts` と API command tests が期待する fixture contract を小さい test に分ける
   - dev mock data や Storybook fixture の整理とは混ぜず、test helper 専用 fixture に限定する
+
+- [ ] sync scheduler backoff visibility 候補を別バッチで検証する
+  - `sync_scheduler.rs` の backoff / retry_at / warning DTO と frontend account sync status 表示の対応を棚卸しする
+  - retry scheduled / retry pending / credential failure はユーザー対応が違うため、status category と表示行を分けて test する
+  - sync flow 本体や provider error mapping とは混ぜず、scheduler state と UI status projection に限定する
+
+- [ ] Tauri event listener lifecycle 候補を別バッチで追加する
+  - `src/lib/runtime/tauri-event-listeners.ts` と sidebar sync / menu events / browser events の attach / cleanup contract を棚卸しする
+  - duplicate listener、unmount 後 event、runtime unavailable fallback を focused test で固定する
+  - window event helper や native command schema 整理とは分け、listener lifecycle だけを扱う
+
+- [ ] unread badge / account unread count contract 候補を別バッチで見直す
+  - `use-account-unread-count.ts`、badge runtime、sidebar smart unread count の source を対応表で確認する
+  - all account / selected account / inbox-only badge の意味がズレないよう、count source と badge update trigger を test で固定する
+  - app icon / OS badge 実機検証とは分け、frontend count projection と runtime call boundary に限定する
+
+- [ ] sidebar section visibility / density contract 候補を別バッチで追加する
+  - sidebar section visibility、density setting、smart view contextual filters の stored state と view props を棚卸しする
+  - collapsed section / hidden tags / dense rows / empty folder の組み合わせを pure helper と component test に分ける
+  - mobile layout や drag/drop とは混ぜず、sidebar section visibility と density projection だけを見る
+
+- [ ] window always-on-top / chrome runtime 候補を別バッチで検証する
+  - `use-window-always-on-top.ts`、`window-chrome.ts`、platform capabilities の runtime available/unavailable fallback を確認する
+  - native window chrome と settings toggle の状態同期は OS 差があるため、hook unit test と packaged manual verification を分ける
+  - platform abstraction DTO や capability JSON 変更は別バッチに残し、always-on-top action contract に限定する
+
+- [ ] article list search / empty state semantics 候補を別バッチで補強する
+  - article list search、header search input、empty state、footer filter control の no result / loading / filtered out 状態を整理する
+  - source scope resolver や reader query contract とは分け、user-visible empty reason と clear action の semantics を test で固定する
+  - search debounce 実装詳細は固定せず、最終表示状態と focus/clear behavior に限定する
