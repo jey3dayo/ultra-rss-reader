@@ -20,13 +20,13 @@ export function useArticleListViewState({
   isSearching,
   filteredArticleCount,
 }: UseArticleListViewStateParams): UseArticleListViewStateResult {
-  const contextStripContext = useMemo(() => {
+  const contextStripContext = useMemo<UseArticleListViewStateResult["contextStripContext"]>(() => {
     if (selection.type !== "smart") {
       return { primaryLabel: null, secondaryLabel: null, tone: null };
     }
 
     if (selection.kind === "unread") {
-      return { primaryLabel: t("unread"), secondaryLabel: null, tone: "unread" as const };
+      return { primaryLabel: t("unread"), secondaryLabel: null, tone: "unread" };
     }
 
     if (selection.kind === "recent") {
@@ -36,7 +36,7 @@ export function useArticleListViewState({
     return {
       primaryLabel: t("starred"),
       secondaryLabel: null,
-      tone: "starred" as const,
+      tone: "starred",
     };
   }, [selection, t]);
 
