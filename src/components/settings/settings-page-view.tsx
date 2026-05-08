@@ -1,10 +1,10 @@
 import { useId } from "react";
 import type {
-  SettingsPageActionRowProps,
-  SettingsPageInfoRowProps,
-  SettingsPageSelectRowProps,
-  SettingsPageSwitchRowProps,
-  SettingsPageTextRowProps,
+  SettingsPageActionControl,
+  SettingsPageInfoControl,
+  SettingsPageSelectControl,
+  SettingsPageSwitchControl,
+  SettingsPageTextControl,
   SettingsPageViewProps,
 } from "@/components/settings/settings-page.types";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
@@ -16,6 +16,26 @@ import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+type SettingsPageSelectRowProps = {
+  control: SettingsPageSelectControl;
+};
+
+type SettingsPageSwitchRowProps = {
+  control: SettingsPageSwitchControl;
+};
+
+type SettingsPageTextRowProps = {
+  control: SettingsPageTextControl;
+};
+
+type SettingsPageActionRowProps = {
+  control: SettingsPageActionControl;
+};
+
+type SettingsPageInfoRowProps = {
+  control: SettingsPageInfoControl;
+};
 
 function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
   return (

@@ -1,13 +1,4 @@
 import type { ReactNode } from "react";
-import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import type { SettingsCategory } from "@/lib/settings/settings-category.types";
-
-export type SettingsContentProps = {
-  settingsAccountId: string | null;
-  settingsAddAccount: boolean;
-  settingsAddAccountInitialKind: AddAccountProviderKind | null;
-  settingsCategory: SettingsCategory;
-};
 
 export type SettingsModalViewProps = {
   open: boolean;

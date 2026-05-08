@@ -87,23 +87,3 @@ export type SettingsPageViewProps = {
   sections: SettingsPageSection[];
   sectionSurface?: "card" | "flat";
 };
-
-export type SettingsPageSelectRowProps = {
-  control: SettingsPageSelectControl;
-};
-
-export type SettingsPageSwitchRowProps = {
-  control: SettingsPageSwitchControl;
-};
-
-export type SettingsPageTextRowProps = {
-  control: SettingsPageTextControl;
-};
-
-export type SettingsPageActionRowProps = {
-  control: SettingsPageActionControl;
-};
-
-export type SettingsPageInfoRowProps = {
-  control: SettingsPageInfoControl;
-};

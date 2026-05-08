@@ -13,7 +13,6 @@ import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/acco
 import { useAccountDetailViewProps } from "@/components/settings/hooks/account-detail/use-account-detail-view-props";
 import { MuteSettings } from "@/components/settings/mute-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
-import type { SettingsContentProps } from "@/components/settings/settings-modal.types";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { TagsSettings } from "@/components/settings/tags-settings";
@@ -22,6 +21,8 @@ import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
+import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -63,6 +64,15 @@ function SnapshotBackedAccountDetail({
   return <AccountDetailView {...viewProps} />;
 }
 
+type SettingsContentProps = {
+  devBuild: boolean;
+  settingsAddAccount: boolean;
+  settingsAddAccountInitialKind: AddAccountProviderKind | null;
+  settingsCategory: SettingsCategory;
+  selectedAccount?: AccountDto;
+  onAccountDeleted: (accountId: string) => void;
+};
+
 function SettingsContent({
   devBuild,
   settingsAddAccount,
@@ -70,11 +80,7 @@ function SettingsContent({
   settingsCategory,
   selectedAccount,
   onAccountDeleted,
-}: Omit<SettingsContentProps, "settingsAccountId"> & {
-  devBuild: boolean;
-  selectedAccount?: AccountDto;
-  onAccountDeleted: (accountId: string) => void;
-}) {
+}: SettingsContentProps) {
   if (selectedAccount) {
     return <SnapshotBackedAccountDetail account={selectedAccount} onAccountDeleted={onAccountDeleted} />;
   }
