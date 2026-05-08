@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarHeaderView } from "@/components/reader/sidebar-header-view";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -9,7 +10,7 @@ describe("SidebarHeaderView", () => {
   beforeEach(() => {
     useUiStore.setState({ layoutMode: "wide" });
     usePlatformStore.setState(usePlatformStore.getInitialState());
-    delete window.__TAURI_INTERNALS__;
+    resetTauriRuntimeFlags();
   });
 
   afterEach(() => {
@@ -76,7 +77,7 @@ describe("SidebarHeaderView", () => {
   });
 
   it("reserves left space for mac overlay traffic lights only on mac desktop", () => {
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     usePlatformStore.setState({
       platform: {
         kind: "macos",
@@ -109,7 +110,7 @@ describe("SidebarHeaderView", () => {
   });
 
   it("keeps sidebar actions flush on windows desktop without mac-only left padding", () => {
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     usePlatformStore.setState({
       platform: {
         kind: "windows",

@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
@@ -12,7 +13,7 @@ import { usePlatformStore } from "@/stores/platform-store";
 
 describe("Design-themed shared components", () => {
   afterEach(() => {
-    delete window.__TAURI_INTERNALS__;
+    resetTauriRuntimeFlags();
     usePlatformStore.setState({
       platform: {
         kind: "unknown",
@@ -32,7 +33,7 @@ describe("Design-themed shared components", () => {
 
   it("reserves space for mac traffic lights before platform info resolves", () => {
     const originalPlatform = window.navigator.platform;
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     Object.defineProperty(window.navigator, "platform", {
       configurable: true,
       value: "MacIntel",
@@ -155,7 +156,7 @@ describe("Design-themed shared components", () => {
   });
 
   it("reserves space for mac traffic lights in workspace headers", () => {
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     usePlatformStore.setState({
       platform: {
         kind: "macos",
@@ -209,7 +210,7 @@ describe("Design-themed shared components", () => {
   });
 
   it("moves desktop back navigation into the title row", () => {
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     usePlatformStore.setState({
       platform: {
         kind: "macos",
@@ -251,7 +252,7 @@ describe("Design-themed shared components", () => {
   });
 
   it("offsets the desktop workspace title group away from the mac drag region", () => {
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     usePlatformStore.setState({
       platform: {
         kind: "macos",
@@ -286,7 +287,7 @@ describe("Design-themed shared components", () => {
   });
 
   it("keeps the standard horizontal padding on windows without a mac titlebar offset", () => {
-    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    setTauriRuntimePresent();
     usePlatformStore.setState({
       platform: {
         kind: "windows",
