@@ -7,8 +7,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { AddAccountForm } from "@/components/settings/add-account-form";
-import { SettingsSelect, SettingsSwitch } from "@/components/settings/settings-components";
-import { usePreferencesStore } from "@/stores/preferences-store";
 
 const sampleFolders = [
   { id: "folder-1", account_id: "acc-1", name: "Work", sort_order: 0 },
@@ -17,7 +15,6 @@ const sampleFolders = [
 
 describe("Form fields", () => {
   beforeEach(() => {
-    usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_folders":
@@ -35,73 +32,6 @@ describe("Form fields", () => {
 
   afterEach(() => {
     teardownTauriMocks();
-    usePreferencesStore.setState({ prefs: {}, loaded: false });
-  });
-
-  it("settings select exposes a name attribute", () => {
-    const { container } = render(
-      <SettingsSelect
-        label="Open links"
-        prefKey="open_links"
-        options={[
-          { value: "in_app", label: "In-app browser" },
-          { value: "external", label: "Default browser" },
-        ]}
-      />,
-      { wrapper: createWrapper() },
-    );
-
-    expect(container.querySelector('input[name="open_links"]')).not.toBeNull();
-  });
-
-  it("settings select exposes an accessible name and selected label", () => {
-    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
-
-    render(
-      <SettingsSelect
-        label="Open links"
-        prefKey="open_links"
-        options={[
-          { value: "in_app", label: "In-app browser" },
-          { value: "default_browser", label: "Default browser" },
-        ]}
-      />,
-      { wrapper: createWrapper() },
-    );
-
-    expect(screen.getByRole("combobox", { name: "Open links" })).toHaveTextContent("Default browser");
-  });
-
-  it("settings select falls back to the default option label when the preference is unset", () => {
-    render(
-      <SettingsSelect
-        label="Open links"
-        prefKey="open_links"
-        options={[
-          { value: "in_app", label: "In-app browser" },
-          { value: "default_browser", label: "Default browser" },
-        ]}
-      />,
-      { wrapper: createWrapper() },
-    );
-
-    expect(screen.getByRole("combobox", { name: "Open links" })).toHaveTextContent("In-app browser");
-  });
-
-  it("settings switch is associated with its label", () => {
-    render(<SettingsSwitch label="Open links in background" prefKey="open_links_background" />, {
-      wrapper: createWrapper(),
-    });
-
-    expect(screen.getByRole("switch", { name: "Open links in background" })).toBeInTheDocument();
-  });
-
-  it("settings switch falls back to the default checked state when the preference is unset", () => {
-    render(<SettingsSwitch label="Ask before" prefKey="ask_before_mark_all" />, {
-      wrapper: createWrapper(),
-    });
-
-    expect(screen.getByRole("switch", { name: "Ask before" })).toBeChecked();
   });
 
   it("add account form inputs expose name attributes after service selection", async () => {

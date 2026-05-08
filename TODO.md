@@ -45,8 +45,9 @@
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
-  - `settings-nav.types.ts` / `settings-page.types.ts` / `settings-modal.types.ts` は view contract として参照範囲が広いため、移動するなら nav/page/modal のファイル群と一緒に判断する
-  - `settings-components.tsx` の `SettingsSwitch` / `SettingsSelect` は test-only に近いため、削除可否と用途を別バッチで判断する
+  - `settings-nav.types.ts` は settings rail contract として `SettingsNavView` / `AccountsNavView` / Storybook specimen / view tests にまたがるため、settings nav 境界が増えた時に再評価する
+  - `settings-page.types.ts` は public page/control contract と local row props が混在しているが、control union が肥大化した時に view-local row props 分離を検討する
+  - `settings-modal.types.ts` は content-routing props と modal-view props が混在しているが、新しい settings surface が増えて境界が効く段階で分離する
   - account detail / add account の view components 本体まで feature folder 化する場合は、Storybook と test の参照範囲が広いため別バッチにする
 
 - [ ] 参照範囲が広い root-level type を別バッチで分割する
