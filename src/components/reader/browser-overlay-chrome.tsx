@@ -5,9 +5,25 @@ import { useTranslation } from "react-i18next";
 import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { BrowserOverlayChromeProps } from "./browser-view.types";
+import type {
+  BrowserOverlayChromeController,
+  BrowserOverlayToolbarAction,
+  BrowserViewSurfacePresentation,
+} from "./browser-view.types";
 
 const ACCEPTED_ACTION_SPIN_MS = 1_000;
+
+type BrowserOverlayChromeProps =
+  | {
+      controller: BrowserOverlayChromeController;
+      presentation: Pick<BrowserViewSurfacePresentation, "leadingActionSurface" | "actionButtonSurface">;
+      closeWebPreviewLabel: string;
+      toolbarActions?: BrowserOverlayToolbarAction[];
+    }
+  | {
+      closeLabel: string;
+      onClose: () => void;
+    };
 
 function isCloseOnlyProps(
   props: BrowserOverlayChromeProps,

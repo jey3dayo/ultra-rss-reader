@@ -2,7 +2,11 @@ import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OverlayStageSurface } from "@/components/shared/overlay-stage-surface";
 import { BrowserSurfaceStateCard } from "./browser-surface-state-card";
-import type { BrowserOverlayStageProps } from "./browser-view.types";
+import type { BrowserOverlayStageController } from "./browser-view.types";
+
+type BrowserOverlayStageProps = {
+  controller: BrowserOverlayStageController;
+};
 
 function BrowserOverlayLoadingState({ label, hint }: { label: string; hint: string }) {
   return (
@@ -30,7 +34,7 @@ function BrowserOverlayIssueState({
   retryWebPreviewLabel,
   openInExternalBrowserLabel,
 }: {
-  issue: BrowserOverlayStageProps["controller"]["activeSurfaceIssue"];
+  issue: BrowserOverlayStageController["activeSurfaceIssue"];
   showTechnicalDetail: boolean;
   onRetry: () => void;
   onOpenExternal: () => void;

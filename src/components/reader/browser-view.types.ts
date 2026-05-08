@@ -99,18 +99,6 @@ export type BrowserOverlayChromeController = Pick<
   | "handleOpenExternal"
 >;
 
-export type BrowserOverlayChromeProps =
-  | {
-      controller: BrowserOverlayChromeController;
-      presentation: Pick<BrowserViewSurfacePresentation, "leadingActionSurface" | "actionButtonSurface">;
-      closeWebPreviewLabel: string;
-      toolbarActions?: BrowserOverlayToolbarAction[];
-    }
-  | {
-      closeLabel: string;
-      onClose: () => void;
-    };
-
 export type BrowserOverlayStageController = Pick<
   BrowserViewController,
   | "stageRef"
@@ -123,22 +111,6 @@ export type BrowserOverlayStageController = Pick<
   | "handleRetry"
   | "handleOpenExternal"
 >;
-
-export type BrowserOverlayStageProps = {
-  controller: BrowserOverlayStageController;
-};
-
-export type BrowserSurfaceStateCardProps = {
-  issue: BrowserSurfaceIssue;
-  showTechnicalDetail: boolean;
-  onRetry: () => void;
-  onOpenExternal: () => void;
-  labels: {
-    technicalDetail: string;
-    retryWebPreview: string;
-    openInExternalBrowser: string;
-  };
-};
 
 export type UseBrowserViewRuntimeParams = {
   onCloseOverlay: () => void;
