@@ -148,6 +148,11 @@ description = "Run Playwright E2E tests"
 run = "rtk test pnpm exec playwright test"
 run_windows = "playwright.CMD test"
 
+[tasks."test:storybook:e2e"]
+description = "Run Storybook Playwright E2E tests"
+run = "rtk test pnpm run test:storybook:e2e"
+run_windows = "pnpm.CMD run test:storybook:e2e"
+
 [tasks."test:all"]
 description = "Run all tests including E2E"
 depends = ["test:rust", "test:unit", "test:e2e"]
@@ -164,6 +169,11 @@ run = "dotenvx run -- rtk test cargo test --manifest-path src-tauri/Cargo.toml f
 description = "Build frontend"
 run = ["pnpm build"]
 run_windows = "tsc.CMD && vite.CMD build"
+
+[tasks."build:storybook"]
+description = "Build Storybook"
+run = "pnpm run build-storybook"
+run_windows = "pnpm.CMD run build-storybook"
 
 # ========================================
 # アプリ（Tauri）
@@ -207,6 +217,11 @@ run_windows = "echo app:dev:signed is macOS-only (requires codesign and Unix she
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
 run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
+
+[tasks."app:dev:vite-check"]
+description = "Check that the Tauri Vite dev port is available"
+run = "node ./scripts/tauri-dev-vite-manager.ts --check"
+run_windows = "node ./scripts/tauri-dev-vite-manager.ts --check"
 
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
