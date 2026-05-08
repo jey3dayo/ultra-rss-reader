@@ -55,7 +55,7 @@ import {
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
-} from "./api/schemas";
+} from "@/api/schemas";
 import type {
   AccountDto,
   AccountSyncStatusDto,
@@ -64,11 +64,11 @@ import type {
   FolderDto,
   MuteKeywordDto,
   TagDto,
-} from "./api/tauri-commands";
-import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
-import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "./lib/datetime";
-import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
-import { parseWithSchema as parseMockArgs } from "./schemas/parse";
+} from "@/api/tauri-commands";
+import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "@/dev/mock-data";
+import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
+import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
+import { parseWithSchema as parseMockArgs } from "@/schemas/parse";
 
 let nextAccountId = 100;
 let nextFeedId = 100;

@@ -11,7 +11,7 @@ import {
   listStarredArticles,
   testAccountConnection,
 } from "@/api/tauri-commands";
-import { setupDevMocks } from "@/dev-mocks";
+import { setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
 describe("setupDevMocks", () => {

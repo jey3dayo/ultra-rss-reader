@@ -3,8 +3,8 @@
  * Separated from IPC handler logic for maintainability.
  */
 
-import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
-import { addLocalDays, createLocalDateTime, getCurrentDate, toIsoTimestamp } from "./lib/datetime";
+import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import { addLocalDays, createLocalDateTime, getCurrentDate, toIsoTimestamp } from "@/lib/datetime";
 
 const now = getCurrentDate();
 const yesterday = addLocalDays(now, -1);

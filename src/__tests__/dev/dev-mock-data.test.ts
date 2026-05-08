@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mockAccounts, mockArticles, mockFeeds, mockFolders } from "@/dev-mock-data";
+import { mockAccounts, mockArticles, mockFeeds, mockFolders } from "@/dev/mock-data";
 
 describe("dev mock data", () => {
   it("does not include the known ORB-blocked thumbnail URL", () => {
