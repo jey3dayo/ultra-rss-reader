@@ -1,5 +1,11 @@
 import { TagChip } from "@/components/shared/tag-chip";
-import type { ArticleTagChipListProps } from "./article-tag-picker.types";
+import type { ArticleTagPickerViewProps } from "./article-tag-picker.types";
+
+type ArticleTagChipListProps = {
+  assignedTags: ArticleTagPickerViewProps["assignedTags"];
+  labels: ArticleTagPickerViewProps["labels"];
+  onRemoveTag: ArticleTagPickerViewProps["onRemoveTag"];
+};
 
 export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: ArticleTagChipListProps) {
   return assignedTags.map((tag) => (

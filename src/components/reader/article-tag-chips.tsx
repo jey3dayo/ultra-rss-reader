@@ -1,8 +1,12 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
-import type { ArticleTagChipsProps, ArticleTagPickerTagView } from "./article-tag-picker.types";
+import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
 import { ArticleTagPickerView } from "./article-tag-picker-view";
+
+type ArticleTagChipsProps = {
+  articleId: string;
+};
 
 type ArticleTagChipsState = {
   showPicker: boolean;
