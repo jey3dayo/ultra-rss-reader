@@ -10,6 +10,7 @@ import {
   updateMuteKeyword,
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
+import { invalidateArticleQueries } from "@/lib/query/query-invalidation";
 
 export type CreateMuteKeywordMutationInput = {
   keyword: string;
@@ -31,14 +32,7 @@ export type SetMuteAutoMarkReadMutationInput = {
 
 function invalidateMuteKeywordQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["muteKeywords"] });
-  qc.invalidateQueries({ queryKey: ["articles"] });
-  qc.invalidateQueries({ queryKey: ["accountArticles"] });
-  qc.invalidateQueries({ queryKey: ["starredArticles"] });
-  qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
-  qc.invalidateQueries({ queryKey: ["feeds"] });
-  qc.invalidateQueries({ queryKey: ["articlesByTag"] });
-  qc.invalidateQueries({ queryKey: ["search"] });
-  qc.invalidateQueries({ queryKey: ["tagArticleCounts"] });
+  invalidateArticleQueries(qc, { includeTagArticleCounts: true });
 }
 
 export function useMuteKeywords() {

@@ -13,6 +13,7 @@ type InvalidateArticleQueriesOptions = {
   includeAccountStarredCount?: boolean;
   includeFeeds?: boolean;
   includeArticlesByTag?: boolean;
+  includeTagArticleCounts?: boolean;
   includeSearch?: boolean;
   includeFeedIntegrityReport?: boolean;
   includeRecentArticles?: boolean;
@@ -29,11 +30,15 @@ const QUERY_KEYS = {
   accountUnreadCount: ["accountUnreadCount"],
   accountStarredCount: ["accountStarredCount"],
   articlesByTag: ["articlesByTag"],
+  tagArticleCounts: ["tagArticleCounts"],
   search: ["search"],
   feedIntegrityReport: ["feedIntegrityReport"],
 } as const;
 
-function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<readonly [string]>) {
+function invalidateQueryKeys(
+  queryClient: QueryClient,
+  queryKeys: ReadonlyArray<readonly [string]>,
+) {
   for (const queryKey of queryKeys) {
     void queryClient.invalidateQueries({ queryKey });
   }
@@ -41,7 +46,11 @@ function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<
 
 export function invalidateFeedQueries(
   queryClient: QueryClient,
-  { includeFeeds = true, includeFolders = true, includeAccountUnreadCount = false }: InvalidateFeedQueriesOptions = {},
+  {
+    includeFeeds = true,
+    includeFolders = true,
+    includeAccountUnreadCount = false,
+  }: InvalidateFeedQueriesOptions = {},
 ) {
   const queryKeys: Array<readonly [string]> = [];
 
@@ -69,6 +78,7 @@ export function invalidateArticleQueries(
     includeAccountStarredCount = true,
     includeFeeds = true,
     includeArticlesByTag = true,
+    includeTagArticleCounts = false,
     includeSearch = true,
     includeFeedIntegrityReport = false,
     includeRecentArticles = true,
@@ -99,6 +109,10 @@ export function invalidateArticleQueries(
 
   if (includeArticlesByTag) {
     queryKeys.push(QUERY_KEYS.articlesByTag);
+  }
+
+  if (includeTagArticleCounts) {
+    queryKeys.push(QUERY_KEYS.tagArticleCounts);
   }
 
   if (includeSearch) {

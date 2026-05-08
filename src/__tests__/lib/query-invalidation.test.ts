@@ -52,6 +52,7 @@ describe("query-invalidation", () => {
       includeAccountStarredCount: false,
       includeFeeds: false,
       includeArticlesByTag: false,
+      includeTagArticleCounts: true,
       includeSearch: false,
       includeFeedIntegrityReport: true,
       includeRecentArticles: false,
@@ -59,6 +60,7 @@ describe("query-invalidation", () => {
 
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
       { queryKey: ["articles"] },
+      { queryKey: ["tagArticleCounts"] },
       { queryKey: ["feedIntegrityReport"] },
     ]);
   });
