@@ -32,6 +32,21 @@ describe("SettingsLoadingActionButton", () => {
     expect(screen.queryByText("Check")).not.toBeInTheDocument();
   });
 
+  it("keeps the default label when no loading label is provided", () => {
+    const { rerender } = render(<SettingsLoadingActionButton loading={false}>Save</SettingsLoadingActionButton>);
+
+    const idleButton = screen.getByRole("button", { name: "Save" });
+    expect(idleButton).not.toHaveAttribute("aria-busy");
+    expect(idleButton).not.toBeDisabled();
+
+    rerender(<SettingsLoadingActionButton loading={true}>Save</SettingsLoadingActionButton>);
+
+    const loadingButton = screen.getByRole("button", { name: "Save" });
+    expect(loadingButton).toHaveAttribute("aria-busy", "true");
+    expect(loadingButton).toBeDisabled();
+    expect(loadingButton.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+  });
+
   it("keeps the loading action enabled when disabledWhenLoading is false", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

@@ -35,6 +35,7 @@ export function ArticleListBody({
   onListKeyDownCapture,
   isLoading,
   loadingMessage,
+  emptyStateVariant,
   emptyMessage,
   emptyDescription,
   emptyActionLabel,
@@ -58,6 +59,7 @@ export function ArticleListBody({
           onListKeyDownCapture={onListKeyDownCapture}
           isLoading={isLoading}
           loadingMessage={loadingMessage}
+          emptyStateVariant={emptyStateVariant}
           emptyMessage={emptyMessage}
           emptyDescription={emptyDescription}
           emptyActionLabel={emptyActionLabel}

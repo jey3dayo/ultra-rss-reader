@@ -14,6 +14,7 @@ import {
   resolveAppDefaultDisplayModes,
   resolveAppDefaultDisplayPreset,
   resolveArticleDisplay,
+  resolveArticleDisplayPrecedence,
   resolveFeedDisplayOverrides,
   resolveFeedDisplayPreset,
   resolveFeedDisplayPresetLabel,
@@ -54,7 +55,10 @@ describe("article-display preset conversions", () => {
   });
 
   it("resolves app default display modes from preferences", () => {
-    expect(resolveAppDefaultDisplayModes({})).toEqual({ readerMode: true, webPreviewMode: false });
+    expect(resolveAppDefaultDisplayModes({})).toEqual({
+      readerMode: true,
+      webPreviewMode: false,
+    });
     expect(
       resolveAppDefaultDisplayModes({
         reader_mode_default: "false",
@@ -157,15 +161,30 @@ describe("article-display preset conversions", () => {
   });
 
   it("falls feed display overrides back to inherit when persisted values are invalid", () => {
-    expect(resolveFeedDisplayOverrides({ reader_mode: "on", web_preview_mode: "off" })).toEqual({
+    expect(
+      resolveFeedDisplayOverrides({
+        reader_mode: "on",
+        web_preview_mode: "off",
+      }),
+    ).toEqual({
       readerMode: "on",
       webPreviewMode: "off",
     });
-    expect(resolveFeedDisplayOverrides({ reader_mode: "on", web_preview_mode: "custom" })).toEqual({
+    expect(
+      resolveFeedDisplayOverrides({
+        reader_mode: "on",
+        web_preview_mode: "custom",
+      }),
+    ).toEqual({
       readerMode: "inherit",
       webPreviewMode: "inherit",
     });
-    expect(resolveFeedDisplayOverrides({ reader_mode: "custom", web_preview_mode: "off" })).toEqual({
+    expect(
+      resolveFeedDisplayOverrides({
+        reader_mode: "custom",
+        web_preview_mode: "off",
+      }),
+    ).toEqual({
       readerMode: "inherit",
       webPreviewMode: "inherit",
     });
@@ -173,7 +192,12 @@ describe("article-display preset conversions", () => {
 
   it("resolves feed display presets from persisted feed settings", () => {
     expect(resolveFeedDisplayPreset(null)).toBe("default");
-    expect(resolveFeedDisplayPreset({ reader_mode: "inherit", web_preview_mode: "inherit" })).toBe("default");
+    expect(
+      resolveFeedDisplayPreset({
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      }),
+    ).toBe("default");
     expect(resolveFeedDisplayPreset({ reader_mode: "on", web_preview_mode: "off" })).toBe("standard");
     expect(resolveFeedDisplayPreset({ reader_mode: "on", web_preview_mode: "on" })).toBe("preview");
   });
@@ -241,6 +265,59 @@ describe("resolveArticleDisplay", () => {
       webPreviewMode: false,
       preset: "standard",
       fallbackReason: "invalid_empty_display",
+    });
+  });
+});
+
+describe("resolveArticleDisplayPrecedence", () => {
+  it("uses the reader preview default preference when feed and folder inherit", () => {
+    expect(
+      resolveArticleDisplayPrecedence({
+        appDefault: { readerMode: true, webPreviewMode: true },
+        folderOverride: { readerMode: "inherit", webPreviewMode: "inherit" },
+        feedOverride: { readerMode: "inherit", webPreviewMode: "inherit" },
+        temporaryOverride: { readerMode: null, webPreviewMode: null },
+        articleCapabilities: { hasWebPreview: true },
+      }),
+    ).toMatchObject({
+      readerMode: true,
+      webPreviewMode: true,
+      preset: "preview",
+      fallbackReason: null,
+    });
+  });
+
+  it("uses folder inherited mode ahead of reader preview default preference", () => {
+    expect(
+      resolveArticleDisplayPrecedence({
+        appDefault: { readerMode: true, webPreviewMode: true },
+        folderOverride: { readerMode: "on", webPreviewMode: "off" },
+        feedOverride: { readerMode: "inherit", webPreviewMode: "inherit" },
+        temporaryOverride: { readerMode: null, webPreviewMode: null },
+        articleCapabilities: { hasWebPreview: true },
+      }),
+    ).toMatchObject({
+      readerMode: true,
+      webPreviewMode: false,
+      preset: "standard",
+      fallbackReason: null,
+    });
+  });
+
+  it("uses feed-level display mode ahead of folder inherited mode", () => {
+    expect(
+      resolveArticleDisplayPrecedence({
+        appDefault: { readerMode: true, webPreviewMode: false },
+        folderOverride: { readerMode: "on", webPreviewMode: "off" },
+        feedOverride: { readerMode: "on", webPreviewMode: "on" },
+        temporaryOverride: { readerMode: null, webPreviewMode: null },
+        articleCapabilities: { hasWebPreview: true },
+      }),
+    ).toMatchObject({
+      readerMode: true,
+      webPreviewMode: true,
+      preset: "preview",
+      fallbackReason: null,
     });
   });
 });

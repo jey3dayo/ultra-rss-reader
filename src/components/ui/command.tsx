@@ -1,4 +1,4 @@
-import { Command as CommandPrimitive } from "cmdk";
+import { Command as CommandPrimitive, useCommandState } from "cmdk";
 import { SearchIcon } from "lucide-react";
 import type * as React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -74,12 +74,20 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
 }
 
 function CommandEmpty({ ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+  const isEmpty = useCommandState((state) => state.filtered.count === 0);
+
+  if (!isEmpty) {
+    return null;
+  }
+
   return (
-    <CommandPrimitive.Empty
-      data-slot="command-empty"
-      className="py-6 text-center text-sm text-foreground-soft"
-      {...props}
-    />
+    <div role="status" aria-live="polite">
+      <CommandPrimitive.Empty
+        data-slot="command-empty"
+        className="py-6 text-center text-sm text-foreground-soft"
+        {...props}
+      />
+    </div>
   );
 }
 
@@ -122,6 +130,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
 function CommandShortcut({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
+      aria-hidden="true"
       data-slot="command-shortcut"
       className={cn("text-foreground-soft ml-auto text-xs tracking-widest", className)}
       {...props}

@@ -74,7 +74,7 @@ export async function submitFeedEdits({
   }
 
   invalidateFeedQueries(queryClient, {
-    includeFeeds: (didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded),
+    includeFeeds: didMoveFolder || (didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded),
   });
 
   return renameSucceeded && displaySettingsSucceeded;

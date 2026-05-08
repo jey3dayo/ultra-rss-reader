@@ -3,15 +3,42 @@ import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListBody } from "@/components/reader/article-list-body";
 import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 
 function renderArticleListBody({
+  emptyStateVariant,
+  emptyMessage = "No articles",
+  emptyDescription,
+  emptyActionLabel,
+  onEmptyAction,
+  groups = [
+    {
+      id: "today",
+      label: "Today",
+      showLabel: true,
+      items: [
+        {
+          article: sampleArticles[0],
+          feedName: "Tech Blog",
+          isSelected: false,
+          isRecentlyRead: false,
+        },
+      ],
+    },
+  ],
   onSelectArticle = vi.fn(),
   onMarkAllRead = vi.fn(),
 }: {
+  emptyStateVariant?: "default" | "setup" | "hidden";
+  emptyMessage?: string;
+  emptyDescription?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
+  groups?: ComponentProps<typeof ArticleListBody>["groups"];
   onSelectArticle?: (articleId: string) => void;
   onMarkAllRead?: () => void;
 } = {}) {
@@ -23,22 +50,12 @@ function renderArticleListBody({
       onListKeyDownCapture={vi.fn()}
       isLoading={false}
       loadingMessage="Loading articles"
-      emptyMessage="No articles"
-      groups={[
-        {
-          id: "today",
-          label: "Today",
-          showLabel: true,
-          items: [
-            {
-              article: sampleArticles[0],
-              feedName: "Tech Blog",
-              isSelected: false,
-              isRecentlyRead: false,
-            },
-          ],
-        },
-      ]}
+      emptyStateVariant={emptyStateVariant}
+      emptyMessage={emptyMessage}
+      emptyDescription={emptyDescription}
+      emptyActionLabel={emptyActionLabel}
+      onEmptyAction={onEmptyAction}
+      groups={groups}
       dimArchived="true"
       textPreview="true"
       imagePreviews="off"
@@ -90,5 +107,37 @@ describe("ArticleListBody", () => {
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onSelectArticle).not.toHaveBeenCalled();
+  });
+
+  it("passes search empty-state semantics through without creating an article listbox", async () => {
+    const user = userEvent.setup();
+    const onEmptyAction = vi.fn();
+
+    renderArticleListBody({
+      groups: [],
+      emptyMessage: 'No matches for "rust"',
+      emptyDescription: "Try a different keyword or clear the current search.",
+      emptyActionLabel: "Clear search",
+      onEmptyAction,
+    });
+
+    expect(screen.getByText('No matches for "rust"')).toBeInTheDocument();
+    expect(screen.getByText("Try a different keyword or clear the current search.")).toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(onEmptyAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("honors hidden setup empty-state semantics from the body props builder", () => {
+    renderArticleListBody({
+      groups: [],
+      emptyStateVariant: "hidden",
+      emptyMessage: "Add an account and your articles will appear here.",
+      emptyDescription: "The list stays empty until the initial setup is complete.",
+    });
+
+    expect(screen.queryByText("Add an account and your articles will appear here.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
   });
 });

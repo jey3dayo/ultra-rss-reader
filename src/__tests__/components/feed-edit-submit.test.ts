@@ -94,4 +94,36 @@ describe("submitFeedEdits", () => {
 
     expect(updateDisplaySettings).toHaveBeenCalledWith(feed.id, "on", "on");
   });
+
+  it("invalidates feed and folder caches when submit only moves the feed folder", async () => {
+    const queryClient = createTestQueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const updateFeedFolder = vi.fn(async () => true);
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+
+    await expect(
+      submitFeedEdits(
+        createParams({
+          queryClient,
+          folderSelection: {
+            selectedFolderId: "folder-2",
+            isCreatingFolder: false,
+            newFolderName: "",
+          },
+          updateFeedFolder,
+        }),
+      ),
+    ).resolves.toBe(true);
+
+    expect(calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
+    expect(updateFeedFolder).toHaveBeenCalledWith({
+      feedId: feed.id,
+      folderId: "folder-2",
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["folders"] });
+  });
 });

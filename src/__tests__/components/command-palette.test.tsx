@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -238,6 +238,26 @@ describe("CommandPalette", () => {
     await user.type(input, "zzzzzz");
 
     expect(await screen.findByText("No results found")).toHaveClass("text-foreground-soft");
+  });
+
+  it("exposes result groups, shortcuts, and empty state with stable accessibility semantics", async () => {
+    const user = userEvent.setup();
+    seedCommandHistory(["action:open-settings"]);
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const results = await screen.findByRole("listbox", { name: "Command palette results" });
+    const recentGroup = screen.getByRole("group", { name: "Recent Actions" });
+    const recentSettings = within(recentGroup).getByRole("option", { name: "Open settings" });
+
+    expect(results).toContainElement(recentGroup);
+    expect(recentSettings.querySelector('[data-slot="command-shortcut"]')).toHaveAttribute("aria-hidden", "true");
+
+    const input = screen.getByPlaceholderText("Search commands…");
+    await user.clear(input);
+    await user.type(input, "zzzzzz");
+
+    expect(await screen.findByRole("status")).toHaveTextContent("No results found");
   });
 
   it("selecting a feed lands on the first visible article and closes the palette", async () => {

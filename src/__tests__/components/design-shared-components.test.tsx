@@ -119,6 +119,9 @@ describe("Design-themed shared components", () => {
       "data-[pressed]:border-border-strong",
       "data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]",
     );
+    expect(screen.getByRole("button", { name: "Unread" })).toHaveAttribute("type", "button");
+    expect(screen.getByRole("button", { name: "Unread" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Unread" })).toHaveAttribute("data-pressed");
     expect(screen.getByRole("switch", { name: "Live preview" })).toHaveClass(
       "bg-[linear-gradient(to_right,var(--gradient-switch-track-on)_35%,var(--gradient-switch-track-off)_65%)]",
     );

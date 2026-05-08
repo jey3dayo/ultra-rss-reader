@@ -25,6 +25,18 @@ export type ArticleDisplayResolveParams = {
   };
 };
 
+export type ArticleDisplayPrecedenceResolveParams = Omit<ArticleDisplayResolveParams, "appDefault" | "feedOverride"> & {
+  appDefault: ArticleDisplayModes;
+  folderOverride: {
+    readerMode: TriStateDisplayMode;
+    webPreviewMode: TriStateDisplayMode;
+  };
+  feedOverride: {
+    readerMode: TriStateDisplayMode;
+    webPreviewMode: TriStateDisplayMode;
+  };
+};
+
 export type ResolvedArticleDisplay = ArticleDisplayModes & {
   preset: ArticleDisplayPreset;
   fallbackReason: ArticleDisplayFallbackReason;
@@ -246,4 +258,19 @@ export function resolveArticleDisplay(params: ArticleDisplayResolveParams): Reso
     preset: modesToDisplayPreset({ readerMode, webPreviewMode }),
     fallbackReason,
   };
+}
+
+export function resolveArticleDisplayPrecedence(params: ArticleDisplayPrecedenceResolveParams): ResolvedArticleDisplay {
+  const readerAfterFolder = resolveTriState(params.appDefault.readerMode, params.folderOverride.readerMode);
+  const previewAfterFolder = resolveTriState(params.appDefault.webPreviewMode, params.folderOverride.webPreviewMode);
+
+  return resolveArticleDisplay({
+    appDefault: {
+      readerMode: readerAfterFolder,
+      webPreviewMode: previewAfterFolder,
+    },
+    feedOverride: params.feedOverride,
+    temporaryOverride: params.temporaryOverride,
+    articleCapabilities: params.articleCapabilities,
+  });
 }

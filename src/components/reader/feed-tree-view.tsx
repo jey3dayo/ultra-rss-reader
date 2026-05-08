@@ -65,12 +65,12 @@ export function FeedTreeView({
     onDragEnd,
   });
 
-  if (!hasFeeds) {
-    return <FeedTreeEmptyState {...emptyState} />;
-  }
-
   if (!isOpen) {
     return null;
+  }
+
+  if (!hasFeeds) {
+    return <FeedTreeEmptyState {...emptyState} />;
   }
 
   return (

@@ -41,6 +41,7 @@ export function FeedDialogUrlSection({
   discoverDisabled,
   placeholder,
   inputRef,
+  inputId,
   helperTextId,
   discoveredFeedsFoundLabel,
   discoveredFeedOptions,
@@ -59,6 +60,7 @@ export function FeedDialogUrlSection({
       <div className="space-y-2.5">
         <LabeledInputRow
           label={label}
+          inputId={inputId}
           name="feed-url"
           type="url"
           value={value}

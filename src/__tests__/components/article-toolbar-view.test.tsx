@@ -274,6 +274,55 @@ describe("ArticleToolbarView", () => {
     expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
   });
 
+  it("keeps toolbar actions as labelled native buttons when unavailable", () => {
+    render(
+      <ArticleToolbarView
+        showCloseButton={false}
+        hasArticle={false}
+        canToggleRead={false}
+        canToggleStar={false}
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen={false}
+        showCopyLinkButton
+        canCopyLink={false}
+        showOpenInBrowserButton
+        canOpenInBrowser={false}
+        showOpenInExternalBrowserButton
+        canOpenInExternalBrowser={false}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    for (const label of ["Toggle read", "Toggle star", "Open Web Preview", "Open in External Browser", "Copy link"]) {
+      const button = screen.getByRole("button", { name: label });
+
+      expect(button.tagName).toBe("BUTTON");
+      expect(button).toHaveAttribute("aria-label", label);
+      expect(button).toBeDisabled();
+      expect(button).not.toHaveAttribute("aria-disabled");
+    }
+  });
+
   it("keeps the unread toggle neutral when no article is selected", () => {
     render(
       <ArticleToolbarView

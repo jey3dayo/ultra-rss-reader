@@ -51,6 +51,29 @@ describe("shared form controls", () => {
     expect(screen.getByRole("button", { name: "Saving" })).toBeDisabled();
   });
 
+  it("uses the submitting label only while loading and a submitting label is provided", () => {
+    const props = {
+      cancelLabel: "Cancel",
+      submitLabel: "Save",
+      onCancel: vi.fn(),
+    };
+
+    const { rerender } = render(<FormActionButtons {...props} submittingLabel="Saving" />);
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Saving" })).not.toBeInTheDocument();
+
+    rerender(<FormActionButtons {...props} submittingLabel="Saving" loading={true} />);
+
+    expect(screen.getByRole("button", { name: "Saving" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+
+    rerender(<FormActionButtons {...props} loading={true} />);
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Saving" })).not.toBeInTheDocument();
+  });
+
   it("renders the shared form dialog shell with separated header, body, and footer", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();

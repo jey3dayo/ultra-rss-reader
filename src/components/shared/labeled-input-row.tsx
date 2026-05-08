@@ -6,6 +6,7 @@ import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type LabeledInputRowProps = {
+  inputId?: string;
   label: string;
   name?: string;
   type?: string;
@@ -39,6 +40,7 @@ type LabeledInputRowProps = {
 };
 
 export function LabeledInputRow({
+  inputId,
   label,
   name,
   type,
@@ -70,7 +72,8 @@ export function LabeledInputRow({
   onAction,
   actionDisabled,
 }: LabeledInputRowProps) {
-  const inputId = useId();
+  const generatedInputId = useId();
+  const resolvedInputId = inputId ?? generatedInputId;
   const hasInsideAction = actionPlacement === "inside" && Boolean(actionLabel && onAction);
   const isInsideIconAction = hasInsideAction && Boolean(actionIcon);
   const resolvedActionVariant = actionVariant ?? (hasInsideAction ? "ghost" : "outline");
@@ -97,11 +100,11 @@ export function LabeledInputRow({
     ) : null;
 
   return (
-    <LabeledControlRow label={label} htmlFor={inputId} className={rowClassName} labelClassName={labelClassName}>
+    <LabeledControlRow label={label} htmlFor={resolvedInputId} className={rowClassName} labelClassName={labelClassName}>
       <div className={cn("flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end", controlClassName)}>
         <div className={cn("w-full", actionPlacement === "inside" && "relative")}>
           <Input
-            id={inputId}
+            id={resolvedInputId}
             ref={inputRef}
             name={name}
             type={type}

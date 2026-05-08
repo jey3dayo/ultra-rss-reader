@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleMetaView } from "@/components/reader/article-meta-view";
+import { ReaderInlineActionButton } from "@/components/reader/reader-inline-action-button";
 
 describe("ArticleMetaView", () => {
   it("renders metadata and exposes title and feed actions", async () => {
@@ -66,5 +67,36 @@ describe("ArticleMetaView", () => {
     expect(heading).toHaveClass("leading-[1.07]");
     expect(screen.queryByRole("button", { name: "Offline Article" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tech Blog" })).not.toBeInTheDocument();
+  });
+
+  it("keeps reader inline actions as native non-submit buttons with forwarded disabled semantics", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <form>
+        <ReaderInlineActionButton variant="title" aria-label="Open original article" onClick={onClick}>
+          First Article
+        </ReaderInlineActionButton>
+        <ReaderInlineActionButton variant="feed" disabled onClick={onClick}>
+          Tech Blog
+        </ReaderInlineActionButton>
+      </form>,
+    );
+
+    const titleButton = screen.getByRole("button", { name: "Open original article" });
+    const feedButton = screen.getByRole("button", { name: "Tech Blog" });
+
+    expect(titleButton.tagName).toBe("BUTTON");
+    expect(titleButton).toHaveAttribute("type", "button");
+    expect(titleButton).toHaveAttribute("aria-label", "Open original article");
+    expect(feedButton).toHaveAttribute("type", "button");
+    expect(feedButton).toBeDisabled();
+    expect(feedButton).not.toHaveAttribute("aria-disabled");
+
+    await user.click(titleButton);
+    await user.click(feedButton);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

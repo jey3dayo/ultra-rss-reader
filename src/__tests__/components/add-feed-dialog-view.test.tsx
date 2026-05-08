@@ -209,4 +209,140 @@ describe("AddFeedDialogView", () => {
     expect(urlInput).toHaveAttribute("aria-invalid", "true");
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it("associates discovered feed descriptions and folder select labels with their controls", () => {
+    render(
+      <AddFeedDialogView
+        open={true}
+        onOpenChange={vi.fn()}
+        url="https://example.com"
+        onUrlChange={vi.fn()}
+        onDiscover={vi.fn()}
+        discovering={false}
+        loading={false}
+        discoveredFeedsFoundLabel="Found 2 feeds"
+        discoveredFeedOptions={[
+          {
+            value: "https://example.com/feed.xml",
+            label: "Tech Blog",
+            description: "https://example.com/feed.xml",
+          },
+          {
+            value: "https://example.com/atom.xml",
+            label: "News Feed",
+            description: "https://example.com/atom.xml",
+          },
+        ]}
+        selectedFeedUrl="https://example.com/feed.xml"
+        onSelectedFeedUrlChange={vi.fn()}
+        folderSelectProps={{
+          labelId: "folder-label",
+          label: "Folder",
+          value: "folder-1",
+          options: [
+            { value: "", label: "No folder" },
+            { value: "folder-1", label: "Work" },
+          ],
+          canCreateFolder: true,
+          disabled: false,
+          isCreatingFolder: false,
+          newFolderOptionLabel: "New folder",
+          newFolderLabel: "Folder name",
+          newFolderName: "",
+          newFolderPlaceholder: "Enter folder name",
+          onValueChange: vi.fn(),
+          onNewFolderNameChange: vi.fn(),
+        }}
+        error={null}
+        successMessage={null}
+        urlHint="Paste a feed or site URL."
+        urlHintTone="muted"
+        isDiscoverDisabled={false}
+        isSubmitDisabled={false}
+        labels={{
+          title: "Add Feed",
+          description: "Add a feed from a URL or website",
+          urlLabel: "Feed or Site URL",
+          urlPlaceholder: "https://example.com/feed.xml",
+          discover: "Discover",
+          discovering: "Discovering",
+          cancel: "Cancel",
+          add: "Add",
+          adding: "Adding",
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("radio", { name: "Tech Blog https://example.com/feed.xml" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "News Feed https://example.com/atom.xml" })).not.toBeChecked();
+
+    const folderLabel = screen.getByText("Folder");
+    const folderSelect = screen.getByRole("combobox", { name: "Folder" });
+
+    expect(folderLabel).toHaveAttribute("id", "folder-label");
+    expect(folderSelect).toHaveAttribute("aria-labelledby", "folder-label");
+  });
+
+  it("keeps URL label, description, and error associations on the same input control", () => {
+    render(
+      <AddFeedDialogView
+        open={true}
+        onOpenChange={vi.fn()}
+        url="not-a-url"
+        onUrlChange={vi.fn()}
+        onDiscover={vi.fn()}
+        discovering={false}
+        loading={false}
+        discoveredFeedsFoundLabel={null}
+        discoveredFeedOptions={[]}
+        selectedFeedUrl=""
+        onSelectedFeedUrlChange={vi.fn()}
+        folderSelectProps={{
+          labelId: "folder-label",
+          label: "Folder",
+          value: "",
+          options: [{ value: "", label: "No folder" }],
+          canCreateFolder: true,
+          disabled: false,
+          isCreatingFolder: false,
+          newFolderOptionLabel: "New folder",
+          newFolderLabel: "Folder name",
+          newFolderName: "",
+          newFolderPlaceholder: "Enter folder name",
+          onValueChange: vi.fn(),
+          onNewFolderNameChange: vi.fn(),
+        }}
+        error="Invalid URL"
+        successMessage={null}
+        urlHint="Use a full URL like https://example.com"
+        urlHintTone="error"
+        isDiscoverDisabled={true}
+        isSubmitDisabled={true}
+        labels={{
+          title: "Add Feed",
+          description: "Add a feed from a URL or website",
+          urlLabel: "Feed or Site URL",
+          urlPlaceholder: "https://example.com/feed.xml",
+          discover: "Discover",
+          discovering: "Discovering",
+          cancel: "Cancel",
+          add: "Add",
+          adding: "Adding",
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    const urlInput = screen.getByRole("textbox", { name: "Feed or Site URL" });
+    const urlLabel = screen.getByText("Feed or Site URL").closest("label");
+    const helperText = screen.getByText("Use a full URL like https://example.com");
+
+    expect(urlInput.id).not.toBe("");
+    expect(urlLabel).not.toBeNull();
+    expect(urlLabel).toHaveAttribute("for", urlInput.id);
+    expect(urlInput).toHaveAccessibleDescription("Use a full URL like https://example.com");
+    expect(urlInput).toHaveAttribute("aria-errormessage", helperText.id);
+    expect(urlInput).toHaveAttribute("aria-invalid", "true");
+  });
 });

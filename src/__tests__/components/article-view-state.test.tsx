@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/components/reader/browser-view", () => ({
-  BrowserView: ({ onCloseOverlay }: { onCloseOverlay: () => void }) => (
-    <button type="button" onClick={onCloseOverlay}>
-      Browser view
+  BrowserView: ({ labels, onCloseOverlay }: { labels: { closeWebPreview: string }; onCloseOverlay: () => void }) => (
+    <button type="button" aria-label={labels.closeWebPreview} onClick={onCloseOverlay}>
+      Web Preview
     </button>
   ),
 }));
@@ -25,16 +25,16 @@ describe("BrowserOverlaySurface", () => {
     );
 
     expect(screen.getByText("Reader body")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Browser view" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close Web Preview" })).not.toBeInTheDocument();
   });
 
-  it("mounts the browser view by default and passes the close handler", async () => {
+  it("mounts Web Preview with the reader close language and passes the close handler", async () => {
     const user = userEvent.setup();
     const onCloseOverlay = vi.fn();
 
     render(<BrowserOverlaySurface onCloseOverlay={onCloseOverlay} />);
 
-    await user.click(screen.getByRole("button", { name: "Browser view" }));
+    await user.click(screen.getByRole("button", { name: "Close Web Preview" }));
 
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
