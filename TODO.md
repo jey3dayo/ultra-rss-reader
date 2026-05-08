@@ -41,32 +41,18 @@
   - reader selection は `src/lib/reader/reader-selection.types.ts` を source of truth にする。新しい `UiSelection` alias は増やさない
   - さらに state type を分割する場合は、`src/stores/ui-store.ts` 自体を slice 化できる段階で実施する。store action / selector / dev scenario への参照が広いため別バッチにする
 
-- [ ] 参照範囲が広い reader type surface を別バッチで分割する
-  - `command-palette.types.ts` は palette data / runtime / action groups / result rendering にまたがるため、command palette hooks の責務分割時に再評価する
-
 - [ ] 小粒 cleanup 候補を別バッチで見直す
   - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
   - pure helper の追加テストは、article list selection / navigation / grouping / mark-all-read count など挙動の契約として価値があるものだけ残す
   - view-level props の `export type` は hook / Storybook / tests の contract として使うものだけ残す。外部 import がない helper props は触るファイルごとに local type へ戻す
-  - reader の残りは browser geometry / command palette / article actions など参照範囲が広い単位で見直す
+  - reader の残りは browser geometry など参照範囲が広い単位で見直す
   - `src/components/ui/` の primitive wrapper props は shadcn/Base UI wrapper API として扱う。外部 import がなくても、公開 wrapper contract の方針を決めるまでは一括 local 化しない
   - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`dialog.types.ts` の `ConfirmDialogVariant` のように store / view にまたがるものは、呼び出し境界が変わる時に見直す
   - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
 
 - [ ] pure helper test 候補を別バッチで追加する
   - article list selection / navigation scroll / grouping / mark-all-read count は、境界値と source selection の契約テストを追加する価値がある
-  - feed tree visibility は、入力セットが小さい pure helper から優先する
   - UI snapshot、hover class 全量、motion class の見た目固定は避け、失敗時に仕様差分が分かる assertion に限定する
-
-- [ ] reader article action hook contract 整理候補を別バッチで見直す
-  - `article-actions.types.ts` の status actions / shortcut / auto-mark params/results を、各 hook の近くへ分けられるか確認する
-  - toast action params は article action と browser action の境界にまたがるため、移動する場合は `article-browser-actions.ts` の責務も同じバッチで見る
-  - shortcut wiring は `src/hooks/use-keyboard.ts` との関係があるため、表示 props local 化とは混ぜない
-
-- [ ] command palette hook contract 整理候補を別バッチで見直す
-  - `command-palette.types.ts` の data / runtime / handlers / view props params/results を、hooks 配下の責務単位へ分けられるか確認する
-  - `CommandPaletteResultsProps` と controller result は palette view contract として残し、hook 内部 params の移動とは分ける
-  - search prefix / recent actions / dev scenario / article search はデータ取得境界が違うため、worker scope を分ける
 
 - [ ] subscriptions index view contract 整理候補を別バッチで見直す
   - `subscriptions-index-page-view.tsx` / list pane / detail pane / overview summary の props を、view file local と shared page contract に分ける

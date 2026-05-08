@@ -41,6 +41,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Put frontend-owned runtime schemas in `src/schemas/` when they validate local config, localStorage, preferences, or other non-IPC data.
 - Keep Tauri IPC request/response schemas in `src/api/schemas/`; do not mix them with local storage or app-config schemas.
 - Put cross-feature literals in `src/constants/`, and shared type-only contracts in `src/lib/*.types.ts` unless an existing feature-local type file is narrower.
+- Do not keep `.types.ts` files as dumping grounds for view-local props or hook-internal params/results. When a type is only consumed by one component or one hook, co-locate it in that file; keep `.types.ts` for contracts shared across views, hooks, stories, tests, stores, or runtime boundaries.
+- Do not move React props or hook params/results to `src/schemas/` unless they validate runtime input. Schemas are for runtime validation boundaries; component and hook types are compile-time contracts.
 - Put reusable test helpers under `tests/helpers/` and import them as `@tests/helpers/*` from frontend tests.
 - Keep sample DTO/data fixtures in `tests/helpers/fixtures.ts`, Tauri IPC mock setup in `tests/helpers/tauri-mocks.ts`, and test-only Tauri mock call contracts in `tests/helpers/tauri-types.ts`.
 - Reader-only pure helpers may stay under `src/components/reader/`; move them to `src/lib/` only when `lib`, `stores`, or another feature needs them.
