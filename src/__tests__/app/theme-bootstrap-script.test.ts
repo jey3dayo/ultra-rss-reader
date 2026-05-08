@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEYS } from "@/constants/storage";
-import indexHtmlSource from "../../index.html?raw";
+import indexHtmlSource from "../../../index.html?raw";
 
 function extractThemeBootstrapScript(source: string): string {
   const match = source.match(/<script>\s*([\s\S]*?localStorage[\s\S]*?)\s*<\/script>/);
