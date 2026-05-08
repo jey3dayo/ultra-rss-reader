@@ -658,3 +658,73 @@
   - `get_feed_integrity_report` で見つかる orphaned articles を削除する backend command と TS wrapper / schema を追加できるか確認する
   - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
   - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
+
+- [ ] menu-action hook dispatch guard 候補を別バッチで追加する
+  - `use-menu-events.ts` で `menu-action` payload が `AppAction` の時だけ `executeAction` され、未知 payload は warn / debug trace に留まることを固定する
+  - Rust `menu.rs` の action 対応表、native checked state、Tauri listener lifecycle 汎用化とは混ぜない
+  - malformed payload と known action の hook test を分ける
+
+- [ ] contenteditable global shortcut guard 候補を別バッチで追加する
+  - `use-keyboard.ts` と `keyboard-shortcuts.ts` で `contenteditable` / `role="textbox"` 内の `m` / `s` / `j` / `k` が global shortcut として発火しないことを固定する
+  - focus return、shortcut 表示 / i18n、pane navigation redesign とは混ぜず、target filtering だけを見る
+  - input / textarea / contenteditable / role textbox の境界を hook test で揃える
+
+- [ ] command palette pseudo-action boundary 候補を別バッチで追加する
+  - `open-shortcuts-help` だけが `executeAction` を通らない例外で、history 保存や close order が通常 `AppAction` と混ざらないことを固定する
+  - command palette unavailable action guard、search ranking、shortcut help UI visual とは混ぜない
+  - pseudo-action と AppAction の型境界を handler test で見る
+
+- [ ] dev scenario executeAction type boundary 候補を別バッチで追加する
+  - `DevScenarioContext.actions.executeAction` を `AppAction` に寄せ、action-backed scenario が未知 action を積めない契約にする
+  - dev mock state reset、production bundle leak guard、scenario UI / copy 変更とは混ぜない
+  - scenario registry と runner test で型と runtime fallback を分けて確認する
+
+- [ ] locale interpolation placeholder parity 候補を別バッチで追加する
+  - `src/locales/en/*.json` と `ja/*.json` の同一 key で `{{count}}` / `{{message}}` / `{{title}}` などの placeholder 集合が一致することを固定する
+  - 文言改善、key rename、namespace drift 全般とは混ぜず、interpolation placeholder の contract test に限定する
+  - missing placeholder と extra placeholder の failure message を読みやすくする
+
+- [ ] frontend/native language resolver parity 候補を別バッチで追加する
+  - `ui-language.ts` と `menu_i18n.rs` で `system`、`ja-JP`、`JA`、`fr-FR`、empty locale の解決結果が揃うことを固定する
+  - native menu label 本文、shortcut 表示、menu action id とは混ぜず、language code normalization だけを見る
+  - frontend と Rust の既存 test に同じ fixture set を持たせる
+
+- [ ] rich translation fallback render guard 候補を別バッチで追加する
+  - `<Trans>` の rich text key が missing / mock fallback でも destructive dialog の accessible name と本文が壊れないことを固定する
+  - destructive dialog tone / variant、確認文言の全面変更とは混ぜず、fallback render contract だけを見る
+  - delete tag / unsubscribe feed の代表ケースに限定する
+
+- [ ] decorative fallback icon accessibility guard 候補を別バッチで追加する
+  - `feed-favicon.tsx` で favicon 画像 `alt=""` と fallback glyph が feed row の accessible name に混入しないことを固定する
+  - favicon URL provider、provider icon visual fallback、grayscale preference とは混ぜない
+  - image load success / fallback icon の両方を component test で見る
+
+- [ ] browser surface action label contract 候補を別バッチで追加する
+  - `browser-surface-state-card.tsx` の retryable / non-retryable issue で、button accessible name が label props 由来で technical detail label と混線しないことを固定する
+  - browser load timeout state、WebView fallback lifecycle、エラー文言改善とは混ぜない
+  - retry action の有無と detail disclosure の label を別 assertion にする
+
+- [ ] release capability MCP permission guard 候補を別バッチで追加する
+  - `src-tauri/capabilities/default.json` と `lib.rs` を確認し、debug build だけ `mcp-bridge` plugin / permission を許す設定検証を追加する
+  - dev scenario production leak、release workflow permissions、通常 Tauri window permission 整理とは混ぜない
+  - release artifact に debug-only permission が残らないことを static check で固定する
+
+- [ ] log directory native-open command 候補を別バッチで追加する
+  - `log_commands.rs` と data settings controller で、webview に log dir path を返さず Rust 側で app log dir のみ open する command へ寄せられるか確認する
+  - log rotation、incident runbook、Data settings backup / export UX とは混ぜない
+  - path exposure と open failure の error projection を command contract として固定する
+
+- [ ] account create keyring orphan rollback 候補を別バッチで追加する
+  - `account_commands.rs` で keyring 保存成功後に DB save が失敗した場合、作成した credential を削除する contract test を追加する
+  - provider login flow、connection verification UI、既存 account 更新時の credential 検証とは混ぜない
+  - rollback failure は元 error と log の扱いを分けて固定する
+
+- [ ] dev credentials JSON corruption fail-closed 候補を別バッチで追加する
+  - `keyring_store.rs` で壊れた `dev-credentials.json` を空 store 扱いで上書きせず、read error / parse error を明示エラーにする
+  - native keyring backend、実 credential 値、dev credentials 保存場所変更とは混ぜない
+  - corrupted file を保持することと新規保存時の挙動を別 test にする
+
+- [ ] migration backup atomic write guard 候補を別バッチで追加する
+  - `backup.rs` と `connection.rs` で backup を temp file 経由で作成し、DB / WAL / SHM の一部だけ残る失敗ケースを固定できるか確認する
+  - migration recovery runbook、Data settings backup UX、repository test とは混ぜない
+  - atomic write と auxiliary file pairing を小さい infra/db test に分ける
