@@ -115,3 +115,11 @@ export type UseArticleBrowserOverlayDisplayParams = {
   articleUrl: string | null;
   feed?: FeedDto;
 };
+
+export type UseArticleBrowserOverlayDisplayResult = {
+  requestedDisplay: ResolvedArticleDisplay;
+  resolvedDisplay: ResolvedArticleDisplay;
+  shouldShowBrowserOverlay: boolean;
+  setBrowserOverlayOpenPreference: () => void;
+  setBrowserOverlayClosedPreference: () => void;
+};

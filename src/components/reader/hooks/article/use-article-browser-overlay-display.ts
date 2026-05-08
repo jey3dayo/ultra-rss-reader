@@ -8,13 +8,16 @@ import {
 } from "@/lib/article-display";
 import { bindWindowEvents } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import type { UseArticleBrowserOverlayDisplayParams } from "../../article-view.types";
+import type {
+  UseArticleBrowserOverlayDisplayParams,
+  UseArticleBrowserOverlayDisplayResult,
+} from "../../article-view.types";
 
 export function useArticleBrowserOverlayDisplay({
   articleId,
   articleUrl,
   feed,
-}: UseArticleBrowserOverlayDisplayParams) {
+}: UseArticleBrowserOverlayDisplayParams): UseArticleBrowserOverlayDisplayResult {
   const prefs = usePreferencesStore((s) => s.prefs);
   const [readerModeOverride, setReaderModeOverride] = useState<BinaryDisplayMode | null>(null);
   const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
@@ -94,5 +97,5 @@ export function useArticleBrowserOverlayDisplay({
     shouldShowBrowserOverlay,
     setBrowserOverlayOpenPreference,
     setBrowserOverlayClosedPreference,
-  } as const;
+  };
 }
