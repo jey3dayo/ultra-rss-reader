@@ -7,19 +7,21 @@ export type CommandPaletteHistoryEntry =
   | { kind: "action"; id: AppAction }
   | { kind: CommandPaletteHistoryDocumentKind; id: string };
 
-export const COMMAND_PALETTE_HISTORY_PREFIX = {
+type CommandPaletteHistoryKind = CommandPaletteHistoryEntry["kind"];
+
+export const COMMAND_PALETTE_HISTORY_PREFIX: Record<CommandPaletteHistoryKind, string> = {
   action: "action:",
   feed: "feed:",
   tag: "tag:",
   article: "article:",
-} as const;
+};
 
-const COMMAND_PALETTE_HISTORY_PREFIX_ENTRIES = [
+const COMMAND_PALETTE_HISTORY_PREFIX_ENTRIES: Array<[CommandPaletteHistoryKind, string]> = [
   ["action", COMMAND_PALETTE_HISTORY_PREFIX.action],
   ["feed", COMMAND_PALETTE_HISTORY_PREFIX.feed],
   ["tag", COMMAND_PALETTE_HISTORY_PREFIX.tag],
   ["article", COMMAND_PALETTE_HISTORY_PREFIX.article],
-] as const;
+];
 
 export function createCommandPaletteHistoryValue(entry: CommandPaletteHistoryEntry): string {
   return `${COMMAND_PALETTE_HISTORY_PREFIX[entry.kind]}${entry.id}`;
