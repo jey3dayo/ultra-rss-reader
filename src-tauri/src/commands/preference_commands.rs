@@ -57,6 +57,7 @@ const ALLOWED_KEYS: &[&str] = &[
 ];
 
 const SHORTCUT_KEY_PREFIX: &str = "shortcut_";
+const PREFERENCE_VALUE_MAX_BYTES: usize = 1024;
 const ALLOWED_SHORTCUT_IDS: &[&str] = &[
     "next_article",
     "prev_article",
@@ -107,12 +108,34 @@ fn validate_preference_input(key: &str, value: &str) -> Result<(), AppError> {
         });
     }
 
+    if value.len() > PREFERENCE_VALUE_MAX_BYTES {
+        return Err(AppError::UserVisible {
+            message: format!(
+                "Preference value too long (max {PREFERENCE_VALUE_MAX_BYTES} UTF-8 bytes)"
+            ),
+        });
+    }
+
     Ok(())
+}
+
+fn should_rebuild_menu_after_saved_preference(key: &str) -> bool {
+    key == "language"
+}
+
+fn saved_language_menu_update_error(error: impl std::fmt::Display) -> AppError {
+    AppError::UserVisible {
+        message: format!("Saved language, but failed to update the application menu: {error}"),
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_preference_key, validate_preference_input};
+    use super::{
+        is_allowed_preference_key, saved_language_menu_update_error,
+        should_rebuild_menu_after_saved_preference, validate_preference_input,
+    };
+    use crate::commands::dto::AppError;
 
     #[test]
     fn allows_web_preview_focus_preference() {
@@ -149,6 +172,34 @@ mod tests {
         assert!(validate_preference_input("shortcut_next_article", "").is_err());
         assert!(validate_preference_input("shortcut_next_article", "   ").is_err());
     }
+
+    #[test]
+    fn rejects_preference_values_over_backend_utf8_byte_limit() {
+        assert!(validate_preference_input("debug_web_preview_url", &"a".repeat(1024)).is_ok());
+        assert!(validate_preference_input("debug_web_preview_url", &"a".repeat(1025)).is_err());
+        assert!(validate_preference_input("debug_web_preview_url", &"あ".repeat(342)).is_err());
+    }
+
+    #[test]
+    fn language_preference_rebuilds_menu_after_the_value_is_saved() {
+        assert!(should_rebuild_menu_after_saved_preference("language"));
+        assert!(!should_rebuild_menu_after_saved_preference("theme"));
+    }
+
+    #[test]
+    fn language_menu_update_failure_reports_saved_preference_context() {
+        let error = saved_language_menu_update_error("menu unavailable");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(
+                    message,
+                    "Saved language, but failed to update the application menu: menu unavailable"
+                );
+            }
+            other => panic!("unexpected error category: {other:?}"),
+        }
+    }
 }
 
 #[tauri::command]
@@ -169,18 +220,13 @@ pub fn set_preference(
     value: String,
 ) -> Result<(), AppError> {
     validate_preference_input(&key, &value)?;
-    if value.len() > 1024 {
-        return Err(AppError::UserVisible {
-            message: "Preference value too long (max 1024 chars)".to_string(),
-        });
-    }
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqlitePreferenceRepository::new(db.writer());
     repo.set(&key, &value)?;
 
-    let prefs = if key == "language" {
+    let prefs = if should_rebuild_menu_after_saved_preference(&key) {
         Some(repo.get_all()?)
     } else {
         None
@@ -188,9 +234,7 @@ pub fn set_preference(
     drop(db);
 
     if let Some(prefs) = prefs {
-        crate::menu::rebuild(&app, &prefs).map_err(|e| AppError::UserVisible {
-            message: format!("Saved language, but failed to update the application menu: {e}"),
-        })?;
+        crate::menu::rebuild(&app, &prefs).map_err(saved_language_menu_update_error)?;
     }
 
     if key == "debug_browser_hud" {

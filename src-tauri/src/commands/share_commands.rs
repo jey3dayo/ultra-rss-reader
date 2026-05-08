@@ -94,6 +94,17 @@ mod tests {
     }
 
     #[test]
+    fn escapes_url_double_quotes_without_closing_reading_list_string() {
+        let script = reading_list_script(r#"https://example.com/search?q="quoted""#).unwrap();
+
+        assert_eq!(
+            script,
+            r#"tell application "Safari" to add reading list item "https://example.com/search?q=\"quoted\"""#
+        );
+        assert!(!script.contains(r#"q="quoted""#));
+    }
+
+    #[test]
     fn rejects_newline_and_non_http_reading_list_urls() {
         assert!(!is_reading_list_url("https://example.com/a\nb"));
         assert!(!is_reading_list_url("https://example.com/a\rb"));

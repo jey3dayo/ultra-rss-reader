@@ -10,7 +10,6 @@ const MIGRATION_V4: &str = include_str!("../../../migrations/V4__tags.sql");
 const MIGRATION_V5: &str = include_str!("../../../migrations/V5__feed_display_mode.sql");
 const MIGRATION_V6: &str = include_str!("../../../migrations/V6__sync_state_timestamp_usec.sql");
 const MIGRATION_V7: &str = include_str!("../../../migrations/V7__feed_display_mode_inherit.sql");
-const MIGRATION_V8: &str = include_str!("../../../migrations/V8__feed_reader_preview_modes.sql");
 const MIGRATION_V9: &str =
     include_str!("../../../migrations/V9__reader_preview_default_preferences.sql");
 const MIGRATION_V11: &str = include_str!("../../../migrations/V11__account_sync_on_startup.sql");
@@ -18,9 +17,13 @@ const MIGRATION_V12: &str = include_str!("../../../migrations/V12__mute_keywords
 const MIGRATION_V13: &str = include_str!("../../../migrations/V13__tag_color_palette_refresh.sql");
 const MIGRATION_V14: &str = include_str!("../../../migrations/V14__article_content_text.sql");
 const MIGRATION_V15: &str = include_str!("../../../migrations/V15__remove_inoreader.sql");
-const MIGRATION_V16: &str =
-    include_str!("../../../migrations/V16__account_connection_verification.sql");
 const MIGRATION_V17: &str = include_str!("../../../migrations/V17__article_view_history.sql");
+
+const V8_READER_MODE_COLUMN: &str = "reader_mode";
+const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
+const V16_CONNECTION_VERIFICATION_STATUS_COLUMN: &str = "connection_verification_status";
+const V16_CONNECTION_VERIFIED_AT_COLUMN: &str = "connection_verified_at";
+const V16_CONNECTION_VERIFICATION_ERROR_COLUMN: &str = "connection_verification_error";
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -68,7 +71,7 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
         tx.execute_batch(MIGRATION_V7)?;
     }
     if from_version < 8 {
-        tx.execute_batch(MIGRATION_V8)?;
+        apply_v8_feed_reader_preview_modes(&tx)?;
     }
     if from_version < 9 {
         tx.execute_batch(MIGRATION_V9)?;
@@ -93,7 +96,7 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
         tx.execute_batch(MIGRATION_V15)?;
     }
     if from_version < 16 {
-        tx.execute_batch(MIGRATION_V16)?;
+        apply_v16_account_connection_verification(&tx)?;
     }
     if from_version < 17 {
         tx.execute_batch(MIGRATION_V17)?;
@@ -192,6 +195,77 @@ fn repair_missing_feed_mode_columns(conn: &Connection) -> DomainResult<bool> {
         }
     }
 
+    Ok(true)
+}
+
+fn apply_v8_feed_reader_preview_modes(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "feeds",
+        V8_READER_MODE_COLUMN,
+        "ALTER TABLE feeds ADD COLUMN reader_mode TEXT NOT NULL DEFAULT 'inherit'",
+    )?;
+    add_column_if_missing(
+        conn,
+        "feeds",
+        V8_WEB_PREVIEW_MODE_COLUMN,
+        "ALTER TABLE feeds ADD COLUMN web_preview_mode TEXT NOT NULL DEFAULT 'inherit'",
+    )?;
+
+    conn.execute(
+        "UPDATE feeds
+         SET
+           reader_mode = CASE
+             WHEN display_mode = 'normal' THEN 'on'
+             WHEN display_mode = 'widescreen' THEN 'on'
+             ELSE 'inherit'
+           END,
+           web_preview_mode = CASE
+             WHEN display_mode = 'normal' THEN 'off'
+             WHEN display_mode = 'widescreen' THEN 'on'
+             ELSE 'inherit'
+           END",
+        [],
+    )?;
+    conn.execute("INSERT INTO schema_version (version) VALUES (8)", [])?;
+    Ok(())
+}
+
+fn apply_v16_account_connection_verification(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "accounts",
+        V16_CONNECTION_VERIFICATION_STATUS_COLUMN,
+        "ALTER TABLE accounts ADD COLUMN connection_verification_status TEXT NOT NULL DEFAULT 'unverified'",
+    )?;
+    add_column_if_missing(
+        conn,
+        "accounts",
+        V16_CONNECTION_VERIFIED_AT_COLUMN,
+        "ALTER TABLE accounts ADD COLUMN connection_verified_at TEXT",
+    )?;
+    add_column_if_missing(
+        conn,
+        "accounts",
+        V16_CONNECTION_VERIFICATION_ERROR_COLUMN,
+        "ALTER TABLE accounts ADD COLUMN connection_verification_error TEXT",
+    )?;
+
+    set_schema_version(conn, 16)?;
+    Ok(())
+}
+
+fn add_column_if_missing(
+    conn: &Connection,
+    table_name: &str,
+    column_name: &str,
+    alter_sql: &str,
+) -> DomainResult<bool> {
+    if table_has_column(conn, table_name, column_name)? {
+        return Ok(false);
+    }
+
+    conn.execute(alter_sql, [])?;
     Ok(true)
 }
 
@@ -475,6 +549,77 @@ mod tests {
     }
 
     #[test]
+    fn v8_allows_duplicate_reader_preview_columns_only() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        conn.execute_batch(
+            "ALTER TABLE feeds ADD COLUMN reader_mode TEXT NOT NULL DEFAULT 'inherit';
+             ALTER TABLE feeds ADD COLUMN web_preview_mode TEXT NOT NULL DEFAULT 'inherit';",
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            ("acc-1", "local", "Local"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, display_mode)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (
+                "feed-1",
+                "acc-1",
+                "Tech Blog",
+                "https://example.com/feed.xml",
+                "https://example.com",
+                0,
+                "normal",
+            ),
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 7);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let (reader_mode, web_preview_mode): (String, String) = conn
+            .query_row(
+                "SELECT reader_mode, web_preview_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(reader_mode, "on");
+        assert_eq!(web_preview_mode, "off");
+    }
+
+    #[test]
+    fn duplicate_unlisted_migration_column_still_fails() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch("ALTER TABLE sync_state ADD COLUMN timestamp_usec INTEGER;")
+            .unwrap();
+
+        let result = run_migrations(&mut conn);
+
+        assert!(
+            result.is_err(),
+            "V6 duplicate timestamp_usec should not be treated as an allowed fallback"
+        );
+        assert_eq!(get_schema_version(&conn), 5);
+    }
+
+    #[test]
     fn v9_migrates_reader_view_preference_to_reader_and_preview_defaults() {
         let mut conn = open_in_memory();
         conn.execute_batch(MIGRATION_V1).unwrap();
@@ -484,7 +629,7 @@ mod tests {
         conn.execute_batch(MIGRATION_V5).unwrap();
         conn.execute_batch(MIGRATION_V6).unwrap();
         conn.execute_batch(MIGRATION_V7).unwrap();
-        conn.execute_batch(MIGRATION_V8).unwrap();
+        apply_v8_feed_reader_preview_modes(&conn).unwrap();
 
         conn.execute(
             "INSERT INTO preferences (key, value) VALUES (?1, ?2)",
@@ -609,7 +754,7 @@ mod tests {
         conn.execute_batch(MIGRATION_V5).unwrap();
         conn.execute_batch(MIGRATION_V6).unwrap();
         conn.execute_batch(MIGRATION_V7).unwrap();
-        conn.execute_batch(MIGRATION_V8).unwrap();
+        apply_v8_feed_reader_preview_modes(&conn).unwrap();
         conn.execute_batch(MIGRATION_V9).unwrap();
         set_schema_version(&conn, 10).unwrap();
         conn.execute_batch(MIGRATION_V11).unwrap();
@@ -667,7 +812,7 @@ mod tests {
         conn.execute_batch(MIGRATION_V5).unwrap();
         conn.execute_batch(MIGRATION_V6).unwrap();
         conn.execute_batch(MIGRATION_V7).unwrap();
-        conn.execute_batch(MIGRATION_V8).unwrap();
+        apply_v8_feed_reader_preview_modes(&conn).unwrap();
         conn.execute_batch(MIGRATION_V9).unwrap();
         set_schema_version(&conn, 10).unwrap();
         conn.execute_batch(MIGRATION_V11).unwrap();
@@ -693,7 +838,7 @@ mod tests {
         conn.execute_batch(MIGRATION_V5).unwrap();
         conn.execute_batch(MIGRATION_V6).unwrap();
         conn.execute_batch(MIGRATION_V7).unwrap();
-        conn.execute_batch(MIGRATION_V8).unwrap();
+        apply_v8_feed_reader_preview_modes(&conn).unwrap();
         conn.execute_batch(MIGRATION_V9).unwrap();
         set_schema_version(&conn, 10).unwrap();
         conn.execute_batch(MIGRATION_V11).unwrap();
@@ -813,5 +958,46 @@ mod tests {
         assert_eq!(sync_state_count, 0);
         assert_eq!(pending_count, 0);
         assert_eq!(pref_count, 0);
+    }
+
+    #[test]
+    fn v16_allows_duplicate_connection_verification_columns_only() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        apply_v8_feed_reader_preview_modes(&conn).unwrap();
+        conn.execute_batch(MIGRATION_V9).unwrap();
+        set_schema_version(&conn, 10).unwrap();
+        conn.execute_batch(MIGRATION_V11).unwrap();
+        conn.execute_batch(MIGRATION_V12).unwrap();
+        conn.execute_batch(MIGRATION_V13).unwrap();
+        conn.execute_batch(MIGRATION_V14).unwrap();
+        conn.execute_batch(MIGRATION_V15).unwrap();
+        conn.execute_batch(
+            "ALTER TABLE accounts
+             ADD COLUMN connection_verification_status TEXT NOT NULL DEFAULT 'unverified';
+             ALTER TABLE accounts ADD COLUMN connection_verified_at TEXT;
+             ALTER TABLE accounts ADD COLUMN connection_verification_error TEXT;",
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 15);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        assert!(conn
+            .prepare("SELECT connection_verification_status FROM accounts LIMIT 0")
+            .is_ok());
+        assert!(conn
+            .prepare("SELECT connection_verified_at FROM accounts LIMIT 0")
+            .is_ok());
+        assert!(conn
+            .prepare("SELECT connection_verification_error FROM accounts LIMIT 0")
+            .is_ok());
     }
 }

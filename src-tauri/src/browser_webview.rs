@@ -386,6 +386,20 @@ pub fn browser_preview_initialization_script(prefs: &HashMap<String, String>) ->
     }
 }
 
+pub fn browser_preview_initialization_script_from_prefs_result(
+    prefs_result: Result<HashMap<String, String>, std::io::Error>,
+) -> Option<String> {
+    match prefs_result {
+        Ok(prefs) => browser_preview_initialization_script(&prefs),
+        Err(error) => {
+            tracing::warn!(
+                "Failed to load embedded browser preferences; continuing without preview initialization script: {error}"
+            );
+            None
+        }
+    }
+}
+
 #[cfg(windows)]
 fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
     use windows::Win32::UI::{
@@ -1187,10 +1201,10 @@ mod tests {
     use super::{
         browser_preview_action_for_shortcut, browser_preview_close_bridge_source,
         browser_preview_focus_override_source, browser_preview_initialization_script,
-        browser_preview_script_bindings, browser_webview_diagnostics_enabled,
-        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
-        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
-        BrowserWebviewTracker,
+        browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
+        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
+        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewState, BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1260,6 +1274,91 @@ mod tests {
 
         assert!(!state.can_go_back);
         assert!(state.can_go_forward);
+    }
+
+    #[test]
+    fn finish_replaces_new_navigation_history_with_redirected_url() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+
+        tracker.start("https://example.com/requested".to_string());
+        let state = tracker.finish("https://example.com/redirected".to_string(), None);
+
+        assert_eq!(state.url, "https://example.com/redirected");
+        assert_eq!(
+            tracker.history,
+            vec![
+                "https://example.com/article".to_string(),
+                "https://example.com/redirected".to_string(),
+            ]
+        );
+        assert_eq!(tracker.history_index, 1);
+        assert!(state.can_go_back);
+        assert!(!state.can_go_forward);
+    }
+
+    #[test]
+    fn finish_replaces_reload_history_with_redirected_url() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+
+        tracker.start("https://example.com/article".to_string());
+        let state = tracker.finish("https://example.com/reloaded".to_string(), None);
+
+        assert_eq!(state.url, "https://example.com/reloaded");
+        assert_eq!(
+            tracker.history,
+            vec!["https://example.com/reloaded".to_string()]
+        );
+        assert_eq!(tracker.history_index, 0);
+        assert!(!state.can_go_back);
+        assert!(!state.can_go_forward);
+    }
+
+    #[test]
+    fn finish_replaces_back_and_forward_history_with_redirected_url() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+
+        tracker.start("https://example.com/next".to_string());
+        tracker.finish("https://example.com/next".to_string(), None);
+
+        tracker.start("https://example.com/article".to_string());
+        let back_state = tracker.finish("https://example.com/back-redirected".to_string(), None);
+
+        assert_eq!(back_state.url, "https://example.com/back-redirected");
+        assert_eq!(
+            tracker.history,
+            vec![
+                "https://example.com/back-redirected".to_string(),
+                "https://example.com/next".to_string(),
+            ]
+        );
+        assert_eq!(tracker.history_index, 0);
+        assert!(!back_state.can_go_back);
+        assert!(back_state.can_go_forward);
+
+        tracker.start("https://example.com/next".to_string());
+        let forward_state =
+            tracker.finish("https://example.com/forward-redirected".to_string(), None);
+
+        assert_eq!(forward_state.url, "https://example.com/forward-redirected");
+        assert_eq!(
+            tracker.history,
+            vec![
+                "https://example.com/back-redirected".to_string(),
+                "https://example.com/forward-redirected".to_string(),
+            ]
+        );
+        assert_eq!(tracker.history_index, 1);
+        assert!(forward_state.can_go_back);
+        assert!(!forward_state.can_go_forward);
     }
 
     #[test]
@@ -1531,5 +1630,14 @@ mod tests {
         assert!(!missing_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
         assert!(!disabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
         assert!(!missing_script.contains("Document.prototype, 'visibilityState', 'visible'"));
+    }
+
+    #[test]
+    fn browser_preview_initialization_script_falls_back_when_preferences_fail_to_load() {
+        let script = browser_preview_initialization_script_from_prefs_result(Err(
+            std::io::Error::other("preference read failed"),
+        ));
+
+        assert_eq!(script, None);
     }
 }

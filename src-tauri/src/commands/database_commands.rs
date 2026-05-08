@@ -1,10 +1,12 @@
 use serde::Serialize;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::State;
 
 use crate::commands::dto::AppError;
 use crate::commands::try_lock_db;
 use crate::commands::AppState;
-use crate::infra::db::connection::DatabaseInfo;
+use crate::infra::db::connection::{DatabaseInfo, DbManager};
 
 #[derive(Debug, Serialize)]
 pub struct DatabaseInfoDto {
@@ -12,7 +14,7 @@ pub struct DatabaseInfoDto {
     pub db_size_bytes: u64,
     /// WAL file size in bytes (0 if not present)
     pub wal_size_bytes: u64,
-    /// Total size (db + wal) in bytes
+    /// Total size (db + wal, excluding shm) in bytes
     pub total_size_bytes: u64,
 }
 
@@ -34,12 +36,73 @@ pub fn get_database_info(state: State<'_, AppState>) -> Result<DatabaseInfoDto, 
 
 #[tauri::command]
 pub fn vacuum_database(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
-    if state.syncing.load(std::sync::atomic::Ordering::SeqCst) {
+    vacuum_database_inner(&state.db, &state.syncing)
+}
+
+fn vacuum_database_inner(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+) -> Result<DatabaseInfoDto, AppError> {
+    if syncing.load(Ordering::SeqCst) {
         return Err(AppError::UserVisible {
             message: "Database optimization is unavailable while syncing. Try again after sync completes.".to_string(),
         });
     }
 
-    let mut db = try_lock_db(&state.db)?;
+    let mut db = try_lock_db(db)?;
     Ok(db.vacuum().map_err(AppError::from)?.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Mutex;
+
+    use crate::commands::database_commands::vacuum_database_inner;
+    use crate::commands::dto::AppError;
+    use crate::infra::db::connection::DbManager;
+
+    #[test]
+    fn vacuum_database_returns_syncing_error_before_trying_db_lock() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let _guard = db.lock().unwrap();
+        let syncing = AtomicBool::new(true);
+
+        let error = vacuum_database_inner(&db, &syncing).expect_err("syncing should block vacuum");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(
+                    message,
+                    "Database optimization is unavailable while syncing. Try again after sync completes."
+                );
+            }
+            other => panic!("expected user-visible syncing error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn vacuum_database_returns_busy_error_when_not_syncing_and_db_is_locked() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let _guard = db.lock().unwrap();
+        let syncing = AtomicBool::new(false);
+
+        let error =
+            vacuum_database_inner(&db, &syncing).expect_err("busy DB should return an error");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(
+                    message,
+                    "Database is busy. Wait for the current operation to finish and try again."
+                );
+            }
+            other => panic!("expected user-visible busy error, got {other:?}"),
+        }
+
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "vacuum should not mutate the sync flag"
+        );
+    }
 }

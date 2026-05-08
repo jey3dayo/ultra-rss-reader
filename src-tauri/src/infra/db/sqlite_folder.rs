@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::error::DomainResult;
 use crate::domain::folder::Folder;
@@ -57,8 +57,34 @@ impl FolderRepository for SqliteFolderRepository<'_> {
     }
 
     fn delete(&self, id: &FolderId) -> DomainResult<()> {
+        let account_id = self
+            .conn
+            .query_row(
+                "SELECT account_id FROM folders WHERE id = ?1",
+                params![id.0],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+
         self.conn
             .execute("DELETE FROM folders WHERE id = ?1", params![id.0])?;
+
+        if let Some(account_id) = account_id {
+            let mut stmt = self
+                .conn
+                .prepare("SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id")?;
+            let folder_ids = stmt
+                .query_map(params![account_id], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            for (sort_order, folder_id) in folder_ids.iter().enumerate() {
+                self.conn.execute(
+                    "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
+                    params![sort_order as i32, folder_id],
+                )?;
+            }
+        }
+
         Ok(())
     }
 
@@ -150,6 +176,49 @@ mod tests {
             })
             .unwrap();
         assert!(folder_id.is_none());
+    }
+
+    #[test]
+    fn delete_renumbers_remaining_folders_within_the_same_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        for (id, name, sort_order) in [
+            ("folder-a", "A", 0),
+            ("folder-b", "B", 1),
+            ("folder-c", "C", 2),
+        ] {
+            repo.save(&Folder {
+                id: FolderId(id.to_string()),
+                account_id: account_id.clone(),
+                remote_id: None,
+                name: name.to_string(),
+                sort_order,
+            })
+            .unwrap();
+        }
+        repo.save(&Folder {
+            id: FolderId("other-folder".to_string()),
+            account_id: other_account_id.clone(),
+            remote_id: None,
+            name: "Other".to_string(),
+            sort_order: 7,
+        })
+        .unwrap();
+
+        repo.delete(&FolderId("folder-b".to_string())).unwrap();
+
+        let folders = repo.find_by_account(&account_id).unwrap();
+        let orders = folders
+            .iter()
+            .map(|folder| (folder.id.0.as_str(), folder.sort_order))
+            .collect::<Vec<_>>();
+        assert_eq!(orders, vec![("folder-a", 0), ("folder-c", 1)]);
+
+        let other_folder = repo.find_by_account(&other_account_id).unwrap();
+        assert_eq!(other_folder[0].sort_order, 7);
     }
 
     #[test]

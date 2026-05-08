@@ -41,6 +41,12 @@ struct RetryBackoffState {
     retry_in_seconds: u64,
 }
 
+struct AccountSyncCompletion {
+    account_finished_success: bool,
+    scheduler_succeeded: bool,
+    next_sync: Instant,
+}
+
 /// Start a background task that periodically syncs accounts based on their
 /// individual `sync_interval_secs` settings.
 ///
@@ -192,10 +198,12 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             "Background sync panicked for account '{}', scheduler continues",
                             account.name
                         );
-                        reporter.emit_account_finished(account, false);
-                        all_succeeded = false;
+                        let completion = complete_panicked_account_sync(account);
+                        reporter
+                            .emit_account_finished(account, completion.account_finished_success);
+                        all_succeeded = completion.scheduler_succeeded;
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
-                            schedule.next_sync = Instant::now() + account_interval(account);
+                            schedule.next_sync = completion.next_sync;
                         }
                     }
                 }
@@ -232,6 +240,14 @@ fn account_interval(account: &Account) -> Duration {
         DEFAULT_SYNC_INTERVAL_SECS
     };
     Duration::from_secs(secs)
+}
+
+fn complete_panicked_account_sync(account: &Account) -> AccountSyncCompletion {
+    AccountSyncCompletion {
+        account_finished_success: false,
+        scheduler_succeeded: false,
+        next_sync: Instant::now() + account_interval(account),
+    }
 }
 
 fn prune_deleted_account_schedules(
@@ -366,6 +382,23 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::sync::Notify;
 
+    fn test_account(sync_interval_secs: i64) -> Account {
+        Account {
+            id: AccountId::new(),
+            kind: crate::domain::provider::ProviderKind::Local,
+            name: "test".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
+
     #[tokio::test]
     async fn wait_for_automatic_sync_enabled_returns_immediately_when_already_enabled() {
         let automatic_sync_enabled = AtomicBool::new(true);
@@ -402,39 +435,13 @@ mod tests {
 
     #[test]
     fn account_interval_uses_sync_interval_secs() {
-        let account = Account {
-            id: AccountId::new(),
-            kind: crate::domain::provider::ProviderKind::Local,
-            name: "test".to_string(),
-            server_url: None,
-            username: None,
-            sync_interval_secs: 900,
-            sync_on_startup: true,
-            sync_on_wake: false,
-            keep_read_items_days: 30,
-            connection_verification_status: ConnectionVerificationStatus::Unverified,
-            connection_verified_at: None,
-            connection_verification_error: None,
-        };
+        let account = test_account(900);
         assert_eq!(account_interval(&account), Duration::from_secs(900));
     }
 
     #[test]
     fn account_interval_defaults_to_3600_when_zero() {
-        let account = Account {
-            id: AccountId::new(),
-            kind: crate::domain::provider::ProviderKind::Local,
-            name: "test".to_string(),
-            server_url: None,
-            username: None,
-            sync_interval_secs: 0,
-            sync_on_startup: true,
-            sync_on_wake: false,
-            keep_read_items_days: 30,
-            connection_verification_status: ConnectionVerificationStatus::Unverified,
-            connection_verified_at: None,
-            connection_verification_error: None,
-        };
+        let account = test_account(0);
         assert_eq!(
             account_interval(&account),
             Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS)
@@ -480,20 +487,7 @@ mod tests {
 
     #[test]
     fn calculate_backoff_increases_exponentially() {
-        let account = Account {
-            id: AccountId::new(),
-            kind: crate::domain::provider::ProviderKind::Local,
-            name: "test".to_string(),
-            server_url: None,
-            username: None,
-            sync_interval_secs: 60,
-            sync_on_startup: true,
-            sync_on_wake: false,
-            keep_read_items_days: 30,
-            connection_verification_status: ConnectionVerificationStatus::Unverified,
-            connection_verified_at: None,
-            connection_verification_error: None,
-        };
+        let account = test_account(60);
         assert_eq!(calculate_backoff(&account, 0), Duration::from_secs(60));
         assert_eq!(calculate_backoff(&account, 1), Duration::from_secs(120));
         assert_eq!(calculate_backoff(&account, 2), Duration::from_secs(240));
@@ -502,25 +496,25 @@ mod tests {
 
     #[test]
     fn calculate_backoff_caps_at_max() {
-        let account = Account {
-            id: AccountId::new(),
-            kind: crate::domain::provider::ProviderKind::Local,
-            name: "test".to_string(),
-            server_url: None,
-            username: None,
-            sync_interval_secs: 60,
-            sync_on_startup: true,
-            sync_on_wake: false,
-            keep_read_items_days: 30,
-            connection_verification_status: ConnectionVerificationStatus::Unverified,
-            connection_verified_at: None,
-            connection_verification_error: None,
-        };
+        let account = test_account(60);
         assert_eq!(calculate_backoff(&account, 20), MAX_BACKOFF);
     }
 
     #[test]
     fn calculate_backoff_secs_caps_at_max() {
         assert!(calculate_backoff_secs(20) <= MAX_BACKOFF.as_secs());
+    }
+
+    #[test]
+    fn panicked_account_sync_completes_progress_as_failed_and_reschedules() {
+        let account = test_account(900);
+        let before = Instant::now();
+
+        let completion = complete_panicked_account_sync(&account);
+
+        assert!(!completion.account_finished_success);
+        assert!(!completion.scheduler_succeeded);
+        assert!(completion.next_sync >= before + Duration::from_secs(900));
+        assert!(completion.next_sync <= Instant::now() + Duration::from_secs(900));
     }
 }

@@ -37,6 +37,22 @@ fn validate_color(color: &str) -> bool {
     bytes[1..].iter().all(|b| b.is_ascii_hexdigit())
 }
 
+fn normalize_color(color: Option<String>) -> Result<Option<String>, AppError> {
+    let Some(color) = color else {
+        return Ok(None);
+    };
+    let color = color.trim();
+    if color.is_empty() {
+        return Ok(None);
+    }
+    if !validate_color(color) {
+        return Err(AppError::UserVisible {
+            message: "Color must be a valid hex color (e.g. #ff0000)".to_string(),
+        });
+    }
+    Ok(Some(color.to_ascii_lowercase()))
+}
+
 fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
     tags.iter()
         .any(|tag| tag.id.0 != tag_id && tag.name.eq_ignore_ascii_case(name))
@@ -63,13 +79,7 @@ pub fn create_tag(
             message: "Tag name must be 50 characters or less".to_string(),
         });
     }
-    if let Some(ref c) = color {
-        if !validate_color(c) {
-            return Err(AppError::UserVisible {
-                message: "Color must be a valid hex color (e.g. #ff0000)".to_string(),
-            });
-        }
-    }
+    let color = normalize_color(color)?;
 
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.writer());
@@ -101,13 +111,7 @@ pub fn rename_tag(
             message: "Tag name must be 50 characters or less".to_string(),
         });
     }
-    if let Some(ref c) = color {
-        if !validate_color(c) {
-            return Err(AppError::UserVisible {
-                message: "Color must be a valid hex color (e.g. #ff0000)".to_string(),
-            });
-        }
-    }
+    let color = normalize_color(color)?;
 
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.writer());
@@ -238,6 +242,37 @@ mod tests {
         assert!(!validate_color("#fff"));
         assert!(!validate_color("ff0000"));
         assert!(!validate_color("#gg0000"));
+    }
+
+    #[test]
+    fn normalize_color_lowercases_full_hex_and_treats_empty_as_none() {
+        assert_eq!(normalize_color(None).unwrap(), None);
+        assert_eq!(normalize_color(Some(String::new())).unwrap(), None);
+        assert_eq!(normalize_color(Some("   ".to_string())).unwrap(), None);
+        assert_eq!(
+            normalize_color(Some("#FF0000".to_string())).unwrap(),
+            Some("#ff0000".to_string())
+        );
+        assert_eq!(
+            normalize_color(Some("#Cf7868".to_string())).unwrap(),
+            Some("#cf7868".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_color_rejects_short_hex_and_invalid_values() {
+        assert!(matches!(
+            normalize_color(Some("#fff".to_string())),
+            Err(AppError::UserVisible { message }) if message == "Color must be a valid hex color (e.g. #ff0000)"
+        ));
+        assert!(matches!(
+            normalize_color(Some("ff0000".to_string())),
+            Err(AppError::UserVisible { message }) if message == "Color must be a valid hex color (e.g. #ff0000)"
+        ));
+        assert!(matches!(
+            normalize_color(Some("#gg0000".to_string())),
+            Err(AppError::UserVisible { message }) if message == "Color must be a valid hex color (e.g. #ff0000)"
+        ));
     }
 
     #[test]

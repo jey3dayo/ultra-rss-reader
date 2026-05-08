@@ -12,6 +12,93 @@ use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
 
+fn validate_add_account_args(
+    kind: &str,
+    server_url: Option<&str>,
+    username: Option<&str>,
+    password: Option<&str>,
+) -> Result<ProviderKind, AppError> {
+    match kind {
+        "Local" => Ok(ProviderKind::Local),
+        "FreshRss" => {
+            if server_url.is_none_or(|value| value.trim().is_empty()) {
+                return Err(AppError::UserVisible {
+                    message: "FreshRSS server URL is required".into(),
+                });
+            }
+            if username.is_none_or(|value| value.trim().is_empty()) {
+                return Err(AppError::UserVisible {
+                    message: "FreshRSS username is required".into(),
+                });
+            }
+            if password.is_none_or(|value| value.trim().is_empty()) {
+                return Err(AppError::UserVisible {
+                    message: "FreshRSS password is required".into(),
+                });
+            }
+
+            Ok(ProviderKind::FreshRss)
+        }
+        _ => Err(AppError::UserVisible {
+            message: "Unknown provider kind".into(),
+        }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_add_account_args;
+    use crate::domain::provider::ProviderKind;
+
+    #[test]
+    fn validates_add_account_args_by_provider_kind() {
+        assert_eq!(
+            validate_add_account_args("Local", None, None, None).unwrap(),
+            ProviderKind::Local
+        );
+        assert_eq!(
+            validate_add_account_args(
+                "FreshRss",
+                Some("https://rss.example.com"),
+                Some("alice"),
+                Some("secret"),
+            )
+            .unwrap(),
+            ProviderKind::FreshRss
+        );
+
+        assert!(
+            validate_add_account_args("FreshRss", None, Some("alice"), Some("secret")).is_err()
+        );
+        assert!(
+            validate_add_account_args("FreshRss", Some("   "), Some("alice"), Some("secret"))
+                .is_err()
+        );
+        assert!(validate_add_account_args(
+            "FreshRss",
+            Some("https://rss.example.com"),
+            None,
+            Some("secret")
+        )
+        .is_err());
+        assert!(validate_add_account_args(
+            "FreshRss",
+            Some("https://rss.example.com"),
+            Some("   "),
+            Some("secret")
+        )
+        .is_err());
+        assert!(validate_add_account_args(
+            "FreshRss",
+            Some("https://rss.example.com"),
+            Some("alice"),
+            None
+        )
+        .is_err());
+        assert!(validate_add_account_args("Unknown", None, None, None).is_err());
+    }
+}
+
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
@@ -31,15 +118,12 @@ pub async fn add_account(
     username: Option<String>,
     password: Option<String>,
 ) -> Result<AccountDto, AppError> {
-    let provider_kind = match kind.as_str() {
-        "Local" => ProviderKind::Local,
-        "FreshRss" => ProviderKind::FreshRss,
-        _ => {
-            return Err(AppError::UserVisible {
-                message: "Unknown provider kind".into(),
-            })
-        }
-    };
+    let provider_kind = validate_add_account_args(
+        &kind,
+        server_url.as_deref(),
+        username.as_deref(),
+        password.as_deref(),
+    )?;
 
     let mut account = Account {
         id: AccountId::new(),

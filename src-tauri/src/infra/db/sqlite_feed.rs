@@ -447,6 +447,32 @@ mod tests {
     }
 
     #[test]
+    fn recalculate_unread_count_updates_after_read_state_changes() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        let now = chrono::Utc::now().to_rfc3339();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+                params!["a1", feed.id.0, "Unread article", now, now],
+            )
+            .unwrap();
+
+        assert_eq!(repo.recalculate_unread_count(&feed.id).unwrap(), 1);
+
+        db.writer()
+            .execute("UPDATE articles SET is_read = 1 WHERE id = 'a1'", [])
+            .unwrap();
+
+        assert_eq!(repo.recalculate_unread_count(&feed.id).unwrap(), 0);
+    }
+
+    #[test]
     fn update_folder_does_not_assign_folder_from_another_account() {
         let db = test_db();
         let account_id = insert_test_account(&db);

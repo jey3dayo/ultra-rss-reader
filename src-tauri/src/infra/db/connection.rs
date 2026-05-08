@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::domain::error::{DomainError, DomainResult};
-use crate::infra::sanitizer;
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -212,11 +211,10 @@ impl DbManager {
         {
             let mut update = tx.prepare("UPDATE articles SET content_text = ?1 WHERE id = ?2")?;
             for (id, content_sanitized, summary) in pending {
-                let content_text = if content_sanitized.trim().is_empty() {
-                    summary.unwrap_or_default()
-                } else {
-                    sanitizer::extract_visible_text(&content_sanitized)
-                };
+                let content_text = super::sqlite_article::article_body_text(
+                    &content_sanitized,
+                    summary.as_deref(),
+                );
                 update.execute(rusqlite::params![content_text, id])?;
             }
         }
@@ -248,16 +246,7 @@ impl DbManager {
         self.replace_with_in_memory_connections()?;
 
         let vacuum_result = Self::vacuum_file_database(&db_path);
-        let (writer, reader) = Self::open_file_connections(&db_path).unwrap_or_else(|reopen_err| {
-            panic!("Failed to reopen database connections after VACUUM: {reopen_err}")
-        });
-        self.writer = writer;
-        self.reader = reader;
-
-        match vacuum_result {
-            Ok(()) => self.database_info(),
-            Err(vacuum_err) => Err(vacuum_err),
-        }
+        self.restore_file_connections_after_vacuum(&db_path, vacuum_result)
     }
 
     fn database_path(&self) -> DomainResult<Option<PathBuf>> {
@@ -325,6 +314,25 @@ impl DbManager {
         Self::apply_pragmas(&reader)?;
 
         Ok((writer, reader))
+    }
+
+    fn restore_file_connections_after_vacuum(
+        &mut self,
+        db_path: &Path,
+        vacuum_result: DomainResult<()>,
+    ) -> DomainResult<DatabaseInfo> {
+        let (writer, reader) = Self::open_file_connections(db_path).map_err(|reopen_err| {
+            DomainError::Persistence(format!(
+                "Failed to reopen database connections after VACUUM: {reopen_err}"
+            ))
+        })?;
+        self.writer = writer;
+        self.reader = reader;
+
+        match vacuum_result {
+            Ok(()) => self.database_info(),
+            Err(vacuum_err) => Err(vacuum_err),
+        }
     }
 
     fn vacuum_file_database(db_path: &Path) -> DomainResult<()> {
@@ -593,6 +601,47 @@ mod tests {
     }
 
     #[test]
+    fn database_info_total_includes_db_and_wal_but_not_shm_sidecar() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("size-contract.db");
+        let wal_path = DbManager::wal_path(&db_path);
+        let mut shm_path = db_path.as_os_str().to_os_string();
+        shm_path.push("-shm");
+        let shm_path = PathBuf::from(shm_path);
+
+        std::fs::write(&db_path, [0_u8; 13]).unwrap();
+        std::fs::write(&wal_path, [0_u8; 7]).unwrap();
+        std::fs::write(&shm_path, [0_u8; 11]).unwrap();
+
+        let info = DbManager::database_info_from_path(&db_path);
+
+        assert_eq!(info.db_size_bytes, 13);
+        assert_eq!(info.wal_size_bytes, 7);
+        assert_eq!(info.total_size_bytes, 20);
+    }
+
+    #[test]
+    fn vacuum_reopen_failure_returns_domain_error_without_panic() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing_parent_db_path = dir.path().join("missing-parent").join("db.sqlite");
+        let mut db = DbManager::new_in_memory().unwrap();
+
+        let error = db
+            .restore_file_connections_after_vacuum(&missing_parent_db_path, Ok(()))
+            .expect_err("reopen failure should be returned as a domain error");
+
+        match error {
+            DomainError::Persistence(message) => {
+                assert!(
+                    message.starts_with("Failed to reopen database connections after VACUUM:"),
+                    "unexpected message: {message}"
+                );
+            }
+            other => panic!("expected persistence error, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn new_repairs_latest_version_schema_when_feed_columns_are_missing() {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("broken-latest.db");
@@ -767,18 +816,41 @@ mod tests {
                 [],
             )
             .unwrap();
+            conn.execute(
+                "INSERT INTO articles (
+                    id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version,
+                    summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at
+                 ) VALUES (
+                    'art-2', 'f1', NULL, 'Summary fallback', '', '', 1,
+                    'Summary only body', NULL, NULL, NULL, '2026-04-15T00:00:00+00:00', 0, 0, '2026-04-15T00:00:00+00:00'
+                 )",
+                [],
+            )
+            .unwrap();
         }
 
         let repaired = DbManager::new(&db_path).unwrap();
-        let content_text: String = repaired
+        let (html_content_text, summary_content_text): (String, String) = repaired
             .reader()
             .query_row(
-                "SELECT content_text FROM articles WHERE id = 'art-1'",
+                "SELECT
+                   (SELECT content_text FROM articles WHERE id = 'art-1'),
+                   (SELECT content_text FROM articles WHERE id = 'art-2')",
                 [],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .unwrap();
 
-        assert_eq!(content_text, "Kindle Unlimited");
+        assert_eq!(
+            html_content_text,
+            super::super::sqlite_article::article_body_text(
+                "<p>Kindle <strong>Unlimited</strong></p>",
+                None
+            )
+        );
+        assert_eq!(
+            summary_content_text,
+            super::super::sqlite_article::article_body_text("", Some("Summary only body"))
+        );
     }
 }

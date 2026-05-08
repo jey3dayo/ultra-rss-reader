@@ -132,6 +132,35 @@ pub fn labels(language: ResolvedMenuLanguage) -> MenuLabels {
 mod tests {
     use super::{labels, resolve_menu_language, ResolvedMenuLanguage};
 
+    struct ActionLabelContract {
+        action_id: &'static str,
+        en_menu_label: &'static str,
+        ja_menu_label: &'static str,
+    }
+
+    fn browser_and_copy_action_label_contracts() -> Vec<ActionLabelContract> {
+        let en = labels(ResolvedMenuLanguage::En);
+        let ja = labels(ResolvedMenuLanguage::Ja);
+
+        vec![
+            ActionLabelContract {
+                action_id: "open-in-browser",
+                en_menu_label: en.open_web_preview,
+                ja_menu_label: ja.open_web_preview,
+            },
+            ActionLabelContract {
+                action_id: "open-in-default-browser",
+                en_menu_label: en.open_external_browser,
+                ja_menu_label: ja.open_external_browser,
+            },
+            ActionLabelContract {
+                action_id: "copy-link",
+                en_menu_label: en.copy_link,
+                ja_menu_label: ja.copy_link,
+            },
+        ]
+    }
+
     #[test]
     fn resolves_explicit_japanese() {
         assert_eq!(
@@ -184,5 +213,29 @@ mod tests {
         let labels = labels(ResolvedMenuLanguage::Ja);
         assert_eq!(labels.open_web_preview, "Webプレビューを開く");
         assert_eq!(labels.open_external_browser, "外部ブラウザで開く");
+    }
+
+    #[test]
+    fn browser_and_copy_action_labels_match_frontend_shortcut_vocabulary() {
+        let contracts = browser_and_copy_action_label_contracts();
+
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|contract| contract.action_id)
+                .collect::<Vec<_>>(),
+            vec!["open-in-browser", "open-in-default-browser", "copy-link"]
+        );
+        assert!(contracts.iter().any(|contract| {
+            contract.en_menu_label == "Open Web Preview"
+                && contract.ja_menu_label == "Webプレビューを開く"
+        }));
+        assert!(contracts.iter().any(|contract| {
+            contract.en_menu_label == "Open in External Browser"
+                && contract.ja_menu_label == "外部ブラウザで開く"
+        }));
+        assert!(contracts.iter().any(|contract| {
+            contract.en_menu_label == "Copy Link" && contract.ja_menu_label == "リンクをコピー"
+        }));
     }
 }

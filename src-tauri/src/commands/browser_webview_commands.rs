@@ -7,12 +7,13 @@ use tauri::{
 use tokio::time::{sleep, Duration};
 
 use crate::browser_webview::{
-    browser_preview_initialization_script, browser_webview, browser_webview_diagnostics_enabled,
-    emit_browser_webview_closed, emit_browser_webview_diagnostics, emit_browser_webview_fallback,
-    emit_browser_webview_state, go_back, go_forward, install_escape_accelerator_bridge,
-    load_browser_preview_prefs, navigation_availability, should_trigger_timeout_fallback,
-    BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload,
-    BrowserWebviewLogicalRect, BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
+    browser_preview_initialization_script_from_prefs_result, browser_webview,
+    browser_webview_diagnostics_enabled, emit_browser_webview_closed,
+    emit_browser_webview_diagnostics, emit_browser_webview_fallback, emit_browser_webview_state,
+    go_back, go_forward, install_escape_accelerator_bridge, load_browser_preview_prefs,
+    navigation_availability, should_trigger_timeout_fallback, BrowserNavigationAvailability,
+    BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
+    BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
@@ -22,6 +23,13 @@ const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
     "Embedded browser bounds must be finite and have positive width/height";
 const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
+
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
+enum BrowserWebviewTimeoutFallbackEmission {
+    ClearTracker,
+    Fallback,
+    Closed,
+}
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -108,32 +116,20 @@ fn child_webview_rect_from_browser_bounds(bounds: BrowserWebviewBounds) -> Rect 
     bounds.rect()
 }
 
-fn log_browser_webview_bounds(
-    window: &Window,
+fn browser_webview_bounds_diagnostics_payload(
     action: &str,
     bounds: BrowserWebviewBounds,
     rect: &Rect,
-) {
+    scale_factor: f64,
+    native_webview_bounds: Option<BrowserWebviewLogicalRect>,
+) -> Option<BrowserWebviewDiagnosticsPayload> {
     if !browser_webview_diagnostics_enabled() {
-        return;
+        return None;
     }
 
-    let scale_factor = window.scale_factor().unwrap_or(1.0);
     let applied_position = rect.position.to_logical::<f64>(scale_factor);
     let applied_size = rect.size.to_logical::<f64>(scale_factor);
-    let native_webview_bounds = browser_webview(window).and_then(|browser_webview| {
-        browser_webview.bounds().ok().map(|bounds| {
-            let position = bounds.position.to_logical::<f64>(scale_factor);
-            let size = bounds.size.to_logical::<f64>(scale_factor);
-            BrowserWebviewLogicalRect {
-                x: position.x,
-                y: position.y,
-                width: size.width,
-                height: size.height,
-            }
-        })
-    });
-    let payload = BrowserWebviewDiagnosticsPayload {
+    Some(BrowserWebviewDiagnosticsPayload {
         action: action.to_string(),
         requested_logical: BrowserWebviewLogicalRect {
             x: bounds.x,
@@ -149,6 +145,36 @@ fn log_browser_webview_bounds(
         },
         scale_factor,
         native_webview_bounds,
+    })
+}
+
+fn log_browser_webview_bounds(
+    window: &Window,
+    action: &str,
+    bounds: BrowserWebviewBounds,
+    rect: &Rect,
+) {
+    let scale_factor = window.scale_factor().unwrap_or(1.0);
+    let native_webview_bounds = browser_webview(window).and_then(|browser_webview| {
+        browser_webview.bounds().ok().map(|bounds| {
+            let position = bounds.position.to_logical::<f64>(scale_factor);
+            let size = bounds.size.to_logical::<f64>(scale_factor);
+            BrowserWebviewLogicalRect {
+                x: position.x,
+                y: position.y,
+                width: size.width,
+                height: size.height,
+            }
+        })
+    });
+    let Some(payload) = browser_webview_bounds_diagnostics_payload(
+        action,
+        bounds,
+        rect,
+        scale_factor,
+        native_webview_bounds,
+    ) else {
+        return;
     };
     tracing::warn!(
         "embedded-browser diagnostics action={} requested=({},{} {}x{}) applied=({},{} {}x{}) native_webview={:?} scale_factor={}",
@@ -257,9 +283,37 @@ fn schedule_browser_webview_timeout(app_handle: tauri::AppHandle, url: String) {
         }
 
         let app_state = app_handle.state::<AppState>();
-        let _ = clear_browser_webview_tracker(&app_state);
-        emit_browser_webview_fallback(&app_handle, &payload);
+        let had_tracked_state = clear_browser_webview_tracker(&app_state).unwrap_or(false);
+        for emission in timeout_fallback_emissions(should_fallback, had_tracked_state) {
+            match emission {
+                BrowserWebviewTimeoutFallbackEmission::ClearTracker => {}
+                BrowserWebviewTimeoutFallbackEmission::Fallback => {
+                    emit_browser_webview_fallback(&app_handle, &payload);
+                }
+                BrowserWebviewTimeoutFallbackEmission::Closed => {
+                    emit_browser_webview_closed(&app_handle);
+                }
+            }
+        }
     });
+}
+
+fn timeout_fallback_emissions(
+    should_fallback: bool,
+    had_tracked_state: bool,
+) -> Vec<BrowserWebviewTimeoutFallbackEmission> {
+    if !should_fallback {
+        return Vec::new();
+    }
+
+    let mut emissions = vec![
+        BrowserWebviewTimeoutFallbackEmission::ClearTracker,
+        BrowserWebviewTimeoutFallbackEmission::Fallback,
+    ];
+    if had_tracked_state {
+        emissions.push(BrowserWebviewTimeoutFallbackEmission::Closed);
+    }
+    emissions
 }
 
 fn external_url(url: &str) -> Result<Url, AppError> {
@@ -362,13 +416,9 @@ fn create_browser_webview(
     let app_handle = window.app_handle().clone();
     let navigation_app_handle = app_handle.clone();
     let page_load_app_handle = app_handle.clone();
-    let initialization_script = load_browser_preview_prefs(&app_handle)
-        .map_err(|error| {
-            browser_webview_error(format!(
-                "Failed to load embedded browser preferences: {error}"
-            ))
-        })
-        .map(|prefs| browser_preview_initialization_script(&prefs))?;
+    let initialization_script = browser_preview_initialization_script_from_prefs_result(
+        load_browser_preview_prefs(&app_handle),
+    );
 
     let builder = WebviewBuilder::new(BROWSER_WEBVIEW_LABEL, WebviewUrl::External(initial_url))
         .on_navigation(move |target_url| {
@@ -598,11 +648,16 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 #[cfg(test)]
 mod tests {
     use super::{
-        browser_webview_initial_url, browser_webview_not_open_error,
-        child_webview_rect_from_browser_bounds, external_url, is_placeholder_browser_webview_url,
-        should_use_placeholder_browser_webview_url, tracker_navigation_availability,
-        validated_bounds, BrowserNavigationAvailability, BrowserWebviewBounds,
-        BrowserWebviewBoundsUnit, BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
+        browser_webview_bounds_diagnostics_payload, browser_webview_initial_url,
+        browser_webview_not_open_error, child_webview_rect_from_browser_bounds, external_url,
+        is_placeholder_browser_webview_url, should_use_placeholder_browser_webview_url,
+        timeout_fallback_emissions, tracker_navigation_availability, validated_bounds,
+        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
+        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
+        INVALID_BROWSER_BOUNDS_ERROR,
+    };
+    use crate::browser_webview::{
+        set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect,
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
@@ -728,6 +783,104 @@ mod tests {
         assert_eq!(rect.position.to_logical::<f64>(1.0).y, 48.0);
         assert_eq!(rect.size.to_logical::<f64>(1.0).width, 900.0);
         assert_eq!(rect.size.to_logical::<f64>(1.0).height, 720.0);
+    }
+
+    #[test]
+    fn diagnostics_payload_is_disabled_when_browser_webview_diagnostics_are_off() {
+        set_browser_webview_diagnostics_enabled(false);
+        let bounds = BrowserWebviewBounds {
+            x: 12.0,
+            y: 34.0,
+            width: 560.0,
+            height: 320.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
+        };
+        let rect = child_webview_rect_from_browser_bounds(bounds);
+
+        let payload =
+            browser_webview_bounds_diagnostics_payload("resize", bounds, &rect, 2.0, None);
+
+        assert_eq!(payload, None);
+    }
+
+    #[test]
+    fn diagnostics_payload_includes_requested_applied_and_native_bounds_when_enabled() {
+        set_browser_webview_diagnostics_enabled(true);
+        let bounds = BrowserWebviewBounds {
+            x: 12.0,
+            y: 34.0,
+            width: 560.0,
+            height: 320.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
+        };
+        let rect = child_webview_rect_from_browser_bounds(bounds);
+        let native_bounds = BrowserWebviewLogicalRect {
+            x: 14.0,
+            y: 36.0,
+            width: 558.0,
+            height: 318.0,
+        };
+
+        let payload = browser_webview_bounds_diagnostics_payload(
+            "resize",
+            bounds,
+            &rect,
+            2.0,
+            Some(native_bounds),
+        )
+        .expect("enabled diagnostics should build a payload");
+
+        assert_eq!(payload.action, "resize");
+        assert_eq!(
+            payload.requested_logical,
+            BrowserWebviewLogicalRect {
+                x: 12.0,
+                y: 34.0,
+                width: 560.0,
+                height: 320.0,
+            }
+        );
+        assert_eq!(
+            payload.applied_logical,
+            BrowserWebviewLogicalRect {
+                x: 12.0,
+                y: 34.0,
+                width: 560.0,
+                height: 320.0,
+            }
+        );
+        assert_eq!(payload.scale_factor, 2.0);
+        assert_eq!(payload.native_webview_bounds, Some(native_bounds));
+
+        set_browser_webview_diagnostics_enabled(false);
+    }
+
+    #[test]
+    fn timeout_fallback_emits_tracker_clear_fallback_and_closed_in_order() {
+        assert_eq!(
+            timeout_fallback_emissions(true, true),
+            vec![
+                BrowserWebviewTimeoutFallbackEmission::ClearTracker,
+                BrowserWebviewTimeoutFallbackEmission::Fallback,
+                BrowserWebviewTimeoutFallbackEmission::Closed,
+            ]
+        );
+    }
+
+    #[test]
+    fn timeout_fallback_does_not_emit_closed_without_tracked_state() {
+        assert_eq!(
+            timeout_fallback_emissions(true, false),
+            vec![
+                BrowserWebviewTimeoutFallbackEmission::ClearTracker,
+                BrowserWebviewTimeoutFallbackEmission::Fallback,
+            ]
+        );
+    }
+
+    #[test]
+    fn timeout_fallback_emits_nothing_when_timeout_is_stale() {
+        assert_eq!(timeout_fallback_emissions(false, true), vec![]);
     }
 
     #[test]

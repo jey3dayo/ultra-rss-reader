@@ -126,35 +126,97 @@ pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<Str
     let folders = folder_repo
         .find_by_account(&account_id)
         .map_err(AppError::from)?;
-    let folder_map: std::collections::HashMap<FolderId, String> =
-        folders.into_iter().map(|f| (f.id, f.name)).collect();
-
     // Load feeds and convert to OpmlFeed
     let feed_repo = SqliteFeedRepository::new(db.reader());
     let feeds = feed_repo
         .find_by_account(&account_id)
         .map_err(AppError::from)?;
 
-    let opml_feeds: Vec<OpmlFeed> = feeds
-        .into_iter()
-        .map(|f| OpmlFeed {
-            title: f.title,
-            xml_url: f.url,
-            html_url: if f.site_url.is_empty() {
-                None
-            } else {
-                Some(f.site_url)
-            },
-            folder: f.folder_id.and_then(|fid| folder_map.get(&fid).cloned()),
-        })
-        .collect();
+    let opml_feeds = build_export_opml_feeds(feeds, folders);
 
     Ok(opml::generate_opml(&title, &opml_feeds))
+}
+
+fn build_export_opml_feeds(feeds: Vec<Feed>, folders: Vec<Folder>) -> Vec<OpmlFeed> {
+    let mut folders = folders;
+    folders.sort_by(|a, b| {
+        a.sort_order
+            .cmp(&b.sort_order)
+            .then_with(|| a.id.0.cmp(&b.id.0))
+    });
+    let folder_map: std::collections::HashMap<FolderId, String> = folders
+        .iter()
+        .map(|f| (f.id.clone(), f.name.clone()))
+        .collect();
+    let mut remaining_feeds = feeds;
+    let mut opml_feeds = Vec::with_capacity(remaining_feeds.len());
+
+    for folder in folders {
+        let mut index = 0;
+        while index < remaining_feeds.len() {
+            if remaining_feeds[index].folder_id.as_ref() == Some(&folder.id) {
+                opml_feeds.push(feed_to_opml_feed(
+                    remaining_feeds.remove(index),
+                    Some(folder.name.clone()),
+                ));
+            } else {
+                index += 1;
+            }
+        }
+    }
+
+    opml_feeds.extend(remaining_feeds.into_iter().map(|feed| {
+        let folder_name = feed
+            .folder_id
+            .as_ref()
+            .and_then(|folder_id| folder_map.get(folder_id).cloned());
+        feed_to_opml_feed(feed, folder_name)
+    }));
+    opml_feeds
+}
+
+fn feed_to_opml_feed(feed: Feed, folder: Option<String>) -> OpmlFeed {
+    OpmlFeed {
+        title: feed.title,
+        xml_url: feed.url,
+        html_url: if feed.site_url.is_empty() {
+            None
+        } else {
+            Some(feed.site_url)
+        },
+        folder,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn feed(id: &str, folder_id: Option<&FolderId>, title: &str) -> Feed {
+        Feed {
+            id: FeedId(id.to_string()),
+            account_id: AccountId("account-1".to_string()),
+            folder_id: folder_id.cloned(),
+            remote_id: None,
+            title: title.to_string(),
+            url: format!("https://example.com/{id}.xml"),
+            site_url: String::new(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        }
+    }
+
+    fn folder(id: &str, name: &str, sort_order: i32) -> Folder {
+        Folder {
+            id: FolderId(id.to_string()),
+            account_id: AccountId("account-1".to_string()),
+            remote_id: None,
+            name: name.to_string(),
+            sort_order,
+        }
+    }
 
     #[test]
     fn import_parser_errors_are_user_visible() {
@@ -168,5 +230,31 @@ mod tests {
                 panic!("OPML parser errors should not be retryable: {message}");
             }
         }
+    }
+
+    #[test]
+    fn export_groups_foldered_feeds_by_folder_sort_order_then_keeps_top_level_feeds() {
+        let folder_early = folder("folder-early", "Early", 0);
+        let folder_late = folder("folder-late", "Late", 1);
+        let feeds = vec![
+            feed("top", None, "Top level"),
+            feed("late", Some(&folder_late.id), "Late feed"),
+            feed("early", Some(&folder_early.id), "Early feed"),
+        ];
+
+        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_late, folder_early]);
+
+        let order = opml_feeds
+            .iter()
+            .map(|feed| (feed.title.as_str(), feed.folder.as_deref()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            order,
+            vec![
+                ("Early feed", Some("Early")),
+                ("Late feed", Some("Late")),
+                ("Top level", None),
+            ],
+        );
     }
 }

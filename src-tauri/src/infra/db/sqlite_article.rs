@@ -202,7 +202,7 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 
 const SELECT_COLS: &str = "id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at";
 
-fn article_body_text(value: &str, summary: Option<&str>) -> String {
+pub(super) fn article_body_text(value: &str, summary: Option<&str>) -> String {
     if value.trim().is_empty() {
         summary.unwrap_or("").to_string()
     } else {
@@ -2203,6 +2203,56 @@ mod tests {
 
         let old = repo.find_by_sanitizer_version_below(2, 100).unwrap();
         assert_eq!(old.len(), 0);
+    }
+
+    #[test]
+    fn upsert_uses_summary_fallback_when_sanitized_html_is_empty() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Article 1");
+        article.content_sanitized = "   ".to_string();
+        article.summary = Some("Summary fallback body".to_string());
+
+        repo.upsert(&[article.clone()]).unwrap();
+
+        let content_text: String = db
+            .writer()
+            .query_row(
+                "SELECT content_text FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(content_text, "Summary fallback body");
+    }
+
+    #[test]
+    fn update_sanitized_does_not_use_summary_fallback_when_sanitized_html_is_empty() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Article 1");
+        article.summary = Some("Existing summary body".to_string());
+        repo.upsert(&[article.clone()]).unwrap();
+
+        repo.update_sanitized(&article.id, "", 2).unwrap();
+
+        let content_text: String = db
+            .writer()
+            .query_row(
+                "SELECT content_text FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(content_text, "");
     }
 
     #[test]
