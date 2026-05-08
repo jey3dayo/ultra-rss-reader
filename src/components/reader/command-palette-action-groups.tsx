@@ -1,5 +1,25 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "../ui/command";
-import type { CommandPaletteActionGroupsProps, CommandPaletteActionItemsProps } from "./command-palette.types";
+import type { CommandPaletteActionItem, CommandPaletteResultsProps } from "./command-palette.types";
+
+type CommandPaletteActionGroupsProps = Pick<
+  CommandPaletteResultsProps,
+  | "recentActions"
+  | "filteredActions"
+  | "showRecentActions"
+  | "showActions"
+  | "recentActionsHeading"
+  | "actionsHeading"
+  | "getCommandItemValue"
+  | "onActionSelect"
+>;
+
+type CommandPaletteActionItemsProps = Pick<
+  CommandPaletteActionGroupsProps,
+  "getCommandItemValue" | "onActionSelect"
+> & {
+  actions: CommandPaletteActionItem[];
+  keyPrefix?: string;
+};
 
 function CommandPaletteActionItems({
   actions,

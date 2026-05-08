@@ -1,6 +1,27 @@
 import { FlaskConicalIcon, HashIcon, NewspaperIcon, RssIcon } from "lucide-react";
 import { CommandGroup, CommandItem } from "../ui/command";
-import type { CommandPaletteResourceGroupsProps } from "./command-palette.types";
+import type { CommandPaletteResultsProps } from "./command-palette.types";
+
+type CommandPaletteResourceGroupsProps = Pick<
+  CommandPaletteResultsProps,
+  | "filteredDevScenarios"
+  | "filteredFeeds"
+  | "filteredTags"
+  | "articles"
+  | "showRecentActions"
+  | "showDevScenarios"
+  | "showFeeds"
+  | "showTags"
+  | "showArticles"
+  | "feedsHeading"
+  | "tagsHeading"
+  | "articlesHeading"
+  | "getCommandItemValue"
+  | "onDevScenarioSelect"
+  | "onFeedSelect"
+  | "onTagSelect"
+  | "onArticleSelect"
+>;
 
 export function CommandPaletteResourceGroups({
   filteredDevScenarios,
