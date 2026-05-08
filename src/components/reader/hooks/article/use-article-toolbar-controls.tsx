@@ -7,7 +7,8 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleShareMenu } from "../../article-share-menu";
-import type { ArticleToolbarActionStripProps, UseArticleToolbarControlsParams } from "../../article-toolbar.types";
+import type { UseArticleToolbarControlsParams } from "../../article-toolbar.types";
+import type { ArticleToolbarActionStripProps } from "../../article-toolbar-view";
 
 export function useArticleToolbarControls({
   article,

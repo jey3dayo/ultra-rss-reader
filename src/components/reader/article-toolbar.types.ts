@@ -1,49 +1,5 @@
-import type { ReactNode } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { ArticleActionKeyboardShortcuts } from "./article-actions.types";
-
-export type ArticleToolbarViewLabels = {
-  closeView: string;
-  toggleRead: string;
-  toggleReadShort?: string;
-  toggleStar: string;
-  toggleStarShort?: string;
-  previewToggleOff: string;
-  previewToggleOffShort?: string;
-  previewToggleOn: string;
-  previewToggleOnShort?: string;
-  copyLink: string;
-  openInExternalBrowser: string;
-  moreActions: string;
-};
-
-export type ArticleToolbarViewProps = {
-  showCloseButton: boolean;
-  hideActionStrip?: boolean;
-  hasArticle?: boolean;
-  canToggleRead: boolean;
-  canToggleStar: boolean;
-  isRead: boolean;
-  isStarred: boolean;
-  isBrowserOpen: boolean;
-  hideBrowserOverlayActions?: boolean;
-  showCopyLinkButton: boolean;
-  canCopyLink: boolean;
-  showOpenInBrowserButton: boolean;
-  canOpenInBrowser: boolean;
-  showOpenInExternalBrowserButton: boolean;
-  canOpenInExternalBrowser: boolean;
-  shareMenuControl?: ReactNode;
-  labels: ArticleToolbarViewLabels;
-  onCloseView: () => void;
-  onToggleRead: (nextRead: boolean) => void;
-  onToggleStar: (nextStarred: boolean) => void;
-  onCopyLink: () => void;
-  onOpenInBrowser: () => void;
-  onOpenInExternalBrowser: () => void;
-};
-
-export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
 
 export type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;

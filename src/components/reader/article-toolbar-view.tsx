@@ -9,8 +9,50 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
 import { contextMenuStyles } from "./context-menu-styles";
+
+export type ArticleToolbarViewLabels = {
+  closeView: string;
+  toggleRead: string;
+  toggleReadShort?: string;
+  toggleStar: string;
+  toggleStarShort?: string;
+  previewToggleOff: string;
+  previewToggleOffShort?: string;
+  previewToggleOn: string;
+  previewToggleOnShort?: string;
+  copyLink: string;
+  openInExternalBrowser: string;
+  moreActions: string;
+};
+
+export type ArticleToolbarViewProps = {
+  showCloseButton: boolean;
+  hideActionStrip?: boolean;
+  hasArticle?: boolean;
+  canToggleRead: boolean;
+  canToggleStar: boolean;
+  isRead: boolean;
+  isStarred: boolean;
+  isBrowserOpen: boolean;
+  hideBrowserOverlayActions?: boolean;
+  showCopyLinkButton: boolean;
+  canCopyLink: boolean;
+  showOpenInBrowserButton: boolean;
+  canOpenInBrowser: boolean;
+  showOpenInExternalBrowserButton: boolean;
+  canOpenInExternalBrowser: boolean;
+  shareMenuControl?: ReactNode;
+  labels: ArticleToolbarViewLabels;
+  onCloseView: () => void;
+  onToggleRead: (nextRead: boolean) => void;
+  onToggleStar: (nextStarred: boolean) => void;
+  onCopyLink: () => void;
+  onOpenInBrowser: () => void;
+  onOpenInExternalBrowser: () => void;
+};
+
+export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
 
 type ArticleToolbarVisualActiveTone = "unread" | "neutral" | "accent" | "starred";
 
