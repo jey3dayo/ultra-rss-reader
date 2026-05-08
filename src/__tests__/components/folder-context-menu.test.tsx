@@ -8,30 +8,19 @@ import { FolderContextMenuContent } from "@/components/reader/folder-context-men
 const markFolderReadMutate = vi.fn();
 const updateFeedDisplaySettingsMock = vi.fn();
 const confirmMarkAllReadMock = vi.fn();
+const translations = new Map<string, string>([
+  ["mark_all_as_read", "Mark all as read"],
+  ["mark_old_unread_read", "Mark old unread as read"],
+  ["old_unread_older_than_days", "{{count}} days"],
+  ["display_mode", "Display mode"],
+  ["display_mode_default", "Default"],
+  ["display_mode_standard", "Standard"],
+  ["display_mode_preview", "Preview"],
+]);
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) =>
-      (
-        ({
-          mark_all_as_read: "Mark all as read",
-          mark_old_unread_read: "Mark old unread as read",
-          old_unread_older_than_days: "{{count}} days",
-          display_mode: "Display mode",
-          display_mode_default: "Default",
-          display_mode_standard: "Standard",
-          display_mode_preview: "Preview",
-        }) as const
-      )[
-        key as
-          | "mark_all_as_read"
-          | "mark_old_unread_read"
-          | "old_unread_older_than_days"
-          | "display_mode"
-          | "display_mode_default"
-          | "display_mode_standard"
-          | "display_mode_preview"
-      ] ?? key,
+    t: (key: string) => translations.get(key) ?? key,
   }),
 }));
 
