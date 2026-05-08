@@ -7,7 +7,7 @@ import {
   resolveSubscriptionReviewReasonFactTranslationKey,
   resolveSubscriptionReviewSummaryTranslationKey,
   summarizeSubscriptionReviewCandidate,
-} from "@/lib/subscription-review-candidates";
+} from "@/lib/subscriptions/subscription-review-candidates";
 
 const feeds: FeedDto[] = [
   {

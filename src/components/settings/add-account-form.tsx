@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { AccountConfigForm } from "@/components/settings/account-config-form";
 import type { AccountConfigFormProps } from "@/components/settings/add-account-services.types";
 import { ServicePicker } from "@/components/settings/service-picker";
-import type { AddAccountProviderKind } from "@/lib/add-account-form";
+import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 
 type Step = { type: "pick" } | { type: "config"; kind: AddAccountProviderKind };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AccountDto } from "@/api/tauri-commands";
-import { getPreferredAccountId } from "@/lib/account-selection";
+import { getPreferredAccountId } from "@/lib/account/account-selection";
 
 const accounts: AccountDto[] = [
   {

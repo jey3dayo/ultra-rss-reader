@@ -5,14 +5,14 @@ import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import { formatSubscriptionDate } from "@/lib/subscriptions-index";
+import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
   SubscriptionManagementActions,
-} from "@/lib/subscriptions-index.types";
+} from "@/lib/subscriptions/subscriptions-index.types";
 
 type DecisionActionConfig = {
   key: "keep" | "defer" | "delete";

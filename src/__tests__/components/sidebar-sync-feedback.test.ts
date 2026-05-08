@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { resolveSidebarSyncFeedbackMessage } from "@/components/reader/sidebar-sync-feedback";
-import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
 import type { SyncFeedback } from "@/lib/sync-result-feedback";
 

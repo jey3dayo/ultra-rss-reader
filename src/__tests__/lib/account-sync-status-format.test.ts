@@ -3,7 +3,7 @@ import {
   formatAccountLastSuccessLabel,
   formatAccountSyncRetryDateTime,
   formatAccountSyncRetryTime,
-} from "@/lib/account-sync-status-format";
+} from "@/lib/account/account-sync-status-format";
 
 describe("account-sync-status-format", () => {
   it("formats retry times with hour and minute precision", () => {

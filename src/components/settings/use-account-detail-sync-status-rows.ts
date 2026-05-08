@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatAccountSyncRetryDateTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
 import type {
   UseAccountDetailSyncStatusRowsParams,
   UseAccountDetailSyncStatusRowsResult,

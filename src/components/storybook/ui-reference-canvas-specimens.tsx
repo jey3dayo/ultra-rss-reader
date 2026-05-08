@@ -88,7 +88,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import type { SubscriptionListGroup, SubscriptionSummaryCard } from "@/lib/subscriptions-index.types";
+import type { SubscriptionListGroup, SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 import type { ToastData } from "@/lib/ui-state.types";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";

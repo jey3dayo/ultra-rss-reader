@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
 import { resolveSyncFeedbackMessage, type SyncFeedback } from "@/lib/sync-result-feedback";
 

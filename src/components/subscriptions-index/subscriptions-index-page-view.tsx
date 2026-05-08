@@ -11,7 +11,7 @@ import type {
   SubscriptionListRow,
   SubscriptionManagementActions,
   SubscriptionSummaryCard,
-} from "@/lib/subscriptions-index.types";
+} from "@/lib/subscriptions/subscriptions-index.types";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";

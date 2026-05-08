@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
+import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildFeedArticleSummaryMap,
   buildSubscriptionDecisionActions,
@@ -22,7 +22,7 @@ import {
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionRowStatus,
   resolveSubscriptionsInventoryHeading,
-} from "@/lib/subscriptions-index";
+} from "@/lib/subscriptions/subscriptions-index";
 
 const feeds: FeedDto[] = [
   {

@@ -4,7 +4,7 @@ import {
   buildAddAccountPayload,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
-} from "@/lib/add-account-form";
+} from "@/lib/account/add-account-form";
 
 describe("add-account-form utils", () => {
   it("returns local form config", () => {

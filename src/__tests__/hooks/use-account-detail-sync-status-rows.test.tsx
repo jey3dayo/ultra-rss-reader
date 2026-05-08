@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
-import { formatAccountSyncRetryDateTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
 
 describe("useAccountDetailSyncStatusRows", () => {
   const t = (key: string, options?: { count?: number }) => {

@@ -6,7 +6,7 @@ import {
   buildSidebarAccountStatusLabels,
   useSidebarAccountStatusLabels,
 } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
-import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
 
 describe("useSidebarAccountStatusLabels", () => {

@@ -5,7 +5,7 @@ import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
-} from "@/lib/subscriptions-index.types";
+} from "@/lib/subscriptions/subscriptions-index.types";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 
 const feed = {

@@ -5,7 +5,7 @@ import {
   focusAdjacentAccountPaneTarget,
   normalizePaneNavigationKey,
   selectCurrentAccountPaneTargetAndFocusSidebar,
-} from "@/lib/account-pane-navigation";
+} from "@/lib/account/account-pane-navigation";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";

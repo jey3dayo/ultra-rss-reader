@@ -1,6 +1,6 @@
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
-import { formatAccountLastSuccessLabel } from "@/lib/account-sync-status-format";
+import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import type { UseAccountDetailViewPropsParams, UseAccountDetailViewPropsResult } from "./account-detail.types";
 
 export function useAccountDetailViewProps({

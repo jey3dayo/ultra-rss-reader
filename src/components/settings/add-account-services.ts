@@ -1,7 +1,7 @@
 import { Monitor, Rss, Thermometer } from "lucide-react";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { PROVIDER_ICON_BG_CLASS } from "@/components/shared/exception-palettes";
-import type { AddAccountProviderKind } from "@/lib/add-account-form";
+import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import type { ServiceCategory, ServiceDefinition } from "./add-account-services.types";
 
 export const SERVICE_CATEGORIES: ServiceCategory[] = [

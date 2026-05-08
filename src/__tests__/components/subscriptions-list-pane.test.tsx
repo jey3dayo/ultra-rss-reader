@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
-import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions-index.types";
+import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {
   return {

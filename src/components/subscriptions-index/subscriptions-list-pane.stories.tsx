@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { FeedDto } from "@/api/tauri-commands";
-import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions-index.types";
+import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {

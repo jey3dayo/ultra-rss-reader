@@ -21,7 +21,7 @@ import { useSettingsModalViewProps } from "@/components/settings/use-settings-mo
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
-import { getPreferredAccountId } from "@/lib/account-selection";
+import { getPreferredAccountId } from "@/lib/account/account-selection";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

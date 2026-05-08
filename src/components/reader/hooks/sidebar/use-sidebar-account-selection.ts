@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
-import { getPreferredAccountId } from "@/lib/account-selection";
+import { getPreferredAccountId } from "@/lib/account/account-selection";
 import type { SidebarAccountSelectionParams } from "../../sidebar-runtime.types";
 
 type SidebarAccountSelectionAction =

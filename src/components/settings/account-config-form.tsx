@@ -17,7 +17,7 @@ import {
   buildAddAccountPayload,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
-} from "@/lib/add-account-form";
+} from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { upsertCachedAccount } from "./account-detail-query-cache";

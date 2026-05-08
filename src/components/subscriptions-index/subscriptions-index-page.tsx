@@ -13,7 +13,7 @@ import {
   buildSubscriptionReviewCandidates,
   resolveSubscriptionReviewReasonFactTranslationKey,
   resolveSubscriptionReviewSummaryTranslationKey,
-} from "@/lib/subscription-review-candidates";
+} from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildFeedArticleSummaryMap,
   buildSubscriptionDecisionActions,
@@ -29,13 +29,13 @@ import {
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionsInventoryHeading,
-} from "@/lib/subscriptions-index";
+} from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
-} from "@/lib/subscriptions-index.types";
+} from "@/lib/subscriptions/subscriptions-index.types";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { useUiStore } from "@/stores/ui-store";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";

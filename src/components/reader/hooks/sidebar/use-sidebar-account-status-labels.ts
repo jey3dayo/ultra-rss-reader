@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
-import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import type { SidebarAccountStatusLabelsParams } from "../../sidebar-sources.types";
 
 export function buildSidebarAccountStatusLabels(params: {

@@ -8,7 +8,7 @@ import {
   focusAdjacentAccountPaneTarget,
   normalizePaneNavigationKey,
   selectCurrentAccountPaneTargetAndFocusSidebar,
-} from "@/lib/account-pane-navigation";
+} from "@/lib/account/account-pane-navigation";
 import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedAccountPaneTarget,

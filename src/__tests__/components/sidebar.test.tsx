@@ -10,7 +10,7 @@ import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
-import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

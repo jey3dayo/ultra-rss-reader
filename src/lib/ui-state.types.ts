@@ -1,5 +1,5 @@
 import type { ReaderSelection } from "@/lib/reader-selection.types";
-import type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 
 export type ToastAction = {
   label: string;

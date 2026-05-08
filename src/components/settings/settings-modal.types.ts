@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AddAccountProviderKind } from "@/lib/add-account-form";
+import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import type { SettingsCategory } from "@/lib/ui-state.types";
 
 export type SettingsContentProps = {

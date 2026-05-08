@@ -3,13 +3,13 @@ import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/a
 import { countStarredArticles } from "@/lib/article-list";
 import { findLatestArticleOrNull } from "@/lib/article-view";
 import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
-import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
+import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildSubscriptionReviewReasonFacts,
   hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
-} from "@/lib/subscription-review-candidates";
-import type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
+} from "@/lib/subscriptions/subscription-review-candidates";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import type {
   SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
@@ -18,10 +18,10 @@ import type {
   SubscriptionListRow,
   SubscriptionRowStatus,
   SubscriptionSummaryCard,
-} from "@/lib/subscriptions-index.types";
+} from "@/lib/subscriptions/subscriptions-index.types";
 
 export { countStarredArticles } from "@/lib/article-list";
-export type { SubscriptionRowStatus } from "@/lib/subscriptions-index.types";
+export type { SubscriptionRowStatus } from "@/lib/subscriptions/subscriptions-index.types";
 
 export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
 

@@ -12,8 +12,8 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
-import { countSubscriptionGroupRows } from "@/lib/subscriptions-index";
-import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions-index.types";
+import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
+import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
 
 type SubscriptionGroupDisclosureButtonProps = {
