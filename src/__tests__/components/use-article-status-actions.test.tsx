@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { SetReadMutation, ToggleStarMutation } from "@/components/reader/article-actions.types";
+import type { UseArticleStatusActionsParams } from "@/components/reader/article-actions.types";
 import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
 
 describe("useArticleStatusActions", () => {
@@ -10,13 +10,13 @@ describe("useArticleStatusActions", () => {
     const retainArticle = vi.fn();
     const showToast = vi.fn();
 
-    const setRead: SetReadMutation = {
+    const setRead: UseArticleStatusActionsParams["setRead"] = {
       mutate: vi.fn((_variables, options) => {
         options?.onSuccess?.(undefined, _variables, undefined);
       }),
     };
 
-    const toggleStar: ToggleStarMutation = {
+    const toggleStar: UseArticleStatusActionsParams["toggleStar"] = {
       mutate: vi.fn(),
     };
 

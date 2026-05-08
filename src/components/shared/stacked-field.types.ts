@@ -14,7 +14,7 @@ export type StackedInputFieldProps = {
   inputClassName?: string;
 };
 
-export type StackedSelectOption = {
+type StackedSelectOption = {
   value: string;
   label: string;
 };

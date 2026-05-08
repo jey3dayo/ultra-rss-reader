@@ -3,7 +3,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preferences";
 
-export type ArticleStatusViewMode = ViewMode;
+type ArticleStatusViewMode = ViewMode;
 
 export type ArticleStatusToast = (message: string) => void;
 
@@ -14,9 +14,9 @@ export type ArticleToastActionParams = {
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 
-export type SetReadMutation = ArticleStatusMutation<{ id: string; read: boolean }>;
+type SetReadMutation = ArticleStatusMutation<{ id: string; read: boolean }>;
 
-export type ToggleStarMutation = ArticleStatusMutation<{ id: string; starred: boolean }>;
+type ToggleStarMutation = ArticleStatusMutation<{ id: string; starred: boolean }>;
 
 export type UseArticleStatusActionsParams = {
   articleId: string | null;

@@ -43,7 +43,7 @@ export type LabeledInputRowProps = {
   actionDisabled?: boolean;
 };
 
-export type LabeledSelectOption = {
+type LabeledSelectOption = {
   value: string;
   label: string;
 };

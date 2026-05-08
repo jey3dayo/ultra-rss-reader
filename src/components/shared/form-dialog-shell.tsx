@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-export type FormDialogShellSize = "compact" | "wide";
+type FormDialogShellSize = "compact" | "wide";
 
 type FormDialogShellProps = {
   open: boolean;

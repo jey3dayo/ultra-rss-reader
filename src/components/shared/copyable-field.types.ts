@@ -1,4 +1,4 @@
-export type CopyableTextFieldType = "text" | "url" | "password";
+type CopyableTextFieldType = "text" | "url" | "password";
 
 export type CopyableTextFieldProps = {
   label: string;
