@@ -1,8 +1,8 @@
 import { screen, within } from "@testing-library/react";
+import { renderStory } from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
 import tagsSettingsMeta, { Default, Empty } from "@/components/settings/tags-settings-view.stories";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
-import { renderStory } from "../../../tests/helpers/render-story";
 
 describe("TagsSettingsView stories", () => {
   it("renders the compact saved-tag row fixture in the default story", () => {

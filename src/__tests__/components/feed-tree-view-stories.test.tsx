@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
+import { renderStory } from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
 import feedTreeStories, { SelectionPriorityReview } from "@/components/reader/feed-tree-view.stories";
-import { renderStory } from "../../../tests/helpers/render-story";
 
 describe("FeedTreeView stories", () => {
   it("uses softened review captions and frame tones in the selection review story", () => {

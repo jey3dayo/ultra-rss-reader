@@ -1,4 +1,11 @@
 import { cleanup, screen } from "@testing-library/react";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import {
+  renderStory as renderStoryHelper,
+  type StoryArgs,
+  type StoryLike,
+  type StoryMeta,
+} from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
 import formActionButtonsMeta, {
   Loading as FormActionButtonsLoading,
@@ -26,13 +33,6 @@ import workspaceHeaderMeta, {
   MacDesktop as WorkspaceHeaderMacDesktop,
   WindowsDesktop as WorkspaceHeaderWindowsDesktop,
 } from "@/components/shared/workspace-header.stories";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import {
-  type StoryArgs,
-  type StoryLike,
-  type StoryMeta,
-  renderStory as renderStoryHelper,
-} from "../../../tests/helpers/render-story";
 
 function renderStory<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: StoryLike<TArgs>, useWrapper = false) {
   return renderStoryHelper(meta, story, useWrapper ? { wrapper: createWrapper() } : undefined);
