@@ -97,9 +97,15 @@ function parsePixelValue(value: string | null | undefined): number | null {
 }
 
 type InlineStyleKey = "bottom" | "height" | "left" | "right" | "top";
+const inlineStyleKeys: InlineStyleKey[] = ["bottom", "height", "left", "right", "top"];
 
 function expectInlineStyles(element: HTMLElement, expected: Partial<Record<InlineStyleKey, string>>) {
-  for (const [property, value] of Object.entries(expected) as [InlineStyleKey, string][]) {
+  for (const property of inlineStyleKeys) {
+    const value = expected[property];
+    if (value === undefined) {
+      continue;
+    }
+
     expect(element.style[property]).toBe(value);
   }
 }
