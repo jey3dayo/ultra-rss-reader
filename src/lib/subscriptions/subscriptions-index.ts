@@ -318,7 +318,7 @@ export function buildSubscriptionDecisionActions(params: {
   onDelete: () => void;
 }): SubscriptionDecisionActions | null {
   const { selectedRow, isFlagged, labels, onKeep, onDefer, onDelete } = params;
-  if (!selectedRow || !isFlagged) {
+  if (!selectedRow || !isFlagged || !isSubscriptionRowFlagged(selectedRow.status)) {
     return null;
   }
 
@@ -356,7 +356,18 @@ export function buildSubscriptionListGroups(
     });
   }
 
-  return Array.from(groups.values()).sort((left, right) => left.label.localeCompare(right.label));
+  return Array.from(groups.values()).sort((left, right) => {
+    const labelOrder = left.label.localeCompare(right.label);
+    if (labelOrder !== 0) {
+      return labelOrder;
+    }
+
+    if (left.key === right.key) {
+      return 0;
+    }
+
+    return left.key < right.key ? -1 : 1;
+  });
 }
 
 export function countSubscriptionGroupRows(groups: SubscriptionListGroup[]): number {
@@ -376,7 +387,9 @@ export function buildSubscriptionListRows({
 }): SubscriptionListRow[] {
   return feeds.map((feed) => {
     const latestArticleAt = feedArticleSummaryMap.get(feed.id)?.latest_article_at ?? null;
-    const status = resolveSubscriptionRowStatus({ candidate: candidateMap.get(feed.id) });
+    const status = resolveSubscriptionRowStatus({
+      candidate: candidateMap.get(feed.id),
+    });
 
     return {
       feed,
@@ -384,7 +397,10 @@ export function buildSubscriptionListRows({
       folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
       latestArticleAt,
       status,
-      reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({ latestArticleAt, status }),
+      reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({
+        latestArticleAt,
+        status,
+      }),
     };
   });
 }

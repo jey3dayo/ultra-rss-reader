@@ -150,10 +150,26 @@ const articles: ArticleDto[] = [
 ];
 
 const feedArticleSummaries: FeedArticleSummaryDto[] = [
-  { feed_id: "feed-stale", latest_article_at: "2025-11-01T10:00:00Z", starred_count: 1 },
-  { feed_id: "feed-active", latest_article_at: "2026-04-01T09:00:00Z", starred_count: 1 },
-  { feed_id: "feed-mid", latest_article_at: "2026-01-01T12:00:00Z", starred_count: 0 },
-  { feed_id: "feed-dormant", latest_article_at: "2026-03-15T12:00:00Z", starred_count: 0 },
+  {
+    feed_id: "feed-stale",
+    latest_article_at: "2025-11-01T10:00:00Z",
+    starred_count: 1,
+  },
+  {
+    feed_id: "feed-active",
+    latest_article_at: "2026-04-01T09:00:00Z",
+    starred_count: 1,
+  },
+  {
+    feed_id: "feed-mid",
+    latest_article_at: "2026-01-01T12:00:00Z",
+    starred_count: 0,
+  },
+  {
+    feed_id: "feed-dormant",
+    latest_article_at: "2026-03-15T12:00:00Z",
+    starred_count: 0,
+  },
 ];
 
 const feedArticleSummaryMap = buildFeedArticleSummaryMap(feedArticleSummaries);
@@ -355,7 +371,12 @@ describe("subscriptions index helpers", () => {
         candidateMap: buildSubscriptionReviewCandidateMap(candidates),
       })?.feedId,
     ).toBe("feed-stale");
-    expect(resolveSelectedSubscriptionCandidate({ selectedRow: null, candidateMap: new Map() })).toBeNull();
+    expect(
+      resolveSelectedSubscriptionCandidate({
+        selectedRow: null,
+        candidateMap: new Map(),
+      }),
+    ).toBeNull();
     expect(
       resolveSelectedSubscriptionDetailMetrics({
         selectedRow: rows[0],
@@ -366,7 +387,13 @@ describe("subscriptions index helpers", () => {
       latestArticleAt: "2025-11-01T10:00:00Z",
       starredCount: 1,
     });
-    expect(resolveSelectedSubscriptionDetailMetrics({ selectedRow: null, articles, feedArticleSummaryMap })).toBeNull();
+    expect(
+      resolveSelectedSubscriptionDetailMetrics({
+        selectedRow: null,
+        articles,
+        feedArticleSummaryMap,
+      }),
+    ).toBeNull();
   });
 
   it("resolves row reason tooltip keys from flagged status or missing article history", () => {
@@ -425,7 +452,11 @@ describe("subscriptions index helpers", () => {
       onDelete,
     });
 
-    expect(actions).toMatchObject({ keepLabel: "Keep", deferLabel: "Later", deleteLabel: "Delete" });
+    expect(actions).toMatchObject({
+      keepLabel: "Keep",
+      deferLabel: "Later",
+      deleteLabel: "Delete",
+    });
     actions?.onKeep();
     actions?.onDefer();
     actions?.onDelete();
@@ -442,6 +473,84 @@ describe("subscriptions index helpers", () => {
         onDelete,
       }),
     ).toBeNull();
+  });
+
+  it("does not build decision actions for null or unflagged selected rows", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+    const onKeep = vi.fn();
+    const onDefer = vi.fn();
+    const onDelete = vi.fn();
+    const labels = { keep: "Keep", defer: "Later", delete: "Delete" };
+
+    expect(
+      buildSubscriptionDecisionActions({
+        selectedRow: null,
+        isFlagged: true,
+        labels,
+        onKeep,
+        onDefer,
+        onDelete,
+      }),
+    ).toBeNull();
+    expect(
+      buildSubscriptionDecisionActions({
+        selectedRow: rows[0],
+        isFlagged: true,
+        labels,
+        onKeep,
+        onDefer,
+        onDelete,
+      }),
+    ).toBeNull();
+  });
+
+  it("captures the selected row when keep and defer callbacks are generated", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map([
+        [
+          "feed-stale",
+          {
+            feedId: "feed-stale",
+            title: "Old Product Blog",
+            folderId: "folder-work",
+            folderName: "Work",
+            latestArticleAt: "2025-11-01T10:00:00Z",
+            unreadCount: 0,
+            starredCount: 1,
+            staleDays: 155,
+            reasonKeys: ["stale_90d"],
+          },
+        ],
+      ]),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+    const onKeep = vi.fn();
+    const onDefer = vi.fn();
+    let selectedRow = rows[0];
+
+    const actions = buildSubscriptionDecisionActions({
+      selectedRow,
+      isFlagged: true,
+      labels: { keep: "Keep", defer: "Later", delete: "Delete" },
+      onKeep,
+      onDefer,
+      onDelete: vi.fn(),
+    });
+    selectedRow = rows[1];
+
+    actions?.onKeep();
+    actions?.onDefer();
+
+    expect(selectedRow.feed.id).toBe("feed-active");
+    expect(onKeep).toHaveBeenCalledWith(rows[0]);
+    expect(onDefer).toHaveBeenCalledWith(rows[0]);
   });
 
   it("filters visible rows by review status, local decisions, search query, and sort key", () => {
@@ -622,8 +731,18 @@ describe("subscriptions index helpers", () => {
     });
 
     expect(buildSubscriptionListGroups(rows, "No Folder")).toMatchObject([
-      { key: "__ungrouped__", label: "No Folder", rows: [rows[1], rows[2], rows[3]], folderId: null },
-      { key: "folder-work", label: "Work", rows: [rows[0]], folderId: "folder-work" },
+      {
+        key: "__ungrouped__",
+        label: "No Folder",
+        rows: [rows[1], rows[2], rows[3]],
+        folderId: null,
+      },
+      {
+        key: "folder-work",
+        label: "Work",
+        rows: [rows[0]],
+        folderId: "folder-work",
+      },
     ]);
   });
 
@@ -649,6 +768,53 @@ describe("subscriptions index helpers", () => {
     expect(groups[1]?.rows.map((row) => row.feed.id)).toEqual(["feed-active", "feed-dormant", "feed-mid"]);
   });
 
+  it("uses folder keys as a stable tie-breaker when folder labels match", () => {
+    const sameLabelFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-z", folder_id: "folder-z", title: "Z feed" },
+      { ...feeds[1], id: "feed-a", folder_id: "folder-a", title: "A feed" },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: sameLabelFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map([
+        ["folder-a", "Shared"],
+        ["folder-z", "Shared"],
+      ]),
+    });
+
+    const groups = buildSubscriptionListGroups(rows, "No Folder");
+
+    expect(groups.map((group) => group.key)).toEqual(["folder-a", "folder-z"]);
+  });
+
+  it("keeps the no-folder group stable when its label matches a folder label", () => {
+    const sameLabelFeeds: FeedDto[] = [
+      {
+        ...feeds[0],
+        id: "feed-folder",
+        folder_id: "folder-archive",
+        title: "Folder feed",
+      },
+      {
+        ...feeds[1],
+        id: "feed-no-folder",
+        folder_id: null,
+        title: "No folder feed",
+      },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: sameLabelFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map([["folder-archive", "Archive"]]),
+    });
+
+    const groups = buildSubscriptionListGroups(rows, "Archive");
+
+    expect(groups.map((group) => group.key)).toEqual(["__ungrouped__", "folder-archive"]);
+  });
+
   it("formats subscription dates with an invalid fallback", () => {
     expect(formatSubscriptionDate("not-a-date", "en-US")).toBe("—");
     expect(formatSubscriptionDate("2026-04-01T09:00:00Z", "en-US")).toContain("2026");
@@ -667,17 +833,33 @@ describe("subscriptions index helpers", () => {
       folderNameById: new Map([["folder-work", "Work"]]),
     })[0];
 
-    expect(resolveSelectedSubscriptionDisplayModeLabel({ selectedRow: null, labels })).toBe("Use default");
-    expect(resolveSelectedSubscriptionDisplayModeLabel({ selectedRow: baseRow, labels })).toBe("Use default");
     expect(
       resolveSelectedSubscriptionDisplayModeLabel({
-        selectedRow: { ...baseRow, feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "off" } },
+        selectedRow: null,
+        labels,
+      }),
+    ).toBe("Use default");
+    expect(
+      resolveSelectedSubscriptionDisplayModeLabel({
+        selectedRow: baseRow,
+        labels,
+      }),
+    ).toBe("Use default");
+    expect(
+      resolveSelectedSubscriptionDisplayModeLabel({
+        selectedRow: {
+          ...baseRow,
+          feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "off" },
+        },
         labels,
       }),
     ).toBe("Standard");
     expect(
       resolveSelectedSubscriptionDisplayModeLabel({
-        selectedRow: { ...baseRow, feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "on" } },
+        selectedRow: {
+          ...baseRow,
+          feed: { ...baseRow.feed, reader_mode: "on", web_preview_mode: "on" },
+        },
         labels,
       }),
     ).toBe("Preview");
