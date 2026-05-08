@@ -21,6 +21,7 @@ import {
 } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { CommandPalette } from "@/components/reader/command-palette";
+import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -226,6 +227,67 @@ describe("CommandPalette", () => {
       await screen.findByText("Actions", { selector: "[cmdk-group-heading]" }),
     ).toBeInTheDocument();
     expect(requestedCommands).not.toContain("list_feeds");
+    expect(
+      screen.queryByRole("option", { name: /Add Feed/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Sync/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Mark all as read/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides sync actions while a sync is active", async () => {
+    useUiStore.setState({
+      syncProgress: {
+        active: true,
+        kind: "manual_all",
+        stage: "account_started",
+        total: 1,
+        completed: 0,
+        currentAccountName: "Local",
+        activeAccountIds: new Set(["acc-1"]),
+      },
+    });
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(
+      await screen.findByRole("option", { name: /Add Feed/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Sync/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Mark all as read/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("guards unavailable action dispatches from command handlers", () => {
+    const executeAction = vi
+      .spyOn(actions, "executeAction")
+      .mockImplementation(() => {});
+    const closePalette = vi.fn();
+    const handlers = useCommandPaletteHandlers({
+      closePalette,
+      openShortcutsHelp: vi.fn(),
+      showToast: vi.fn(),
+      selectedAccountId: null,
+      isSyncing: true,
+      selectFeedFromCurrentContext: vi.fn(),
+      selectTagFromCurrentContext: vi.fn(),
+      selectArticle: vi.fn(),
+      openFeedLanding: vi.fn(),
+    });
+
+    handlers.handleActionSelect("sync-all");
+    handlers.handleActionSelect("open-add-feed");
+    handlers.handleActionSelect("mark-all-read");
+
+    expect(executeAction).not.toHaveBeenCalled();
+    expect(closePalette).not.toHaveBeenCalled();
+    expectCommandHistoryCleared();
   });
 
   it("renders the no-results helper in foreground-soft tone", async () => {

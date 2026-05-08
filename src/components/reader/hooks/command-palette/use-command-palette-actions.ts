@@ -17,6 +17,8 @@ import type { PaletteAction } from "../../command-palette.types";
 type UseCommandPaletteActionsParams = {
   platformKind: PlatformInfo["kind"];
   shortcutPrefs: Record<string, string>;
+  selectedAccountId: string | null;
+  isSyncing: boolean;
 };
 
 type UseCommandPaletteActionsResult = PaletteAction[];
@@ -24,6 +26,8 @@ type UseCommandPaletteActionsResult = PaletteAction[];
 export function useCommandPaletteActions({
   platformKind,
   shortcutPrefs,
+  selectedAccountId,
+  isSyncing,
 }: UseCommandPaletteActionsParams): UseCommandPaletteActionsResult {
   const { t } = useTranslation("reader");
   const { t: tSidebar } = useTranslation("sidebar");
@@ -34,7 +38,11 @@ export function useCommandPaletteActions({
       {
         id: "open-settings",
         label: t("shortcuts.open_settings"),
-        shortcut: getShortcutDisplay("open_settings", shortcutPrefs, platformKind),
+        shortcut: getShortcutDisplay(
+          "open_settings",
+          shortcutPrefs,
+          platformKind,
+        ),
         keywords: [
           "settings",
           "preferences",
@@ -96,31 +104,47 @@ export function useCommandPaletteActions({
         ],
         icon: MoonIcon,
       },
-      {
-        id: "open-add-feed",
-        label: t("add_feed"),
-        keywords: ["feed", "rss", "subscribe"],
-        icon: RssIcon,
-      },
+      ...(selectedAccountId
+        ? [
+            {
+              id: "open-add-feed" as const,
+              label: t("add_feed"),
+              keywords: ["feed", "rss", "subscribe"],
+              icon: RssIcon,
+            },
+          ]
+        : []),
       {
         id: "open-subscriptions-index",
         label: tSidebar("subscriptions_index"),
         keywords: ["subscriptions", "feeds", "management"],
         icon: RssIcon,
       },
-      {
-        id: "sync-all",
-        label: tSidebar("sync_feeds"),
-        keywords: ["sync", "refresh", "reload"],
-        icon: RefreshCwIcon,
-      },
-      {
-        id: "mark-all-read",
-        label: t("shortcuts.mark_all_read"),
-        shortcut: getShortcutDisplay("mark_all_read", shortcutPrefs, platformKind),
-        keywords: ["read", "articles"],
-        icon: NewspaperIcon,
-      },
+      ...(selectedAccountId && !isSyncing
+        ? [
+            {
+              id: "sync-all" as const,
+              label: tSidebar("sync_feeds"),
+              keywords: ["sync", "refresh", "reload"],
+              icon: RefreshCwIcon,
+            },
+          ]
+        : []),
+      ...(selectedAccountId
+        ? [
+            {
+              id: "mark-all-read" as const,
+              label: t("shortcuts.mark_all_read"),
+              shortcut: getShortcutDisplay(
+                "mark_all_read",
+                shortcutPrefs,
+                platformKind,
+              ),
+              keywords: ["read", "articles"],
+              icon: NewspaperIcon,
+            },
+          ]
+        : []),
     ];
 
     if (import.meta.env.DEV) {
@@ -133,5 +157,13 @@ export function useCommandPaletteActions({
     }
 
     return actions;
-  }, [platformKind, shortcutPrefs, t, tSettings, tSidebar]);
+  }, [
+    isSyncing,
+    platformKind,
+    selectedAccountId,
+    shortcutPrefs,
+    t,
+    tSettings,
+    tSidebar,
+  ]);
 }

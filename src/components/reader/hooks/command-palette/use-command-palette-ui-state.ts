@@ -8,8 +8,13 @@ export function useCommandPaletteUiState() {
   const openShortcutsHelp = useUiStore((state) => state.openShortcutsHelp);
   const showToast = useUiStore((state) => state.showToast);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
-  const selectFeedFromCurrentContext = useUiStore((state) => state.selectFeedFromCurrentContext);
-  const selectTagFromCurrentContext = useUiStore((state) => state.selectTagFromCurrentContext);
+  const isSyncing = useUiStore((state) => state.syncProgress.active);
+  const selectFeedFromCurrentContext = useUiStore(
+    (state) => state.selectFeedFromCurrentContext,
+  );
+  const selectTagFromCurrentContext = useUiStore(
+    (state) => state.selectTagFromCurrentContext,
+  );
   const selectArticle = useUiStore((state) => state.selectArticle);
 
   const platformKind = usePlatformStore((state) => state.platform.kind);
@@ -21,6 +26,7 @@ export function useCommandPaletteUiState() {
     openShortcutsHelp,
     showToast,
     selectedAccountId,
+    isSyncing,
     selectFeedFromCurrentContext,
     selectTagFromCurrentContext,
     selectArticle,

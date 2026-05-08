@@ -21,23 +21,37 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     selectArticle,
     platformKind,
     shortcutPrefs,
+    isSyncing,
   } = useCommandPaletteUiState();
   const openFeedLanding = useFeedLanding();
-  const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime({ open });
-  const actions = useCommandPaletteActions({ platformKind, shortcutPrefs });
+  const { input, setInput, devScenarios, prefix, query, deferredQuery } =
+    useCommandPaletteRuntime({ open });
+  const actions = useCommandPaletteActions({
+    platformKind,
+    shortcutPrefs,
+    selectedAccountId,
+    isSyncing,
+  });
   const closePalette = () => {
     closeCommandPalette();
   };
-  const { handleActionSelect, handleFeedSelect, handleTagSelect, handleArticleSelect, handleDevScenarioSelect } =
-    useCommandPaletteHandlers({
-      closePalette,
-      openShortcutsHelp,
-      showToast,
-      selectFeedFromCurrentContext,
-      selectTagFromCurrentContext,
-      selectArticle,
-      openFeedLanding,
-    });
+  const {
+    handleActionSelect,
+    handleFeedSelect,
+    handleTagSelect,
+    handleArticleSelect,
+    handleDevScenarioSelect,
+  } = useCommandPaletteHandlers({
+    closePalette,
+    openShortcutsHelp,
+    showToast,
+    selectedAccountId,
+    isSyncing,
+    selectFeedFromCurrentContext,
+    selectTagFromCurrentContext,
+    selectArticle,
+    openFeedLanding,
+  });
 
   const {
     articles,

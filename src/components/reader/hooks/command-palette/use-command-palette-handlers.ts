@@ -1,5 +1,8 @@
 import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
-import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
+import {
+  type RuntimeDevScenario,
+  runRuntimeDevScenario,
+} from "@/dev/scenario-runtime";
 import { executeAction } from "@/lib/actions";
 import type { ToastData } from "@/lib/ui/toast.types";
 import type { PaletteAction } from "../../command-palette.types";
@@ -9,6 +12,8 @@ type UseCommandPaletteHandlersParams = {
   closePalette: () => void;
   openShortcutsHelp: () => void;
   showToast: (message: string | ToastData) => void;
+  selectedAccountId: string | null;
+  isSyncing: boolean;
   selectFeedFromCurrentContext: (feedId: string) => void;
   selectTagFromCurrentContext: (tagId: string) => void;
   selectArticle: (articleId: string) => void;
@@ -27,6 +32,8 @@ export function useCommandPaletteHandlers({
   closePalette,
   openShortcutsHelp,
   showToast,
+  selectedAccountId,
+  isSyncing,
   selectFeedFromCurrentContext,
   selectTagFromCurrentContext,
   selectArticle,
@@ -38,13 +45,27 @@ export function useCommandPaletteHandlers({
       closePalette();
       return;
     }
-    addToHistory(createCommandPaletteHistoryValue({ kind: "action", id: action }));
+    if (
+      (!selectedAccountId &&
+        (action === "open-add-feed" ||
+          action === "sync-all" ||
+          action === "mark-all-read")) ||
+      (isSyncing && action === "sync-all")
+    ) {
+      return;
+    }
+
+    addToHistory(
+      createCommandPaletteHistoryValue({ kind: "action", id: action }),
+    );
     executeAction(action);
     closePalette();
   }
 
   function handleFeedSelect(feedId: string) {
-    addToHistory(createCommandPaletteHistoryValue({ kind: "feed", id: feedId }));
+    addToHistory(
+      createCommandPaletteHistoryValue({ kind: "feed", id: feedId }),
+    );
     void openFeedLanding(feedId);
     closePalette();
   }
@@ -56,7 +77,9 @@ export function useCommandPaletteHandlers({
   }
 
   function handleArticleSelect(feedId: string, articleId: string) {
-    addToHistory(createCommandPaletteHistoryValue({ kind: "article", id: articleId }));
+    addToHistory(
+      createCommandPaletteHistoryValue({ kind: "article", id: articleId }),
+    );
     selectFeedFromCurrentContext(feedId);
     selectArticle(articleId);
     closePalette();
