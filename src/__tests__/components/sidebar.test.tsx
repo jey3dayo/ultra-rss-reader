@@ -26,22 +26,39 @@ const { devIntentState } = vi.hoisted(() => ({
   },
 }));
 
-const { sidebarSourceOverrides } = vi.hoisted(() => ({
-  sidebarSourceOverrides: {
+type SidebarSourceOverrides = {
+  feedsEnabled: boolean;
+  feedsData: FeedDto[] | undefined;
+  foldersEnabled: boolean;
+  foldersData: FolderDto[] | undefined;
+  accountArticlesEnabled: boolean;
+  accountArticlesData: ArticleDto[] | undefined;
+  starredArticlesEnabled: boolean;
+  starredArticlesData: ArticleDto[] | undefined;
+  starredCountEnabled: boolean;
+  starredCountData: number | undefined;
+  tagArticleCountsEnabled: boolean;
+  tagArticleCountsData: Record<string, number> | undefined;
+};
+
+const { sidebarSourceOverrides } = vi.hoisted(() => {
+  const sidebarSourceOverrides: SidebarSourceOverrides = {
     feedsEnabled: false,
-    feedsData: undefined as FeedDto[] | undefined,
+    feedsData: undefined,
     foldersEnabled: false,
-    foldersData: undefined as FolderDto[] | undefined,
+    foldersData: undefined,
     accountArticlesEnabled: false,
-    accountArticlesData: undefined as ArticleDto[] | undefined,
+    accountArticlesData: undefined,
     starredArticlesEnabled: false,
-    starredArticlesData: undefined as ArticleDto[] | undefined,
+    starredArticlesData: undefined,
     starredCountEnabled: false,
-    starredCountData: undefined as number | undefined,
+    starredCountData: undefined,
     tagArticleCountsEnabled: false,
-    tagArticleCountsData: undefined as Record<string, number> | undefined,
-  },
-}));
+    tagArticleCountsData: undefined,
+  };
+
+  return { sidebarSourceOverrides };
+});
 
 let syncCompletedListener: (() => void) | null = null;
 let syncProgressListener:

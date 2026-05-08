@@ -7,9 +7,9 @@ type StoryMetaModule = {
   };
 };
 
-const storyModules = import.meta.glob("../../components/**/*.stories.tsx", {
+const storyModules = import.meta.glob<StoryMetaModule>("../../components/**/*.stories.tsx", {
   eager: true,
-}) as Record<string, StoryMetaModule>;
+});
 
 const storyMetas = Object.entries(storyModules)
   .map(([path, module]) => ({
