@@ -557,35 +557,15 @@
   - remote folder sync、drag/drop folder move、rename dialog visual/copy とは混ぜず、validation と repository error projection だけを見る
   - 既存データ migration は触らず、新規 update/create input の contract に限定する
 
-- [ ] account / feed list stable sort 候補を別バッチで追加する
-  - `sqlite_account.rs` と `sqlite_feed.rs` の `find_all` / `find_by_account` の ORDER BY を定義し、repository test で順序を固定する
-  - sidebar section visibility、unread priority、folder expansion とは混ぜず、DB query の deterministic order だけを扱う
-  - UI 側 sort 変更は含めず、backend DTO list の安定性に限定する
-
 - [ ] FreshRSS remote subscription stale detection 候補を別バッチで検証する
   - `sync_providers.rs`、`repository/feed.rs`、`sqlite_feed.rs` の remote subscription 差分検出を棚卸しし、消えた購読を stale diagnostic として扱えるか確認する
   - pending mutation queue、手動 unsubscribe UX、article retention とは混ぜず、remote subscription presence の検出と記録だけを見る
   - いきなり削除せず、diagnostic DTO / log / test fixture から始める
 
-- [ ] shortcut preference validation 候補を別バッチで追加する
-  - `keyboard-shortcuts.ts`、preferences schema、`preference_commands.rs` の `shortcut_` 動的 key を既知 shortcut id と保存値形式で検証する
-  - prefix 全許可を続けるか、known shortcut registry へ寄せるかを test で固定する
-  - shortcut UI 再設計、native menu shortcut、表示 copy 変更とは混ぜない
-
 - [ ] shortcut row individual reset 候補を別バッチで追加する
   - `shortcuts-settings.tsx` と `shortcuts-settings-view.tsx` で、全リセットとは別に 1 行ごとに default へ戻す操作を追加できるか確認する
   - shortcut 定義追加、native menu shortcut、i18n 表記整理とは混ぜず、row action と persistence update に限定する
   - reset disabled state と focused row の keyboard 操作を component test で固定する
-
-- [ ] article tag picker existing-name assignment 候補を別バッチで追加する
-  - `article-tag-chips.tsx` と `article-tag-picker-popover.tsx` で、既存タグ名を入力した場合に重複作成ではなく既存タグ割り当てへ寄せる
-  - tag settings、tag color、mute keyword、Rust tag schema とは混ぜず、picker input resolution と submit action だけを扱う
-  - case sensitivity と trim の扱いを先に test で固定する
-
-- [ ] command palette unavailable action guard 候補を別バッチで追加する
-  - `use-command-palette-actions.ts` と `use-command-palette-handlers.ts` の現在記事 / 選択 / 同期状態が必要な action を disabled または非表示にする
-  - 検索 ranking、history、dev scenario error surface とは混ぜず、実行不能 action の guard と表示状態に限定する
-  - action 実行時の二重 guard を残すかどうかも test で固定する
 
 - [ ] article mutation missing-id contract 候補を別バッチで検証する
   - `article_commands.rs` と `sqlite_article.rs` の `mark_article_read` / `mark_articles_read` / `toggle_article_star` で存在しない article id の扱いを固定する
@@ -651,16 +631,6 @@
   - Storybook Playwright smoke に UI Reference の主要 iframe URL が blank / error にならない確認を追加する
   - visual snapshot、canvas 名変更、Storybook fixture runtime 整理とは混ぜず、loadable smoke gate だけを見る
   - 既存 1 canvas smoke から対象 URL の小さい matrix へ広げる
-
-- [ ] browser webview pending bounds flush 候補を別バッチで検証する
-  - `use-browser-webview-sync.ts` と `use-browser-webview-bounds-sync.ts` で、create 中 resize が pending bounds に積まれ、create 成功後に最新 bounds だけ flush されることを固定する
-  - bounds args validation、native WebView 実装、dev geometry diagnostics とは混ぜず、hook 内の pending flush contract に限定する
-  - resize 連打と create failure の扱いを fake runtime test で見る
-
-- [ ] focus override initialization script 候補を別バッチで追加する
-  - `browser_webview.rs` と preference command の `web_preview_keep_focus=true` 時だけ focus / visibility override script が initialization script に入ることを固定する
-  - Web Preview transient override、reader focus return、Windows accelerator bridge とは混ぜない
-  - false / 未設定時に script が入らないことも Rust unit test で見る
 
 - [ ] mute keyword auto mark preference guard 候補を別バッチで追加する
   - `mute_keyword_commands.rs` と `sqlite_mute_keyword.rs` で、create / update 時の既存一致記事 auto mark read を `mute_auto_mark_read=true` の時だけ適用する
