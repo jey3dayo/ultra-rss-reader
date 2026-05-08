@@ -978,3 +978,78 @@
   - `share_commands.rs` と frontend command schema で `mailto:` / `file:` / 空 URL など unsupported scheme を native share / Reading List へ渡さない contract を固定する
   - Reading List URL escaping、clipboard fallback、article share menu visual とは混ぜない
   - URL parse error と unsupported scheme を別 fixture にする
+
+- [ ] read-state optimistic cache membership contract 候補を別バッチで追加する
+  - `use-articles.ts` の `useSetRead` 成功時に、`mode: "unread"` の article cache で既読化した記事を即時に残す / 落とす契約を fixed test にする
+  - unread count、feed count、mark-all-read 系 mutation、reader selection UX とは混ぜない
+  - feed / folder / account scope で cache membership の扱いが揃うかを代表 case に絞る
+
+- [ ] star-state mode-aware cache key contract 候補を別バッチで追加する
+  - `useToggleStar` の即時 cache patch が実 hook の `["accountArticles", accountId, { mode }]` / `["starredArticles", accountId]` とズレた unscoped key を作らないことを固定する
+  - starred count invalidation、context menu 表示、article toolbar 操作とは混ぜない
+  - account article cache と starred article cache の key update を別 assertion にする
+
+- [ ] recent article history mutation invalidation contract 候補を別バッチで追加する
+  - `useRecordArticleView` / `useClearArticleViewHistory` が `recentArticles` だけを invalidation し、通常 article list / counts を巻き込まないことを固定する
+  - 最近表示 UI、viewMode clamp、browser open / close、reader scope matrix とは混ぜない
+  - record と clear の invalidation target を hook test で分ける
+
+- [ ] article tag mutation cache boundary contract 候補を別バッチで追加する
+  - `use-tags.ts` の `useTagArticle` / `useUntagArticle` が `articleTags`、`articlesByTag`、`tagArticleCounts` のどこまでを contract とするかを代表 mutation で固定する
+  - tag create / rename / delete、tag settings UI、tag chip visual、mute keyword filter とは混ぜない
+  - tag assignment と unassignment の cache invalidation 差分を確認する
+
+- [ ] subscription summary cache invalidation after feed deletion 候補を別バッチで追加する
+  - `use-delete-feed.ts` 成功時に `feedArticleSummaries` cache をどう扱うかを subscriptions index 専用 query contract として確認する
+  - subscriptions decision flow、keep / defer / delete UX、feed cleanup candidate 判定、unsubscribe dialog copy とは混ぜない
+  - deleted feed の summary 残留と account summary invalidation を分けて見る
+
+- [ ] migration latest version monotonic guard 候補を別バッチで追加する
+  - `migration.rs` と `src-tauri/migrations/*.sql` で `LATEST_VERSION` と migration file sequence が単調増加していることを static test で固定する
+  - migration 内容変更、backup restore、release checklist とは混ぜない
+  - missing version / duplicate version / future file を fixture なしで検出できる形にする
+
+- [ ] migration duplicate column fallback guard 候補を別バッチで追加する
+  - `migration.rs` の idempotent column helpers と V8 / V16 系 migration で duplicate column error を許容する範囲を test で固定する
+  - full rollback behavior、backup restore、schema redesign とは混ぜない
+  - 許容する migration と許容しない migration を明示する
+
+- [ ] database connection pragma runtime guard 候補を別バッチで追加する
+  - `connection.rs` で writer / reader connection の `foreign_keys`、`journal_mode`、`busy_timeout` が期待値になることを focused DB test で固定する
+  - VACUUM busy error、migration recovery、performance tuning とは混ぜない
+  - in-memory DB と file DB の差分がある場合は file DB contract に限定する
+
+- [ ] feed display setting inherited value repository guard 候補を別バッチで追加する
+  - `sqlite_feed.rs` の `update_display_settings` と feed list query で `inherit` / `on` / `off` の保存値と DTO 変換を固定する
+  - display mode precedence、rename dialog UI、folder preset bulk update とは混ぜない
+  - invalid value は command validation 側に残し、repository は persisted valid value を扱う
+
+- [ ] article content text backfill drift guard 候補を別バッチで追加する
+  - `connection.rs` と V14 migration 後の `content_text` backfill が sanitizer / text extraction helper と drift しないことを fixture で固定する
+  - sanitizer privacy hardening、article content migration 全体、reader display UI とは混ぜない
+  - migration-time backfill と runtime sanitized update の差分を明示する
+
+- [ ] Storybook story export smoke registry 候補を別バッチで追加する
+  - `src/**/*.stories.tsx` を対象に default export と named story export が Storybook meta として最低限 render helper へ渡せることを static smoke test にする
+  - Storybook build gate、iframe smoke、visual snapshot とは混ぜない
+  - 例外 story は allowlist にして、component visual assertion はしない
+
+- [ ] UI reference specimen registry drift guard 候補を別バッチで追加する
+  - `ui-reference-canvas-specimens.tsx` と UI reference stories の specimen id / section id が重複しないことを static test で固定する
+  - UI reference 分割、canvas visual、Storybook taxonomy rename とは混ぜない
+  - duplicate id と orphan section だけを検出する
+
+- [ ] Storybook decorator runtime provider parity 候補を別バッチで追加する
+  - `story-tauri-runtime.ts`、`story-query-client-provider.tsx`、decorator 付き stories が required providers を揃えているかを representative render test で固定する
+  - render-story helper decorator parity、Storybook fixture runtime 整理全体、mock data 文言変更とは混ぜない
+  - Query provider 必須 story と Tauri runtime 必須 story を別 case にする
+
+- [ ] long localized Storybook surface 候補を別バッチで追加する
+  - settings / reader の主要 compact stories に長い日本語 label / account name / feed title の specimen を追加し、text overflow を story smoke で確認する
+  - visual snapshot、copy 文言変更、layout redesign とは混ぜない
+  - long label fixture と narrow container fixture だけを追加する
+
+- [ ] Storybook viewport density fixture 候補を別バッチで追加する
+  - reader sidebar、article list、settings modal の dense / narrow viewport story を追加し、主要 toolbar / row / footer action の存在だけを smoke test で固定する
+  - Playwright screenshot、responsive redesign、mobile recovery layout とは混ぜない
+  - viewport story の目的は layout inspection 用 fixture に限定する
