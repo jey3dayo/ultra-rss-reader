@@ -1126,3 +1126,75 @@
   - `use-browser-view-surface-state.ts` で runtime unavailable / failed / blocked issue が URL 変更、close、retry success でどう reset されるかを固定する
   - browser overlay issue Storybook、load timeout surface、native WebView command 変更とは混ぜない
   - issue kind ごとの reset trigger を fake runtime test に分ける
+
+- [ ] Command palette prefix parser whitespace contract 候補を別バッチで追加する
+  - `use-command-search.ts` の `parsePrefix` で、leading whitespace、prefix 直後の whitespace、prefix だけの入力、通常検索の query を pure test で固定する
+  - command action filtering、resource search ranking、palette UI copy は混ぜず、prefix parser の入出力だけを扱う
+
+- [ ] Command palette history storage compaction contract 候補を別バッチで追加する
+  - `command-palette-history.ts` と `use-command-history.ts` で、重複 entry の先頭移動、最大件数、invalid stored entry の扱いを storage helper contract として固定する
+  - unavailable action guard、resource existence validation、recent item UI 表示順は別バッチに残す
+
+- [ ] Add feed submit failure loading reset 候補を別バッチで追加する
+  - `use-add-feed-dialog-actions.ts` で `addLocalFeed` 失敗時にも loading state が確実に解除され、submit error が残る契約を fixed test で固定する
+  - discovery failure、folder assignment failure、toast copy、dialog view props 整理は混ぜない
+
+- [ ] Feed dialog folder selection reset draft contract 候補を別バッチで追加する
+  - `use-folder-selection.ts` で reset と folder select が `newFolderName` と `isCreatingFolder` を必ず初期化する契約を hook test で固定する
+  - folder repository create、add feed submit、folder select view の visual state は別スコープに残す
+
+- [ ] Sidebar feed navigation expansion freshness 候補を別バッチで追加する
+  - `use-sidebar-feed-navigation.ts` で keyboard/event navigation により collapsed folder 配下の feed へ移動する時、expanded folder set が stale closure で上書きされない契約を固定する
+  - startup folder expansion、roving hidden target skip、scroll positioning の見た目調整は混ぜない
+
+- [ ] Article list global shortcut listener cleanup 候補を別バッチで追加する
+  - `use-article-list-global-events.ts` で navigate article custom event、focus search、mark all read の listener が dependency change / unmount で確実に外れる契約を固定する
+  - keyboard preference mapping、article navigation selection、mark-all-read mutation は同じバッチに混ぜない
+
+- [ ] Feed tree click suppression timer cleanup 候補を別バッチで追加する
+  - `use-feed-tree-handle-click-suppression.ts` で suppress timer が unmount 時に clear され、連続 drag handle 操作でも stale timer が残らない契約を fixed timer test で固定する
+  - drag outcome、drop target hover、folder disclosure aria は別バッチにする
+
+- [ ] Reader custom event detail type guard 候補を別バッチで追加する
+  - `createCustomEventDetailListener` を使う reader navigation 系 hook で、不正 detail の custom event が action handler を呼ばない契約を代表 hook test で固定する
+  - event name taxonomy、native menu bridge、keyboard shortcut preference は混ぜず、detail type guard の contract に限定する
+
+- [ ] Provider article timestamp fallback 候補を別バッチで追加する
+  - `normalizer.rs` で RSS / Atom entry の `published` と `updated` の優先順、どちらも無い時の `None` fallback を fixture test で固定する
+  - retention cleanup、article ordering、sync provider error mapping は別バッチに残す
+
+- [ ] Sync scheduler deleted account pruning contract 候補を別バッチで追加する
+  - `sync_scheduler.rs` で削除済み account の schedule entry が pruning され、次 tick で sync target に残らない契約を小さい scheduler helper test として切り出す
+  - backoff visibility、startup sync unlock、manual sync in-flight guard は混ぜない
+
+- [ ] Sync scheduler panic progress completion contract 候補を別バッチで追加する
+  - `sync_scheduler.rs` で account sync panic 時にも account finished event と scheduler continuation の契約が崩れないことを helper 化して固定する
+  - provider panic の原因調査、retry/backoff policy、UI sync feedback copy は別バッチにする
+
+- [ ] Updater progress percent normalization contract 候補を別バッチで追加する
+  - `use-updater.ts` で `update-download-progress` の percent が `null` / 0 / 100 / 範囲外の場合に toast progress と message がどう出るかを hook/runtime test で固定する
+  - updater command implementation、release artifact verification、restart failure guard は混ぜない
+
+- [ ] Tag color validation normalization contract 候補を別バッチで追加する
+  - `tag_commands.rs` の `validate_color` と frontend tag form 周辺で、hex color の大文字小文字、短縮形、空文字、invalid value の扱いを contract test として明示する
+  - tag chip visual token、color picker UI、tag count cache invalidation は別バッチに残す
+
+- [ ] Preference language menu update failure contract 候補を別バッチで追加する
+  - `preference_commands.rs` で `ui_language` 保存後に menu update が失敗した時の error category と保存済み preference の扱いを contract として固定する
+  - locale copy、menu accelerator label、settings view option schema は混ぜない
+
+- [ ] OPML malformed document error category 候補を別バッチで追加する
+  - `opml.rs` と `opml_commands.rs` で malformed XML、OPML root missing、outline missing URL の error / skip 方針を parser contract として整理する
+  - duplicate outline URL policy、outline text fallback、file picker UI は同じバッチに混ぜない
+
+- [ ] Article list search debounce / close contract 候補を別バッチで追加する
+  - `use-article-list-search.ts` で `openSearch` / `handleToggleSearch` / `handleCloseSearch` と `ARTICLE_SEARCH_DEBOUNCE_MS` 後の trimmed query 反映を hook test で固定する
+  - article scope matrix、footer filter、search UI の見た目、検索 API/schema 変更は混ぜない
+
+- [ ] Article auto mark timer ownership contract 候補を別バッチで追加する
+  - `use-article-auto-mark.ts` で `after_reading` の delayed timer が article change / unmount で cancel され、同一 article を二重 mark しない契約を fake timer で固定する
+  - mutation retry、toast 文言、recent smart view の表示仕様、retention helper のリファクタは混ぜない
+
+- [ ] Sidebar hidden-section fallback contract 候補を別バッチで追加する
+  - `use-sidebar-visibility-fallback.ts` で unread / starred / recent / tag section が非表示、または選択中 tag が消えた時の fallback 順を hook test で固定する
+  - sidebar visual、section collapse UI、account switcher、tag create/delete mutation は混ぜない
