@@ -5,7 +5,20 @@ import { cn } from "@/lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { SidebarHeaderProps } from "./sidebar.types";
+
+export type SidebarHeaderProps = {
+  isSyncing: boolean;
+  onSync: () => void;
+  onAddFeed: () => void;
+  syncButtonLabel: string;
+  syncTooltipLabel?: string;
+  syncButtonText: string;
+  addFeedButtonLabel: string;
+  addFeedButtonText: string;
+  isSyncDisabled?: boolean;
+  isSyncCoolingDown?: boolean;
+  isAddFeedDisabled?: boolean;
+};
 
 const ACCEPTED_SYNC_SPIN_MS = 1_000;
 const COOLDOWN_SYNC_SPIN_MS = 450;

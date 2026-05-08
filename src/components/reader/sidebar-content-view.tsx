@@ -1,10 +1,27 @@
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
-import type { SidebarContentViewProps } from "./sidebar.types";
 import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
+
+type SidebarContentViewProps = {
+  subscriptionsLabel: string;
+  isFeedsSectionOpen: boolean;
+  onToggleFeedsSection: () => void;
+  subscriptionsSectionContextMenu?: ReactNode;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  feedTree: ReactNode;
+  tagSection: ReactNode;
+  subscriptionsIndexLabel: string;
+  subscriptionsIndexShortLabel: string;
+  settingsLabel: string;
+  themeToggleLabel: string;
+  onOpenSubscriptionsIndex: () => void;
+  onOpenSettings: () => void;
+  addFeedDialog?: ReactNode;
+  onFocusAccountList: () => void;
+};
 
 function focusArticleListPane() {
   const store = useUiStore.getState();

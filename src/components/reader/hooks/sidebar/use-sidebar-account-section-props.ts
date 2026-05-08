@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { AccountContextMenuContent } from "../../account-context-menu";
-import type { SidebarAccountSectionProps, SidebarAccountSectionPropsParams } from "../../sidebar.types";
+import type { SidebarAccountSectionPropsParams } from "../../sidebar.types";
+import type { SidebarAccountSectionProps } from "../../sidebar-account-section";
 
 export function useSidebarAccountSectionProps({
   t,

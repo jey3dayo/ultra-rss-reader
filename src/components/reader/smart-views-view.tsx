@@ -1,8 +1,17 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import type { ReactNode } from "react";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
+import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import { cn } from "@/lib/utils";
-import type { SidebarSmartViewsProps, SmartViewKind } from "./sidebar.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
+
+export type SidebarSmartViewsProps = {
+  title?: string;
+  views: SmartViewItemViewModel[];
+  onSelectSmartView: (kind: SmartViewKind) => void;
+  renderContextMenu?: (view: SmartViewItemViewModel) => ReactNode;
+};
 
 type SmartViewToneClassNames = {
   selected: string;

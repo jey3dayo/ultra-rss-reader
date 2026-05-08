@@ -9,10 +9,10 @@ import {
   useUnstarAccountArticles,
 } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
+import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems } from "./old-unread-context-menu-items";
-import type { SmartViewItemViewModel } from "./sidebar.types";
 
 type SmartViewContextMenuContentProps = {
   accountId: string;

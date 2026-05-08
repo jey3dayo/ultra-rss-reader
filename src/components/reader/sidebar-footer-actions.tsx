@@ -5,7 +5,15 @@ import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import type { SidebarFooterActionsViewProps } from "./sidebar.types";
+
+type SidebarFooterActionsViewProps = {
+  subscriptionsIndexLabel: string;
+  subscriptionsIndexShortLabel: string;
+  settingsLabel: string;
+  themeToggleLabel: string;
+  onOpenSubscriptionsIndex: () => void;
+  onOpenSettings: () => void;
+};
 
 type SidebarFooterTooltipButtonProps = ComponentProps<typeof Button> & {
   tooltipLabel: string;

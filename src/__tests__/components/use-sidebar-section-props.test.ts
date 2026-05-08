@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { useSidebarAccountSectionProps } from "@/components/reader/hooks/sidebar/use-sidebar-account-section-props";
 import { useSidebarContentSectionsProps } from "@/components/reader/hooks/sidebar/use-sidebar-content-sections-props";
 import { useSidebarSmartViewsProps } from "@/components/reader/hooks/sidebar/use-sidebar-smart-views-props";
-import type { SmartViewItemViewModel } from "@/components/reader/sidebar.types";
 import i18n from "@/lib/i18n";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 
 const t = i18n.getFixedT("en", "sidebar");
 

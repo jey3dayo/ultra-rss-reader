@@ -1,4 +1,5 @@
-import type { SidebarHeaderProps, SidebarHeaderPropsParams } from "../../sidebar.types";
+import type { SidebarHeaderPropsParams } from "../../sidebar.types";
+import type { SidebarHeaderProps } from "../../sidebar-header-view";
 
 export function useSidebarHeaderProps({
   t,

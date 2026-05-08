@@ -1,94 +1,16 @@
 import type { TFunction } from "i18next";
-import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
-import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
-import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { SortSubscriptions } from "@/schemas/preferences";
-import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
+import type { SidebarAccountSectionProps } from "./sidebar-account-section";
+import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SidebarDensity } from "./sidebar-density";
-import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
-import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
+import type { SidebarHeaderProps } from "./sidebar-header-view";
+import type { SidebarSmartViewsProps } from "./smart-views-view";
 
-export type SidebarHeaderProps = {
-  isSyncing: boolean;
-  onSync: () => void;
-  onAddFeed: () => void;
-  syncButtonLabel: string;
-  syncTooltipLabel?: string;
-  syncButtonText: string;
-  addFeedButtonLabel: string;
-  addFeedButtonText: string;
-  isSyncDisabled?: boolean;
-  isSyncCoolingDown?: boolean;
-  isAddFeedDisabled?: boolean;
-};
+type SidebarContentProps = SidebarContentSectionsProps;
 
-export type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
-  children?: ReactNode;
-  trailing?: ReactNode;
-  selected?: boolean;
-  activePane?: boolean;
-  registerSidebarNavigationTarget?: boolean;
-  selectedIndicatorMode?: "always" | "hide-on-row-hover" | "hidden";
-  selectedIndicatorTone?: "accent" | "neutral";
-  size?: "default" | "compact";
-  density?: SidebarDensity;
-  contentClassName?: string;
-  trailingClassName?: string;
-};
-
-export type SidebarContentSectionsProps = {
-  subscriptionsLabel: string;
-  isFeedsSectionOpen: boolean;
-  onToggleFeedsSection: () => void;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  subscriptionsIndexLabel: string;
-  subscriptionsIndexShortLabel: string;
-  settingsLabel: string;
-  themeToggleLabel: string;
-  onOpenSubscriptionsIndex: () => void;
-  onOpenSettings: () => void;
-  selectedAccountId: string | null;
-  isAddFeedDialogOpen: boolean;
-  onAddFeedDialogOpenChange: (open: boolean) => void;
-  pressPlusToAddFeedLabel: string;
-  tagsLabel: string;
-  noFolderLabel: string;
-  showSidebarTags: boolean;
-  isTagsSectionOpen: SidebarTagListProps["isOpen"];
-  onToggleTagsSection: SidebarTagListProps["onToggleOpen"];
-  feedTreeProps: SidebarFeedTreeProps;
-  tags: SidebarTagItemsParams["tags"];
-  tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];
-  selection: SidebarTagItemsParams["selection"];
-  onSelectTag: SidebarTagListProps["onSelectTag"];
-  renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
-  renderTagSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
-  renderSubscriptionsSectionContextMenu: () => ReactNode;
-  sidebarDensity: SidebarDensity;
-  isFeedTreeLoading: boolean;
-  showFeedTreeSkeleton: boolean;
-  onFocusAccountList: () => void;
-};
-
-export type SidebarContentProps = SidebarContentSectionsProps;
-
-export type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
-export type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
-
-export type SidebarSmartViewsProps = {
-  title?: string;
-  views: SmartViewItemViewModel[];
-  onSelectSmartView: (kind: SmartViewKind) => void;
-  renderContextMenu?: (view: SmartViewItemViewModel) => ReactNode;
-};
-
-export type SidebarAccountSectionProps = AccountSwitcherProps & {
-  containerRef: RefObject<HTMLDivElement | null>;
-};
-
-export type SidebarAccountProps = SidebarAccountSectionProps;
+type SidebarAccountProps = SidebarAccountSectionProps;
 
 export type SidebarSectionPropsResult = {
   headerProps: SidebarHeaderProps;
@@ -305,40 +227,6 @@ export type SidebarViewPropsParams = {
   accountSectionProps: SidebarAccountProps;
   smartViewsProps: SidebarSmartViewsProps;
   contentSectionsProps: SidebarContentProps;
-};
-
-export type SidebarFeedSectionViewProps = {
-  title: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  contextMenu?: ReactNode;
-};
-
-export type SidebarFooterActionsViewProps = {
-  subscriptionsIndexLabel: string;
-  subscriptionsIndexShortLabel: string;
-  settingsLabel: string;
-  themeToggleLabel: string;
-  onOpenSubscriptionsIndex: () => void;
-  onOpenSettings: () => void;
-};
-
-export type SidebarContentViewProps = {
-  subscriptionsLabel: string;
-  isFeedsSectionOpen: boolean;
-  onToggleFeedsSection: () => void;
-  subscriptionsSectionContextMenu?: ReactNode;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  feedTree: ReactNode;
-  tagSection: ReactNode;
-  subscriptionsIndexLabel: string;
-  subscriptionsIndexShortLabel: string;
-  settingsLabel: string;
-  themeToggleLabel: string;
-  onOpenSubscriptionsIndex: () => void;
-  onOpenSettings: () => void;
-  addFeedDialog?: ReactNode;
-  onFocusAccountList: () => void;
 };
 
 export type SidebarContextMenuRenderersResult = {

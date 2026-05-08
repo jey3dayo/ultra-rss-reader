@@ -1,10 +1,25 @@
 import { cva } from "class-variance-authority";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { forwardRef } from "react";
 import { MotionNumber } from "@/components/shared/motion-number";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
-import type { SidebarNavButtonProps } from "./sidebar.types";
+import type { SidebarDensity } from "./sidebar-density";
 import { getSidebarDensityTokens } from "./sidebar-density";
+
+type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
+  children?: ReactNode;
+  trailing?: ReactNode;
+  selected?: boolean;
+  activePane?: boolean;
+  registerSidebarNavigationTarget?: boolean;
+  selectedIndicatorMode?: "always" | "hide-on-row-hover" | "hidden";
+  selectedIndicatorTone?: "accent" | "neutral";
+  size?: "default" | "compact";
+  density?: SidebarDensity;
+  contentClassName?: string;
+  trailingClassName?: string;
+};
 
 const selectedIndicatorVariants = cva(
   "before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:transition-opacity before:duration-150",

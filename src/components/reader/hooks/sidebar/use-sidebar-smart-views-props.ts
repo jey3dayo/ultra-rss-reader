@@ -1,6 +1,7 @@
 import { createElement } from "react";
-import type { SidebarSmartViewsProps, SidebarSmartViewsPropsParams } from "../../sidebar.types";
+import type { SidebarSmartViewsPropsParams } from "../../sidebar.types";
 import { SmartViewContextMenuContent } from "../../smart-view-context-menu";
+import type { SidebarSmartViewsProps } from "../../smart-views-view";
 
 export function useSidebarSmartViewsProps({
   t,

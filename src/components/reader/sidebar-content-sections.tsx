@@ -1,13 +1,50 @@
+import type { ReactNode, RefObject } from "react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarTagItems } from "@/components/reader/hooks/sidebar/use-sidebar-tag-items";
 import { AddFeedDialog } from "./add-feed-dialog";
 import type { FeedTreeEmptyState } from "./feed-tree.types";
 import { FeedTreeView } from "./feed-tree-view";
-import type { SidebarContentSectionsProps } from "./sidebar.types";
 import { SidebarContentView } from "./sidebar-content-view";
+import type { SidebarDensity } from "./sidebar-density";
+import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import { SidebarFeedTreeSkeleton } from "./sidebar-feed-tree-skeleton";
+import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
 import { SidebarTagSection } from "./sidebar-tag-section";
+
+export type SidebarContentSectionsProps = {
+  subscriptionsLabel: string;
+  isFeedsSectionOpen: boolean;
+  onToggleFeedsSection: () => void;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  subscriptionsIndexLabel: string;
+  subscriptionsIndexShortLabel: string;
+  settingsLabel: string;
+  themeToggleLabel: string;
+  onOpenSubscriptionsIndex: () => void;
+  onOpenSettings: () => void;
+  selectedAccountId: string | null;
+  isAddFeedDialogOpen: boolean;
+  onAddFeedDialogOpenChange: (open: boolean) => void;
+  pressPlusToAddFeedLabel: string;
+  tagsLabel: string;
+  noFolderLabel: string;
+  showSidebarTags: boolean;
+  isTagsSectionOpen: SidebarTagListProps["isOpen"];
+  onToggleTagsSection: SidebarTagListProps["onToggleOpen"];
+  feedTreeProps: SidebarFeedTreeProps;
+  tags: SidebarTagItemsParams["tags"];
+  tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];
+  selection: SidebarTagItemsParams["selection"];
+  onSelectTag: SidebarTagListProps["onSelectTag"];
+  renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
+  renderTagSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
+  renderSubscriptionsSectionContextMenu: () => ReactNode;
+  sidebarDensity: SidebarDensity;
+  isFeedTreeLoading: boolean;
+  showFeedTreeSkeleton: boolean;
+  onFocusAccountList: () => void;
+};
 
 export function SidebarContentSections({
   subscriptionsLabel,
