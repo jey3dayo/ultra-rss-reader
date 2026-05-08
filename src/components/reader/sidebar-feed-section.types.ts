@@ -1,6 +1,5 @@
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
-import type { StartupFolderExpansionPreference } from "@/lib/preferences-schema";
-import type { SortSubscriptions } from "@/lib/sidebar";
+import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/lib/preferences-schema";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";

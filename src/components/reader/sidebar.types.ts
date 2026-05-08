@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
-import type { SortSubscriptions } from "@/lib/sidebar";
+import type { SortSubscriptions } from "@/lib/preferences-schema";
 import type { SmartViewItemViewModel, SmartViewKind } from "@/lib/sidebar-smart-views";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
