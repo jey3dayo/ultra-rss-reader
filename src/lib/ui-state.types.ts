@@ -1,3 +1,5 @@
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
+
 export type ToastAction = {
   label: string;
   onClick: () => void;
@@ -45,7 +47,7 @@ export type AccountSetupSession = {
 export type UiSelection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
-  | { type: "smart"; kind: "unread" | "starred" | "recent" }
+  | { type: "smart"; kind: SmartViewKind }
   | { type: "tag"; tagId: string }
   | { type: "all" };
 

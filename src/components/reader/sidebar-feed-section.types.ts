@@ -1,5 +1,6 @@
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/lib/preferences-schema";
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
@@ -62,7 +63,7 @@ export type SidebarVisibilityFallbackParams = {
   showSidebarTags: boolean;
   selectFeed: (feedId: string) => void;
   selectAll: () => void;
-  selectSmartView: (kind: "unread" | "starred" | "recent") => void;
+  selectSmartView: (kind: SmartViewKind) => void;
   setViewMode: (mode: SidebarFeedTreeViewMode) => void;
 };
 
@@ -87,7 +88,7 @@ export type SidebarFeedSectionParams = {
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
   selectAll: () => void;
-  selectSmartView: (kind: "unread" | "starred" | "recent") => void;
+  selectSmartView: (kind: SmartViewKind) => void;
   setViewMode: (mode: SidebarFeedTreeViewMode) => void;
   toggleFolder: (folderId: string) => void;
   displayFavicons: boolean;

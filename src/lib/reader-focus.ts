@@ -1,3 +1,5 @@
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
+
 export const SIDEBAR_SELECTED_TARGET_ATTRIBUTE = "data-sidebar-selected-target";
 export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";
 export const ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE = "data-account-pane-selected-target";
@@ -87,7 +89,7 @@ export function focusSelectedSidebarTarget(): boolean {
   return selectedTarget ? focusElement(selectedTarget) : false;
 }
 
-export function focusSidebarSmartViewTarget(kind: "unread" | "starred" | "recent"): boolean {
+export function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
   if (typeof document === "undefined") {
     return false;
   }
@@ -96,10 +98,7 @@ export function focusSidebarSmartViewTarget(kind: "unread" | "starred" | "recent
   return target ? focusElement(target) : false;
 }
 
-export function focusSidebarSmartViewTargetWhenReady(
-  kind: "unread" | "starred" | "recent",
-  attemptsRemaining = 12,
-): void {
+export function focusSidebarSmartViewTargetWhenReady(kind: SmartViewKind, attemptsRemaining = 12): void {
   if (focusSidebarSmartViewTarget(kind)) {
     return;
   }

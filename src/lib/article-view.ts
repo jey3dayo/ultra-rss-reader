@@ -4,6 +4,7 @@ import { countUnreadArticles } from "@/lib/article-list";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
 import { countFeedsInFolder } from "@/lib/sidebar";
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
 
 export type FindSelectedArticleParams = {
   selectedArticleId: string | null;
@@ -43,7 +44,7 @@ export type ArticleViewSummaryState =
     }
   | {
       kind: "smart";
-      smartKind: "unread" | "starred" | "recent";
+      smartKind: SmartViewKind;
       articleCount: number;
       feedCount: number;
       latestArticlePublishedAt?: string | null;
@@ -61,7 +62,7 @@ export type BuildArticleViewSummaryParams = {
     | { type: "feed"; feedId: string }
     | { type: "folder"; folderId: string }
     | { type: "tag"; tagId: string }
-    | { type: "smart"; kind: "unread" | "starred" | "recent" };
+    | { type: "smart"; kind: SmartViewKind };
   selectedFeedId: string | null;
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;

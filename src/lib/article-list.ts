@@ -10,6 +10,7 @@ import {
   parseDateInput,
 } from "@/lib/datetime";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export type SelectVisibleArticlesParams = {
@@ -60,7 +61,7 @@ export type ArticleListMarkAllReadCountParams = {
     | { type: "feed"; feedId: string }
     | { type: "folder"; folderId: string }
     | { type: "tag"; tagId: string }
-    | { type: "smart"; kind: "unread" | "starred" | "recent" };
+    | { type: "smart"; kind: SmartViewKind };
   selectedFeedUnreadCount: number;
   folderUnreadCount: number;
   filteredArticles: ArticleDto[];
@@ -71,7 +72,7 @@ export type ArticleListSelectionForDerivedState =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
   | { type: "tag"; tagId: string }
-  | { type: "smart"; kind: "unread" | "starred" | "recent" };
+  | { type: "smart"; kind: SmartViewKind };
 
 function getDateGroup(dateStr: string): string {
   const date = parseDateInput(dateStr);

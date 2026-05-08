@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/article-retention";
 import type { ConfirmDialogVariant } from "@/lib/confirm-dialog";
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
 import type {
   AccountSetupSession,
   ArticleNavigationDirection,
@@ -131,7 +132,7 @@ interface UiActions {
   selectFeedFromCurrentContext: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
   selectFolderFromCurrentContext: (folderId: string) => void;
-  selectSmartView: (kind: "unread" | "starred" | "recent") => void;
+  selectSmartView: (kind: SmartViewKind) => void;
   selectTag: (tagId: string) => void;
   selectTagFromCurrentContext: (tagId: string) => void;
   selectAll: () => void;

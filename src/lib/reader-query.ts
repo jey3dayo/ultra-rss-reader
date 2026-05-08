@@ -1,3 +1,4 @@
+import type { SmartViewKind } from "@/lib/sidebar-smart-views";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export type ReaderFilter = ViewMode;
@@ -7,7 +8,7 @@ export type ReaderQuerySelection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
   | { type: "tag"; tagId: string }
-  | { type: "smart"; kind: "unread" | "starred" | "recent" };
+  | { type: "smart"; kind: SmartViewKind };
 
 export type AccountReaderScope = { type: "account"; accountId: string };
 export type ArticleReaderScope =
