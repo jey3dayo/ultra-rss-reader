@@ -1,5 +1,10 @@
-import type { SectionHeadingProps } from "@/components/shared/layout.types";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+type SectionHeadingProps = {
+  children: ReactNode;
+  className?: string;
+};
 
 export function SectionHeading({ children, className }: SectionHeadingProps) {
   return (

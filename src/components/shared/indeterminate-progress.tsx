@@ -1,5 +1,8 @@
-import type { IndeterminateProgressProps } from "@/components/shared/layout.types";
 import { cn } from "@/lib/utils";
+
+type IndeterminateProgressProps = {
+  className?: string;
+};
 
 export function IndeterminateProgress({ className }: IndeterminateProgressProps) {
   return (
