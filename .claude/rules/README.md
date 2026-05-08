@@ -27,6 +27,7 @@
 - Tauri IPC request / response schema は `src/api/schemas/` に置く。local storage や app config schema と混ぜない
 - cross-feature literal は `src/constants/`、共有 type-only contract は `src/lib/*.types.ts` に置く
 - reusable test helper は `tests/helpers/` に置き、frontend tests からは `@tests/helpers/*` で import する
+- sample DTO / data fixture は `tests/helpers/fixtures.ts`、Tauri IPC mock setup は `tests/helpers/tauri-mocks.ts`、test-only の Tauri mock call contract は `tests/helpers/tauri-types.ts` に分ける
 - 大きい feature の controller hook は、再利用されない限り feature 配下の `hooks/` に co-locate してよい
 - reader 専用の pure helper は `src/components/reader/` に残してよい。`lib` / `stores` / 他 feature から必要になった時だけ `src/lib/` へ出す
 - `mock/` は historical / visual reference artifact として扱い、通常の実装追加先にしない

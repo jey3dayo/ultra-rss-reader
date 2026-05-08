@@ -267,26 +267,26 @@ Error mapping: `DomainError` → `AppError` at the command boundary (`Network` �
 
 ### TypeScript Frontend (`src/`)
 
-| Path                              | Responsibility                                                                                                    |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `api/tauri-commands.ts`           | All `invoke()` calls wrapped in `safeInvoke` returning `Result<T, AppError>`                                      |
-| `schemas/`                        | Frontend-owned runtime schemas and schema parse helpers for config, storage, and preferences                      |
-| `constants/`                      | Cross-feature literal values, storage keys, layout constants, and motion tokens                                   |
-| `lib/*.types.ts`                  | Cross-feature TypeScript contracts that are shared without React runtime dependencies                             |
-| `stores/`                         | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence)                       |
-| `hooks/`                          | React Query hooks (articles, feeds, accounts, folders) + UI hooks                                                 |
-| `components/reader/`              | Three-pane layout: sidebar, article-list, article-view, browser-view, command palette                             |
-| `components/settings/`            | Per-category settings panels (general, reading, appearance, mute, tags, shortcuts, actions, data, dev-only debug) |
-| `components/subscriptions-index/` | Subscriptions index management workspace, including subscription review / cleanup flow                            |
-| `components/icons/`               | Provider and product icon components plus their narrow icon-only types                                            |
-| `components/shared/`              | Cross-feature primitives reused by reader, settings, and workspaces                                               |
-| `components/ui/`                  | shadcn/ui + Base UI headless primitives wrapped with Tailwind                                                     |
-| `dev/scenarios/`                  | `VITE_DEV_INTENT` scenarios for direct dev entry points and command palette dev commands                          |
-| `dev-mocks.ts`                    | Browser/dev-only mock IPC handlers                                                                                |
-| `dev-mock-data.ts`                | Deterministic sample data for browser/dev-only mocks                                                              |
-| `locales/`                        | i18next resources; Japanese product copy lives under `locales/ja/`                                                |
-| `../tests/helpers/`               | Shared test-only helpers imported as `@tests/helpers/*` from frontend tests                                       |
-| `styles/global.css`               | Tailwind CSS v4 with OKLch design tokens                                                                          |
+| Path                              | Responsibility                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `api/tauri-commands.ts`           | All `invoke()` calls wrapped in `safeInvoke` returning `Result<T, AppError>`                                       |
+| `schemas/`                        | Frontend-owned runtime schemas and schema parse helpers for config, storage, and preferences                       |
+| `constants/`                      | Cross-feature literal values, storage keys, layout constants, and motion tokens                                    |
+| `lib/*.types.ts`                  | Cross-feature TypeScript contracts that are shared without React runtime dependencies                              |
+| `stores/`                         | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence)                        |
+| `hooks/`                          | React Query hooks (articles, feeds, accounts, folders) + UI hooks                                                  |
+| `components/reader/`              | Three-pane layout: sidebar, article-list, article-view, browser-view, command palette                              |
+| `components/settings/`            | Per-category settings panels (general, reading, appearance, mute, tags, shortcuts, actions, data, dev-only debug)  |
+| `components/subscriptions-index/` | Subscriptions index management workspace, including subscription review / cleanup flow                             |
+| `components/icons/`               | Provider and product icon components plus their narrow icon-only types                                             |
+| `components/shared/`              | Cross-feature primitives reused by reader, settings, and workspaces                                                |
+| `components/ui/`                  | shadcn/ui + Base UI headless primitives wrapped with Tailwind                                                      |
+| `dev/scenarios/`                  | `VITE_DEV_INTENT` scenarios for direct dev entry points and command palette dev commands                           |
+| `dev-mocks.ts`                    | Browser/dev-only mock IPC handlers                                                                                 |
+| `dev-mock-data.ts`                | Deterministic sample data for browser/dev-only mocks                                                               |
+| `locales/`                        | i18next resources; Japanese product copy lives under `locales/ja/`                                                 |
+| `../tests/helpers/`               | Shared test-only helpers: fixtures, Tauri mock setup, test-only mock call contracts, wrappers, and story renderers |
+| `styles/global.css`               | Tailwind CSS v4 with OKLch design tokens                                                                           |
 
 ## Coding Conventions
 

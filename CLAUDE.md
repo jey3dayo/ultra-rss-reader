@@ -32,6 +32,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Keep Tauri IPC request/response schemas in `src/api/schemas/`; do not mix them with local storage or app-config schemas.
 - Put cross-feature literals in `src/constants/`, and shared type-only contracts in `src/lib/*.types.ts` unless an existing feature-local type file is narrower.
 - Put reusable test helpers under `tests/helpers/` and import them as `@tests/helpers/*` from frontend tests.
+- Keep sample DTO/data fixtures in `tests/helpers/fixtures.ts`, Tauri IPC mock setup in `tests/helpers/tauri-mocks.ts`, and test-only Tauri mock call contracts in `tests/helpers/tauri-types.ts`.
 - Reader-only pure helpers may stay under `src/components/reader/`; move them to `src/lib/` only when `lib`, `stores`, or another feature needs them.
 - Treat `mock/` as a historical or visual reference artifact, not a normal implementation target.
 - Keep external tool routing shims under `rules/tools/`; put day-to-day project rules in `.claude/rules/`.
