@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BrowserSurfaceStateCard } from "@/components/reader/browser-surface-state-card";
 
@@ -71,5 +72,37 @@ describe("BrowserSurfaceStateCard", () => {
     expect(detail).toHaveClass("rounded-md");
     expect(detail).toHaveClass("border-browser-overlay-state-detail-border");
     expect(detail).toHaveClass("bg-browser-overlay-state-detail-surface");
+  });
+
+  it("routes retry and external recovery actions from retryable issues", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const onOpenExternal = vi.fn();
+
+    render(
+      <BrowserSurfaceStateCard
+        issue={{
+          kind: "failed",
+          title: "Web Preview could not load.",
+          description: "Try again or open this page externally.",
+          detail: "Navigation timed out.",
+          canRetry: true,
+        }}
+        showTechnicalDetail
+        onRetry={onRetry}
+        onOpenExternal={onOpenExternal}
+        labels={{
+          technicalDetail: "Technical detail",
+          retryWebPreview: "Retry Web Preview",
+          openInExternalBrowser: "Open in External Browser",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retry Web Preview" }));
+    await user.click(screen.getByRole("button", { name: "Open in External Browser" }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(onOpenExternal).toHaveBeenCalledTimes(1);
   });
 });

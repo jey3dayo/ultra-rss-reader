@@ -309,11 +309,6 @@
   - startup sync や first-screen snapshot と同時に変えると原因が追いにくいため、sidebar tree state の pure/helper test を先に追加する
   - user-triggered folder toggle と startup restore は UX 意味が違うため、state transition を分けて固定する
 
-- [ ] browser surface issue / recovery state 候補を別バッチで追加する
-  - `browser-surface-issue.ts`、surface state card、webview load timeout の loading/error/retry/open external 状態を contract test で固定する
-  - native WebView 実機エラーと frontend unavailable fallback は再現方法が違うため、unit fixture と manual verification を分ける
-  - browser geometry や motion は既存候補に残し、ここでは recovery action と user-visible state の対応だけを見る
-
 - [ ] account setup lock / session contract 候補を別バッチで見直す
   - `account-setup-session.types.ts`、add account controller、accounts nav の setup session lock を、wizard flow と settings navigation で分けて棚卸しする
   - duplicate submit / navigation away / failed credential verification はデータ破損につながるため、UI copy より先に state machine の境界を固定する
