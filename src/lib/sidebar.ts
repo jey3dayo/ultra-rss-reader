@@ -1,6 +1,7 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { SortSubscriptions } from "@/lib/preferences-schema";
 
-export type SortSubscriptions = "folders_first" | "alphabetical" | "newest_first" | "oldest_first";
+export type { SortSubscriptions } from "@/lib/preferences-schema";
 
 type GroupedFeeds = {
   feedsByFolder: Map<string, FeedDto[]>;
