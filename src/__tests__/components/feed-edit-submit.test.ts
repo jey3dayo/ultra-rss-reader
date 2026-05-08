@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
@@ -25,7 +25,7 @@ function createParams(overrides: Partial<SubmitFeedEditsParams> = {}): SubmitFee
     selectedFolderId: feed.folder_id,
     isCreatingFolder: false,
     newFolderName: "",
-    queryClient: new QueryClient(),
+    queryClient: createTestQueryClient(),
     showToast: vi.fn(),
     createFolderErrorMessage: (error) => `Create folder failed: ${error.message}`,
     renameErrorMessage: (error) => `Rename failed: ${error.message}`,

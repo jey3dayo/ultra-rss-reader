@@ -29,14 +29,18 @@ type CreateQueryWrapperOptions = {
   queryClientConfig?: QueryClientConfig;
 };
 
-export function createQueryWrapper({ includeToastHost = false, queryClientConfig }: CreateQueryWrapperOptions = {}) {
-  const queryClient = new QueryClient({
+export function createTestQueryClient(queryClientConfig?: QueryClientConfig) {
+  return new QueryClient({
     ...queryClientConfig,
     defaultOptions: {
       ...queryClientConfig?.defaultOptions,
       queries: { retry: false, ...queryClientConfig?.defaultOptions?.queries },
     },
   });
+}
+
+export function createQueryWrapper({ includeToastHost = false, queryClientConfig }: CreateQueryWrapperOptions = {}) {
+  const queryClient = createTestQueryClient(queryClientConfig);
 
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (

@@ -1,9 +1,9 @@
-import { QueryClient } from "@tanstack/react-query";
+import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query-invalidation";
 
 function createInvalidateSpy() {
-  const queryClient = new QueryClient();
+  const queryClient = createTestQueryClient();
   const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
   return { invalidateQueries, queryClient };

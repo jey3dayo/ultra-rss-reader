@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it } from "vitest";
 import type { AccountDto } from "@/api/tauri-commands";
 import { updateCachedAccount, upsertCachedAccount } from "@/components/settings/account-detail-query-cache";
@@ -19,7 +19,7 @@ function buildAccount(id: string, name = id): AccountDto {
 
 describe("account-detail-query-cache", () => {
   it("updates an existing cached account", () => {
-    const queryClient = new QueryClient();
+    const queryClient = createTestQueryClient();
     const updated = buildAccount("acc-1", "Updated");
     queryClient.setQueryData(["accounts"], [buildAccount("acc-1"), buildAccount("acc-2")]);
 
@@ -29,7 +29,7 @@ describe("account-detail-query-cache", () => {
   });
 
   it("keeps an empty account cache empty when updating", () => {
-    const queryClient = new QueryClient();
+    const queryClient = createTestQueryClient();
 
     updateCachedAccount(queryClient, buildAccount("acc-1"));
 
@@ -37,7 +37,7 @@ describe("account-detail-query-cache", () => {
   });
 
   it("upserts into an empty account cache", () => {
-    const queryClient = new QueryClient();
+    const queryClient = createTestQueryClient();
     const account = buildAccount("acc-1");
 
     upsertCachedAccount(queryClient, account);
@@ -46,7 +46,7 @@ describe("account-detail-query-cache", () => {
   });
 
   it("appends accounts that are not already cached", () => {
-    const queryClient = new QueryClient();
+    const queryClient = createTestQueryClient();
     const first = buildAccount("acc-1");
     const second = buildAccount("acc-2");
     queryClient.setQueryData(["accounts"], [first]);

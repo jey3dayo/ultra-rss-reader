@@ -1,10 +1,10 @@
-import { QueryClient } from "@tanstack/react-query";
+import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import { invalidateFeedQueries } from "@/components/reader/feed-query-cache";
 
 describe("invalidateFeedQueries", () => {
   it("invalidates feeds and folders by default", () => {
-    const queryClient = new QueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
     invalidateFeedQueries(queryClient);
@@ -15,7 +15,7 @@ describe("invalidateFeedQueries", () => {
   });
 
   it("supports account unread count and selective feed invalidation", () => {
-    const queryClient = new QueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
     invalidateFeedQueries(queryClient, {
