@@ -558,3 +558,58 @@
   - `updater_commands.rs` と `use-updater.ts` の `PendingUpdate` cache、download 二重起動、download 失敗後の state reset を棚卸しする
   - release workflow preflight、version dry-run、署名 / artifact matrix 変更とは混ぜず、updater command lifecycle だけを扱う
   - check / download / install の user action availability を focused test と manual verification に分ける
+
+- [ ] API DTO count nonnegative schema 候補を別バッチで追加する
+  - `src/api/schemas/feed.ts`、`tag.ts`、`feed-article-summary.ts` の unread / tag article / starred count を nonnegative integer として固定する
+  - negative / fractional count を reject する schema contract test を追加し、Rust repository の count 算出変更とは混ぜない
+  - sidebar 表示、subscriptions index sort、badge projection は別バッチに残し、DTO schema 境界だけを見る
+
+- [ ] browser webview bounds args contract 候補を別バッチで追加する
+  - `src/api/schemas/commands.ts` と browser geometry helper の webview bounds args を、width / height は positive finite、x / y は finite として固定する
+  - native webview 実装、dev geometry diagnostics、browser shortcut / history とは混ぜず、frontend command args validation に限定する
+  - 0px / NaN / Infinity / fractional position の扱いを focused test で明示する
+
+- [ ] browser overlay issue state Storybook 候補を別バッチで追加する
+  - `browser-overlay-stage.stories.tsx` と `browser-surface-state-card.tsx` に active surface issue ありの story を追加する
+  - retry あり / なし、technical detail 表示、runtime unavailable の見た目を story で確認する
+  - WebView geometry、history、runtime command、overlay motion 調整とは混ぜない
+
+- [ ] sidebar footer actions Storybook 候補を別バッチで追加する
+  - `sidebar-footer-actions.tsx` の subscriptions / settings / theme toggle の通常表示と狭幅 truncation を story 化する
+  - preference schema、theme persistence、mobile navigation redesign とは混ぜず、footer action surface の visual coverage に限定する
+  - tooltip / icon label の有無と hit target の崩れを story test で固定する
+
+- [ ] accounts nav long label surface 候補を別バッチで追加する
+  - `accounts-nav-view.tsx` と `accounts-nav-view.stories.tsx` に長い account name / server host / username の story を追加する
+  - selected row、description、provider summary の収まりだけを確認し、account setup lock や credential 保存とは混ぜない
+  - provider DTO contract や account list sorting は別バッチに残す
+
+- [ ] account connection summary tone variants 候補を別バッチで追加する
+  - `account-connection-summary.tsx` と account detail stories に success 以外の warning / danger / detail なしの header summary を追加する
+  - sync scheduler status、keyring verification、account settings copy 改善とは混ぜず、summary tone variant coverage に限定する
+  - icon / label / secondary detail の有無が layout を崩さないことを story で固定する
+
+- [ ] account save cascade side-effect guard 候補を別バッチで追加する
+  - `sqlite_account.rs` の `save()` で既存 account 更新時に feeds / folders / articles が残ることを repository test で固定する
+  - 必要なら `INSERT OR REPLACE` から `ON CONFLICT(id) DO UPDATE` へ寄せるが、account deletion cascade や account list sort とは混ぜない
+  - sync settings validation とは分け、save update の DB side effect だけを見る
+
+- [ ] folder save feed assignment guard 候補を別バッチで追加する
+  - `sqlite_folder.rs` の `save()` で既存 folder 更新時に `feeds.folder_id` が NULL にならないことを fixture DB で固定する
+  - drag/drop folder move、remote folder sync、folder create / rename validation とは混ぜず、folder repository update side effect に限定する
+  - feed assignment の保持と folder metadata 更新を別 assertion に分ける
+
+- [ ] provider sync local feed failure warning 候補を別バッチで追加する
+  - `sync_providers.rs` で GReader / FreshRSS account 配下の local feed sync failure が `warn!` だけで消えないか確認する
+  - 必要なら `ProviderSyncWarning` へ乗せる contract を追加し、scheduler backoff、provider error mapping、manual sync toast 文言とは混ぜない
+  - warning DTO / log / sync result feedback の対応は別段階で扱う
+
+- [ ] dev runtime window env parsing contract 候補を別バッチで追加する
+  - `platform_commands.rs` と `platform-info.ts` の `VITE_DEV_WINDOW_WIDTH` / `HEIGHT` の空文字、0、負数、非数値の扱いを揃える
+  - platform capability DTO、window sizing 実装、dev scenario 追加とは混ぜず、dev runtime options DTO と TS schema の境界に限定する
+  - frontend / Rust の片側だけで許容される値がないか contract test で見る
+
+- [ ] GReader subscription icon persistence boundary 候補を別バッチで検証する
+  - `greader.rs` と `sync_providers.rs` で `iconUrl` を受け取った subscription が sync 保存時に icon を保存する / しない契約を固定する
+  - provider icon visual fallback、app icon theme、feed row UI とは混ぜず、provider DTO から feed persistence への mapping だけを見る
+  - 保存しない判断なら diagnostic / fallback source を test comment ではなく contract として明示する
