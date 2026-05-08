@@ -15,11 +15,11 @@ describe("clipboard", () => {
     copyToClipboardMock.mockReset();
   });
 
-  it("does nothing for empty clipboard values", async () => {
+  it.each(["", "   ", "\n\t"])("does nothing for blank clipboard values: %j", async (value) => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
 
-    await copyValueToClipboard("", { onSuccess, onError });
+    await copyValueToClipboard(value, { onSuccess, onError });
 
     expect(copyToClipboardMock).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();

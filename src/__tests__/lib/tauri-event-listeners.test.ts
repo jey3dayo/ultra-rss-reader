@@ -21,11 +21,35 @@ describe("tauri-event-listeners", () => {
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
+  it("does not run ready cleanups more than once when disposed repeatedly", async () => {
+    const cleanup = vi.fn();
+    const group = createTauriListenerGroup([Promise.resolve(cleanup)]);
+
+    await group.ready;
+    group.dispose();
+    group.dispose();
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
   it("runs cleanup immediately when subscription resolves after dispose", async () => {
     const cleanup = vi.fn();
     const deferred = createDeferredCleanup();
     const group = createTauriListenerGroup([deferred.subscription]);
 
+    group.dispose();
+    deferred.resolveCleanup(cleanup);
+    await group.ready;
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not run late cleanups more than once when disposed repeatedly", async () => {
+    const cleanup = vi.fn();
+    const deferred = createDeferredCleanup();
+    const group = createTauriListenerGroup([deferred.subscription]);
+
+    group.dispose();
     group.dispose();
     deferred.resolveCleanup(cleanup);
     await group.ready;

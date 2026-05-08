@@ -1,8 +1,18 @@
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArticleAutoMark } from "@/components/reader/hooks/article/use-article-auto-mark";
 
 type UseArticleAutoMarkParams = Parameters<typeof useArticleAutoMark>[0];
+type AutoMarkMutate = UseArticleAutoMarkParams["setRead"]["mutate"];
+type AutoMarkOnErrorContext = Parameters<NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>>[3];
+
+function createMutationContext(): AutoMarkOnErrorContext {
+  return {
+    client: new QueryClient(),
+    meta: undefined,
+  };
+}
 
 function createParams(overrides: Partial<UseArticleAutoMarkParams> = {}): UseArticleAutoMarkParams {
   return {
@@ -150,5 +160,80 @@ describe("useArticleAutoMark", () => {
 
     expect(firstSetRead.mutate).toHaveBeenCalledTimes(1);
     expect(secondSetRead.mutate).not.toHaveBeenCalled();
+  });
+
+  it("allows the same article to retry after auto mark mutation fails", () => {
+    const showToast = vi.fn();
+    const mutate: AutoMarkMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          afterReading: "immediately",
+          setRead,
+          showToast,
+        }),
+      },
+    );
+
+    rerender(
+      createParams({
+        afterReading: "immediately",
+        setRead,
+        showToast,
+      }),
+    );
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(2);
+    expect(showToast).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not block the next article after a failed auto mark mutation", () => {
+    const mutate: AutoMarkMutate = (variables, options) => {
+      options?.onError?.(new Error(`Failed ${variables.id}`), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          afterReading: "immediately",
+          setRead,
+        }),
+      },
+    );
+
+    rerender(
+      createParams({
+        articleId: "art-2",
+        afterReading: "immediately",
+        setRead,
+      }),
+    );
+
+    expect(setRead.mutate).toHaveBeenNthCalledWith(
+      1,
+      { id: "art-1", read: true },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+    expect(setRead.mutate).toHaveBeenNthCalledWith(
+      2,
+      { id: "art-2", read: true },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
   });
 });

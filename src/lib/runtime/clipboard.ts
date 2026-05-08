@@ -58,7 +58,7 @@ export async function copyValueToClipboard(
   value: string,
   { onSuccess, onError }: CopyValueToClipboardCallbacks,
 ): Promise<void> {
-  if (!value) {
+  if (value.trim().length === 0) {
     return;
   }
 

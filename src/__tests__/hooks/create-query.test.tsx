@@ -33,4 +33,33 @@ describe("createQuery", () => {
     });
     expect(fetcher).toHaveBeenCalledWith("item-1");
   });
+
+  it("does not pass missing or invalid disabled ids to the fetcher", () => {
+    const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
+    const useGeneratedQuery = createQuery("items", fetcher);
+    const initialProps: { id: string | null | undefined } = {
+      id: undefined,
+    };
+
+    const { rerender, result } = renderHook(
+      ({ id }: { id: string | null | undefined }) => useGeneratedQuery(id ?? null),
+      {
+        initialProps,
+        wrapper,
+      },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(fetcher).not.toHaveBeenCalled();
+
+    rerender({ id: null });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(fetcher).not.toHaveBeenCalled();
+
+    rerender({ id: "" });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(fetcher).not.toHaveBeenCalled();
+  });
 });

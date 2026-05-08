@@ -38,19 +38,13 @@ export function useSidebarStartupFolderExpansion({
   setExpandedFolders,
 }: SidebarStartupFolderExpansionParams) {
   const startupExpansionTokenRef = useRef<string | null>(null);
+  const skipPersistenceTokenRef = useRef<string | null>(null);
+  const startupExpansionToken = selectedAccountId ? `${selectedAccountId}:${startupFolderExpansion}` : null;
 
   useEffect(() => {
     if (!selectedAccountId) {
       startupExpansionTokenRef.current = null;
-      return;
-    }
-
-    setStoredSidebarExpandedFolders(selectedAccountId, expandedFolderIds);
-  }, [expandedFolderIds, selectedAccountId]);
-
-  useEffect(() => {
-    if (!selectedAccountId) {
-      startupExpansionTokenRef.current = null;
+      skipPersistenceTokenRef.current = null;
       return;
     }
 
@@ -58,13 +52,12 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    const token = `${selectedAccountId}:${startupFolderExpansion}`;
-    if (startupExpansionTokenRef.current === token) {
+    if (startupExpansionTokenRef.current === startupExpansionToken) {
       return;
     }
 
     if (expandedFolderIds.size > 0 && startupFolderExpansion !== "restore_previous") {
-      startupExpansionTokenRef.current = token;
+      startupExpansionTokenRef.current = startupExpansionToken;
       return;
     }
 
@@ -86,7 +79,8 @@ export function useSidebarStartupFolderExpansion({
     }
 
     setExpandedFolders(nextExpandedFolderIds);
-    startupExpansionTokenRef.current = token;
+    startupExpansionTokenRef.current = startupExpansionToken;
+    skipPersistenceTokenRef.current = startupExpansionToken;
   }, [
     expandedFolderIds,
     feedList,
@@ -96,5 +90,25 @@ export function useSidebarStartupFolderExpansion({
     selectedAccountId,
     setExpandedFolders,
     startupFolderExpansion,
+    startupExpansionToken,
   ]);
+
+  useEffect(() => {
+    if (!selectedAccountId) {
+      startupExpansionTokenRef.current = null;
+      skipPersistenceTokenRef.current = null;
+      return;
+    }
+
+    if (startupFolderExpansion === "restore_previous" && startupExpansionTokenRef.current !== startupExpansionToken) {
+      return;
+    }
+
+    if (skipPersistenceTokenRef.current === startupExpansionToken) {
+      skipPersistenceTokenRef.current = null;
+      return;
+    }
+
+    setStoredSidebarExpandedFolders(selectedAccountId, expandedFolderIds);
+  }, [expandedFolderIds, selectedAccountId, startupFolderExpansion, startupExpansionToken]);
 }

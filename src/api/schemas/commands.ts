@@ -85,6 +85,7 @@ export const oldUnreadArticlesArgs = z.object({
 
 // --- unstarAccountArticles ---
 export const unstarAccountArticlesArgs = z.object({ accountId: z.string() });
+export const cleanupFeedIntegrityOrphansArgs = z.object({ dryRun: z.boolean() });
 
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({
@@ -382,6 +383,7 @@ export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown
   count_old_unread_articles: oldUnreadArticlesArgs,
   mark_old_unread_read: oldUnreadArticlesArgs,
   unstar_account_articles: unstarAccountArticlesArgs,
+  cleanup_feed_integrity_orphans: cleanupFeedIntegrityOrphansArgs,
   search_articles: searchArticlesArgs,
   mark_article_read: markArticleReadArgs,
   record_article_view: recordArticleViewArgs,

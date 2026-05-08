@@ -67,6 +67,9 @@ export function useArticleAutoMark({
             addRecentlyRead(articleId);
           },
           onError: (error) => {
+            if (autoMarkedArticleIdRef.current === articleId) {
+              autoMarkedArticleIdRef.current = null;
+            }
             showToast(error.message);
           },
         },

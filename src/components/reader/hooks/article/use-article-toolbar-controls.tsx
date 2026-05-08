@@ -9,7 +9,7 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleActionKeyboardShortcuts } from "../../article-actions.types";
 import { ArticleShareMenu } from "../../article-share-menu";
-import type { ArticleToolbarActionStripProps } from "../../article-toolbar-view";
+import { type ArticleToolbarActionStripProps, resolveArticleToolbarActions } from "../../article-toolbar-view";
 
 type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;
@@ -36,6 +36,14 @@ export function useArticleToolbarControls({
   const retainOnUnstar = viewMode === "starred" || (selection.type === "smart" && selection.kind === "starred");
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
+  const layoutMode = useUiStore((s) => s.layoutMode);
+  const actionAvailability = resolveArticleToolbarActions({
+    hasArticle: article !== null,
+    hasUrl: Boolean(article?.url),
+    showCopyLinkPreference: actionCopyLink === "true",
+    hideBrowserOverlayActions: false,
+    layoutMode,
+  });
   const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
     article,
     viewMode,
@@ -71,17 +79,17 @@ export function useArticleToolbarControls({
 
   return {
     hasArticle: article !== null,
-    canToggleRead: article !== null,
-    canToggleStar: article !== null,
+    canToggleRead: actionAvailability.canToggleRead,
+    canToggleStar: actionAvailability.canToggleStar,
     isRead: article?.is_read ?? false,
     isStarred: article?.is_starred ?? false,
     isBrowserOpen,
-    showCopyLinkButton: actionCopyLink === "true",
-    canCopyLink: Boolean(article?.url),
-    showOpenInBrowserButton: true,
-    canOpenInBrowser: Boolean(article?.url),
-    showOpenInExternalBrowserButton: true,
-    canOpenInExternalBrowser: Boolean(article?.url),
+    showCopyLinkButton: actionAvailability.showCopyLinkButton,
+    canCopyLink: actionAvailability.canCopyLink,
+    showOpenInBrowserButton: actionAvailability.showOpenInBrowserButton,
+    canOpenInBrowser: actionAvailability.canOpenInBrowser,
+    showOpenInExternalBrowserButton: actionAvailability.showOpenInExternalBrowserButton,
+    canOpenInExternalBrowser: actionAvailability.canOpenInExternalBrowser,
     shareMenuControl,
     labels: {
       closeView: t("close_view"),

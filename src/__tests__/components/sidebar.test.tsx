@@ -10,6 +10,7 @@ import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
+import { STORAGE_KEYS } from "@/constants/storage";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import { resetManualSyncCooldownForTests } from "@/lib/sync/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -1609,6 +1610,72 @@ describe("Sidebar", () => {
     });
   });
 
+  it("skips collapsed folder children and disabled rows during sidebar roving navigation", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            { id: "folder-closed", account_id: args.accountId, name: "Closed Folder", sort_order: 0 },
+            { id: "folder-open", account_id: args.accountId, name: "Open Folder", sort_order: 1 },
+          ];
+        case "list_feeds":
+          return [
+            {
+              ...sampleFeeds[0],
+              id: "feed-hidden",
+              title: "Hidden Feed",
+              folder_id: "folder-closed",
+              unread_count: 1,
+            },
+            { ...sampleFeeds[1], id: "feed-open", title: "Open Feed", folder_id: "folder-open", unread_count: 1 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["folder-open"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const closedFolder = await screen.findByRole("button", { name: "Select folder Closed Folder" });
+    const hiddenFeed = queryFeedButton("feed-hidden");
+    const openFolder = screen.getByRole("button", { name: "Select folder Open Folder" });
+
+    expect(hiddenFeed).not.toBeNull();
+    if (!hiddenFeed) {
+      throw new Error("Expected hidden feed button to stay mounted");
+    }
+    expect(hiddenFeed.closest('[aria-hidden="true"]')).toBeInTheDocument();
+
+    closedFolder.focus();
+    fireEvent.keyDown(closedFolder, { key: "ArrowDown" });
+
+    await waitFor(() => {
+      expect(openFolder).toHaveFocus();
+    });
+
+    openFolder.setAttribute("disabled", "");
+    closedFolder.focus();
+    fireEvent.keyDown(closedFolder, { key: "ArrowDown" });
+
+    await waitFor(() => {
+      expect(queryFeedButton("feed-open")).toHaveFocus();
+    });
+  });
+
   it("opens the focused feed with Enter from the sidebar", async () => {
     const user = userEvent.setup();
 
@@ -2082,6 +2149,59 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().expandedFolderIds.has("folder-open")).toBe(true);
       expect(useUiStore.getState().expandedFolderIds.has("folder-closed")).toBe(false);
+    });
+  });
+
+  it("does not overwrite stored expanded folders before startup restore is ready", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            { id: "folder-restored", account_id: args.accountId, name: "Restored", sort_order: 0 },
+            { id: "folder-temp", account_id: args.accountId, name: "Temporary", sort_order: 1 },
+          ];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-restored", title: "Restored Feed", folder_id: "folder-restored" },
+            { ...sampleFeeds[1], id: "feed-temp", title: "Temporary Feed", folder_id: "folder-temp" },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify({ "acc-1": ["folder-restored"] }));
+    usePreferencesStore.setState({
+      prefs: { startup_folder_expansion: "restore_previous" },
+      loaded: true,
+    });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["folder-temp"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
+      "acc-1": ["folder-restored"],
+    });
+
+    await screen.findByRole("button", { name: "Select folder Restored" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().expandedFolderIds).toEqual(new Set(["folder-restored"]));
+      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
+        "acc-1": ["folder-restored"],
+      });
     });
   });
 

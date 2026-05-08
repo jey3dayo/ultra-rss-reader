@@ -21,6 +21,79 @@ type ArticleListItemProps = {
   onSelect: () => void;
 };
 
+type ArticleListItemPresentationInput = {
+  title: string;
+  summary?: string | null;
+  thumbnail?: string | null;
+  feedName?: string;
+  viewedAtLabel?: string | null;
+  isRead: boolean;
+  isStarred: boolean;
+  isRecentlyRead: boolean;
+  textPreview: string;
+  imagePreviews: string;
+  unreadSuffix: string;
+  starredSuffix: string;
+};
+
+type ArticleListItemPresentation = {
+  ariaLabel: string;
+  isRead: boolean;
+  isUnread: boolean;
+  metaLabel: string;
+  normalizedFeedName: string;
+  normalizedSummary: string;
+  normalizedTitle: string;
+  showFeedName: boolean;
+  showSecondaryRow: boolean;
+  showSummary: boolean;
+  showThumbnail: boolean;
+};
+
+export function resolveArticleListItemPresentation({
+  title,
+  summary,
+  thumbnail,
+  feedName,
+  viewedAtLabel,
+  isRead: articleIsRead,
+  isStarred,
+  isRecentlyRead,
+  textPreview,
+  imagePreviews,
+  unreadSuffix,
+  starredSuffix,
+}: ArticleListItemPresentationInput): ArticleListItemPresentation {
+  const isRead = articleIsRead || isRecentlyRead;
+  const isUnread = !isRead;
+  const normalizedTitle = title.trim();
+  const normalizedFeedName = feedName?.trim() ?? "";
+  const summaryText = summary ? stripHtmlTags(summary) : "";
+  const normalizedSummary = summaryText.trim();
+  const showFeedName = Boolean(normalizedFeedName) && normalizedFeedName !== normalizedTitle;
+  const metaLabel = [showFeedName ? normalizedFeedName : null, viewedAtLabel].filter(Boolean).join(" · ");
+  const showSummary =
+    textPreview === "true" &&
+    Boolean(normalizedSummary) &&
+    normalizedSummary !== normalizedTitle &&
+    normalizedSummary !== normalizedFeedName;
+  const showThumbnail = imagePreviews !== "off" && Boolean(thumbnail);
+
+  return {
+    ariaLabel: `${title}${isRead ? "" : ` ${unreadSuffix}`}${isStarred ? ` ${starredSuffix}` : ""}`,
+    isRead,
+    isUnread,
+    metaLabel,
+    normalizedFeedName,
+    normalizedSummary,
+    normalizedTitle,
+    showFeedName,
+    showSecondaryRow: showSummary || showThumbnail,
+    showSummary,
+    showThumbnail,
+  };
+}
+
 export function ArticleListItem({
   article,
   isSelected,
@@ -36,21 +109,21 @@ export function ArticleListItem({
   const { t } = useTranslation("reader");
   const focusedPane = useUiStore((state) => state.focusedPane);
   const activePane = isActivePane ?? focusedPane === "list";
-  const isRead = article.is_read || isRecentlyRead;
-  const isUnread = !isRead;
-  const normalizedTitle = article.title.trim();
-  const normalizedFeedName = feedName?.trim() ?? "";
-  const summaryText = article.summary ? stripHtmlTags(article.summary) : "";
-  const normalizedSummary = summaryText.trim();
-  const showFeedName = Boolean(normalizedFeedName) && normalizedFeedName !== normalizedTitle;
   const viewedAtLabel = article.viewed_at ? t("viewed_at", { time: formatArticleTime(article.viewed_at) }) : null;
-  const metaLabel = [showFeedName ? normalizedFeedName : null, viewedAtLabel].filter(Boolean).join(" · ");
-  const showSummary =
-    textPreview === "true" &&
-    Boolean(normalizedSummary) &&
-    normalizedSummary !== normalizedTitle &&
-    normalizedSummary !== normalizedFeedName;
-  const showSecondaryRow = showSummary || (imagePreviews !== "off" && article.thumbnail);
+  const presentation = resolveArticleListItemPresentation({
+    title: article.title,
+    summary: article.summary,
+    thumbnail: article.thumbnail,
+    feedName,
+    viewedAtLabel,
+    isRead: article.is_read,
+    isStarred: article.is_starred,
+    isRecentlyRead,
+    textPreview,
+    imagePreviews,
+    unreadSuffix: t("unread_suffix"),
+    starredSuffix: t("starred_suffix"),
+  });
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented) {
@@ -75,7 +148,7 @@ export function ArticleListItem({
       tabIndex={isSelected ? 0 : -1}
       aria-selected={isSelected}
       data-active-pane={isSelected ? String(activePane) : undefined}
-      aria-label={`${article.title}${isRead ? "" : ` ${t("unread_suffix")}`}${article.is_starred ? ` ${t("starred_suffix")}` : ""}`}
+      aria-label={presentation.ariaLabel}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
@@ -98,19 +171,22 @@ export function ArticleListItem({
                 ),
             ),
         !isSelected && "hover:bg-surface-1/72 focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
-        isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
+        presentation.isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
       )}
     >
       <div className="flex items-start gap-2">
         <div className="flex flex-1 items-start gap-2">
-          <UnreadIcon unread={isUnread} className={cn("mt-1.5 h-2 w-2", !isUnread && "invisible")} />
+          <UnreadIcon
+            unread={presentation.isUnread}
+            className={cn("mt-1.5 h-2 w-2", !presentation.isUnread && "invisible")}
+          />
           <div className="flex flex-1 items-start gap-1.5">
             <h3
               className={cn(
                 "line-clamp-2 flex-1 text-sm leading-snug",
                 isSelected
                   ? "font-semibold text-foreground"
-                  : isUnread
+                  : presentation.isUnread
                     ? "font-medium text-foreground/92"
                     : "text-foreground/78",
               )}
@@ -130,30 +206,30 @@ export function ArticleListItem({
         </div>
       </div>
 
-      {metaLabel && (
+      {presentation.metaLabel && (
         <p
           className={cn(
             "pl-4 text-xs text-foreground-soft transition-colors duration-150 motion-reduce:transition-none",
             isSelected && "text-foreground/72",
           )}
         >
-          {metaLabel}
+          {presentation.metaLabel}
         </p>
       )}
 
-      {showSecondaryRow && (
+      {presentation.showSecondaryRow && (
         <div className="flex items-start gap-2 pl-4">
-          {showSummary && (
+          {presentation.showSummary && (
             <p
               className={cn(
                 "line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft transition-colors duration-150 motion-reduce:transition-none",
                 isSelected && "text-foreground/68",
               )}
             >
-              {normalizedSummary}
+              {presentation.normalizedSummary}
             </p>
           )}
-          {imagePreviews !== "off" && article.thumbnail && (
+          {presentation.showThumbnail && article.thumbnail && (
             <div
               className={cn(
                 "relative shrink-0 overflow-hidden rounded",

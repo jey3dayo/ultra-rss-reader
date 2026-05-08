@@ -2,12 +2,77 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ArticleListItem } from "@/components/reader/article-list-item";
+import { ArticleListItem, resolveArticleListItemPresentation } from "@/components/reader/article-list-item";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("ArticleListItem", () => {
   beforeEach(() => {
-    useUiStore.setState({ ...useUiStore.getInitialState(), focusedPane: "list" });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      focusedPane: "list",
+    });
+  });
+
+  it("resolves article row presentation without duplicating title, feed, or recently read state", () => {
+    expect(
+      resolveArticleListItemPresentation({
+        title: "Episode 150",
+        summary: "<p>Episode 150</p>",
+        thumbnail: "https://example.com/image.jpg",
+        feedName: "Episode 150",
+        viewedAtLabel: "Read 10:30",
+        isRead: false,
+        isStarred: true,
+        isRecentlyRead: true,
+        textPreview: "true",
+        imagePreviews: "medium",
+        unreadSuffix: "(unread)",
+        starredSuffix: "(starred)",
+      }),
+    ).toEqual({
+      ariaLabel: "Episode 150 (starred)",
+      isRead: true,
+      isUnread: false,
+      metaLabel: "Read 10:30",
+      normalizedFeedName: "Episode 150",
+      normalizedSummary: "Episode 150",
+      normalizedTitle: "Episode 150",
+      showFeedName: false,
+      showSecondaryRow: true,
+      showSummary: false,
+      showThumbnail: true,
+    });
+  });
+
+  it("resolves article row meta, summary, and thumbnail presentation from independent row fields", () => {
+    expect(
+      resolveArticleListItemPresentation({
+        title: "First Article",
+        summary: "<p>A hello world article</p>",
+        thumbnail: null,
+        feedName: "Tech Blog",
+        viewedAtLabel: "Read yesterday",
+        isRead: false,
+        isStarred: false,
+        isRecentlyRead: false,
+        textPreview: "true",
+        imagePreviews: "large",
+        unreadSuffix: "(unread)",
+        starredSuffix: "(starred)",
+      }),
+    ).toEqual({
+      ariaLabel: "First Article (unread)",
+      isRead: false,
+      isUnread: true,
+      metaLabel: "Tech Blog · Read yesterday",
+      normalizedFeedName: "Tech Blog",
+      normalizedSummary: "A hello world article",
+      normalizedTitle: "First Article",
+      showFeedName: true,
+      showSecondaryRow: true,
+      showSummary: true,
+      showThumbnail: false,
+    });
   });
 
   it("treats recently read retained articles as read in accessibility labels", () => {
@@ -45,7 +110,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    const option = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(option.tagName).toBe("DIV");
     expect(option).toHaveAttribute("tabindex", "0");
   });
@@ -107,7 +174,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    const option = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
 
     fireEvent.keyDown(option, { key: "Enter" });
     fireEvent.keyDown(option, { key: " " });
@@ -182,7 +251,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
+    const selectedOption = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(selectedOption).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
     expect(selectedOption).not.toHaveClass("ring-1");
     expect(selectedOption).not.toHaveClass("ring-border-strong");
@@ -223,7 +294,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const inactiveOption = screen.getByRole("option", { name: "First Article (unread)" });
+    const inactiveOption = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(inactiveOption).toHaveAttribute("data-active-pane", "false");
     expect(inactiveOption).toHaveClass("bg-[image:var(--sidebar-hover-gradient)]");
     expect(inactiveOption).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
@@ -243,7 +316,9 @@ describe("ArticleListItem", () => {
       />,
     );
 
-    const activeOption = screen.getByRole("option", { name: "First Article (unread)" });
+    const activeOption = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(activeOption).toHaveAttribute("data-active-pane", "true");
     expect(activeOption).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
     expect(activeOption).toHaveClass("after:bg-border-strong");
@@ -265,7 +340,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    const option = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(option).toHaveClass("border-l-2", "border-primary", "bg-[image:var(--sidebar-selection-gradient)]");
   });
 
@@ -285,7 +362,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    const option = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(option).not.toHaveClass("focus-visible:ring-2");
     expect(option).not.toHaveClass("focus-visible:ring-ring/45");
     expect(option).not.toHaveClass("ring-1");
@@ -311,7 +390,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    const option = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(option).toHaveClass("focus-visible:bg-[image:var(--sidebar-focus-gradient)]");
     expect(option).not.toHaveClass("focus-visible:ring-2");
     expect(option).not.toHaveClass("focus-visible:outline-[var(--color-ring)]");
@@ -333,14 +414,21 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    const option = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
     expect(option.querySelector(".shrink-0.pt-0\\.5.text-xs")).toBeNull();
   });
 
   it("uses softened supporting copy for timestamps and secondary text", () => {
     render(
       <ArticleListItem
-        article={{ ...sampleArticles[0], summary: "A hello world article", is_read: false, is_starred: false }}
+        article={{
+          ...sampleArticles[0],
+          summary: "A hello world article",
+          is_read: false,
+          is_starred: false,
+        }}
         isSelected={false}
         isRecentlyRead={false}
         dimArchived="true"
@@ -382,7 +470,12 @@ describe("ArticleListItem", () => {
   it("makes selected rows read stronger than unread rows through tone and typography", () => {
     const { rerender } = render(
       <ArticleListItem
-        article={{ ...sampleArticles[0], summary: "A hello world article", is_read: false, is_starred: false }}
+        article={{
+          ...sampleArticles[0],
+          summary: "A hello world article",
+          is_read: false,
+          is_starred: false,
+        }}
         isSelected
         isRecentlyRead={false}
         dimArchived="true"
@@ -401,7 +494,12 @@ describe("ArticleListItem", () => {
 
     rerender(
       <ArticleListItem
-        article={{ ...sampleArticles[0], summary: "A hello world article", is_read: false, is_starred: false }}
+        article={{
+          ...sampleArticles[0],
+          summary: "A hello world article",
+          is_read: false,
+          is_starred: false,
+        }}
         isSelected={false}
         isRecentlyRead={false}
         dimArchived="true"

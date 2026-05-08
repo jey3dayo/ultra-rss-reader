@@ -4,11 +4,46 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
+import { resolveArticleListHeaderControlAvailability } from "@/components/reader/hooks/article-list/use-article-list-header-controls";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("ArticleListHeader", () => {
   beforeEach(() => {
     useUiStore.setState({ layoutMode: "wide" });
+  });
+
+  it("resolves header control availability without binding it to mutations", () => {
+    expect(
+      resolveArticleListHeaderControlAvailability({
+        layoutMode: "wide",
+        sidebarOpen: true,
+        resolvedFeedId: "feed-1",
+        showSearch: true,
+      }),
+    ).toEqual({
+      showSidebarButton: true,
+      isSidebarTogglePressed: true,
+      showFeedDisplaySelect: true,
+      showMarkAllRead: true,
+      showSearchToggle: true,
+      showCloseSearch: true,
+    });
+
+    expect(
+      resolveArticleListHeaderControlAvailability({
+        layoutMode: "mobile",
+        sidebarOpen: false,
+        resolvedFeedId: null,
+        showSearch: false,
+      }),
+    ).toEqual({
+      showSidebarButton: true,
+      isSidebarTogglePressed: undefined,
+      showFeedDisplaySelect: false,
+      showMarkAllRead: true,
+      showSearchToggle: true,
+      showCloseSearch: false,
+    });
   });
 
   it("keeps the drag region separate from interactive controls", () => {

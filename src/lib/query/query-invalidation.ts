@@ -129,4 +129,14 @@ export function invalidateArticleQueries(
   invalidateQueryKeys(queryClient, queryKeys);
 }
 
+export function invalidateSyncCompletedQueries(queryClient: QueryClient) {
+  invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
+  invalidateArticleQueries(queryClient, {
+    includeAccountUnreadCount: false,
+    includeFeeds: false,
+    includeFeedIntegrityReport: true,
+    includeTagArticleCounts: true,
+  });
+}
+
 export type { InvalidateArticleQueriesOptions, InvalidateFeedQueriesOptions };

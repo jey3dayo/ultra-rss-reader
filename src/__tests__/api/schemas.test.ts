@@ -364,6 +364,14 @@ describe("command args schemas", () => {
     });
     expect(() => oldUnreadArticlesArgs.parse({ scopeKind: "feed", targetId: "feed-1", olderThanDays: 14 })).toThrow();
   });
+  it("rejects oldUnreadArticlesArgs periods above the supported 90 day preset", () => {
+    expect(oldUnreadArticlesArgs.parse({ scopeKind: "feed", targetId: "feed-1", olderThanDays: 90 })).toEqual({
+      scopeKind: "feed",
+      targetId: "feed-1",
+      olderThanDays: 90,
+    });
+    expect(() => oldUnreadArticlesArgs.parse({ scopeKind: "feed", targetId: "feed-1", olderThanDays: 91 })).toThrow();
+  });
   it("parses toggleArticleStarArgs", () => {
     expect(toggleArticleStarArgs.parse({ articleId: "a-1", starred: true })).toEqual({
       articleId: "a-1",

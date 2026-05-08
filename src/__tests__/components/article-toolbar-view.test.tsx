@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
-import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
+import { ArticleToolbarView, resolveArticleToolbarActions } from "@/components/reader/article-toolbar-view";
 import {
   MOTION_DATA_ICON_ATTRIBUTE,
   MOTION_DATA_STATE_ATTRIBUTE,
@@ -21,6 +21,48 @@ const motionIconSlotBSelector = `[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_S
 describe("ArticleToolbarView", () => {
   beforeEach(() => {
     useUiStore.setState({ layoutMode: "wide" });
+  });
+
+  it("resolves action availability from article, URL, preference, overlay, and layout state", () => {
+    expect(
+      resolveArticleToolbarActions({
+        hasArticle: true,
+        hasUrl: true,
+        showCopyLinkPreference: true,
+        hideBrowserOverlayActions: false,
+        layoutMode: "wide",
+      }),
+    ).toEqual({
+      canToggleRead: true,
+      canToggleStar: true,
+      showCopyLinkButton: true,
+      canCopyLink: true,
+      showOpenInBrowserButton: true,
+      canOpenInBrowser: true,
+      showOpenInExternalBrowserButton: true,
+      canOpenInExternalBrowser: true,
+      showExternalBrowserInMoreMenu: false,
+    });
+
+    expect(
+      resolveArticleToolbarActions({
+        hasArticle: false,
+        hasUrl: true,
+        showCopyLinkPreference: true,
+        hideBrowserOverlayActions: true,
+        layoutMode: "mobile",
+      }),
+    ).toEqual({
+      canToggleRead: false,
+      canToggleStar: false,
+      showCopyLinkButton: true,
+      canCopyLink: false,
+      showOpenInBrowserButton: false,
+      canOpenInBrowser: false,
+      showOpenInExternalBrowserButton: false,
+      canOpenInExternalBrowser: false,
+      showExternalBrowserInMoreMenu: false,
+    });
   });
 
   it("renders visible actions and calls their handlers", async () => {

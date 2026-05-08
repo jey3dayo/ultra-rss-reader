@@ -1,6 +1,10 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
-import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
+import {
+  invalidateArticleQueries,
+  invalidateFeedQueries,
+  invalidateSyncCompletedQueries,
+} from "@/lib/query/query-invalidation";
 
 function createInvalidateSpy() {
   const queryClient = createTestQueryClient();
@@ -62,6 +66,29 @@ describe("query-invalidation", () => {
       { queryKey: ["articles"] },
       { queryKey: ["tagArticleCounts"] },
       { queryKey: ["feedIntegrityReport"] },
+    ]);
+  });
+
+  it("invalidates scoped feed, article, and account status query keys after sync completion", () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+
+    invalidateSyncCompletedQueries(queryClient);
+
+    expect(invalidateQueries).not.toHaveBeenCalledWith();
+    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
+      { queryKey: ["feeds"] },
+      { queryKey: ["folders"] },
+      { queryKey: ["accountUnreadCount"] },
+      { queryKey: ["articles"] },
+      { queryKey: ["accountArticles"] },
+      { queryKey: ["folderArticles"] },
+      { queryKey: ["starredArticles"] },
+      { queryKey: ["accountStarredCount"] },
+      { queryKey: ["articlesByTag"] },
+      { queryKey: ["tagArticleCounts"] },
+      { queryKey: ["search"] },
+      { queryKey: ["feedIntegrityReport"] },
+      { queryKey: ["recentArticles"] },
     ]);
   });
 });

@@ -2,6 +2,38 @@ import { useCallback, useMemo } from "react";
 import type { UseArticleListHeaderControlsParams, UseArticleListHeaderControlsResult } from "../../article-list.types";
 import { ArticleListFeedModeControl } from "../../article-list-feed-mode-control";
 
+export type ArticleListHeaderControlAvailabilityInput = {
+  layoutMode: UseArticleListHeaderControlsParams["layoutMode"];
+  sidebarOpen: boolean;
+  resolvedFeedId: string | null;
+  showSearch: boolean;
+};
+
+export type ArticleListHeaderControlAvailability = {
+  showSidebarButton: boolean;
+  isSidebarTogglePressed: boolean | undefined;
+  showFeedDisplaySelect: boolean;
+  showMarkAllRead: boolean;
+  showSearchToggle: boolean;
+  showCloseSearch: boolean;
+};
+
+export function resolveArticleListHeaderControlAvailability({
+  layoutMode,
+  sidebarOpen,
+  resolvedFeedId,
+  showSearch,
+}: ArticleListHeaderControlAvailabilityInput): ArticleListHeaderControlAvailability {
+  return {
+    showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",
+    isSidebarTogglePressed: layoutMode === "wide" ? sidebarOpen : undefined,
+    showFeedDisplaySelect: resolvedFeedId !== null,
+    showMarkAllRead: true,
+    showSearchToggle: true,
+    showCloseSearch: showSearch,
+  };
+}
+
 export function useArticleListHeaderControls({
   layoutMode,
   sidebarOpen,
@@ -16,6 +48,12 @@ export function useArticleListHeaderControls({
   openSidebar,
   toggleSidebar,
 }: UseArticleListHeaderControlsParams): UseArticleListHeaderControlsResult {
+  const availability = resolveArticleListHeaderControlAvailability({
+    layoutMode,
+    sidebarOpen,
+    resolvedFeedId,
+    showSearch: false,
+  });
   const handleSidebarToggle = useCallback(() => {
     if (layoutMode === "wide") {
       toggleSidebar();
@@ -27,7 +65,7 @@ export function useArticleListHeaderControls({
 
   const feedModeControl = useMemo(
     () =>
-      resolvedFeedId ? (
+      availability.showFeedDisplaySelect ? (
         <ArticleListFeedModeControl
           ariaLabel={feedDisplayLabel}
           value={selectedFeedDisplayPreset}
@@ -35,14 +73,20 @@ export function useArticleListHeaderControls({
           onValueChange={onSetDisplayMode}
         />
       ) : null,
-    [displayPresetOptions, feedDisplayLabel, onSetDisplayMode, resolvedFeedId, selectedFeedDisplayPreset],
+    [
+      availability.showFeedDisplaySelect,
+      displayPresetOptions,
+      feedDisplayLabel,
+      onSetDisplayMode,
+      selectedFeedDisplayPreset,
+    ],
   );
 
   return {
-    showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",
+    showSidebarButton: availability.showSidebarButton,
     sidebarButtonLabel: layoutMode === "wide" ? (sidebarOpen ? hideSidebarLabel : showSidebarLabel) : showSidebarLabel,
     sidebarButtonText: layoutMode === "compact" ? sidebarSubscriptionsLabel : undefined,
-    isSidebarVisible: layoutMode === "wide" ? sidebarOpen : undefined,
+    isSidebarVisible: availability.isSidebarTogglePressed,
     feedModeControl,
     handleSidebarToggle,
   };

@@ -8,6 +8,7 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   checkBrowserEmbedSupportArgs,
+  cleanupFeedIntegrityOrphansArgs,
   clearArticleViewHistoryArgs,
   countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
@@ -503,6 +504,15 @@ export function setupDevMocks() {
 
       case "get_feed_integrity_report":
         return feedIntegrityReport;
+
+      case "cleanup_feed_integrity_orphans": {
+        const { dryRun } = parseMockArgs(cleanupFeedIntegrityOrphansArgs, payload);
+        return {
+          dry_run: dryRun,
+          orphaned_article_count: feedIntegrityReport.orphaned_article_count,
+          deleted_article_count: dryRun ? 0 : feedIntegrityReport.orphaned_article_count,
+        };
+      }
 
       case "search_articles": {
         const { query } = parseMockArgs(searchArticlesArgs, payload);

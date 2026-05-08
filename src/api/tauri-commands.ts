@@ -19,6 +19,7 @@ import {
   type BrowserWebviewState,
   BrowserWebviewStateSchema,
   checkBrowserEmbedSupportArgs,
+  cleanupFeedIntegrityOrphansArgs,
   clearArticleViewHistoryArgs,
   copyToClipboardArgs,
   countAccountStarredArticlesArgs,
@@ -43,6 +44,8 @@ import {
   type FeedDto,
   FeedDtoListSchema,
   FeedDtoSchema,
+  type FeedIntegrityCleanupDto,
+  FeedIntegrityCleanupDtoSchema,
   type FeedIntegrityReportDto,
   FeedIntegrityReportDtoSchema,
   type FolderDto,
@@ -124,6 +127,7 @@ export type {
   DevRuntimeOptions,
   DiscoveredFeedDto,
   FeedDto,
+  FeedIntegrityCleanupDto,
   FeedIntegrityReportDto,
   FolderDto,
   MuteKeywordDto,
@@ -338,6 +342,16 @@ export const getFeedIntegrityReport = () =>
   safeInvoke("get_feed_integrity_report", {
     response: FeedIntegrityReportDtoSchema,
   });
+
+export const cleanupFeedIntegrityOrphans = (dryRun: boolean) =>
+  safeInvoke(
+    "cleanup_feed_integrity_orphans",
+    {
+      response: FeedIntegrityCleanupDtoSchema,
+      args: cleanupFeedIntegrityOrphansArgs,
+    },
+    { dryRun },
+  );
 
 export const markArticleRead = (articleId: string, read = true) =>
   safeInvoke("mark_article_read", { response: NullResponseSchema, args: markArticleReadArgs }, { articleId, read });

@@ -9,6 +9,7 @@ import { useDevIntent } from "./dev/use-dev-intent";
 import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
+import { invalidateSyncCompletedQueries } from "./lib/query/query-invalidation";
 import { attachTauriListeners } from "./lib/runtime/tauri-event-listeners";
 import { markStartupSyncTriggered, shouldThrottleStartupSync } from "./lib/sync/startup-sync-storage";
 import { usePreferencesStore } from "./stores/preferences-store";
@@ -97,11 +98,11 @@ function AppInner() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [handleVisibilityChange]);
 
-  // Invalidate all queries when background sync completes
+  // Keep background sync invalidation scoped to data that can change during sync.
   useEffect(() => {
     return attachTauriListeners([
       listen("sync-completed", () => {
-        queryClient.invalidateQueries();
+        invalidateSyncCompletedQueries(queryClient);
       }),
     ]);
   }, []);

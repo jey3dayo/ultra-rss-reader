@@ -118,4 +118,60 @@ describe("FeedTreeFolderSection", () => {
     expect(folderPanel).toHaveAttribute("aria-hidden", "true");
     expect(folderPanel).toHaveClass("motion-disclosure-panel");
   });
+
+  it("pairs the folder disclosure control with the collapsed panel aria state", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, isExpanded: false }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    const toggleButton = screen.getByRole("button", { name: "Toggle folder Comic" });
+    const panelId = toggleButton.getAttribute("aria-controls");
+    expect(panelId).toBe("feed-tree-folder-panel-folder-1");
+    expect(toggleButton).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("pairs the folder disclosure control with the expanded panel aria state when children exist", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={{
+          ...baseFolder,
+          isExpanded: true,
+          feeds: [
+            {
+              id: "feed-1",
+              accountId: "acc-1",
+              folderId: "folder-1",
+              title: "Alpha",
+              url: "https://example.com/feed.xml",
+              siteUrl: "https://example.com",
+              unreadCount: 1,
+              readerMode: "on",
+              webPreviewMode: "off",
+              isSelected: false,
+              grayscaleFavicon: false,
+            },
+          ],
+        }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    const toggleButton = screen.getByRole("button", { name: "Toggle folder Comic" });
+    const panelId = toggleButton.getAttribute("aria-controls");
+    expect(toggleButton).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "false");
+    expect(screen.getByRole("button", { name: /Alpha/ }).closest(`#${panelId}`)).toBeInTheDocument();
+  });
 });

@@ -54,6 +54,49 @@ export type ArticleToolbarViewProps = {
 
 export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
 
+export type ArticleToolbarActionResolverInput = {
+  hasArticle: boolean;
+  hasUrl: boolean;
+  showCopyLinkPreference: boolean;
+  hideBrowserOverlayActions: boolean;
+  layoutMode: "wide" | "compact" | "mobile";
+};
+
+export type ArticleToolbarActionResolverResult = {
+  canToggleRead: boolean;
+  canToggleStar: boolean;
+  showCopyLinkButton: boolean;
+  canCopyLink: boolean;
+  showOpenInBrowserButton: boolean;
+  canOpenInBrowser: boolean;
+  showOpenInExternalBrowserButton: boolean;
+  canOpenInExternalBrowser: boolean;
+  showExternalBrowserInMoreMenu: boolean;
+};
+
+export function resolveArticleToolbarActions({
+  hasArticle,
+  hasUrl,
+  showCopyLinkPreference,
+  hideBrowserOverlayActions,
+  layoutMode,
+}: ArticleToolbarActionResolverInput): ArticleToolbarActionResolverResult {
+  const canUseUrl = hasArticle && hasUrl;
+  const showBrowserOverlayAction = !hideBrowserOverlayActions;
+
+  return {
+    canToggleRead: hasArticle,
+    canToggleStar: hasArticle,
+    showCopyLinkButton: showCopyLinkPreference,
+    canCopyLink: canUseUrl,
+    showOpenInBrowserButton: showBrowserOverlayAction,
+    canOpenInBrowser: canUseUrl,
+    showOpenInExternalBrowserButton: showBrowserOverlayAction,
+    canOpenInExternalBrowser: canUseUrl,
+    showExternalBrowserInMoreMenu: layoutMode === "mobile" && showBrowserOverlayAction && canUseUrl,
+  };
+}
+
 type ArticleToolbarVisualActiveTone = "unread" | "neutral" | "accent" | "starred";
 
 const articleToolbarVisualActiveClassNames: Record<ArticleToolbarVisualActiveTone, string> = {

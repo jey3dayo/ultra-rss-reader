@@ -12,5 +12,12 @@ export const FeedIntegrityReportDtoSchema = z.object({
   orphaned_feeds: z.array(FeedIntegrityIssueDtoSchema),
 });
 
+export const FeedIntegrityCleanupDtoSchema = z.object({
+  dry_run: z.boolean(),
+  orphaned_article_count: z.number().int().nonnegative(),
+  deleted_article_count: z.number().int().nonnegative(),
+});
+
 export type FeedIntegrityIssueDto = z.infer<typeof FeedIntegrityIssueDtoSchema>;
 export type FeedIntegrityReportDto = z.infer<typeof FeedIntegrityReportDtoSchema>;
+export type FeedIntegrityCleanupDto = z.infer<typeof FeedIntegrityCleanupDtoSchema>;

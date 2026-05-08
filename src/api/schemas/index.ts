@@ -22,6 +22,7 @@ export {
   addToReadingListArgs,
   browserWebviewBoundsArgs,
   checkBrowserEmbedSupportArgs,
+  cleanupFeedIntegrityOrphansArgs,
   clearArticleViewHistoryArgs,
   commandArgsSchemas,
   copyToClipboardArgs,
@@ -107,6 +108,8 @@ export {
   FeedArticleSummaryDtoSchema,
 } from "./feed-article-summary";
 export {
+  type FeedIntegrityCleanupDto,
+  FeedIntegrityCleanupDtoSchema,
   type FeedIntegrityReportDto,
   FeedIntegrityReportDtoSchema,
 } from "./feed-integrity";

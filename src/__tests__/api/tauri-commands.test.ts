@@ -4,13 +4,16 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
+  addLocalFeed,
   addToReadingList,
+  checkBrowserEmbedSupport,
   clearArticleViewHistory,
   countAccountStarredArticles,
   countAccountUnreadArticles,
   countOldUnreadArticles,
   createMuteKeyword,
   createOrUpdateBrowserWebview,
+  createTag,
   focusBrowserWebview,
   getAccountSyncStatus,
   getPlatformInfo,
@@ -24,6 +27,7 @@ import {
   listMuteKeywords,
   listRecentArticles,
   listStarredArticles,
+  listTags,
   markAccountRead,
   markAccountStarredRead,
   markArticleRead,
@@ -32,6 +36,8 @@ import {
   recordArticleView,
   setMuteAutoMarkRead,
   setPreference,
+  triggerAutomaticSync,
+  triggerSync,
   unstarAccountArticles,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
@@ -47,6 +53,29 @@ describe("tauri-commands with mockIPC", () => {
 
   beforeEach(() => {
     setupTauriMocks();
+  });
+
+  it("keeps high-traffic default mock responses schema-valid", async () => {
+    await expect(Promise.resolve(Result.unwrap(await listAccounts()))).resolves.toEqual(sampleAccounts);
+    await expect(Promise.resolve(Result.unwrap(await listFeeds("acc-1")))).resolves.toEqual(sampleFeeds);
+    await expect(Promise.resolve(Result.unwrap(await listArticles("feed-1")))).resolves.toEqual(sampleArticles);
+    expect(Result.unwrap(await listRecentArticles("acc-1")).map((article) => article.id)).toEqual(["art-2", "art-1"]);
+    expect(Result.unwrap(await getPlatformInfo()).kind).toBe("windows");
+    expect(Result.unwrap(await triggerSync())).toMatchObject({ synced: true, total: 1, succeeded: 1 });
+    expect(Result.unwrap(await triggerAutomaticSync())).toMatchObject({ synced: false, total: 0, succeeded: 0 });
+    expect(
+      Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds)),
+    ).toMatchObject({
+      url: "https://example.com/article",
+      is_loading: true,
+    });
+    expect(Result.unwrap(await addLocalFeed("acc-1", "https://example.com/feed.xml"))).toMatchObject({
+      id: "feed-new",
+      account_id: "acc-1",
+    });
+    expect(Result.unwrap(await listTags()).map((tag) => tag.id)).toContain("tag-1");
+    expect(Result.unwrap(await createTag("Later", "#6f8eb8"))).toMatchObject({ name: "Later", color: "#6f8eb8" });
+    expect(Result.unwrap(await checkBrowserEmbedSupport("https://example.com/article"))).toBe(true);
   });
 
   describe("listAccounts", () => {
