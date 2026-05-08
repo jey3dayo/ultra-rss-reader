@@ -101,6 +101,34 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(candidates[0]?.staleDays).toBeGreaterThan(90);
   });
 
+  it("keeps multi-reason candidates in review copy order with the high-priority summary", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      feedArticleSummaries,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    const multiReasonCandidate = candidates.find((candidate) => candidate.feedId === "feed-mid");
+
+    if (!multiReasonCandidate) {
+      throw new Error("expected review candidates to include the multi-reason feed");
+    }
+
+    expect(multiReasonCandidate.reasonKeys).toEqual(["stale_90d", "no_unread", "no_stars"]);
+    expect(summarizeSubscriptionReviewCandidate(multiReasonCandidate)).toEqual({
+      tone: "high",
+      titleKey: "review_now",
+      summaryKey: "stale_and_inactive",
+    });
+    expect(buildSubscriptionReviewReasonFacts(multiReasonCandidate)).toEqual([
+      { key: "stale_days", value: 93 },
+      { key: "unread_count", value: 0 },
+      { key: "starred_count", value: 0 },
+    ]);
+  });
+
   it("marks stale feeds at the 90 day boundary only", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
@@ -312,7 +340,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(buildSubscriptionReviewReasonFacts(candidates[2])).toEqual([]);
   });
 
-  it("resolves review summary and fact translation keys", () => {
+  it("resolves review summary translation keys", () => {
     expect(resolveSubscriptionReviewSummaryTranslationKey("stale_and_inactive")).toBe(
       "detail_reason_stale_and_inactive",
     );
@@ -326,6 +354,9 @@ describe("buildSubscriptionReviewCandidates", () => {
       "detail_reason_stale_but_supported",
     );
     expect(resolveSubscriptionReviewSummaryTranslationKey("healthy_feed")).toBe("detail_reason_normal");
+  });
+
+  it("resolves review reason fact translation keys", () => {
     expect(resolveSubscriptionReviewReasonFactTranslationKey("stale_days")).toBe("fact_stale_days");
     expect(resolveSubscriptionReviewReasonFactTranslationKey("unread_count")).toBe("fact_unread_count");
     expect(resolveSubscriptionReviewReasonFactTranslationKey("starred_count")).toBe("fact_starred_count");

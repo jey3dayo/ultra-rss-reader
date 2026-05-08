@@ -58,3 +58,24 @@ export const CooldownTooltip: Story = {
     isSyncCoolingDown: true,
   },
 };
+
+export const DenseNarrowViewport: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile2",
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-[220px] bg-sidebar text-sidebar-foreground">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    syncButtonLabel: "すべてのフィードを同期",
+    syncButtonText: "同期",
+    addFeedButtonLabel: "購読フィードを追加",
+    addFeedButtonText: "追加",
+  },
+};

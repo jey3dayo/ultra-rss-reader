@@ -178,3 +178,35 @@ export const SelectedJapaneseUnreadWithScrollbarDark: Story = {
   name: "Selected Japanese Unread With Scrollbar / Dark",
   decorators: [withTheme("dark")],
 };
+
+export const DenseNarrowViewport: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile2",
+    },
+  },
+  args: {
+    listAriaLabel: "記事一覧",
+    groups: [
+      {
+        id: "dense-today",
+        label: "今日",
+        showLabel: true,
+        items: [
+          {
+            article: selectedJapaneseArticleFixture,
+            feedName: "AUTOMATON",
+            isSelected: true,
+            isRecentlyRead: false,
+          },
+          ...scrollbarFillerArticles.slice(0, 5).map((article) => ({
+            article,
+            feedName: "テックニュースまとめ",
+            isSelected: false,
+            isRecentlyRead: false,
+          })),
+        ],
+      },
+    ],
+  },
+};

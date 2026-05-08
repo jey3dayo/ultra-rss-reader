@@ -10,6 +10,7 @@ import {
 import { describe, expect, it } from "vitest";
 import formActionButtonsMeta, {
   Loading as FormActionButtonsLoading,
+  LongLocalizedLabels as FormActionButtonsLongLocalizedLabels,
 } from "@/components/shared/form-action-buttons.stories";
 import gradientSwitchMeta, {
   SettingsRow as GradientSwitchSettingsRow,
@@ -100,6 +101,11 @@ describe("Shared stories", () => {
     renderStory(formActionButtonsMeta, FormActionButtonsLoading);
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Saving" })).toBeInTheDocument();
+
+    cleanup();
+    renderStory(formActionButtonsMeta, FormActionButtonsLongLocalizedLabels);
+    expect(screen.getByRole("button", { name: "詳細な同期設定を破棄" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "変更内容を保存して同期を再開" })).toBeInTheDocument();
 
     cleanup();
     renderStory(stackedInputFieldMeta, StackedInputFieldDisabled);

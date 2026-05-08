@@ -39,3 +39,18 @@ export const Disabled: Story = {
     submitDisabled: true,
   },
 };
+
+export const LongLocalizedLabels: Story = {
+  decorators: [
+    (Story) => (
+      <div className="w-[220px]">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    cancelLabel: "詳細な同期設定を破棄",
+    submitLabel: "変更内容を保存して同期を再開",
+    submittingLabel: "同期設定を保存しています",
+  },
+};
