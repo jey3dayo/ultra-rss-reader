@@ -13,6 +13,8 @@ import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
 
+type FeedTreeRowStyle = CSSProperties & Record<"--feed-tree-rail-offset", string>;
+
 function DragHandle({
   feedTitle,
   sidebarDensity = "normal",
@@ -64,9 +66,9 @@ export function FeedTreeRow({
   consumeSuppressedHandleClick,
 }: FeedTreeRowProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
-  const rowStyle = {
+  const rowStyle: FeedTreeRowStyle = {
     "--feed-tree-rail-offset": tokens.treeRailOffset,
-  } as CSSProperties;
+  };
   const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 1) {
       return;

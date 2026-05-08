@@ -17,6 +17,9 @@ type SettingsContentLayoutProps = {
   scrollBehavior?: "auto" | "always" | "never";
 };
 
+type SettingsToneVariables = CSSProperties &
+  Record<"--section-heading-color" | "--form-row-label", string>;
+
 const SettingsContentScrollBehaviorContext = createContext<SettingsContentLayoutProps["scrollBehavior"]>("auto");
 
 export function SettingsContentScrollBehaviorProvider({
@@ -53,10 +56,10 @@ export function SettingsContentLayout({
       : resolvedScrollBehavior === "never"
         ? false
         : contentOverflow.hasOverflow;
-  const toneVariables = {
+  const toneVariables: SettingsToneVariables = {
     "--section-heading-color": "var(--settings-shell-section-label)",
     "--form-row-label": "var(--settings-shell-field-label)",
-  } as CSSProperties;
+  };
   const headerContentClassName = cn("w-full", titleLayout === "stacked-left" && "mx-auto", maxWidthClassName);
   const bodyContentClassName = cn(
     "w-full",

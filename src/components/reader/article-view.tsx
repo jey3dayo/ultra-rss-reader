@@ -16,6 +16,7 @@ import {
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
+import type { ArticleEmptyStateViewProps } from "./article-view.types";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
 import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
 
@@ -187,7 +188,7 @@ function EmptyState({
     return <SelectionSummaryEmptyState summary={summary} />;
   }
 
-  const content =
+  const content: ArticleEmptyStateViewProps =
     emptyReason === "no-accounts"
       ? {
           eyebrow: t("empty_state_no_accounts_eyebrow"),
@@ -197,7 +198,7 @@ function EmptyState({
           containerClassName: undefined,
           cardClassName: undefined,
           actions: [
-            { label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" as const },
+            { label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" },
           ],
         }
       : emptyReason === "no-feeds"
@@ -208,7 +209,7 @@ function EmptyState({
             hints: [t("empty_state_no_feeds_add_hint"), t("empty_state_no_feeds_discovery_hint")],
             containerClassName: undefined,
             cardClassName: undefined,
-            actions: [{ label: t("add_feed"), onClick: openAddFeedDialog, variant: "default" as const }],
+            actions: [{ label: t("add_feed"), onClick: openAddFeedDialog, variant: "default" }],
           }
         : {
             eyebrow: undefined,

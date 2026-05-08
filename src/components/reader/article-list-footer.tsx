@@ -4,11 +4,16 @@ import { useTranslation } from "react-i18next";
 import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
 import type { ArticleListFooterProps, ArticleListViewMode } from "./article-list.types";
 
+type ArticleListFooterMode = {
+  value: ArticleListViewMode;
+  labelKey: "filter_unread" | "filter_all" | "filter_starred";
+};
+
 const VIEW_MODES = [
   { value: "unread", labelKey: "filter_unread" },
   { value: "all", labelKey: "filter_all" },
   { value: "starred", labelKey: "filter_starred" },
-] as const;
+] satisfies readonly ArticleListFooterMode[];
 const DEFAULT_VISIBLE_MODES: readonly ArticleListViewMode[] = ["unread", "all", "starred"];
 const EMPTY_DISABLED_MODES: readonly ArticleListViewMode[] = [];
 
