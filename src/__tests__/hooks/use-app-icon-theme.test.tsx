@@ -44,6 +44,9 @@ function createMatchMedia(matches: boolean) {
     removeEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
       listeners.delete(listener);
     },
+    listenerCount() {
+      return listeners.size;
+    },
     dispatch(nextMatches: boolean) {
       matches = nextMatches;
       const event: MatchMediaChangeEvent = { matches: nextMatches };
@@ -93,7 +96,10 @@ describe("useAppIconTheme", () => {
       vi.fn(() => createMatchMedia(false)),
     );
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
-    setPlatformState({ loaded: true, supportsRuntimeWindowIconReplacement: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
 
     render(<HookHarness />);
 
@@ -109,7 +115,10 @@ describe("useAppIconTheme", () => {
       vi.fn(() => mql),
     );
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
-    setPlatformState({ loaded: true, supportsRuntimeWindowIconReplacement: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
 
     render(<HookHarness />);
 
@@ -122,6 +131,43 @@ describe("useAppIconTheme", () => {
     await waitFor(() => {
       expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
     });
+  });
+
+  it("removes the system theme listener when switching to an explicit theme", async () => {
+    const mql = createMatchMedia(true);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => mql),
+    );
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+    expect(mql.listenerCount()).toBe(1);
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(mql.listenerCount()).toBe(0);
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
+    });
+
+    const callsAfterExplicitTheme = setIconMock.mock.calls.length;
+
+    mql.dispatch(false);
+
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(callsAfterExplicitTheme);
   });
 
   it("skips runtime icon replacement when capability is disabled", async () => {
@@ -151,7 +197,10 @@ describe("useAppIconTheme", () => {
       vi.fn(() => mql),
     );
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
-    setPlatformState({ loaded: false, supportsRuntimeWindowIconReplacement: true });
+    setPlatformState({
+      loaded: false,
+      supportsRuntimeWindowIconReplacement: true,
+    });
 
     render(<HookHarness />);
 
@@ -166,7 +215,10 @@ describe("useAppIconTheme", () => {
       vi.fn(() => createMatchMedia(false)),
     );
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
-    setPlatformState({ loaded: false, supportsRuntimeWindowIconReplacement: true });
+    setPlatformState({
+      loaded: false,
+      supportsRuntimeWindowIconReplacement: true,
+    });
 
     render(<HookHarness />);
 
@@ -174,7 +226,10 @@ describe("useAppIconTheme", () => {
     expect(setIconMock).not.toHaveBeenCalled();
 
     act(() => {
-      setPlatformState({ loaded: true, supportsRuntimeWindowIconReplacement: true });
+      setPlatformState({
+        loaded: true,
+        supportsRuntimeWindowIconReplacement: true,
+      });
     });
 
     await waitFor(() => {

@@ -86,6 +86,29 @@ describe("ShortcutsSettings", () => {
     expect(screen.queryByText(conflictMessage)).not.toBeInTheDocument();
   });
 
+  it("cancels recording with Escape without saving a shortcut preference", async () => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "n",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-next_article"));
+
+    expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent("Press a key");
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent("n");
+    expect(setPref).not.toHaveBeenCalled();
+  });
+
   it("resets one shortcut row without resetting all bindings", async () => {
     const user = userEvent.setup();
     const setPref = vi.fn();

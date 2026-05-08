@@ -61,6 +61,70 @@ describe("useBadge", () => {
     });
   });
 
+  it("clears the badge without starting all_unread feed queries when no account is selected", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+    useUiStore.setState({ selectedAccountId: null });
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(undefined);
+    });
+
+    expect(calls.some((call) => call.cmd === "list_feeds")).toBe(false);
+    expect(calls.some((call) => call.cmd === "count_account_unread_articles")).toBe(false);
+  });
+
+  it("clears the badge without starting only_inbox unread queries when no account is selected", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+    useUiStore.setState({ selectedAccountId: null });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(undefined);
+    });
+
+    expect(calls.some((call) => call.cmd === "list_feeds")).toBe(false);
+    expect(calls.some((call) => call.cmd === "count_account_unread_articles")).toBe(false);
+  });
+
+  it("clears selected account only_inbox badge after a zero unread query result", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "count_account_unread_articles") {
+        return 0;
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "count_account_unread_articles",
+        args: { accountId: "acc-1" },
+      });
+    });
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(undefined);
+    });
+  });
+
   it("does not crash when the account unread count query fails", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
