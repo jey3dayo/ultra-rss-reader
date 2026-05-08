@@ -86,7 +86,33 @@ impl AccountRepository for SqliteAccountRepository<'_> {
 
     fn save(&self, account: &Account) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO accounts (id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            "INSERT INTO accounts (
+                id,
+                kind,
+                name,
+                server_url,
+                username,
+                sync_interval_secs,
+                sync_on_startup,
+                sync_on_wake,
+                keep_read_items_days,
+                connection_verification_status,
+                connection_verified_at,
+                connection_verification_error
+             )
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+             ON CONFLICT(id) DO UPDATE SET
+                kind = excluded.kind,
+                name = excluded.name,
+                server_url = excluded.server_url,
+                username = excluded.username,
+                sync_interval_secs = excluded.sync_interval_secs,
+                sync_on_startup = excluded.sync_on_startup,
+                sync_on_wake = excluded.sync_on_wake,
+                keep_read_items_days = excluded.keep_read_items_days,
+                connection_verification_status = excluded.connection_verification_status,
+                connection_verified_at = excluded.connection_verified_at,
+                connection_verification_error = excluded.connection_verification_error",
             params![
                 account.id.0,
                 provider_kind_to_str(&account.kind),
@@ -256,6 +282,68 @@ mod tests {
         let all = repo.find_all().unwrap();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].name, "Updated");
+    }
+
+    #[test]
+    fn save_update_preserves_related_folders_feeds_and_articles() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("Original");
+        repo.save(&account).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name) VALUES ('folder-1', ?1, 'Folder')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url)
+                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, published_at, fetched_at)
+                 VALUES ('article-1', 'feed-1', 'Article', '2026-05-09T00:00:00Z', '2026-05-09T00:01:00Z')",
+                [],
+            )
+            .unwrap();
+
+        account.name = "Updated".to_string();
+        repo.save(&account).unwrap();
+
+        let folder_count: i32 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1",
+                params![account.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let feed_count: i32 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM feeds WHERE account_id = ?1",
+                params![account.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let article_count: i32 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = 'feed-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(folder_count, 1);
+        assert_eq!(feed_count, 1);
+        assert_eq!(article_count, 1);
     }
 
     #[test]

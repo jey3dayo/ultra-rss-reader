@@ -38,7 +38,13 @@ impl FolderRepository for SqliteFolderRepository<'_> {
 
     fn save(&self, folder: &Folder) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO folders (id, account_id, remote_id, name, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO folders (id, account_id, remote_id, name, sort_order)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(id) DO UPDATE SET
+               account_id = excluded.account_id,
+               remote_id = excluded.remote_id,
+               name = excluded.name,
+               sort_order = excluded.sort_order",
             params![
                 folder.id.0,
                 folder.account_id.0,
@@ -144,6 +150,54 @@ mod tests {
             })
             .unwrap();
         assert!(folder_id.is_none());
+    }
+
+    #[test]
+    fn save_updates_existing_folder_without_clearing_feed_assignments() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        let folder = Folder {
+            id: FolderId::new(),
+            account_id: account_id.clone(),
+            remote_id: Some("remote-folder".to_string()),
+            name: "Tech".to_string(),
+            sort_order: 0,
+        };
+        repo.save(&folder).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url) VALUES ('f1', ?1, ?2, 'Feed', 'http://f.com')",
+                params![account_id.0, folder.id.0],
+            )
+            .unwrap();
+
+        let updated_folder = Folder {
+            name: "Engineering".to_string(),
+            sort_order: 2,
+            ..folder.clone()
+        };
+        repo.save(&updated_folder).unwrap();
+
+        let folder_id: Option<String> = db
+            .reader()
+            .query_row("SELECT folder_id FROM feeds WHERE id = 'f1'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let saved_name: String = db
+            .reader()
+            .query_row(
+                "SELECT name FROM folders WHERE id = ?1",
+                params![folder.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(folder_id.as_deref(), Some(folder.id.0.as_str()));
+        assert_eq!(saved_name, "Engineering");
     }
 
     #[test]
