@@ -1,13 +1,4 @@
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
-import type {
-  SubscriptionDecisionActions,
-  SubscriptionDetailCandidate,
-  SubscriptionDetailMetrics,
-  SubscriptionListGroup,
-  SubscriptionListRow,
-  SubscriptionSummaryCard,
-  SubscriptionSummaryFilterKey,
-} from "@/components/subscriptions-index/subscriptions-index.types";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
 import { countStarredArticles } from "@/lib/article-list";
 import { findLatestArticleOrNull } from "@/lib/article-view";
@@ -18,12 +9,19 @@ import {
   hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscription-review-candidates";
+import type {
+  SubscriptionDecisionActions,
+  SubscriptionDetailCandidate,
+  SubscriptionDetailMetrics,
+  SubscriptionListGroup,
+  SubscriptionListRow,
+  SubscriptionRowStatus,
+  SubscriptionSummaryCard,
+  SubscriptionSummaryFilterKey,
+} from "@/lib/subscriptions-index.types";
 
 export { countStarredArticles } from "@/lib/article-list";
-
-export type SubscriptionRowStatus =
-  | { tone: "neutral"; labelKey: "normal" }
-  | { tone: "medium"; labelKey: "review" | "stale_90d" | "no_unread" | "no_stars" };
+export type { SubscriptionRowStatus } from "@/lib/subscriptions-index.types";
 
 export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
 

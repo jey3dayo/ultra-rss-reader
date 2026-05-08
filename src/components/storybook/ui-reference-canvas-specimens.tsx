@@ -64,10 +64,6 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 import { TagChip } from "@/components/shared/tag-chip";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { WorkspaceHeaderActionButton } from "@/components/shared/workspace-header";
-import type {
-  SubscriptionListGroup,
-  SubscriptionSummaryCard,
-} from "@/components/subscriptions-index/subscriptions-index.types";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { Button } from "@/components/ui/button";
@@ -89,6 +85,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import type { SubscriptionListGroup, SubscriptionSummaryCard } from "@/lib/subscriptions-index.types";
 import { cn } from "@/lib/utils";
 import type { ToastData } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";

@@ -2,11 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
-import type {
-  SubscriptionListGroup,
-  SubscriptionListRow,
-} from "@/components/subscriptions-index/subscriptions-index.types";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
+import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto>): FeedDto {
   return {

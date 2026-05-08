@@ -1,6 +1,9 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { SubscriptionReviewCandidate, SubscriptionReviewTone } from "@/lib/subscription-review-candidates";
-import type { SubscriptionRowStatus } from "@/lib/subscriptions-index";
+
+export type SubscriptionRowStatus =
+  | { tone: "neutral"; labelKey: "normal" }
+  | { tone: "medium"; labelKey: "review" | "stale_90d" | "no_unread" | "no_stars" };
 
 export type SubscriptionSummaryFilterKey = "all" | "review" | "stale";
 

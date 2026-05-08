@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
-} from "./subscriptions-index.types";
+} from "@/lib/subscriptions-index.types";
+import { SubscriptionDetailPane } from "./subscription-detail-pane";
 
 const feed = {
   id: "feed-1",

@@ -12,7 +12,7 @@ import type {
   SubscriptionDetailMetrics,
   SubscriptionListRow,
   SubscriptionManagementActions,
-} from "./subscriptions-index.types";
+} from "@/lib/subscriptions-index.types";
 
 type DecisionActionConfig = {
   key: "keep" | "defer" | "delete";

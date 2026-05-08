@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import { LabelChip } from "@/components/shared/label-chip";
 import { MotionNumber } from "@/components/shared/motion-number";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import type { SubscriptionSummaryCard } from "@/lib/subscriptions-index.types";
 import { cn } from "@/lib/utils";
-import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
 
 type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
 

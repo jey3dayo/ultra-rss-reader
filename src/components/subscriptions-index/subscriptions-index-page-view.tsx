@@ -4,9 +4,6 @@ import {
   WORKSPACE_CHROME_SPACING_CLASS,
   workspaceSplitShellClassName,
 } from "@/components/shared/workspace-pane-layout";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
-import { usePlatformStore } from "@/stores/platform-store";
-import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -14,7 +11,10 @@ import type {
   SubscriptionListRow,
   SubscriptionManagementActions,
   SubscriptionSummaryCard,
-} from "./subscriptions-index.types";
+} from "@/lib/subscriptions-index.types";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
+import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "./subscriptions-overview-summary";
 

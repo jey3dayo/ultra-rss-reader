@@ -30,14 +30,14 @@ import {
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
-import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
-import { useUiStore } from "@/stores/ui-store";
 import type {
   SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
-} from "./subscriptions-index.types";
+} from "@/lib/subscriptions-index.types";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
+import { useUiStore } from "@/stores/ui-store";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
 
