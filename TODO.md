@@ -1124,11 +1124,6 @@
   - folder drag/drop UI、remote folder sync、sidebar disclosure state は混ぜない
   - same sort_order が既にある破損データ時の tie-break は別 TODO に残す
 
-- [ ] Folder delete feed detach contract 候補を別バッチで追加する
-  - `sqlite_folder.rs` / `feed_commands.rs` で folder delete 時に所属 feed の `folder_id` を null に戻す / cascade しない方針を repository test で固定する
-  - stale remote folder detach policy、folder selection UI、sync provider folder mutation は同じバッチに混ぜない
-  - empty folder delete と feeds あり folder delete を別 fixture にする
-
 - [ ] Account delete selected fallback contract 候補を別バッチで追加する
   - `ui-store.ts` と settings modal 周辺で selected account が delete された時、次 account / null への fallback と settings page state の扱いを store contract として固定する
   - keyring cleanup、account delete command、accounts nav sorting、settings modal type split は混ぜない
