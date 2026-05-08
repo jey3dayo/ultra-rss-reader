@@ -518,10 +518,12 @@ pub fn list_folder_articles(
         offset: offset.unwrap_or(0),
         limit: limit.unwrap_or(50),
     };
-    let articles = match mode.as_deref().unwrap_or("all") {
-        "unread" => repo.find_unread_by_folder(&FolderId(folder_id), &pagination)?,
-        "starred" => repo.find_starred_by_folder(&FolderId(folder_id), &pagination)?,
-        _ => repo.find_by_folder(&FolderId(folder_id), &pagination)?,
+    let mode = parse_article_list_mode(mode.as_deref())?;
+    let folder_id = FolderId(folder_id);
+    let articles = match mode {
+        ArticleListMode::All => repo.find_by_folder(&folder_id, &pagination)?,
+        ArticleListMode::Unread => repo.find_unread_by_folder(&folder_id, &pagination)?,
+        ArticleListMode::Starred => repo.find_starred_by_folder(&folder_id, &pagination)?,
     };
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
@@ -908,13 +910,16 @@ mod tests {
     use super::{
         bulk_mark_account_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
         has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
-        mark_articles_read_with_conn, maybe_queue_mutation, should_use_background_browser_open,
-        supports_remote_mutations, toggle_article_star_with_conn, OldUnreadScope,
+        mark_articles_read_with_conn, maybe_queue_mutation, parse_article_list_mode,
+        should_use_background_browser_open, supports_remote_mutations,
+        toggle_article_star_with_conn, OldUnreadScope,
     };
+    use crate::commands::dto::AppError;
     use crate::domain::types::{AccountId, ArticleId, FeedId};
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::platform::{platform_info_for_kind, PlatformKind};
+    use crate::repository::article::ArticleListMode;
     use crate::repository::pending_mutation::PendingMutationRepository;
     use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
@@ -993,6 +998,22 @@ mod tests {
         ));
         assert!(!supports_remote_mutations("FreshRss", None));
         assert!(!supports_remote_mutations("Local", Some("feed/1")));
+    }
+
+    #[test]
+    fn folder_article_list_mode_rejects_unknown_values() {
+        assert_eq!(
+            parse_article_list_mode(None).expect("missing mode should default to all"),
+            ArticleListMode::All
+        );
+
+        let error = parse_article_list_mode(Some("archived"))
+            .expect_err("unknown folder article mode should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Invalid article list mode: archived"
+        ));
     }
 
     #[test]

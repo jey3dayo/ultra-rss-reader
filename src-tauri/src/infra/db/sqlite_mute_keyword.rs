@@ -254,17 +254,27 @@ mod tests {
     }
 
     #[test]
-    fn create_rejects_ascii_case_insensitive_duplicates() {
+    fn create_trims_keyword_and_rejects_same_scope_duplicates_ignoring_ascii_case() {
         let db = test_db();
         let repo = SqliteMuteKeywordRepository::new(db.writer());
 
-        repo.create(" Kindle Unlimited ", MuteKeywordScope::Title)
+        let created = repo
+            .create(" Kindle Unlimited ", MuteKeywordScope::Title)
             .unwrap();
+        assert_eq!(created.keyword, "Kindle Unlimited");
+
         let error = repo
-            .create("kindle unlimited", MuteKeywordScope::Title)
+            .create("  KINDLE UNLIMITED  ", MuteKeywordScope::Title)
             .unwrap_err();
 
         assert!(matches!(error, DomainError::Validation(_)));
+
+        repo.create("  KINDLE UNLIMITED  ", MuteKeywordScope::Body)
+            .unwrap();
+
+        let rules = repo.find_all().unwrap();
+        assert_eq!(rules.len(), 2);
+        assert!(rules.iter().all(|rule| rule.keyword == rule.keyword.trim()));
     }
 
     #[test]

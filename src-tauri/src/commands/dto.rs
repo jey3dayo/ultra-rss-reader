@@ -367,7 +367,48 @@ impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
 
 #[cfg(test)]
 mod tests {
-    use super::{PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto};
+    use super::{AppError, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto};
+    use crate::domain::error::DomainError;
+
+    #[test]
+    fn domain_network_error_maps_to_retryable_app_error() {
+        let app_error = AppError::from(DomainError::Network("timeout".to_string()));
+
+        match app_error {
+            AppError::Retryable { message } => {
+                assert_eq!(message, "Network error: timeout");
+            }
+            AppError::UserVisible { message } => {
+                panic!("network errors should be retryable, got user-visible: {message}");
+            }
+        }
+    }
+
+    #[test]
+    fn domain_non_network_errors_map_to_user_visible_app_errors() {
+        let errors = [
+            DomainError::Parse("bad feed".to_string()),
+            DomainError::Persistence("database locked".to_string()),
+            DomainError::Auth("unauthorized".to_string()),
+            DomainError::Validation("missing url".to_string()),
+            DomainError::Keychain("missing secret".to_string()),
+            DomainError::Migration("failed migration".to_string()),
+        ];
+
+        for domain_error in errors {
+            let expected_message = domain_error.to_string();
+            let app_error = AppError::from(domain_error);
+
+            match app_error {
+                AppError::UserVisible { message } => {
+                    assert_eq!(message, expected_message);
+                }
+                AppError::Retryable { message } => {
+                    panic!("non-network errors should be user-visible, got retryable: {message}");
+                }
+            }
+        }
+    }
 
     #[test]
     fn platform_info_dto_serializes_expected_ipc_shape() {

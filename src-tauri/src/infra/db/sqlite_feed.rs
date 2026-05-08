@@ -213,7 +213,18 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()> {
         self.conn.execute(
-            "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+            "UPDATE feeds
+             SET folder_id = ?1
+             WHERE id = ?2
+               AND (
+                 ?1 IS NULL
+                 OR EXISTS (
+                   SELECT 1
+                   FROM folders
+                   WHERE folders.id = ?1
+                     AND folders.account_id = feeds.account_id
+                 )
+               )",
             params![folder_id.map(|f| &f.0), feed_id.0],
         )?;
         Ok(())
@@ -436,6 +447,30 @@ mod tests {
     }
 
     #[test]
+    fn update_folder_does_not_assign_folder_from_another_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+        let other_folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![other_folder_id.0, other_account_id.0, "Other", 0],
+            )
+            .unwrap();
+
+        repo.update_folder(&feed.id, Some(&other_folder_id))
+            .unwrap();
+
+        let saved_feed = repo.find_by_id(&feed.id).unwrap().unwrap();
+        assert!(saved_feed.folder_id.is_none());
+    }
+
+    #[test]
     fn delete_cascades_to_articles() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -570,6 +605,56 @@ mod tests {
         assert_eq!(feeds[0].unread_count, 12);
         assert_eq!(feeds[0].reader_mode, "on");
         assert_eq!(feeds[0].web_preview_mode, "off");
+    }
+
+    #[test]
+    fn save_duplicate_account_url_preserves_existing_id_and_updates_display_metadata() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let existing_feed = Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Original Feed".to_string(),
+            url: "http://example.com/rss".to_string(),
+            site_url: "http://example.com".to_string(),
+            icon: None,
+            unread_count: 7,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        repo.save(&existing_feed).unwrap();
+
+        let incoming_feed = Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/remote".to_string()),
+            title: "Updated Feed".to_string(),
+            url: existing_feed.url.clone(),
+            site_url: "https://example.com/articles".to_string(),
+            icon: Some(vec![9, 8, 7]),
+            unread_count: 0,
+            reader_mode: "off".to_string(),
+            web_preview_mode: "on".to_string(),
+        };
+
+        repo.save(&incoming_feed).unwrap();
+
+        let feeds = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(feeds.len(), 1);
+        let saved_feed = &feeds[0];
+
+        assert_eq!(saved_feed.id, existing_feed.id);
+        assert_ne!(saved_feed.id, incoming_feed.id);
+        assert_eq!(saved_feed.title, "Updated Feed");
+        assert_eq!(saved_feed.site_url, "https://example.com/articles");
+        assert_eq!(saved_feed.icon.as_deref(), Some(&[9, 8, 7][..]));
+        assert_eq!(saved_feed.reader_mode, "off");
+        assert_eq!(saved_feed.web_preview_mode, "on");
     }
 
     #[test]

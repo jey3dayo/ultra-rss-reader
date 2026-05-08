@@ -1276,12 +1276,19 @@ mod tests {
 
         // Upsert again with is_read=false, is_starred=false in the input
         article.title = "Updated Title".to_string();
+        article.content_raw = "updated raw content".to_string();
+        article.content_sanitized = "<p>Updated sanitized content</p>".to_string();
         article.is_read = false;
         article.is_starred = false;
         repo.upsert(std::slice::from_ref(&article)).unwrap();
 
         let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert_eq!(found[0].title, "Updated Title");
+        assert_eq!(found[0].content_raw, "updated raw content");
+        assert_eq!(
+            found[0].content_sanitized,
+            "<p>Updated sanitized content</p>"
+        );
         // is_read and is_starred should be preserved from the DB
         assert!(found[0].is_read);
         assert!(found[0].is_starred);
@@ -1791,6 +1798,83 @@ mod tests {
     }
 
     #[test]
+    fn record_view_prunes_history_limit_for_target_account_only() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_a = insert_test_feed(&db, &account_a);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let articles_a = (0..(RECENT_ARTICLE_HISTORY_LIMIT + 1))
+            .map(|index| make_article(&feed_a, &format!("Account A Article {index:02}")))
+            .collect::<Vec<_>>();
+        let articles_b = (0..(RECENT_ARTICLE_HISTORY_LIMIT + 1))
+            .map(|index| make_article(&feed_b, &format!("Account B Article {index:02}")))
+            .collect::<Vec<_>>();
+        repo.upsert(&articles_a).unwrap();
+        repo.upsert(&articles_b).unwrap();
+
+        for (index, article) in articles_b.iter().enumerate() {
+            db.writer()
+                .execute(
+                    "INSERT INTO article_view_history (account_id, article_id, viewed_at) VALUES (?1, ?2, ?3)",
+                    params![
+                        account_b.0,
+                        article.id.0,
+                        format!("2026-04-20T10:{index:02}:00Z")
+                    ],
+                )
+                .unwrap();
+        }
+        for article in &articles_a {
+            repo.record_view(&account_a, &article.id).unwrap();
+        }
+
+        let count_a: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM article_view_history WHERE account_id = ?1",
+                params![account_a.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let count_b: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM article_view_history WHERE account_id = ?1",
+                params![account_b.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(count_a, RECENT_ARTICLE_HISTORY_LIMIT as i64);
+        assert_eq!(count_b, (RECENT_ARTICLE_HISTORY_LIMIT + 1) as i64);
+    }
+
+    #[test]
+    fn record_view_with_cross_account_article_is_repository_noop() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let article_b = make_article(&feed_b, "Account B Article");
+        repo.upsert(std::slice::from_ref(&article_b)).unwrap();
+
+        repo.record_view(&account_a, &article_b.id)
+            .expect("cross-account view should be a no-op");
+
+        let history_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .expect("history count should succeed");
+        assert_eq!(history_count, 0);
+    }
+
+    #[test]
     fn find_recently_viewed_by_account_filters_mode_before_pagination_and_keeps_view_order() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -1922,6 +2006,26 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM articles", [], |row| row.get(0))
             .expect("article count should succeed");
         assert_eq!(article_count, 0);
+    }
+
+    #[test]
+    fn mark_many_as_read_with_empty_ids_is_repository_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let article = make_article(&feed_id, "Unread article");
+        repo.upsert(std::slice::from_ref(&article))
+            .expect("article insert should succeed");
+
+        repo.mark_many_as_read(&[])
+            .expect("empty bulk article read mutation should be a no-op");
+        repo.mark_as_read(&article.id, true)
+            .expect("subsequent article update should succeed");
+
+        let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
+        assert_eq!(found.len(), 1);
+        assert!(found[0].is_read);
     }
 
     #[test]

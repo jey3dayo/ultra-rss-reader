@@ -433,4 +433,43 @@ mod tests {
         assert_eq!(updated.connection_verified_at, None);
         assert_eq!(updated.connection_verification_error, None);
     }
+
+    #[test]
+    fn update_credentials_resets_connection_verification_state() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("FreshRSS");
+        account.kind = ProviderKind::FreshRss;
+        account.server_url = Some("https://old.example.com".to_string());
+        account.username = Some("old-user".to_string());
+        repo.save(&account).unwrap();
+        repo.update_connection_verification(
+            &account.id,
+            ConnectionVerificationStatus::Error,
+            Some("2026-05-09T00:00:00Z"),
+            Some("old credentials failed"),
+        )
+        .unwrap();
+
+        repo.update_credentials(
+            &account.id,
+            Some("https://new.example.com"),
+            Some("new-user"),
+        )
+        .unwrap();
+
+        let updated = repo.find_by_id(&account.id).unwrap().unwrap();
+        assert_eq!(
+            updated.server_url.as_deref(),
+            Some("https://new.example.com")
+        );
+        assert_eq!(updated.username.as_deref(), Some("new-user"));
+        assert_eq!(
+            updated.connection_verification_status,
+            ConnectionVerificationStatus::Unverified
+        );
+        assert_eq!(updated.connection_verified_at, None);
+        assert_eq!(updated.connection_verification_error, None);
+    }
 }

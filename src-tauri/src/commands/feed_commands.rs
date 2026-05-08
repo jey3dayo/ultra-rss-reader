@@ -102,6 +102,14 @@ pub fn update_feed_folder(
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
     let db = lock_db(&state.db)?;
+    update_feed_folder_in_db(&db, feed_id, folder_id)
+}
+
+fn update_feed_folder_in_db(
+    db: &DbManager,
+    feed_id: String,
+    folder_id: Option<String>,
+) -> Result<(), AppError> {
     let repo = SqliteFeedRepository::new(db.writer());
     let fid = folder_id.map(FolderId);
     repo.update_folder(&FeedId(feed_id), fid.as_ref())?;
@@ -181,4 +189,63 @@ pub fn update_feed_display_settings(
 pub async fn discover_feeds(url: String) -> Result<Vec<DiscoveredFeedDto>, AppError> {
     let feeds = feed_discovery::discover_feeds(&url).await?;
     Ok(feeds.into_iter().map(DiscoveredFeedDto::from).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::params;
+
+    use super::update_feed_folder_in_db;
+    use crate::domain::types::{AccountId, FeedId, FolderId};
+    use crate::infra::db::connection::DbManager;
+
+    fn test_db() -> DbManager {
+        DbManager::new_in_memory().unwrap()
+    }
+
+    fn insert_test_account(db: &DbManager, name: &str) -> AccountId {
+        let id = AccountId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![id.0, "Local", name],
+            )
+            .unwrap();
+        id
+    }
+
+    #[test]
+    fn update_feed_folder_command_does_not_assign_folder_from_another_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let other_account_id = insert_test_account(&db, "Other");
+        let feed_id = FeedId::new();
+        let other_folder_id = FolderId::new();
+
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                params![feed_id.0, account_id.0, "Feed", "http://example.com/rss"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![other_folder_id.0, other_account_id.0, "Other", 0],
+            )
+            .unwrap();
+
+        update_feed_folder_in_db(&db, feed_id.0.clone(), Some(other_folder_id.0)).unwrap();
+
+        let saved_folder_id: Option<String> = db
+            .reader()
+            .query_row(
+                "SELECT folder_id FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert!(saved_folder_id.is_none());
+    }
 }
