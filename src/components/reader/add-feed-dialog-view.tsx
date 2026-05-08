@@ -1,10 +1,34 @@
-import { useId } from "react";
+import { type RefObject, useId } from "react";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
-import type { AddFeedDialogViewProps } from "./add-feed-dialog.types";
+import type { AddFeedDialogViewLabels } from "./add-feed-dialog.types";
 import { FeedDialogUrlSection } from "./feed-dialog-url-section";
-import { FolderSelectView } from "./folder-select-view";
+import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
+
+export type AddFeedDialogViewProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  url: string;
+  onUrlChange: (value: string) => void;
+  onDiscover: () => void;
+  discovering: boolean;
+  loading: boolean;
+  discoveredFeedsFoundLabel: string | null;
+  discoveredFeedOptions: Array<{ value: string; label: string }>;
+  selectedFeedUrl: string;
+  onSelectedFeedUrlChange: (value: string) => void;
+  folderSelectProps: FolderSelectViewProps;
+  error: string | null;
+  successMessage: string | null;
+  urlHint: string | null;
+  urlHintTone: "muted" | "error";
+  isDiscoverDisabled: boolean;
+  isSubmitDisabled: boolean;
+  labels: AddFeedDialogViewLabels;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  onSubmit: () => void;
+};
 
 export function AddFeedDialogView({
   open,

@@ -1,17 +1,35 @@
+import type { RefObject } from "react";
 import { CopyableReadonlyFieldList } from "@/components/shared/copyable-readonly-field-list";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
-import { FolderSelectView } from "./folder-select-view";
-import type { RenameFeedDialogViewProps } from "./rename-feed-dialog.types";
+import type { FeedDialogReadonlyFieldProps } from "./feed-dialog-form.types";
+import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
+import type { RenameFeedDialogViewLabels, RenameFeedDialogViewOption } from "./rename-feed-dialog.types";
 
 export type {
   RenameFeedDialogViewLabels,
   RenameFeedDialogViewOption,
-  RenameFeedDialogViewProps,
-  RenameFeedDialogViewUrlField,
 } from "./rename-feed-dialog.types";
+
+export type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
+
+export type RenameFeedDialogViewProps = {
+  open: boolean;
+  title: string;
+  loading: boolean;
+  displayMode: string;
+  displayModeOptions: RenameFeedDialogViewOption[];
+  urlFields: RenameFeedDialogViewUrlField[];
+  onOpenChange: (open: boolean) => void;
+  onTitleChange: (value: string) => void;
+  onDisplayModeChange: (value: string) => void;
+  folderSelectProps?: FolderSelectViewProps;
+  labels: RenameFeedDialogViewLabels;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  onSubmit: () => void;
+};
 
 export function RenameFeedDialogView({
   open,

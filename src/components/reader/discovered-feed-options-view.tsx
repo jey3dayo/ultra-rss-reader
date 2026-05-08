@@ -1,7 +1,15 @@
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import type { DiscoveredFeedOptionsViewProps } from "./add-feed-dialog.types";
+import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
+
+type DiscoveredFeedOptionsViewProps = {
+  summary: string;
+  name: string;
+  value: string;
+  options: DiscoveredFeedOption[];
+  onValueChange: (value: string) => void;
+};
 
 export function DiscoveredFeedOptionsView({
   summary,

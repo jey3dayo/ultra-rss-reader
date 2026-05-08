@@ -77,14 +77,6 @@ export type DiscoveredFeedOption = {
   label: string;
 };
 
-export type DiscoveredFeedOptionsViewProps = {
-  summary: string;
-  name: string;
-  value: string;
-  options: DiscoveredFeedOption[];
-  onValueChange: (value: string) => void;
-};
-
 export type ResolveAddFeedDialogDerivedParams = {
   state: AddFeedDialogState;
   isCreatingFolder: boolean;
@@ -128,30 +120,6 @@ export type AddFeedDialogController = {
   handleSubmit: () => Promise<void>;
   folderSelectProps: AddFeedDialogControllerFolderSelectProps;
   derived: AddFeedDialogControllerDerived;
-};
-
-export type AddFeedDialogViewProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  url: string;
-  onUrlChange: (value: string) => void;
-  onDiscover: () => void;
-  discovering: boolean;
-  loading: boolean;
-  discoveredFeedsFoundLabel: string | null;
-  discoveredFeedOptions: Array<{ value: string; label: string }>;
-  selectedFeedUrl: string;
-  onSelectedFeedUrlChange: (value: string) => void;
-  folderSelectProps: FolderSelectViewProps;
-  error: string | null;
-  successMessage: string | null;
-  urlHint: string | null;
-  urlHintTone: "muted" | "error";
-  isDiscoverDisabled: boolean;
-  isSubmitDisabled: boolean;
-  labels: AddFeedDialogViewLabels;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  onSubmit: () => void;
 };
 
 export type UseAddFeedDialogViewPropsParams = {

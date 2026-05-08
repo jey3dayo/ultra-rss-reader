@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import type { AddFeedDialogViewProps, UseAddFeedDialogViewPropsParams } from "../../add-feed-dialog.types";
+import type { UseAddFeedDialogViewPropsParams } from "../../add-feed-dialog.types";
+import type { AddFeedDialogViewProps } from "../../add-feed-dialog-view";
 
 export function useAddFeedDialogViewProps({
   open,

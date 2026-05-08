@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/articles/article-display";
-import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
+import type { FeedDialogSelectOption } from "./feed-dialog-form.types";
 import type { FolderSelectViewProps } from "./folder-select-view";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
@@ -40,23 +40,6 @@ export type RenameFeedDialogViewLabels = {
 };
 
 export type RenameFeedDialogViewOption = FeedDialogSelectOption;
-export type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
-
-export type RenameFeedDialogViewProps = {
-  open: boolean;
-  title: string;
-  loading: boolean;
-  displayMode: string;
-  displayModeOptions: RenameFeedDialogViewOption[];
-  urlFields: RenameFeedDialogViewUrlField[];
-  onOpenChange: (open: boolean) => void;
-  onTitleChange: (value: string) => void;
-  onDisplayModeChange: (value: string) => void;
-  folderSelectProps?: FolderSelectViewProps;
-  labels: RenameFeedDialogViewLabels;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  onSubmit: () => void;
-};
 
 export type RenameFeedDialogControllerParams = {
   feed: FeedDto;
