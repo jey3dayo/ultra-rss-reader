@@ -878,3 +878,78 @@
   - `use-data-settings-controller.ts` と `data-settings-view.tsx` で `Open log directory` / `VACUUM` の pending 表示と連打抑止を data settings 内だけで固定する
   - native open command 化、backup / export UX、DB migration recovery とは混ぜない
   - action ごとの pending flag と shared disabled 表示を別 assertion にする
+
+- [ ] Article list search account switch reset 候補を別バッチで追加する
+  - `use-article-list-search.ts` で選択アカウント変更時の検索 UI 開閉、入力値、debounced query、旧 search results の扱いを hook contract として固定する
+  - backend search、FTS、検索 ranking、reader scope matrix、記事一覧 UI layout とは混ぜない
+  - account switch と source switch の reset 条件を別 assertion にする
+
+- [ ] Article auto-mark failed mutation retry boundary 候補を別バッチで追加する
+  - `use-article-auto-mark.ts` で auto mark read mutation 失敗時に `autoMarkedArticleIdRef` を戻すか、同じ記事で再試行するかを固定する
+  - pending mutation queue、backend article command、toast 文言、after-reading preference UI とは混ぜない
+  - 失敗後の再選択と次記事 selection の挙動を hook test で分ける
+
+- [ ] Sidebar startup expanded-folder persistence guard 候補を別バッチで追加する
+  - `use-sidebar-startup-folder-expansion.ts` で startup restore 前の一時的な `expandedFolderIds` が localStorage の保存済み展開状態を上書きしないことを固定する
+  - folder drag/drop、sidebar visual density、folder tree sorting、startup account selection とは混ぜない
+  - account / feedsReady / foldersReady の組み合わせごとに保存タイミングを確認する
+
+- [ ] Settings modal hook placement parity 候補を別バッチで追加する
+  - `use-settings-modal-view-props.tsx` と `use-reading-settings-view-props.ts` を `settings/hooks/` 配下へ揃えられるか、import path と既存 tests だけで確認する
+  - settings nav type 分割、modal behavior、account setup lock、表示 copy 変更とは混ぜない
+  - 移動する場合は path-only に近い差分で、hook contract の再設計は別に残す
+
+- [ ] Settings preference option schema parity 候補を別バッチで追加する
+  - general / appearance / reading settings hooks の select / switch option value と `setPref` key が preferences schema の許容値とズレないことを固定する
+  - preferences migration、default value 変更、settings UI copy、layout / design 変更とは混ぜない
+  - settings hook contract test に限定し、UI 表示文言は assertion しない
+
+- [ ] CI workflow / mise task execution name parity guard 候補を別バッチで追加する
+  - `.github/workflows/ci.yml` が呼ぶ `mise run format:check` / `lint` / `test:ci` / `build` / `app:build:debug` が実在 task として解決できることを static test にする
+  - CI job matrix 変更、Storybook gate 追加、release workflow preflight とは混ぜない
+  - workflow 上の実行名と `mise.toml` の task 名だけを照合する
+
+- [ ] Tauri mock response schema validation guard 候補を別バッチで追加する
+  - `tests/helpers/tauri-mocks.ts` の代表 mock response が frontend response schema に通ることを test helper contract として固定する
+  - 未対応 command coverage guard、mock data 文言変更、実 command schema の仕様変更とは混ぜない
+  - まずは high-traffic command の response validation だけに限定する
+
+- [ ] Storybook addon / config dependency parity guard 候補を別バッチで追加する
+  - `.storybook/main.ts` の addons / framework が `package.json` devDependencies と一致し、不要に config だけ残らないことを static test で見る
+  - Storybook iframe smoke、UI Reference canvas 分割、a11y violation の実行 gate とは混ぜない
+  - dependency 名の existence check に限定し、Storybook 起動検証は別バッチに残す
+
+- [ ] docs relative link target guard 候補を別バッチで追加する
+  - `README.md`、`docs/README.md`、`docs/*.md` の repository 内相対 Markdown link だけを対象に、リンク先ファイルが存在することを小さい static test で固定する
+  - 外部 URL チェック、歴史的 `docs/superpowers/plans` / `specs` の全面監査、本文更新とは混ぜない
+  - 初回は通常 docs だけを対象にし、archived / dated records は除外 allowlist を持つ
+
+- [ ] historical docs command replacement parity guard 候補を別バッチで追加する
+  - `docs/superpowers/README.md` に書かれている旧コマンドから現行 `mise run ...` への置換表が実在 task を指すことを検証する
+  - dated records 内の旧コマンド書き換え、README 全体の command table parity、release checklist 更新とは混ぜない
+  - replacement table と task existence の対応だけを package-scripts 系 test に寄せる
+
+- [ ] pending mutation type canonicalization 候補を別バッチで追加する
+  - `PendingMutation.mutation_type` を string 直書きから domain enum / parser に寄せ、`mark_read` / `mark_unread` / `star` / `unstar` と旧 `set_starred` 系の互換を固定する
+  - provider push の retry / backoff、UI toast、remote state reconcile とは混ぜない
+  - repository / service test で parser と legacy compatibility を分ける
+
+- [ ] pending mutation replace atomicity 候補を別バッチで追加する
+  - `sqlite_pending_mutation.rs` で同一 `(account_id, remote_entry_id)` の delete -> insert を transaction / upsert 境界として固定する
+  - mutation 種別 enum 化、provider sync 実行順、UI 側の連打抑止とは混ぜない
+  - 途中失敗で既存 pending が消えない contract test を追加する
+
+- [ ] GReader subscription URL merge preserves local settings 候補を別バッチで追加する
+  - `sync_providers.rs` と `sqlite_feed.rs` で remote subscription が既存 local feed と `account_id + url` で衝突した時に user settings を失わないことを固定する
+  - duplicate feed UI、folder drag/drop、feed discovery normalization とは混ぜない
+  - `reader_mode` / `web_preview_mode` / folder の preserve assertion を小さい DB fixture に分ける
+
+- [ ] stale remote folder detach policy 候補を別バッチで追加する
+  - `sync_providers.rs` と `sqlite_folder.rs` で GReader 側から消えた folder remote_id の feed.folder_id を保つ / 外す方針を contract test として固定する
+  - stale feed 購読削除、folder rename UI、manual cleanup command とは混ぜない
+  - 初回は削除実装ではなく missing remote folder の detach policy 明文化に限定する
+
+- [ ] sync_state scope key typed helper 候補を別バッチで追加する
+  - `scheduler`、`account:greader:all`、`account:greader:remote-state-full`、`feed:{remote_id}`、`local_feed:{url}` を typed helper に寄せる
+  - sync_state schema migration、backoff 計算、remote-state cooldown の挙動変更とは混ぜない
+  - scope collision と accidental typo を pure test で固定する
