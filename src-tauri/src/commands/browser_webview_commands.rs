@@ -658,6 +658,7 @@ mod tests {
     };
     use crate::browser_webview::{
         set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect,
+        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
@@ -787,6 +788,8 @@ mod tests {
 
     #[test]
     fn diagnostics_payload_is_disabled_when_browser_webview_diagnostics_are_off() {
+        let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
+
         set_browser_webview_diagnostics_enabled(false);
         let bounds = BrowserWebviewBounds {
             x: 12.0,
@@ -805,6 +808,8 @@ mod tests {
 
     #[test]
     fn diagnostics_payload_includes_requested_applied_and_native_bounds_when_enabled() {
+        let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
+
         set_browser_webview_diagnostics_enabled(true);
         let bounds = BrowserWebviewBounds {
             x: 12.0,

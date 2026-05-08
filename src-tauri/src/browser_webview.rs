@@ -23,6 +23,9 @@ pub const BROWSER_WEBVIEW_DIAGNOSTICS_EVENT: &str = "browser-webview-diagnostics
 pub const BROWSER_WEBVIEW_DEBUG_INPUT_EVENT: &str = "browser-webview-debug-input";
 
 static BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED: AtomicBool = AtomicBool::new(false);
+#[cfg(test)]
+pub(crate) static BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK: std::sync::Mutex<()> =
+    std::sync::Mutex::new(());
 #[cfg(windows)]
 static BROWSER_CLOSE_GRACE_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
 #[cfg(windows)]
@@ -1204,7 +1207,7 @@ mod tests {
         browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
         browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
         should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
-        BrowserWebviewState, BrowserWebviewTracker,
+        BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1422,6 +1425,8 @@ mod tests {
 
     #[test]
     fn browser_webview_diagnostics_flag_tracks_runtime_setting() {
+        let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
+
         set_browser_webview_diagnostics_enabled(false);
         assert!(!browser_webview_diagnostics_enabled());
 
