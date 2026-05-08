@@ -1,15 +1,15 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useMemo } from "react";
-import { executeAction } from "@/lib/actions";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
-import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import {
   closeAccountPaneAndFocusSidebar,
   focusAdjacentAccountPaneTarget,
   normalizePaneNavigationKey,
   selectCurrentAccountPaneTargetAndFocusSidebar,
-} from "@/lib/reader-pane-navigation";
+} from "@/components/reader/account-pane-navigation";
+import { executeAction } from "@/lib/actions";
+import { emitDebugInputTrace } from "@/lib/debug-input-trace";
+import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";

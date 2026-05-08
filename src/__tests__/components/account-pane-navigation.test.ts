@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { normalizePaneNavigationKey } from "@/lib/reader-pane-navigation";
+import { normalizePaneNavigationKey } from "@/components/reader/account-pane-navigation";
 
-describe("reader-pane-navigation", () => {
+describe("account-pane-navigation", () => {
   it("normalizes legacy and standard pane navigation keys", () => {
     expect(normalizePaneNavigationKey("ArrowDown")).toBe("ArrowDown");
     expect(normalizePaneNavigationKey("Down")).toBe("ArrowDown");

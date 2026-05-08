@@ -1,5 +1,12 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
+  closeAccountPaneAndFocusSidebar,
+  focusAdjacentAccountPaneTarget,
+  normalizePaneNavigationKey,
+  selectCurrentAccountPaneTargetAndFocusSidebar,
+} from "@/components/reader/account-pane-navigation";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { useAccounts } from "@/hooks/use-accounts";
 import {
@@ -7,13 +14,6 @@ import {
   focusSelectedAccountPaneTarget,
   focusSidebarSmartViewTargetWhenReady,
 } from "@/lib/reader-focus";
-import {
-  ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
-  closeAccountPaneAndFocusSidebar,
-  focusAdjacentAccountPaneTarget,
-  normalizePaneNavigationKey,
-  selectCurrentAccountPaneTargetAndFocusSidebar,
-} from "@/lib/reader-pane-navigation";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { SidebarNavButton } from "./sidebar-nav-button";

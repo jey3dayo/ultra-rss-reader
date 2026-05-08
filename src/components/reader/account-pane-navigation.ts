@@ -1,9 +1,9 @@
-import { useUiStore } from "@/stores/ui-store";
 import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedSidebarTarget,
   focusSidebarSmartViewTargetWhenReady,
-} from "./reader-focus";
+} from "@/lib/reader-focus";
+import { useUiStore } from "@/stores/ui-store";
 
 export type PaneNavigationKey = "ArrowDown" | "ArrowUp" | "ArrowRight" | "Escape" | "Enter";
 export const ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE = "data-account-pane-account-id";
