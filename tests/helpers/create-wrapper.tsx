@@ -1,3 +1,4 @@
+import type { QueryClientConfig } from "@tanstack/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -23,18 +24,32 @@ function TestToastHost() {
   );
 }
 
-export function createWrapper() {
+type CreateQueryWrapperOptions = {
+  includeToastHost?: boolean;
+  queryClientConfig?: QueryClientConfig;
+};
+
+export function createQueryWrapper({ includeToastHost = false, queryClientConfig }: CreateQueryWrapperOptions = {}) {
   const queryClient = new QueryClient({
+    ...queryClientConfig,
     defaultOptions: {
-      queries: { retry: false },
+      ...queryClientConfig?.defaultOptions,
+      queries: { retry: false, ...queryClientConfig?.defaultOptions?.queries },
     },
   });
-  return function Wrapper({ children }: { children: React.ReactNode }) {
+
+  function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
         {children}
-        <TestToastHost />
+        {includeToastHost ? <TestToastHost /> : null}
       </QueryClientProvider>
     );
-  };
+  }
+
+  return { queryClient, wrapper: Wrapper };
+}
+
+export function createWrapper() {
+  return createQueryWrapper({ includeToastHost: true }).wrapper;
 }

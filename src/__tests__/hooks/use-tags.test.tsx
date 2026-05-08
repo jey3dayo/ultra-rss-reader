@@ -1,29 +1,18 @@
 import { Result } from "@praha/byethrow";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles } from "@tests/helpers/tauri-mocks";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useArticlesByTag } from "@/hooks/use-tags";
 
 describe("useArticlesByTag", () => {
-  let queryClient: QueryClient;
+  let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
 
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    wrapper = createQueryWrapper().wrapper;
     vi.restoreAllMocks();
   });
-
-  function createWrapper() {
-    return function Wrapper({ children }: { children: ReactNode }) {
-      return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-    };
-  }
 
   it("keeps null tag queries disabled and calls the API when a tag id is available", async () => {
     const listArticlesByTagSpy = vi
@@ -35,7 +24,7 @@ describe("useArticlesByTag", () => {
       ({ tagId, accountId }: { tagId: string | null; accountId: string | null }) => useArticlesByTag(tagId, accountId),
       {
         initialProps,
-        wrapper: createWrapper(),
+        wrapper,
       },
     );
 

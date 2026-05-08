@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
@@ -15,22 +15,20 @@ import {
 
 describe("useToggleStar", () => {
   let queryClient: QueryClient;
+  let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
 
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
+    const queryWrapper = createQueryWrapper({
+      queryClientConfig: {
+        defaultOptions: {
+          mutations: { retry: false },
+        },
       },
     });
+    queryClient = queryWrapper.queryClient;
+    wrapper = queryWrapper.wrapper;
     vi.restoreAllMocks();
   });
-
-  function createWrapper() {
-    return function Wrapper({ children }: { children: ReactNode }) {
-      return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-    };
-  }
 
   it("keeps nullable article queries disabled until their ids are present", async () => {
     const listArticlesSpy = vi.spyOn(tauriCommands, "listArticles").mockResolvedValue(Result.succeed(sampleArticles));
@@ -49,24 +47,24 @@ describe("useToggleStar", () => {
 
     const articles = renderHook(({ feedId }: { feedId: string | null }) => useArticles(feedId), {
       initialProps: initialArticlesProps,
-      wrapper: createWrapper(),
+      wrapper,
     });
     const accountArticles = renderHook(({ accountId }: { accountId: string | null }) => useAccountArticles(accountId), {
       initialProps: initialAccountProps,
-      wrapper: createWrapper(),
+      wrapper,
     });
     const starredCount = renderHook(
       ({ accountId }: { accountId: string | null }) => useAccountStarredCount(accountId),
       {
         initialProps: initialAccountProps,
-        wrapper: createWrapper(),
+        wrapper,
       },
     );
     const search = renderHook(
       ({ accountId, query }: { accountId: string | null; query: string }) => useSearchArticles(accountId, query),
       {
         initialProps: initialSearchProps,
-        wrapper: createWrapper(),
+        wrapper,
       },
     );
 
@@ -97,7 +95,7 @@ describe("useToggleStar", () => {
       sampleArticles.filter((article) => article.is_starred),
     );
 
-    const { result } = renderHook(() => useToggleStar(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-1", starred: true });
 
@@ -120,7 +118,7 @@ describe("useToggleStar", () => {
       sampleArticles.filter((article) => article.is_starred),
     );
 
-    const { result } = renderHook(() => useToggleStar(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
@@ -144,7 +142,7 @@ describe("useToggleStar", () => {
       sampleArticles.filter((article) => article.id === "art-2"),
     );
 
-    const { result } = renderHook(() => useToggleStar(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
@@ -162,7 +160,7 @@ describe("useToggleStar", () => {
     queryClient.setQueryData(["feeds", "acc-1"], sampleFeeds);
     queryClient.setQueryData(["starredArticles", "acc-1"], [sampleArticles[1]]);
 
-    const { result } = renderHook(() => useToggleStar(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
@@ -180,7 +178,7 @@ describe("useToggleStar", () => {
     queryClient.setQueryData(["feeds", "acc-1"], sampleFeeds);
     queryClient.setQueryData(["accountArticles", "acc-1"], sampleArticles);
 
-    const { result } = renderHook(() => useToggleStar(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-1", starred: true });
 
