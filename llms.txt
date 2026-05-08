@@ -57,7 +57,7 @@ Important implementation constraints:
 - `mise run app:dev:subscriptions-index`: Native dev mode that jumps directly into the subscriptions index workspace.
 - `mise run app:dev:browser`: Browser-mode UI debugging on `http://127.0.0.1:4173/`.
 - `mise run app:dev:web-preview`: Native dev mode that opens `VITE_DEV_WEB_URL` directly in Web Preview.
-- `mise run app:dev:feed-cleanup` and `mise run app:dev:browser:feed-cleanup`: Shortcut dev modes for the Feed Cleanup UI.
+- Subscription review UI is reached from the subscriptions index workspace.
 - `mise run test:e2e`: Playwright browser-mode E2E coverage.
 - `mise run test:live`: FreshRSS live integration tests that require encrypted `.env` credentials.
 - `mise run app:build`: Native production build for the current platform.

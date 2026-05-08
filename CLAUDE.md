@@ -21,6 +21,16 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Treat `src/locales/ja/` as product UI copy. Keep Japanese labels concise, natural, and context-aware; update copy-sensitive tests when changing visible labels.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
+## File Placement
+
+- Put feature-local UI in `src/components/<feature>/`.
+- Put UI reused by multiple features in `src/components/shared/`.
+- Keep shadcn/Base UI wrappers in `src/components/ui/`; do not place app-specific feature UI there.
+- Co-locate large feature controller hooks under that feature's `hooks/` directory when they are not reused elsewhere.
+- Put cross-feature data hooks in `src/hooks/` and cross-feature pure helpers in `src/lib/`.
+- Treat `mock/` as a historical or visual reference artifact, not a normal implementation target.
+- Keep external tool routing shims under `rules/tools/`; put day-to-day project rules in `.claude/rules/`.
+
 ## Operational Notes
 
 - Dev builds log to stdout. Set `RUST_LOG=info` or higher when diagnosing sync, browser, or provider issues.

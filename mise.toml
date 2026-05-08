@@ -188,11 +188,6 @@ description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in 
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
-[tasks."app:dev:feed-cleanup"]
-description = "Run native app in dev mode and jump into the feed cleanup page"
-env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-feed-cleanup" }
-run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
-
 [tasks."app:dev:seed-from-prod"]
 description = "Seed the Dev app database from the packaged app data database"
 run = "node ./scripts/seed-dev-db-from-prod.ts"
@@ -211,11 +206,6 @@ run_windows = "echo app:dev:signed is macOS-only (requires codesign and Unix she
 
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
-run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
-
-[tasks."app:dev:browser:feed-cleanup"]
-description = "Run browser-mode UI testing and jump into the feed cleanup page"
-env = { VITE_DEV_INTENT = "open-feed-cleanup" }
 run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 
 [tasks."app:build"]

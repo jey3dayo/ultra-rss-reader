@@ -22,7 +22,9 @@ paths:
 
 ## コンポーネント構成
 
-- アプリ固有コンポーネントは `src/components/reader/` または `src/components/settings/` に配置
+- アプリ固有コンポーネントは `src/components/<feature>/` に配置
+- 既存の feature 境界は `reader/`, `settings/`, `subscriptions-index/` を優先する
+- 複数 feature で使うコンポーネントは `src/components/shared/` に配置
 - ファイル名は kebab-case（`article-list.tsx`）、コンポーネント名は PascalCase
 - 300 行を超えたら分割を検討
 - 分割時は同じディレクトリ内にファイルを抽出する（例: `feed-item.tsx`, `folder-section.tsx`）

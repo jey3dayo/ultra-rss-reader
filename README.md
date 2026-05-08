@@ -14,7 +14,7 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Full-text search — SQLite FTS5 across all articles
 - Sync — Background periodic sync, sync-on-wake, manual trigger, and bidirectional pending mutations (read status, stars)
 - Folder hierarchy — Organize feeds into nested folders
-- Organization workflows — Command palette feed landing, subscriptions index workspace, Feed Cleanup review queue, tags, and mute keywords
+- Organization workflows — Command palette feed landing, subscriptions index workspace with subscription review, tags, and mute keywords
 - OPML — Import and export feed lists
 - Bionic reading — Bold-emphasis rendering for faster reading
 - Keyboard shortcuts — `m` read/unread, `s` star, `v` in-app view, `b` browser, `a` mark all read, `/` search
@@ -57,16 +57,10 @@ Use the detailed command table below when you need a specialized workflow such a
 ## Subscriptions Index
 
 - Open the subscriptions index workspace from the sidebar management area
-- Use it when you want to manage subscription structure separately from the cleanup queue
+- Use it when you want to manage subscription structure and review flagged subscriptions
+- Use the review flow to inspect why a feed is flagged before deleting it
+- Use `Keep` or `Later` to clear review candidates without unsubscribing immediately
 - For focused UI work, use `mise run app:dev:subscriptions-index`
-
-## Feed Cleanup
-
-- Open `Feed Cleanup` from the sidebar management area
-- Review subscriptions that have not updated for a long time
-- Inspect why a feed is a candidate before deleting it
-- Use `Keep` or `Later` to clear the queue without unsubscribing immediately
-- For focused UI work, use `mise run app:dev:feed-cleanup` or `mise run app:dev:browser:feed-cleanup`
 
 ## Web Preview
 
@@ -180,8 +174,6 @@ mise run app:dev:signed              # macOS-only: build, codesign, and run the 
 mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
 mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL
 mise run app:dev:browser         # Launch browser-mode UI testing
-mise run app:dev:feed-cleanup         # Launch the native app directly into Feed Cleanup
-mise run app:dev:browser:feed-cleanup # Launch browser-mode UI directly into Feed Cleanup
 ```
 
 Always run `mise run check` before committing.
@@ -282,9 +274,7 @@ Error mapping: `DomainError` → `AppError` at the command boundary (`Network` �
 | `hooks/`                          | React Query hooks (articles, feeds, accounts, folders) + UI hooks                                                 |
 | `components/reader/`              | Three-pane layout: sidebar, article-list, article-view, browser-view, command palette                             |
 | `components/settings/`            | Per-category settings panels (general, reading, appearance, mute, tags, shortcuts, actions, data, dev-only debug) |
-| `components/accounts/`            | Account setup wizard and credential flows                                                                         |
-| `components/feed-cleanup/`        | Feed Cleanup review queue workspace                                                                               |
-| `components/subscriptions-index/` | Subscriptions index management workspace                                                                          |
+| `components/subscriptions-index/` | Subscriptions index management workspace, including subscription review / cleanup flow                            |
 | `components/shared/`              | Cross-feature primitives reused by reader, settings, and workspaces                                               |
 | `components/ui/`                  | shadcn/ui + Base UI headless primitives wrapped with Tailwind                                                     |
 | `dev/scenarios/`                  | `VITE_DEV_INTENT` scenarios for direct dev entry points and command palette dev commands                          |
