@@ -74,4 +74,28 @@ describe("windows", () => {
 
     expect(Result.unwrapError(result)).toEqual(new Error("boom"));
   });
+
+  it("wraps non-error Tauri write failures as Error values", async () => {
+    setFullscreenMock.mockRejectedValue({ message: "denied" });
+
+    const result = await setWindowFullscreen(true);
+
+    expect(Result.unwrapError(result)).toEqual(new Error("[object Object]"));
+  });
+
+  it("wraps non-error dynamic import failures as Error values", async () => {
+    vi.resetModules();
+    vi.doMock("@tauri-apps/api/window", () => {
+      throw "import unavailable";
+    });
+    const { isWindowFullscreen: importFailingIsWindowFullscreen } = await import("@/lib/window/windows");
+
+    const result = await importFailingIsWindowFullscreen();
+
+    const error = Result.unwrapError(result);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain("There was an error when mocking a module");
+    vi.doUnmock("@tauri-apps/api/window");
+    vi.resetModules();
+  });
 });

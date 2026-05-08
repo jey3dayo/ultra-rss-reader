@@ -96,4 +96,20 @@ describe("useSidebarAccountStatusLabels", () => {
       expect(result.current).toEqual({});
     });
   });
+
+  it("does not project credential or hard failures as scheduled retries", () => {
+    expect(
+      buildSidebarAccountStatusLabels({
+        accounts: [{ id: "acc-1" }],
+        accountSyncStatuses: {
+          "acc-1": { last_error: "Credential check failed", next_retry_at: null },
+        },
+        language: "en",
+        labels: {
+          scheduledAt: (time) => `scheduled:${time}`,
+          scheduledSoon: "scheduled soon",
+        },
+      }),
+    ).toEqual({});
+  });
 });

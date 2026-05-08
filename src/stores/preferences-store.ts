@@ -156,10 +156,13 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       Result.pipe(
         result,
         Result.inspect((data) => {
-          set({ prefs: data, loaded: true });
           const theme = objectHasOwnProperty.call(data, "theme")
             ? resolvePreferenceValue(data, "theme")
             : (readMirroredThemePreference() ?? resolvePreferenceValue(data, "theme"));
+          set({
+            prefs: objectHasOwnProperty.call(data, "theme") ? data : { ...data, theme },
+            loaded: true,
+          });
           applyTheme(theme, { withTransition: false });
           mirrorThemePreference(theme);
           applyLanguage(resolvePreferenceValue(data, "language"));

@@ -288,4 +288,20 @@ describe("sync-result-feedback", () => {
       ),
     ).toBe("done");
   });
+
+  it("resolves partial failure messages with failed account names", () => {
+    expect(
+      resolveSyncFeedbackMessage(
+        { kind: "partial-failure", accounts: "FreshRSS, Local" },
+        {
+          alreadyInProgress: "already running",
+          partialFailure: (accounts) => `partial:${accounts}`,
+          retryScheduled: (accounts, retryAt, retryInSeconds) => `scheduled:${accounts}:${retryAt}:${retryInSeconds}`,
+          retryPending: (accounts) => `pending:${accounts}`,
+          warnings: (accounts) => `warnings:${accounts}`,
+          success: "done",
+        },
+      ),
+    ).toBe("partial:FreshRSS, Local");
+  });
 });

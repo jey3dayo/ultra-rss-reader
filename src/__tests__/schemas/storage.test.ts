@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { safeParseJsonWithSchema } from "@/schemas/parse";
 import { CommandHistoryStorageSchema, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 
 describe("storage schemas", () => {
@@ -15,6 +16,16 @@ describe("storage schemas", () => {
     ).toEqual(["feed:feed-1", "", "action:open-settings"]);
   });
 
+  it("keeps command history root failures as typed parse failures for caller fallback", () => {
+    const result = CommandHistoryStorageSchema.safeParse({
+      0: "action:open-settings",
+    });
+
+    expect(result.success).toBe(false);
+    expect(safeParseJsonWithSchema('{"0":"action:open-settings"}', CommandHistoryStorageSchema) ?? []).toEqual([]);
+    expect(safeParseJsonWithSchema("not-json", CommandHistoryStorageSchema) ?? []).toEqual([]);
+  });
+
   it("keeps account folder expansion maps while dropping invalid entries", () => {
     expect(
       StoredSidebarExpandedFoldersSchema.parse({
@@ -27,5 +38,13 @@ describe("storage schemas", () => {
       "account-1": ["folder-1", "folder-2"],
       "account-3": ["folder-4"],
     });
+  });
+
+  it("keeps sidebar expansion root failures as typed parse failures for caller fallback", () => {
+    const result = StoredSidebarExpandedFoldersSchema.safeParse(["folder-1"]);
+
+    expect(result.success).toBe(false);
+    expect(safeParseJsonWithSchema('["folder-1"]', StoredSidebarExpandedFoldersSchema) ?? {}).toEqual({});
+    expect(safeParseJsonWithSchema("not-json", StoredSidebarExpandedFoldersSchema) ?? {}).toEqual({});
   });
 });

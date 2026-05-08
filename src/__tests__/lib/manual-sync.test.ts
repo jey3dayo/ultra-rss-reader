@@ -117,6 +117,52 @@ describe("manual-sync", () => {
     expect(onError).toHaveBeenCalledWith(appError);
   });
 
+  it("routes partial command results through success callback", async () => {
+    const partialResult = {
+      synced: true,
+      total: 2,
+      succeeded: 1,
+      failed: [
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "sync failed",
+        },
+      ],
+      warnings: [],
+    };
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    triggerSyncMock.mockResolvedValue(Result.succeed(partialResult));
+
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess,
+      onError,
+    });
+
+    expect(onSuccess).toHaveBeenCalledWith(partialResult);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("routes command errors through error callback only", async () => {
+    const appError = { type: "UserVisible", message: "sync failed" };
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const onCooldown = vi.fn();
+    triggerSyncMock.mockResolvedValue(Result.fail(appError));
+
+    await triggerManualSyncWithCooldown({
+      onCooldown,
+      onSuccess,
+      onError,
+    });
+
+    expect(onError).toHaveBeenCalledWith(appError);
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onCooldown).not.toHaveBeenCalled();
+  });
+
   it("starts cooldown after triggerSync failure", async () => {
     const appError = { type: "UserVisible", message: "sync failed" };
     triggerSyncMock.mockResolvedValue(Result.fail(appError));

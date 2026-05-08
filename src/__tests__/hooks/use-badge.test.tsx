@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -51,6 +51,39 @@ describe("useBadge", () => {
     });
   });
 
+  it("keeps all_unread badge reads on the selected account feed unread projection", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "list_feeds") {
+        return [
+          { ...sampleFeeds[0], id: "feed-selected-a", account_id: "acc-1", unread_count: 3 },
+          { ...sampleFeeds[1], id: "feed-selected-b", account_id: "acc-1", unread_count: 4 },
+        ];
+      }
+
+      if (cmd === "count_account_unread_articles") {
+        throw new Error("all_unread badge must not read account unread totals");
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(7);
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "list_feeds",
+      args: { accountId: "acc-1" },
+    });
+    expect(calls.some((call) => call.cmd === "count_account_unread_articles")).toBe(false);
+  });
+
   it("uses account unread count query result for only_inbox", async () => {
     usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
 
@@ -58,6 +91,73 @@ describe("useBadge", () => {
 
     await waitFor(() => {
       expect(setBadgeCountMock).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it("keeps only_inbox badge reads on the account unread endpoint", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "count_account_unread_articles") {
+        return 7;
+      }
+
+      if (cmd === "list_feeds") {
+        throw new Error("only_inbox badge must not read feed unread sums");
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(7);
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "count_account_unread_articles",
+      args: { accountId: "acc-1" },
+    });
+    expect(calls.some((call) => call.cmd === "list_feeds")).toBe(false);
+  });
+
+  it("updates only_inbox badge count when the selected account changes", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "count_account_unread_articles") {
+        return args.accountId === "acc-2" ? 9 : 2;
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(2);
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(9);
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "count_account_unread_articles",
+      args: { accountId: "acc-1" },
+    });
+    expect(calls).toContainEqual({
+      cmd: "count_account_unread_articles",
+      args: { accountId: "acc-2" },
     });
   });
 

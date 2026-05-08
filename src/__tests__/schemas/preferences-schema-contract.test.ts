@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
-import { preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
+import {
+  getPreferenceValueSchema,
+  normalizePreferenceValue,
+  preferenceDefaults,
+  resolvePreferenceValue,
+} from "@/schemas/preferences";
 import frontendSource from "@/schemas/preferences.ts?raw";
 import backendSource from "../../../src-tauri/src/commands/preference_commands.rs?raw";
 
@@ -60,6 +65,17 @@ function collectDuplicates(keys: string[]): string[] {
 
 const backendOnlyPreferenceKeys = ["selected_account_id"];
 
+const afterReadingStoredValueCases = [
+  { stored: "mark_as_read", normalized: "immediately" },
+  { stored: "do_nothing", normalized: "never" },
+  { stored: "archive", normalized: "never" },
+  { stored: "never", normalized: "never" },
+  { stored: "immediately", normalized: "immediately" },
+  { stored: "after_0_3s", normalized: "after_0_3s" },
+  { stored: "after_0_5s", normalized: "after_0_5s" },
+  { stored: "after_1s", normalized: "after_1s" },
+] as const;
+
 describe("preference contract", () => {
   it("keeps every frontend preference key allowed by the Tauri backend", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
@@ -94,6 +110,20 @@ describe("preference contract", () => {
     expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
     expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe("folders_first");
     expect(resolvePreferenceValue({ sort_subscriptions: "unexpected" }, "sort_subscriptions")).toBe("folders_first");
+  });
+
+  it("keeps after-reading defaults and stored-value migrations parse compatible", () => {
+    const afterReadingSchema = getPreferenceValueSchema("after_reading");
+
+    expect(preferenceDefaults.after_reading).toBe("after_0_3s");
+    expect(resolvePreferenceValue({}, "after_reading")).toBe("after_0_3s");
+    expect(resolvePreferenceValue({ after_reading: "unexpected" }, "after_reading")).toBe("after_0_3s");
+
+    for (const { stored, normalized } of afterReadingStoredValueCases) {
+      expect(normalizePreferenceValue("after_reading", stored)).toBe(normalized);
+      expect(resolvePreferenceValue({ after_reading: stored }, "after_reading")).toBe(normalized);
+      expect(afterReadingSchema?.safeParse(normalized).success).toBe(true);
+    }
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {

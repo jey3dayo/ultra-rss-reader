@@ -1,6 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import issueFeatureTemplate from "../../../.github/ISSUE_TEMPLATE/01-feature.yml?raw";
+import issueBugTemplate from "../../../.github/ISSUE_TEMPLATE/02-bug.yml?raw";
+import issueTestTemplate from "../../../.github/ISSUE_TEMPLATE/03-test-verification.yml?raw";
+import issueMaintenanceTemplate from "../../../.github/ISSUE_TEMPLATE/04-maintenance.yml?raw";
+import labelerConfig from "../../../.github/labeler.yml?raw";
+import prInsightsLabelerWorkflow from "../../../.github/workflows/pr-insights-labeler.yml?raw";
 import storybookConfig from "../../../.storybook/main";
 import packageJson from "../../../package.json";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
@@ -71,6 +77,10 @@ function migrationVersionsFromFiles() {
 
 function extractRustLatestMigrationVersion(source: string) {
   return Number(source.match(/pub const LATEST_VERSION: i32 = (\d+);/)?.[1] ?? Number.NaN);
+}
+
+function extractMarkdownInlineCode(source: string) {
+  return [...source.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
 }
 
 describe("repository static contracts", () => {
@@ -190,5 +200,49 @@ describe("repository static contracts", () => {
     expect(scenarioRuntime).toContain('return Promise.resolve(Result.fail({ type: "unavailable"');
     expect(scenarioRuntime).toContain("await import(/* @vite-ignore */ getDevScenariosModuleUrl())");
     expect(eagerScenarioImports).toEqual([]);
+  });
+
+  it("keeps reader keyboard navigation docs aligned with pane owner files", () => {
+    const keyboardDocs = readRepoFile("docs/reader-keyboard-navigation.md");
+    const documentedPaths = new Set(extractMarkdownInlineCode(keyboardDocs));
+    const ownerPaths = [
+      "src/components/reader/account-pane.tsx",
+      "src/lib/account/account-pane-navigation.ts",
+      "src/components/reader/sidebar.tsx",
+      "src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts",
+      "src/hooks/use-keyboard.ts",
+      "src/lib/reader-focus.ts",
+    ];
+
+    expect(ownerPaths.filter((path) => !documentedPaths.has(path))).toEqual([]);
+    expect(ownerPaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+    expect(readRepoFile("src/hooks/use-keyboard.ts")).toContain("normalizePaneNavigationKey");
+    expect(readRepoFile("src/hooks/use-keyboard.ts")).toContain(
+      "targetElement?.closest('[data-sidebar-pane=\"true\"]')",
+    );
+  });
+
+  it("keeps GitHub issue templates aligned with label taxonomy sources", () => {
+    const issueTemplates = [issueFeatureTemplate, issueBugTemplate, issueTestTemplate, issueMaintenanceTemplate].join(
+      "\n",
+    );
+    const staticLabelerLabels = ["frontend", "backend", "ui", "docs", "ci", "dependencies", "i18n"];
+    const maintainerLabels = ["manual-verification", "release-readiness", "risk/high", "size/*"];
+
+    for (const label of staticLabelerLabels) {
+      expect(labelerConfig).toContain(`${label}:`);
+    }
+
+    for (const label of maintainerLabels) {
+      expect(issueTemplates).toContain(label);
+    }
+
+    expect(issueFeatureTemplate).toContain('labels: ["feature"]');
+    expect(issueBugTemplate).toContain('labels: ["fix"]');
+    expect(issueTestTemplate).toContain('labels: ["category/tests"]');
+    expect(issueMaintenanceTemplate).toContain('labels: ["chore"]');
+    expect(prInsightsLabelerWorkflow).toContain("uses: jey3dayo/pr-insights-labeler@v1.11.1");
+    expect(prInsightsLabelerWorkflow).toContain('file_size_limit: "100KB"');
+    expect(prInsightsLabelerWorkflow).toContain('pr_files_limit: "50"');
   });
 });

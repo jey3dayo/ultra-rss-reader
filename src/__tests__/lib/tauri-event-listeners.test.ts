@@ -10,6 +10,25 @@ function createDeferredCleanup() {
   return { resolveCleanup, subscription };
 }
 
+function createFakeTauriEventTarget() {
+  const listeners = new Set<() => void>();
+
+  return {
+    emit: () => {
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    listen: (listener: () => void) => {
+      listeners.add(listener);
+      return Promise.resolve(() => {
+        listeners.delete(listener);
+      });
+    },
+    listenerCount: () => listeners.size,
+  };
+}
+
 describe("tauri-event-listeners", () => {
   it("runs ready cleanups when disposed", async () => {
     const cleanup = vi.fn();
@@ -32,6 +51,52 @@ describe("tauri-event-listeners", () => {
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
+  it("cleans up duplicate listener subscriptions independently", async () => {
+    const target = createFakeTauriEventTarget();
+    const firstListener = vi.fn();
+    const secondListener = vi.fn();
+    const group = createTauriListenerGroup([target.listen(firstListener), target.listen(secondListener)]);
+
+    await group.ready;
+    expect(target.listenerCount()).toBe(2);
+
+    group.dispose();
+
+    expect(target.listenerCount()).toBe(0);
+  });
+
+  it("does not dispatch events after listener cleanup", async () => {
+    const target = createFakeTauriEventTarget();
+    const listener = vi.fn();
+    const group = createTauriListenerGroup([target.listen(listener)]);
+
+    await group.ready;
+    group.dispose();
+    target.emit();
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("continues disposing ready listeners when one cleanup throws", async () => {
+    const error = new Error("unlisten failed");
+    const throwingCleanup = vi.fn(() => {
+      throw error;
+    });
+    const remainingCleanup = vi.fn();
+    const onError = vi.fn();
+    const group = createTauriListenerGroup(
+      [Promise.resolve(remainingCleanup), Promise.resolve(throwingCleanup)],
+      onError,
+    );
+
+    await group.ready;
+    group.dispose();
+
+    expect(throwingCleanup).toHaveBeenCalledTimes(1);
+    expect(remainingCleanup).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(error);
+  });
+
   it("runs cleanup immediately when subscription resolves after dispose", async () => {
     const cleanup = vi.fn();
     const deferred = createDeferredCleanup();
@@ -42,6 +107,23 @@ describe("tauri-event-listeners", () => {
     await group.ready;
 
     expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes late cleanup errors to the error handler", async () => {
+    const error = new Error("late unlisten failed");
+    const cleanup = vi.fn(() => {
+      throw error;
+    });
+    const onError = vi.fn();
+    const deferred = createDeferredCleanup();
+    const group = createTauriListenerGroup([deferred.subscription], onError);
+
+    group.dispose();
+    deferred.resolveCleanup(cleanup);
+    await group.ready;
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(error);
   });
 
   it("does not run late cleanups more than once when disposed repeatedly", async () => {
@@ -63,6 +145,16 @@ describe("tauri-event-listeners", () => {
     const group = createTauriListenerGroup([Promise.reject(error)], onError);
 
     await group.ready;
+
+    expect(onError).toHaveBeenCalledWith(error);
+  });
+
+  it("treats unavailable runtime subscription rejection as non-fatal", async () => {
+    const error = new Error("runtime unavailable");
+    const onError = vi.fn();
+    const group = createTauriListenerGroup([Promise.reject(error)], onError);
+
+    await expect(group.ready).resolves.toBeUndefined();
 
     expect(onError).toHaveBeenCalledWith(error);
   });

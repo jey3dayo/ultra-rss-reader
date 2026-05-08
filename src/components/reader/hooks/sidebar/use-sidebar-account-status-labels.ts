@@ -6,7 +6,7 @@ import type { SidebarAccountStatusLabelsParams } from "../../sidebar-sources.typ
 
 export function buildSidebarAccountStatusLabels(params: {
   accounts: SidebarAccountStatusLabelsParams;
-  accountSyncStatuses: Record<string, { next_retry_at?: string | null } | undefined>;
+  accountSyncStatuses: Record<string, { last_error?: string | null; next_retry_at?: string | null } | undefined>;
   language: string;
   labels: {
     scheduledAt: (time: string) => string;

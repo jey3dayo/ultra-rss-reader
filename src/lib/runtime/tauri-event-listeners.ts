@@ -7,6 +7,14 @@ type TauriListenerGroup = {
 
 function noop() {}
 
+function runCleanup(cleanup: TauriEventCleanup, onError: (error: unknown) => void) {
+  try {
+    cleanup();
+  } catch (error) {
+    onError(error);
+  }
+}
+
 export function createTauriListenerGroup(
   subscriptions: readonly TauriEventSubscription[],
   onError: (error: unknown) => void = noop,
@@ -18,7 +26,7 @@ export function createTauriListenerGroup(
       subscription
         .then((cleanup) => {
           if (disposed) {
-            cleanup();
+            runCleanup(cleanup, onError);
             return;
           }
           cleanups.push(cleanup);
@@ -32,7 +40,10 @@ export function createTauriListenerGroup(
     dispose: () => {
       disposed = true;
       while (cleanups.length > 0) {
-        cleanups.pop()?.();
+        const cleanup = cleanups.pop();
+        if (cleanup) {
+          runCleanup(cleanup, onError);
+        }
       }
     },
   };

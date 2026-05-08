@@ -215,4 +215,30 @@ describe("buildSidebarSmartViews", () => {
       },
     ]);
   });
+
+  it("projects the unread smart view count from the provided total unread source", () => {
+    const views = buildSidebarSmartViews({
+      selectedSmartViewKind: "unread",
+      totalUnread: 11,
+      starredCount: 3,
+      showUnreadCount: true,
+      showStarredCount: true,
+      showSidebarUnread: true,
+      showSidebarStarred: true,
+      showSidebarRecentArticles: true,
+      labels: {
+        unread: "Unread",
+        starred: "Starred",
+        recent: "Recently viewed",
+      },
+    });
+
+    expect(views.find((view) => view.kind === "unread")).toEqual({
+      kind: "unread",
+      label: "Unread",
+      count: 11,
+      showCount: true,
+      isSelected: true,
+    });
+  });
 });
