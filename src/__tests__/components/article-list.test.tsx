@@ -13,6 +13,7 @@ import { APP_EVENTS } from "@/constants/events";
 import * as articleHooks from "@/hooks/use-articles";
 import * as tagHooks from "@/hooks/use-tags";
 import type { TriStateDisplayMode } from "@/lib/article-display";
+import { isTriStateDisplayMode } from "@/lib/article-display";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -27,6 +28,22 @@ const asHtmlDivElementOrNull = (element: Element | null, message: string): HTMLD
   }
   return element;
 };
+
+function requireTriStateDisplayMode(value: unknown, fieldName: string): TriStateDisplayMode {
+  if (typeof value === "string" && isTriStateDisplayMode(value)) {
+    return value;
+  }
+
+  throw new Error(`${fieldName} must be a tri-state display mode`);
+}
+
+function requireStringArray(value: unknown, fieldName: string): string[] {
+  if (Array.isArray(value) && value.every((item): item is string => typeof item === "string")) {
+    return value;
+  }
+
+  throw new Error(`${fieldName} must be a string array`);
+}
 
 function createDomRect({
   left = 0,
@@ -954,8 +971,8 @@ describe("ArticleList", () => {
             feed.id === args.feedId
               ? {
                   ...feed,
-                  reader_mode: args.readerMode as TriStateDisplayMode,
-                  web_preview_mode: args.webPreviewMode as TriStateDisplayMode,
+                  reader_mode: requireTriStateDisplayMode(args.readerMode, "readerMode"),
+                  web_preview_mode: requireTriStateDisplayMode(args.webPreviewMode, "webPreviewMode"),
                 }
               : feed,
           );
@@ -1109,7 +1126,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         case "mark_articles_read": {
-          const ids = new Set(args.articleIds as string[]);
+          const ids = new Set(requireStringArray(args.articleIds, "articleIds"));
           articles = articles.map((article) => (ids.has(article.id) ? { ...article, is_read: true } : article));
           feeds = feeds.map((feed) => ({
             ...feed,
