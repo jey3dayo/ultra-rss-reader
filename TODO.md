@@ -509,11 +509,6 @@
   - prefix 全許可を続けるか、known shortcut registry へ寄せるかを test で固定する
   - shortcut UI 再設計、native menu shortcut、表示 copy 変更とは混ぜない
 
-- [ ] set_preference per-key schema 候補を別バッチで追加する
-  - `src/api/schemas/commands.ts` と `src/api/tauri-commands.ts` の `set_preference` args を、既存 preference schemas と接続できるか確認する
-  - key/value が単なる string のまま不正値を通さないよう、API args schema の境界値 test を追加する
-  - backend persistence、toast 文言、settings control layout は別バッチに残す
-
 - [ ] shortcut row individual reset 候補を別バッチで追加する
   - `shortcuts-settings.tsx` と `shortcuts-settings-view.tsx` で、全リセットとは別に 1 行ごとに default へ戻す操作を追加できるか確認する
   - shortcut 定義追加、native menu shortcut、i18n 表記整理とは混ぜず、row action と persistence update に限定する

@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { preferenceSchemas } from "@/schemas/preferences";
 import { FeedDisplayModeSchema } from "./feed";
 import { MuteKeywordScopeSchema } from "./mute-keyword";
 
 export const articleListModeSchema = z.enum(["all", "unread", "starred"]);
+const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: z.string() });
@@ -240,10 +242,25 @@ export const setBrowserWebviewBoundsArgs = z.object({
 export const exportOpmlArgs = z.object({ accountId: z.string() });
 
 // --- setPreference ---
-export const setPreferenceArgs = z.object({
-  key: z.string(),
-  value: z.string(),
-});
+export const setPreferenceArgs = z
+  .object({
+    key: z.string(),
+    value: z.string(),
+  })
+  .superRefine(({ key, value }, ctx) => {
+    const schema = objectHasOwnProperty.call(preferenceSchemas, key)
+      ? preferenceSchemas[key as keyof typeof preferenceSchemas]
+      : undefined;
+    const result = schema?.safeParse(value);
+
+    if (result?.success === false) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["value"],
+        message: `Invalid value for preference key: ${key}`,
+      });
+    }
+  });
 
 // --- copyToClipboard ---
 export const copyToClipboardArgs = z.object({ text: z.string() });

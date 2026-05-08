@@ -29,6 +29,7 @@ import {
   markOldUnreadRead,
   recordArticleView,
   setMuteAutoMarkRead,
+  setPreference,
   unstarAccountArticles,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
@@ -358,6 +359,48 @@ describe("safeInvoke response validation", () => {
     const error = Result.unwrapError(result);
     expect(error.type).toBe("UserVisible");
     expect(error.message).toContain("validation failed");
+  });
+});
+
+describe("safeInvoke args validation", () => {
+  it("accepts setPreference values that match known preference schemas", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "set_preference") {
+        expect(args).toEqual({ key: "theme", value: "dark" });
+        return null;
+      }
+      return null;
+    });
+
+    Result.unwrap(await setPreference("theme", "dark"));
+  });
+
+  it("rejects invalid values for known preference keys before invoking Tauri", async () => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "set_preference") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await setPreference("theme", "midnight");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: theme");
+    expect(invoked).toBe(false);
+  });
+
+  it("keeps unknown preference keys as string passthrough for backend validation", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "set_preference") {
+        expect(args).toEqual({ key: "selected_account_id", value: "acc-1" });
+        return null;
+      }
+      return null;
+    });
+
+    Result.unwrap(await setPreference("selected_account_id", "acc-1"));
   });
 });
 
