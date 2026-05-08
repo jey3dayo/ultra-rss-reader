@@ -1550,3 +1550,53 @@
   - `actions.ts` で browser close in-flight 中に `next-article` 後 `prev-feed` など複数 navigation が来た時、pending action を最新で上書きする契約を固定する
   - browser overlay close guard、debug input trace visual、reader navigation selection は混ぜない
   - flush 前の overwrite と flush 後の clear を別 assertion にする
+
+- [ ] Command history storage failure no-op contract 候補を別バッチで追加する
+  - `use-command-history.ts` で localStorage get/set/remove が throw しても palette 操作自体は失敗しない契約を fixed storage test で固定する
+  - history compaction、storage schema string-only、recent item UI 表示順は同じバッチに混ぜない
+  - read failure / write failure / clear failure を別 assertion にする
+
+- [ ] Command palette runtime close reset contract 候補を別バッチで追加する
+  - `use-command-palette-runtime.ts` で palette close 時に input だけ reset され、loaded dev scenarios は保持される契約を hook test で固定する
+  - prefix parser、dev scenario registry、command result rendering は別バッチに残す
+  - open -> type -> close -> reopen の input/deferred query を分けて確認する
+
+- [ ] Command palette dev scenario cancelled load contract 候補を別バッチで追加する
+  - `use-command-palette-runtime.ts` で dev scenario load 中に unmount された場合、resolve/reject 後に state update しない契約を固定する
+  - dev runtime invalid module cache、production bundle leak、debug settings dev action guard は混ぜない
+  - success resolve と failure reject の cancelled branch を別 case にする
+
+- [ ] Startup sync future timestamp cleanup contract 候補を別バッチで追加する
+  - `startup-sync-storage.ts` で stored timestamp が現在時刻より未来の場合、storage から削除して throttle しない契約を pure test で固定する
+  - startup sync scheduler、manual sync cooldown、first-screen readiness は混ぜない
+  - future timestamp、invalid number、missing value の fallback を別 fixture にする
+
+- [ ] Startup sync storage failure no-op contract 候補を別バッチで追加する
+  - `startup-sync-storage.ts` で storage get/set/remove が throw しても startup sync 判定が false/null に倒れ、アプリ起動を止めない契約を固定する
+  - storage key naming、startup sync trigger timing、sync result feedback は別バッチに残す
+  - get failure と set failure を別 assertion にする
+
+- [ ] Browser view missing webview recovery contract 候補を別バッチで追加する
+  - `use-browser-view-actions.ts` で go back / forward / reload が missing embedded browser error を受けた時、surface issue を clear し create sync へ戻る契約を固定する
+  - browser issue reset、native WebView not-open error wording、requested-url merge は混ぜない
+  - current browser state URL と fallback browserUrl の選択を別 case にする
+
+- [ ] Browser view keep-focus failure no-op contract 候補を別バッチで追加する
+  - `use-browser-view-actions.ts` で `web_preview_keep_focus=true` かつ command success 後の `focusBrowserWebview` が failure でも、成功 state は維持し toast を出さない契約を固定する
+  - focus return fallback、browser overlay shortcut、native focus 実機検証は別バッチに残す
+  - focus success と focus failure を同じ command success fixture で比較する
+
+- [ ] Article browser action success toast contract 候補を別バッチで追加する
+  - `article-browser-actions.ts` の copy link / Reading List 追加で command success 時だけ success toast を出し、open external browser success では toast を出さない契約を固定する
+  - clipboard runtime category、share command unsupported scheme、article share menu visual は混ぜない
+  - copy / reading list / open external の success と failure projection を別 assertion にする
+
+- [ ] Command palette resource history before navigation contract 候補を別バッチで追加する
+  - `use-command-palette-handlers.ts` で feed/tag/article 選択時に history 追加、navigation/select、close の順序を固定する
+  - command history compaction、resource search ranking、feed landing failure projection は別バッチに残す
+  - feed landing promise reject 時に history が残るかどうかも contract として明示する
+
+- [ ] Pending browser close action overwrite contract 候補を別バッチで追加する
+  - `actions.ts` で browser close in-flight 中に `next-article` 後 `prev-feed` など複数 navigation が来た時、pending action を最新で上書きする契約を固定する
+  - browser overlay close guard、debug input trace visual、reader navigation selection は混ぜない
+  - flush 前の overwrite と flush 後の clear を別 assertion にする
