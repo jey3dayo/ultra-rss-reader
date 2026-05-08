@@ -2,6 +2,15 @@ import { Result } from "@praha/byethrow";
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
+import { STORAGE_KEYS } from "@/constants/storage";
+
+type DevIntentState = {
+  intent: string | null;
+};
+
+type UiState = {
+  selectedAccountId: string | null;
+};
 
 const {
   loadPreferencesMock,
@@ -11,22 +20,23 @@ const {
   preferencesState,
   devIntentState,
   uiState,
-} = vi.hoisted(() => ({
-  loadPreferencesMock: vi.fn(),
-  triggerStartupSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
-  syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
-  listAccountsMock: vi.fn(() => Promise.resolve(Result.succeed([]))),
-  preferencesState: {
-    prefs: {},
-    loaded: true,
-  },
-  devIntentState: {
-    intent: null as string | null,
-  },
-  uiState: {
-    selectedAccountId: null as string | null,
-  },
-}));
+} = vi.hoisted(() => {
+  const devIntentState: DevIntentState = { intent: null };
+  const uiState: UiState = { selectedAccountId: null };
+
+  return {
+    loadPreferencesMock: vi.fn(),
+    triggerStartupSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
+    syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
+    listAccountsMock: vi.fn(() => Promise.resolve(Result.succeed([]))),
+    preferencesState: {
+      prefs: {},
+      loaded: true,
+    },
+    devIntentState,
+    uiState,
+  };
+});
 
 vi.mock("@/components/app-shell", () => ({
   AppShell: () => <div>App Shell</div>,
@@ -125,7 +135,7 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem("startup-sync-last-triggered-at", String(now - 89_000));
+    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now - 89_000));
 
     render(<App />);
 
@@ -140,7 +150,7 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem("startup-sync-last-triggered-at", String(now - 90_001));
+    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now - 90_001));
 
     render(<App />);
 
