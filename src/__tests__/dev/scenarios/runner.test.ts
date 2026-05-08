@@ -44,6 +44,10 @@ vi.mock("@tauri-apps/api/dpi", () => ({
   },
 }));
 
+function serializeQueryKey(key: QueryKey) {
+  return JSON.stringify(key);
+}
+
 function createQueryClientStub() {
   const cache = new Map<string, unknown>();
 
@@ -54,11 +58,11 @@ function createQueryClientStub() {
   }
 
   function getCachedQueryData<TData>(key: QueryKey): TData | undefined {
-    return cache.get(JSON.stringify(key)) as TData | undefined;
+    return cache.get(serializeQueryKey(key)) as TData | undefined;
   }
 
   function setCachedQueryData<TData>(key: QueryKey, updater: Updater<TData | undefined, TData | undefined>) {
-    const serializedKey = JSON.stringify(key);
+    const serializedKey = serializeQueryKey(key);
     const nextValue = isUpdaterFunction(updater) ? updater(getCachedQueryData<TData>(key)) : updater;
     cache.set(serializedKey, nextValue);
     return nextValue;
@@ -74,6 +78,10 @@ function createQueryClientStub() {
   };
 
   return { cache, queryClient };
+}
+
+function expectCachedQuery(cache: Map<string, unknown>, key: QueryKey, expected: unknown) {
+  expect(cache.get(serializeQueryKey(key))).toEqual(expected);
 }
 
 function createUiStub(overrides?: Partial<DevScenarioContext["ui"]>): DevScenarioContext["ui"] {
@@ -348,16 +356,17 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, otherFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
-    expect(cache.get(JSON.stringify(["accounts"]))).toEqual([otherAccount, account]);
-    expect(cache.get(JSON.stringify(["feeds", account.id]))).toEqual([
-      genericFeed,
-      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
-    ]);
-    expect(cache.get(JSON.stringify(["articles", mangaFeed.id]))).toEqual([
-      overlayPreferredOlderArticle,
-      landingNewestArticle,
-      readArticle,
-    ]);
+    expectCachedQuery(cache, ["accounts"], [otherAccount, account]);
+    expectCachedQuery(
+      cache,
+      ["feeds", account.id],
+      [genericFeed, { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" }],
+    );
+    expectCachedQuery(
+      cache,
+      ["articles", mangaFeed.id],
+      [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
+    );
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
@@ -405,16 +414,17 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, blockedRankedFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
-    expect(cache.get(JSON.stringify(["articles", blockedRankedFeed.id]))).toEqual([blockedReadArticle]);
-    expect(cache.get(JSON.stringify(["articles", mangaFeed.id]))).toEqual([
-      overlayPreferredOlderArticle,
-      landingNewestArticle,
-      readArticle,
-    ]);
-    expect(cache.get(JSON.stringify(["feeds", account.id]))).toEqual([
-      blockedRankedFeed,
-      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
-    ]);
+    expectCachedQuery(cache, ["articles", blockedRankedFeed.id], [blockedReadArticle]);
+    expectCachedQuery(
+      cache,
+      ["articles", mangaFeed.id],
+      [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
+    );
+    expectCachedQuery(
+      cache,
+      ["feeds", account.id],
+      [blockedRankedFeed, { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" }],
+    );
     expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
     expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
     expect(ui.showToast).not.toHaveBeenCalled();
@@ -491,13 +501,10 @@ describe("runDevScenario", () => {
       undefined,
       otherAccount.id,
     );
-    expect(cache.get(JSON.stringify(["accounts"]))).toEqual([account, otherAccount]);
-    expect(cache.get(JSON.stringify(["tags"]))).toEqual([primaryTag, secondaryTag]);
-    expect(cache.get(JSON.stringify(["tagArticleCounts", otherAccount.id]))).toEqual({ [secondaryTag.id]: 2 });
-    expect(cache.get(JSON.stringify(["articlesByTag", secondaryTag.id, otherAccount.id]))).toEqual([
-      landingNewestArticle,
-      readArticle,
-    ]);
+    expectCachedQuery(cache, ["accounts"], [account, otherAccount]);
+    expectCachedQuery(cache, ["tags"], [primaryTag, secondaryTag]);
+    expectCachedQuery(cache, ["tagArticleCounts", otherAccount.id], { [secondaryTag.id]: 2 });
+    expectCachedQuery(cache, ["articlesByTag", secondaryTag.id, otherAccount.id], [landingNewestArticle, readArticle]);
     expect(ui.selectAccount).not.toHaveBeenCalled();
     expect(ui.selectTag).toHaveBeenCalledWith(secondaryTag.id);
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
@@ -526,8 +533,8 @@ describe("runDevScenario", () => {
 
     expect(context.actions.getTagArticleCounts).toHaveBeenCalledWith(account.id);
     expect(context.actions.listArticlesByTag).toHaveBeenCalledWith(primaryTag.id, undefined, undefined, account.id);
-    expect(cache.get(JSON.stringify(["tagArticleCounts", account.id]))).toEqual({ [primaryTag.id]: 1 });
-    expect(cache.get(JSON.stringify(["articlesByTag", primaryTag.id, account.id]))).toEqual([landingNewestArticle]);
+    expectCachedQuery(cache, ["tagArticleCounts", account.id], { [primaryTag.id]: 1 });
+    expectCachedQuery(cache, ["articlesByTag", primaryTag.id, account.id], [landingNewestArticle]);
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
     expect(ui.selectArticle).not.toHaveBeenCalled();

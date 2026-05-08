@@ -34,6 +34,18 @@ const devScenarioFixtures = [
   },
 ] as const;
 
+function seedCommandHistory(entries: string[]) {
+  localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(entries));
+}
+
+function expectCommandHistory(entries: string[]) {
+  expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(entries));
+}
+
+function expectCommandHistoryCleared() {
+  expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
+}
+
 describe("CommandPalette", () => {
   beforeEach(() => {
     vi.stubGlobal(
@@ -98,7 +110,7 @@ describe("CommandPalette", () => {
   });
 
   it("shows recent actions when opened without a query", async () => {
-    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:open-settings"]));
+    seedCommandHistory(["action:open-settings"]);
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
@@ -128,7 +140,7 @@ describe("CommandPalette", () => {
   });
 
   it("falls back to the normal action list when recent history entries are stale", async () => {
-    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:removed-action", "feed:feed-1"]));
+    seedCommandHistory(["action:removed-action", "feed:feed-1"]);
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
@@ -311,7 +323,7 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
-      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["tag:tag-1"]));
+      expectCommandHistory(["tag:tag-1"]);
     });
   });
 
@@ -462,14 +474,14 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
-      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
+      expectCommandHistoryCleared();
     });
   });
 
   it("does not change existing recent actions history when a scenario runs", async () => {
     const user = userEvent.setup();
     vi.stubEnv("DEV", true);
-    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:open-settings"]));
+    seedCommandHistory(["action:open-settings"]);
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
@@ -479,7 +491,7 @@ describe("CommandPalette", () => {
 
     await waitFor(() => {
       expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
-      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["action:open-settings"]));
+      expectCommandHistory(["action:open-settings"]);
     });
   });
 
