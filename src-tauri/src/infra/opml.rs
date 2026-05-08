@@ -25,11 +25,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 let attrs = parse_outline_attrs(e);
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
-                        title: attrs
-                            .get("title")
-                            .or(attrs.get("text"))
-                            .cloned()
-                            .unwrap_or_default(),
+                        title: outline_title_or_url(&attrs, xml_url),
                         xml_url: xml_url.clone(),
                         html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
                         folder: folder_stack.last().cloned(),
@@ -50,11 +46,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 let attrs = parse_outline_attrs(e);
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
-                        title: attrs
-                            .get("title")
-                            .or(attrs.get("text"))
-                            .cloned()
-                            .unwrap_or_default(),
+                        title: outline_title_or_url(&attrs, xml_url),
                         xml_url: xml_url.clone(),
                         html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
                         folder: folder_stack.last().cloned(),
@@ -86,6 +78,14 @@ fn parse_outline_attrs(e: &quick_xml::events::BytesStart<'_>) -> HashMap<String,
         map.insert(key, value);
     }
     map
+}
+
+fn outline_title_or_url(attrs: &HashMap<String, String>, xml_url: &str) -> String {
+    attrs
+        .get("title")
+        .or(attrs.get("text"))
+        .cloned()
+        .unwrap_or_else(|| xml_url.to_string())
 }
 
 /// Generate OPML 2.0 XML from a list of feeds.
@@ -286,6 +286,40 @@ mod tests {
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].title, "MyFeed");
         assert_eq!(feeds[0].folder, Some("MyFolder".to_string()));
+    }
+
+    #[test]
+    fn keeps_duplicate_outline_urls_in_input_order() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="First" xmlUrl="https://example.com/rss"/>
+    <outline text="Second" xmlUrl="https://example.com/rss"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(feeds[0].title, "First");
+        assert_eq!(feeds[0].xml_url, "https://example.com/rss");
+        assert_eq!(feeds[1].title, "Second");
+        assert_eq!(feeds[1].xml_url, "https://example.com/rss");
+    }
+
+    #[test]
+    fn falls_back_to_xml_url_when_outline_text_and_title_are_missing() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline xmlUrl="https://example.com/rss"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "https://example.com/rss");
     }
 
     #[test]

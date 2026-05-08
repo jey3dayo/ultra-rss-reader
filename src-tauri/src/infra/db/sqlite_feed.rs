@@ -471,6 +471,27 @@ mod tests {
     }
 
     #[test]
+    fn update_display_settings_persists_inherit_on_and_off_values() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        for (reader_mode, web_preview_mode) in
+            [("on", "off"), ("off", "on"), ("inherit", "inherit")]
+        {
+            repo.update_display_settings(&feed.id, reader_mode, web_preview_mode)
+                .unwrap();
+
+            let saved_feed = repo.find_by_id(&feed.id).unwrap().unwrap();
+            assert_eq!(saved_feed.reader_mode, reader_mode);
+            assert_eq!(saved_feed.web_preview_mode, web_preview_mode);
+        }
+    }
+
+    #[test]
     fn delete_cascades_to_articles() {
         let db = test_db();
         let account_id = insert_test_account(&db);

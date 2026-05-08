@@ -69,7 +69,7 @@ pub async fn add_to_reading_list(_url: String) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_reading_list_url, reading_list_script};
+    use super::{is_reading_list_url, reading_list_script, READING_LIST_URL_ERROR};
 
     #[test]
     fn builds_reading_list_script_for_http_urls() {
@@ -100,5 +100,27 @@ mod tests {
         assert!(!is_reading_list_url("mailto:hello@example.com"));
         assert!(!is_reading_list_url("file:///tmp/article.html"));
         assert!(!is_reading_list_url(""));
+    }
+
+    #[test]
+    fn rejects_unsupported_schemes_before_building_reading_list_script() {
+        for url in [
+            "mailto:hello@example.com",
+            "file:///tmp/article.html",
+            "ftp://example.com/feed.xml",
+        ] {
+            let error = reading_list_script(url).unwrap_err();
+
+            assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
+        }
+    }
+
+    #[test]
+    fn rejects_empty_and_multiline_reading_list_urls() {
+        for url in ["", "https://example.com/a\nb", "https://example.com/a\rb"] {
+            let error = reading_list_script(url).unwrap_err();
+
+            assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
+        }
     }
 }

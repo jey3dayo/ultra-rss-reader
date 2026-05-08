@@ -105,6 +105,73 @@ mod tests {
     }
 
     #[test]
+    fn published_date_takes_precedence_over_updated_date() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Atom Article</title>
+    <id>atom-1</id>
+    <link href="https://example.com/article"/>
+    <published>2026-03-26T10:00:00Z</published>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+        let entry = &entries[0];
+
+        assert_eq!(
+            entry.published_at.map(|date| date.to_rfc3339()),
+            Some("2026-03-26T10:00:00+00:00".to_string())
+        );
+        assert_eq!(
+            entry.updated_at.map(|date| date.to_rfc3339()),
+            Some("2026-03-27T12:00:00+00:00".to_string())
+        );
+    }
+
+    #[test]
+    fn updated_date_is_used_when_published_date_is_missing() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Updated Only</title>
+    <id>atom-1</id>
+    <link href="https://example.com/article"/>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+        let entry = &entries[0];
+
+        assert_eq!(
+            entry.published_at.map(|date| date.to_rfc3339()),
+            Some("2026-03-27T12:00:00+00:00".to_string())
+        );
+        assert_eq!(
+            entry.updated_at.map(|date| date.to_rfc3339()),
+            Some("2026-03-27T12:00:00+00:00".to_string())
+        );
+    }
+
+    #[test]
+    fn missing_published_and_updated_dates_remain_none() {
+        let entries =
+            normalize_feed(SAMPLE_RSS.as_bytes(), "https://example.com/feed.xml").unwrap();
+        let entry_without_dates = &entries[1];
+
+        assert_eq!(entry_without_dates.published_at, None);
+        assert_eq!(entry_without_dates.updated_at, None);
+    }
+
+    #[test]
     fn source_feed_id_is_local() {
         let entries =
             normalize_feed(SAMPLE_RSS.as_bytes(), "https://example.com/feed.xml").unwrap();

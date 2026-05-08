@@ -406,6 +406,30 @@ mod tests {
     }
 
     #[test]
+    fn file_connections_apply_runtime_pragmas_to_writer_and_reader() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("pragma-test.db");
+
+        let db = DbManager::new(&db_path).unwrap();
+
+        for conn in [db.writer(), db.reader()] {
+            let foreign_keys: i32 = conn
+                .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+                .unwrap();
+            let busy_timeout: i32 = conn
+                .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+                .unwrap();
+            let journal_mode: String = conn
+                .query_row("PRAGMA journal_mode", [], |row| row.get(0))
+                .unwrap();
+
+            assert_eq!(foreign_keys, 1);
+            assert_eq!(busy_timeout, 5000);
+            assert_eq!(journal_mode, "wal");
+        }
+    }
+
+    #[test]
     fn new_does_not_backup_fresh_db() {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("test.db");

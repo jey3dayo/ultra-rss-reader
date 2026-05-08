@@ -263,6 +263,42 @@ mod tests {
     }
 
     #[test]
+    fn latest_version_matches_migration_file_sequence() {
+        let migration_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations");
+        let mut versions = std::fs::read_dir(&migration_dir)
+            .unwrap()
+            .map(|entry| {
+                let entry = entry.unwrap();
+                let file_name = entry.file_name();
+                let file_name = file_name.to_string_lossy();
+                let version = file_name
+                    .strip_prefix('V')
+                    .and_then(|name| name.split_once("__"))
+                    .map(|(version, _)| version)
+                    .unwrap_or_else(|| panic!("invalid migration filename: {file_name}"));
+                version
+                    .parse::<i32>()
+                    .unwrap_or_else(|_| panic!("invalid migration version: {file_name}"))
+            })
+            .collect::<Vec<_>>();
+        versions.sort_unstable();
+
+        assert_eq!(versions.last().copied(), Some(LATEST_VERSION));
+        assert!(
+            versions.windows(2).all(|window| window[0] < window[1]),
+            "migration versions should be strictly increasing: {versions:?}"
+        );
+
+        let inline_versions = [10];
+        for version in 1..=LATEST_VERSION {
+            assert!(
+                versions.binary_search(&version).is_ok() || inline_versions.contains(&version),
+                "migration version {version} is not represented by a file or inline repair"
+            );
+        }
+    }
+
+    #[test]
     fn version_skip_v1_to_latest() {
         let mut conn = open_in_memory();
         conn.execute_batch(MIGRATION_V1).unwrap();

@@ -316,4 +316,68 @@ mod tests {
         let result = provider.pull_entries(scope, None).await;
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    async fn create_subscription_uses_url_when_feed_title_and_site_link_are_missing() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Article 1</title>
+      <link>https://example.com/1</link>
+    </item>
+  </channel>
+</rss>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = LocalProvider::new();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.remote_id, feed_url);
+        assert_eq!(subscription.title, subscription.url);
+        assert_eq!(subscription.site_url, "");
+        assert_eq!(subscription.folder_remote_id, None);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_copies_feed_icon_url() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <icon>https://example.com/icon.png</icon>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/atom+xml")
+            .create_async()
+            .await;
+
+        let provider = LocalProvider::new();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.title, "Atom Feed");
+        assert_eq!(
+            subscription.icon_url.as_deref(),
+            Some("https://example.com/icon.png")
+        );
+        mock.assert_async().await;
+    }
 }
