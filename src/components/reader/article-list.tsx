@@ -13,7 +13,7 @@ export function ArticleList() {
     <div
       data-article-list-pane="true"
       className={cn(
-        "flex h-full flex-col border-r border-[var(--subscriptions-pane-divider)] bg-[var(--reader-list-pane-surface)]",
+        "flex h-full flex-col border-r border-[var(--subscriptions-pane-divider)] bg-[image:var(--reader-list-pane-surface)]",
         layoutMode === "mobile" ? "w-full" : undefined,
       )}
       style={layoutMode === "mobile" ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}

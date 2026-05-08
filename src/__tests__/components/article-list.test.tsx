@@ -217,7 +217,7 @@ describe("ArticleList", () => {
     expect(container.firstElementChild).toHaveClass(
       "border-r",
       "border-[var(--subscriptions-pane-divider)]",
-      "bg-[var(--reader-list-pane-surface)]",
+      "bg-[image:var(--reader-list-pane-surface)]",
     );
   });
 

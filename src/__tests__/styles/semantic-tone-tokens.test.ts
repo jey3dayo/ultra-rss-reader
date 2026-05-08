@@ -21,6 +21,9 @@ describe("semantic tone tokens", () => {
     expect(lightRootMatch?.[0]).toContain("--sidebar-selection-border:");
     expect(lightRootMatch?.[0]).toContain("--sidebar-selection-muted:");
     expect(lightRootMatch?.[0]).toContain("--sidebar-hover-surface:");
+    expect(lightRootMatch?.[0]).toContain("--sidebar-selection-gradient:");
+    expect(lightRootMatch?.[0]).toContain("--sidebar-hover-gradient:");
+    expect(lightRootMatch?.[0]).toContain("--sidebar-focus-gradient:");
     expect(lightRootMatch?.[0]).toContain("--sidebar-pressed-surface:");
     expect(lightRootMatch?.[0]).toContain("--sidebar-frame-surface:");
     expect(lightRootMatch?.[0]).toContain("--sidebar-frame-solid-surface:");
@@ -38,6 +41,9 @@ describe("semantic tone tokens", () => {
     expect(darkRootMatch?.[0]).toContain("--sidebar-selection-border:");
     expect(darkRootMatch?.[0]).toContain("--sidebar-selection-muted:");
     expect(darkRootMatch?.[0]).toContain("--sidebar-hover-surface:");
+    expect(darkRootMatch?.[0]).toContain("--sidebar-selection-gradient:");
+    expect(darkRootMatch?.[0]).toContain("--sidebar-hover-gradient:");
+    expect(darkRootMatch?.[0]).toContain("--sidebar-focus-gradient:");
     expect(darkRootMatch?.[0]).toContain("--sidebar-pressed-surface:");
     expect(darkRootMatch?.[0]).toContain("--sidebar-frame-surface:");
     expect(darkRootMatch?.[0]).toContain("--sidebar-frame-solid-surface:");

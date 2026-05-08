@@ -13,9 +13,7 @@ describe("SidebarNavButton", () => {
     expect(button).toHaveClass("select-none");
     expect(button).not.toHaveClass("focus-visible:ring-2");
     expect(button).not.toHaveClass("focus-visible:outline-[var(--color-ring)]");
-    expect(button).toHaveClass(
-      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
-    );
+    expect(button).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
     expect(button).toHaveClass("before:bg-primary/85");
     expect(button).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
     expect(button).not.toHaveClass("group-hover/feed-row:before:opacity-0");
@@ -33,9 +31,7 @@ describe("SidebarNavButton", () => {
 
     const button = screen.getByRole("button", { name: "Selected feed" });
     expect(button).toHaveAttribute("data-active-pane", "false");
-    expect(button).toHaveClass(
-      "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
-    );
+    expect(button).toHaveClass("bg-[image:var(--sidebar-hover-gradient)]");
     expect(button).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
   });
 
@@ -93,7 +89,7 @@ describe("SidebarNavButton", () => {
       "motion-contextual-surface",
       "select-none",
       "hover:bg-[var(--sidebar-hover-surface)]",
-      "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
+      "focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
     );
   });
 

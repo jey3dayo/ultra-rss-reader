@@ -69,25 +69,22 @@ export function ArticleListItem({
         "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
         selectionStyle === "classic"
           ? cn(
-              "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
-              isSelected &&
-                activePane &&
-                "border-l-2 border-primary bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
+              "focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
+              isSelected && activePane && "border-l-2 border-primary bg-[image:var(--sidebar-selection-gradient)]",
               isSelected &&
                 !activePane &&
-                "border-l-2 border-border-strong/60 bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
+                "border-l-2 border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
             )
           : cn(
               isSelected &&
                 cn(
                   activePane
-                    ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] after:bg-border-strong focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]"
-                    : "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)] after:bg-border-strong/60 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
+                    ? "bg-[image:var(--sidebar-selection-gradient)] after:bg-border-strong focus-visible:bg-[image:var(--sidebar-selection-gradient)]"
+                    : "bg-[image:var(--sidebar-hover-gradient)] after:bg-border-strong/60 focus-visible:bg-[image:var(--sidebar-hover-gradient)]",
                   "after:absolute after:inset-y-1.5 after:left-1 after:w-1 after:rounded-sm",
                 ),
             ),
-        !isSelected &&
-          "hover:bg-surface-1/72 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
+        !isSelected && "hover:bg-surface-1/72 focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
         isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
       )}
     >

@@ -10,7 +10,7 @@ const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),
 );
 const ACCOUNT_SELECTED_CLASS_NAME =
-  "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] text-[var(--sidebar-selection-foreground)] shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong/70 before:opacity-70 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]";
+  "bg-[image:var(--sidebar-selection-gradient)] text-[var(--sidebar-selection-foreground)] shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong/70 before:opacity-70 focus-visible:bg-[image:var(--sidebar-selection-gradient)]";
 
 function normalizeDetail(value?: string | null): string | null {
   const normalized = value?.trim();

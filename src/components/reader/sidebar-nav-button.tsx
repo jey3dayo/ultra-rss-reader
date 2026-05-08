@@ -63,8 +63,8 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
           selected
             ? cn(
                 activePane
-                  ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] text-[var(--sidebar-selection-foreground)] focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]"
-                  : "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)] text-[var(--sidebar-foreground-strong)] focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
+                  ? "bg-[image:var(--sidebar-selection-gradient)] text-[var(--sidebar-selection-foreground)] focus-visible:bg-[image:var(--sidebar-selection-gradient)]"
+                  : "bg-[image:var(--sidebar-hover-gradient)] text-[var(--sidebar-foreground-strong)] focus-visible:bg-[image:var(--sidebar-hover-gradient)]",
                 selectedIndicatorMode !== "hidden" &&
                   selectedIndicatorVariants({
                     tone: activePane ? selectedIndicatorTone : "neutral",
@@ -72,7 +72,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
                 selectedIndicatorMode === "hide-on-row-hover" &&
                   "group-hover/feed-row:before:opacity-0 group-focus-within/feed-row:before:opacity-0",
               )
-            : "text-[var(--sidebar-foreground-strong)] hover:bg-[var(--sidebar-hover-surface)] hover:text-[var(--sidebar-selection-foreground)] focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)] focus-visible:text-[var(--sidebar-selection-foreground)]",
+            : "text-[var(--sidebar-foreground-strong)] hover:bg-[var(--sidebar-hover-surface)] hover:text-[var(--sidebar-selection-foreground)] focus-visible:bg-[image:var(--sidebar-focus-gradient)] focus-visible:text-[var(--sidebar-selection-foreground)]",
           className,
         )}
         {...props}

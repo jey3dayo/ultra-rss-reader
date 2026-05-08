@@ -159,9 +159,7 @@ describe("AccountsNavView", () => {
       "before:opacity-70",
       "shadow-none",
     );
-    expect(localButton).toHaveClass(
-      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
-    );
+    expect(localButton).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
     expect(localButton.parentElement).toHaveClass("flex");
     expect(localButton.parentElement).toHaveClass("flex-wrap");
     expect(localButton.parentElement).toHaveClass("overflow-visible");

@@ -183,9 +183,7 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(selectedOption).toHaveClass(
-      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
-    );
+    expect(selectedOption).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
     expect(selectedOption).not.toHaveClass("ring-1");
     expect(selectedOption).not.toHaveClass("ring-border-strong");
     expect(selectedOption).toHaveClass("after:bg-border-strong");
@@ -227,9 +225,7 @@ describe("ArticleListItem", () => {
 
     const inactiveOption = screen.getByRole("option", { name: "First Article (unread)" });
     expect(inactiveOption).toHaveAttribute("data-active-pane", "false");
-    expect(inactiveOption).toHaveClass(
-      "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
-    );
+    expect(inactiveOption).toHaveClass("bg-[image:var(--sidebar-hover-gradient)]");
     expect(inactiveOption).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
 
     rerender(
@@ -249,9 +245,7 @@ describe("ArticleListItem", () => {
 
     const activeOption = screen.getByRole("option", { name: "First Article (unread)" });
     expect(activeOption).toHaveAttribute("data-active-pane", "true");
-    expect(activeOption).toHaveClass(
-      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
-    );
+    expect(activeOption).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
     expect(activeOption).toHaveClass("after:bg-border-strong");
   });
 
@@ -272,11 +266,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(option).toHaveClass(
-      "border-l-2",
-      "border-primary",
-      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
-    );
+    expect(option).toHaveClass("border-l-2", "border-primary", "bg-[image:var(--sidebar-selection-gradient)]");
   });
 
   it("keeps selected modern rows free from extra keyboard focus outlines", () => {
@@ -322,9 +312,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(option).toHaveClass(
-      "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
-    );
+    expect(option).toHaveClass("focus-visible:bg-[image:var(--sidebar-focus-gradient)]");
     expect(option).not.toHaveClass("focus-visible:ring-2");
     expect(option).not.toHaveClass("focus-visible:outline-[var(--color-ring)]");
   });
