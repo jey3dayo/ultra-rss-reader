@@ -1,6 +1,20 @@
 import { Star } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-import type { StarIconProps, UnreadIconProps } from "./article-state-icon.types";
+
+type UnreadIconProps = {
+  unread: boolean;
+  forceTone?: boolean;
+  tone?: "state" | "none";
+  className?: string;
+};
+
+type StarIconProps = {
+  starred: boolean;
+  forceTone?: boolean;
+  tone?: "state" | "none";
+  className?: string;
+} & ComponentProps<typeof Star>;
 
 export function UnreadIcon({ unread, forceTone = false, tone = "state", className }: UnreadIconProps) {
   const showSemanticTone = tone === "state" && (unread || forceTone);

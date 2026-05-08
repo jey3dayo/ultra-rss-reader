@@ -14,13 +14,17 @@ import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import type { ShortcutsHelpModalProps } from "./shortcuts-help-modal.types";
 
 const CATEGORY_ORDER: ShortcutDefinition["categoryKey"][] = [
   "shortcuts.category_navigation",
   "shortcuts.category_actions",
   "shortcuts.category_global",
 ];
+
+type ShortcutsHelpModalProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
 type ShortcutHelpItem = {
   definition: ShortcutDefinition;

@@ -2,7 +2,16 @@ import { Result } from "@praha/byethrow";
 import { useState } from "react";
 import { extractSiteHost } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
-import type { FeedFaviconProps, FeedFaviconSize } from "./feed-favicon.types";
+
+type FeedFaviconSize = "sm" | "md" | "lg";
+
+type FeedFaviconProps = {
+  title: string;
+  url: string;
+  siteUrl: string;
+  grayscale?: boolean;
+  size?: FeedFaviconSize;
+};
 
 type FaviconSizeClassNames = {
   fallback: string;

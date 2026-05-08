@@ -1,4 +1,6 @@
-import type { ProviderIconProps } from "./provider-icons.types";
+import type { SVGProps } from "react";
+
+type ProviderIconProps = SVGProps<SVGSVGElement>;
 
 export function FreshRssLogoIcon({ className, ...props }: ProviderIconProps) {
   return (

@@ -1,14 +1,29 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { openInBrowser } from "@/api/tauri-commands";
+import { type ArticleDto, openInBrowser } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
 import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
-import type { ArticleShareMenuProps } from "./article-menu.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
 const articleShareMenuUnavailableClassName =
   "disabled:opacity-35 disabled:saturate-0 disabled:hover:bg-transparent disabled:focus-visible:bg-transparent";
+
+type ArticleShareMenuLabels = {
+  share: string;
+  copyLink: string;
+  addToReadingList: string;
+  addedToReadingList: string;
+  shareViaEmail: string;
+  linkCopied: string;
+};
+
+type ArticleShareMenuProps = {
+  article: ArticleDto | null;
+  supportsReadingList: boolean;
+  showToast: (message: string) => void;
+  labels: ArticleShareMenuLabels;
+};
 
 export function ArticleShareMenu({ article, supportsReadingList, showToast, labels }: ArticleShareMenuProps) {
   return (

@@ -1,11 +1,17 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";
-import type { ArticleContextMenuProps } from "./article-menu.types";
+
+type ArticleContextMenuProps = {
+  article: ArticleDto;
+  children: ReactNode;
+};
 
 export function ArticleContextMenu({ article, children }: ArticleContextMenuProps) {
   const { t } = useTranslation("reader");
