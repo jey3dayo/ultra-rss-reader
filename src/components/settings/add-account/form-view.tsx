@@ -1,8 +1,3 @@
-import type {
-  AddAccountFormInputRowProps,
-  AddAccountFormSelectRowProps,
-  AddAccountFormViewProps,
-} from "@/components/settings/add-account/form.types";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
@@ -12,6 +7,60 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";
+
+type AddAccountFormOption = {
+  value: string;
+  label: string;
+};
+
+type AddAccountFormSelectControl = {
+  label: string;
+  name: string;
+  value: string;
+  options: AddAccountFormOption[];
+  onChange: (value: string) => void;
+  disabled: boolean;
+};
+
+type AddAccountFormInputControl = {
+  label: string;
+  name: string;
+  value: string;
+  placeholder?: string;
+  type?: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+};
+
+type AddAccountCredentialsSection = {
+  heading: string;
+  serverUrl?: AddAccountFormInputControl;
+  credential: AddAccountFormInputControl;
+  password: AddAccountFormInputControl;
+};
+
+type AddAccountFormSelectRowProps = {
+  control: AddAccountFormSelectControl;
+};
+
+type AddAccountFormInputRowProps = {
+  control: AddAccountFormInputControl;
+};
+
+type AddAccountFormViewProps = {
+  title: string;
+  accountHeading: string;
+  accountType: AddAccountFormSelectControl;
+  accountName: AddAccountFormInputControl;
+  credentialsSection?: AddAccountCredentialsSection;
+  errorMessage?: string | null;
+  submitLabel: string;
+  submittingLabel: string;
+  cancelLabel: string;
+  submitting: boolean;
+  onSubmit: () => void;
+  onCancel: () => void;
+};
 
 function AddAccountSelectRow({ control }: AddAccountFormSelectRowProps) {
   return (
