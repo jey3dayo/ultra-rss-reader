@@ -26,6 +26,7 @@ type SidebarSyncState = {
 };
 
 type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
+type TauriPayloadEvent<T> = { payload: T };
 
 function createInitialSidebarSyncState() {
   return {
@@ -42,8 +43,8 @@ function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction):
   }
 }
 
-function extractTauriEventPayload<T>(event: unknown): T {
-  return typeof event === "object" && event !== null && "payload" in event ? (event.payload as T) : (event as T);
+function extractTauriEventPayload<T>(event: T | TauriPayloadEvent<T>): T {
+  return typeof event === "object" && event !== null && "payload" in event ? event.payload : event;
 }
 
 export function useSidebarSync({
@@ -112,7 +113,7 @@ export function useSidebarSync({
 
   useEffect(() => {
     return attachTauriListeners([
-      listen("sync-progress", (event) => {
+      listen<SidebarSyncProgressPayload>("sync-progress", (event) => {
         const payload = extractTauriEventPayload<SidebarSyncProgressPayload>(event);
         applySyncProgress(payload);
       }),
@@ -120,7 +121,7 @@ export function useSidebarSync({
         clearSyncProgress();
         invalidateAccountSyncStatuses();
       }),
-      listen("sync-warning", (event) => {
+      listen<SidebarSyncWarningPayload>("sync-warning", (event) => {
         const payload = extractTauriEventPayload<SidebarSyncWarningPayload>(event);
         if (payload.length > 0) {
           invalidateAccountSyncStatuses();
