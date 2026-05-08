@@ -30,6 +30,66 @@
 
 ## 次の並列バッチ候補
 
+- [ ] reader hook error feedback 候補をまとめて見直す
+  - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
+  - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
+  - 自動既読系の error handling と揃え、UI copy 変更は最小限にする
+
+- [ ] browser webview failure surface 候補を別バッチで見直す
+  - `src/components/reader/hooks/browser/use-browser-webview-sync.ts` の bounds resize 失敗を、`console.error` だけで終わらせず surface issue / retry 導線へ乗せられるか検討する
+  - `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts` の listener 初期化失敗を拾い、bounds sync が silent に止まらない契約を追加する
+  - `src/components/reader/hooks/browser/use-browser-webview-load-timeout.ts` の timeout message は、URL 直出しを避けた localized surface message に寄せる
+
+- [ ] command palette feed landing failure 候補を小粒で直す
+  - `src/hooks/use-feed-landing.ts` の feed 未選択・feed 不在・landing fetch 失敗を、呼び出し元で扱える result として返せるか確認する
+  - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` の feed / dev scenario 失敗 toast を i18n key 化する
+  - command palette の resource selection 成功経路とは混ぜず、失敗 feedback の契約に限定する
+
+- [ ] article tag picker keyboard contract 候補を追加する
+  - `src/components/reader/hooks/article/use-article-tag-picker-popover.ts` の listbox 操作に `Home` / `End` を追加できるか確認する
+  - 既存の `Escape` / 上下矢印 / selected option contract と同じ hook test で固定する
+  - tag 作成・割当の mutation contract とは別バッチにする
+
+- [ ] settings navigation disabled contract 候補を追加する
+  - `src/__tests__/components/settings-nav-view.test.tsx` に、`SettingsNavView` disabled 時にカテゴリ選択が発火しない契約を追加する
+  - `src/__tests__/components/accounts-nav-view.test.tsx` に、`AccountsNavView` disabled 時に account selection / add account が発火しない契約を追加する
+  - add-account verification pending 中の navigation lock と同じ意味になるよう、container 側の挙動変更は避ける
+
+- [ ] account detail sync status row 候補を専用 test で固定する
+  - `src/components/settings/hooks/account-detail/use-account-detail-sync-status-rows.ts` の次回リトライ・連続失敗・最終エラーの行生成順を確認する
+  - 日時 fallback と locale formatting は user-facing copy ではなく status row contract として固定する
+  - account detail view 本体の広い integration test とは分ける
+
+- [ ] subscriptions index pane 単体 contract 候補を追加する
+  - `src/components/subscriptions-index/subscription-detail-pane.tsx` の decision bar / management bar の出し分けと click delegation を isolated に押さえる
+  - `src/components/subscriptions-index/subscriptions-list-pane.tsx` の `onListScrollTopChange` callback を、スクロール位置保存の委譲 contract として固定する
+  - `src/components/subscriptions-index/subscriptions-overview-summary.tsx` の `renderValue` prop が card structure を壊さないことを追加する
+
+- [ ] shared feed detail link label 候補を整理する
+  - `src/components/shared/feed-detail-panel.tsx` の `FeedDetailLink.label` が表示に使われず `href` 表示になっているため、label 表示へ寄せるか型から外すかを決める
+  - subscriptions detail / feed detail の既存表示差分を見てから、copy 変更と型削除を同じバッチに混ぜない
+
+- [ ] Rust feed command display settings contract 候補を追加する
+  - `src-tauri/src/commands/feed_commands.rs` の `update_feed_display_settings` で `inherit` / `on` / `off` 保存を command 経由で固定する
+  - 未知値は user-visible error になることを確認し、frontend fallback copy とは混ぜない
+
+- [ ] Rust tag command validation contract 候補を追加する
+  - `src-tauri/src/commands/tag_commands.rs` の `create_tag` で name trim、50文字制限、color lowercase 正規化を command 経由で固定する
+  - `list_articles_by_tag` の未知 `mode` が user-visible error になる経路も小粒 test として追加する
+
+- [ ] Rust article bulk input validation 候補を追加する
+  - `src-tauri/src/commands/article_commands.rs` の `OldUnreadScope::parse` と `validate_older_than_days` の不正値エラーを直接固定する
+  - mark-all-read / old-unread-read の UI confirm flow とは別に、command input contract だけを扱う
+
+- [ ] Rust repository cursor round-trip 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_sync_state.rs` の `last_modified` と `etag` 同時保存・読込を migration 適用済み DB fixture で固定する
+  - local feed cursor の保存契約に限定し、scheduler backoff や account sync status とは混ぜない
+
+- [ ] provider HTTP / label normalization 候補を追加する
+  - `src-tauri/src/infra/provider/local.rs` の `create_subscription` が `User-Agent` を送ることを `pull_entries` と同じ HTTP contract として固定する
+  - `src-tauri/src/infra/provider/greader.rs` の label remote id 正規化で、label 欠落時 percent decode と label 優先分岐を追加検証する
+  - 外部サービス互換の実通信検証ではなく、provider adapter の unit contract に限定する
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
