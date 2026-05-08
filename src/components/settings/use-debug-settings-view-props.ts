@@ -1,4 +1,4 @@
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { SettingsPageViewProps, SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
 type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {

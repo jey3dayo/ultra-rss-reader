@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

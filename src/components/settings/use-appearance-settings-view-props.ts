@@ -1,4 +1,4 @@
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { AppearanceSettingsViewProps } from "./appearance-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 

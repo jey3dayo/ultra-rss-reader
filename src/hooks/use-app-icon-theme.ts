@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { setWindowIcon } from "@/lib/windows";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

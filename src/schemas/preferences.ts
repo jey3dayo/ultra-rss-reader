@@ -134,7 +134,9 @@ const corePreferenceDefaults = {
   debug_browser_hud: "false",
   debug_web_preview_url: "",
   mute_auto_mark_read: "false",
-} satisfies { [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]> };
+} satisfies {
+  [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]>;
+};
 
 const hiddenPreferenceDefaults: Record<string, string> = {
   sort_subscriptions: corePreferenceDefaults.sort_subscriptions,

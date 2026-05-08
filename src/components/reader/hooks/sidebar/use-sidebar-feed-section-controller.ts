@@ -8,7 +8,7 @@ import { useSidebarVisibilityFallback } from "@/components/reader/hooks/sidebar/
 import { useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { buildFeedMarkAllReadConfirmation } from "../../feed-mark-all-read";
 import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "../../sidebar-feed-section.types";

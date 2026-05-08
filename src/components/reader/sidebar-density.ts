@@ -1,4 +1,4 @@
-import type { SidebarDensityPreference } from "@/lib/preferences-schema";
+import type { SidebarDensityPreference } from "@/schemas/preferences";
 
 export type SidebarDensity = SidebarDensityPreference;
 

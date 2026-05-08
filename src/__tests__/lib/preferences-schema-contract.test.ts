@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import frontendSource from "@/lib/preferences-schema.ts?raw";
+import frontendSource from "@/schemas/preferences.ts?raw";
 import backendSource from "../../../src-tauri/src/commands/preference_commands.rs?raw";
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {

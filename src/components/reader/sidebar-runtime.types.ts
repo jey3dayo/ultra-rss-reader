@@ -1,6 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { DevIntent } from "@/lib/dev-intent";
-import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/lib/preferences-schema";
+import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
 import type { UiStoreState } from "@/stores/ui-store";
 import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarSourcesResult } from "./sidebar-sources.types";

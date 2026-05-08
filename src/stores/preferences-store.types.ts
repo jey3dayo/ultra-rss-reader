@@ -1,4 +1,4 @@
-import type { Theme } from "@/lib/preferences-schema";
+import type { Theme } from "@/schemas/preferences";
 
 export interface PreferencesState {
   prefs: Record<string, string>;

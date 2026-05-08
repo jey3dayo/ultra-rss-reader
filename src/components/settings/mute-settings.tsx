@@ -12,7 +12,7 @@ import {
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
 import { getErrorMessage } from "@/lib/errors";
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

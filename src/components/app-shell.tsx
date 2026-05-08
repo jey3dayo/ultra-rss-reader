@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { resolvePreferenceValue } from "@/lib/preferences-schema";
+import { resolvePreferenceValue } from "@/schemas/preferences";
 import { APP_EVENTS } from "../constants/events";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";

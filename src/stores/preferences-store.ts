@@ -3,6 +3,7 @@ import i18n from "i18next";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { resolveUiLanguage } from "@/lib/ui-language";
 import {
   type AfterReadingPreference,
   normalizePreferenceValue,
@@ -12,8 +13,7 @@ import {
   resolvePreferenceValue,
   type SortSubscriptions,
   type Theme,
-} from "@/lib/preferences-schema";
-import { resolveUiLanguage } from "@/lib/ui-language";
+} from "@/schemas/preferences";
 import type { PreferencesActions, PreferencesState } from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 

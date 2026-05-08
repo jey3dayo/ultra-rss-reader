@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { preferenceDefaults, resolvePreferenceValue } from "@/lib/preferences-schema";
+import { preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
 
 vi.mock("@/api/tauri-commands", () => ({
   getPreferences: vi.fn(),
