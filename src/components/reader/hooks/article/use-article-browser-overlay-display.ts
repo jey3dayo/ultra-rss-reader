@@ -6,7 +6,7 @@ import {
   resolveArticleDisplay,
   resolveFeedDisplayOverrides,
 } from "@/lib/articles/article-display";
-import { bindWindowEvents } from "@/lib/window-events";
+import { bindWindowEvents } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import type {
   UseArticleBrowserOverlayDisplayParams,

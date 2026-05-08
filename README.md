@@ -275,8 +275,10 @@ Error mapping: `DomainError` → `AppError` at the command boundary (`Network` �
 | `lib/account/`                    | Account selection, add-account form state, pane navigation, and sync status formatting helpers                     |
 | `lib/articles/`                   | Article display modes, list derivation, retained-selection state, and article-view summary helpers                 |
 | `lib/browser/`                    | Browser/WebView geometry, bounds normalization, and history helpers shared across API and reader UI                |
+| `lib/debug/`                      | Debug HUD element summaries and input trace formatting/dispatch helpers                                            |
 | `lib/keyboard/`                   | Keyboard shortcut definitions, display labels, preference defaults, and action resolution                          |
 | `lib/subscriptions/`              | Subscriptions index rows, review candidates, summary filters, and related workspace types                          |
+| `lib/window/`                     | DOM window event binding, Tauri window commands, and desktop chrome runtime helpers                                |
 | `lib/*.types.ts`                  | Cross-feature TypeScript contracts that are shared without React runtime dependencies                              |
 | `stores/`                         | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence)                        |
 | `hooks/`                          | React Query hooks (articles, feeds, accounts, folders) + UI hooks                                                  |

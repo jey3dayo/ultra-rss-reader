@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window-events";
+import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window/window-events";
 import type { ActiveDropTarget, UseFeedTreePointerDragEventsParams } from "../../feed-tree.types";
 import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "../../feed-tree-drag-outcome";
 import {

@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
-import { setWindowAlwaysOnTop } from "@/lib/windows";
+import { setWindowAlwaysOnTop } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

@@ -4,7 +4,7 @@ import { SettingsContentLayout } from "@/components/settings/settings-content-la
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { cn } from "@/lib/utils";
-import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 
 export type ShortcutsSettingsItem = {
   id: string;

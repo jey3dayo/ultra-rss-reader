@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { executeAction } from "@/lib/actions";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { bindWindowEvents, createMouseEventListener } from "@/lib/window-events";
+import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
+import { bindWindowEvents, createMouseEventListener } from "@/lib/window/window-events";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) {

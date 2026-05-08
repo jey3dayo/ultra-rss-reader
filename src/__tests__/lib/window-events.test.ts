@@ -5,7 +5,7 @@ import {
   createKeyboardEventListener,
   createMouseEventListener,
   createPointerEventListener,
-} from "@/lib/window-events";
+} from "@/lib/window/window-events";
 
 describe("window-events", () => {
   it("forwards keyboard, mouse, and pointer events only to matching listeners", () => {

@@ -3,13 +3,13 @@ import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview } f
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import type { AppAction } from "@/lib/app-actions";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
+import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { triggerManualSyncWithCooldown } from "@/lib/manual-sync";
 import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
-import { isWindowFullscreen, setWindowFullscreen } from "@/lib/windows";
+import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/windows";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

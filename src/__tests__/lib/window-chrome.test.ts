@@ -1,6 +1,6 @@
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it } from "vitest";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 
 describe("window-chrome", () => {
   afterEach(() => {

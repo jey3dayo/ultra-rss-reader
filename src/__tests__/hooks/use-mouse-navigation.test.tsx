@@ -11,7 +11,7 @@ vi.mock("@/lib/actions", () => ({
   executeAction: executeActionMock,
 }));
 
-vi.mock("@/lib/debug-input-trace", () => ({
+vi.mock("@/lib/debug/debug-input-trace", () => ({
   emitDebugInputTrace: emitDebugInputTraceMock,
 }));
 

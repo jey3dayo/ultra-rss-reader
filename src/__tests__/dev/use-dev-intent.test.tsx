@@ -17,7 +17,7 @@ vi.mock("@/api/tauri-commands", () => ({
   getDevRuntimeOptions: getDevRuntimeOptionsMock,
 }));
 
-vi.mock("@/lib/window-chrome", () => ({
+vi.mock("@/lib/window/window-chrome", () => ({
   hasTauriRuntime: () => true,
 }));
 

@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isWindowFullscreen, setWindowAlwaysOnTop, setWindowFullscreen, setWindowIcon } from "@/lib/windows";
+import { isWindowFullscreen, setWindowAlwaysOnTop, setWindowFullscreen, setWindowIcon } from "@/lib/window/windows";
 
 const { getCurrentWindowMock, isFullscreenMock, setAlwaysOnTopMock, setFullscreenMock, setIconMock } = vi.hoisted(
   () => ({

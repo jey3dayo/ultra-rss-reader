@@ -3,7 +3,7 @@ import {
   describeDebugHudActiveElement,
   describeDebugHudEventTarget,
   summarizeDebugHudActiveElementDescription,
-} from "@/lib/debug-hud-active-element";
+} from "@/lib/debug/debug-hud-active-element";
 
 describe("debug-hud-active-element", () => {
   it("describes null and non-element targets as none", () => {

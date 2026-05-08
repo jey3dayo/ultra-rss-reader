@@ -1,7 +1,7 @@
 ---
 paths:
   - "src-tauri/src/lib.rs"
-  - "src/lib/window-chrome.ts"
+  - "src/lib/window/window-chrome.ts"
   - "src/components/app-shell.tsx"
   - "src/components/app-layout.tsx"
   - "src/components/shared/workspace-header.tsx"
@@ -28,7 +28,7 @@ Tauri の window chrome は OS ごとに前提が違う。特に macOS は overl
 ## 現在の実装
 
 - ネイティブ側は `src-tauri/src/lib.rs` で macOS のみ `tauri::TitleBarStyle::Overlay`、それ以外は `Visible` を使う
-- フロント側の判定入口は `src/lib/window-chrome.ts` の `hasTauriRuntime()` と `shouldUseDesktopOverlayTitlebar()` に閉じる
+- フロント側の判定入口は `src/lib/window/window-chrome.ts` の `hasTauriRuntime()` と `shouldUseDesktopOverlayTitlebar()` に閉じる
 - `shouldUseDesktopOverlayTitlebar()` は `macos + Tauri runtime` のときだけ `true`
 - 初回 desktop render で `platformKind === "unknown"` でも、`navigator.platform` が mac なら一時的に overlay として扱い、1 フレームだけ mac 余白が跳ねるのを防ぐ
 - `src/components/app-layout.tsx` は top flush を保ち、pane header 自体が上端を取る

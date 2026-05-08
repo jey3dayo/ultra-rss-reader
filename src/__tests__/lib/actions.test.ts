@@ -84,7 +84,7 @@ vi.mock("@/hooks/use-updater", () => ({
   showUpdateAvailableToast: showUpdateAvailableToastMock,
 }));
 
-vi.mock("@/lib/windows", () => ({
+vi.mock("@/lib/window/windows", () => ({
   isWindowFullscreen: isWindowFullscreenMock,
   setWindowFullscreen: setWindowFullscreenMock,
 }));

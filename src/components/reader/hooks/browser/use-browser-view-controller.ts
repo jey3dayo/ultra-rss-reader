@@ -10,7 +10,7 @@ import { useBrowserWebviewCleanup } from "@/components/reader/hooks/browser/use-
 import { useBrowserWebviewLoadTimeout } from "@/components/reader/hooks/browser/use-browser-webview-load-timeout";
 import { useBrowserWebviewRequestState } from "@/components/reader/hooks/browser/use-browser-webview-request-state";
 import { useBrowserWebviewSync } from "@/components/reader/hooks/browser/use-browser-webview-sync";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import type { BrowserViewController, UseBrowserViewControllerParams } from "../../browser-view.types";
 import { resolveBrowserViewPresentation } from "../../browser-view-presentation";
 import { initialBrowserState } from "../../browser-webview-state";

@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import { DebugHudActionButton } from "@/components/debug/debug-hud-action-button";
 import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
 import type { BrowserDebugGeometryRow } from "@/lib/browser/browser-debug-geometry";
-import { summarizeDebugHudActiveElementDescription } from "@/lib/debug-hud-active-element";
+import { summarizeDebugHudActiveElementDescription } from "@/lib/debug/debug-hud-active-element";
 import { cn } from "@/lib/utils";
 
 const EMPTY_BROWSER_GEOMETRY_ROWS: BrowserDebugGeometryRow[] = [];

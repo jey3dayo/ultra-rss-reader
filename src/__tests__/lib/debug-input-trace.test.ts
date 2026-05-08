@@ -5,7 +5,7 @@ import {
   formatRawClickTrace,
   formatRawKeyboardTrace,
   formatRawPointerTrace,
-} from "@/lib/debug-input-trace";
+} from "@/lib/debug/debug-input-trace";
 
 function expectCustomEvent(value: unknown): asserts value is CustomEvent<string> {
   expect(value).toBeInstanceOf(CustomEvent);

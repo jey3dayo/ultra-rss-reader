@@ -1,5 +1,5 @@
 import { useBrowserUrlLayoutEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
-import { bindWindowEvents } from "@/lib/window-events";
+import { bindWindowEvents } from "@/lib/window/window-events";
 import type { UseBrowserWebviewBoundsSyncParams } from "../../browser-view.types";
 
 export function useBrowserWebviewBoundsSync({

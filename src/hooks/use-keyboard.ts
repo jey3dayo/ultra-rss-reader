@@ -7,10 +7,10 @@ import {
   selectCurrentAccountPaneTargetAndFocusSidebar,
 } from "@/lib/account/account-pane-navigation";
 import { executeAction } from "@/lib/actions";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
+import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
-import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 

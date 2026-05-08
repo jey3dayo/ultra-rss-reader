@@ -12,7 +12,7 @@ import type {
   SubscriptionManagementActions,
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";

@@ -36,7 +36,7 @@ import type {
   SubscriptionListRow,
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
-import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { useUiStore } from "@/stores/ui-store";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";

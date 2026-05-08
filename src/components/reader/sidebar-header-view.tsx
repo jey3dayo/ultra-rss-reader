@@ -2,7 +2,7 @@ import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { cn } from "@/lib/utils";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarHeaderProps } from "./sidebar.types";

@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
-import { bindWindowEvents } from "@/lib/window-events";
+import { bindWindowEvents } from "@/lib/window/window-events";
 
 type ScrollOverflowState = {
   viewportElement: HTMLDivElement | null;

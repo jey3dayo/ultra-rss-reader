@@ -8,7 +8,7 @@ import {
   type MotionPhase,
 } from "@/constants";
 import { cn } from "@/lib/utils";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 
 type WorkspaceHeaderProps = {

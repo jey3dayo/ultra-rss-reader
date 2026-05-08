@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useCallback, useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/articles/article-list";
-import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window-events";
+import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window/window-events";
 import type { SidebarFeedNavigationParams } from "../../sidebar-feed-section.types";
 
 function isFeedNavigationDirection(value: unknown): value is 1 | -1 {

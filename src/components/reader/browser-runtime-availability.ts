@@ -1,4 +1,4 @@
-import { hasTauriRuntime } from "@/lib/window-chrome";
+import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export function isBrowserRuntimeUnavailable(): boolean {
   if (typeof window !== "undefined") {

@@ -1,5 +1,5 @@
 import { useEffect, useReducer } from "react";
-import { bindWindowEvents } from "@/lib/window-events";
+import { bindWindowEvents } from "@/lib/window/window-events";
 
 type BrowserOverlayViewportWidthState = {
   viewportWidth: number;

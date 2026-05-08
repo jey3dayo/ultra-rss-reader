@@ -3,6 +3,21 @@ import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
+import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
+import {
+  emitDebugInputTrace,
+  formatRawClickTrace,
+  formatRawKeyboardTrace,
+  formatRawPointerTrace,
+} from "@/lib/debug/debug-input-trace";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+import {
+  bindWindowEvents,
+  createCustomEventDetailListener,
+  createKeyboardEventListener,
+  createMouseEventListener,
+  createPointerEventListener,
+} from "@/lib/window/window-events";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { APP_EVENTS } from "../constants/events";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
@@ -14,23 +29,8 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { useWindowAlwaysOnTop } from "../hooks/use-window-always-on-top";
 import { copyValueToClipboard } from "../lib/clipboard";
-import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "../lib/debug-hud-active-element";
-import {
-  emitDebugInputTrace,
-  formatRawClickTrace,
-  formatRawKeyboardTrace,
-  formatRawPointerTrace,
-} from "../lib/debug-input-trace";
 import { attachTauriListeners } from "../lib/tauri-event-listeners";
 import { cn } from "../lib/utils";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
-import {
-  bindWindowEvents,
-  createCustomEventDetailListener,
-  createKeyboardEventListener,
-  createMouseEventListener,
-  createPointerEventListener,
-} from "../lib/window-events";
 import { usePlatformStore } from "../stores/platform-store";
 import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
