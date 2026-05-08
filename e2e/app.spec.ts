@@ -2,8 +2,15 @@ import { expect, type Page, test } from "@playwright/test";
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
+const subscriptionsReviewFilterButtonName = /(Needs review|要確認)\s*を表示/i;
+const subscriptionsInventoryHeadingName = /All subscriptions|全購読/i;
+const subscriptionsReviewHeadingName = /Needs review|要確認/i;
 
-async function openFeedCleanup(page: Page) {
+function subscriptionRows(page: Page) {
+  return page.locator('[data-testid^="subscriptions-folder-tree-rail-"] button');
+}
+
+async function openSubscriptionsIndex(page: Page) {
   const showSidebarButton = page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i });
   if (await showSidebarButton.isVisible().catch(() => false)) {
     await showSidebarButton.click();
@@ -14,13 +21,22 @@ async function openFeedCleanup(page: Page) {
   await manageSubscriptionsButton.click();
 
   await expect(
-    page.getByTestId("workspace-header-navigation-row").getByRole("heading", { name: /Subscriptions|購読一覧/i }),
+    page.getByTestId("workspace-header-title-group").getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
   ).toBeVisible();
+}
 
-  const reviewFlaggedButton = page.getByRole("button", { name: /Review flagged subscriptions|整理へ|要確認を見る/i });
-  await reviewFlaggedButton.first().click();
+async function openSubscriptionReview(page: Page) {
+  await openSubscriptionsIndex(page);
+  await page.getByRole("button", { name: subscriptionsReviewFilterButtonName }).click();
 
-  await expect(page.getByRole("heading", { name: /Review Subscriptions|購読の整理/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible();
+}
+
+async function openSubscriptionInventory(page: Page) {
+  await openSubscriptionsIndex(page);
+
+  await expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible();
+  await expect(subscriptionRows(page).first()).toBeVisible();
 }
 
 test.describe("Ultra RSS Reader - basic rendering", () => {
@@ -130,119 +146,112 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(page.getByRole("menuitem", { name: /Open in External Browser|外部ブラウザで開く/i })).toBeVisible();
   });
 
-  test("opens feed cleanup from the sidebar and shows split review controls", async ({ page }) => {
+  test("opens subscription review from the subscriptions index and shows split review controls", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await openFeedCleanup(page);
+    await openSubscriptionReview(page);
 
-    await expect(page.getByRole("heading", { name: /Review Subscriptions|購読の整理/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Overview|概要/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
-    await expect(
-      page.getByTestId("feed-cleanup-review-panel").getByRole("heading", { name: /^Review$|^確認$/i }),
-    ).toBeVisible();
-    await expect(page.getByRole("button", { name: /Keep all visible|表示中をまとめて継続/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Defer all visible|表示中をまとめて保留/i })).toBeVisible();
-
-    await expect(page.getByTestId("feed-cleanup-review-panel")).toContainText(
-      /Why this feed is here|候補に入った理由/i,
+    await expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible();
+    await expect(page.getByRole("button", { name: subscriptionsReviewFilterButtonName })).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
-    const reviewActions = page.getByTestId("feed-cleanup-review-actions");
-    await expect(reviewActions.getByRole("button", { name: /^Keep$|^残す$/i })).toBeVisible();
-    await expect(reviewActions.getByRole("button", { name: /^Defer$|^Later$|^あとで見直す$/i })).toBeVisible();
+    await expect(page.getByTestId("subscriptions-detail-pane")).toBeVisible();
   });
 
-  test("keeps feed cleanup actions above the queue on narrow screens", async ({ page }) => {
+  test("keeps subscription detail actions below the inventory heading on narrow screens", async ({ page }) => {
     await page.setViewportSize({ width: 639, height: 900 });
     await page.goto("/");
 
-    await openFeedCleanup(page);
+    await openSubscriptionInventory(page);
 
-    const keepAllVisibleButton = page.getByRole("button", { name: /Keep all visible|表示中をまとめて継続/i });
-    const queueHeading = page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i });
+    const detailActions = page
+      .locator('[data-testid="subscriptions-detail-decision-bar"], [data-testid="subscriptions-detail-management-bar"]')
+      .first();
+    const inventoryHeading = page.getByRole("heading", { name: subscriptionsInventoryHeadingName });
 
-    await expect(keepAllVisibleButton).toBeVisible();
-    await expect(queueHeading).toBeVisible();
+    await expect(detailActions).toBeVisible();
+    await expect(inventoryHeading).toBeVisible();
 
-    const keepBox = await keepAllVisibleButton.boundingBox();
-    const queueBox = await queueHeading.boundingBox();
+    const actionBox = await detailActions.boundingBox();
+    const headingBox = await inventoryHeading.boundingBox();
 
-    expect(keepBox).not.toBeNull();
-    expect(queueBox).not.toBeNull();
+    expect(actionBox).not.toBeNull();
+    expect(headingBox).not.toBeNull();
 
-    if (!keepBox || !queueBox) {
-      throw new Error("Expected feed cleanup controls to have measurable bounds.");
+    if (!actionBox || !headingBox) {
+      throw new Error("Expected subscription detail controls to have measurable bounds.");
     }
 
-    expect(keepBox.y).toBeLessThan(queueBox.y);
+    expect(actionBox.y).toBeGreaterThan(headingBox.y);
   });
 
-  test("keeps the first cleanup row fixed when selection state changes", async ({ page }) => {
+  test("keeps the first subscription row fixed when selection state changes", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await openFeedCleanup(page);
-    await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
+    await openSubscriptionInventory(page);
+    await expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible();
 
-    const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
-    const firstCheckbox = page.getByRole("checkbox").first();
+    const rows = subscriptionRows(page);
+    const firstRow = rows.first();
 
     const rowBefore = await firstRow.boundingBox();
-    await firstCheckbox.check();
+    await firstRow.click();
     const rowAfter = await firstRow.boundingBox();
 
     expect(rowBefore).not.toBeNull();
     expect(rowAfter).not.toBeNull();
 
     if (!rowBefore || !rowAfter) {
-      throw new Error("Expected cleanup rows to have measurable bounds.");
+      throw new Error("Expected subscription rows to have measurable bounds.");
     }
 
     expect(rowAfter.y).toBe(rowBefore.y);
   });
 
-  test("keeps the first cleanup row fixed on narrow screens when selection state changes", async ({ page }) => {
+  test("keeps the first subscription row fixed on narrow screens when selection state changes", async ({ page }) => {
     await page.setViewportSize({ width: 639, height: 900 });
     await page.goto("/");
 
-    await openFeedCleanup(page);
+    await openSubscriptionInventory(page);
 
-    const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
-    const firstCheckbox = page.getByRole("checkbox").first();
+    const rows = subscriptionRows(page);
+    const firstRow = rows.first();
 
     const rowBefore = await firstRow.boundingBox();
-    await firstCheckbox.check();
+    await firstRow.click();
     const rowAfter = await firstRow.boundingBox();
 
     expect(rowBefore).not.toBeNull();
     expect(rowAfter).not.toBeNull();
 
     if (!rowBefore || !rowAfter) {
-      throw new Error("Expected cleanup rows to have measurable bounds.");
+      throw new Error("Expected subscription rows to have measurable bounds.");
     }
 
     expect(rowAfter.y).toBe(rowBefore.y);
   });
 
-  test("aligns the selection rail and cleanup rows to the same right content edge", async ({ page }) => {
+  test("aligns the subscription rail and rows to the same right content edge", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await openFeedCleanup(page);
-    await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
+    await openSubscriptionInventory(page);
+    await expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible();
 
-    const selectionRail = page.getByTestId("feed-cleanup-selection-rail");
-    const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
+    const subscriptionRail = page.locator('[data-testid^="subscriptions-folder-tree-rail-"]').first();
+    const firstRow = subscriptionRows(page).first();
 
-    const railBox = await selectionRail.boundingBox();
+    const railBox = await subscriptionRail.boundingBox();
     const rowBox = await firstRow.boundingBox();
 
     expect(railBox).not.toBeNull();
     expect(rowBox).not.toBeNull();
 
     if (!railBox || !rowBox) {
-      throw new Error("Expected cleanup rail and rows to have measurable bounds.");
+      throw new Error("Expected subscription rail and rows to have measurable bounds.");
     }
 
     expect(Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(1);
