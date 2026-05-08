@@ -20,8 +20,7 @@ pub fn import_opml(
     opml_content: String,
     account_id: String,
 ) -> Result<Vec<FeedDto>, AppError> {
-    let parsed_feeds =
-        opml::parse_opml(&opml_content).map_err(|e| AppError::UserVisible { message: e })?;
+    let parsed_feeds = parse_import_opml(&opml_content)?;
 
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
@@ -99,6 +98,10 @@ pub fn import_opml(
     Ok(created_feeds)
 }
 
+fn parse_import_opml(opml_content: &str) -> Result<Vec<OpmlFeed>, AppError> {
+    opml::parse_opml(opml_content).map_err(|message| AppError::UserVisible { message })
+}
+
 #[tauri::command]
 pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<String, AppError> {
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
@@ -147,4 +150,23 @@ pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<Str
         .collect();
 
     Ok(opml::generate_opml(&title, &opml_feeds))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn import_parser_errors_are_user_visible() {
+        let error = parse_import_opml("not xml at all").unwrap_err();
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, "OPML document must contain an <opml> root element");
+            }
+            AppError::Retryable { message } => {
+                panic!("OPML parser errors should not be retryable: {message}");
+            }
+        }
+    }
 }

@@ -18,9 +18,22 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     let mut feeds = Vec::new();
     let mut folder_stack: Vec<String> = Vec::new();
     let mut depth: usize = 0;
+    let mut saw_opml_root = false;
+    let mut saw_root_element = false;
 
     loop {
         match reader.read_event() {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"opml" => {
+                saw_opml_root = true;
+                saw_root_element = true;
+            }
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"opml" => {
+                saw_opml_root = true;
+                saw_root_element = true;
+            }
+            Ok(Event::Start(_)) | Ok(Event::Empty(_)) if !saw_root_element => {
+                return Err("OPML document must contain an <opml> root element".to_string());
+            }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
                 let attrs = parse_outline_attrs(e);
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
@@ -65,6 +78,14 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
             Err(e) => return Err(format!("OPML parse error: {e}")),
             _ => {}
         }
+    }
+
+    if depth > 0 {
+        return Err("OPML parse error: unexpected EOF while reading outline elements".to_string());
+    }
+
+    if !saw_opml_root {
+        return Err("OPML document must contain an <opml> root element".to_string());
     }
 
     Ok(feeds)
@@ -265,11 +286,49 @@ mod tests {
     }
 
     #[test]
-    fn handles_malformed_opml_gracefully() {
-        // quick-xml is lenient; malformed input returns empty feeds
+    fn rejects_text_without_opml_root() {
         let result = parse_opml("not xml at all");
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert_eq!(
+            result.unwrap_err(),
+            "OPML document must contain an <opml> root element"
+        );
+    }
+
+    #[test]
+    fn rejects_document_with_non_opml_root() {
+        let result = parse_opml(r#"<?xml version="1.0"?><rss><opml /></rss>"#);
+        assert_eq!(
+            result.unwrap_err(),
+            "OPML document must contain an <opml> root element"
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_xml() {
+        let result = parse_opml(r#"<?xml version="1.0"?><opml><body><outline text="Feed">"#);
+        assert_eq!(
+            result.unwrap_err(),
+            "OPML parse error: unexpected EOF while reading outline elements"
+        );
+    }
+
+    #[test]
+    fn skips_outline_without_xml_url() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Folder">
+      <outline text="Missing URL"/>
+      <outline text="With URL" xmlUrl="https://example.com/rss"/>
+    </outline>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "With URL");
+        assert_eq!(feeds[0].folder, Some("Folder".to_string()));
     }
 
     #[test]

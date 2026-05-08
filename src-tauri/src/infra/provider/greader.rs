@@ -766,9 +766,38 @@ mod tests {
     }
 
     #[test]
+    fn for_freshrss_normalizes_trailing_slashes_before_appending_greader_endpoint() {
+        let provider = GReaderProvider::for_freshrss("https://freshrss.example.com///");
+
+        assert_eq!(
+            provider.api_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+        assert_eq!(
+            provider.auth_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+    }
+
+    #[test]
     fn for_freshrss_accepts_full_greader_endpoint_without_duplication() {
         let provider =
             GReaderProvider::for_freshrss("https://freshrss.example.com/api/greader.php");
+
+        assert_eq!(
+            provider.api_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+        assert_eq!(
+            provider.auth_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+    }
+
+    #[test]
+    fn for_freshrss_normalizes_trailing_slash_after_full_greader_endpoint() {
+        let provider =
+            GReaderProvider::for_freshrss("https://freshrss.example.com/api/greader.php/");
 
         assert_eq!(
             provider.api_base,
