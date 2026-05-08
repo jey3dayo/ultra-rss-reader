@@ -363,3 +363,33 @@
   - `docs/reader-keyboard-navigation.md` と `keyboard-shortcuts.ts` / `use-keyboard.ts` / pane-specific key handlers の対応を棚卸しする
   - shortcut label や i18n copy の変更は含めず、documented ownership と実装の event ownership がズレていないかを確認する
   - browser overlay、article list、sidebar の keyboard contract は参照範囲が広いため、pane ごとに worker scope を分ける
+
+- [ ] database command / integrity schema 候補を別バッチで検証する
+  - `src-tauri/src/commands/database_commands.rs`、`database-info.ts`、`feed-integrity.ts` の DTO と frontend schema がズレていないか棚卸しする
+  - DB path / size / integrity result は environment 依存があるため、schema fixture と manual verification を分ける
+  - migration recovery や dev seed DB とは混ぜず、read-only command response contract の test に限定する
+
+- [ ] feed edit / folder assignment flow 候補を別バッチで見直す
+  - `feed-edit-submit.ts`、rename feed dialog、folder select controller、`use-update-feed-folder.ts` の submit state と cache invalidation を整理する
+  - rename / unsubscribe / folder move は確認導線と rollback 条件が違うため、dialog view props 整理とは分ける
+  - repository update や sync provider 反映は別バッチに残し、frontend submit contract と query invalidation を先に固定する
+
+- [ ] UI language helper contract 候補を別バッチで追加する
+  - `src/lib/ui/ui-language.ts` と locale tests の language detection / fallback / display language を、browser language と app preference で分ける
+  - i18next namespace 整理とは別に、runtime language selection と locale file key presence の責務を分ける
+  - copy 文言や翻訳改善は含めず、language code normalization と fallback contract の pure test に限定する
+
+- [ ] shared button / control surface governance 候補を別バッチで見直す
+  - `button.tsx`、`control-chip-button.tsx`、`icon-toolbar-control.tsx`、`reader-inline-action-button.tsx` の role / size / disabled / tooltip 前提を棚卸しする
+  - visual token や hover class の全面変更は避け、公開 wrapper API と feature-local button の境界を先に整理する
+  - settings / reader / subscriptions で使う control surface は密度が違うため、component family ごとに worker scope を分ける
+
+- [ ] reader preview role / language contract 候補を別バッチで検証する
+  - reader preview / standard preview / web preview の role language が、`reader.json`、article view state、browser overlay state で一貫しているか確認する
+  - label copy 変更ではなく、preview mode と user-visible state token の対応を test fixture で固定する
+  - display mode precedence や browser WebView history とは混ぜず、reader mode naming と accessibility label の契約だけを見る
+
+- [ ] web preview geometry dev fixture 候補を別バッチで整理する
+  - `src/dev/web-preview-geometry.ts`、dev geometry page tests、browser debug geometry helpers を、fixture generation と diagnostics rendering で分ける
+  - 実 WebView bounds の変更は browser geometry 実機検証に残し、ここでは dev fixture の input/output contract を固定する
+  - geometry scenario の copy や visual specimen は Storybook fixture runtime と混ぜず、debug utility の契約に限定する
