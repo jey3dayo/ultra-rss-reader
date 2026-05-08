@@ -228,6 +228,21 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 export const shortcutPrefKey = (id: ShortcutActionId): string =>
   `shortcut_${id}`;
 
+const shortcutActionIdSet = new Set<string>(
+  shortcutDefinitions.map((definition) => definition.id),
+);
+
+export function isShortcutActionId(value: string): value is ShortcutActionId {
+  return shortcutActionIdSet.has(value);
+}
+
+export function isShortcutPreferenceKey(key: string): boolean {
+  return (
+    key.startsWith("shortcut_") &&
+    isShortcutActionId(key.slice("shortcut_".length))
+  );
+}
+
 export type KeyboardShortcutPrefs = Record<string, string>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
 function getShortcutKey(

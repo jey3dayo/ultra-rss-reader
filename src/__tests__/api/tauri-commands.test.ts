@@ -483,6 +483,57 @@ describe("safeInvoke args validation", () => {
 
     Result.unwrap(await setPreference("selected_account_id", "acc-1"));
   });
+
+  it("accepts known shortcut preference keys with saved shortcut values", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "set_preference") {
+        expect(args).toEqual({
+          key: "shortcut_next_article",
+          value: "Shift+J",
+        });
+        return null;
+      }
+      return null;
+    });
+
+    Result.unwrap(await setPreference("shortcut_next_article", "Shift+J"));
+  });
+
+  it("rejects unknown shortcut preference keys before invoking Tauri", async () => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "set_preference") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await setPreference("shortcut_unknown_action", "x");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain(
+      "Invalid preference key: shortcut_unknown_action",
+    );
+    expect(invoked).toBe(false);
+  });
+
+  it("rejects empty shortcut preference values before invoking Tauri", async () => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "set_preference") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await setPreference("shortcut_next_article", "   ");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain(
+      "Invalid value for preference key: shortcut_next_article",
+    );
+    expect(invoked).toBe(false);
+  });
 });
 
 describe("setupTauriMocks validates args for custom handler", () => {

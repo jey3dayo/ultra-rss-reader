@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { preferenceSchemas } from "@/schemas/preferences";
+import { getPreferenceValueSchema } from "@/schemas/preferences";
 import { FeedDisplayModeSchema } from "./feed";
 import { MuteKeywordScopeSchema } from "./mute-keyword";
 
 export const articleListModeSchema = z.enum(["all", "unread", "starred"]);
-const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: z.string() });
@@ -66,7 +65,11 @@ export const countAccountStarredArticlesArgs = z.object({
 });
 
 export const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
-export const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
+export const oldUnreadDaysSchema = z.union([
+  z.literal(7),
+  z.literal(30),
+  z.literal(90),
+]);
 export type OldUnreadScopeKind = z.infer<typeof oldUnreadScopeKindSchema>;
 export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
@@ -251,10 +254,17 @@ export const setPreferenceArgs = z
     value: z.string(),
   })
   .superRefine(({ key, value }, ctx) => {
-    const schema = objectHasOwnProperty.call(preferenceSchemas, key)
-      ? preferenceSchemas[key as keyof typeof preferenceSchemas]
-      : undefined;
+    const schema = getPreferenceValueSchema(key);
     const result = schema?.safeParse(value);
+
+    if (!schema && key.startsWith("shortcut_")) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["key"],
+        message: `Invalid preference key: ${key}`,
+      });
+      return;
+    }
 
     if (result?.success === false) {
       ctx.addIssue({
@@ -336,7 +346,10 @@ export const setMuteAutoMarkReadArgs = z.object({
 });
 
 // Registry: command names (snake_case) -> schema (only commands with args)
-export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown>>> = {
+export const commandArgsSchemas: Record<
+  string,
+  z.ZodType<Record<string, unknown>>
+> = {
   list_folders: listFoldersArgs,
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,

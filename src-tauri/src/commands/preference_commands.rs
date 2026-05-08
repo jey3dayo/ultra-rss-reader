@@ -56,19 +56,63 @@ const ALLOWED_KEYS: &[&str] = &[
     "selected_account_id",
 ];
 
-/// Key prefixes that are allowed dynamically (e.g. shortcut_next_article).
-const ALLOWED_PREFIXES: &[&str] = &["shortcut_"];
+const SHORTCUT_KEY_PREFIX: &str = "shortcut_";
+const ALLOWED_SHORTCUT_IDS: &[&str] = &[
+    "next_article",
+    "prev_article",
+    "next_feed",
+    "prev_feed",
+    "reload_webview",
+    "focus_sidebar",
+    "toggle_sidebar",
+    "toggle_read",
+    "toggle_star",
+    "open_in_app_browser",
+    "open_external_browser",
+    "mark_all_read",
+    "show_unread",
+    "show_all",
+    "show_starred",
+    "cycle_filter",
+    "search",
+    "open_command_palette",
+    "close_or_clear",
+    "open_settings",
+];
 
 fn is_allowed_preference_key(key: &str) -> bool {
-    ALLOWED_KEYS.contains(&key)
-        || ALLOWED_PREFIXES
-            .iter()
-            .any(|prefix| key.starts_with(prefix))
+    ALLOWED_KEYS.contains(&key) || is_allowed_shortcut_preference_key(key)
+}
+
+fn is_allowed_shortcut_preference_key(key: &str) -> bool {
+    key.strip_prefix(SHORTCUT_KEY_PREFIX)
+        .is_some_and(|shortcut_id| ALLOWED_SHORTCUT_IDS.contains(&shortcut_id))
+}
+
+fn is_valid_shortcut_preference_value(value: &str) -> bool {
+    let trimmed = value.trim();
+    !trimmed.is_empty() && trimmed.len() <= 128
+}
+
+fn validate_preference_input(key: &str, value: &str) -> Result<(), AppError> {
+    if !is_allowed_preference_key(key) {
+        return Err(AppError::UserVisible {
+            message: format!("Unknown preference key: {key}"),
+        });
+    }
+
+    if is_allowed_shortcut_preference_key(key) && !is_valid_shortcut_preference_value(value) {
+        return Err(AppError::UserVisible {
+            message: format!("Invalid shortcut preference value for key: {key}"),
+        });
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::is_allowed_preference_key;
+    use super::{is_allowed_preference_key, validate_preference_input};
 
     #[test]
     fn allows_web_preview_focus_preference() {
@@ -83,6 +127,27 @@ mod tests {
     #[test]
     fn rejects_unknown_preference_keys() {
         assert!(!is_allowed_preference_key("unknown_web_preview_key"));
+    }
+
+    #[test]
+    fn allows_known_shortcut_preference_keys() {
+        assert!(is_allowed_preference_key("shortcut_next_article"));
+        assert!(is_allowed_preference_key("shortcut_open_command_palette"));
+    }
+
+    #[test]
+    fn rejects_unknown_shortcut_preference_keys() {
+        assert!(!is_allowed_preference_key("shortcut_unknown_action"));
+        assert!(!is_allowed_preference_key("shortcut_"));
+    }
+
+    #[test]
+    fn validates_shortcut_preference_values() {
+        assert!(validate_preference_input("shortcut_next_article", "j").is_ok());
+        assert!(validate_preference_input("shortcut_next_article", "Shift+J").is_ok());
+        assert!(validate_preference_input("shortcut_open_command_palette", "⌘+k").is_ok());
+        assert!(validate_preference_input("shortcut_next_article", "").is_err());
+        assert!(validate_preference_input("shortcut_next_article", "   ").is_err());
     }
 }
 
@@ -103,11 +168,7 @@ pub fn set_preference(
     key: String,
     value: String,
 ) -> Result<(), AppError> {
-    if !is_allowed_preference_key(&key) {
-        return Err(AppError::UserVisible {
-            message: format!("Unknown preference key: {key}"),
-        });
-    }
+    validate_preference_input(&key, &value)?;
     if value.len() > 1024 {
         return Err(AppError::UserVisible {
             message: "Preference value too long (max 1024 chars)".to_string(),
