@@ -37,20 +37,12 @@ export function getLastStartupSyncTriggeredAt(
   }
 }
 
-export function shouldThrottleStartupSync(
-  storage = readStartupSyncStorage(),
-  now = getCurrentTimeMs(),
-): boolean {
+export function shouldThrottleStartupSync(storage = readStartupSyncStorage(), now = getCurrentTimeMs()): boolean {
   const lastTriggeredAt = getLastStartupSyncTriggeredAt(storage, now);
-  return (
-    lastTriggeredAt != null && now - lastTriggeredAt < STARTUP_SYNC_THROTTLE_MS
-  );
+  return lastTriggeredAt != null && now - lastTriggeredAt < STARTUP_SYNC_THROTTLE_MS;
 }
 
-export function markStartupSyncTriggered(
-  storage = readStartupSyncStorage(),
-  now = getCurrentTimeMs(),
-): void {
+export function markStartupSyncTriggered(storage = readStartupSyncStorage(), now = getCurrentTimeMs()): void {
   if (!storage) {
     return;
   }

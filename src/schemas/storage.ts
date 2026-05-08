@@ -13,8 +13,8 @@ export const StoredSidebarExpandedFoldersSchema = z
       Object.fromEntries(
         Object.entries(parsed).flatMap(
           ([accountId, folderIds]): Array<[string, string[]]> =>
-            Array.isArray(folderIds) && folderIds.every((folderId) => typeof folderId === "string")
-              ? [[accountId, folderIds]]
+            Array.isArray(folderIds)
+              ? [[accountId, folderIds.filter((folderId): folderId is string => typeof folderId === "string")]]
               : [],
         ),
       ),

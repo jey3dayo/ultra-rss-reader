@@ -130,3 +130,7 @@ export async function runRuntimeDevScenario(id: DevScenarioId): Promise<void> {
     throw toDevScenarioRuntimeException(Result.unwrapError(result));
   }
 }
+
+export function resetDevScenariosModuleCacheForTests(): void {
+  devScenariosModulePromise = null;
+}

@@ -87,4 +87,23 @@ describe("use-command-history", () => {
     expect(() => addToHistory("feed-1")).not.toThrow();
     expect(getHistory()).toEqual([]);
   });
+
+  it("fails safely when storage read throws", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+
+    expect(() => getHistory()).not.toThrow();
+    expect(getHistory()).toEqual([]);
+  });
+
+  it("fails safely when storage clear throws", () => {
+    addToHistory("feed-1");
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+
+    expect(() => clearHistory()).not.toThrow();
+    expect(getHistory()).toEqual(["feed-1"]);
+  });
 });
