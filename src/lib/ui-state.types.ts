@@ -1,4 +1,5 @@
 import type { ReaderSelection } from "@/lib/reader-selection.types";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
 
 export type ToastAction = {
   label: string;
@@ -57,7 +58,7 @@ export type BrowserNavigationState = {
   canGoForward: boolean;
 };
 
-export type SubscriptionSummaryFilterState = "all" | "review" | "stale";
+export type SubscriptionSummaryFilterState = SubscriptionSummaryFilterKey;
 
 export type SubscriptionsWorkspaceReturnState = {
   activeSummaryFilter: SubscriptionSummaryFilterState;

@@ -1,11 +1,12 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
 import type { SubscriptionReviewCandidate, SubscriptionReviewTone } from "@/lib/subscription-review-candidates";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
   | { tone: "medium"; labelKey: "review" | "stale_90d" | "no_unread" | "no_stars" };
 
-export type SubscriptionSummaryFilterKey = "all" | "review" | "stale";
+export type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
 
 export type SubscriptionSummaryCard = {
   filterKey: SubscriptionSummaryFilterKey;
