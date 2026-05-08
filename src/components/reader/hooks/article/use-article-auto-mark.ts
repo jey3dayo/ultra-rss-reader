@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import type { UseArticleAutoMarkParams } from "../../article-actions.types";
 
+type DelayedAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never" | "immediately">;
+
 const delayedAutoMarkTimeoutsMs = {
   after_0_3s: 300,
   after_0_5s: 500,
   after_1s: 1000,
-} as const;
+} satisfies Record<DelayedAfterReadingPreference, number>;
 
 export function useArticleAutoMark({
   articleId,
