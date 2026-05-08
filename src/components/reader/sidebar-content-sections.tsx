@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useSidebarTagItems } from "@/components/reader/hooks/sidebar/use-sidebar-tag-items";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
+import type { FeedTreeEmptyState } from "./feed-tree.types";
 import type { SidebarContentSectionsProps } from "./sidebar.types";
 import { SidebarContentView } from "./sidebar-content-view";
 import { SidebarFeedTreeSkeleton } from "./sidebar-feed-tree-skeleton";
@@ -43,11 +44,11 @@ export function SidebarContentSections({
 }: SidebarContentSectionsProps) {
   const { t: commonT } = useTranslation("common");
   const tagItems = useSidebarTagItems({ tags, tagArticleCounts, selection });
-  const feedEmptyState = selectedAccountId
+  const feedEmptyState: FeedTreeEmptyState = selectedAccountId
     ? isFeedTreeLoading
-      ? { kind: "loading" as const, label: commonT("loading") }
-      : { kind: "message" as const, message: pressPlusToAddFeedLabel }
-    : { kind: "hidden" as const };
+      ? { kind: "loading", label: commonT("loading") }
+      : { kind: "message", message: pressPlusToAddFeedLabel }
+    : { kind: "hidden" };
 
   const tagSection = showSidebarTags ? (
     <SidebarTagSection

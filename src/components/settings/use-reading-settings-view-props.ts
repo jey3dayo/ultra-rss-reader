@@ -11,7 +11,7 @@ import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { useUiStore } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "./reading-settings-view";
-import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
+import type { SettingsPageSwitchControl, SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
 type UseReadingSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devIntent: DevIntent;
@@ -36,6 +36,18 @@ export function useReadingSettingsViewProps({
   const showToast = useUiStore((state) => state.showToast);
   const showConfirm = useUiStore((state) => state.showConfirm);
   const clearHistory = useClearArticleViewHistory();
+  const backgroundBrowserControls: SettingsPageSwitchControl[] = supportsBackgroundBrowserOpen
+    ? [
+        {
+          id: "open-links-background",
+          type: "switch",
+          label: t("reading.open_links_in_background"),
+          checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
+          onChange: (checked) => setPref("open_links_background", String(checked)),
+          disabled: !opensInDefaultBrowser,
+        },
+      ]
+    : [];
   const handleClearRecentArticles = useCallback(() => {
     if (!selectedAccountId) {
       return;
@@ -202,18 +214,7 @@ export function useReadingSettingsViewProps({
             checked: resolvePreferenceValue(prefs, "window_always_on_top") === "true",
             onChange: (checked) => setPref("window_always_on_top", String(checked)),
           },
-          ...(supportsBackgroundBrowserOpen
-            ? [
-                {
-                  id: "open-links-background",
-                  type: "switch" as const,
-                  label: t("reading.open_links_in_background"),
-                  checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
-                  onChange: (checked: boolean) => setPref("open_links_background", String(checked)),
-                  disabled: !opensInDefaultBrowser,
-                },
-              ]
-            : []),
+          ...backgroundBrowserControls,
           {
             id: "cmd-click-browser",
             type: "switch",

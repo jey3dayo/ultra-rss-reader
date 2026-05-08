@@ -16,9 +16,9 @@ function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
       return {};
     }
 
-    const entries = Object.entries(parsed).flatMap(([accountId, folderIds]) =>
+    const entries = Object.entries(parsed).flatMap(([accountId, folderIds]): Array<[string, string[]]> =>
       Array.isArray(folderIds) && folderIds.every((folderId) => typeof folderId === "string")
-        ? [[accountId, folderIds] as const]
+        ? [[accountId, folderIds]]
         : [],
     );
     return Object.fromEntries(entries);
