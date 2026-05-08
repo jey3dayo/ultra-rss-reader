@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { AccountDto, AccountSyncStatusDto } from "@/api/tauri-commands";
-import type { AccountSetupSessionState } from "@/stores/ui-store";
+import type { AccountSetupSessionState } from "@/lib/ui-state.types";
 
 export type AccountSelectOption = {
   value: string;

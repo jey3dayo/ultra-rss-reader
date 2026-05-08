@@ -5,7 +5,7 @@ import {
 } from "@/dev/scenarios/helpers";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
-import type { AppAction } from "@/lib/actions";
+import type { AppAction } from "@/lib/app-actions";
 import { isDevScenarioId } from "@/lib/dev-scenario-ids";
 import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 

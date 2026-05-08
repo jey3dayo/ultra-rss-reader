@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
-import type { UiSelection } from "@/stores/ui-store";
+import type { UiSelection } from "@/lib/ui-state.types";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
 

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
-import type { ToastData } from "@/stores/ui-store";
+import type { ToastData } from "@/lib/ui-state.types";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useDeleteFeed", () => {

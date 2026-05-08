@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizePaneNavigationKey } from "@/components/reader/account-pane-navigation";
+import { normalizePaneNavigationKey } from "@/lib/account-pane-navigation";
 
 describe("account-pane-navigation", () => {
   it("normalizes legacy and standard pane navigation keys", () => {

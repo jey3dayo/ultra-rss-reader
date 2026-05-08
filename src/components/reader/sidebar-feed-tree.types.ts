@@ -1,6 +1,6 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { SortSubscriptions } from "@/lib/sidebar";
-import type { UiSelection } from "@/stores/ui-store";
+import type { UiSelection } from "@/lib/ui-state.types";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 
 export type SidebarSelection = UiSelection;

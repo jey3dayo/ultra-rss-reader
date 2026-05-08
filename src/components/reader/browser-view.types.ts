@@ -6,7 +6,7 @@ import type {
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser-debug-geometry";
 import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser-viewer-geometry";
-import type { ToastData } from "@/stores/ui-store";
+import type { ToastData } from "@/lib/ui-state.types";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 

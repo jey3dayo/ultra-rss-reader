@@ -5,7 +5,7 @@ import { useSidebarContentSectionsProps } from "@/components/reader/hooks/sideba
 import { useSidebarSmartViewsProps } from "@/components/reader/hooks/sidebar/use-sidebar-smart-views-props";
 import type { SmartViewItemViewModel } from "@/components/reader/sidebar.types";
 import i18n from "@/lib/i18n";
-import type { UiSelection } from "@/stores/ui-store";
+import type { UiSelection } from "@/lib/ui-state.types";
 
 const t = i18n.getFixedT("en", "sidebar");
 

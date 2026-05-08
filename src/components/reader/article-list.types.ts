@@ -4,7 +4,7 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard-shortcuts";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
-import type { ArticleNavigationDirection, UiSelection } from "@/stores/ui-store";
+import type { ArticleNavigationDirection, UiSelection } from "@/lib/ui-state.types";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
-import type { ToastData } from "@/stores/ui-store";
+import type { ToastData } from "@/lib/ui-state.types";
 import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("react-i18next", () => ({

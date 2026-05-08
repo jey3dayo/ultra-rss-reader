@@ -1,14 +1,14 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
+import { useAccounts } from "@/hooks/use-accounts";
 import {
   ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
   closeAccountPaneAndFocusSidebar,
   focusAdjacentAccountPaneTarget,
   normalizePaneNavigationKey,
   selectCurrentAccountPaneTargetAndFocusSidebar,
-} from "@/components/reader/account-pane-navigation";
-import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
-import { useAccounts } from "@/hooks/use-accounts";
+} from "@/lib/account-pane-navigation";
 import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedAccountPaneTarget,

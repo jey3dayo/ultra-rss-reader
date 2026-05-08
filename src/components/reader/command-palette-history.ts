@@ -1,4 +1,4 @@
-import { type AppAction, isAppAction } from "@/lib/actions";
+import { type AppAction, isAppAction } from "@/lib/app-actions";
 
 export type CommandPaletteHistoryEntry =
   | { kind: "action"; id: AppAction }

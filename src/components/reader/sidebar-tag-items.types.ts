@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { TagDto } from "@/api/tauri-commands";
-import type { UiSelection } from "@/stores/ui-store";
+import type { UiSelection } from "@/lib/ui-state.types";
 import type { SidebarDensity } from "./sidebar-density";
 
 export type SidebarTagItem = {

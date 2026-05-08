@@ -2,9 +2,10 @@ import { Result } from "@praha/byethrow";
 import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
+import type { AppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
-import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { triggerManualSyncWithCooldown } from "@/lib/manual-sync";
 import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
@@ -12,90 +13,10 @@ import { isWindowFullscreen, setWindowFullscreen } from "@/lib/windows";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-/** All valid action identifiers dispatched via executeAction. */
-export type AppAction =
-  | `set-filter-${ViewMode}`
-  | "toggle-sort-unread"
-  | "toggle-group-by-feed"
-  | "set-theme-light"
-  | "set-theme-dark"
-  | "toggle-fullscreen"
-  | "sync-all"
-  | "open-settings"
-  | "open-current-account-settings"
-  | "open-settings-accounts"
-  | "open-settings-accounts-add"
-  | "open-settings-accounts-add-freshrss"
-  | "open-add-feed"
-  | "open-subscriptions-index"
-  | "open-command-palette"
-  | "restart-app"
-  | "prev-article"
-  | "next-article"
-  | "prev-feed"
-  | "next-feed"
-  | "reload-webview"
-  | "close-browser"
-  | "mouse-back"
-  | "mouse-forward"
-  | "open-in-reader"
-  | "open-in-browser"
-  | "toggle-star"
-  | "toggle-read"
-  | "mark-all-read"
-  | "copy-link"
-  | "open-in-default-browser"
-  | "add-to-reading-list"
-  | "check-for-updates";
-
-/** All concrete action strings accepted at runtime boundaries. */
-const APP_ACTIONS: readonly AppAction[] = [
-  "set-filter-unread",
-  "set-filter-all",
-  "set-filter-starred",
-  "toggle-sort-unread",
-  "toggle-group-by-feed",
-  "set-theme-light",
-  "set-theme-dark",
-  "toggle-fullscreen",
-  "sync-all",
-  "open-settings",
-  "open-current-account-settings",
-  "open-settings-accounts",
-  "open-settings-accounts-add",
-  "open-settings-accounts-add-freshrss",
-  "open-add-feed",
-  "open-subscriptions-index",
-  "open-command-palette",
-  "restart-app",
-  "prev-article",
-  "next-article",
-  "prev-feed",
-  "next-feed",
-  "reload-webview",
-  "close-browser",
-  "mouse-back",
-  "mouse-forward",
-  "open-in-reader",
-  "open-in-browser",
-  "toggle-star",
-  "toggle-read",
-  "mark-all-read",
-  "copy-link",
-  "open-in-default-browser",
-  "add-to-reading-list",
-  "check-for-updates",
-];
-
-/** Set of all valid action strings, used for runtime validation at IPC boundaries. */
-const appActions: ReadonlySet<string> = new Set(APP_ACTIONS);
+export type { AppAction } from "@/lib/app-actions";
+export { isAppAction } from "@/lib/app-actions";
 
 type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
-
-/** Runtime type guard for validating action strings from external sources (e.g. Tauri IPC). */
-export function isAppAction(value: unknown): value is AppAction {
-  return typeof value === "string" && appActions.has(value);
-}
 
 /** Emit a keyboard-style DOM event that existing components already listen for. */
 function emitEvent(name: string): void {
