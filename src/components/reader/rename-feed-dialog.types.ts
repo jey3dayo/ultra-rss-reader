@@ -1,10 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/article-display";
 import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
 import type { FolderSelectViewProps } from "./folder-select-view";
 
-export type FeedEditDisplayPreset = "default" | "standard" | "preview";
+export type FeedEditDisplayPreset = FeedDisplayPresetOption;
 
 export type FeedEditErrorLike = {
   message: string;
@@ -24,8 +25,8 @@ export type SubmitFeedEditsParams = {
   updateFeedFolder: (args: { feedId: string; folderId: string | null }) => Promise<boolean>;
   updateDisplaySettings: (
     feedId: string,
-    readerMode: "inherit" | "on" | "off",
-    webPreviewMode: "inherit" | "on" | "off",
+    readerMode: TriStateDisplayMode,
+    webPreviewMode: TriStateDisplayMode,
   ) => Promise<boolean>;
 };
 

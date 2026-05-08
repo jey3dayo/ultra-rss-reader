@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { type FeedDto, updateFeedDisplaySettings } from "@/api/tauri-commands";
+import type { TriStateDisplayMode } from "@/lib/article-display";
 import { invalidateFeedQueries } from "@/lib/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -12,11 +13,7 @@ export function useUpdateFeedDisplaySettings() {
   const showToast = useUiStore((state) => state.showToast);
 
   return useCallback(
-    async (
-      feedId: string,
-      readerMode: "inherit" | "on" | "off",
-      webPreviewMode: "inherit" | "on" | "off",
-    ): Promise<boolean> => {
+    async (feedId: string, readerMode: TriStateDisplayMode, webPreviewMode: TriStateDisplayMode): Promise<boolean> => {
       const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: ["feeds"] });
 
       qc.setQueriesData<FeedDto[]>({ queryKey: ["feeds"] }, (prev) =>

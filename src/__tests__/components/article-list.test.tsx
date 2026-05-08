@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import * as articleHooks from "@/hooks/use-articles";
 import * as tagHooks from "@/hooks/use-tags";
+import type { TriStateDisplayMode } from "@/lib/article-display";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -932,8 +933,8 @@ describe("ArticleList", () => {
             feed.id === args.feedId
               ? {
                   ...feed,
-                  reader_mode: args.readerMode as "inherit" | "on" | "off",
-                  web_preview_mode: args.webPreviewMode as "inherit" | "on" | "off",
+                  reader_mode: args.readerMode as TriStateDisplayMode,
+                  web_preview_mode: args.webPreviewMode as TriStateDisplayMode,
                 }
               : feed,
           );
