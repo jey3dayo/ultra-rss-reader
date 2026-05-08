@@ -51,6 +51,10 @@ const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWeb
   }),
 );
 
+function expectCustomEvent<T>(value: unknown): asserts value is CustomEvent<T> {
+  expect(value).toBeInstanceOf(CustomEvent);
+}
+
 vi.mock("@/api/tauri-commands", () => ({
   goBackBrowserWebview: goBackBrowserWebviewMock,
   goForwardBrowserWebview: goForwardBrowserWebviewMock,
@@ -268,7 +272,9 @@ describe("executeAction", () => {
       executeAction("prev-article");
 
       expect(handler).toHaveBeenCalledTimes(1);
-      expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(-1);
+      const event = handler.mock.calls[0]?.[0];
+      expectCustomEvent<number>(event);
+      expect(event.detail).toBe(-1);
 
       window.removeEventListener(APP_EVENTS.navigateArticle, handler);
     });
@@ -280,7 +286,9 @@ describe("executeAction", () => {
       executeAction("next-article");
 
       expect(handler).toHaveBeenCalledTimes(1);
-      expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(1);
+      const event = handler.mock.calls[0]?.[0];
+      expectCustomEvent<number>(event);
+      expect(event.detail).toBe(1);
 
       window.removeEventListener(APP_EVENTS.navigateArticle, handler);
     });
@@ -334,7 +342,9 @@ describe("executeAction", () => {
       flushPendingBrowserCloseAction();
 
       expect(handler).toHaveBeenCalledTimes(1);
-      expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(1);
+      const event = handler.mock.calls[0]?.[0];
+      expectCustomEvent<number>(event);
+      expect(event.detail).toBe(1);
       expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
       expect(useUiStore.getState().browserCloseInFlight).toBe(false);
 
