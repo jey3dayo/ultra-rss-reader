@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { SubscriptionsSectionContextMenuView } from "./subscriptions-section-context-menu-view";
 
-export type SubscriptionsSectionContextMenuProps = {
+type SubscriptionsSectionContextMenuProps = {
   folderIds: string[];
   onExpandAllFolders: (folderIds: string[]) => void;
   onCollapseAllFolders: () => void;

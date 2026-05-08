@@ -13,7 +13,7 @@ import {
 } from "@/lib/articles/article-display";
 import { FolderContextMenuView } from "./folder-context-menu-view";
 
-export type FolderContextMenuContentProps = {
+type FolderContextMenuContentProps = {
   folder: FolderDto;
   folderUnread: number;
   feeds: FeedDto[];

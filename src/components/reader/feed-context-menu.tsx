@@ -21,7 +21,7 @@ import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
-export type FeedContextMenuContentProps = {
+type FeedContextMenuContentProps = {
   feed: FeedDto;
 };
 

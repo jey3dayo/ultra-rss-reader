@@ -14,7 +14,7 @@ import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems } from "./old-unread-context-menu-items";
 import type { SmartViewItemViewModel } from "./sidebar.types";
 
-export type SmartViewContextMenuContentProps = {
+type SmartViewContextMenuContentProps = {
   accountId: string;
   view: SmartViewItemViewModel;
 };

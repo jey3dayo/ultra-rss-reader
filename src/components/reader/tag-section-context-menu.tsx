@@ -6,7 +6,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { CreateTagDialogView } from "./create-tag-dialog-view";
 import { TagSectionContextMenuView } from "./tag-section-context-menu-view";
 
-export type TagSectionContextMenuProps = {
+type TagSectionContextMenuProps = {
   onManageTags: () => void;
 };
 

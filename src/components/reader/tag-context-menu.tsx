@@ -9,7 +9,7 @@ import { DeleteTagDialogView } from "./delete-tag-dialog-view";
 import { RenameTagDialogView } from "./rename-tag-dialog-view";
 import { TagContextMenuView } from "./tag-context-menu-view";
 
-export type TagContextMenuContentProps = {
+type TagContextMenuContentProps = {
   tag: TagDto;
 };
 
