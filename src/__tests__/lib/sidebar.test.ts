@@ -1,6 +1,8 @@
+import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import {
+  buildStarredCountByFeedId,
   countFeedsInFolder,
   countUnreadFeedsInFolder,
   groupFeedsByFolder,
@@ -20,6 +22,8 @@ const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   web_preview_mode: "off",
   ...overrides,
 });
+
+const sampleArticle = sampleArticles[0];
 
 describe("groupFeedsByFolder", () => {
   it("returns empty map and empty array for empty input", () => {
@@ -107,6 +111,28 @@ describe("folder feed counts", () => {
   });
 });
 
+describe("buildStarredCountByFeedId", () => {
+  it("counts only starred articles by feed id", () => {
+    const counts = buildStarredCountByFeedId([
+      { ...sampleArticle, id: "art-1", feed_id: "feed-a", is_starred: true },
+      { ...sampleArticle, id: "art-2", feed_id: "feed-a", is_starred: false },
+      { ...sampleArticle, id: "art-3", feed_id: "feed-a", is_starred: true },
+      { ...sampleArticle, id: "art-4", feed_id: "feed-b", is_starred: true },
+    ]);
+
+    expect(counts).toEqual(
+      new Map([
+        ["feed-a", 2],
+        ["feed-b", 1],
+      ]),
+    );
+  });
+
+  it("returns an empty count map when articles are unavailable", () => {
+    expect(buildStarredCountByFeedId(undefined)).toEqual(new Map());
+  });
+});
+
 describe("buildSidebarSmartViews", () => {
   it("places recently viewed articles below unread and starred when enabled", () => {
     const views = buildSidebarSmartViews({
@@ -146,5 +172,47 @@ describe("buildSidebarSmartViews", () => {
     });
 
     expect(views.map((view) => view.kind)).toEqual(["unread", "starred"]);
+  });
+
+  it("marks the selected smart view and hides a zero starred count", () => {
+    const views = buildSidebarSmartViews({
+      selectedSmartViewKind: "starred",
+      totalUnread: 7,
+      starredCount: 0,
+      showUnreadCount: true,
+      showStarredCount: true,
+      showSidebarUnread: true,
+      showSidebarStarred: true,
+      showSidebarRecentArticles: true,
+      labels: {
+        unread: "Unread",
+        starred: "Starred",
+        recent: "Recently viewed",
+      },
+    });
+
+    expect(views).toEqual([
+      {
+        kind: "unread",
+        label: "Unread",
+        count: 7,
+        showCount: true,
+        isSelected: false,
+      },
+      {
+        kind: "starred",
+        label: "Starred",
+        count: 0,
+        showCount: false,
+        isSelected: true,
+      },
+      {
+        kind: "recent",
+        label: "Recently viewed",
+        count: 0,
+        showCount: false,
+        isSelected: false,
+      },
+    ]);
   });
 });

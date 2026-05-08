@@ -171,6 +171,36 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
   });
 
+  it("sorts equally stale candidates by reason count, unread count, starred count, then title", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-low-reasons", title: "Delta", unread_count: 4 },
+        { ...feeds[0], id: "feed-more-reasons", title: "Charlie", unread_count: 0 },
+        { ...feeds[0], id: "feed-fewer-unread", title: "Bravo", unread_count: 1 },
+        { ...feeds[0], id: "feed-fewer-stars", title: "Alpha", unread_count: 1 },
+        { ...feeds[0], id: "feed-title-tie", title: "Able", unread_count: 1 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        { feed_id: "feed-low-reasons", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 2 },
+        { feed_id: "feed-more-reasons", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 2 },
+        { feed_id: "feed-fewer-unread", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 2 },
+        { feed_id: "feed-fewer-stars", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 1 },
+        { feed_id: "feed-title-tie", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 1 },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates.map((candidate) => candidate.feedId)).toEqual([
+      "feed-more-reasons",
+      "feed-title-tie",
+      "feed-fewer-stars",
+      "feed-fewer-unread",
+      "feed-low-reasons",
+    ]);
+  });
+
   it("summarizes candidate urgency for the review panel", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
