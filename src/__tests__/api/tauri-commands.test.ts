@@ -289,6 +289,25 @@ describe("tauri-commands with mockIPC", () => {
       });
     });
 
+    it("rejects invalid browser webview bounds before invoking Tauri", async () => {
+      let invoked = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "create_or_update_browser_webview") {
+          invoked = true;
+        }
+        return undefined;
+      });
+
+      const result = await createOrUpdateBrowserWebview("https://example.com/article", {
+        ...browserBounds,
+        width: 0,
+      });
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expect(invoked).toBe(false);
+    });
+
     it("returns the updated navigation state after go back", async () => {
       const value = Result.unwrap(await goBackBrowserWebview());
 

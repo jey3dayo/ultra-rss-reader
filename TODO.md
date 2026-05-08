@@ -544,11 +544,6 @@
   - release workflow preflight、version dry-run、署名 / artifact matrix 変更とは混ぜず、updater command lifecycle だけを扱う
   - check / download / install の user action availability を focused test と manual verification に分ける
 
-- [ ] browser webview bounds args contract 候補を別バッチで追加する
-  - `src/api/schemas/commands.ts` と browser geometry helper の webview bounds args を、width / height は positive finite、x / y は finite として固定する
-  - native webview 実装、dev geometry diagnostics、browser shortcut / history とは混ぜず、frontend command args validation に限定する
-  - 0px / NaN / Infinity / fractional position の扱いを focused test で明示する
-
 - [ ] browser overlay issue state Storybook 候補を別バッチで追加する
   - `browser-overlay-stage.stories.tsx` と `browser-surface-state-card.tsx` に active surface issue ありの story を追加する
   - retry あり / なし、technical detail 表示、runtime unavailable の見た目を story で確認する

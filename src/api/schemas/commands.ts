@@ -223,11 +223,14 @@ export const openInBrowserArgs = z.object({
 export const checkBrowserEmbedSupportArgs = z.object({ url: z.string() });
 
 // --- browser webview ---
+const finiteNumberSchema = z.number().finite();
+const positiveFiniteNumberSchema = finiteNumberSchema.positive();
+
 export const browserWebviewBoundsArgs = z.object({
-  x: z.number(),
-  y: z.number(),
-  width: z.number(),
-  height: z.number(),
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  width: positiveFiniteNumberSchema,
+  height: positiveFiniteNumberSchema,
   unit: z.enum(["logical", "physical"]).optional(),
 });
 export const createOrUpdateBrowserWebviewArgs = z.object({

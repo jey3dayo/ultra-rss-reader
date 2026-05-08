@@ -7,6 +7,7 @@ import {
   AppErrorSchema,
   ArticleDtoSchema,
   addAccountArgs,
+  browserWebviewBoundsArgs,
   commandArgsSchemas,
   countAccountStarredArticlesArgs,
   createMuteKeywordArgs,
@@ -335,6 +336,20 @@ describe("command args schemas", () => {
       mode: "starred",
       accountId: "acc-1",
     });
+  });
+  it("parses finite browser webview bounds and rejects invalid dimensions", () => {
+    expect(browserWebviewBoundsArgs.parse({ x: 0.5, y: -12, width: 320, height: 240 })).toEqual({
+      x: 0.5,
+      y: -12,
+      width: 320,
+      height: 240,
+    });
+    expect(() => browserWebviewBoundsArgs.parse({ x: Number.NaN, y: 0, width: 320, height: 240 })).toThrow();
+    expect(() =>
+      browserWebviewBoundsArgs.parse({ x: 0, y: Number.POSITIVE_INFINITY, width: 320, height: 240 }),
+    ).toThrow();
+    expect(() => browserWebviewBoundsArgs.parse({ x: 0, y: 0, width: 0, height: 240 })).toThrow();
+    expect(() => browserWebviewBoundsArgs.parse({ x: 0, y: 0, width: 320, height: -1 })).toThrow();
   });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
