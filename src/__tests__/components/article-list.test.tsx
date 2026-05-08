@@ -21,6 +21,17 @@ import {
   setupTauriMocks,
 } from "../../../tests/helpers/tauri-mocks";
 
+const asHtmlDivElementOrNull = (element: Element | null, message: string): HTMLDivElement | null => {
+  if (element === null) {
+    return null;
+  }
+  expect(element).toBeInstanceOf(HTMLDivElement);
+  if (!(element instanceof HTMLDivElement)) {
+    throw new Error(message);
+  }
+  return element;
+};
+
 describe("ArticleList", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -1027,9 +1038,15 @@ describe("ArticleList", () => {
       expect(within(list).getByRole("option", { name: /First Article/i })).toBeInTheDocument();
     });
 
-    const viewport = list.closest('[data-slot="scroll-area-viewport"]') as HTMLDivElement | null;
-    const header = list.querySelector('[data-group-header="true"]') as HTMLDivElement | null;
-    const firstArticle = within(list).getByRole("option", { name: /First Article/i }) as HTMLButtonElement;
+    const viewport = asHtmlDivElementOrNull(
+      list.closest('[data-slot="scroll-area-viewport"]'),
+      "Expected article list viewport to be a div",
+    );
+    const header = asHtmlDivElementOrNull(
+      list.querySelector('[data-group-header="true"]'),
+      "Expected article list sticky header to be a div",
+    );
+    const firstArticle = within(list).getByRole("option", { name: /First Article/i });
 
     expect(viewport).not.toBeNull();
     expect(header).not.toBeNull();

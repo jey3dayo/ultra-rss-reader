@@ -189,6 +189,18 @@ vi.mock("@/hooks/use-resolved-dev-intent", () => ({
   }),
 }));
 
+const queryFeedButton = (feedId: string): HTMLButtonElement | null => {
+  const element = document.querySelector(`[data-feed-id="${feedId}"]`);
+  if (element === null) {
+    return null;
+  }
+  expect(element).toBeInstanceOf(HTMLButtonElement);
+  if (!(element instanceof HTMLButtonElement)) {
+    throw new Error(`Expected feed element for ${feedId} to be a button`);
+  }
+  return element;
+};
+
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
@@ -1412,7 +1424,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     await screen.findByText("Alpha Feed");
-    const alphaFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    const alphaFeed = queryFeedButton("feed-1");
     expect(alphaFeed).not.toBeNull();
     if (!alphaFeed) {
       throw new Error("Expected feed button for feed-1");
@@ -1426,7 +1438,7 @@ describe("Sidebar", () => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
     });
 
-    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    const betaFeed = queryFeedButton("feed-2");
     expect(betaFeed).not.toBeNull();
     if (!betaFeed) {
       throw new Error("Expected feed button for feed-2");
@@ -1504,7 +1516,7 @@ describe("Sidebar", () => {
     );
 
     await screen.findByText("Alpha Feed");
-    const alphaFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    const alphaFeed = queryFeedButton("feed-1");
     expect(alphaFeed).not.toBeNull();
     if (!alphaFeed) {
       throw new Error("Expected feed button for feed-1");
@@ -1518,7 +1530,7 @@ describe("Sidebar", () => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
     });
 
-    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    const betaFeed = queryFeedButton("feed-2");
     expect(betaFeed).not.toBeNull();
     if (!betaFeed) {
       throw new Error("Expected feed button for feed-2");
@@ -1642,7 +1654,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     await screen.findByText("Beta Feed");
-    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    const betaFeed = queryFeedButton("feed-2");
     expect(betaFeed).not.toBeNull();
     if (!betaFeed) {
       throw new Error("Expected feed button for feed-2");
@@ -1676,7 +1688,7 @@ describe("Sidebar", () => {
     );
 
     await screen.findByText("Tech Blog");
-    const selectedFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    const selectedFeed = queryFeedButton("feed-1");
     expect(selectedFeed).not.toBeNull();
     if (!selectedFeed) {
       throw new Error("Expected feed button for feed-1");
@@ -1737,7 +1749,7 @@ describe("Sidebar", () => {
     );
 
     await screen.findByText("Tech Blog");
-    const selectedFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    const selectedFeed = queryFeedButton("feed-1");
     expect(selectedFeed).not.toBeNull();
     if (!selectedFeed) {
       throw new Error("Expected feed button for feed-1");
@@ -2029,7 +2041,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     await screen.findByText("Beta Feed");
-    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    const betaFeed = queryFeedButton("feed-2");
     expect(betaFeed).not.toBeNull();
     if (!betaFeed) {
       throw new Error("Expected feed button for feed-2");
