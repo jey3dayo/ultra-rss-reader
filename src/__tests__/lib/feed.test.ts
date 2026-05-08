@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { extractSiteHost, resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
+import { extractSiteHost, resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
 
 describe("extractSiteHost", () => {
   it("resolves website href from site_url before feed url", () => {

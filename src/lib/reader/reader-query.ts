@@ -1,4 +1,4 @@
-import type { ReaderSelection } from "@/lib/reader-selection.types";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export type ReaderFilter = ViewMode;

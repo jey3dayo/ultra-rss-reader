@@ -3,7 +3,7 @@ import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard/keyboard-shortcuts";
-import type { ReaderSourcePlan } from "@/lib/reader-query";
+import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ArticleNavigationDirection, FocusedPane, LayoutMode, UiSelection } from "@/lib/ui-state.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";

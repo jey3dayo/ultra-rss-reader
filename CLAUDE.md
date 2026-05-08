@@ -29,6 +29,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Co-locate large feature controller hooks under that feature's `hooks/` directory when they are not reused elsewhere.
 - Put cross-feature data hooks in `src/hooks/` and cross-feature pure helpers in `src/lib/`.
 - Put article/content normalization helpers in `src/lib/content/`.
+- Put feed URL/host helpers and feed landing helpers in `src/lib/feed/`.
+- Put reader query/source planning helpers in `src/lib/reader/`.
 - Put sidebar feed grouping and smart-view helpers in `src/lib/sidebar/`.
 - Put UI-only pure helpers in `src/lib/ui/`.
 - Put Tauri/browser runtime boundary helpers in `src/lib/runtime/`.

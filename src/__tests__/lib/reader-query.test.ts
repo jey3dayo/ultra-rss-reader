@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveReaderQuery, resolveReaderSourcePlan } from "@/lib/reader-query";
+import { resolveReaderQuery, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 
 describe("resolveReaderQuery", () => {
   it("normalizes smart views to account-scoped reader queries", () => {

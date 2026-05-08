@@ -10,7 +10,7 @@ import {
   mergeRetainedArticlesSnapshot,
   type RetainedArticlesSnapshot,
 } from "@/lib/articles/article-list";
-import { type ReaderSourceKind, resolveReaderSourcePlan } from "@/lib/reader-query";
+import { type ReaderSourceKind, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 import type {
   ArticleListPrimarySourceSnapshot,
   UseArticleListSourcesParams,

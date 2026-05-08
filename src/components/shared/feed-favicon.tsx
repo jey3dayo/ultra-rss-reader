@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useState } from "react";
-import { extractSiteHost } from "@/lib/feed";
+import { extractSiteHost } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 import type { FeedFaviconProps, FeedFaviconSize } from "./feed-favicon.types";
 

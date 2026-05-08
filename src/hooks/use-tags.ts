@@ -14,7 +14,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
-import type { ReaderFilter } from "@/lib/reader-query";
+import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 export type CreateTagMutationInput = {
   name: string;

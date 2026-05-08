@@ -277,8 +277,10 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 | `lib/browser/`                    | Browser/WebView geometry, bounds normalization, and history helpers shared across API and reader UI                |
 | `lib/content/`                    | Article/content HTML normalization and text extraction helpers                                                     |
 | `lib/debug/`                      | Debug HUD element summaries and input trace formatting/dispatch helpers                                            |
+| `lib/feed/`                       | Feed URL/host helpers and feed landing display/article selection helpers                                           |
 | `lib/keyboard/`                   | Keyboard shortcut definitions, display labels, preference defaults, and action resolution                          |
 | `lib/query/`                      | React Query client singleton and focused query invalidation helpers                                                |
+| `lib/reader/`                     | Reader query, source-plan, and reader selection helpers                                                            |
 | `lib/runtime/`                    | Tauri runtime listener grouping and clipboard command helpers                                                      |
 | `lib/sidebar/`                    | Sidebar feed grouping, unread/starred counts, and smart-view view-model helpers                                    |
 | `lib/subscriptions/`              | Subscriptions index rows, review candidates, summary filters, and related workspace types                          |

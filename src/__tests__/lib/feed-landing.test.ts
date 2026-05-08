@@ -5,7 +5,7 @@ import {
   resolveFeedLandingArticle,
   resolveFeedLandingArticleResult,
   resolveFeedLandingDisplay,
-} from "@/lib/feed-landing";
+} from "@/lib/feed/feed-landing";
 
 const baseArticles: ArticleDto[] = [
   {

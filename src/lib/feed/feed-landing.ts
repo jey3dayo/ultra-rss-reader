@@ -7,7 +7,7 @@ import {
   resolveFeedDisplayOverrides,
 } from "@/lib/articles/article-display";
 import { selectVisibleArticles } from "@/lib/articles/article-list";
-import type { ReaderFilter } from "@/lib/reader-query";
+import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 export type ResolveFeedLandingArticleError = "no_visible_article";
 

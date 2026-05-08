@@ -1,4 +1,4 @@
-import type { ReaderSelection } from "@/lib/reader-selection.types";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 
 export type ToastAction = {

@@ -29,7 +29,7 @@ import {
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 import { invalidateArticleQueries } from "@/lib/query/query-invalidation";
-import type { ReaderFilter } from "@/lib/reader-query";
+import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 export type SetReadMutationInput = {
   id: string;

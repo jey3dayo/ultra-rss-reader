@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
-import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed-landing";
+import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

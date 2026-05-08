@@ -14,7 +14,7 @@ import {
   isFeedDisplayPresetOption,
   resolveFeedDisplayPreset,
 } from "@/lib/articles/article-display";
-import { resolveSiteHostLabel } from "@/lib/feed";
+import { resolveSiteHostLabel } from "@/lib/feed/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";

@@ -22,7 +22,7 @@ import {
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/articles/article-list";
-import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader-query";
+import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader/reader-query";
 
 function buildTestSourcePlan(params: {
   sourceFilter: ReaderFilter;

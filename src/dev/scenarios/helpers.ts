@@ -12,7 +12,7 @@ import {
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
 } from "@/dev/scenarios/constants";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
-import { resolveFeedLandingArticle } from "@/lib/feed-landing";
+import { resolveFeedLandingArticle } from "@/lib/feed/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 type LandingFeedSelection = {
