@@ -4,9 +4,11 @@ import {
   compareDateInputsAsc,
   createLocalDateTime,
   differenceInDays,
+  formatHourMinute,
   formatLocalHourMinute,
   formatLongDate,
   formatMediumDate,
+  formatMediumDateOrDash,
   formatShortDate,
   formatShortDateTime,
   getDateInputTimeMs,
@@ -32,6 +34,7 @@ describe("datetime helpers", () => {
   it("formats valid medium dates and preserves invalid fallback behavior", () => {
     expect(formatMediumDate("2026-05-01T10:30:00Z", "en-US")).toBeTruthy();
     expect(formatMediumDate("not-a-date", "en-US")).toBeNull();
+    expect(formatMediumDateOrDash("not-a-date", "en-US")).toBe("—");
   });
 
   it("keeps invalid comparisons neutral", () => {
@@ -57,6 +60,19 @@ describe("datetime helpers", () => {
   it("formats local hour and minute with leading zeroes", () => {
     expect(formatLocalHourMinute(new Date(2026, 4, 1, 8, 5))).toBe("08:05");
     expect(formatLocalHourMinute("not-a-date")).toBeNull();
+  });
+
+  it("formats locale hour and minute with invalid fallbacks", () => {
+    const value = "2026-05-01T08:05:00";
+
+    expect(formatHourMinute(value, "en-US")).toBe(
+      new Date(value).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }),
+    );
+    expect(formatHourMinute("not-a-date", "en-US")).toBeNull();
   });
 
   it("formats short dates and date-times with invalid fallbacks", () => {

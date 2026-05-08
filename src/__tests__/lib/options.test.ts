@@ -22,4 +22,13 @@ describe("getOptionLabelByValue", () => {
     expect(getOptionLabelByValue(optionsWithEmpty, "")).toBe("Use default");
     expect(getOptionLabelByValue(optionsWithEmpty, null)).toBe("Use default");
   });
+
+  it("keeps the first matching option as the source of truth", () => {
+    const optionsWithDuplicate = [
+      { value: "preview", label: "Preview" },
+      { value: "preview", label: "Duplicate preview" },
+    ] as const;
+
+    expect(getOptionLabelByValue(optionsWithDuplicate, "preview")).toBe("Preview");
+  });
 });

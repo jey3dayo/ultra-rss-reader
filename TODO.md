@@ -59,11 +59,6 @@
   - `src/lib/subscriptions/subscriptions-index.types.ts` は list row / summary card / detail metrics の共有モデルとして扱い、UI props と混ぜない
   - keep / defer / delete の decision flow は状態更新と toast にまたがるため、型整理とは別バッチにする
 
-- [ ] subscriptions helper test 候補を別バッチで追加する
-  - `subscription-review-candidates.ts` は stale / no unread / no stars の組み合わせと title/tone 判定を境界値で固定する
-  - `subscriptions-index.ts` は summary counts / filter application / selected candidate resolution / row status reason を pure helper test で追加する
-  - 大きな page rendering test ではなく、候補生成と表示モデル変換の契約に絞る
-
 - [ ] app shell / keyboard boundary 整理候補を別バッチで見直す
   - global keyboard handling に reader pane 固有の分岐が増えていないか、pane helper へ戻せるものを棚卸しする
   - focus return / selected sidebar target / selected article row の復帰処理は、reader focus helper と hook の責務境界を先に整理する
@@ -298,11 +293,6 @@
   - `roving-focus.ts`、`use-mouse-navigation.ts`、feed/account/tag row focus の keyboard/mouse ownership を、pane ごとに小さい test へ分ける
   - focus ring visual や hover class は UI token batch に残し、ここでは active descendant / tab stop / selected row の契約に限定する
   - browser overlay focus return と article list focus return は既存候補に残し、sidebar/feed tree 内の navigation を先に扱う
-
-- [ ] datetime / options helper contract 候補を別バッチで追加する
-  - `src/lib/datetime.ts`、`src/lib/ui/options.ts`、account sync status formatting の locale-independent helper を境界値で固定する
-  - relative time / date formatting は locale copy と混ざりやすいため、まずは ISO timestamp、local date、invalid value fallback の pure test に限定する
-  - select option label の文言変更は settings/view copy batch に残し、option value と disabled state の契約だけを見る
 
 - [ ] provider normalizer / account DTO contract 候補を別バッチで検証する
   - `src-tauri/src/infra/provider/normalizer.rs`、provider traits、account DTO schema の display name / icon URL / capability flags を対応表で確認する

@@ -229,6 +229,40 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
   });
 
+  it("summarizes each stale, unread, and starred signal combination for review copy", () => {
+    const candidate = {
+      feedId: "feed-signals",
+      title: "Signal Feed",
+      folderId: null,
+      folderName: null,
+      latestArticleAt: "2026-01-01T00:00:00Z",
+      staleDays: 94,
+      unreadCount: 1,
+      starredCount: 1,
+    };
+
+    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["stale_90d", "no_stars"] })).toEqual({
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "stale_with_no_stars",
+    });
+    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["no_unread", "no_stars"] })).toEqual({
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "inactive_without_signals",
+    });
+    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["stale_90d"] })).toEqual({
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "stale_but_supported",
+    });
+    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["no_stars"] })).toEqual({
+      tone: "low",
+      titleKey: "keep",
+      summaryKey: "healthy_feed",
+    });
+  });
+
   it("builds reason facts only for active review reasons", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,

@@ -20,6 +20,7 @@ import {
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,
+  resolveSubscriptionRowReasonTooltipKey,
   resolveSubscriptionRowStatus,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions/subscriptions-index";
@@ -203,6 +204,22 @@ describe("subscriptions index helpers", () => {
         candidate: candidateMap.get("feed-dormant"),
       }),
     ).toEqual({ tone: "medium", labelKey: "no_unread" });
+
+    expect(
+      resolveSubscriptionRowStatus({
+        candidate: {
+          feedId: "feed-no-stars",
+          title: "No Stars",
+          folderId: null,
+          folderName: null,
+          latestArticleAt: "2026-04-01T00:00:00Z",
+          staleDays: 4,
+          unreadCount: 2,
+          starredCount: 0,
+          reasonKeys: ["no_stars"],
+        },
+      }),
+    ).toEqual({ tone: "neutral", labelKey: "normal" });
   });
 
   it("builds latest-article metrics and preview rows for the right detail pane", () => {
@@ -303,6 +320,27 @@ describe("subscriptions index helpers", () => {
       starredCount: 1,
     });
     expect(resolveSelectedSubscriptionDetailMetrics({ selectedRow: null, articles, feedArticleSummaryMap })).toBeNull();
+  });
+
+  it("resolves row reason tooltip keys from flagged status or missing article history", () => {
+    expect(
+      resolveSubscriptionRowReasonTooltipKey({
+        latestArticleAt: "2026-04-01T09:00:00Z",
+        status: { tone: "medium", labelKey: "no_stars" },
+      }),
+    ).toBe("no_stars");
+    expect(
+      resolveSubscriptionRowReasonTooltipKey({
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+      }),
+    ).toBe("no_articles");
+    expect(
+      resolveSubscriptionRowReasonTooltipKey({
+        latestArticleAt: "2026-04-01T09:00:00Z",
+        status: { tone: "neutral", labelKey: "normal" },
+      }),
+    ).toBeNull();
   });
 
   it("builds decision actions only for flagged subscription rows", () => {
