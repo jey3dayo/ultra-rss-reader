@@ -1,18 +1,17 @@
 import { renderHook } from "@testing-library/react";
-import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
 import { formatAccountSyncRetryDateTime } from "@/lib/account-sync-status-format";
 
 describe("useAccountDetailSyncStatusRows", () => {
-  const t = ((key: string, options?: { count?: number }) => {
+  const t = (key: string, options?: { count?: number }) => {
     if (key === "account.consecutive_sync_failures_value") {
       return `Failures: ${options?.count ?? 0}`;
     }
 
     return key;
-  }) as unknown as TFunction<"settings">;
+  };
 
   it("returns an empty list when sync status is unavailable", () => {
     const { result } = renderHook(() =>

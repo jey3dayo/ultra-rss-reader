@@ -9,8 +9,10 @@ import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import type { SettingsCategory } from "@/lib/ui-state.types";
 
+type SettingsModalTranslator = TFunction<"settings"> | ((key: string) => string);
+
 type UseSettingsModalViewPropsParams = {
-  t: TFunction<"settings">;
+  t: SettingsModalTranslator;
   devBuild: boolean;
   settingsOpen: boolean;
   settingsCategory: SettingsCategory;

@@ -1,28 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { TFunction } from "i18next";
 import { describe, expect, it, vi } from "vitest";
 import { useSettingsModalViewProps } from "@/components/settings/use-settings-modal-view-props";
 
 describe("useSettingsModalViewProps", () => {
-  const t = ((key: string) =>
-    (
-      ({
-        preferences: "Settings",
-        close_preferences: "Close settings",
-        accounts_heading: "Accounts",
-        add_account_ellipsis: "Add account…",
-        "nav.general": "General",
-        "nav.reading": "Reading",
-        "nav.appearance": "Appearance",
-        "nav.mute": "Mute",
-        "nav.tags": "Tags",
-        "nav.shortcuts": "Shortcuts",
-        "nav.actions": "Actions & Sharing",
-        "nav.data": "Data Management",
-        "nav.debug": "Debug",
-      }) as Record<string, string>
-    )[key] ?? key) as unknown as TFunction<"settings">;
+  const labels: Record<string, string> = {
+    preferences: "Settings",
+    close_preferences: "Close settings",
+    accounts_heading: "Accounts",
+    add_account_ellipsis: "Add account…",
+    "nav.general": "General",
+    "nav.reading": "Reading",
+    "nav.appearance": "Appearance",
+    "nav.mute": "Mute",
+    "nav.tags": "Tags",
+    "nav.shortcuts": "Shortcuts",
+    "nav.actions": "Actions & Sharing",
+    "nav.data": "Data Management",
+    "nav.debug": "Debug",
+  };
+  const t = (key: string) => labels[key] ?? key;
 
   it("orders settings categories by expected usage frequency", () => {
     const viewProps = useSettingsModalViewProps({
