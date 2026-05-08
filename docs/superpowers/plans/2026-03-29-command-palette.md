@@ -329,13 +329,9 @@ git commit -m "feat: add Cmd+K shortcut for command palette"
 ### Files
 
 - Create: `src/components/ui/command.tsx`
-- Reference: `mock/components/ui/command.tsx` (移植元), `src/components/ui/dialog.tsx` (Base UI パターン)
+- Reference: `src/components/ui/dialog.tsx` (Base UI パターン)
 
-- [ ] **Step 1: mock/components/ui/command.tsx を src/components/ui/command.tsx にコピー**
-
-```bash
-cp mock/components/ui/command.tsx src/components/ui/command.tsx
-```
+- [ ] **Step 1: `src/components/ui/command.tsx` を作成**
 
 - [ ] **Step 2: Radix Dialog → Base UI Dialog に書き換え**
 

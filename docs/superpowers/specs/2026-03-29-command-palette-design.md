@@ -16,9 +16,9 @@ Ultra RSS Reader にコマンドパレット（⌘K）を実装する。アク�
 
 ## Approach
 
-cmdk ライブラリ + 既存 Base UI Dialog パターン。mock/components/ui/command.tsx を移植・拡張。
+cmdk ライブラリ + 既存 Base UI Dialog パターン。当時は `mock/components/ui/command.tsx` を移植・拡張する想定だったが、`mock/` は後に削除済み。
 
-注意: mock の command.tsx は Radix UI Dialog をインポートしているが、プロジェクトは `@base-ui/react` を使用。移植時に `src/components/ui/dialog.tsx`（Base UI ベース）に合わせて書き換えが必要。
+注意: 当時のモック由来の command.tsx は Radix UI Dialog をインポートしていたが、プロジェクトは `@base-ui/react` を使用。実装時は `src/components/ui/dialog.tsx`（Base UI ベース）に合わせて書き換えが必要。
 
 ## Architecture
 
