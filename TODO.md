@@ -903,3 +903,78 @@
   - `sync-result.ts` と `schemas.test.ts` で `total` / `succeeded` / `retry_in_seconds` を nonnegative integer として固定する
   - provider warning DTO 追加、manual sync toast、scheduler backoff、sync result feedback copy とは混ぜない
   - `succeeded <= total` を同時に固定するかは別判断として残す
+
+- [ ] actions toolbar service contract 型固定候補を別バッチで追加する
+  - `use-actions-settings-view-props.tsx` と `actions-settings-view.tsx` で `serviceEntries` の `id` / `prefKey` / `label` / `icon` を typed registry として固定する
+  - toolbar action の追加、reader toolbar 表示、shared button visual とは混ぜない
+  - view props へ渡す toggle contract と preference key の対応を focused test にする
+
+- [ ] data settings database info loading/error contract 候補を別バッチで追加する
+  - `use-data-settings-controller.ts` と `data-settings-view.tsx` で DB size の loading / ready / error を hook result と view props で明示する
+  - vacuum 実装、log dir native-open、backup / export UX、database command schema とは混ぜない
+  - `...` が loading と failure を兼ねないよう表示 contract を固定する
+
+- [ ] add-account config controller/view contract 分離候補を別バッチで追加する
+  - `account-config-form.tsx` の inline JSX を既存 `form-view.tsx` 相当の view props 境界へ寄せられるか確認する
+  - provider 追加、account setup session lock、keyring rollback、FreshRSS 接続仕様変更とは混ぜない
+  - submit / cancel / disabled / error の contract を小さく固定する
+
+- [ ] account detail credentials draft/save race contract 候補を別バッチで追加する
+  - `use-account-detail-credentials-editor.ts` と `credentials-section-view.tsx` で blur save 中の再編集、password mask focus、copy URL の draft 優先順位を固定する
+  - native keyring 検証、credential 値の保存方式、connection verification flow 再設計とは混ぜない
+  - hook contract と focused component test を分ける
+
+- [ ] account detail sync action in-flight guard 候補を別バッチで追加する
+  - `use-account-detail-sync-controls.ts` と `sync-section-view.tsx` で `handleSyncNow` / setup retry の二重実行防止と view の disabled / loading contract を固定する
+  - progress 表示追加、sync scheduler / backoff、manual sync toast 文言、provider error mapping とは混ぜない
+  - account detail sync-now guard 候補と統合する場合は実装前に scope を整理する
+
+- [ ] subscriptions index selected row fallback 候補を別バッチで追加する
+  - `use-subscriptions-index-state.ts` と `subscriptions-index-page.tsx` で selected feed が検索 / filter / deletion で rows から消えた時の fallback selection を固定する
+  - subscriptions workspace return state、row search matching、delete feed mutation とは混ぜない
+  - empty rows / first visible row / previous selection preserved を別 assertion にする
+
+- [ ] subscription group disclosure state contract 候補を別バッチで追加する
+  - `subscriptions-list-pane.tsx` と `use-subscriptions-index-state.ts` で group disclosure の initial expanded、toggle、filter 後の保持を固定する
+  - Storybook visual、list scroll restore、summary filter semantics とは混ぜない
+  - group key drift と empty group 非表示時の state を focused test にする
+
+- [ ] subscription detail metrics fallback contract 候補を別バッチで追加する
+  - `buildSubscriptionDetailMetrics` と `subscription-detail-pane.tsx` で article summary missing / date missing / count zero の表示値 fallback を固定する
+  - feed article summaries query、review candidate logic、detail pane visual polish とは混ぜない
+  - helper test と view test の責務を分ける
+
+- [ ] subscription review reason ordering contract 候補を別バッチで追加する
+  - `subscription-review-candidates.ts` で stale / duplicate / empty / manually kept など複数 reason がある candidate の reason ordering と summary key を固定する
+  - cleanup command、summary card visual、feed deletion UX とは混ぜない
+  - reason fact translation key と summary translation key を別 assertion にする
+
+- [ ] feed article summaries stale input guard 候補を別バッチで追加する
+  - `use-feed-article-summaries.ts` で accountId 変更や disabled query 時に古い summary が subscriptions detail に残らない contract を固定する
+  - subscriptions list state、query retry policy、backend summary command とは混ぜない
+  - query enabled 条件と previous data handling を hook test にする
+
+- [ ] account delete keyring cleanup idempotency 候補を別バッチで追加する
+  - `account_commands.rs` と `keyring_store.rs` で account delete 時の credential cleanup が missing keyring entry でも成功扱いにできるか contract を固定する
+  - account create keyring orphan rollback、provider login flow、credential verification UI とは混ぜない
+  - DB delete と keyring delete の失敗分類を別 fixture にする
+
+- [ ] database vacuum busy error contract 候補を別バッチで追加する
+  - `database_commands.rs` で VACUUM 実行時の sqlite busy / locked / generic error を command result として分類できるか確認する
+  - data settings pending state、backup / export UX、migration recovery とは混ぜない
+  - UI 文言ではなく backend error category と TS schema compatibility に限定する
+
+- [ ] OPML duplicate outline URL policy 候補を別バッチで追加する
+  - `opml.rs` と `opml_commands.rs` で同一 feedUrl / xmlUrl の duplicate outline を import 時にどう扱うか fixture で固定する
+  - add feed duplicate UX、folder assignment、OPML export formatting とは混ぜない
+  - skip / keep / error の方針を parser contract として明示する
+
+- [ ] OPML outline text fallback contract 候補を別バッチで追加する
+  - `opml.rs` で outline の `text` / `title` / `xmlUrl` 欠落時に display title をどう fallback するか fixture で固定する
+  - locale copy、feed discovery title normalization、subscription review candidate とは混ぜない
+  - parser fallback と command response schema を別 assertion にする
+
+- [ ] share command unsupported scheme guard 候補を別バッチで追加する
+  - `share_commands.rs` と frontend command schema で `mailto:` / `file:` / 空 URL など unsupported scheme を native share / Reading List へ渡さない contract を固定する
+  - Reading List URL escaping、clipboard fallback、article share menu visual とは混ぜない
+  - URL parse error と unsupported scheme を別 fixture にする
