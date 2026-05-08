@@ -1,7 +1,21 @@
-export { type AccountDto, AccountDtoSchema } from "./account";
-export { type AccountSyncStatusDto, AccountSyncStatusSchema } from "./account-sync-status";
-export { type ArticleDto, ArticleDtoSchema } from "./article";
-export { type BrowserWebviewState, BrowserWebviewStateSchema } from "./browser-webview";
+export {
+  type AccountDto,
+  AccountDtoListSchema,
+  AccountDtoSchema,
+} from "./account";
+export {
+  type AccountSyncStatusDto,
+  AccountSyncStatusSchema,
+} from "./account-sync-status";
+export {
+  type ArticleDto,
+  ArticleDtoListSchema,
+  ArticleDtoSchema,
+} from "./article";
+export {
+  type BrowserWebviewState,
+  BrowserWebviewStateSchema,
+} from "./browser-webview";
 export {
   addAccountArgs,
   addLocalFeedArgs,
@@ -67,14 +81,31 @@ export {
   updateMuteKeywordArgs,
 } from "./commands";
 export { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "./database-info";
-export { type DiscoveredFeedDto, DiscoveredFeedDtoSchema } from "./discovered-feed";
+export {
+  type DiscoveredFeedDto,
+  DiscoveredFeedDtoListSchema,
+  DiscoveredFeedDtoSchema,
+} from "./discovered-feed";
 export { type AppError, AppErrorSchema } from "./error";
-export { type FeedDto, FeedDtoSchema } from "./feed";
-export { type FeedArticleSummaryDto, FeedArticleSummaryDtoSchema } from "./feed-article-summary";
-export { type FeedIntegrityReportDto, FeedIntegrityReportDtoSchema } from "./feed-integrity";
-export { type FolderDto, FolderDtoSchema } from "./folder";
+export {
+  FeedDisplayModeSchema,
+  type FeedDto,
+  FeedDtoListSchema,
+  FeedDtoSchema,
+} from "./feed";
+export {
+  type FeedArticleSummaryDto,
+  FeedArticleSummaryDtoListSchema,
+  FeedArticleSummaryDtoSchema,
+} from "./feed-article-summary";
+export {
+  type FeedIntegrityReportDto,
+  FeedIntegrityReportDtoSchema,
+} from "./feed-integrity";
+export { type FolderDto, FolderDtoListSchema, FolderDtoSchema } from "./folder";
 export {
   type MuteKeywordDto,
+  MuteKeywordDtoListSchema,
   MuteKeywordDtoSchema,
   type MuteKeywordScope,
   MuteKeywordScopeSchema,
@@ -87,12 +118,21 @@ export {
   type PlatformInfo,
   PlatformInfoSchema,
 } from "./platform-info";
-export { NullableStarredArticlesSchema, NullableStarredCountSchema } from "./starred-articles";
+export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
+export {
+  NullableStarredArticlesSchema,
+  NullableStarredCountSchema,
+} from "./starred-articles";
 export {
   type AccountSyncError,
   type AccountSyncWarning,
   type SyncResultDto,
   SyncResultSchema,
 } from "./sync-result";
-export { type TagDto, TagDtoSchema } from "./tag";
+export {
+  TagArticleCountsSchema,
+  type TagDto,
+  TagDtoListSchema,
+  TagDtoSchema,
+} from "./tag";
 export { type UpdateInfoDto, UpdateInfoDtoSchema } from "./update-info";

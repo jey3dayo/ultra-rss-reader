@@ -6,4 +6,6 @@ export const FeedArticleSummaryDtoSchema = z.object({
   starred_count: z.number(),
 });
 
+export const FeedArticleSummaryDtoListSchema = z.array(FeedArticleSummaryDtoSchema);
+
 export type FeedArticleSummaryDto = z.infer<typeof FeedArticleSummaryDtoSchema>;

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const feedDisplayModeSchema = z.enum(["inherit", "on", "off"]);
+export const FeedDisplayModeSchema = z.enum(["inherit", "on", "off"]);
 
 export const FeedDtoSchema = z.object({
   id: z.string(),
@@ -10,8 +10,10 @@ export const FeedDtoSchema = z.object({
   url: z.string(),
   site_url: z.string(),
   unread_count: z.number(),
-  reader_mode: feedDisplayModeSchema,
-  web_preview_mode: feedDisplayModeSchema,
+  reader_mode: FeedDisplayModeSchema,
+  web_preview_mode: FeedDisplayModeSchema,
 });
+
+export const FeedDtoListSchema = z.array(FeedDtoSchema);
 
 export type FeedDto = z.infer<typeof FeedDtoSchema>;

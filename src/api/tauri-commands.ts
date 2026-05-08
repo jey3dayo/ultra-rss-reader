@@ -4,13 +4,14 @@ import { z } from "zod";
 
 import {
   type AccountDto,
+  AccountDtoListSchema,
   AccountDtoSchema,
   type AccountSyncStatusDto,
   AccountSyncStatusSchema,
   type AppError,
   AppErrorSchema,
   type ArticleDto,
-  ArticleDtoSchema,
+  ArticleDtoListSchema,
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
@@ -30,19 +31,21 @@ import {
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,
   type DiscoveredFeedDto,
-  DiscoveredFeedDtoSchema,
+  DiscoveredFeedDtoListSchema,
   deleteAccountArgs,
   deleteFeedArgs,
   deleteMuteKeywordArgs,
   deleteTagArgs,
   discoverFeedsArgs,
   exportOpmlArgs,
-  FeedArticleSummaryDtoSchema,
+  FeedArticleSummaryDtoListSchema,
   type FeedDto,
+  FeedDtoListSchema,
   FeedDtoSchema,
   type FeedIntegrityReportDto,
   FeedIntegrityReportDtoSchema,
   type FolderDto,
+  FolderDtoListSchema,
   FolderDtoSchema,
   getAccountSyncStatusArgs,
   getArticleTagsArgs,
@@ -57,6 +60,7 @@ import {
   listRecentArticlesArgs,
   listStarredArticlesArgs,
   type MuteKeywordDto,
+  MuteKeywordDtoListSchema,
   MuteKeywordDtoSchema,
   type MuteKeywordScope,
   markAccountReadArgs,
@@ -72,6 +76,7 @@ import {
   openInBrowserArgs,
   type PlatformInfo,
   PlatformInfoSchema,
+  PreferencesDtoSchema,
   recordArticleViewArgs,
   renameAccountArgs,
   renameFeedArgs,
@@ -84,7 +89,9 @@ import {
   startupSyncArgs,
   syncAccountArgs,
   syncFeedArgs,
+  TagArticleCountsSchema,
   type TagDto,
+  TagDtoListSchema,
   TagDtoSchema,
   tagArticleArgs,
   testAccountConnectionArgs,
@@ -144,12 +151,25 @@ function isSchemas(v: unknown): v is InvokeSchemas {
   return isRecord(v) && hasParseMethod(v.response);
 }
 
+function parseWithSchema<R extends z.ZodType>(schema: R, value: unknown): z.output<R> {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw result.error;
+  }
+  return result.data;
+}
+
 function toAppError(cmd: string, error: unknown): AppError {
   if (error instanceof Error && "issues" in error) {
-    const zodErr = error as { issues: Array<{ path: (string | number)[]; message: string }> };
+    const zodErr = error as {
+      issues: Array<{ path: (string | number)[]; message: string }>;
+    };
     const detail = zodErr.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
     console.error(`[tauri-commands] ${cmd} validation failed:`, detail);
-    return { type: "UserVisible", message: `Response validation failed: ${detail}` };
+    return {
+      type: "UserVisible",
+      message: `Response validation failed: ${detail}`,
+    };
   }
   console.error(`[tauri-commands] ${cmd} failed:`, error);
   const result = AppErrorSchema.safeParse(error);
@@ -177,9 +197,9 @@ function safeInvoke(
 
   return Result.try({
     try: async () => {
-      const validatedArgs = schemas?.args && args ? schemas.args.parse(args) : args;
+      const validatedArgs = schemas?.args && args ? parseWithSchema(schemas.args, args) : args;
       const raw = await invoke(cmd, validatedArgs);
-      return schemas?.response ? schemas.response.parse(raw) : raw;
+      return schemas?.response ? parseWithSchema(schemas.response, raw) : raw;
     },
     catch: (error) => toAppError(cmd, error),
   });
@@ -187,13 +207,13 @@ function safeInvoke(
 
 // --- Commands ---
 
-export const listAccounts = () => safeInvoke("list_accounts", { response: z.array(AccountDtoSchema) });
+export const listAccounts = () => safeInvoke("list_accounts", { response: AccountDtoListSchema });
 
 export const listFolders = (accountId: string) =>
-  safeInvoke("list_folders", { response: z.array(FolderDtoSchema), args: listFoldersArgs }, { accountId });
+  safeInvoke("list_folders", { response: FolderDtoListSchema, args: listFoldersArgs }, { accountId });
 
 export const listFeeds = (accountId: string) =>
-  safeInvoke("list_feeds", { response: z.array(FeedDtoSchema), args: listFeedsArgs }, { accountId });
+  safeInvoke("list_feeds", { response: FeedDtoListSchema, args: listFeedsArgs }, { accountId });
 
 export const listArticles = (
   feedId: string,
@@ -207,7 +227,7 @@ export const listArticles = (
 
   return safeInvoke(
     "list_articles",
-    { response: z.array(ArticleDtoSchema), args: listArticlesArgs },
+    { response: ArticleDtoListSchema, args: listArticlesArgs },
     { feedId, unreadOnly, offset, limit: resolvedLimit },
   );
 };
@@ -215,7 +235,7 @@ export const listArticles = (
 export const listFeedStarredArticles = (feedId: string, offset?: number, limit?: number) =>
   safeInvoke(
     "list_articles",
-    { response: z.array(ArticleDtoSchema), args: listArticlesArgs },
+    { response: ArticleDtoListSchema, args: listArticlesArgs },
     { feedId, starredOnly: true, offset, limit },
   );
 
@@ -231,7 +251,7 @@ export const listAccountArticles = (
 
   return safeInvoke(
     "list_account_articles",
-    { response: z.array(ArticleDtoSchema), args: listAccountArticlesArgs },
+    { response: ArticleDtoListSchema, args: listAccountArticlesArgs },
     { accountId, unreadOnly, offset, limit: resolvedLimit },
   );
 };
@@ -239,7 +259,10 @@ export const listAccountArticles = (
 export const listFeedArticleSummaries = (accountId: string) =>
   safeInvoke(
     "list_feed_article_summaries",
-    { response: z.array(FeedArticleSummaryDtoSchema), args: listFeedArticleSummariesArgs },
+    {
+      response: FeedArticleSummaryDtoListSchema,
+      args: listFeedArticleSummariesArgs,
+    },
     { accountId },
   );
 
@@ -251,7 +274,7 @@ export const listFolderArticles = (
 ) =>
   safeInvoke(
     "list_folder_articles",
-    { response: z.array(ArticleDtoSchema), args: listFolderArticlesArgs },
+    { response: ArticleDtoListSchema, args: listFolderArticlesArgs },
     { folderId, mode, offset, limit },
   );
 
@@ -270,7 +293,7 @@ export const listRecentArticles = (
 ) =>
   safeInvoke(
     "list_recent_articles",
-    { response: z.array(ArticleDtoSchema), args: listRecentArticlesArgs },
+    { response: ArticleDtoListSchema, args: listRecentArticlesArgs },
     { accountId, offset, limit, mode },
   );
 
@@ -284,7 +307,10 @@ export const countAccountUnreadArticles = (accountId: string) =>
 export const countAccountStarredArticles = (accountId: string) =>
   safeInvoke(
     "count_account_starred_articles",
-    { response: NullableStarredCountSchema, args: countAccountStarredArticlesArgs },
+    {
+      response: NullableStarredCountSchema,
+      args: countAccountStarredArticlesArgs,
+    },
     { accountId },
   );
 
@@ -312,7 +338,9 @@ export const unstarAccountArticles = (accountId: string) =>
   safeInvoke("unstar_account_articles", { response: z.null(), args: unstarAccountArticlesArgs }, { accountId });
 
 export const getFeedIntegrityReport = () =>
-  safeInvoke("get_feed_integrity_report", { response: FeedIntegrityReportDtoSchema });
+  safeInvoke("get_feed_integrity_report", {
+    response: FeedIntegrityReportDtoSchema,
+  });
 
 export const markArticleRead = (articleId: string, read = true) =>
   safeInvoke("mark_article_read", { response: z.null(), args: markArticleReadArgs }, { articleId, read });
@@ -342,11 +370,11 @@ export const markFolderRead = (folderId: string) =>
 export const searchArticles = (accountId: string, query: string, offset?: number, limit?: number) =>
   safeInvoke(
     "search_articles",
-    { response: z.array(ArticleDtoSchema), args: searchArticlesArgs },
+    { response: ArticleDtoListSchema, args: searchArticlesArgs },
     { accountId, query, offset, limit },
   );
 
-export const listMuteKeywords = () => safeInvoke("list_mute_keywords", { response: z.array(MuteKeywordDtoSchema) });
+export const listMuteKeywords = () => safeInvoke("list_mute_keywords", { response: MuteKeywordDtoListSchema });
 
 export const createMuteKeyword = (keyword: string, scope: MuteKeywordScope) =>
   safeInvoke(
@@ -385,7 +413,13 @@ export const updateAccountSync = (
   safeInvoke(
     "update_account_sync",
     { response: AccountDtoSchema, args: updateAccountSyncArgs },
-    { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays },
+    {
+      accountId,
+      syncIntervalSecs,
+      syncOnStartup,
+      syncOnWake,
+      keepReadItemsDays,
+    },
   );
 
 export const updateAccountCredentials = (accountId: string, serverUrl?: string, username?: string, password?: string) =>
@@ -412,7 +446,7 @@ export const getAccountSyncStatus = (accountId: string) =>
   );
 
 export const discoverFeeds = (url: string) =>
-  safeInvoke("discover_feeds", { response: z.array(DiscoveredFeedDtoSchema), args: discoverFeedsArgs }, { url });
+  safeInvoke("discover_feeds", { response: DiscoveredFeedDtoListSchema, args: discoverFeedsArgs }, { url });
 
 export const addLocalFeed = (accountId: string, url: string) =>
   safeInvoke("add_local_feed", { response: FeedDtoSchema, args: addLocalFeedArgs }, { accountId, url });
@@ -445,7 +479,10 @@ export const checkBrowserEmbedSupport = (url: string) =>
 export const createOrUpdateBrowserWebview = (url: string, bounds: BrowserWebviewBounds) =>
   safeInvoke(
     "create_or_update_browser_webview",
-    { response: BrowserWebviewStateSchema, args: createOrUpdateBrowserWebviewArgs },
+    {
+      response: BrowserWebviewStateSchema,
+      args: createOrUpdateBrowserWebviewArgs,
+    },
     { url, bounds },
   );
 
@@ -455,10 +492,14 @@ export const setBrowserWebviewBounds = (bounds: BrowserWebviewBounds) =>
 export const focusBrowserWebview = () => safeInvoke("focus_browser_webview", { response: z.null() });
 
 export const goBackBrowserWebview = () =>
-  safeInvoke("go_back_browser_webview", { response: BrowserWebviewStateSchema });
+  safeInvoke("go_back_browser_webview", {
+    response: BrowserWebviewStateSchema,
+  });
 
 export const goForwardBrowserWebview = () =>
-  safeInvoke("go_forward_browser_webview", { response: BrowserWebviewStateSchema });
+  safeInvoke("go_forward_browser_webview", {
+    response: BrowserWebviewStateSchema,
+  });
 
 export const reloadBrowserWebview = () => safeInvoke("reload_browser_webview", { response: BrowserWebviewStateSchema });
 
@@ -480,13 +521,13 @@ export const syncFeed = (feedId: string) =>
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: z.string(), args: exportOpmlArgs }, { accountId });
 
-export const getPreferences = () => safeInvoke("get_preferences", { response: z.record(z.string(), z.string()) });
+export const getPreferences = () => safeInvoke("get_preferences", { response: PreferencesDtoSchema });
 
 export const setPreference = (key: string, value: string) =>
   safeInvoke("set_preference", { response: z.null(), args: setPreferenceArgs }, { key, value });
 
 // Tags
-export const listTags = () => safeInvoke("list_tags", { response: z.array(TagDtoSchema) });
+export const listTags = () => safeInvoke("list_tags", { response: TagDtoListSchema });
 
 export const createTag = (name: string, color?: string) =>
   safeInvoke("create_tag", { response: TagDtoSchema, args: createTagArgs }, { name, color });
@@ -504,7 +545,7 @@ export const untagArticle = (articleId: string, tagId: string) =>
   safeInvoke("untag_article", { response: z.null(), args: untagArticleArgs }, { articleId, tagId });
 
 export const getArticleTags = (articleId: string) =>
-  safeInvoke("get_article_tags", { response: z.array(TagDtoSchema), args: getArticleTagsArgs }, { articleId });
+  safeInvoke("get_article_tags", { response: TagDtoListSchema, args: getArticleTagsArgs }, { articleId });
 
 export const listArticlesByTag = (
   tagId: string,
@@ -515,14 +556,17 @@ export const listArticlesByTag = (
 ) =>
   safeInvoke(
     "list_articles_by_tag",
-    { response: z.array(ArticleDtoSchema), args: listArticlesByTagArgs },
+    { response: ArticleDtoListSchema, args: listArticlesByTagArgs },
     { tagId, offset, limit, accountId, mode },
   );
 
 export const getTagArticleCounts = (accountId?: string) =>
   safeInvoke(
     "get_tag_article_counts",
-    { response: z.record(z.string(), z.number()), args: getTagArticleCountsArgs },
+    {
+      response: TagArticleCountsSchema,
+      args: getTagArticleCountsArgs,
+    },
     { accountId },
   );
 

@@ -10,5 +10,7 @@ export const MuteKeywordDtoSchema = z.object({
   updated_at: z.string(),
 });
 
+export const MuteKeywordDtoListSchema = z.array(MuteKeywordDtoSchema);
+
 export type MuteKeywordScope = z.infer<typeof MuteKeywordScopeSchema>;
 export type MuteKeywordDto = z.infer<typeof MuteKeywordDtoSchema>;

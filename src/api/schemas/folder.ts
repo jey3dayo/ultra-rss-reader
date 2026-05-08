@@ -7,4 +7,6 @@ export const FolderDtoSchema = z.object({
   sort_order: z.number(),
 });
 
+export const FolderDtoListSchema = z.array(FolderDtoSchema);
+
 export type FolderDto = z.infer<typeof FolderDtoSchema>;

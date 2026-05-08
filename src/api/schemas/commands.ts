@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { FeedDisplayModeSchema } from "./feed";
+import { MuteKeywordScopeSchema } from "./mute-keyword";
 
 export const articleListModeSchema = z.enum(["all", "unread", "starred"]);
 
@@ -52,10 +54,14 @@ export const listRecentArticlesArgs = z.object({
 });
 
 // --- countAccountUnreadArticles ---
-export const countAccountUnreadArticlesArgs = z.object({ accountId: z.string() });
+export const countAccountUnreadArticlesArgs = z.object({
+  accountId: z.string(),
+});
 
 // --- countAccountStarredArticles ---
-export const countAccountStarredArticlesArgs = z.object({ accountId: z.string() });
+export const countAccountStarredArticlesArgs = z.object({
+  accountId: z.string(),
+});
 
 export const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
 export const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
@@ -98,7 +104,9 @@ export const clearArticleViewHistoryArgs = z.object({
 });
 
 // --- markArticlesRead ---
-export const markArticlesReadArgs = z.object({ articleIds: z.array(z.string()) });
+export const markArticlesReadArgs = z.object({
+  articleIds: z.array(z.string()),
+});
 
 // --- toggleArticleStar ---
 export const toggleArticleStarArgs = z.object({
@@ -194,13 +202,11 @@ export const updateFeedFolderArgs = z.object({
   folderId: z.string().nullable(),
 });
 
-const feedDisplayModeValue = z.enum(["inherit", "on", "off"]);
-
 // --- updateFeedDisplaySettings ---
 export const updateFeedDisplaySettingsArgs = z.object({
   feedId: z.string(),
-  readerMode: feedDisplayModeValue,
-  webPreviewMode: feedDisplayModeValue,
+  readerMode: FeedDisplayModeSchema,
+  webPreviewMode: FeedDisplayModeSchema,
 });
 
 // --- openInBrowser ---
@@ -224,7 +230,9 @@ export const createOrUpdateBrowserWebviewArgs = z.object({
   url: z.string(),
   bounds: browserWebviewBoundsArgs,
 });
-export const setBrowserWebviewBoundsArgs = z.object({ bounds: browserWebviewBoundsArgs });
+export const setBrowserWebviewBoundsArgs = z.object({
+  bounds: browserWebviewBoundsArgs,
+});
 
 // --- exportOpml ---
 export const exportOpmlArgs = z.object({ accountId: z.string() });
@@ -289,7 +297,7 @@ export const getTagArticleCountsArgs = z.object({
 // --- mute keywords ---
 export const createMuteKeywordArgs = z.object({
   keyword: z.string(),
-  scope: z.enum(["title", "body", "title_and_body"]),
+  scope: MuteKeywordScopeSchema,
 });
 
 export const deleteMuteKeywordArgs = z.object({
@@ -298,7 +306,7 @@ export const deleteMuteKeywordArgs = z.object({
 
 export const updateMuteKeywordArgs = z.object({
   muteKeywordId: z.string(),
-  scope: z.enum(["title", "body", "title_and_body"]),
+  scope: MuteKeywordScopeSchema,
 });
 
 export const setMuteAutoMarkReadArgs = z.object({

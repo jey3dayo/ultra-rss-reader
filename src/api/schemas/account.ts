@@ -17,4 +17,6 @@ export const AccountDtoSchema = z.object({
   connection_verification_error: z.string().nullable().optional(),
 });
 
+export const AccountDtoListSchema = z.array(AccountDtoSchema);
+
 export type AccountDto = z.infer<typeof AccountDtoSchema>;

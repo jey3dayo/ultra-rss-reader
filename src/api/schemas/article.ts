@@ -15,4 +15,6 @@ export const ArticleDtoSchema = z.object({
   viewed_at: z.string().nullable().optional(),
 });
 
+export const ArticleDtoListSchema = z.array(ArticleDtoSchema);
+
 export type ArticleDto = z.infer<typeof ArticleDtoSchema>;
