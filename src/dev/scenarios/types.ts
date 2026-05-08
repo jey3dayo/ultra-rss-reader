@@ -1,15 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type {
-  AccountDto,
-  ArticleDto,
-  FeedDto,
-  TagDto,
-} from "@/api/tauri-commands";
-import {
-  DEV_SCENARIO_ID,
-  DEV_SCENARIO_IDS,
-  type DevScenarioId,
-} from "@/dev/scenario-ids";
+import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenarioId } from "@/dev/scenario-ids";
 import type { AppAction } from "@/lib/app-actions";
 
 export type { DevScenarioId };
@@ -52,15 +43,9 @@ export type DevScenarioContext = {
     executeAction(actionId: AppAction): Promise<void> | void;
     listAccounts(): Promise<AccountDto[]> | AccountDto[];
     listFeeds(accountId: string): Promise<FeedDto[]> | FeedDto[];
-    listArticles(
-      feedId: string,
-      offset?: number,
-      limit?: number,
-    ): Promise<ArticleDto[]> | ArticleDto[];
+    listArticles(feedId: string, offset?: number, limit?: number): Promise<ArticleDto[]> | ArticleDto[];
     listTags(): Promise<TagDto[]> | TagDto[];
-    getTagArticleCounts(
-      accountId?: string,
-    ): Promise<Record<string, number>> | Record<string, number>;
+    getTagArticleCounts(accountId?: string): Promise<Record<string, number>> | Record<string, number>;
     listArticlesByTag(
       tagId: string,
       offset?: number,

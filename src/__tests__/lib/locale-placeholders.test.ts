@@ -39,13 +39,7 @@ function flattenLocale(tree: LocaleTree, prefix = ""): Map<string, string> {
 }
 
 function extractPlaceholders(value: string): string[] {
-  return [
-    ...new Set(
-      [...value.matchAll(/{{\s*([a-zA-Z0-9_]+)\s*}}/g)].map(
-        (match) => match[1] ?? "",
-      ),
-    ),
-  ]
+  return [...new Set([...value.matchAll(/{{\s*([a-zA-Z0-9_]+)\s*}}/g)].map((match) => match[1] ?? ""))]
     .filter(Boolean)
     .sort();
 }
@@ -67,9 +61,7 @@ describe("locale interpolation placeholders", () => {
         const enPlaceholders = extractPlaceholders(enValue);
         const jaPlaceholders = extractPlaceholders(jaValue);
         if (enPlaceholders.join(",") !== jaPlaceholders.join(",")) {
-          mismatches.push(
-            `${namespace}.${key}: en=${enPlaceholders.join("|")} ja=${jaPlaceholders.join("|")}`,
-          );
+          mismatches.push(`${namespace}.${key}: en=${enPlaceholders.join("|")} ja=${jaPlaceholders.join("|")}`);
         }
       }
     }

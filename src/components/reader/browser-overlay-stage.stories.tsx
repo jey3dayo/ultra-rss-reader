@@ -81,15 +81,12 @@ const retryableSurfaceIssue: BrowserSurfaceIssue = {
 const runtimeUnavailableSurfaceIssue: BrowserSurfaceIssue = {
   kind: "unsupported",
   title: "Embedded Web Preview is unavailable in this runtime.",
-  description:
-    "Use the desktop app to inspect the embedded preview, or open the page externally.",
+  description: "Use the desktop app to inspect the embedded preview, or open the page externally.",
   detail: null,
   canRetry: false,
 };
 
-function createChromeController(
-  overrides?: Partial<BrowserOverlayChromeController>,
-): BrowserOverlayChromeController {
+function createChromeController(overrides?: Partial<BrowserOverlayChromeController>): BrowserOverlayChromeController {
   return {
     browserState: {
       url: "https://example.com/article",
@@ -107,9 +104,7 @@ function createChromeController(
   };
 }
 
-function createStageController(
-  overrides?: Partial<BrowserOverlayStageController>,
-): BrowserOverlayStageController {
+function createStageController(overrides?: Partial<BrowserOverlayStageController>): BrowserOverlayStageController {
   return {
     stageRef: createRef<HTMLDivElement>(),
     hostRef: createRef<HTMLDivElement>(),

@@ -21,9 +21,7 @@ describe("ArticleTagChips", () => {
       }),
     ).toEqual({
       assignedTags: [{ id: "tag-later", name: "Later", color: "#3b82f6" }],
-      availableTags: [
-        { id: "tag-important", name: "Important", color: "#ef4444" },
-      ],
+      availableTags: [{ id: "tag-important", name: "Important", color: "#ef4444" }],
     });
   });
 
@@ -74,12 +72,8 @@ describe("ArticleTagChips", () => {
     const listbox = await screen.findByRole("listbox", {
       name: "Available tags",
     });
-    expect(
-      within(listbox).getByRole("option", { name: "Important" }),
-    ).toBeInTheDocument();
-    expect(
-      within(listbox).queryByRole("option", { name: "Later" }),
-    ).not.toBeInTheDocument();
+    expect(within(listbox).getByRole("option", { name: "Important" })).toBeInTheDocument();
+    expect(within(listbox).queryByRole("option", { name: "Later" })).not.toBeInTheDocument();
   });
 
   it("assigns an existing tag instead of creating a duplicate when the typed name differs only by case and trim", async () => {
@@ -96,9 +90,7 @@ describe("ArticleTagChips", () => {
         case "tag_article":
           return null;
         case "create_tag":
-          throw new Error(
-            "create_tag should not be called for an existing tag name",
-          );
+          throw new Error("create_tag should not be called for an existing tag name");
         default:
           return undefined;
       }
@@ -116,8 +108,6 @@ describe("ArticleTagChips", () => {
         args: { articleId: "art-1", tagId: "tag-later" },
       });
     });
-    expect(commands.some((command) => command.cmd === "create_tag")).toBe(
-      false,
-    );
+    expect(commands.some((command) => command.cmd === "create_tag")).toBe(false);
   });
 });

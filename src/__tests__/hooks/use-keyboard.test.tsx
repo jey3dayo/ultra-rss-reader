@@ -1,16 +1,6 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import {
-  sampleAccounts,
-  sampleArticles,
-  sampleFeeds,
-} from "@tests/helpers/fixtures";
+import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,15 +19,10 @@ function renderAppShell(calls: MockTauriCommandCall[]) {
       case "list_feeds":
         return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
       case "list_articles":
-        return sampleArticles.filter(
-          (article) => article.feed_id === args.feedId,
-        );
+        return sampleArticles.filter((article) => article.feed_id === args.feedId);
       case "list_account_articles":
         return sampleArticles.filter((article) =>
-          sampleFeeds.some(
-            (feed) =>
-              feed.id === article.feed_id && feed.account_id === args.accountId,
-          ),
+          sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
         );
       case "list_folders":
       case "list_tags":
@@ -190,20 +175,12 @@ describe("useKeyboard", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         case "list_account_articles":
           return sampleArticles.filter((article) =>
-            sampleFeeds.some(
-              (feed) =>
-                feed.id === article.feed_id &&
-                feed.account_id === args.accountId,
-            ),
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_folders":
         case "list_tags":
@@ -347,9 +324,7 @@ describe("useKeyboard", () => {
     fireEvent.keyDown(window, { key: "j" });
 
     await waitFor(() => {
-      expect(useUiStore.getState().pendingBrowserCloseAction).toBe(
-        "next-article",
-      );
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
     });
   });
@@ -376,9 +351,7 @@ describe("useKeyboard", () => {
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(
-      screen.queryByPlaceholderText("Search articles…"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search articles…")).not.toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "/" });
 
@@ -399,9 +372,7 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
-    expect(
-      await screen.findByPlaceholderText("Search commands…"),
-    ).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
   });
 
   it("pressing question mark opens the shortcuts help overlay", async () => {
@@ -415,9 +386,7 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
     });
-    expect(
-      await screen.findByRole("dialog", { name: "Keyboard shortcuts" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
   });
 
   it("does not open shortcuts help when question mark is typed in a text field", async () => {
@@ -430,9 +399,7 @@ describe("useKeyboard", () => {
     fireEvent.keyDown(input, { key: "?" });
 
     expect(useUiStore.getState().shortcutsHelpOpen).toBe(false);
-    expect(
-      screen.queryByRole("dialog", { name: "Keyboard shortcuts" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument();
   });
 
   it("pressing Cmd+Backslash toggles the desktop sidebar", async () => {
@@ -467,9 +434,7 @@ describe("useKeyboard", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().focusedPane).toBe("list");
-      expect(
-        screen.getByRole("option", { name: /First Article/ }),
-      ).toHaveFocus();
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
     });
   });
 
@@ -514,9 +479,7 @@ describe("useKeyboard", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().focusedPane).toBe("list");
-      expect(
-        screen.getByRole("option", { name: /First Article/ }),
-      ).toHaveFocus();
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
     });
     expect(openBrowserSpy).not.toHaveBeenCalled();
     window.removeEventListener(keyboardEvents.openInAppBrowser, openBrowserSpy);
@@ -573,20 +536,12 @@ describe("useKeyboard", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         case "list_account_articles":
           return sampleArticles.filter((article) =>
-            sampleFeeds.some(
-              (feed) =>
-                feed.id === article.feed_id &&
-                feed.account_id === args.accountId,
-            ),
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_folders":
         case "search_articles":
@@ -637,9 +592,7 @@ describe("useKeyboard", () => {
     fireEvent.keyDown(listbox, { key: "Escape" });
 
     await waitFor(() => {
-      expect(
-        screen.queryByRole("listbox", { name: "Available tags" }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
       expect(useUiStore.getState().contentMode).toBe("reader");
     });

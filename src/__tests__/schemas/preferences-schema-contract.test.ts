@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
-import {
-  preferenceDefaults,
-  resolvePreferenceValue,
-} from "@/schemas/preferences";
+import { preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
 import frontendSource from "@/schemas/preferences.ts?raw";
 import backendSource from "../../../src-tauri/src/commands/preference_commands.rs?raw";
 
@@ -16,21 +13,13 @@ function extractBlock(source: string, pattern: RegExp, label: string): string {
 }
 
 function extractFrontendPreferenceKeys(source: string): string[] {
-  const block = extractBlock(
-    source,
-    /const preferenceSchemas = \{([\s\S]*?)\};/,
-    "frontend preferenceSchemas block",
-  );
+  const block = extractBlock(source, /const preferenceSchemas = \{([\s\S]*?)\};/, "frontend preferenceSchemas block");
 
   return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]);
 }
 
 function extractBackendAllowedKeys(source: string): string[] {
-  const block = extractBlock(
-    source,
-    /const ALLOWED_KEYS: &\[&str\] = &\[([\s\S]*?)\];/,
-    "backend ALLOWED_KEYS block",
-  );
+  const block = extractBlock(source, /const ALLOWED_KEYS: &\[&str\] = &\[([\s\S]*?)\];/, "backend ALLOWED_KEYS block");
 
   return [...block.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
 }
@@ -76,9 +65,7 @@ describe("preference contract", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
 
-    const missingInBackend = frontendKeys.filter(
-      (key) => !backendAllowedKeys.includes(key),
-    );
+    const missingInBackend = frontendKeys.filter((key) => !backendAllowedKeys.includes(key));
 
     expect(missingInBackend).toEqual([]);
   });
@@ -86,13 +73,8 @@ describe("preference contract", () => {
   it("keeps backend preference keys unique and limited to frontend or backend-only keys", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
-    const allowedBackendKeys = new Set([
-      ...frontendKeys,
-      ...backendOnlyPreferenceKeys,
-    ]);
-    const unexpectedBackendKeys = backendAllowedKeys.filter(
-      (key) => !allowedBackendKeys.has(key),
-    );
+    const allowedBackendKeys = new Set([...frontendKeys, ...backendOnlyPreferenceKeys]);
+    const unexpectedBackendKeys = backendAllowedKeys.filter((key) => !allowedBackendKeys.has(key));
 
     expect(collectDuplicates(backendAllowedKeys)).toEqual([]);
     expect(unexpectedBackendKeys).toEqual([]);
@@ -110,21 +92,12 @@ describe("preference contract", () => {
 
   it("excludes hidden defaults while still resolving their fallback values", () => {
     expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
-    expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe(
-      "folders_first",
-    );
-    expect(
-      resolvePreferenceValue(
-        { sort_subscriptions: "unexpected" },
-        "sort_subscriptions",
-      ),
-    ).toBe("folders_first");
+    expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe("folders_first");
+    expect(resolvePreferenceValue({ sort_subscriptions: "unexpected" }, "sort_subscriptions")).toBe("folders_first");
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {
-    const frontendShortcutIds = extractShortcutDefinitionIds(
-      keyboardShortcutsSource,
-    );
+    const frontendShortcutIds = extractShortcutDefinitionIds(keyboardShortcutsSource);
     const backendShortcutIds = extractBackendAllowedShortcutIds(backendSource);
 
     expect(collectDuplicates(frontendShortcutIds)).toEqual([]);

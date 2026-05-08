@@ -3,28 +3,13 @@
  * Separated from IPC handler logic for maintainability.
  */
 
-import type {
-  AccountDto,
-  ArticleDto,
-  FeedDto,
-  FolderDto,
-  TagDto,
-} from "@/api/tauri-commands";
-import {
-  addLocalDays,
-  createLocalDateTime,
-  getCurrentDate,
-  toIsoTimestamp,
-} from "@/lib/datetime";
+import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import { addLocalDays, createLocalDateTime, getCurrentDate, toIsoTimestamp } from "@/lib/datetime";
 
 const now = getCurrentDate();
 const yesterday = addLocalDays(now, -1);
 
-function mockArticlePublishedAt(
-  baseDate: Date,
-  hours: number,
-  minutes: number,
-): string {
+function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number): string {
   return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
 }
 
@@ -333,8 +318,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-9",
     feedId: "feed-nhk",
     title: "【ライブ配信中】“りくりゅう” ペアが引退会見",
-    summary:
-      "フィギュアスケートのペアで日本勢として初のメダルを獲得した三浦璃来選手と木原龍一選手が引退会見。",
+    summary: "フィギュアスケートのペアで日本勢として初のメダルを獲得した三浦璃来選手と木原龍一選手が引退会見。",
     url: "https://www3.nhk.or.jp/news/html/mock-figure-skating.html",
     author: "NHK",
     date: now,
@@ -346,8 +330,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-10",
     feedId: "feed-nhk",
     title: "岩手 大槌町の山林火災「局地激甚災害」に指定へ 赤間防災相",
-    summary:
-      "岩手県大槌町の山林火災について、政府は局地激甚災害に指定する方針を示しました。",
+    summary: "岩手県大槌町の山林火災について、政府は局地激甚災害に指定する方針を示しました。",
     url: "https://www3.nhk.or.jp/news/html/mock-wildfire.html",
     author: "NHK",
     date: now,
@@ -358,8 +341,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-11",
     feedId: "feed-nhk",
     title: "夕食会発砲事件 大統領の暗殺未遂容疑など 容疑者を訴追",
-    summary:
-      "首都ワシントンで発生した事件をめぐり、当局は容疑者を訴追しました。",
+    summary: "首都ワシントンで発生した事件をめぐり、当局は容疑者を訴追しました。",
     url: "https://www3.nhk.or.jp/news/html/mock-shooting.html",
     author: "NHK",
     date: now,
@@ -370,8 +352,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-12",
     feedId: "feed-nhk",
     title: "3月の有効求人倍率 全国平均で1.18倍 前月下回る 厚労省",
-    summary:
-      "厚生労働省によりますと、3月の有効求人倍率は全国平均で1.18倍でした。",
+    summary: "厚生労働省によりますと、3月の有効求人倍率は全国平均で1.18倍でした。",
     url: "https://www3.nhk.or.jp/news/html/mock-jobs.html",
     author: "NHK",
     date: now,
@@ -393,8 +374,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-14",
     feedId: "feed-nhk",
     title: "英国王夫妻 国賓として米訪問 35年ぶり連邦議会で演説も",
-    summary:
-      "イギリスのチャールズ国王夫妻がアメリカを訪問し、連邦議会で演説する予定です。",
+    summary: "イギリスのチャールズ国王夫妻がアメリカを訪問し、連邦議会で演説する予定です。",
     url: "https://www3.nhk.or.jp/news/html/mock-king.html",
     author: "NHK",
     date: now,
@@ -422,57 +402,49 @@ const generatedMockArticles: ArticleDto[] = [
     date: now,
     hours: 8,
     minutes: 18,
-    thumbnail:
-      "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=400&h=300&fit=crop",
   }),
   createMockArticle({
     id: "art-17",
     feedId: "feed-hatena",
-    title:
-      "OpenAI、Microsoftと独占契約終了 Amazon経由でモデル提供 - 日本経済新聞",
+    title: "OpenAI、Microsoftと独占契約終了 Amazon経由でモデル提供 - 日本経済新聞",
     summary: "OpenAIとMicrosoftの契約見直しをめぐるニュースをまとめます。",
     url: "https://b.hatena.ne.jp/hotentry/mock-2",
     author: "日本経済新聞",
     date: now,
     hours: 7,
     minutes: 46,
-    thumbnail:
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
   }),
   createMockArticle({
     id: "art-18",
     feedId: "feed-hatena",
     title: "欧州で航空燃料不足、6月に欠航拡大の恐れ ANA・JAL途中給油探る",
-    summary:
-      "欧州で航空燃料不足が続き、日本の航空会社も運航計画を見直しています。",
+    summary: "欧州で航空燃料不足が続き、日本の航空会社も運航計画を見直しています。",
     url: "https://b.hatena.ne.jp/hotentry/mock-3",
     author: "日本経済新聞",
     date: now,
     hours: 7,
     minutes: 19,
-    thumbnail:
-      "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop",
   }),
   createMockArticle({
     id: "art-19",
     feedId: "feed-hatena",
-    title:
-      "一時期よく見かけた「カーディガンを腰に巻くスタイル」は今若い子はあまりしないのだろうか？",
+    title: "一時期よく見かけた「カーディガンを腰に巻くスタイル」は今若い子はあまりしないのだろうか？",
     summary: "ファッションの流行変化について、SNS上の反応をまとめた記事です。",
     url: "https://b.hatena.ne.jp/hotentry/mock-4",
     author: "togetter",
     date: now,
     hours: 6,
     minutes: 45,
-    thumbnail:
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop",
   }),
   createMockArticle({
     id: "art-20",
     feedId: "feed-hatena",
     title: "Scribe v2 リアルタイム音声認識 - 150ms 低遅延 API",
-    summary:
-      "リアルタイム音声認識 API の改善点と、低遅延化の仕組みを紹介します。",
+    summary: "リアルタイム音声認識 API の改善点と、低遅延化の仕組みを紹介します。",
     url: "https://b.hatena.ne.jp/hotentry/mock-5",
     author: "Developer Blog",
     date: now,
@@ -484,8 +456,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-21",
     feedId: "feed-internet-watch",
     title: "家庭内ネットワークを見直すなら、まず確認したいルーター設定",
-    summary:
-      "家庭内ネットワークの速度と安全性を改善するための基本設定を解説します。",
+    summary: "家庭内ネットワークの速度と安全性を改善するための基本設定を解説します。",
     url: "https://internet.watch.impress.co.jp/mock/router",
     author: "INTERNET Watch",
     date: yesterday,
@@ -496,8 +467,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-22",
     feedId: "feed-internet-watch",
     title: "パスキー対応サービスが拡大、移行時に気をつけたいポイント",
-    summary:
-      "パスキー対応が広がる中、複数端末で安全に使うための注意点をまとめます。",
+    summary: "パスキー対応が広がる中、複数端末で安全に使うための注意点をまとめます。",
     url: "https://internet.watch.impress.co.jp/mock/passkeys",
     author: "INTERNET Watch",
     date: yesterday,
@@ -508,8 +478,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-23",
     feedId: "feed-pc-parts",
     title: "次世代GPUの補助電源、ケーブル取り回しで注意したいこと",
-    summary:
-      "自作PCで高性能GPUを扱う際の電源ケーブルとケース内エアフローの注意点。",
+    summary: "自作PCで高性能GPUを扱う際の電源ケーブルとケース内エアフローの注意点。",
     url: "https://blog.livedoor.jp/bluejay01-review/mock-gpu",
     author: "PCパーツまとめ",
     date: yesterday,
@@ -520,8 +489,7 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-24",
     feedId: "feed-pc-parts",
     title: "ミニPCの発熱対策、静音性と性能のバランスをどう取るか",
-    summary:
-      "コンパクトな筐体で温度を抑えるための置き場所とファン設定を紹介します。",
+    summary: "コンパクトな筐体で温度を抑えるための置き場所とファン設定を紹介します。",
     url: "https://blog.livedoor.jp/bluejay01-review/mock-mini-pc",
     author: "PCパーツまとめ",
     date: yesterday,
@@ -532,15 +500,13 @@ const generatedMockArticles: ArticleDto[] = [
     id: "art-25",
     feedId: "feed-uchiran",
     title: "今週の気になる配信まとめ、コメント欄で話題になった場面",
-    summary:
-      "配信の見どころと、視聴者コメントで盛り上がった場面を振り返ります。",
+    summary: "配信の見どころと、視聴者コメントで盛り上がった場面を振り返ります。",
     url: "https://www.youtube.com/watch?v=mock-uchiran-1",
     author: "ウチラン",
     date: yesterday,
     hours: 11,
     minutes: 10,
-    thumbnail:
-      "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop",
   }),
   createMockArticle({
     id: "art-26",
@@ -552,8 +518,7 @@ const generatedMockArticles: ArticleDto[] = [
     date: yesterday,
     hours: 10,
     minutes: 42,
-    thumbnail:
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop",
   }),
 ];
 
@@ -561,8 +526,7 @@ export const mockArticles: ArticleDto[] = [
   {
     id: "art-1",
     feed_id: "feed-automaton",
-    title:
-      "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。弾幕へのこだわりがすごい",
+    title: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。弾幕へのこだわりがすごい",
     content_sanitized:
       "<p>『SAROS』のクリエイティブディレクターのGregory Louden氏へのメディア合同インタビューが行われた。</p><p>本作は、Housemarque開発の高難度3D弾幕ローグライトシューターだ。プレイヤーは宇宙探査船SARUSのパイロットとして、謎の異星生物が待ち受ける未知の惑星を探索する。</p><p>インタビューでは、『Returnal』との違いや、弾幕ゲームとしてのこだわりについて語られた。開発チームは「弾幕を避ける」だけでなく「弾幕と触れ合う」新しい体験を目指しているという。</p>",
     summary:
@@ -570,50 +534,42 @@ export const mockArticles: ArticleDto[] = [
     url: "https://automaton-media.com/articles/interviewsjp/saros-interview/",
     author: "TAKAYUKI SAWAHATA",
     published_at: mockArticlePublishedAt(now, 9, 7),
-    thumbnail:
-      "https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: false,
   },
   {
     id: "art-2",
     feed_id: "feed-automaton",
-    title:
-      "人気海上街づくりサバイバルシム『Havendock』が期間限定で無料配布開始。Epic Gamesストアにて",
+    title: "人気海上街づくりサバイバルシム『Havendock』が期間限定で無料配布開始。Epic Gamesストアにて",
     content_sanitized:
       "<p>人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて無料配布中です。3月28日までの期間限定。</p>",
-    summary:
-      "人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて3月28日まで無料配布中。",
+    summary: "人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて3月28日まで無料配布中。",
     url: "https://automaton-media.com/articles/newsjp/havendock-free/",
     author: "AUTOMATON編集部",
     published_at: mockArticlePublishedAt(now, 8, 30),
-    thumbnail:
-      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: false,
   },
   {
     id: "art-3",
     feed_id: "feed-automaton",
-    title:
-      "大盛況オープンワールド『紅の砂漠』、やたら「木」が強いと話題に。丸太を持ったら、ボスさえ一撃",
+    title: "大盛況オープンワールド『紅の砂漠』、やたら「木」が強いと話題に。丸太を持ったら、ボスさえ一撃",
     content_sanitized:
       "<p>オープンワールドゲーム『紅の砂漠』で、木を使った意外な攻略法が発見されました。なんと丸太を持つだけでボスを一撃で倒せるとのこと。</p>",
-    summary:
-      "『紅の砂漠』で木を使った意外な攻略法が話題に。丸太を持つだけでボスを一撃で倒せる。",
+    summary: "『紅の砂漠』で木を使った意外な攻略法が話題に。丸太を持つだけでボスを一撃で倒せる。",
     url: "https://automaton-media.com/articles/newsjp/crimson-desert-tree/",
     author: "AUTOMATON編集部",
     published_at: mockArticlePublishedAt(yesterday, 18, 24),
-    thumbnail:
-      "https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: false,
   },
   {
     id: "art-4",
     feed_id: "feed-publickey",
-    title:
-      "PostgreSQL 18ベータ版が登場、仮想生成カラムやJSONパス機能が追加。パフォーマンス改善も多数",
+    title: "PostgreSQL 18ベータ版が登場、仮想生成カラムやJSONパス機能が追加。パフォーマンス改善も多数",
     content_sanitized:
       "<p>PostgreSQL Global Development Groupは、PostgreSQL 18の最初のベータ版をリリースしました。</p><p>仮想生成カラムやJSONパス機能など、多くの新機能が追加されています。また、パフォーマンスの改善も多数含まれています。</p>",
     summary:
@@ -621,8 +577,7 @@ export const mockArticles: ArticleDto[] = [
     url: "https://www.publickey1.jp/blog/26/postgresql_18.html",
     author: "Publickey編集部",
     published_at: mockArticlePublishedAt(yesterday, 10, 0),
-    thumbnail:
-      "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: true,
   },
@@ -632,8 +587,7 @@ export const mockArticles: ArticleDto[] = [
     title: "生成AIで誰でもオシャレなパワポを作る方法 - Qiita",
     content_sanitized:
       "<p>はじめに こんにちは！AIエンジニアのヤマゾーです。突然ですが、このたび生成AIプロジェクトに関わる人に向けた技術書を出版しました。</p><p>細部まで拘って約1年かけて書いたこともあり、周りからも「図解がわかりやすい」「断片的な知識が繋がった」とかなり好評でした。</p>",
-    summary:
-      "生成AIプロジェクト向け技術書の著者が、AIを使ったプレゼン資料作成のコツを紹介。",
+    summary: "生成AIプロジェクト向け技術書の著者が、AIを使ったプレゼン資料作成のコツを紹介。",
     url: "https://qiita.com/yamazombie/items/example",
     author: "@yamazombie",
     published_at: mockArticlePublishedAt(now, 16, 8),
@@ -644,16 +598,13 @@ export const mockArticles: ArticleDto[] = [
   {
     id: "art-6",
     feed_id: "feed-hatena",
-    title:
-      "競馬場で喜ぶCMは封幸心おある、選挙期間に競馬広告「ほとんどの方が馬券外れている」",
+    title: "競馬場で喜ぶCMは封幸心おある、選挙期間に競馬広告「ほとんどの方が馬券外れている」",
     content_sanitized: "<p>競馬場のCMについての考察記事です。</p>",
-    summary:
-      "選挙期間中の競馬広告について。「ほとんどの方が馬券外れている」という指摘。",
+    summary: "選挙期間中の競馬広告について。「ほとんどの方が馬券外れている」という指摘。",
     url: "https://example.com/keiba",
     author: null,
     published_at: mockArticlePublishedAt(now, 15, 56),
-    thumbnail:
-      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
     is_read: true,
     is_starred: false,
   },
@@ -661,8 +612,7 @@ export const mockArticles: ArticleDto[] = [
     id: "art-7",
     feed_id: "feed-nhk",
     title: "【地震速報】岩手で震度4 津波被害の心配なし",
-    content_sanitized:
-      "<p>26日午前、岩手県で震度4の地震がありました。この地震による津波の心配はありません。</p>",
+    content_sanitized: "<p>26日午前、岩手県で震度4の地震がありました。この地震による津波の心配はありません。</p>",
     summary: "26日午前、岩手県で震度4の地震。津波被害の心配なし。",
     url: "https://www3.nhk.or.jp/news/html/example.html",
     author: "NHK",
@@ -690,9 +640,7 @@ export const mockArticles: ArticleDto[] = [
 ];
 
 for (const feed of mockFeeds) {
-  feed.unread_count = mockArticles.filter(
-    (article) => article.feed_id === feed.id && !article.is_read,
-  ).length;
+  feed.unread_count = mockArticles.filter((article) => article.feed_id === feed.id && !article.is_read).length;
 }
 
 function cloneMockItems<T>(items: T[]): T[] {

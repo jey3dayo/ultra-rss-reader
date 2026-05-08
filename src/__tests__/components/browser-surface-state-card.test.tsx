@@ -13,28 +13,16 @@ describe("BrowserSurfaceStateCard", () => {
     renderStory(browserSurfaceStateCardMeta, RetryableIssue);
 
     expect(screen.getByText("Web Preview could not load.")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Navigation timed out while creating the embedded browser surface.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Retry Web Preview" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Navigation timed out while creating the embedded browser surface.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry Web Preview" })).toBeInTheDocument();
   });
 
   it("renders the runtime unavailable issue story without retry", () => {
     renderStory(browserSurfaceStateCardMeta, RuntimeUnavailableIssue);
 
-    expect(
-      screen.getByText("Embedded Web Preview is unavailable in this runtime."),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Retry Web Preview" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Open in External Browser" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Embedded Web Preview is unavailable in this runtime.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
   });
 
   it("keeps the info surface contract and local sizing", () => {
@@ -60,9 +48,7 @@ describe("BrowserSurfaceStateCard", () => {
     );
 
     const card = screen.getByTestId("browser-surface-state");
-    const title = screen.getByText(
-      "browser mode では埋め込み Webプレビューを表示できません。",
-    );
+    const title = screen.getByText("browser mode では埋め込み Webプレビューを表示できません。");
     const openButton = screen.getByRole("button", {
       name: "Open in External Browser",
     });
@@ -78,9 +64,7 @@ describe("BrowserSurfaceStateCard", () => {
       ),
     ).toHaveClass("text-foreground-soft");
     expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Retry Web Preview" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
     expect(openButton).toBeEnabled();
   });
 
@@ -109,13 +93,9 @@ describe("BrowserSurfaceStateCard", () => {
       />,
     );
 
-    expect(
-      screen.queryByRole("button", { name: "Retry Web Preview" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: "Open in External Browser" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Open in External Browser" }));
 
     expect(onRetry).not.toHaveBeenCalled();
     expect(onOpenExternal).toHaveBeenCalledTimes(1);
@@ -143,9 +123,7 @@ describe("BrowserSurfaceStateCard", () => {
       />,
     );
 
-    const detail = screen.getByText(
-      "The embedded browser could not be created for this feed.",
-    );
+    const detail = screen.getByText("The embedded browser could not be created for this feed.");
     const retryButton = screen.getByRole("button", {
       name: "Retry Web Preview",
     });
@@ -186,9 +164,7 @@ describe("BrowserSurfaceStateCard", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Retry Web Preview" }));
-    await user.click(
-      screen.getByRole("button", { name: "Open in External Browser" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Open in External Browser" }));
 
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(onOpenExternal).toHaveBeenCalledTimes(1);

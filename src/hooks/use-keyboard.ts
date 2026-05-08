@@ -8,25 +8,13 @@ import {
 } from "@/lib/account/account-pane-navigation";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
-import {
-  buildKeyToActionMap,
-  type keyboardEvents,
-  resolveKeyboardAction,
-} from "@/lib/keyboard/keyboard-shortcuts";
-import {
-  focusArticleListRowTargetWhenReady,
-  focusSelectedSidebarTarget,
-} from "@/lib/reader-focus";
-import {
-  bindWindowEvents,
-  createKeyboardEventListener,
-} from "@/lib/window/window-events";
+import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
+import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 
-function emitKeyboardEvent(
-  name: (typeof keyboardEvents)[keyof typeof keyboardEvents],
-) {
+function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
   window.dispatchEvent(new Event(name));
 }
 
@@ -56,40 +44,24 @@ export function useKeyboard() {
 
       const currentStore = useUiStore.getState();
       const normalizedPaneKey = normalizePaneNavigationKey(e.key);
-      const targetInAccountPane = targetElement?.closest(
-        '[data-account-pane="true"]',
-      );
-      const targetInSidebarPane = targetElement?.closest(
-        '[data-sidebar-pane="true"]',
-      );
-      const targetInAccountSwitcherMenu = targetElement?.closest(
-        '[data-account-switcher-menu="true"]',
-      );
+      const targetInAccountPane = targetElement?.closest('[data-account-pane="true"]');
+      const targetInSidebarPane = targetElement?.closest('[data-sidebar-pane="true"]');
+      const targetInAccountSwitcherMenu = targetElement?.closest('[data-account-switcher-menu="true"]');
       const shouldRouteAccountPaneKey =
         currentStore.accountPaneOpen &&
         currentStore.focusedPane === "sidebar" &&
         !isTextEditingTarget(targetElement) &&
-        (!targetInSidebarPane ||
-          targetInAccountPane ||
-          targetInAccountSwitcherMenu);
+        (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
       if (shouldRouteAccountPaneKey) {
-        if (
-          normalizedPaneKey === "ArrowDown" ||
-          normalizedPaneKey === "ArrowUp"
-        ) {
+        if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {
           e.preventDefault();
           e.stopPropagation();
-          focusAdjacentAccountPaneTarget(
-            normalizedPaneKey === "ArrowDown" ? 1 : -1,
-          );
+          focusAdjacentAccountPaneTarget(normalizedPaneKey === "ArrowDown" ? 1 : -1);
           emitDebugInputTrace(`window-key ${e.key} -> focus-account-pane`);
           return;
         }
 
-        if (
-          normalizedPaneKey === "ArrowRight" ||
-          normalizedPaneKey === "Enter"
-        ) {
+        if (normalizedPaneKey === "ArrowRight" || normalizedPaneKey === "Enter") {
           e.preventDefault();
           e.stopPropagation();
           selectCurrentAccountPaneTargetAndFocusSidebar();
@@ -107,21 +79,14 @@ export function useKeyboard() {
       }
 
       const isSidebarArrowKey =
-        (e.key === "ArrowDown" ||
-          e.key === "ArrowUp" ||
-          e.key === "ArrowLeft" ||
-          e.key === "ArrowRight") &&
+        (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "ArrowRight") &&
         targetElement?.closest('[data-sidebar-pane="true"]');
       if (isSidebarArrowKey) {
         return;
       }
 
-      const articleListOptionTarget = targetElement?.closest(
-        '[role="option"][data-article-id]',
-      );
-      const articleListPaneTarget = targetElement?.closest(
-        '[data-article-list-pane="true"]',
-      );
+      const articleListOptionTarget = targetElement?.closest('[role="option"][data-article-id]');
+      const articleListPaneTarget = targetElement?.closest('[data-article-list-pane="true"]');
       if (
         e.key === "ArrowLeft" &&
         currentStore.focusedPane === "content" &&
@@ -207,14 +172,10 @@ export function useKeyboard() {
           store.openSidebar();
           break;
         case "navigate-article":
-          executeAction(
-            resolvedAction.direction === 1 ? "next-article" : "prev-article",
-          );
+          executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
           break;
         case "navigate-feed":
-          executeAction(
-            resolvedAction.direction === 1 ? "next-feed" : "prev-feed",
-          );
+          executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
           break;
         case "reload-webview":
           executeAction("reload-webview");
@@ -222,8 +183,6 @@ export function useKeyboard() {
       }
     });
 
-    return bindWindowEvents([
-      { type: "keydown", listener: handler, options: true },
-    ]);
+    return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
   }, [store, keyToAction]);
 }

@@ -2,15 +2,10 @@ import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { openLogDir } from "@/api/tauri-commands";
-import {
-  formatBytes,
-  useDataSettingsController,
-} from "@/components/settings/hooks/use-data-settings-controller";
+import { formatBytes, useDataSettingsController } from "@/components/settings/hooks/use-data-settings-controller";
 
 vi.mock("@/api/tauri-commands", () => ({
-  getDatabaseInfo: vi.fn(async () =>
-    Result.succeed({ total_size_bytes: 1024 }),
-  ),
+  getDatabaseInfo: vi.fn(async () => Result.succeed({ total_size_bytes: 1024 })),
   openLogDir: vi.fn(async () => Result.succeed(null)),
   vacuumDatabase: vi.fn(async () => Result.succeed({ total_size_bytes: 512 })),
 }));

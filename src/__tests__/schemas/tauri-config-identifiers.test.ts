@@ -5,10 +5,7 @@ import { type TauriConfig, TauriConfigSchema } from "@/schemas/app-config";
 import { parseJsonWithSchema } from "@/schemas/parse";
 
 function readConfig(path: string): TauriConfig {
-  return parseJsonWithSchema(
-    readFileSync(resolve(process.cwd(), path), "utf8"),
-    TauriConfigSchema,
-  );
+  return parseJsonWithSchema(readFileSync(resolve(process.cwd(), path), "utf8"), TauriConfigSchema);
 }
 
 describe("Tauri bundle identifiers", () => {
@@ -18,9 +15,7 @@ describe("Tauri bundle identifiers", () => {
     expect(baseConfig.identifier).toBe("com.jey3dayo.ultra-rss-reader");
     expect(baseConfig.productName).toBe("Ultra RSS Reader");
     expect(baseConfig.app?.windows?.[0]?.title).toBe("");
-    expect(readConfig("src-tauri/tauri.release.conf.json").identifier).toBe(
-      "com.jey3dayo.ultra-rss-reader",
-    );
+    expect(readConfig("src-tauri/tauri.release.conf.json").identifier).toBe("com.jey3dayo.ultra-rss-reader");
   });
 
   it("uses a separate identifier only for dev-mode runs", () => {

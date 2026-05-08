@@ -8,11 +8,7 @@ import { useBrowserWebviewSync } from "@/components/reader/hooks/browser/use-bro
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const {
-  createOrUpdateBrowserWebviewMock,
-  focusBrowserWebviewMock,
-  setBrowserWebviewBoundsMock,
-} = vi.hoisted(() => ({
+const { createOrUpdateBrowserWebviewMock, focusBrowserWebviewMock, setBrowserWebviewBoundsMock } = vi.hoisted(() => ({
   createOrUpdateBrowserWebviewMock: vi.fn(),
   focusBrowserWebviewMock: vi.fn(),
   setBrowserWebviewBoundsMock: vi.fn(),
@@ -35,9 +31,7 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
-function createBrowserState(
-  overrides?: Partial<BrowserWebviewState>,
-): BrowserWebviewState {
+function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWebviewState {
   return {
     url: browserUrl,
     can_go_back: false,
@@ -47,17 +41,7 @@ function createBrowserState(
   };
 }
 
-function createDomRect({
-  x,
-  y,
-  width,
-  height,
-}: {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}): DOMRect {
+function createDomRect({ x, y, width, height }: { x: number; y: number; width: number; height: number }): DOMRect {
   return {
     x,
     y,
@@ -71,21 +55,16 @@ function createDomRect({
   } as DOMRect;
 }
 
-function createHostElement(
-  initialRect = createDomRect({ x: 12, y: 34, width: 600, height: 400 }),
-) {
+function createHostElement(initialRect = createDomRect({ x: 12, y: 34, width: 600, height: 400 })) {
   const element = document.createElement("div");
-  const getBoundingClientRect = vi
-    .spyOn(element, "getBoundingClientRect")
-    .mockReturnValue(initialRect);
+  const getBoundingClientRect = vi.spyOn(element, "getBoundingClientRect").mockReturnValue(initialRect);
   return { element, getBoundingClientRect };
 }
 
 function renderBrowserWebviewSync(hostElement: HTMLDivElement) {
   return renderHook(() => {
     const hostRef = useRef<HTMLDivElement | null>(hostElement);
-    const [browserState, setBrowserState] =
-      useState<BrowserWebviewState | null>(null);
+    const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
     const browserStateRef = useRef(browserState);
     browserStateRef.current = browserState;
 
@@ -106,9 +85,7 @@ describe("useBrowserWebviewSync", () => {
     createOrUpdateBrowserWebviewMock.mockReset();
     focusBrowserWebviewMock.mockReset();
     setBrowserWebviewBoundsMock.mockReset();
-    createOrUpdateBrowserWebviewMock.mockResolvedValue(
-      Result.succeed(createBrowserState({ is_loading: true })),
-    );
+    createOrUpdateBrowserWebviewMock.mockResolvedValue(Result.succeed(createBrowserState({ is_loading: true })));
     focusBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
     setBrowserWebviewBoundsMock.mockResolvedValue(Result.succeed(null));
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -140,11 +117,8 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("queues resize bounds while create is in flight and flushes only the latest bounds after create succeeds", async () => {
-    const createDeferredResult =
-      createDeferred<ReturnType<typeof Result.succeed<BrowserWebviewState>>>();
-    createOrUpdateBrowserWebviewMock.mockReturnValue(
-      createDeferredResult.promise,
-    );
+    const createDeferredResult = createDeferred<ReturnType<typeof Result.succeed<BrowserWebviewState>>>();
+    createOrUpdateBrowserWebviewMock.mockReturnValue(createDeferredResult.promise);
     const { element, getBoundingClientRect } = createHostElement();
     const { result } = renderBrowserWebviewSync(element);
 
@@ -152,16 +126,12 @@ describe("useBrowserWebviewSync", () => {
       void result.current.syncBrowserWebview(browserUrl, "create");
     });
 
-    getBoundingClientRect.mockReturnValue(
-      createDomRect({ x: 20, y: 40, width: 640, height: 420 }),
-    );
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 20, y: 40, width: 640, height: 420 }));
     await act(async () => {
       await result.current.syncBrowserWebview(browserUrl, "resize");
     });
 
-    getBoundingClientRect.mockReturnValue(
-      createDomRect({ x: 30, y: 50, width: 700, height: 460 }),
-    );
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 30, y: 50, width: 700, height: 460 }));
     await act(async () => {
       await result.current.syncBrowserWebview(browserUrl, "resize");
     });
@@ -169,9 +139,7 @@ describe("useBrowserWebviewSync", () => {
     expect(setBrowserWebviewBoundsMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      createDeferredResult.resolve(
-        Result.succeed(createBrowserState({ is_loading: true })),
-      );
+      createDeferredResult.resolve(Result.succeed(createBrowserState({ is_loading: true })));
       await createDeferredResult.promise;
     });
 
@@ -198,17 +166,13 @@ describe("useBrowserWebviewSync", () => {
     }
     vi.stubGlobal("ResizeObserver", TestResizeObserver);
 
-    const createDeferredResult =
-      createDeferred<ReturnType<typeof Result.succeed<BrowserWebviewState>>>();
-    createOrUpdateBrowserWebviewMock.mockReturnValue(
-      createDeferredResult.promise,
-    );
+    const createDeferredResult = createDeferred<ReturnType<typeof Result.succeed<BrowserWebviewState>>>();
+    createOrUpdateBrowserWebviewMock.mockReturnValue(createDeferredResult.promise);
     const { element, getBoundingClientRect } = createHostElement();
 
     renderHook(() => {
       const hostRef = useRef<HTMLDivElement | null>(element);
-      const [browserState, setBrowserState] =
-        useState<BrowserWebviewState | null>(null);
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
       const browserStateRef = useRef(browserState);
       browserStateRef.current = browserState;
 
@@ -236,16 +200,12 @@ describe("useBrowserWebviewSync", () => {
       expect(createOrUpdateBrowserWebviewMock).toHaveBeenCalledTimes(1);
     });
 
-    getBoundingClientRect.mockReturnValue(
-      createDomRect({ x: 20, y: 40, width: 640, height: 420 }),
-    );
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 20, y: 40, width: 640, height: 420 }));
     await act(async () => {
       resizeObserverCallback?.([], {} as ResizeObserver);
     });
 
-    getBoundingClientRect.mockReturnValue(
-      createDomRect({ x: 30, y: 50, width: 700, height: 460 }),
-    );
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 30, y: 50, width: 700, height: 460 }));
     await act(async () => {
       resizeObserverCallback?.([], {} as ResizeObserver);
     });
@@ -253,9 +213,7 @@ describe("useBrowserWebviewSync", () => {
     expect(setBrowserWebviewBoundsMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      createDeferredResult.resolve(
-        Result.succeed(createBrowserState({ is_loading: true })),
-      );
+      createDeferredResult.resolve(Result.succeed(createBrowserState({ is_loading: true })));
       await createDeferredResult.promise;
     });
 

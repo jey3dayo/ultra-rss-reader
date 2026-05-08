@@ -33,15 +33,15 @@ const {
 
   return {
     loadPreferencesMock: vi.fn(),
-    triggerStartupSyncMock: vi.fn<
-      (accountId?: string) => Promise<Result.Result<boolean, TestAppError>>
-    >(() => Promise.resolve(Result.succeed(true))),
-    syncAccountMock: vi.fn<
-      (accountId: string) => Promise<Result.Result<boolean, TestAppError>>
-    >(() => Promise.resolve(Result.succeed(true))),
-    listAccountsMock: vi.fn<
-      () => Promise<Result.Result<AccountDto[], TestAppError>>
-    >(() => Promise.resolve(Result.succeed([]))),
+    triggerStartupSyncMock: vi.fn<(accountId?: string) => Promise<Result.Result<boolean, TestAppError>>>(() =>
+      Promise.resolve(Result.succeed(true)),
+    ),
+    syncAccountMock: vi.fn<(accountId: string) => Promise<Result.Result<boolean, TestAppError>>>(() =>
+      Promise.resolve(Result.succeed(true)),
+    ),
+    listAccountsMock: vi.fn<() => Promise<Result.Result<AccountDto[], TestAppError>>>(() =>
+      Promise.resolve(Result.succeed([])),
+    ),
     preferencesState: {
       prefs: {},
       loaded: true,
@@ -57,11 +57,7 @@ vi.mock("@/components/app-shell", () => ({
 
 vi.mock("@/stores/preferences-store", () => ({
   usePreferencesStore: <T,>(
-    selector: (state: {
-      loadPreferences: () => void;
-      prefs: Record<string, string>;
-      loaded: boolean;
-    }) => T,
+    selector: (state: { loadPreferences: () => void; prefs: Record<string, string>; loaded: boolean }) => T,
   ) =>
     selector({
       loadPreferences: loadPreferencesMock,
@@ -71,9 +67,7 @@ vi.mock("@/stores/preferences-store", () => ({
 }));
 
 vi.mock("@/stores/ui-store", () => ({
-  useUiStore: <T,>(
-    selector: (state: { selectedAccountId: string | null }) => T,
-  ) =>
+  useUiStore: <T,>(selector: (state: { selectedAccountId: string | null }) => T) =>
     selector({
       selectedAccountId: uiState.selectedAccountId,
     }),
@@ -188,10 +182,7 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem(
-      STORAGE_KEYS.startupSyncLastTriggeredAt,
-      String(now - 89_000),
-    );
+    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now - 89_000));
 
     render(<App />);
 
@@ -206,10 +197,7 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem(
-      STORAGE_KEYS.startupSyncLastTriggeredAt,
-      String(now - 90_001),
-    );
+    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now - 90_001));
 
     render(<App />);
 
@@ -221,45 +209,34 @@ describe("App", () => {
 
   it("cleans an invalid startup sync timestamp and runs startup sync", async () => {
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem(
-      STORAGE_KEYS.startupSyncLastTriggeredAt,
-      "not-a-timestamp",
-    );
+    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, "not-a-timestamp");
 
     render(<App />);
 
     await waitFor(() => {
       expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
     });
-    expect(
-      localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt),
-    ).not.toBe("not-a-timestamp");
+    expect(localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt)).not.toBe("not-a-timestamp");
   });
 
   it("cleans a future startup sync timestamp and runs startup sync", async () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem(
-      STORAGE_KEYS.startupSyncLastTriggeredAt,
-      String(now + 1_000),
-    );
+    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now + 1_000));
 
     render(<App />);
 
     await waitFor(() => {
       expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
     });
-    expect(
-      Number(localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt)),
-    ).toBe(now);
+    expect(Number(localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt))).toBe(now);
     dateNowSpy.mockRestore();
   });
 
   it("does not start duplicate sync-on-wake work while a wake sync is in flight", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
-    const listAccountsDeferred =
-      createDeferred<Awaited<ReturnType<typeof listAccountsMock>>>();
+    const listAccountsDeferred = createDeferred<Awaited<ReturnType<typeof listAccountsMock>>>();
     listAccountsMock.mockReturnValueOnce(listAccountsDeferred.promise);
     dateNowSpy.mockReturnValue(0);
 
@@ -299,9 +276,7 @@ describe("App", () => {
 
   it("logs sync-on-wake list account failures", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
-    const consoleWarnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const error = { type: "UserVisible" as const, message: "list failed" };
     listAccountsMock.mockResolvedValueOnce(Result.fail(error));
     dateNowSpy.mockReturnValue(0);
@@ -323,10 +298,7 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Sync on wake failed to list accounts:",
-        error,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Sync on wake failed to list accounts:", error);
     });
     expect(syncAccountMock).not.toHaveBeenCalled();
     dateNowSpy.mockRestore();
@@ -335,13 +307,9 @@ describe("App", () => {
 
   it("logs sync-on-wake account sync failures", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
-    const consoleWarnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const error = { type: "UserVisible" as const, message: "sync failed" };
-    listAccountsMock.mockResolvedValueOnce(
-      Result.succeed([createAccount({ id: "acc-wake" })]),
-    );
+    listAccountsMock.mockResolvedValueOnce(Result.succeed([createAccount({ id: "acc-wake" })]));
     syncAccountMock.mockResolvedValueOnce(Result.fail(error));
     dateNowSpy.mockReturnValue(0);
 
@@ -362,10 +330,7 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Sync on wake failed:",
-        error,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Sync on wake failed:", error);
     });
     dateNowSpy.mockRestore();
     consoleWarnSpy.mockRestore();

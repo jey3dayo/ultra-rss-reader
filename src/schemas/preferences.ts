@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  isShortcutPreferenceKey,
-  shortcutDefaults,
-} from "@/lib/keyboard/keyboard-shortcuts";
+import { isShortcutPreferenceKey, shortcutDefaults } from "@/lib/keyboard/keyboard-shortcuts";
 
 export const themeSchema = z.enum(["light", "dark", "system"]);
 const languageSchema = z.enum(["system", "en", "ja"]);
@@ -17,24 +14,9 @@ const layoutSchema = z.enum(["automatic", "wide", "compact"]);
 const fontStyleSchema = z.enum(["sans_serif", "serif", "monospace"]);
 const fontSizeSchema = z.enum(["small", "medium", "large"]);
 const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
-const afterReadingSchema = z.enum([
-  "never",
-  "immediately",
-  "after_0_3s",
-  "after_0_5s",
-  "after_1s",
-]);
-const sortSubscriptionsSchema = z.enum([
-  "folders_first",
-  "alphabetical",
-  "newest_first",
-  "oldest_first",
-]);
-const startupFolderExpansionSchema = z.enum([
-  "all_collapsed",
-  "unread_folders",
-  "restore_previous",
-]);
+const afterReadingSchema = z.enum(["never", "immediately", "after_0_3s", "after_0_5s", "after_1s"]);
+const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
+const startupFolderExpansionSchema = z.enum(["all_collapsed", "unread_folders", "restore_previous"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
 const freeformStringSchema = z.string();
 export const shortcutPreferenceValueSchema = z.string().trim().min(1).max(128);
@@ -44,9 +26,7 @@ export type LanguagePreference = z.infer<typeof languageSchema>;
 export type SortSubscriptions = z.infer<typeof sortSubscriptionsSchema>;
 export type AfterReadingPreference = z.infer<typeof afterReadingSchema>;
 export type SidebarDensityPreference = z.infer<typeof sidebarDensitySchema>;
-export type StartupFolderExpansionPreference = z.infer<
-  typeof startupFolderExpansionSchema
->;
+export type StartupFolderExpansionPreference = z.infer<typeof startupFolderExpansionSchema>;
 
 export const preferenceSchemas = {
   language: languageSchema,
@@ -95,9 +75,7 @@ export const preferenceSchemas = {
 };
 
 export type KnownPreferenceKey = keyof typeof preferenceSchemas;
-type PreferenceValue<K extends KnownPreferenceKey> = z.output<
-  (typeof preferenceSchemas)[K]
->;
+type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -188,19 +166,13 @@ export function getPreferenceValueSchema(key: string): z.ZodType | undefined {
   return undefined;
 }
 
-function parsePreferenceValue(
-  key: KnownPreferenceKey,
-  value: string,
-): string | null {
+function parsePreferenceValue(key: KnownPreferenceKey, value: string): string | null {
   const schema = preferenceSchemas[key];
   const result = schema.safeParse(value);
   return result.success ? result.data : null;
 }
 
-export function normalizePreferenceValue<K extends KnownPreferenceKey>(
-  key: K,
-  value: string,
-): PreferenceValue<K>;
+export function normalizePreferenceValue<K extends KnownPreferenceKey>(key: K, value: string): PreferenceValue<K>;
 export function normalizePreferenceValue(key: string, value: string): string;
 export function normalizePreferenceValue(key: string, value: string): string {
   if (isShortcutPreferenceKey(key)) {
@@ -213,8 +185,7 @@ export function normalizePreferenceValue(key: string, value: string): string {
   }
 
   const resolvedValue =
-    key === "after_reading" &&
-    objectHasOwnProperty.call(legacyAfterReadingValueMap, value)
+    key === "after_reading" && objectHasOwnProperty.call(legacyAfterReadingValueMap, value)
       ? legacyAfterReadingValueMap[value]
       : value;
 
@@ -240,14 +211,8 @@ export function resolvePreferenceValue<K extends KnownPreferenceKey>(
   prefs: Record<string, string>,
   key: K,
 ): PreferenceValue<K>;
-export function resolvePreferenceValue(
-  prefs: Record<string, string>,
-  key: string,
-): string;
-export function resolvePreferenceValue(
-  prefs: Record<string, string>,
-  key: string,
-): string {
+export function resolvePreferenceValue(prefs: Record<string, string>, key: string): string;
+export function resolvePreferenceValue(prefs: Record<string, string>, key: string): string {
   const fallbackValue = objectHasOwnProperty.call(hiddenPreferenceDefaults, key)
     ? hiddenPreferenceDefaults[key]
     : preferenceDefaults[key];

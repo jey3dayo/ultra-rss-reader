@@ -20,8 +20,7 @@ const meta = {
       kind: "failed",
       title: "Web Preview could not load.",
       description: "Try again or open this page externally.",
-      detail:
-        "Navigation timed out while creating the embedded browser surface.",
+      detail: "Navigation timed out while creating the embedded browser surface.",
       canRetry: true,
     },
     showTechnicalDetail: true,
@@ -45,8 +44,7 @@ export const RuntimeUnavailableIssue: Story = {
     issue: {
       kind: "unsupported",
       title: "Embedded Web Preview is unavailable in this runtime.",
-      description:
-        "Use the desktop app to inspect the embedded preview, or open the page externally.",
+      description: "Use the desktop app to inspect the embedded preview, or open the page externally.",
       detail: null,
       canRetry: false,
     },

@@ -51,8 +51,8 @@ import {
   toggleArticleStarArgs,
   unstarAccountArticlesArgs,
   untagArticleArgs,
-  updateAccountSyncArgs,
   updateAccountCredentialsArgs,
+  updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
@@ -73,15 +73,10 @@ import {
   mockArticleTags,
   mockFeeds,
   mockFolders,
-  resetMockDataForDevMocks,
   mockTags,
+  resetMockDataForDevMocks,
 } from "@/dev/mock-data";
-import {
-  addHours,
-  getCurrentDate,
-  getCurrentIsoTimestamp,
-  toIsoTimestamp,
-} from "@/lib/datetime";
+import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
 import { parseWithSchema as parseMockArgs } from "@/schemas/parse";
 
 let nextAccountId = 100;
@@ -136,62 +131,36 @@ function titleFromUrl(feedUrl: string): string {
 function recalcUnread(feedId: string) {
   const feed = mockFeeds.find((f) => f.id === feedId);
   if (feed) {
-    feed.unread_count = mockArticles.filter(
-      (a) => a.feed_id === feedId && !a.is_read,
-    ).length;
+    feed.unread_count = mockArticles.filter((a) => a.feed_id === feedId && !a.is_read).length;
   }
 }
 
 function countUnreadByAccount(accountId: string) {
-  const feedIds = mockFeeds
-    .filter((feed) => feed.account_id === accountId)
-    .map((feed) => feed.id);
-  return mockArticles.filter(
-    (article) => feedIds.includes(article.feed_id) && !article.is_read,
-  ).length;
+  const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+  return mockArticles.filter((article) => feedIds.includes(article.feed_id) && !article.is_read).length;
 }
 
 function countStarredByAccount(accountId: string) {
-  const feedIds = mockFeeds
-    .filter((feed) => feed.account_id === accountId)
-    .map((feed) => feed.id);
-  return mockArticles.filter(
-    (article) => feedIds.includes(article.feed_id) && article.is_starred,
-  ).length;
+  const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+  return mockArticles.filter((article) => feedIds.includes(article.feed_id) && article.is_starred).length;
 }
 
-function resolveOldUnreadFeedIds(
-  scopeKind: "account" | "feed" | "folder",
-  targetId: string,
-) {
+function resolveOldUnreadFeedIds(scopeKind: "account" | "feed" | "folder", targetId: string) {
   if (scopeKind === "account") {
-    return mockFeeds
-      .filter((feed) => feed.account_id === targetId)
-      .map((feed) => feed.id);
+    return mockFeeds.filter((feed) => feed.account_id === targetId).map((feed) => feed.id);
   }
   if (scopeKind === "folder") {
-    return mockFeeds
-      .filter((feed) => feed.folder_id === targetId)
-      .map((feed) => feed.id);
+    return mockFeeds.filter((feed) => feed.folder_id === targetId).map((feed) => feed.id);
   }
   return [targetId];
 }
 
-function findOldUnreadArticles(
-  scopeKind: "account" | "feed" | "folder",
-  targetId: string,
-  olderThanDays: 7 | 30 | 90,
-) {
+function findOldUnreadArticles(scopeKind: "account" | "feed" | "folder", targetId: string, olderThanDays: 7 | 30 | 90) {
   const feedIds = new Set(resolveOldUnreadFeedIds(scopeKind, targetId));
   const threshold = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
   return mockArticles.filter((article) => {
     const publishedAt = Date.parse(article.published_at);
-    return (
-      feedIds.has(article.feed_id) &&
-      !article.is_read &&
-      Number.isFinite(publishedAt) &&
-      publishedAt < threshold
-    );
+    return feedIds.has(article.feed_id) && !article.is_read && Number.isFinite(publishedAt) && publishedAt < threshold;
   });
 }
 
@@ -236,9 +205,7 @@ export function setupDevMocks() {
 
   const feedIntegrityReport = { orphaned_article_count: 0, orphaned_feeds: [] };
 
-  console.info(
-    "[dev-mocks] Tauri not detected, injecting mock IPC with rich data for browser debugging",
-  );
+  console.info("[dev-mocks] Tauri not detected, injecting mock IPC with rich data for browser debugging");
 
   mockWindows("main");
   mockIPC(async (cmd, payload) => {
@@ -247,10 +214,7 @@ export function setupDevMocks() {
         return mockAccounts;
 
       case "add_account": {
-        const { kind, name, serverUrl } = parseMockArgs(
-          addAccountArgs,
-          payload,
-        );
+        const { kind, name, serverUrl } = parseMockArgs(addAccountArgs, payload);
         const account: AccountDto = {
           id: `dev-acc-${nextAccountId++}`,
           kind,
@@ -267,13 +231,10 @@ export function setupDevMocks() {
       }
 
       case "update_account_sync": {
-        const {
-          accountId,
-          syncIntervalSecs,
-          syncOnStartup,
-          syncOnWake,
-          keepReadItemsDays,
-        } = parseMockArgs(updateAccountSyncArgs, payload);
+        const { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays } = parseMockArgs(
+          updateAccountSyncArgs,
+          payload,
+        );
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.sync_interval_secs = syncIntervalSecs;
@@ -285,10 +246,7 @@ export function setupDevMocks() {
       }
 
       case "update_account_credentials": {
-        const { accountId, serverUrl, username } = parseMockArgs(
-          updateAccountCredentialsArgs,
-          payload,
-        );
+        const { accountId, serverUrl, username } = parseMockArgs(updateAccountCredentialsArgs, payload);
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.server_url = serverUrl ?? target.server_url;
@@ -308,11 +266,7 @@ export function setupDevMocks() {
 
       case "test_account_connection": {
         const { accountId } = parseMockArgs(testAccountConnectionArgs, payload);
-        return (
-          mockAccounts.find((account) => account.id === accountId) ??
-          mockAccounts[0] ??
-          null
-        );
+        return mockAccounts.find((account) => account.id === accountId) ?? mockAccounts[0] ?? null;
       }
 
       case "delete_account": {
@@ -341,8 +295,7 @@ export function setupDevMocks() {
           id: `dev-folder-${nextFolderId++}`,
           account_id: accountId,
           name,
-          sort_order: mockFolders.filter((f) => f.account_id === accountId)
-            .length,
+          sort_order: mockFolders.filter((f) => f.account_id === accountId).length,
         };
         mockFolders.push(folder);
         return folder;
@@ -398,9 +351,7 @@ export function setupDevMocks() {
         } = parseMockArgs(listArticlesArgs, payload);
         const articles = mockArticles.filter(
           (article) =>
-            article.feed_id === feedId &&
-            (!unreadOnly || !article.is_read) &&
-            (!starredOnly || article.is_starred),
+            article.feed_id === feedId && (!unreadOnly || !article.is_read) && (!starredOnly || article.is_starred),
         );
         return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
       }
@@ -412,56 +363,34 @@ export function setupDevMocks() {
           offset = 0,
           limit = 50,
         } = parseMockArgs(listAccountArticlesArgs, payload);
-        const feedIds = mockFeeds
-          .filter((f) => f.account_id === accountId)
-          .map((f) => f.id);
-        const articles = mockArticles.filter(
-          (a) => feedIds.includes(a.feed_id) && (!unreadOnly || !a.is_read),
-        );
+        const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
+        const articles = mockArticles.filter((a) => feedIds.includes(a.feed_id) && (!unreadOnly || !a.is_read));
         return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
       }
 
       case "list_feed_article_summaries": {
-        const { accountId } = parseMockArgs(
-          listFeedArticleSummariesArgs,
-          payload,
-        );
+        const { accountId } = parseMockArgs(listFeedArticleSummariesArgs, payload);
         const visibleArticles = applyMuteKeywordFilter(mockArticles);
         return mockFeeds
           .filter((feed) => feed.account_id === accountId)
           .map((feed) => {
-            const feedArticles = visibleArticles.filter(
-              (article) => article.feed_id === feed.id,
-            );
+            const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
             const latestArticleAt =
               feedArticles
                 .map((article) => article.published_at)
                 .filter((value) => !Number.isNaN(Date.parse(value)))
-                .sort(
-                  (left, right) => Date.parse(right) - Date.parse(left),
-                )[0] ?? null;
+                .sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
             return {
               feed_id: feed.id,
               latest_article_at: latestArticleAt,
-              starred_count: feedArticles.filter(
-                (article) => article.is_starred,
-              ).length,
+              starred_count: feedArticles.filter((article) => article.is_starred).length,
             };
           });
       }
 
       case "list_folder_articles": {
-        const {
-          folderId,
-          mode = "all",
-          offset = 0,
-          limit = 50,
-        } = parseMockArgs(listFolderArticlesArgs, payload);
-        const feedIds = new Set(
-          mockFeeds
-            .filter((feed) => feed.folder_id === folderId)
-            .map((feed) => feed.id),
-        );
+        const { folderId, mode = "all", offset = 0, limit = 50 } = parseMockArgs(listFolderArticlesArgs, payload);
+        const feedIds = new Set(mockFeeds.filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
         const articles = mockArticles.filter((article) => {
           if (!feedIds.has(article.feed_id)) {
             return false;
@@ -478,26 +407,18 @@ export function setupDevMocks() {
       }
 
       case "count_account_unread_articles": {
-        const { accountId } = parseMockArgs(
-          countAccountUnreadArticlesArgs,
-          payload,
-        );
+        const { accountId } = parseMockArgs(countAccountUnreadArticlesArgs, payload);
         return countUnreadByAccount(accountId);
       }
 
       case "count_account_starred_articles": {
-        const { accountId } = parseMockArgs(
-          countAccountStarredArticlesArgs,
-          payload,
-        );
+        const { accountId } = parseMockArgs(countAccountStarredArticlesArgs, payload);
         return countStarredByAccount(accountId);
       }
 
       case "mark_account_read": {
         const { accountId } = parseMockArgs(markAccountReadArgs, payload);
-        const feedIds = mockFeeds
-          .filter((feed) => feed.account_id === accountId)
-          .map((feed) => feed.id);
+        const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
         for (const article of mockArticles) {
           if (feedIds.includes(article.feed_id)) {
             article.is_read = true;
@@ -509,9 +430,7 @@ export function setupDevMocks() {
 
       case "mark_account_starred_read": {
         const { accountId } = parseMockArgs(markAccountReadArgs, payload);
-        const feedIds = mockFeeds
-          .filter((feed) => feed.account_id === accountId)
-          .map((feed) => feed.id);
+        const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
         const affectedFeedIds = new Set<string>();
         for (const article of mockArticles) {
           if (feedIds.includes(article.feed_id) && article.is_starred) {
@@ -524,24 +443,14 @@ export function setupDevMocks() {
       }
 
       case "count_old_unread_articles": {
-        const { scopeKind, targetId, olderThanDays } = parseMockArgs(
-          oldUnreadArticlesArgs,
-          payload,
-        );
+        const { scopeKind, targetId, olderThanDays } = parseMockArgs(oldUnreadArticlesArgs, payload);
         return findOldUnreadArticles(scopeKind, targetId, olderThanDays).length;
       }
 
       case "mark_old_unread_read": {
-        const { scopeKind, targetId, olderThanDays } = parseMockArgs(
-          oldUnreadArticlesArgs,
-          payload,
-        );
+        const { scopeKind, targetId, olderThanDays } = parseMockArgs(oldUnreadArticlesArgs, payload);
         const affectedFeedIds = new Set<string>();
-        for (const article of findOldUnreadArticles(
-          scopeKind,
-          targetId,
-          olderThanDays,
-        )) {
+        for (const article of findOldUnreadArticles(scopeKind, targetId, olderThanDays)) {
           article.is_read = true;
           affectedFeedIds.add(article.feed_id);
         }
@@ -551,9 +460,7 @@ export function setupDevMocks() {
 
       case "unstar_account_articles": {
         const { accountId } = parseMockArgs(unstarAccountArticlesArgs, payload);
-        const feedIds = mockFeeds
-          .filter((feed) => feed.account_id === accountId)
-          .map((feed) => feed.id);
+        const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
         for (const article of mockArticles) {
           if (feedIds.includes(article.feed_id)) {
             article.is_starred = false;
@@ -564,34 +471,17 @@ export function setupDevMocks() {
 
       case "list_starred_articles": {
         const { accountId } = parseMockArgs(listStarredArticlesArgs, payload);
-        const feedIds = mockFeeds
-          .filter((f) => f.account_id === accountId)
-          .map((f) => f.id);
-        return applyMuteKeywordFilter(
-          mockArticles.filter(
-            (a) => feedIds.includes(a.feed_id) && a.is_starred,
-          ),
-        );
+        const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
+        return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.includes(a.feed_id) && a.is_starred));
       }
 
       case "list_recent_articles": {
-        const {
-          accountId,
-          mode = "all",
-          offset = 0,
-          limit = 20,
-        } = parseMockArgs(listRecentArticlesArgs, payload);
-        const feedIds = new Set(
-          mockFeeds
-            .filter((feed) => feed.account_id === accountId)
-            .map((feed) => feed.id),
-        );
+        const { accountId, mode = "all", offset = 0, limit = 20 } = parseMockArgs(listRecentArticlesArgs, payload);
+        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         const articles = mockArticleViewHistory
           .filter((item) => item.accountId === accountId)
           .map((item): ArticleDto | null => {
-            const article = mockArticles.find(
-              (candidate) => candidate.id === item.articleId,
-            );
+            const article = mockArticles.find((candidate) => candidate.id === item.articleId);
             if (!article || !feedIds.has(article.feed_id)) {
               return null;
             }
@@ -616,28 +506,17 @@ export function setupDevMocks() {
 
       case "search_articles": {
         const { query } = parseMockArgs(searchArticlesArgs, payload);
-        return applyMuteKeywordFilter(
-          mockArticles.filter((a) =>
-            a.title.toLowerCase().includes(query.toLowerCase()),
-          ),
-        );
+        return applyMuteKeywordFilter(mockArticles.filter((a) => a.title.toLowerCase().includes(query.toLowerCase())));
       }
 
       case "list_mute_keywords":
-        return [...mockMuteKeywords].sort((a, b) =>
-          b.created_at.localeCompare(a.created_at),
-        );
+        return [...mockMuteKeywords].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
       case "create_mute_keyword": {
-        const { keyword, scope } = parseMockArgs(
-          createMuteKeywordArgs,
-          payload,
-        );
+        const { keyword, scope } = parseMockArgs(createMuteKeywordArgs, payload);
         const normalizedKeyword = keyword.trim().toLowerCase();
         const exists = mockMuteKeywords.some(
-          (rule) =>
-            rule.keyword.trim().toLowerCase() === normalizedKeyword &&
-            rule.scope === scope,
+          (rule) => rule.keyword.trim().toLowerCase() === normalizedKeyword && rule.scope === scope,
         );
         if (exists) {
           throw { type: "UserVisible", message: "Mute keyword already exists" };
@@ -656,21 +535,15 @@ export function setupDevMocks() {
       }
 
       case "update_mute_keyword": {
-        const { muteKeywordId, scope } = parseMockArgs(
-          updateMuteKeywordArgs,
-          payload,
-        );
-        const rule = mockMuteKeywords.find(
-          (candidate) => candidate.id === muteKeywordId,
-        );
+        const { muteKeywordId, scope } = parseMockArgs(updateMuteKeywordArgs, payload);
+        const rule = mockMuteKeywords.find((candidate) => candidate.id === muteKeywordId);
         if (!rule) {
           throw { type: "UserVisible", message: "Mute keyword not found" };
         }
         const duplicate = mockMuteKeywords.some(
           (candidate) =>
             candidate.id !== muteKeywordId &&
-            candidate.keyword.trim().toLowerCase() ===
-              rule.keyword.trim().toLowerCase() &&
+            candidate.keyword.trim().toLowerCase() === rule.keyword.trim().toLowerCase() &&
             candidate.scope === scope,
         );
         if (duplicate) {
@@ -683,9 +556,7 @@ export function setupDevMocks() {
 
       case "delete_mute_keyword": {
         const { muteKeywordId } = parseMockArgs(deleteMuteKeywordArgs, payload);
-        const index = mockMuteKeywords.findIndex(
-          (rule) => rule.id === muteKeywordId,
-        );
+        const index = mockMuteKeywords.findIndex((rule) => rule.id === muteKeywordId);
         if (index >= 0) {
           mockMuteKeywords.splice(index, 1);
         }
@@ -703,24 +574,14 @@ export function setupDevMocks() {
       }
 
       case "record_article_view": {
-        const { accountId, articleId } = parseMockArgs(
-          recordArticleViewArgs,
-          payload,
-        );
-        const feedIds = new Set(
-          mockFeeds
-            .filter((feed) => feed.account_id === accountId)
-            .map((feed) => feed.id),
-        );
-        const article = mockArticles.find(
-          (candidate) => candidate.id === articleId,
-        );
+        const { accountId, articleId } = parseMockArgs(recordArticleViewArgs, payload);
+        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const article = mockArticles.find((candidate) => candidate.id === articleId);
         if (!article || !feedIds.has(article.feed_id)) {
           return null;
         }
         const existingIndex = mockArticleViewHistory.findIndex(
-          (item) =>
-            item.accountId === accountId && item.articleId === articleId,
+          (item) => item.accountId === accountId && item.articleId === articleId,
         );
         if (existingIndex >= 0) {
           mockArticleViewHistory.splice(existingIndex, 1);
@@ -735,16 +596,9 @@ export function setupDevMocks() {
       }
 
       case "clear_article_view_history": {
-        const { accountId } = parseMockArgs(
-          clearArticleViewHistoryArgs,
-          payload,
-        );
+        const { accountId } = parseMockArgs(clearArticleViewHistoryArgs, payload);
         let removed = 0;
-        for (
-          let index = mockArticleViewHistory.length - 1;
-          index >= 0;
-          index--
-        ) {
+        for (let index = mockArticleViewHistory.length - 1; index >= 0; index--) {
           if (mockArticleViewHistory[index].accountId === accountId) {
             mockArticleViewHistory.splice(index, 1);
             removed++;
@@ -778,9 +632,7 @@ export function setupDevMocks() {
 
       case "mark_folder_read": {
         const { folderId } = parseMockArgs(markFolderReadArgs, payload);
-        const folderFeedIds = mockFeeds
-          .filter((f) => f.folder_id === folderId)
-          .map((f) => f.id);
+        const folderFeedIds = mockFeeds.filter((f) => f.folder_id === folderId).map((f) => f.id);
         for (const art of mockArticles) {
           if (folderFeedIds.includes(art.feed_id)) art.is_read = true;
         }
@@ -789,10 +641,7 @@ export function setupDevMocks() {
       }
 
       case "toggle_article_star": {
-        const { articleId, starred } = parseMockArgs(
-          toggleArticleStarArgs,
-          payload,
-        );
+        const { articleId, starred } = parseMockArgs(toggleArticleStarArgs, payload);
         const art = mockArticles.find((a) => a.id === articleId);
         if (art) art.is_starred = starred;
         return null;
@@ -885,9 +734,7 @@ export function setupDevMocks() {
 
       case "tag_article": {
         const { articleId, tagId } = parseMockArgs(tagArticleArgs, payload);
-        const exists = mockArticleTags.some(
-          (at) => at.article_id === articleId && at.tag_id === tagId,
-        );
+        const exists = mockArticleTags.some((at) => at.article_id === articleId && at.tag_id === tagId);
         if (!exists) {
           mockArticleTags.push({
             article_id: articleId,
@@ -899,18 +746,14 @@ export function setupDevMocks() {
 
       case "untag_article": {
         const { articleId, tagId } = parseMockArgs(untagArticleArgs, payload);
-        const atIdx = mockArticleTags.findIndex(
-          (at) => at.article_id === articleId && at.tag_id === tagId,
-        );
+        const atIdx = mockArticleTags.findIndex((at) => at.article_id === articleId && at.tag_id === tagId);
         if (atIdx >= 0) mockArticleTags.splice(atIdx, 1);
         return null;
       }
 
       case "get_article_tags": {
         const { articleId } = parseMockArgs(getArticleTagsArgs, payload);
-        const tagIds = mockArticleTags
-          .filter((at) => at.article_id === articleId)
-          .map((at) => at.tag_id);
+        const tagIds = mockArticleTags.filter((at) => at.article_id === articleId).map((at) => at.tag_id);
         return mockTags.filter((t) => tagIds.includes(t.id));
       }
 
@@ -922,14 +765,10 @@ export function setupDevMocks() {
           offset = 0,
           limit = 50,
         } = parseMockArgs(listArticlesByTagArgs, payload);
-        const articleIds = mockArticleTags
-          .filter((at) => at.tag_id === tagId)
-          .map((at) => at.article_id);
+        const articleIds = mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id);
         let filtered = mockArticles.filter((a) => articleIds.includes(a.id));
         if (accountId) {
-          const feedIds = mockFeeds
-            .filter((f) => f.account_id === accountId)
-            .map((f) => f.id);
+          const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
           filtered = filtered.filter((a) => feedIds.includes(a.feed_id));
         }
         if (mode === "unread") {
@@ -966,10 +805,7 @@ export function setupDevMocks() {
       }
 
       case "create_or_update_browser_webview": {
-        const { url } = parseMockArgs(
-          createOrUpdateBrowserWebviewArgs,
-          payload,
-        );
+        const { url } = parseMockArgs(createOrUpdateBrowserWebviewArgs, payload);
         return {
           url,
           can_go_back: false,
@@ -992,8 +828,7 @@ export function setupDevMocks() {
           const removed = mockFeeds.splice(feedIdx, 1)[0];
           // Remove associated articles
           for (let i = mockArticles.length - 1; i >= 0; i--) {
-            if (mockArticles[i].feed_id === removed.id)
-              mockArticles.splice(i, 1);
+            if (mockArticles[i].feed_id === removed.id) mockArticles.splice(i, 1);
           }
         }
         return null;
@@ -1007,20 +842,14 @@ export function setupDevMocks() {
       }
 
       case "update_feed_folder": {
-        const { feedId, folderId } = parseMockArgs(
-          updateFeedFolderArgs,
-          payload,
-        );
+        const { feedId, folderId } = parseMockArgs(updateFeedFolderArgs, payload);
         const targetFeed = mockFeeds.find((f) => f.id === feedId);
         if (targetFeed) targetFeed.folder_id = folderId;
         return null;
       }
 
       case "update_feed_display_settings": {
-        const { feedId, readerMode, webPreviewMode } = parseMockArgs(
-          updateFeedDisplaySettingsArgs,
-          payload,
-        );
+        const { feedId, readerMode, webPreviewMode } = parseMockArgs(updateFeedDisplaySettingsArgs, payload);
         const dmFeed = mockFeeds.find((f) => f.id === feedId);
         if (dmFeed) {
           dmFeed.reader_mode = readerMode;

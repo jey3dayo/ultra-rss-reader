@@ -4,11 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
-import {
-  useCreateMuteKeyword,
-  useDeleteMuteKeyword,
-  useUpdateMuteKeyword,
-} from "@/hooks/use-mute-keywords";
+import { useCreateMuteKeyword, useDeleteMuteKeyword, useUpdateMuteKeyword } from "@/hooks/use-mute-keywords";
 
 const articleCacheInvalidationKeys = [
   ["articles"],
@@ -24,9 +20,7 @@ const articleCacheInvalidationKeys = [
   ["recentArticles"],
 ];
 
-function expectMuteKeywordArticleCacheInvalidation(
-  invalidateQueriesSpy: ReturnType<typeof vi.fn>,
-) {
+function expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy: ReturnType<typeof vi.fn>) {
   expect(invalidateQueriesSpy.mock.calls.map(([options]) => options)).toEqual([
     { queryKey: ["muteKeywords"] },
     ...articleCacheInvalidationKeys.map((queryKey) => ({ queryKey })),
@@ -49,9 +43,7 @@ describe("mute keyword mutations", () => {
     });
     queryClient = queryWrapper.queryClient;
     wrapper = queryWrapper.wrapper;
-    invalidateQueriesSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined);
+    invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
   });
 
   it("invalidates mute keyword and article caches after creating a mute keyword", async () => {
@@ -98,9 +90,7 @@ describe("mute keyword mutations", () => {
   });
 
   it("invalidates mute keyword and article caches after deleting a mute keyword", async () => {
-    vi.spyOn(tauriCommands, "deleteMuteKeyword").mockResolvedValue(
-      Result.succeed(null),
-    );
+    vi.spyOn(tauriCommands, "deleteMuteKeyword").mockResolvedValue(Result.succeed(null));
 
     const { result } = renderHook(() => useDeleteMuteKeyword(), { wrapper });
 

@@ -1,12 +1,6 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useArticleTags,
-  useCreateTag,
-  useTagArticle,
-  useTags,
-  useUntagArticle,
-} from "@/hooks/use-tags";
+import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
 import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
 import { ArticleTagPickerView } from "./article-tag-picker-view";
 
@@ -29,10 +23,7 @@ const initialArticleTagChipsState: ArticleTagChipsState = {
   newTagName: "",
 };
 
-function articleTagChipsReducer(
-  state: ArticleTagChipsState,
-  action: ArticleTagChipsAction,
-): ArticleTagChipsState {
+function articleTagChipsReducer(state: ArticleTagChipsState, action: ArticleTagChipsAction): ArticleTagChipsState {
   switch (action.type) {
     case "set-show-picker":
       return { ...state, showPicker: action.value };
@@ -45,11 +36,7 @@ function articleTagChipsReducer(
   }
 }
 
-function toArticleTagPickerTagView(tag: {
-  id: string;
-  name: string;
-  color: string | null;
-}): ArticleTagPickerTagView {
+function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
   return {
     id: tag.id,
     name: tag.name,
@@ -70,20 +57,12 @@ export function findArticleTagByName(
     return null;
   }
 
-  return (
-    tags?.find(
-      (tag) => normalizeArticleTagNameForMatch(tag.name) === normalizedName,
-    ) ?? null
-  );
+  return tags?.find((tag) => normalizeArticleTagNameForMatch(tag.name) === normalizedName) ?? null;
 }
 
 export function buildArticleTagPickerLists(params: {
-  articleTags:
-    | Array<{ id: string; name: string; color: string | null }>
-    | undefined;
-  allTags:
-    | Array<{ id: string; name: string; color: string | null }>
-    | undefined;
+  articleTags: Array<{ id: string; name: string; color: string | null }> | undefined;
+  allTags: Array<{ id: string; name: string; color: string | null }> | undefined;
 }): {
   assignedTags: ArticleTagPickerTagView[];
   availableTags: ArticleTagPickerTagView[];
@@ -93,9 +72,7 @@ export function buildArticleTagPickerLists(params: {
 
   return {
     assignedTags: (articleTags ?? []).map(toArticleTagPickerTagView),
-    availableTags: (allTags ?? [])
-      .filter((tag) => !assignedTagIds.has(tag.id))
-      .map(toArticleTagPickerTagView),
+    availableTags: (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView),
   };
 }
 
@@ -106,10 +83,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
   const tagArticleMutation = useTagArticle();
   const untagArticleMutation = useUntagArticle();
   const createTagMutation = useCreateTag();
-  const [state, dispatch] = useReducer(
-    articleTagChipsReducer,
-    initialArticleTagChipsState,
-  );
+  const [state, dispatch] = useReducer(articleTagChipsReducer, initialArticleTagChipsState);
   const { showPicker, newTagName } = state;
   const { assignedTags, availableTags } = buildArticleTagPickerLists({
     articleTags,
@@ -163,9 +137,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
         removeTag: (name) => t("remove_tag", { name }),
       }}
       onExpandedChange={(value) => dispatch({ type: "set-show-picker", value })}
-      onNewTagNameChange={(value) =>
-        dispatch({ type: "set-new-tag-name", value })
-      }
+      onNewTagNameChange={(value) => dispatch({ type: "set-new-tag-name", value })}
       onAssignTag={(tagId) => {
         tagArticleMutation.mutate({ articleId, tagId });
       }}

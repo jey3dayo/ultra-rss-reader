@@ -1,8 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import {
-  createQueryWrapper,
-  createWrapper,
-} from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -27,13 +24,9 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         default:
           return undefined;
       }
@@ -66,15 +59,9 @@ describe("useFeedLanding", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) =>
-              feed.id === "feed-1"
-                ? { ...feed, reader_mode: "on", web_preview_mode: "on" }
-                : feed,
-            );
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         default:
           return undefined;
       }
@@ -101,17 +88,11 @@ describe("useFeedLanding", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) =>
-              feed.id === "feed-1"
-                ? { ...feed, reader_mode: "on", web_preview_mode: "on" }
-                : feed,
-            );
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_articles":
           return sampleArticles
             .filter((article) => article.feed_id === args.feedId)
-            .map((article) =>
-              article.id === "art-1" ? { ...article, url: null } : article,
-            );
+            .map((article) => (article.id === "art-1" ? { ...article, url: null } : article));
         default:
           return undefined;
       }
@@ -136,9 +117,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           return sampleArticles
             .filter((article) => article.feed_id === args.feedId)
@@ -174,14 +153,10 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           return sampleArticles.filter(
-            (article) =>
-              article.feed_id === args.feedId &&
-              (!args.starredOnly || article.is_starred),
+            (article) => article.feed_id === args.feedId && (!args.starredOnly || article.is_starred),
           );
         default:
           return undefined;
@@ -210,9 +185,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           throw new Error("temporary list failure");
         default:
@@ -246,9 +219,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           throw new Error("temporary list failure");
         default:

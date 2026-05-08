@@ -9,12 +9,8 @@ export function useCommandPaletteUiState() {
   const showToast = useUiStore((state) => state.showToast);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const isSyncing = useUiStore((state) => state.syncProgress.active);
-  const selectFeedFromCurrentContext = useUiStore(
-    (state) => state.selectFeedFromCurrentContext,
-  );
-  const selectTagFromCurrentContext = useUiStore(
-    (state) => state.selectTagFromCurrentContext,
-  );
+  const selectFeedFromCurrentContext = useUiStore((state) => state.selectFeedFromCurrentContext);
+  const selectTagFromCurrentContext = useUiStore((state) => state.selectTagFromCurrentContext);
   const selectArticle = useUiStore((state) => state.selectArticle);
 
   const platformKind = usePlatformStore((state) => state.platform.kind);

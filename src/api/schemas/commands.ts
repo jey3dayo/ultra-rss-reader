@@ -65,11 +65,7 @@ export const countAccountStarredArticlesArgs = z.object({
 });
 
 export const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
-export const oldUnreadDaysSchema = z.union([
-  z.literal(7),
-  z.literal(30),
-  z.literal(90),
-]);
+export const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
 export type OldUnreadScopeKind = z.infer<typeof oldUnreadScopeKindSchema>;
 export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
@@ -354,10 +350,7 @@ export const setMuteAutoMarkReadArgs = z.object({
 });
 
 // Registry: command names (snake_case) -> schema (only commands with args)
-export const commandArgsSchemas: Record<
-  string,
-  z.ZodType<Record<string, unknown>>
-> = {
+export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown>>> = {
   list_folders: listFoldersArgs,
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,

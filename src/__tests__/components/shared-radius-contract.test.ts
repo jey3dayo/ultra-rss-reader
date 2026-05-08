@@ -21,11 +21,9 @@ describe("shared radius contract", () => {
   it("keeps shared primitives on radius scale utilities or inherited radius", () => {
     const literalRadiusUsages = checkedFiles.flatMap((path) => {
       const source = readWorkspaceFile(path);
-      return [
-        ...source.matchAll(
-          /rounded-\[(?!inherit\])([^\]]+)\]|borderRadius|border-radius/g,
-        ),
-      ].map((match) => `${path}: ${match[0]}`);
+      return [...source.matchAll(/rounded-\[(?!inherit\])([^\]]+)\]|borderRadius|border-radius/g)].map(
+        (match) => `${path}: ${match[0]}`,
+      );
     });
 
     expect(literalRadiusUsages).toEqual([]);

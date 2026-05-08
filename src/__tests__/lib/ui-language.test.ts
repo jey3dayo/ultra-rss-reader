@@ -9,12 +9,9 @@ describe("resolveUiLanguage", () => {
     ["system", "", "en"],
     ["ja", "en-US", "ja"],
     ["en", "ja-JP", "en"],
-  ] as const)(
-    "matches the native menu resolver fixture %#",
-    (preference, locale, expected) => {
-      expect(resolveUiLanguage(preference, locale)).toBe(expected);
-    },
-  );
+  ] as const)("matches the native menu resolver fixture %#", (preference, locale, expected) => {
+    expect(resolveUiLanguage(preference, locale)).toBe(expected);
+  });
 
   it("resolves system to Japanese for ja locales", () => {
     expect(resolveUiLanguage("system", "ja-JP")).toBe("ja");
@@ -36,12 +33,9 @@ describe("resolveUiLanguage", () => {
     ["en-US", "en"],
     [undefined, "en"],
     ["unknown", "en"],
-  ] as const)(
-    "resolves system preference from locale prefix %#",
-    (locale, expected) => {
-      expect(resolveUiLanguage("system", locale)).toBe(expected);
-    },
-  );
+  ] as const)("resolves system preference from locale prefix %#", (locale, expected) => {
+    expect(resolveUiLanguage("system", locale)).toBe(expected);
+  });
 
   it("keeps explicit Japanese regardless of system locale", () => {
     expect(resolveUiLanguage("ja", "en-US")).toBe("ja");

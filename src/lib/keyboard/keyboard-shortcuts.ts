@@ -37,10 +37,7 @@ export type KeyboardAction =
   | { type: "reload-webview" }
   | { type: "noop" };
 
-export type KeyboardActionSkipReason =
-  | "ignored_input"
-  | "missing_selected_article"
-  | "no_action";
+export type KeyboardActionSkipReason = "ignored_input" | "missing_selected_article" | "no_action";
 
 /** All customizable shortcut action identifiers. */
 export type ShortcutActionId =
@@ -225,30 +222,21 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 ];
 
 /** Preference key prefix for shortcut overrides. */
-export const shortcutPrefKey = (id: ShortcutActionId): string =>
-  `shortcut_${id}`;
+export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}`;
 
-const shortcutActionIdSet = new Set<string>(
-  shortcutDefinitions.map((definition) => definition.id),
-);
+const shortcutActionIdSet = new Set<string>(shortcutDefinitions.map((definition) => definition.id));
 
 export function isShortcutActionId(value: string): value is ShortcutActionId {
   return shortcutActionIdSet.has(value);
 }
 
 export function isShortcutPreferenceKey(key: string): boolean {
-  return (
-    key.startsWith("shortcut_") &&
-    isShortcutActionId(key.slice("shortcut_".length))
-  );
+  return key.startsWith("shortcut_") && isShortcutActionId(key.slice("shortcut_".length));
 }
 
 export type KeyboardShortcutPrefs = Record<string, string>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
-function getShortcutKey(
-  id: ShortcutActionId,
-  prefs: KeyboardShortcutPrefs,
-): string {
+function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
@@ -259,9 +247,7 @@ export const shortcutDefaults: KeyboardShortcutPrefs = Object.fromEntries(
 );
 
 /** Build a reverse mapping: key string -> ShortcutActionId. */
-export function buildKeyToActionMap(
-  prefs: KeyboardShortcutPrefs,
-): KeyToActionMap {
+export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
   const map: KeyToActionMap = new Map();
   for (const def of shortcutDefinitions) {
     const key = getShortcutKey(def.id, prefs);
@@ -271,12 +257,7 @@ export function buildKeyToActionMap(
 }
 
 /** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
-function normalizeKeyFromEvent(e: {
-  key: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-}): string {
+function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
@@ -285,14 +266,10 @@ function normalizeKeyFromEvent(e: {
 }
 
 /** Display-friendly format: "Shift+R" -> "Shift + R", "⌘," -> "⌘ ," */
-export function formatKeyForDisplay(
-  key: string,
-  platformKind: PlatformInfo["kind"],
-): string {
+export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kind"]): string {
   const modifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
   const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
-  const modifierPattern =
-    platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
+  const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
   return normalized.replace(modifierPattern, `${modifier} `);
 }
 
@@ -324,13 +301,8 @@ function nextViewMode(current: ViewMode): ViewMode {
   return modes[(currentIndex + 1) % modes.length];
 }
 
-function isTextInputTarget(
-  targetTag?: string | null,
-  targetIsTextEditing = false,
-): boolean {
-  return (
-    targetIsTextEditing || targetTag === "INPUT" || targetTag === "TEXTAREA"
-  );
+function isTextInputTarget(targetTag?: string | null, targetIsTextEditing = false): boolean {
+  return targetIsTextEditing || targetTag === "INPUT" || targetTag === "TEXTAREA";
 }
 
 function resolveActionForId(
@@ -394,10 +366,8 @@ function resolveActionForId(
       if (context.subscriptionsWorkspaceOpen) {
         return Result.fail("no_action");
       }
-      if (context.contentMode === "browser")
-        return Result.succeed({ type: "close-browser" });
-      if (context.selectedArticleId)
-        return Result.succeed({ type: "clear-article" });
+      if (context.contentMode === "browser") return Result.succeed({ type: "close-browser" });
+      if (context.selectedArticleId) return Result.succeed({ type: "clear-article" });
       return Result.fail("no_action");
     case "focus_sidebar":
       return Result.succeed({ type: "focus-sidebar" });
@@ -412,9 +382,7 @@ function resolveActionForId(
     case "prev_feed":
       return Result.succeed({ type: "navigate-feed", direction: -1 });
     case "reload_webview":
-      return context.contentMode === "browser"
-        ? Result.succeed({ type: "reload-webview" })
-        : Result.fail("no_action");
+      return context.contentMode === "browser" ? Result.succeed({ type: "reload-webview" }) : Result.fail("no_action");
   }
 }
 
@@ -459,10 +427,7 @@ export function resolveKeyboardAction(
   }
 
   // Modifier shortcuts should not fall back to plain single-key bindings.
-  const actionId =
-    metaKey || ctrlKey
-      ? map.get(normalized)
-      : (map.get(normalized) ?? map.get(key));
+  const actionId = metaKey || ctrlKey ? map.get(normalized) : (map.get(normalized) ?? map.get(key));
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, {
       selectedArticleId,

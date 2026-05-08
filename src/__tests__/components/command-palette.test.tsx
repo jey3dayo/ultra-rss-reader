@@ -2,11 +2,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { loadCommandPaletteDevScenariosMock, runCommandPaletteDevScenarioMock } =
-  vi.hoisted(() => ({
-    loadCommandPaletteDevScenariosMock: vi.fn(),
-    runCommandPaletteDevScenarioMock: vi.fn(),
-  }));
+const { loadCommandPaletteDevScenariosMock, runCommandPaletteDevScenarioMock } = vi.hoisted(() => ({
+  loadCommandPaletteDevScenariosMock: vi.fn(),
+  runCommandPaletteDevScenarioMock: vi.fn(),
+}));
 
 vi.mock("@/dev/scenario-runtime", () => ({
   loadRuntimeDevScenarios: loadCommandPaletteDevScenariosMock,
@@ -14,11 +13,7 @@ vi.mock("@/dev/scenario-runtime", () => ({
 }));
 
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import {
-  sampleAccounts,
-  sampleArticles,
-  sampleFeeds,
-} from "@tests/helpers/fixtures";
+import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { CommandPalette } from "@/components/reader/command-palette";
 import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
@@ -46,9 +41,7 @@ function seedCommandHistory(entries: string[]) {
 }
 
 function expectCommandHistory(entries: string[]) {
-  expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(
-    JSON.stringify(entries),
-  );
+  expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(entries));
 }
 
 function expectCommandHistoryCleared() {
@@ -68,9 +61,7 @@ describe("CommandPalette", () => {
     Element.prototype.scrollIntoView = vi.fn();
     localStorage.clear();
     vi.stubEnv("DEV", false);
-    loadCommandPaletteDevScenariosMock
-      .mockReset()
-      .mockResolvedValue(devScenarioFixtures);
+    loadCommandPaletteDevScenariosMock.mockReset().mockResolvedValue(devScenarioFixtures);
     runCommandPaletteDevScenarioMock.mockReset().mockResolvedValue(undefined);
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -99,20 +90,14 @@ describe("CommandPalette", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         case "list_tags":
           return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
         case "search_articles":
           return sampleArticles.filter((article) =>
-            article.title
-              .toLowerCase()
-              .includes(String(args.query).toLowerCase()),
+            article.title.toLowerCase().includes(String(args.query).toLowerCase()),
           );
         default:
           return undefined;
@@ -132,53 +117,31 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(screen.getByRole("dialog")).toHaveClass("rounded-2xl");
-    expect(screen.getByRole("dialog")).toHaveClass(
-      "bg-surface-2/96",
-      "shadow-elevation-3",
+    expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2/96", "shadow-elevation-3");
+    expect(screen.getByPlaceholderText("Search commands…")).toHaveClass("placeholder:text-foreground-soft");
+    expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
+      "bg-surface-1/72",
     );
-    expect(screen.getByPlaceholderText("Search commands…")).toHaveClass(
-      "placeholder:text-foreground-soft",
-    );
-    expect(
-      screen
-        .getByPlaceholderText("Search commands…")
-        .closest('[data-slot="command-input-wrapper"]'),
-    ).toHaveClass("bg-surface-1/72");
     expect(
       await screen.findByText("Recent Actions", {
         selector: "[cmdk-group-heading]",
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("dialog").querySelector('[data-slot="command"]'),
-    ).toHaveClass("[&_[cmdk-group-heading]]:text-foreground-soft");
-    expect(screen.getByTestId("command-palette-results")).toHaveAttribute(
-      "data-motion-phase",
-      "entering",
+    expect(screen.getByRole("dialog").querySelector('[data-slot="command"]')).toHaveClass(
+      "[&_[cmdk-group-heading]]:text-foreground-soft",
     );
-    expect(screen.getByTestId("command-palette-results")).toHaveClass(
-      "motion-content-swap",
-    );
-    expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass(
-      "text-foreground-soft",
-    );
-    expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass(
-      "rounded-md",
-    );
-    expect(
-      screen.queryByRole("option", { name: /Tech Blog/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("command-palette-results")).toHaveAttribute("data-motion-phase", "entering");
+    expect(screen.getByTestId("command-palette-results")).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
+    expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
   });
 
   it("falls back to the normal action list when history is empty", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(
-      await screen.findByText("Actions", { selector: "[cmdk-group-heading]" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
     expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
   });
 
@@ -187,12 +150,8 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(
-      await screen.findByText("Actions", { selector: "[cmdk-group-heading]" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
     expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
   });
 
@@ -205,16 +164,12 @@ describe("CommandPalette", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_tags":
           return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
         case "search_articles":
           return sampleArticles.filter((article) =>
-            article.title
-              .toLowerCase()
-              .includes(String(args.query).toLowerCase()),
+            article.title.toLowerCase().includes(String(args.query).toLowerCase()),
           );
         default:
           return undefined;
@@ -223,19 +178,11 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(
-      await screen.findByText("Actions", { selector: "[cmdk-group-heading]" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(requestedCommands).not.toContain("list_feeds");
-    expect(
-      screen.queryByRole("option", { name: /Add Feed/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Sync/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Mark all as read/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Add Feed/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Sync/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Mark all as read/ })).not.toBeInTheDocument();
   });
 
   it("hides sync actions while a sync is active", async () => {
@@ -253,21 +200,13 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(
-      await screen.findByRole("option", { name: /Add Feed/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Sync/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Mark all as read/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Add Feed/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Sync/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Mark all as read/ })).toBeInTheDocument();
   });
 
   it("guards unavailable action dispatches from command handlers", () => {
-    const executeAction = vi
-      .spyOn(actions, "executeAction")
-      .mockImplementation(() => {});
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
     const closePalette = vi.fn();
     const handlers = useCommandPaletteHandlers({
       closePalette,
@@ -298,9 +237,7 @@ describe("CommandPalette", () => {
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, "zzzzzz");
 
-    expect(await screen.findByText("No results found")).toHaveClass(
-      "text-foreground-soft",
-    );
+    expect(await screen.findByText("No results found")).toHaveClass("text-foreground-soft");
   });
 
   it("selecting a feed lands on the first visible article and closes the palette", async () => {
@@ -324,24 +261,16 @@ describe("CommandPalette", () => {
 
   it("filters to action results for the action prefix", async () => {
     const user = userEvent.setup();
-    const executeAction = vi
-      .spyOn(actions, "executeAction")
-      .mockImplementation(() => {});
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">settings");
 
-    expect(
-      await screen.findByText("Actions", { selector: "[cmdk-group-heading]" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Tech Blog/ }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("option", { name: /Open settings/ }));
 
@@ -353,18 +282,14 @@ describe("CommandPalette", () => {
 
   it("opens shortcuts help as a pseudo-action without dispatching or rewriting action history", async () => {
     const user = userEvent.setup();
-    const executeAction = vi
-      .spyOn(actions, "executeAction")
-      .mockImplementation(() => {});
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
     seedCommandHistory(["action:open-settings"]);
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">shortcuts");
-    await user.click(
-      await screen.findByRole("option", { name: /Open shortcuts help/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Open shortcuts help/ }));
 
     await waitFor(() => {
       expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
@@ -382,30 +307,22 @@ describe("CommandPalette", () => {
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">サイドバー");
 
-    expect(
-      await screen.findByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, ">ナビゲーション");
 
-    expect(
-      await screen.findByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, ">データ管理");
 
-    expect(
-      await screen.findByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, ">データ");
 
-    expect(
-      await screen.findByRole("option", { name: /Open settings/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
   });
 
   it("keeps theme actions discoverable by Japanese settings terms", async () => {
@@ -416,22 +333,14 @@ describe("CommandPalette", () => {
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">テーマ");
 
-    expect(
-      await screen.findByRole("option", { name: /Theme: Light/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Theme: Dark/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Theme: Dark/ })).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, ">外観");
 
-    expect(
-      await screen.findByRole("option", { name: /Theme: Light/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Theme: Dark/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Theme: Dark/ })).toBeInTheDocument();
   });
 
   it("opens the selected account settings from the action list and closes the palette", async () => {
@@ -441,9 +350,7 @@ describe("CommandPalette", () => {
 
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">account");
-    await user.click(
-      await screen.findByRole("option", { name: /Account settings/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Account settings/ }));
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(true);
@@ -462,9 +369,7 @@ describe("CommandPalette", () => {
 
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">account");
-    await user.click(
-      await screen.findByRole("option", { name: /Account settings/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Account settings/ }));
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(true);
@@ -483,16 +388,10 @@ describe("CommandPalette", () => {
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, "#lat");
 
-    expect(
-      await screen.findByText("Tags", { selector: "[cmdk-group-heading]" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Tags", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Later/ })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Open settings/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Tech Blog/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open settings/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("option", { name: /Later/ }));
 
@@ -511,9 +410,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(
-      await screen.findByRole("option", { name: /Manage Subscriptions/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Manage Subscriptions/ }));
 
     await waitFor(() => {
       expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
@@ -541,9 +438,7 @@ describe("CommandPalette", () => {
       name: /Mark all as read/,
     });
 
-    expect(
-      openSettings.querySelector('[data-slot="command-shortcut"]'),
-    ).toHaveClass("text-foreground-soft");
+    expect(openSettings.querySelector('[data-slot="command-shortcut"]')).toHaveClass("text-foreground-soft");
     expect(openSettings).toHaveTextContent("⌘ .");
     expect(markAllRead).toHaveTextContent("Shift + A");
   });
@@ -553,9 +448,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(
-      await screen.findByRole("option", { name: /Open shortcuts help/i }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Open shortcuts help/i }));
 
     await waitFor(() => {
       expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
@@ -568,9 +461,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(
-      await screen.findByRole("option", { name: /Theme: Dark/i }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Theme: Dark/i }));
 
     await waitFor(() => {
       expect(usePreferencesStore.getState().prefs.theme).toBe("dark");
@@ -581,20 +472,10 @@ describe("CommandPalette", () => {
   it("wraps prefix hints so they stay readable on narrow layouts", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(
-      await screen.findByTestId("command-palette-prefix-hints"),
-    ).toHaveClass("flex-wrap");
-    expect(
-      screen.getByTestId("command-palette-prefix-hint-actions"),
-    ).toHaveClass("rounded-md", "bg-surface-1/72");
-    expect(screen.getByTestId("command-palette-prefix-hint-feeds")).toHaveClass(
-      "rounded-md",
-      "bg-surface-1/72",
-    );
-    expect(screen.getByTestId("command-palette-prefix-hint-tags")).toHaveClass(
-      "rounded-md",
-      "bg-surface-1/72",
-    );
+    expect(await screen.findByTestId("command-palette-prefix-hints")).toHaveClass("flex-wrap");
+    expect(screen.getByTestId("command-palette-prefix-hint-actions")).toHaveClass("rounded-md", "bg-surface-1/72");
+    expect(screen.getByTestId("command-palette-prefix-hint-feeds")).toHaveClass("rounded-md", "bg-surface-1/72");
+    expect(screen.getByTestId("command-palette-prefix-hint-tags")).toHaveClass("rounded-md", "bg-surface-1/72");
   });
 
   it("keeps the backdrop readable for feed lookup by disabling blur on the overlay", async () => {
@@ -614,13 +495,9 @@ describe("CommandPalette", () => {
   it("shows dev scenarios only in dev builds", async () => {
     const first = render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(
-      await screen.findByText("Actions", { selector: "[cmdk-group-heading]" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Open add feed dialog/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).not.toHaveBeenCalled();
 
     first.unmount();
@@ -633,9 +510,7 @@ describe("CommandPalette", () => {
         selector: "[cmdk-group-heading]",
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /Open add feed dialog/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).toHaveBeenCalledTimes(1);
   });
 
@@ -648,29 +523,19 @@ describe("CommandPalette", () => {
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, "add");
 
-    expect(
-      await screen.findByRole("option", { name: /Open add feed dialog/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Open subscriptions index/ }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open subscriptions index/ })).not.toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, "subscriptions");
 
-    expect(
-      await screen.findByRole("option", { name: /Open subscriptions index/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Open add feed dialog/ }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open subscriptions index/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
   });
 
   it("shows a dev-only restart action and executes it", async () => {
     const user = userEvent.setup();
-    const executeAction = vi
-      .spyOn(actions, "executeAction")
-      .mockImplementation(() => {});
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
     vi.stubEnv("DEV", true);
 
     render(<CommandPalette />, { wrapper: createWrapper() });
@@ -694,14 +559,10 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(
-      await screen.findByRole("option", { name: /Open add feed dialog/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith(
-        "open-add-feed-dialog",
-      );
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expectCommandHistoryCleared();
     });
@@ -716,14 +577,10 @@ describe("CommandPalette", () => {
 
     const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, "add");
-    await user.click(
-      await screen.findByRole("option", { name: /Open add feed dialog/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith(
-        "open-add-feed-dialog",
-      );
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expectCommandHistory(["action:open-settings"]);
     });
   });
@@ -735,14 +592,10 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(
-      await screen.findByRole("option", { name: /Open add feed dialog/ }),
-    );
+    await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith(
-        "open-add-feed-dialog",
-      );
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(useUiStore.getState().toastMessage).toEqual({
         message: 'Failed to run dev scenario "open-add-feed-dialog": boom',

@@ -41,8 +41,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
     });
     expect(showSurfaceFailure).toHaveBeenCalledWith({
       type: "UserVisible",
-      message:
-        "Timed out waiting for embedded browser webview to finish loading: https://example.com/article",
+      message: "Timed out waiting for embedded browser webview to finish loading: https://example.com/article",
     });
 
     showSurfaceFailure.mockClear();

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { listen } from "@tauri-apps/api/event";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -61,9 +61,7 @@ function renderAppShellWithDebugHud() {
   return render(<AppShell />, { wrapper: createWrapper() });
 }
 
-function setDebugHudUiState(
-  overrides: Partial<ReturnType<typeof useUiStore.getInitialState>> = {},
-) {
+function setDebugHudUiState(overrides: Partial<ReturnType<typeof useUiStore.getInitialState>> = {}) {
   useUiStore.setState({
     ...useUiStore.getInitialState(),
     focusedPane: "list",
@@ -92,10 +90,7 @@ describe("AppShell", () => {
     const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
     expect(screen.getByText("App Layout")).toBeInTheDocument();
-    expect(container.firstElementChild).toHaveClass(
-      "bg-background",
-      "text-foreground",
-    );
+    expect(container.firstElementChild).toHaveClass("bg-background", "text-foreground");
   });
 
   it("does not mount the settings modal until it is opened", () => {
@@ -119,9 +114,7 @@ describe("AppShell", () => {
   it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {
     const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
-    const overlayRoot = container.querySelector<HTMLElement>(
-      "[data-browser-overlay-root]",
-    );
+    const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
     const appLayout = screen.getByText("App Layout");
 
     expect(overlayRoot).toBeInTheDocument();
@@ -129,9 +122,7 @@ describe("AppShell", () => {
     expect(overlayRoot).toHaveClass("inset-0");
     expect(appLayout).not.toContainElement(overlayRoot);
     expect(overlayRoot?.parentElement).toBe(container.firstElementChild);
-    expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+    expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("keeps the browser overlay root non-interactive until browser mode is active", () => {
@@ -139,9 +130,7 @@ describe("AppShell", () => {
       wrapper: createWrapper(),
     });
 
-    const overlayRoot = container.querySelector<HTMLElement>(
-      "[data-browser-overlay-root]",
-    );
+    const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
     expect(overlayRoot).toHaveClass("pointer-events-none");
     expect(overlayRoot).not.toHaveClass("pointer-events-auto");
 
@@ -157,10 +146,7 @@ describe("AppShell", () => {
   });
 
   it("keeps the desktop overlay titlebar helper classes on the shell overlay root without adding a shell-wide drag strip", () => {
-    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(
-      window,
-      "__TAURI_INTERNALS__",
-    );
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 
     try {
       setTauriRuntimePresent();
@@ -182,24 +168,14 @@ describe("AppShell", () => {
 
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
-      const overlayRoot = container.querySelector<HTMLElement>(
-        "[data-browser-overlay-root]",
-      );
-      expect(container.firstElementChild).not.toHaveClass(
-        "desktop-overlay-titlebar",
-      );
+      const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+      expect(container.firstElementChild).not.toHaveClass("desktop-overlay-titlebar");
       expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
-      expect(
-        container.querySelector("[data-testid='desktop-titlebar-drag-strip']"),
-      ).toBeNull();
+      expect(container.querySelector("[data-testid='desktop-titlebar-drag-strip']")).toBeNull();
     } finally {
       if (originalTauriInternalsDescriptor) {
-        Object.defineProperty(
-          window,
-          "__TAURI_INTERNALS__",
-          originalTauriInternalsDescriptor,
-        );
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
       } else {
         delete window.__TAURI_INTERNALS__;
       }
@@ -207,10 +183,7 @@ describe("AppShell", () => {
   });
 
   it("uses overlay titlebar helper classes on first render when tauri is available and mac platform info is still unknown", () => {
-    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(
-      window,
-      "__TAURI_INTERNALS__",
-    );
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
     const originalPlatform = window.navigator.platform;
 
     try {
@@ -237,9 +210,7 @@ describe("AppShell", () => {
 
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
-      const overlayRoot = container.querySelector<HTMLElement>(
-        "[data-browser-overlay-root]",
-      );
+      const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
       expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
     } finally {
@@ -248,11 +219,7 @@ describe("AppShell", () => {
         value: originalPlatform,
       });
       if (originalTauriInternalsDescriptor) {
-        Object.defineProperty(
-          window,
-          "__TAURI_INTERNALS__",
-          originalTauriInternalsDescriptor,
-        );
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
       } else {
         delete window.__TAURI_INTERNALS__;
       }
@@ -283,12 +250,8 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-toast")).toHaveClass("motion-popup-surface");
     expect(screen.getByTestId("app-toast")).toHaveAttribute("data-open");
     expect(screen.getByTestId("app-toast")).toHaveAttribute("data-side", "top");
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass(
-      "text-foreground-soft",
-    );
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass(
-      "hover:bg-surface-1/72",
-    );
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("hover:bg-surface-1/72");
   });
 
   it("copies the debug HUD contents when activated from the keyboard", async () => {
@@ -344,9 +307,7 @@ describe("AppShell", () => {
 
     render(<AppShell />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId("app-toast").className).not.toContain(
-      "w-[min(320px,calc(100vw-2rem))]",
-    );
+    expect(screen.getByTestId("app-toast").className).not.toContain("w-[min(320px,calc(100vw-2rem))]");
   });
 
   it("places toast in the browser rail while the native web preview is open", () => {
@@ -376,88 +337,64 @@ describe("AppShell", () => {
 
     render(<AppShell />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId("app-toast").className).toContain(
-      "w-[min(320px,calc(100vw-2rem))]",
-    );
+    expect(screen.getByTestId("app-toast").className).toContain("w-[min(320px,calc(100vw-2rem))]");
   });
 
   it("temporarily hides the debug HUD while the settings modal is open", async () => {
     const { rerender } = renderAppShellWithDebugHud();
 
-    expect(
-      await screen.findByRole("button", { name: "Copy debug HUD" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
 
     useUiStore.setState({ settingsOpen: true });
     rerender(<AppShell />);
 
     expect(screen.getByText("Settings Modal")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Copy debug HUD" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
 
     useUiStore.setState({ settingsOpen: false });
     rerender(<AppShell />);
 
-    expect(
-      await screen.findByRole("button", { name: "Copy debug HUD" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
   });
 
   it("temporarily hides the debug HUD while the confirm dialog is open", async () => {
     const { rerender } = renderAppShellWithDebugHud();
 
-    expect(
-      await screen.findByRole("button", { name: "Copy debug HUD" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
 
-    useUiStore
-      .getState()
-      .showConfirm("Delete feed?", vi.fn(), { actionLabel: "Delete" });
+    useUiStore.getState().showConfirm("Delete feed?", vi.fn(), { actionLabel: "Delete" });
     rerender(<AppShell />);
 
     expect(useUiStore.getState().confirmDialog.open).toBe(true);
-    expect(
-      screen.queryByRole("button", { name: "Copy debug HUD" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
 
     useUiStore.getState().closeConfirm();
     rerender(<AppShell />);
 
-    expect(
-      await screen.findByRole("button", { name: "Copy debug HUD" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
   });
 
   it("temporarily hides the debug HUD while shortcut and command overlays are open", async () => {
     const { rerender } = renderAppShellWithDebugHud();
 
-    expect(
-      await screen.findByRole("button", { name: "Copy debug HUD" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
 
     useUiStore.setState({ shortcutsHelpOpen: true });
     rerender(<AppShell />);
 
     expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
-    expect(
-      screen.queryByRole("button", { name: "Copy debug HUD" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
 
     useUiStore.setState({ shortcutsHelpOpen: false, commandPaletteOpen: true });
     rerender(<AppShell />);
 
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);
-    expect(
-      screen.queryByRole("button", { name: "Copy debug HUD" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy debug HUD" })).not.toBeInTheDocument();
 
     useUiStore.setState({ commandPaletteOpen: false });
     rerender(<AppShell />);
 
-    expect(
-      await screen.findByRole("button", { name: "Copy debug HUD" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
   });
 
   it("turns off the debug HUD preference from the HUD close action", async () => {
@@ -465,16 +402,10 @@ describe("AppShell", () => {
 
     renderAppShellWithDebugHud();
 
-    await user.click(
-      await screen.findByRole("button", { name: "Hide debug HUD" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Hide debug HUD" }));
 
-    expect(usePreferencesStore.getState().prefs.debug_browser_hud).toBe(
-      "false",
-    );
-    expect(
-      screen.queryByRole("button", { name: "Hide debug HUD" }),
-    ).not.toBeInTheDocument();
+    expect(usePreferencesStore.getState().prefs.debug_browser_hud).toBe("false");
+    expect(screen.queryByRole("button", { name: "Hide debug HUD" })).not.toBeInTheDocument();
   });
 
   it("shows browser geometry rows inside the debug HUD when preview diagnostics are published", async () => {
@@ -502,18 +433,14 @@ describe("AppShell", () => {
       }),
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Expand debug HUD" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "Expand debug HUD" }));
     fireEvent.click(await screen.findByRole("button", { name: "Show" }));
 
     expect(await screen.findByText("Geometry")).toBeInTheDocument();
     expect(screen.getByText("viewport")).toBeInTheDocument();
     expect(screen.getByText("1274 x 801")).toBeInTheDocument();
     expect(screen.getByText("host")).toBeInTheDocument();
-    expect(
-      screen.getAllByText("0,56 1274 x 745").length,
-    ).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("0,56 1274 x 745").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("native")).toBeInTheDocument();
     expect(screen.getByText("0,56 1547 x 905")).toBeInTheDocument();
     expect(screen.getByText("delta")).toBeInTheDocument();
@@ -523,26 +450,18 @@ describe("AppShell", () => {
   it("keeps native browser input traces scoped to the debug HUD lifecycle", async () => {
     const hiddenHudRender = render(<AppShell />, { wrapper: createWrapper() });
 
-    expect(vi.mocked(listen)).not.toHaveBeenCalledWith(
-      "browser-webview-debug-input",
-      expect.any(Function),
-    );
+    expect(vi.mocked(listen)).not.toHaveBeenCalledWith("browser-webview-debug-input", expect.any(Function));
 
     hiddenHudRender.unmount();
     const { unmount } = renderAppShellWithDebugHud();
 
     await waitFor(() => {
-      expect(vi.mocked(listen)).toHaveBeenCalledWith(
-        "browser-webview-debug-input",
-        expect.any(Function),
-      );
+      expect(vi.mocked(listen)).toHaveBeenCalledWith("browser-webview-debug-input", expect.any(Function));
     });
 
     const browserTraceCall = vi
       .mocked(listen)
-      .mock.calls.find(
-        ([eventName]) => eventName === "browser-webview-debug-input",
-      );
+      .mock.calls.find(([eventName]) => eventName === "browser-webview-debug-input");
     const browserTraceListener = browserTraceCall?.[1];
     if (!browserTraceListener) {
       throw new Error("Expected browser debug input trace listener");
@@ -554,16 +473,10 @@ describe("AppShell", () => {
       payload: "native-click target=webview",
     });
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Expand debug HUD" }),
-    );
-    expect(
-      await screen.findByText("native-click target=webview"),
-    ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Expand debug HUD" }));
+    expect(await screen.findByText("native-click target=webview")).toBeInTheDocument();
 
     unmount();
-    expect(
-      screen.queryByText("native-click target=webview"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("native-click target=webview")).not.toBeInTheDocument();
   });
 });

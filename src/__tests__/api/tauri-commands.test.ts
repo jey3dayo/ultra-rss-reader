@@ -1,9 +1,5 @@
 import { Result } from "@praha/byethrow";
-import {
-  sampleAccounts,
-  sampleArticles,
-  sampleFeeds,
-} from "@tests/helpers/fixtures";
+import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -26,13 +22,13 @@ import {
   listFeeds,
   listFolderArticles,
   listMuteKeywords,
-  openLogDir,
   listRecentArticles,
   listStarredArticles,
   markAccountRead,
   markAccountStarredRead,
   markArticleRead,
   markOldUnreadRead,
+  openLogDir,
   recordArticleView,
   setMuteAutoMarkRead,
   setPreference,
@@ -98,19 +94,13 @@ describe("tauri-commands with mockIPC", () => {
   describe("listFolderArticles", () => {
     it("returns unread articles for a given folder", async () => {
       setupTauriMocks((cmd, args) => {
-        if (
-          cmd === "list_folder_articles" &&
-          args.folderId === "folder-1" &&
-          args.mode === "unread"
-        ) {
+        if (cmd === "list_folder_articles" && args.folderId === "folder-1" && args.mode === "unread") {
           return [sampleArticles[0]];
         }
         return undefined;
       });
 
-      const value = Result.unwrap(
-        await listFolderArticles("folder-1", "unread"),
-      );
+      const value = Result.unwrap(await listFolderArticles("folder-1", "unread"));
       expect(value.map((article) => article.id)).toEqual(["art-1"]);
     });
   });
@@ -123,9 +113,7 @@ describe("tauri-commands with mockIPC", () => {
     });
 
     it("returns recently viewed articles filtered by mode", async () => {
-      const value = Result.unwrap(
-        await listRecentArticles("acc-1", undefined, undefined, "unread"),
-      );
+      const value = Result.unwrap(await listRecentArticles("acc-1", undefined, undefined, "unread"));
       expect(value.map((article) => article.id)).toEqual(["art-1"]);
     });
 
@@ -138,25 +126,13 @@ describe("tauri-commands with mockIPC", () => {
   describe("tag article commands", () => {
     it("passes mode when listing articles by tag", async () => {
       setupTauriMocks((cmd, args) => {
-        if (
-          cmd === "list_articles_by_tag" &&
-          args.tagId === "tag-1" &&
-          args.mode === "starred"
-        ) {
+        if (cmd === "list_articles_by_tag" && args.tagId === "tag-1" && args.mode === "starred") {
           return [sampleArticles[1]];
         }
         return undefined;
       });
 
-      const value = Result.unwrap(
-        await listArticlesByTag(
-          "tag-1",
-          undefined,
-          undefined,
-          "acc-1",
-          "starred",
-        ),
-      );
+      const value = Result.unwrap(await listArticlesByTag("tag-1", undefined, undefined, "acc-1", "starred"));
       expect(value.map((article) => article.id)).toEqual(["art-2"]);
     });
   });
@@ -248,9 +224,7 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      const value = Result.unwrap(
-        await createMuteKeyword("Kindle Unlimited", "title"),
-      );
+      const value = Result.unwrap(await createMuteKeyword("Kindle Unlimited", "title"));
       expect(value.scope).toBe("title");
     });
 
@@ -317,9 +291,7 @@ describe("tauri-commands with mockIPC", () => {
     });
 
     it("counts and marks old unread articles", async () => {
-      const count = Result.unwrap(
-        await countOldUnreadArticles("feed", "feed-1", 30),
-      );
+      const count = Result.unwrap(await countOldUnreadArticles("feed", "feed-1", 30));
 
       expect(count).toBe(1);
       Result.unwrap(await markOldUnreadRead("feed", "feed-1", 30));
@@ -332,12 +304,7 @@ describe("tauri-commands with mockIPC", () => {
 
   describe("browser webview commands", () => {
     it("creates or updates the dedicated browser webview window", async () => {
-      const value = Result.unwrap(
-        await createOrUpdateBrowserWebview(
-          "https://example.com/article",
-          browserBounds,
-        ),
-      );
+      const value = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds));
 
       expect(value).toEqual({
         url: "https://example.com/article",
@@ -356,13 +323,10 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      const result = await createOrUpdateBrowserWebview(
-        "https://example.com/article",
-        {
-          ...browserBounds,
-          width: 0,
-        },
-      );
+      const result = await createOrUpdateBrowserWebview("https://example.com/article", {
+        ...browserBounds,
+        width: 0,
+      });
 
       expect(Result.isFailure(result)).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
@@ -467,9 +431,7 @@ describe("safeInvoke args validation", () => {
     const result = await setPreference("theme", "midnight");
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain(
-      "Invalid value for preference key: theme",
-    );
+    expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: theme");
     expect(invoked).toBe(false);
   });
 
@@ -512,9 +474,7 @@ describe("safeInvoke args validation", () => {
     const result = await setPreference("shortcut_unknown_action", "x");
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain(
-      "Invalid preference key: shortcut_unknown_action",
-    );
+    expect(Result.unwrapError(result).message).toContain("Invalid preference key: shortcut_unknown_action");
     expect(invoked).toBe(false);
   });
 
@@ -530,9 +490,7 @@ describe("safeInvoke args validation", () => {
     const result = await setPreference("shortcut_next_article", "   ");
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain(
-      "Invalid value for preference key: shortcut_next_article",
-    );
+    expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: shortcut_next_article");
     expect(invoked).toBe(false);
   });
 
@@ -547,9 +505,7 @@ describe("safeInvoke args validation", () => {
       return null;
     });
 
-    Result.unwrap(
-      await addToReadingList('https://example.com/article?title="quoted"'),
-    );
+    Result.unwrap(await addToReadingList('https://example.com/article?title="quoted"'));
   });
 
   it("rejects Reading List newline URLs before invoking Tauri", async () => {

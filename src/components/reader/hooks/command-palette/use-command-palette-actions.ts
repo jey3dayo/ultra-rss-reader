@@ -38,11 +38,7 @@ export function useCommandPaletteActions({
       {
         id: "open-settings",
         label: t("shortcuts.open_settings"),
-        shortcut: getShortcutDisplay(
-          "open_settings",
-          shortcutPrefs,
-          platformKind,
-        ),
+        shortcut: getShortcutDisplay("open_settings", shortcutPrefs, platformKind),
         keywords: [
           "settings",
           "preferences",
@@ -135,11 +131,7 @@ export function useCommandPaletteActions({
             {
               id: "mark-all-read" as const,
               label: t("shortcuts.mark_all_read"),
-              shortcut: getShortcutDisplay(
-                "mark_all_read",
-                shortcutPrefs,
-                platformKind,
-              ),
+              shortcut: getShortcutDisplay("mark_all_read", shortcutPrefs, platformKind),
               keywords: ["read", "articles"],
               icon: NewspaperIcon,
             },
@@ -157,13 +149,5 @@ export function useCommandPaletteActions({
     }
 
     return actions;
-  }, [
-    isSyncing,
-    platformKind,
-    selectedAccountId,
-    shortcutPrefs,
-    t,
-    tSettings,
-    tSidebar,
-  ]);
+  }, [isSyncing, platformKind, selectedAccountId, shortcutPrefs, t, tSettings, tSidebar]);
 }

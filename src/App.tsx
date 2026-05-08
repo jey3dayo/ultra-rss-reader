@@ -2,11 +2,7 @@ import { Result } from "@praha/byethrow";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
-import {
-  listAccounts,
-  syncAccount,
-  triggerStartupSync,
-} from "./api/tauri-commands";
+import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./dev/use-dev-intent";
@@ -14,10 +10,7 @@ import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
 import { attachTauriListeners } from "./lib/runtime/tauri-event-listeners";
-import {
-  markStartupSyncTriggered,
-  shouldThrottleStartupSync,
-} from "./lib/sync/startup-sync-storage";
+import { markStartupSyncTriggered, shouldThrottleStartupSync } from "./lib/sync/startup-sync-storage";
 import { usePreferencesStore } from "./stores/preferences-store";
 import { useUiStore } from "./stores/ui-store";
 
@@ -25,8 +18,7 @@ function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
   const preferencesLoaded = usePreferencesStore((s) => s.loaded);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const { intent: activeDevIntent, ready: devIntentReady } =
-    useResolvedDevIntent();
+  const { intent: activeDevIntent, ready: devIntentReady } = useResolvedDevIntent();
   useDevIntent();
 
   useEffect(() => {
@@ -36,12 +28,7 @@ function AppInner() {
   const startupSyncRequested = useRef(false);
 
   useEffect(() => {
-    if (
-      !devIntentReady ||
-      !preferencesLoaded ||
-      startupSyncRequested.current ||
-      activeDevIntent !== null
-    ) {
+    if (!devIntentReady || !preferencesLoaded || startupSyncRequested.current || activeDevIntent !== null) {
       return;
     }
 
@@ -73,10 +60,7 @@ function AppInner() {
     try {
       const accountsResult = await listAccounts();
       if (Result.isFailure(accountsResult)) {
-        console.warn(
-          "Sync on wake failed to list accounts:",
-          Result.unwrapError(accountsResult),
-        );
+        console.warn("Sync on wake failed to list accounts:", Result.unwrapError(accountsResult));
         return;
       }
 
@@ -87,10 +71,7 @@ function AppInner() {
           .map(async (account) => {
             const syncResult = await syncAccount(account.id);
             if (Result.isFailure(syncResult)) {
-              console.warn(
-                "Sync on wake failed:",
-                Result.unwrapError(syncResult),
-              );
+              console.warn("Sync on wake failed:", Result.unwrapError(syncResult));
             }
           }),
       );
@@ -113,8 +94,7 @@ function AppInner() {
 
   useEffect(() => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [handleVisibilityChange]);
 
   // Invalidate all queries when background sync completes

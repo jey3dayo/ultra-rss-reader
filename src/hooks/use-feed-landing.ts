@@ -1,17 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import {
-  listArticles,
-  listFeedStarredArticles,
-  listFeeds,
-} from "@/api/tauri-commands";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
-import {
-  resolveFeedLandingArticleResult,
-  resolveFeedLandingDisplay,
-} from "@/lib/feed/feed-landing";
+import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -21,8 +14,7 @@ export function useFeedLanding() {
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const prefs = usePreferencesStore((state) => state.prefs);
   const sortUnread = usePreferencesStore(
-    (state) =>
-      state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
+    (state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
   );
 
   return useCallback(
@@ -39,14 +31,10 @@ export function useFeedLanding() {
           : await queryClient
               .fetchQuery({
                 queryKey: feedQueryKey,
-                queryFn: () =>
-                  listFeeds(selectedAccountId).then((result) =>
-                    Result.unwrap(result),
-                  ),
+                queryFn: () => listFeeds(selectedAccountId).then((result) => Result.unwrap(result)),
               })
               .catch((error) => {
-                const cachedFeeds =
-                  queryClient.getQueryData<FeedDto[]>(feedQueryKey);
+                const cachedFeeds = queryClient.getQueryData<FeedDto[]>(feedQueryKey);
                 if (cachedFeeds) {
                   return cachedFeeds;
                 }
@@ -59,30 +47,22 @@ export function useFeedLanding() {
       }
 
       const preserveStarredContext =
-        store.viewMode === "starred" ||
-        (store.selection.type === "smart" &&
-          store.selection.kind === "starred");
+        store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
 
       store.selectFeedFromCurrentContext(feedId);
 
       try {
-        const articlesQueryKey = [
-          "articles",
-          feedId,
-          { mode: preserveStarredContext ? "starred" : "all" },
-        ] as const;
+        const articlesQueryKey = ["articles", feedId, { mode: preserveStarredContext ? "starred" : "all" }] as const;
         const articles = await queryClient
           .fetchQuery({
             queryKey: articlesQueryKey,
             queryFn: () =>
-              (preserveStarredContext
-                ? listFeedStarredArticles(feedId)
-                : listArticles(feedId)
-              ).then((result) => Result.unwrap(result)),
+              (preserveStarredContext ? listFeedStarredArticles(feedId) : listArticles(feedId)).then((result) =>
+                Result.unwrap(result),
+              ),
           })
           .catch((error) => {
-            const cachedArticles =
-              queryClient.getQueryData<ArticleDto[]>(articlesQueryKey);
+            const cachedArticles = queryClient.getQueryData<ArticleDto[]>(articlesQueryKey);
             if (cachedArticles) {
               return cachedArticles;
             }

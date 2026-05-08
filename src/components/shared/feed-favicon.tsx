@@ -37,13 +37,7 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   },
 };
 
-export function FeedFavicon({
-  title,
-  url,
-  siteUrl,
-  grayscale = false,
-  size = "sm",
-}: FeedFaviconProps) {
+export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
   const [failed, setFailed] = useState(false);
   let host: string | null = null;
   Result.pipe(
@@ -73,11 +67,7 @@ export function FeedFavicon({
     <img
       src={`https://www.google.com/s2/favicons?domain=${host}&sz=${sizeClassName.requestSize}`}
       alt=""
-      className={cn(
-        sizeClassName.image,
-        "shrink-0 rounded",
-        grayscale && "grayscale",
-      )}
+      className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
       onError={() => setFailed(true)}
     />
   );

@@ -21,7 +21,9 @@ function readWorkspaceFile(path: string): string {
 }
 
 function extractMiseTaskNames(miseToml: string): Set<string> {
-  return new Set([...miseToml.matchAll(/^\[tasks\.([^\]\n]+)\]/gm)].map((match) => match[1]?.replaceAll('"', "") ?? ""));
+  return new Set(
+    [...miseToml.matchAll(/^\[tasks\.([^\]\n]+)\]/gm)].map((match) => match[1]?.replaceAll('"', "") ?? ""),
+  );
 }
 
 function extractReadmeMiseCommands(readme: string): string[] {
