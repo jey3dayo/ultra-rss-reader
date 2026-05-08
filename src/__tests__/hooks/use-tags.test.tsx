@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { sampleArticles } from "@tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useArticlesByTag } from "@/hooks/use-tags";

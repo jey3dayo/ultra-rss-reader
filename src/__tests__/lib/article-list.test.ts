@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {

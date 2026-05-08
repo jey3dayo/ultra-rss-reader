@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";

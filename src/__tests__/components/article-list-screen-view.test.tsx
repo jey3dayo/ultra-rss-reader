@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { sampleArticles } from "@tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
 

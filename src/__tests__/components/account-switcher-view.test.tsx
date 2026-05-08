@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { sampleAccounts } from "@tests/helpers/tauri-mocks";
+import { sampleAccounts } from "@tests/helpers/fixtures";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSwitcherView } from "@/components/reader/account-switcher-view";

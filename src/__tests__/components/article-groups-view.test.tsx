@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { sampleArticles } from "@tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleGroupsView } from "@/components/reader/article-groups-view";
 
