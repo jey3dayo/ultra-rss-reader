@@ -40,13 +40,16 @@ export function DiscoveredFeedOptionsView({
           >
             <Radio.Root
               value={option.value}
-              aria-label={option.label}
+              aria-label={option.description ? `${option.label} ${option.description}` : option.label}
               className="flex size-4 items-center justify-center rounded-full border border-primary"
             >
               <Radio.Indicator className="size-2 rounded-full bg-primary" />
             </Radio.Root>
-            <span className="truncate" aria-hidden="true">
-              {option.label}
+            <span className="min-w-0" aria-hidden="true">
+              <span className="block truncate">{option.label}</span>
+              {option.description ? (
+                <span className="block truncate text-xs text-foreground-muted">{option.description}</span>
+              ) : null}
             </span>
           </label>
         ))}

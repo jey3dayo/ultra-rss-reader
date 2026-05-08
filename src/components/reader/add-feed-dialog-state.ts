@@ -104,10 +104,26 @@ export function isValidFeedUrl(value: string): boolean {
   }
 }
 
+function buildFeedDescription(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
 function buildDiscoveredFeedOptions(feeds: DiscoveredFeedDto[]) {
+  const labelCounts = new Map<string, number>();
+  for (const feed of feeds) {
+    const label = feed.title || feed.url;
+    labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+  }
+
   return feeds.map((feed) => ({
     value: feed.url,
     label: feed.title || feed.url,
+    description: (labelCounts.get(feed.title || feed.url) ?? 0) > 1 ? buildFeedDescription(feed.url) : undefined,
   }));
 }
 

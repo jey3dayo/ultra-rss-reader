@@ -68,7 +68,7 @@ export type AddFeedDialogControllerDerived = {
   urlHintTone: "muted" | "error";
   isSubmitDisabled: boolean;
   isDiscoverDisabled: boolean;
-  discoveredFeedOptions: Array<{ value: string; label: string }>;
+  discoveredFeedOptions: DiscoveredFeedOption[];
 };
 
 export type AddFeedDialogFolderSelectionParams = {
@@ -80,6 +80,7 @@ export type AddFeedDialogFolderSelectionParams = {
 export type DiscoveredFeedOption = {
   value: string;
   label: string;
+  description?: string;
 };
 
 export type ResolveAddFeedDialogDerivedParams = {

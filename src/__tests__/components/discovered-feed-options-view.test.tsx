@@ -33,4 +33,24 @@ describe("DiscoveredFeedOptionsView", () => {
     expect(onValueChange).toHaveBeenCalledTimes(1);
     expect(onValueChange.mock.calls[0]?.[0]).toBe("https://example.com/atom.xml");
   });
+
+  it("renders duplicate feed descriptions without changing plain labels", () => {
+    render(
+      <DiscoveredFeedOptionsView
+        summary="Found 2 feeds"
+        name="discovered-feed"
+        value="https://example.com/feed.xml"
+        options={[
+          { value: "https://example.com/feed.xml", label: "Updates", description: "example.com/feed.xml" },
+          { value: "https://example.com/atom.xml", label: "Updates", description: "example.com/atom.xml" },
+        ]}
+        onValueChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Updates")).toHaveLength(2);
+    expect(screen.getByText("example.com/feed.xml")).toHaveClass("text-foreground-muted");
+    expect(screen.getByRole("radio", { name: "Updates example.com/feed.xml" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Updates example.com/atom.xml" })).toBeInTheDocument();
+  });
 });

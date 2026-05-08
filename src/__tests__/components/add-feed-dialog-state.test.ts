@@ -85,4 +85,29 @@ describe("resolveAddFeedDialogDerived", () => {
     expect(derived.isDiscoverDisabled).toBe(false);
     expect(derived.isSubmitDisabled).toBe(true);
   });
+
+  it("adds feed URL descriptions only when discovered feed labels are duplicated", () => {
+    const derived = resolveAddFeedDialogDerived({
+      state: {
+        ...createInitialAddFeedDialogState(),
+        discoveredFeeds: [
+          { title: "Updates", url: "https://example.com/feed.xml" },
+          { title: "Updates", url: "https://example.com/atom.xml" },
+          { title: "Release Notes", url: "https://example.com/releases.xml" },
+        ],
+      },
+      folderSelection: {
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
+      invalidUrlHint: "Invalid URL",
+      exampleUrlHint: "Example URL",
+    });
+
+    expect(derived.discoveredFeedOptions).toEqual([
+      { value: "https://example.com/feed.xml", label: "Updates", description: "example.com/feed.xml" },
+      { value: "https://example.com/atom.xml", label: "Updates", description: "example.com/atom.xml" },
+      { value: "https://example.com/releases.xml", label: "Release Notes", description: undefined },
+    ]);
+  });
 });

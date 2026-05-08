@@ -529,11 +529,6 @@
   - 検索 ranking、history、dev scenario error surface とは混ぜず、実行不能 action の guard と表示状態に限定する
   - action 実行時の二重 guard を残すかどうかも test で固定する
 
-- [ ] discovered feed duplicate title disambiguation 候補を別バッチで追加する
-  - `discovered-feed-options-view.tsx` と `add-feed-dialog-state.ts` で、同じ title の discovered feed を URL / host 付きで識別できる表示へ寄せる
-  - feed discovery pipeline、folder create validation、duplicate local feed ID reload とは混ぜず、検出結果 view model と表示に限定する
-  - single candidate 時の表示密度を変えず、duplicate title 時だけ補助情報を出す
-
 - [ ] article mutation missing-id contract 候補を別バッチで検証する
   - `article_commands.rs` と `sqlite_article.rs` の `mark_article_read` / `mark_articles_read` / `toggle_article_star` で存在しない article id の扱いを固定する
   - pending mutation queue、toast 表示、auto mark retry とは混ぜず、repository / command result の contract test に限定する
