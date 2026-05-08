@@ -101,15 +101,19 @@ export function useRenameFeedDialogController({
       return;
     }
 
+    const folderSelection = {
+      selectedFolderId,
+      isCreatingFolder,
+      newFolderName,
+    };
+
     dispatch({ type: "set-loading", value: true });
     try {
       const saved = await submitFeedEdits({
         feed,
         title,
         displayPreset,
-        selectedFolderId,
-        isCreatingFolder,
-        newFolderName,
+        folderSelection,
         queryClient: qc,
         showToast,
         createFolderErrorMessage: (error) => t("failed_to_create_folder", { message: error.message }),

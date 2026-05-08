@@ -11,13 +11,17 @@ export type FeedEditErrorLike = {
   message: string;
 };
 
+export type FeedEditFolderSelectionParams = {
+  selectedFolderId: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+};
+
 export type SubmitFeedEditsParams = {
   feed: FeedDto;
   title: string;
   displayPreset: FeedEditDisplayPreset;
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
+  folderSelection: FeedEditFolderSelectionParams;
   queryClient: QueryClient;
   showToast: (message: string) => void;
   createFolderErrorMessage: (error: FeedEditErrorLike) => string;
@@ -51,7 +55,7 @@ export type RenameDialogProps = RenameFeedDialogControllerParams;
 
 export type RenameFeedDialogControllerFolderSelectProps = {
   folderSelectValue: string;
-  folderOptions: FolderDto extends never ? never : FolderSelectViewProps["options"];
+  folderOptions: FolderSelectViewProps["options"];
   isCreatingFolder: boolean;
   newFolderName: string;
   newFolderInputRef: RefObject<HTMLInputElement | null>;

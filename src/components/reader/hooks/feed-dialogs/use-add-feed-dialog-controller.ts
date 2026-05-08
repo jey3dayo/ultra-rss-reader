@@ -45,10 +45,14 @@ export function useAddFeedDialogController({
   }, [open, resetFolderSelection]);
 
   const trimmedUrl = state.url.trim();
-  const derived = resolveAddFeedDialogDerived({
-    state,
+  const folderSelection = {
+    selectedFolderId,
     isCreatingFolder,
     newFolderName,
+  };
+  const derived = resolveAddFeedDialogDerived({
+    state,
+    folderSelection,
     invalidUrlHint: t("feed_url_help_invalid"),
     exampleUrlHint: t("feed_url_help_example"),
   });
@@ -59,9 +63,7 @@ export function useAddFeedDialogController({
     dispatch,
     derived,
     trimmedUrl,
-    selectedFolderId,
-    isCreatingFolder,
-    newFolderName,
+    folderSelection,
     queryClient: qc,
     onOpenChange,
     showToast,
@@ -87,14 +89,13 @@ export function useAddFeedDialogController({
     handleDiscover,
     handleSubmit,
     folderSelectProps: {
-      selectedFolderId,
-      newFolderName,
-      isCreatingFolder,
-      newFolderInputRef,
       folderSelectValue,
+      folderOptions: buildFolderOptions(folders, noFolderLabel),
+      isCreatingFolder,
+      newFolderName,
+      newFolderInputRef,
       handleFolderChange,
       setNewFolderName,
-      folderOptions: buildFolderOptions(folders, noFolderLabel),
     },
     derived,
   };

@@ -52,14 +52,13 @@ export type AddFeedDialogViewLabels = {
 };
 
 export type AddFeedDialogControllerFolderSelectProps = {
-  selectedFolderId: string | null;
-  newFolderName: string;
-  isCreatingFolder: boolean;
-  newFolderInputRef: RefObject<HTMLInputElement | null>;
   folderSelectValue: string;
+  folderOptions: FolderSelectViewProps["options"];
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  newFolderInputRef: RefObject<HTMLInputElement | null>;
   handleFolderChange: (value: string) => void;
   setNewFolderName: (value: string) => void;
-  folderOptions: FolderSelectViewProps["options"];
 };
 
 export type AddFeedDialogControllerDerived = {
@@ -72,6 +71,12 @@ export type AddFeedDialogControllerDerived = {
   discoveredFeedOptions: Array<{ value: string; label: string }>;
 };
 
+export type AddFeedDialogFolderSelectionParams = {
+  selectedFolderId: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+};
+
 export type DiscoveredFeedOption = {
   value: string;
   label: string;
@@ -79,25 +84,26 @@ export type DiscoveredFeedOption = {
 
 export type ResolveAddFeedDialogDerivedParams = {
   state: AddFeedDialogState;
-  isCreatingFolder: boolean;
-  newFolderName: string;
+  folderSelection: Pick<AddFeedDialogFolderSelectionParams, "isCreatingFolder" | "newFolderName">;
   invalidUrlHint: string;
   exampleUrlHint: string;
 };
 
-export type UseAddFeedDialogActionsParams = {
+export type AddFeedDialogSubmitParams = {
   accountId: string;
   state: AddFeedDialogState;
-  dispatch: Dispatch<AddFeedDialogAction>;
-  derived: AddFeedDialogControllerDerived;
-  trimmedUrl: string;
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
+  derived: Pick<AddFeedDialogControllerDerived, "isManualUrlValid">;
+  folderSelection: AddFeedDialogFolderSelectionParams;
   queryClient: QueryClient;
   onOpenChange: (open: boolean) => void;
   showToast: (message: string) => void;
   t: TFunction<"reader">;
+};
+
+export type UseAddFeedDialogActionsParams = Omit<AddFeedDialogSubmitParams, "derived"> & {
+  dispatch: Dispatch<AddFeedDialogAction>;
+  derived: AddFeedDialogControllerDerived;
+  trimmedUrl: string;
 };
 
 export type UseAddFeedDialogActionsResult = {

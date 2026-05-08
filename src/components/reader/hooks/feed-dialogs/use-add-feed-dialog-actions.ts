@@ -11,9 +11,7 @@ export function useAddFeedDialogActions({
   dispatch,
   derived,
   trimmedUrl,
-  selectedFolderId,
-  isCreatingFolder,
-  newFolderName,
+  folderSelection,
   queryClient,
   onOpenChange,
   showToast,
@@ -39,7 +37,10 @@ export function useAddFeedDialogActions({
         }
       }),
       Result.inspectError((error) => {
-        dispatch({ type: "discover-error", error: t("discovery_failed", { message: error.message }) });
+        dispatch({
+          type: "discover-error",
+          error: t("discovery_failed", { message: error.message }),
+        });
       }),
     );
   }, [derived.hasManualUrl, derived.isManualUrlValid, dispatch, t, trimmedUrl]);
@@ -59,9 +60,9 @@ export function useAddFeedDialogActions({
 
     const folderResult = await createFolderIfNeededResult({
       accountId,
-      selectedFolderId,
-      isCreatingFolder,
-      newFolderName,
+      selectedFolderId: folderSelection.selectedFolderId,
+      isCreatingFolder: folderSelection.isCreatingFolder,
+      newFolderName: folderSelection.newFolderName,
     });
     if (Result.isFailure(folderResult)) {
       const error = Result.unwrapError(folderResult);
@@ -83,7 +84,10 @@ export function useAddFeedDialogActions({
       }),
       Result.inspectError((error) => {
         hasError = true;
-        dispatch({ type: "set-submit-error", error: t("failed_to_add_feed", { message: error.message }) });
+        dispatch({
+          type: "set-submit-error",
+          error: t("failed_to_add_feed", { message: error.message }),
+        });
       }),
     );
 
@@ -108,11 +112,11 @@ export function useAddFeedDialogActions({
     accountId,
     derived.isManualUrlValid,
     dispatch,
-    isCreatingFolder,
-    newFolderName,
+    folderSelection.isCreatingFolder,
+    folderSelection.newFolderName,
+    folderSelection.selectedFolderId,
     onOpenChange,
     queryClient,
-    selectedFolderId,
     showToast,
     state.selectedFeedUrl,
     state.url,

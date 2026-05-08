@@ -51,8 +51,10 @@ describe("resolveAddFeedDialogDerived", () => {
         ...createInitialAddFeedDialogState(),
         url: "invalid-url",
       },
-      isCreatingFolder: false,
-      newFolderName: "",
+      folderSelection: {
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
       invalidUrlHint: "Invalid URL",
       exampleUrlHint: "Example URL",
     });
@@ -71,8 +73,10 @@ describe("resolveAddFeedDialogDerived", () => {
         ...createInitialAddFeedDialogState(),
         url: "https://example.com/feed.xml",
       },
-      isCreatingFolder: true,
-      newFolderName: "   ",
+      folderSelection: {
+        isCreatingFolder: true,
+        newFolderName: "   ",
+      },
       invalidUrlHint: "Invalid URL",
       exampleUrlHint: "Example URL",
     });

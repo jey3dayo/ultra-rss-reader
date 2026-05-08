@@ -113,8 +113,7 @@ function buildDiscoveredFeedOptions(feeds: DiscoveredFeedDto[]) {
 
 export function resolveAddFeedDialogDerived({
   state,
-  isCreatingFolder,
-  newFolderName,
+  folderSelection,
   invalidUrlHint,
   exampleUrlHint,
 }: ResolveAddFeedDialogDerivedParams): AddFeedDialogControllerDerived {
@@ -131,7 +130,7 @@ export function resolveAddFeedDialogDerived({
       (!state.selectedFeedUrl && (!hasManualUrl || !isManualUrlValid)) ||
       state.loading ||
       state.discovering ||
-      (isCreatingFolder && !newFolderName.trim()),
+      (folderSelection.isCreatingFolder && !folderSelection.newFolderName.trim()),
     isDiscoverDisabled: !hasManualUrl || !isManualUrlValid || state.loading || state.discovering,
     discoveredFeedOptions: buildDiscoveredFeedOptions(state.discoveredFeeds),
   };

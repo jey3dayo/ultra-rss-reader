@@ -5,7 +5,10 @@ import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
 import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
-export type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
+export type {
+  FeedEditDisplayPreset,
+  SubmitFeedEditsParams,
+} from "./rename-feed-dialog.types";
 export type FeedEditorState<ExtraState extends object = object> = {
   title: string;
   displayPreset: FeedEditDisplayPreset;
@@ -16,9 +19,7 @@ export async function submitFeedEdits({
   feed,
   title,
   displayPreset,
-  selectedFolderId,
-  isCreatingFolder,
-  newFolderName,
+  folderSelection,
   queryClient,
   showToast,
   createFolderErrorMessage,
@@ -29,9 +30,9 @@ export async function submitFeedEdits({
   const trimmed = title.trim();
   const folderResult = await createFolderIfNeededResult({
     accountId: feed.account_id,
-    selectedFolderId,
-    isCreatingFolder,
-    newFolderName,
+    selectedFolderId: folderSelection.selectedFolderId,
+    isCreatingFolder: folderSelection.isCreatingFolder,
+    newFolderName: folderSelection.newFolderName,
   });
 
   if (Result.isFailure(folderResult)) {
