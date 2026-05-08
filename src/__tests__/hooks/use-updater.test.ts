@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockCheckForUpdate = vi.hoisted(() => vi.fn());
@@ -64,6 +65,49 @@ describe("performUpdateCheck", () => {
     await expect(secondCheck).resolves.toEqual({ version: "1.2.3", body: null });
   });
 
+  it("shares a single in-flight update check between startup and manual triggers", async () => {
+    const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    mockCheckForUpdate.mockReturnValue(deferred.promise);
+
+    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    const manualCheck = runManualUpdateCheck();
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+
+    deferred.resolve(Result.succeed({ version: "1.2.3", body: null }));
+    await manualCheck;
+
+    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+  });
+
+  it("clears the in-flight guard after a shared failure so later checks can retry", async () => {
+    const failedCheck = createDeferred<ReturnType<typeof Result.fail<{ type: "UserVisible"; message: string }>>>();
+    mockCheckForUpdate.mockReturnValueOnce(failedCheck.promise);
+
+    const { performUpdateCheckResult } = await import("@/hooks/use-updater");
+
+    const firstCheck = performUpdateCheckResult();
+    const secondCheck = performUpdateCheckResult();
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+
+    failedCheck.resolve(Result.fail({ type: "UserVisible", message: "network down" }));
+    await expect(firstCheck).resolves.toSatisfy(Result.isFailure);
+    await expect(secondCheck).resolves.toSatisfy(Result.isFailure);
+
+    mockCheckForUpdate.mockResolvedValueOnce(Result.succeed(null));
+
+    const retryResult = await performUpdateCheckResult();
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(2);
+    expect(Result.isSuccess(retryResult)).toBe(true);
+    expect(Result.unwrap(retryResult)).toBeNull();
+  });
+
   it("returns a typed result when no update is available", async () => {
     mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
 
@@ -112,6 +156,31 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
     expect(useUiStore.getState().toastMessage?.variant).toBe("update");
     expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
+  });
+
+  it("keeps startup update check failures silent while manual failures show a toast", async () => {
+    const error = { type: "UserVisible", message: "network down" };
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockCheckForUpdate.mockResolvedValue(Result.fail(error));
+
+    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    await flushAsyncWork();
+
+    expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+
+    await runManualUpdateCheck();
+
+    expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
+    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it("re-checks updates from the fallback toast instead of auto-retrying the download", async () => {

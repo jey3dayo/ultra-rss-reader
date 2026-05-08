@@ -160,4 +160,28 @@ describe("useScreenSnapshot", () => {
       hasAdoptedSnapshot: false,
     });
   });
+
+  it("does not adopt the initial candidate until canAdopt becomes true", () => {
+    const { result, rerender } = renderScreenSnapshotHook({
+      candidate: { value: "initial" },
+      canAdopt: false,
+    });
+
+    expectSnapshotState(result.current, {
+      snapshot: null,
+      hasResolvedSnapshot: false,
+      hasAdoptedSnapshot: false,
+    });
+
+    rerender({
+      candidate: { value: "initial" },
+      canAdopt: true,
+    });
+
+    expectSnapshotState(result.current, {
+      snapshot: { value: "initial" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
+  });
 });

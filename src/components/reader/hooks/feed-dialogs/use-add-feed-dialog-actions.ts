@@ -92,6 +92,7 @@ export function useAddFeedDialogActions({
     );
 
     if (hasError) {
+      dispatch({ type: "set-loading", loading: false });
       return;
     }
 
