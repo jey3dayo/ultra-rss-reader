@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
-import { getPreferredAccountId } from "@/components/accounts/get-preferred-account-id";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { AddAccountForm } from "@/components/settings/add-account-form";
@@ -22,6 +21,7 @@ import { useSettingsModalViewProps } from "@/components/settings/use-settings-mo
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
+import { getPreferredAccountId } from "@/lib/account-selection";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
