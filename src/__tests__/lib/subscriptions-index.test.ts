@@ -471,6 +471,28 @@ describe("subscriptions index helpers", () => {
     ]);
   });
 
+  it("sorts groups by label without reordering rows inside each group", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "AA Work"]]),
+    });
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "updated_at",
+    });
+
+    const groups = buildSubscriptionListGroups(visibleRows, "ZZ No Folder");
+
+    expect(groups.map((group) => group.label)).toEqual(["AA Work", "ZZ No Folder"]);
+    expect(groups[1]?.rows.map((row) => row.feed.id)).toEqual(["feed-active", "feed-dormant", "feed-mid"]);
+  });
+
   it("formats subscription dates with an invalid fallback", () => {
     expect(formatSubscriptionDate("not-a-date", "en-US")).toBe("—");
     expect(formatSubscriptionDate("2026-04-01T09:00:00Z", "en-US")).toContain("2026");
