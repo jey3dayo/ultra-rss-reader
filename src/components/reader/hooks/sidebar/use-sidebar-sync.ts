@@ -10,8 +10,8 @@ import {
   getManualSyncCooldownUntil,
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
-} from "@/lib/manual-sync";
-import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
+} from "@/lib/sync/manual-sync";
+import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
 import { attachTauriListeners } from "@/lib/tauri-event-listeners";
 import type {
   SidebarSyncParams,

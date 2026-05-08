@@ -10,7 +10,7 @@ import {
 import { getDevScenario } from "@/dev/scenarios/registry";
 import type { DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
 import { executeAction } from "@/lib/actions";
-import { queryClient } from "@/lib/query-client";
+import { queryClient } from "@/lib/query/query-client";
 import { useUiStore } from "@/stores/ui-store";
 
 type RunDevScenarioOptions = {

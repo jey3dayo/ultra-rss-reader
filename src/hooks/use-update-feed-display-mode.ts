@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { type FeedDto, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
-import { invalidateFeedQueries } from "@/lib/query-invalidation";
+import { invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useUpdateFeedDisplaySettings() {

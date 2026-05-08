@@ -9,7 +9,7 @@ import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS, STARTUP_SYNC_THROTTLE_MS } from 
 import { useDevIntent } from "./dev/use-dev-intent";
 import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
-import { queryClient } from "./lib/query-client";
+import { queryClient } from "./lib/query/query-client";
 import { attachTauriListeners } from "./lib/tauri-event-listeners";
 import { usePreferencesStore } from "./stores/preferences-store";
 import { useUiStore } from "./stores/ui-store";

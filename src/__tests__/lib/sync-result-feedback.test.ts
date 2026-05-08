@@ -4,7 +4,7 @@ import {
   resolveSyncFeedbackMessage,
   summarizeSyncResult,
   summarizeSyncWarnings,
-} from "@/lib/sync-result-feedback";
+} from "@/lib/sync/sync-result-feedback";
 
 describe("sync-result-feedback", () => {
   it("summarizes an already-running sync", () => {

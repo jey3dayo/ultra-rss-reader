@@ -11,7 +11,7 @@ import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
-import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
+import { resetManualSyncCooldownForTests } from "@/lib/sync/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

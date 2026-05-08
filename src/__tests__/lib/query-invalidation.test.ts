@@ -1,6 +1,6 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
-import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query-invalidation";
+import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
 
 function createInvalidateSpy() {
   const queryClient = createTestQueryClient();

@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
-import { resolveSyncFeedbackMessage, type SyncFeedback } from "@/lib/sync-result-feedback";
+import { resolveSyncFeedbackMessage, type SyncFeedback } from "@/lib/sync/sync-result-feedback";
 
 export function resolveSidebarSyncFeedbackMessage(t: TFunction<"sidebar">, feedback: SyncFeedback): string {
   return resolveSyncFeedbackMessage(feedback, {

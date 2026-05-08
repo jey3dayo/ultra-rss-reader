@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { deleteFeed } from "@/api/tauri-commands";
-import { invalidateFeedQueries } from "@/lib/query-invalidation";
+import { invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 type DeleteFeedArgs = {

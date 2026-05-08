@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { resolveSidebarSyncFeedbackMessage } from "@/components/reader/sidebar-sync-feedback";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
-import type { SyncFeedback } from "@/lib/sync-result-feedback";
+import type { SyncFeedback } from "@/lib/sync/sync-result-feedback";
 
 function getSidebarT() {
   return i18n.getFixedT(i18n.language, "sidebar");

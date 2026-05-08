@@ -7,7 +7,7 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
   triggerManualSyncWithCooldownResult,
-} from "@/lib/manual-sync";
+} from "@/lib/sync/manual-sync";
 
 const { triggerSyncMock } = vi.hoisted(() => ({
   triggerSyncMock: vi.fn(),

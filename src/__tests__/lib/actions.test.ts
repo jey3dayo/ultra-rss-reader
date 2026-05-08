@@ -129,7 +129,7 @@ beforeEach(async () => {
   isWindowFullscreenMock.mockResolvedValue(Result.succeed(false));
   setWindowFullscreenMock.mockReset();
   setWindowFullscreenMock.mockResolvedValue(Result.succeed(undefined));
-  const { resetManualSyncCooldownForTests } = await import("@/lib/manual-sync");
+  const { resetManualSyncCooldownForTests } = await import("@/lib/sync/manual-sync");
   resetManualSyncCooldownForTests();
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;

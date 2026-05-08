@@ -2,8 +2,8 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
-import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query-invalidation";
-import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
+import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
+import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
 import type {
   UpdateAccountSyncParams,
