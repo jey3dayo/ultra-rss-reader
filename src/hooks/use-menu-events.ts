@@ -10,7 +10,7 @@ export function useMenuEvents(): void {
   useEffect(() => {
     return attachTauriListeners(
       [
-        listen<string>(APP_EVENTS.menuAction, (event) => {
+        listen<unknown>(APP_EVENTS.menuAction, (event) => {
           emitDebugInputTrace(`${APP_EVENTS.menuAction} ${event.payload}`);
           if (isAppAction(event.payload)) {
             executeAction(event.payload);

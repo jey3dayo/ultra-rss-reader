@@ -308,4 +308,93 @@ describe("keyboard shortcut resolver", () => {
 
     expect(Result.unwrapError(result)).toBe("no_action");
   });
+
+  it("does not fall back to the plain key when a ctrl-modified shortcut is unmapped", () => {
+    const result = resolveKeyboardAction({
+      key: "j",
+      metaKey: false,
+      ctrlKey: true,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
+  it("resolves mapped modifier shortcuts without using the plain-key fallback", () => {
+    const result = resolveKeyboardAction({
+      key: "j",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+      keyToAction: buildKeyToActionMap({
+        shortcut_next_feed: "⌘+j",
+      }),
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "navigate-feed", direction: 1 });
+  });
+
+  it.each([
+    ["toggle_read", "m", keyboardEvents.toggleRead],
+    ["toggle_star", "s", keyboardEvents.toggleStar],
+    ["open_in_app_browser", "v", keyboardEvents.openInAppBrowser],
+    ["open_external_browser", "b", keyboardEvents.openExternalBrowser],
+  ] as const)("skips %s when there is no selected article and emits %s when selected", (actionId, key, eventName) => {
+    const keyToAction = buildKeyToActionMap({
+      [`shortcut_${actionId}`]: key,
+    });
+    const missingArticleResult = resolveKeyboardAction({
+      key,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+      keyToAction,
+    });
+    const selectedArticleResult = resolveKeyboardAction({
+      key,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+      keyToAction,
+    });
+
+    expect(Result.unwrapError(missingArticleResult)).toBe("missing_selected_article");
+    expect(Result.unwrap(selectedArticleResult)).toEqual({ type: "emit", eventName });
+  });
+
+  it.each([
+    ["browser mode", "browser", "art-1"],
+    ["selected article", "reader", "art-1"],
+    ["no selected article", "reader", null],
+  ] as const)("keeps close_or_clear as a noop while subscriptions workspace is open with %s", (_label, contentMode, selectedArticleId) => {
+    const result = resolveKeyboardAction({
+      key: "Escape",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId,
+      contentMode,
+      viewMode: "all",
+      subscriptionsWorkspaceOpen: true,
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
 });

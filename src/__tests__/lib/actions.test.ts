@@ -7,12 +7,7 @@ import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
-const {
-  triggerSyncMock,
-  i18nTMock,
-  isWindowFullscreenMock,
-  setWindowFullscreenMock,
-} = vi.hoisted(() => ({
+const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({
   triggerSyncMock: vi.fn(),
   i18nTMock: vi.fn((key: string, options?: Record<string, string>) => {
     if (options?.accounts) {
@@ -31,9 +26,7 @@ const runManualUpdateCheckMock = vi.fn();
 const restartAppMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
 const showUpdateAvailableToastMock = vi.fn();
-const reloadBrowserWebviewMock = vi.fn<
-  () => Promise<Result.Result<BrowserWebviewState, never>>
->(async () =>
+const reloadBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
     can_go_back: false,
@@ -41,9 +34,7 @@ const reloadBrowserWebviewMock = vi.fn<
     is_loading: false,
   }),
 );
-const goBackBrowserWebviewMock = vi.fn<
-  () => Promise<Result.Result<BrowserWebviewState, never>>
->(async () =>
+const goBackBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
     can_go_back: true,
@@ -51,9 +42,7 @@ const goBackBrowserWebviewMock = vi.fn<
     is_loading: false,
   }),
 );
-const goForwardBrowserWebviewMock = vi.fn<
-  () => Promise<Result.Result<BrowserWebviewState, never>>
->(async () =>
+const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
     can_go_back: true,
@@ -140,8 +129,7 @@ beforeEach(async () => {
   isWindowFullscreenMock.mockResolvedValue(Result.succeed(false));
   setWindowFullscreenMock.mockReset();
   setWindowFullscreenMock.mockResolvedValue(Result.succeed(undefined));
-  const { resetManualSyncCooldownForTests } =
-    await import("@/lib/sync/manual-sync");
+  const { resetManualSyncCooldownForTests } = await import("@/lib/sync/manual-sync");
   resetManualSyncCooldownForTests();
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;
@@ -223,9 +211,7 @@ describe("executeAction", () => {
       expect(useUiStore.getState().settingsOpen).toBe(true);
       expect(useUiStore.getState().settingsCategory).toBe("accounts");
       expect(useUiStore.getState().settingsAddAccount).toBe(true);
-      expect(useUiStore.getState().settingsAddAccountInitialKind).toBe(
-        "FreshRss",
-      );
+      expect(useUiStore.getState().settingsAddAccountInitialKind).toBe("FreshRss");
     });
 
     it("opens add feed dialog", () => {
@@ -310,8 +296,7 @@ describe("executeAction", () => {
     });
 
     it("clears the selected article and focuses the list target for mouse-back outside browser mode", async () => {
-      document.body.innerHTML =
-        '<div data-article-id="art-1" tabindex="-1"></div>';
+      document.body.innerHTML = '<div data-article-id="art-1" tabindex="-1"></div>';
       useUiStore.setState({
         ...useUiStore.getInitialState(),
         selectedArticleId: "art-1",
@@ -325,16 +310,12 @@ describe("executeAction", () => {
         expect(useUiStore.getState().selectedArticleId).toBeNull();
         expect(useUiStore.getState().contentMode).toBe("empty");
         expect(useUiStore.getState().focusedPane).toBe("list");
-        expect(document.activeElement).toHaveAttribute(
-          "data-article-id",
-          "art-1",
-        );
+        expect(document.activeElement).toHaveAttribute("data-article-id", "art-1");
       });
     });
 
     it("focuses the selected sidebar target for mouse-back from the article list", async () => {
-      document.body.innerHTML =
-        '<button data-sidebar-selected-target="true" data-feed-id="feed-1">Feed</button>';
+      document.body.innerHTML = '<button data-sidebar-selected-target="true" data-feed-id="feed-1">Feed</button>';
       useUiStore.setState({
         ...useUiStore.getInitialState(),
         selection: { type: "feed", feedId: "feed-1" },
@@ -349,10 +330,7 @@ describe("executeAction", () => {
           feedId: "feed-1",
         });
         expect(useUiStore.getState().focusedPane).toBe("sidebar");
-        expect(document.activeElement).toHaveAttribute(
-          "data-feed-id",
-          "feed-1",
-        );
+        expect(document.activeElement).toHaveAttribute("data-feed-id", "feed-1");
       });
     });
 
@@ -367,9 +345,7 @@ describe("executeAction", () => {
       executeAction("next-article");
 
       expect(handler).not.toHaveBeenCalled();
-      expect(useUiStore.getState().pendingBrowserCloseAction).toBe(
-        "next-article",
-      );
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
 
       flushPendingBrowserCloseAction();
 
@@ -443,9 +419,7 @@ describe("executeAction", () => {
 
   describe("preference toggle actions", () => {
     it("toggles reading_sort preference", async () => {
-      const { usePreferencesStore } = vi.mocked(
-        await import("@/stores/preferences-store"),
-      );
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
       const { setPref } = usePreferencesStore.getState();
       vi.mocked(setPref).mockClear();
 
@@ -455,9 +429,7 @@ describe("executeAction", () => {
     });
 
     it("toggles group_by preference", async () => {
-      const { usePreferencesStore } = vi.mocked(
-        await import("@/stores/preferences-store"),
-      );
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
       const { setPref } = usePreferencesStore.getState();
 
       executeAction("toggle-group-by-feed");
@@ -466,9 +438,7 @@ describe("executeAction", () => {
     });
 
     it("sets theme to dark", async () => {
-      const { usePreferencesStore } = vi.mocked(
-        await import("@/stores/preferences-store"),
-      );
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
       const { setPref } = usePreferencesStore.getState();
 
       executeAction("set-theme-dark");
@@ -485,10 +455,19 @@ describe("executeAction", () => {
       });
     });
 
+    it("exits fullscreen when the window is already fullscreen", async () => {
+      isWindowFullscreenMock.mockResolvedValueOnce(Result.succeed(true));
+
+      executeAction("toggle-fullscreen");
+
+      await waitFor(() => {
+        expect(isWindowFullscreenMock).toHaveBeenCalledOnce();
+        expect(setWindowFullscreenMock).toHaveBeenCalledWith(false);
+      });
+    });
+
     it("does not write fullscreen state when reading fullscreen fails", async () => {
-      isWindowFullscreenMock.mockResolvedValueOnce(
-        Result.fail({ type: "UserVisible", message: "unavailable" }),
-      );
+      isWindowFullscreenMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "unavailable" }));
 
       executeAction("toggle-fullscreen");
 
@@ -499,9 +478,7 @@ describe("executeAction", () => {
     });
 
     it("swallows fullscreen write failures from Result-based window helpers", async () => {
-      setWindowFullscreenMock.mockResolvedValueOnce(
-        Result.fail({ type: "UserVisible", message: "denied" }),
-      );
+      setWindowFullscreenMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "denied" }));
 
       executeAction("toggle-fullscreen");
 
@@ -532,9 +509,7 @@ describe("executeAction", () => {
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe(
-        "https://example.com/article",
-      );
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/article");
 
       window.removeEventListener(keyboardEvents.closeBrowserOverlay, handler);
     });
@@ -674,9 +649,7 @@ describe("executeAction", () => {
         });
       });
 
-      expect(i18nTMock).toHaveBeenCalledWith(
-        "sidebar:sync_already_in_progress",
-      );
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_already_in_progress");
     });
 
     it("uses the translated cooldown toast and skips the second sync during cooldown", async () => {
@@ -769,12 +742,9 @@ describe("executeAction", () => {
         });
       });
 
-      expect(i18nTMock).toHaveBeenCalledWith(
-        "sidebar:sync_completed_with_warnings",
-        {
-          accounts: "FreshRSS",
-        },
-      );
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_completed_with_warnings", {
+        accounts: "FreshRSS",
+      });
     });
 
     it("uses the translated retry-pending toast when sync queues a retry", async () => {
@@ -799,23 +769,17 @@ describe("executeAction", () => {
 
       await waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
-          message:
-            "translated:sidebar:sync_completed_with_retry_pending:FreshRSS",
+          message: "translated:sidebar:sync_completed_with_retry_pending:FreshRSS",
         });
       });
 
-      expect(i18nTMock).toHaveBeenCalledWith(
-        "sidebar:sync_completed_with_retry_pending",
-        {
-          accounts: "FreshRSS",
-        },
-      );
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_completed_with_retry_pending", {
+        accounts: "FreshRSS",
+      });
     });
 
     it("uses the translated unexpected-error toast with details", async () => {
-      triggerSyncMock.mockResolvedValueOnce(
-        Result.fail({ type: "UserVisible", message: "boom" }),
-      );
+      triggerSyncMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }));
 
       executeAction("sync-all");
 
@@ -825,12 +789,9 @@ describe("executeAction", () => {
         });
       });
 
-      expect(i18nTMock).toHaveBeenCalledWith(
-        "sidebar:sync_failed_with_message",
-        {
-          message: "boom",
-        },
-      );
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_failed_with_message", {
+        message: "boom",
+      });
     });
   });
 

@@ -14,7 +14,8 @@ export function createKeyboardEventListener(handleEvent: (event: KeyboardEvent) 
 
 export function createMouseEventListener(handleEvent: (event: MouseEvent) => void): EventListener {
   return (event) => {
-    if (event instanceof MouseEvent) {
+    const isPointerEvent = typeof PointerEvent !== "undefined" && event instanceof PointerEvent;
+    if (event instanceof MouseEvent && !isPointerEvent) {
       handleEvent(event);
     }
   };

@@ -8,31 +8,67 @@ import {
 } from "@/lib/window/window-events";
 
 describe("window-events", () => {
-  it("forwards keyboard, mouse, and pointer events only to matching listeners", () => {
+  it("forwards keyboard events only to keyboard listeners", () => {
     const onKey = vi.fn();
     const onMouse = vi.fn();
     const onPointer = vi.fn();
-
-    const keyListener = createKeyboardEventListener(onKey);
-    const mouseListener = createMouseEventListener(onMouse);
-    const pointerListener = createPointerEventListener(onPointer);
     const keyEvent = new KeyboardEvent("keydown", { key: "Enter" });
-    const mouseEvent = new MouseEvent("click");
-    const pointerEvent = new PointerEvent("pointerdown");
 
-    keyListener(keyEvent);
-    keyListener(mouseEvent);
-    mouseListener(mouseEvent);
-    mouseListener(keyEvent);
-    pointerListener(pointerEvent);
-    pointerListener(mouseEvent);
+    createKeyboardEventListener(onKey)(keyEvent);
+    createMouseEventListener(onMouse)(keyEvent);
+    createPointerEventListener(onPointer)(keyEvent);
 
     expect(onKey).toHaveBeenCalledOnce();
     expect(onKey).toHaveBeenCalledWith(keyEvent);
+    expect(onMouse).not.toHaveBeenCalled();
+    expect(onPointer).not.toHaveBeenCalled();
+  });
+
+  it("forwards mouse events only to mouse listeners", () => {
+    const onKey = vi.fn();
+    const onMouse = vi.fn();
+    const onPointer = vi.fn();
+    const mouseEvent = new MouseEvent("click");
+
+    createKeyboardEventListener(onKey)(mouseEvent);
+    createMouseEventListener(onMouse)(mouseEvent);
+    createPointerEventListener(onPointer)(mouseEvent);
+
+    expect(onKey).not.toHaveBeenCalled();
     expect(onMouse).toHaveBeenCalledOnce();
     expect(onMouse).toHaveBeenCalledWith(mouseEvent);
+    expect(onPointer).not.toHaveBeenCalled();
+  });
+
+  it("forwards pointer events only to pointer listeners", () => {
+    const onKey = vi.fn();
+    const onMouse = vi.fn();
+    const onPointer = vi.fn();
+    const pointerEvent = new PointerEvent("pointerdown");
+
+    createKeyboardEventListener(onKey)(pointerEvent);
+    createMouseEventListener(onMouse)(pointerEvent);
+    createPointerEventListener(onPointer)(pointerEvent);
+
+    expect(onKey).not.toHaveBeenCalled();
+    expect(onMouse).not.toHaveBeenCalled();
     expect(onPointer).toHaveBeenCalledOnce();
     expect(onPointer).toHaveBeenCalledWith(pointerEvent);
+  });
+
+  it("ignores plain events for typed keyboard, mouse, and pointer listeners", () => {
+    const onKey = vi.fn();
+    const onMouse = vi.fn();
+    const onPointer = vi.fn();
+    const plainEvent = new Event("input");
+
+    createKeyboardEventListener(onKey)(plainEvent);
+    createMouseEventListener(onMouse)(plainEvent);
+    createPointerEventListener(onPointer)(plainEvent);
+
+    expect(onKey).not.toHaveBeenCalled();
+    expect(onMouse).not.toHaveBeenCalled();
+    expect(onPointer).not.toHaveBeenCalled();
   });
 
   it("forwards custom event details when the detail guard accepts them", () => {
