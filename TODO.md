@@ -393,3 +393,33 @@
   - `src/dev/web-preview-geometry.ts`、dev geometry page tests、browser debug geometry helpers を、fixture generation と diagnostics rendering で分ける
   - 実 WebView bounds の変更は browser geometry 実機検証に残し、ここでは dev fixture の input/output contract を固定する
   - geometry scenario の copy や visual specimen は Storybook fixture runtime と混ぜず、debug utility の契約に限定する
+
+- [ ] feed discovery redirect SSRF hardening 候補を別バッチで追加する
+  - `src-tauri/src/infra/feed_discovery.rs` で初回 URL だけでなく redirect 先 URL も private / loopback / unsupported scheme を拒否する
+  - `reqwest` redirect policy または final URL 検査を入れ、失敗時は validation error として返す contract を固定する
+  - mock server で localhost/private redirect、protocol-relative feed link、相対 feed link の case を分ける
+
+- [ ] migration manifest drift guard 候補を別バッチで追加する
+  - `src-tauri/migrations/V*.sql` と `infra/db/migration.rs` 側の埋め込み順序・latest version がズレない test を追加する
+  - migration file name の連番、欠番、重複、`LATEST_VERSION` の一致を検査する
+  - SQL 内容の意味までは固定せず、追加 migration 時の登録漏れだけを CI で拾う
+
+- [ ] command palette results a11y / Storybook 候補を別バッチで補強する
+  - `command-palette-results.tsx` / action group / resource group を recent / action / feed / tag / article / dev scenario / no results の表示状態に分ける
+  - `cmdk` の list / item / shortcut / empty state の accessible name と選択挙動を focused test で固定する
+  - dev scenario 実行や command history 永続化は既存 scope に残し、表示と操作 semantics だけ扱う
+
+- [ ] add feed dialog form a11y 候補を別バッチで整理する
+  - URL input、folder select、discovered feed options の label / description / error association を棚卸しする
+  - loading / empty / multiple discovered feeds / submit disabled の UI 状態を story または focused test に分ける
+  - feed discovery の URL normalization や network parser とは分離し、dialog view の操作契約だけに限定する
+
+- [ ] Storybook / Playwright smoke gate 候補を別バッチで整理する
+  - `pnpm test:storybook:e2e`、`pnpm build-storybook`、`mise test:e2e` の現状を棚卸しする
+  - CI 常時実行、manual workflow、release 前手動確認のどこに置くかを分ける
+  - Storybook fixture runtime 整理とは混ぜず、実行ゲートと失敗時ログだけに限定する
+
+- [ ] shared test fixture invariant 候補を別バッチで追加する
+  - `tests/helpers/fixtures.ts` の account/feed/article/tag 間の参照整合、重複 ID、必須 field を固定する
+  - `tests/helpers/tauri-mocks.ts` と API command tests が期待する fixture contract を小さい test に分ける
+  - dev mock data や Storybook fixture の整理とは混ぜず、test helper 専用 fixture に限定する
