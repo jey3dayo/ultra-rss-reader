@@ -14,6 +14,13 @@ describe("browser-runtime-availability", () => {
     expect(isBrowserRuntimeUnavailable()).toBe(true);
   });
 
+  it("treats standalone browser preview mocks as runtime unavailable", () => {
+    setTauriRuntimePresent();
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+
+    expect(isBrowserRuntimeUnavailable()).toBe(true);
+  });
+
   it("treats the missing Tauri runtime as unavailable", () => {
     setTauriRuntimeMissing();
 
