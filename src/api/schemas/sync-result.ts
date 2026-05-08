@@ -12,7 +12,7 @@ export const AccountSyncWarningSchema = z.object({
   kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
   message: z.string(),
   retry_at: z.string().optional(),
-  retry_in_seconds: z.number().optional(),
+  retry_in_seconds: z.number().nonnegative().finite().optional(),
 });
 
 export const SyncResultSchema = z.object({

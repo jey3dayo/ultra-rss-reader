@@ -7,6 +7,7 @@ import {
   AppErrorSchema,
   ArticleDtoSchema,
   addAccountArgs,
+  BrowserWebviewStateSchema,
   browserWebviewBoundsArgs,
   commandArgsSchemas,
   countAccountStarredArticlesArgs,
@@ -252,6 +253,56 @@ describe("AppErrorSchema", () => {
   });
   it("rejects unknown error type", () => {
     expect(() => AppErrorSchema.parse({ type: "Unknown", message: "?" })).toThrow();
+  });
+});
+
+describe("BrowserWebviewStateSchema", () => {
+  it("accepts an empty string URL as the backend state value", () => {
+    expect(
+      BrowserWebviewStateSchema.parse({
+        url: "",
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: false,
+      }),
+    ).toEqual({
+      url: "",
+      can_go_back: false,
+      can_go_forward: false,
+      is_loading: false,
+    });
+  });
+
+  it("accepts a relative URL as the backend state value", () => {
+    expect(
+      BrowserWebviewStateSchema.parse({
+        url: "/reader/article",
+        can_go_back: false,
+        can_go_forward: true,
+        is_loading: true,
+      }),
+    ).toEqual({
+      url: "/reader/article",
+      can_go_back: false,
+      can_go_forward: true,
+      is_loading: true,
+    });
+  });
+
+  it("accepts an HTTP URL as the backend state value", () => {
+    expect(
+      BrowserWebviewStateSchema.parse({
+        url: "http://example.com/article",
+        can_go_back: true,
+        can_go_forward: false,
+        is_loading: false,
+      }),
+    ).toEqual({
+      url: "http://example.com/article",
+      can_go_back: true,
+      can_go_forward: false,
+      is_loading: false,
+    });
   });
 });
 
