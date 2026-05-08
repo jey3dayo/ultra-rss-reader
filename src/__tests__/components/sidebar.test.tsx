@@ -1,13 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import {
-  type MockTauriCommandCall,
-  sampleAccounts,
-  sampleFeeds,
-  sampleTags,
-  setupTauriMocks,
-} from "@tests/helpers/tauri-mocks";
+import { sampleAccounts, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
+import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AccountPane } from "@/components/reader/account-pane";
