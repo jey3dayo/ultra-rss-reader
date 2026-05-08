@@ -165,6 +165,10 @@ describe("article-display preset conversions", () => {
       readerMode: "inherit",
       webPreviewMode: "inherit",
     });
+    expect(resolveFeedDisplayOverrides({ reader_mode: "custom", web_preview_mode: "off" })).toEqual({
+      readerMode: "inherit",
+      webPreviewMode: "inherit",
+    });
   });
 
   it("resolves feed display presets from persisted feed settings", () => {

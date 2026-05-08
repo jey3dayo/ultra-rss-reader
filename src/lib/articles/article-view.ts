@@ -114,6 +114,10 @@ export function findLatestArticleOrNull(articles: ArticleDto[] | undefined): Art
     const latestTime = getDateInputTimeMs(currentLatest.published_at);
     const candidateTime = getDateInputTimeMs(candidate.published_at);
 
+    if (latestTime === null && candidateTime === null) {
+      return currentLatest;
+    }
+
     if (latestTime === null) {
       return candidate;
     }

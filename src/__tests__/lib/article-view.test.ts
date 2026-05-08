@@ -5,6 +5,7 @@ import type { FolderDto } from "@/api/tauri-commands";
 import {
   buildArticleViewSummary,
   buildArticleViewSummaryResult,
+  findLatestArticleOrNull,
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
@@ -94,6 +95,43 @@ describe("article-view utils", () => {
         ctrlKey: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe("findLatestArticleOrNull", () => {
+  it("ignores invalid dates when valid article dates are available", () => {
+    const invalidNewestPosition = {
+      ...sampleArticles[0],
+      id: "invalid-newest-position",
+      published_at: "not-a-date",
+    };
+    const validLatest = {
+      ...sampleArticles[1],
+      id: "valid-latest",
+      published_at: "2026-03-02T10:00:00Z",
+    };
+    const validOlder = {
+      ...sampleArticles[0],
+      id: "valid-older",
+      published_at: "2026-03-01T10:00:00Z",
+    };
+
+    expect(findLatestArticleOrNull([invalidNewestPosition, validOlder, validLatest])).toBe(validLatest);
+  });
+
+  it("falls back to the first article when every date is invalid", () => {
+    const firstInvalid = {
+      ...sampleArticles[0],
+      id: "first-invalid",
+      published_at: "not-a-date",
+    };
+    const secondInvalid = {
+      ...sampleArticles[1],
+      id: "second-invalid",
+      published_at: "",
+    };
+
+    expect(findLatestArticleOrNull([firstInvalid, secondInvalid])).toBe(firstInvalid);
   });
 });
 
