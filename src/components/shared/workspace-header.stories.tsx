@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { fn } from "storybook/test";
+import { setStoryTauriRuntimeMissing, setStoryTauriRuntimePresent } from "@/components/storybook/story-tauri-runtime";
 import { usePlatformStore } from "@/stores/platform-store";
 import { WorkspaceHeader, WorkspaceHeaderActionButton } from "./workspace-header";
 
@@ -26,7 +27,7 @@ const runtimeCapabilities = {
 };
 
 function resetRuntimeMode() {
-  delete window.__TAURI_INTERNALS__;
+  setStoryTauriRuntimeMissing();
   window.__DEV_BROWSER_MOCKS__ = false;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
   usePlatformStore.setState(usePlatformStore.getInitialState());
@@ -57,7 +58,7 @@ function applyRuntimeMode(runtimeMode: RuntimeMode) {
     return;
   }
 
-  window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+  setStoryTauriRuntimePresent();
   window.__DEV_BROWSER_MOCKS__ = false;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
   usePlatformStore.setState({

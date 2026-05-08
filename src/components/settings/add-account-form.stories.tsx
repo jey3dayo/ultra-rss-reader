@@ -1,22 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
 import { AddAccountForm, type AddAccountFormProps } from "./add-account-form";
-
-function StoryQueryClientProvider({ children }: { children: ReactNode }) {
-  const queryClient = useMemo(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { retry: false },
-        },
-      }),
-    [],
-  );
-
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-}
 
 const meta = {
   title: "Settings/Page/AddAccountForm",

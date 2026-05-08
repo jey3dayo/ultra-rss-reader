@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BookOpen, Palette, Settings, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
@@ -10,6 +8,7 @@ import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
 import {
   AnnotatedNote,
   ReferencePage,
@@ -70,20 +69,6 @@ const keepReadItemsOptions = [
   { value: "90", label: "Three months" },
   { value: "0", label: "Forever" },
 ];
-
-function StoryQueryClientProvider({ children }: { children: ReactNode }) {
-  const queryClient = useMemo(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { retry: false },
-        },
-      }),
-    [],
-  );
-
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-}
 
 function SettingsWorkspaceShell({
   title,
