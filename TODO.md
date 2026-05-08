@@ -163,3 +163,33 @@
   - `workspace-pane-layout.ts` と `app-layout.tsx` の pane sizing / shell boundary / responsive constraints を、shared layout contract と app shell usage に分けられるか確認する
   - layout token や CSS class の変更は visual impact があるため、まずは型・helper配置と tests の責務整理に限定する
   - app shell の overlay / debug HUD / modal collision とは別バッチにする
+
+- [ ] Tauri command/schema contract 整理候補を別バッチで見直す
+  - `src/api/tauri-commands.ts` と `src/api/schemas/*` の command response validation を、command group 単位で棚卸しする
+  - Rust command DTO と frontend schema のズレを検出する contract test を優先し、UI 側の fallback copy 変更とは混ぜない
+  - database / account / feed / browser webview command は失敗時の戻り値契約が違うため、worker scope を分ける
+
+- [ ] Tauri menu / shortcut contract 整理候補を別バッチで見直す
+  - `src-tauri/src/menu.rs` / `menu_i18n.rs` と frontend shortcut handling の action id 対応を一覧化する
+  - menu label の i18n と frontend shortcut 表示は別レイヤーなので、まずは action id と emitted event の contract test を優先する
+  - native menu の checked state と UI preference state の同期は挙動影響があるため、型・テスト整理とは分ける
+
+- [ ] Rust DB repository test 候補を別バッチで追加する
+  - sqlite account / feed / folder / article / tag / sync state repository の境界値を、migration 適用済み DB fixture で固定する
+  - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
+  - 既存 integration test が広い場合は、repository ごとの小さい fixture helper を先に作る
+
+- [ ] dev mock / scenario runtime 整理候補を別バッチで見直す
+  - `src/dev/mock-data.ts` / `mocks.ts` / scenario registry の fixture を、reader / settings / browser / subscriptions の利用面ごとに分けられるか確認する
+  - command palette dev scenario と browser geometry scenario は実行環境依存が違うため、同じ worker に混ぜない
+  - mock data の表示文言変更は Storybook / tests に波及するため、まずは fixture boundary の整理に限定する
+
+- [ ] updater / release readiness 検証候補を別バッチで見直す
+  - `.github/workflows/release.yml`、`src-tauri/tauri.conf.json`、`updater_commands.rs` の updater 設定・署名・fallback を確認する
+  - local test で固定できる設定検証と、実 release artifact が必要な検証を分ける
+  - release note / manual verification docs への反映は、実際の release 作業とは別コミットにする
+
+- [ ] locale / copy contract 整理候補を別バッチで見直す
+  - reader / settings / native menu / updater の表示文言が、同じ概念に対して異なるキー名や表現を使っていないか棚卸しする
+  - `ja-locales` / `ui-language` 系 tests に、キー存在だけでなく reader/preview/external browser の意味差分を固定する assertion を追加する
+  - copy 変更は UI regression になりやすいため、型整理や layout 変更とは混ぜない
