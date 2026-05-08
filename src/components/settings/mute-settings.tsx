@@ -1,5 +1,6 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
+import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { MuteSettingsView } from "@/components/settings/mute-settings-view";
 import { useMuteSettingsViewProps } from "@/components/settings/use-mute-settings-view-props";
@@ -17,14 +18,14 @@ import { useUiStore } from "@/stores/ui-store";
 
 type MuteSettingsState = {
   keyword: string;
-  scope: "title" | "body" | "title_and_body";
+  scope: MuteKeywordScope;
   confirmRule: MuteKeywordDto | null;
 };
 
 type MuteSettingsAction =
   | { type: "set-keyword"; value: string }
   | { type: "reset-keyword" }
-  | { type: "set-scope"; value: "title" | "body" | "title_and_body" }
+  | { type: "set-scope"; value: MuteKeywordScope }
   | { type: "set-confirm-rule"; value: MuteKeywordDto | null };
 
 const initialMuteSettingsState: MuteSettingsState = {
@@ -96,7 +97,7 @@ export function MuteSettings() {
     }
   };
 
-  const handleRuleScopeChange = async (ruleId: string, nextScope: "title" | "body" | "title_and_body") => {
+  const handleRuleScopeChange = async (ruleId: string, nextScope: MuteKeywordScope) => {
     const currentRule = rules.find((candidate) => candidate.id === ruleId);
     if (!currentRule || currentRule.scope === nextScope) {
       return;

@@ -58,6 +58,7 @@ import {
   listStarredArticlesArgs,
   type MuteKeywordDto,
   MuteKeywordDtoSchema,
+  type MuteKeywordScope,
   markAccountReadArgs,
   markArticleReadArgs,
   markArticlesReadArgs,
@@ -342,14 +343,14 @@ export const searchArticles = (accountId: string, query: string, offset?: number
 
 export const listMuteKeywords = () => safeInvoke("list_mute_keywords", { response: z.array(MuteKeywordDtoSchema) });
 
-export const createMuteKeyword = (keyword: string, scope: "title" | "body" | "title_and_body") =>
+export const createMuteKeyword = (keyword: string, scope: MuteKeywordScope) =>
   safeInvoke(
     "create_mute_keyword",
     { response: MuteKeywordDtoSchema, args: createMuteKeywordArgs },
     { keyword, scope },
   );
 
-export const updateMuteKeyword = (muteKeywordId: string, scope: "title" | "body" | "title_and_body") =>
+export const updateMuteKeyword = (muteKeywordId: string, scope: MuteKeywordScope) =>
   safeInvoke(
     "update_mute_keyword",
     { response: MuteKeywordDtoSchema, args: updateMuteKeywordArgs },

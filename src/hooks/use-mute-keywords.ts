@@ -8,11 +8,12 @@ import {
   setMuteAutoMarkRead,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
+import type { MuteKeywordScope } from "@/api/schemas";
 import { createMutation } from "@/hooks/create-mutation";
 
 export type CreateMuteKeywordMutationInput = {
   keyword: string;
-  scope: "title" | "body" | "title_and_body";
+  scope: MuteKeywordScope;
 };
 
 export type DeleteMuteKeywordMutationInput = {
@@ -21,7 +22,7 @@ export type DeleteMuteKeywordMutationInput = {
 
 export type UpdateMuteKeywordMutationInput = {
   muteKeywordId: string;
-  scope: "title" | "body" | "title_and_body";
+  scope: MuteKeywordScope;
 };
 
 export type SetMuteAutoMarkReadMutationInput = {

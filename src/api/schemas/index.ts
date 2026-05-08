@@ -73,7 +73,12 @@ export { type FeedDto, FeedDtoSchema } from "./feed";
 export { type FeedArticleSummaryDto, FeedArticleSummaryDtoSchema } from "./feed-article-summary";
 export { type FeedIntegrityReportDto, FeedIntegrityReportDtoSchema } from "./feed-integrity";
 export { type FolderDto, FolderDtoSchema } from "./folder";
-export { type MuteKeywordDto, MuteKeywordDtoSchema, MuteKeywordScopeSchema } from "./mute-keyword";
+export {
+  type MuteKeywordDto,
+  MuteKeywordDtoSchema,
+  type MuteKeywordScope,
+  MuteKeywordScopeSchema,
+} from "./mute-keyword";
 export {
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,

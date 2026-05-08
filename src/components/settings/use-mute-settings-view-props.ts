@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { getOptionLabelByValue } from "@/lib/options";
 import type { MuteSettingsViewProps } from "./mute-settings-view";
@@ -6,15 +7,15 @@ import type { MuteSettingsViewProps } from "./mute-settings-view";
 type UseMuteSettingsViewPropsParams = {
   t: TFunction<"settings">;
   keyword: string;
-  scope: "title" | "body" | "title_and_body";
+  scope: MuteKeywordScope;
   rules: MuteKeywordDto[];
   addDisabled: boolean;
   autoMarkReadChecked: boolean;
   autoMarkReadDisabled: boolean;
   confirmRule: MuteKeywordDto | null;
   onKeywordChange: (value: string) => void;
-  onScopeChange: (value: "title" | "body" | "title_and_body") => void;
-  onRuleScopeChange: (ruleId: string, value: "title" | "body" | "title_and_body") => void;
+  onScopeChange: (value: MuteKeywordScope) => void;
+  onRuleScopeChange: (ruleId: string, value: MuteKeywordScope) => void;
   onAutoMarkReadChange: (checked: boolean) => void;
   onAdd: () => void;
   onRequestDelete: (ruleId: string) => void;
