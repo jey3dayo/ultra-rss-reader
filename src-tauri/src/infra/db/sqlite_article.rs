@@ -1905,6 +1905,26 @@ mod tests {
     }
 
     #[test]
+    fn article_mutation_missing_id_contract_is_repository_noop() {
+        let db = test_db();
+        let repo = SqliteArticleRepository::new(db.writer());
+        let missing_id = ArticleId("missing-article".to_string());
+
+        repo.mark_as_read(&missing_id, true)
+            .expect("missing article read mutation should be a no-op");
+        repo.mark_many_as_read(&[missing_id.clone()])
+            .expect("missing bulk article read mutation should be a no-op");
+        repo.mark_as_starred(&missing_id, true)
+            .expect("missing article star mutation should be a no-op");
+
+        let article_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM articles", [], |row| row.get(0))
+            .expect("article count should succeed");
+        assert_eq!(article_count, 0);
+    }
+
+    #[test]
     fn purge_old_read_keeps_unread_and_starred() {
         let db = test_db();
         let account_id = insert_test_account(&db);

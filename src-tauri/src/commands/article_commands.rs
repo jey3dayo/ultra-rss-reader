@@ -1,5 +1,6 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
+use rusqlite::OptionalExtension;
 use tauri::State;
 
 use crate::commands::dto::{
@@ -337,6 +338,86 @@ fn bulk_unstar_account_articles(
     Ok(count)
 }
 
+fn mark_article_read_with_conn(
+    conn: &rusqlite::Connection,
+    article_id: ArticleId,
+    read: bool,
+) -> Result<(), AppError> {
+    let repo = SqliteArticleRepository::new(conn);
+    repo.mark_as_read(&article_id, read)?;
+
+    let feed_id_str = conn
+        .query_row(
+            "SELECT feed_id FROM articles WHERE id = ?1",
+            rusqlite::params![article_id.0],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(DomainError::from)?;
+
+    if let Some(feed_id_str) = feed_id_str {
+        let feed_repo = SqliteFeedRepository::new(conn);
+        feed_repo.recalculate_unread_count(&FeedId(feed_id_str))?;
+
+        let mutation_type = if read { "mark_read" } else { "mark_unread" };
+        maybe_queue_mutation(conn, &article_id, mutation_type)?;
+    }
+
+    Ok(())
+}
+
+fn mark_articles_read_with_conn(
+    conn: &rusqlite::Connection,
+    ids: &[ArticleId],
+) -> Result<(), AppError> {
+    let repo = SqliteArticleRepository::new(conn);
+    repo.mark_many_as_read(ids)?;
+
+    if !ids.is_empty() {
+        let placeholders: Vec<String> = ids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("?{}", i + 1))
+            .collect();
+        let sql = format!(
+            "SELECT DISTINCT feed_id FROM articles WHERE id IN ({})",
+            placeholders.join(", ")
+        );
+        let mut stmt = conn.prepare(&sql).map_err(DomainError::from)?;
+        let params: Vec<&dyn rusqlite::ToSql> =
+            ids.iter().map(|id| &id.0 as &dyn rusqlite::ToSql).collect();
+        let feed_ids: Vec<String> = stmt
+            .query_map(params.as_slice(), |row| row.get::<_, String>(0))
+            .map_err(DomainError::from)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(DomainError::from)?;
+        let feed_repo = SqliteFeedRepository::new(conn);
+        for fid in feed_ids {
+            feed_repo.recalculate_unread_count(&FeedId(fid))?;
+        }
+    }
+
+    for id in ids {
+        maybe_queue_mutation(conn, id, "mark_read")?;
+    }
+
+    Ok(())
+}
+
+fn toggle_article_star_with_conn(
+    conn: &rusqlite::Connection,
+    article_id: ArticleId,
+    starred: bool,
+) -> Result<(), AppError> {
+    let repo = SqliteArticleRepository::new(conn);
+    repo.mark_as_starred(&article_id, starred)?;
+
+    let mutation_type = if starred { "star" } else { "unstar" };
+    maybe_queue_mutation(conn, &article_id, mutation_type)?;
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
     let client = reqwest::Client::builder()
@@ -613,27 +694,8 @@ pub fn mark_article_read(
         message: format!("Lock error: {e}"),
     })?;
     let article_id = ArticleId(article_id);
-    let repo = SqliteArticleRepository::new(db.writer());
     let read = read.unwrap_or(true);
-    repo.mark_as_read(&article_id, read)?;
-
-    // Recalculate unread count for the affected feed
-    let feed_id_str: String = db
-        .writer()
-        .query_row(
-            "SELECT feed_id FROM articles WHERE id = ?1",
-            rusqlite::params![article_id.0],
-            |row| row.get(0),
-        )
-        .map_err(DomainError::from)?;
-    let feed_repo = SqliteFeedRepository::new(db.writer());
-    feed_repo.recalculate_unread_count(&FeedId(feed_id_str))?;
-
-    // Queue pending mutation for FreshRSS accounts
-    let mutation_type = if read { "mark_read" } else { "mark_unread" };
-    maybe_queue_mutation(db.writer(), &article_id, mutation_type)?;
-
-    Ok(())
+    mark_article_read_with_conn(db.writer(), article_id, read)
 }
 
 #[tauri::command]
@@ -671,40 +733,7 @@ pub fn mark_articles_read(
         message: format!("Lock error: {e}"),
     })?;
     let ids: Vec<ArticleId> = article_ids.iter().map(|id| ArticleId(id.clone())).collect();
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_many_as_read(&ids)?;
-
-    // Recalculate unread counts for affected feeds
-    if !ids.is_empty() {
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("?{}", i + 1))
-            .collect();
-        let sql = format!(
-            "SELECT DISTINCT feed_id FROM articles WHERE id IN ({})",
-            placeholders.join(", ")
-        );
-        let mut stmt = db.writer().prepare(&sql).map_err(DomainError::from)?;
-        let params: Vec<&dyn rusqlite::ToSql> =
-            ids.iter().map(|id| &id.0 as &dyn rusqlite::ToSql).collect();
-        let feed_ids: Vec<String> = stmt
-            .query_map(params.as_slice(), |row| row.get::<_, String>(0))
-            .map_err(DomainError::from)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DomainError::from)?;
-        let feed_repo = SqliteFeedRepository::new(db.writer());
-        for fid in feed_ids {
-            feed_repo.recalculate_unread_count(&FeedId(fid))?;
-        }
-    }
-
-    // Queue pending mutations for FreshRSS articles
-    for id in &ids {
-        maybe_queue_mutation(db.writer(), id, "mark_read")?;
-    }
-
-    Ok(())
+    mark_articles_read_with_conn(db.writer(), &ids)
 }
 
 #[tauri::command]
@@ -808,14 +837,7 @@ pub fn toggle_article_star(
         message: format!("Lock error: {e}"),
     })?;
     let article_id = ArticleId(article_id);
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_as_starred(&article_id, starred)?;
-
-    // Queue pending mutation for FreshRSS accounts
-    let mutation_type = if starred { "star" } else { "unstar" };
-    maybe_queue_mutation(db.writer(), &article_id, mutation_type)?;
-
-    Ok(())
+    toggle_article_star_with_conn(db.writer(), article_id, starred)
 }
 
 /// If the article belongs to a FreshRSS account and has a remote_id, insert a pending_mutation.
@@ -885,8 +907,9 @@ mod tests {
     use super::check_browser_embed_support;
     use super::{
         bulk_mark_account_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
-        has_blocking_frame_ancestors, has_blocking_x_frame_options, maybe_queue_mutation,
-        should_use_background_browser_open, supports_remote_mutations, OldUnreadScope,
+        has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
+        mark_articles_read_with_conn, maybe_queue_mutation, should_use_background_browser_open,
+        supports_remote_mutations, toggle_article_star_with_conn, OldUnreadScope,
     };
     use crate::domain::types::{AccountId, ArticleId, FeedId};
     use crate::infra::db::connection::DbManager;
@@ -1028,6 +1051,32 @@ mod tests {
             .find_by_account(&account_id)
             .expect("pending mutation query should succeed");
         assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn article_mutation_missing_id_contract_is_command_noop() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+
+        mark_article_read_with_conn(db.writer(), ArticleId("missing-read".to_string()), true)
+            .expect("missing article read mutation should be a no-op");
+        mark_articles_read_with_conn(
+            db.writer(),
+            &[
+                ArticleId("missing-bulk-1".to_string()),
+                ArticleId("missing-bulk-2".to_string()),
+            ],
+        )
+        .expect("missing bulk article read mutation should be a no-op");
+        toggle_article_star_with_conn(db.writer(), ArticleId("missing-star".to_string()), true)
+            .expect("missing article star mutation should be a no-op");
+
+        let pending_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .expect("pending mutation count should succeed");
+        assert_eq!(pending_count, 0);
     }
 
     fn insert_bulk_account(db: &DbManager, id: &str, kind: &str) {
