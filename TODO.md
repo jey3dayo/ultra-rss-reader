@@ -934,11 +934,6 @@
   - progress 表示追加、sync scheduler / backoff、manual sync toast 文言、provider error mapping とは混ぜない
   - account detail sync-now guard 候補と統合する場合は実装前に scope を整理する
 
-- [ ] account delete keyring cleanup idempotency 候補を別バッチで追加する
-  - `account_commands.rs` と `keyring_store.rs` で account delete 時の credential cleanup が missing keyring entry でも成功扱いにできるか contract を固定する
-  - account create keyring orphan rollback、provider login flow、credential verification UI とは混ぜない
-  - DB delete と keyring delete の失敗分類を別 fixture にする
-
 - [ ] database vacuum busy error contract 候補を別バッチで追加する
   - `database_commands.rs` で VACUUM 実行時の sqlite busy / locked / generic error を command result として分類できるか確認する
   - data settings pending state、backup / export UX、migration recovery とは混ぜない
@@ -1074,10 +1069,6 @@
 - [ ] Feed tree click suppression timer cleanup 候補を別バッチで追加する
   - `use-feed-tree-handle-click-suppression.ts` で suppress timer が unmount 時に clear され、連続 drag handle 操作でも stale timer が残らない契約を fixed timer test で固定する
   - drag outcome、drop target hover、folder disclosure aria は別バッチにする
-
-- [ ] Sync scheduler deleted account pruning contract 候補を別バッチで追加する
-  - `sync_scheduler.rs` で削除済み account の schedule entry が pruning され、次 tick で sync target に残らない契約を小さい scheduler helper test として切り出す
-  - backoff visibility、startup sync unlock、manual sync in-flight guard は混ぜない
 
 - [ ] Sync scheduler panic progress completion contract 候補を別バッチで追加する
   - `sync_scheduler.rs` で account sync panic 時にも account finished event と scheduler continuation の契約が崩れないことを helper 化して固定する

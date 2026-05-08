@@ -172,6 +172,12 @@ fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainRes
     Ok(())
 }
 
+fn delete_dev_password_at_path(path: &PathBuf, account_id: &str) -> DomainResult<()> {
+    let mut store = read_dev_store(path);
+    store.remove(account_id);
+    write_dev_store(path, &store)
+}
+
 // ---------------------------------------------------------------------------
 // OS Keychain helpers
 // ---------------------------------------------------------------------------
@@ -269,9 +275,7 @@ pub fn get_password(account_id: &str) -> DomainResult<String> {
 
 pub fn delete_password(account_id: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
-        let mut store = read_dev_store(&path);
-        store.remove(account_id);
-        return write_dev_store(&path, &store);
+        return delete_dev_password_at_path(&path, account_id);
     }
 
     let entry = keyring::Entry::new(SERVICE, account_id)
@@ -522,6 +526,22 @@ mod tests {
             error.to_string(),
             "Keychain error: Failed to verify saved password: retrieved value did not match the saved credential"
         );
+    }
+
+    #[test]
+    fn delete_dev_password_at_path_is_idempotent_for_missing_entries() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let mut store = HashMap::new();
+        store.insert("existing-account".to_string(), "secret".to_string());
+        super::write_dev_store(&path, &store).expect("dev credential fixture should be writable");
+
+        super::delete_dev_password_at_path(&path, "missing-account")
+            .expect("missing dev credential cleanup should be a no-op");
+        super::delete_dev_password_at_path(&path, "missing-account")
+            .expect("repeated missing dev credential cleanup should stay a no-op");
+
+        assert_eq!(super::read_dev_store(&path), store);
     }
 
     #[test]

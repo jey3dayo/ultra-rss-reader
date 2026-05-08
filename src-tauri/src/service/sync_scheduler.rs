@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::panic::AssertUnwindSafe;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
@@ -79,10 +79,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
 
             let now = Instant::now();
 
-            // Remove schedules for deleted accounts
-            let account_ids: Vec<String> =
-                accounts.iter().map(|a| a.id.as_ref().to_string()).collect();
-            schedules.retain(|id, _| account_ids.contains(id));
+            prune_deleted_account_schedules(&mut schedules, &accounts);
 
             // Ensure every account has a schedule entry
             for account in &accounts {
@@ -235,6 +232,14 @@ fn account_interval(account: &Account) -> Duration {
         DEFAULT_SYNC_INTERVAL_SECS
     };
     Duration::from_secs(secs)
+}
+
+fn prune_deleted_account_schedules(
+    schedules: &mut HashMap<String, AccountSchedule>,
+    accounts: &[Account],
+) {
+    let account_ids: HashSet<&str> = accounts.iter().map(|a| a.id.as_ref()).collect();
+    schedules.retain(|id, _| account_ids.contains(id.as_str()));
 }
 
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
@@ -434,6 +439,43 @@ mod tests {
             account_interval(&account),
             Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS)
         );
+    }
+
+    #[test]
+    fn prune_deleted_account_schedules_removes_accounts_missing_from_latest_snapshot() {
+        let retained = Account {
+            id: AccountId("retained-account".to_string()),
+            kind: crate::domain::provider::ProviderKind::Local,
+            name: "Retained".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 60,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+        let mut schedules = HashMap::from([
+            (
+                retained.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: Instant::now(),
+                },
+            ),
+            (
+                "deleted-account".to_string(),
+                AccountSchedule {
+                    next_sync: Instant::now(),
+                },
+            ),
+        ]);
+
+        prune_deleted_account_schedules(&mut schedules, &[retained]);
+
+        assert!(schedules.contains_key("retained-account"));
+        assert!(!schedules.contains_key("deleted-account"));
     }
 
     #[test]
