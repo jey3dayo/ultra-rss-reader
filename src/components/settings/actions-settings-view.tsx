@@ -1,5 +1,5 @@
-import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,

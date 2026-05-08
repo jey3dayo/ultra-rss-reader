@@ -29,11 +29,11 @@ import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
 import { SmartViewsView } from "@/components/reader/smart-views-view";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
-import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import type { AccountNavItem, SettingsNavItem } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { ShortcutKeyButton } from "@/components/settings/shortcuts-settings-view";
 import { AppToastView } from "@/components/shared/app-toast-view";
 import {

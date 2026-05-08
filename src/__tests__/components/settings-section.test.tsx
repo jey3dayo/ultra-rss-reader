@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 
 describe("SettingsSection", () => {
   it("renders the shared section surface with heading, body, and note", () => {

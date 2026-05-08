@@ -1,6 +1,4 @@
 import { useId } from "react";
-import { SettingsActionButton } from "@/components/settings/settings-action-button";
-import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import type {
   SettingsPageActionRowProps,
   SettingsPageInfoRowProps,
@@ -9,7 +7,9 @@ import type {
   SettingsPageTextRowProps,
   SettingsPageViewProps,
 } from "@/components/settings/settings-page.types";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
+import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";

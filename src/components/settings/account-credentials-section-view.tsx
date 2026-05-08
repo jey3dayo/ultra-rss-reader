@@ -1,7 +1,7 @@
 import { Copy } from "lucide-react";
 import type { ComponentProps } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import type { AccountCredentialInputRow } from "./account-detail.types";

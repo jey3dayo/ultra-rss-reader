@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
+import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 
 describe("SettingsContentLayout", () => {
   it("uses shell content and field-label tones in stacked-left mode", () => {

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SettingsRow } from "./settings-components";
 

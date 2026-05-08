@@ -6,8 +6,8 @@ import { AccountCredentialsSectionView } from "@/components/settings/account-cre
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { AddAccountForm } from "@/components/settings/add-account-form";
-import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
 import {
   AnnotatedNote,

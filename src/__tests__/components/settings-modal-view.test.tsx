@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
+import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 
 const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
   const callbacks = new Set<() => void>();

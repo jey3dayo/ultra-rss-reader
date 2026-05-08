@@ -1,7 +1,7 @@
 import { LoaderCircle } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { SettingsActionButton } from "./settings-action-button";
+import { SettingsActionButton } from "./shared/settings-action-button";
 
 type SettingsLoadingActionButtonProps = Omit<ComponentProps<typeof SettingsActionButton>, "children"> & {
   loading?: boolean;

@@ -44,6 +44,12 @@
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
+- [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
+  - `account-detail-query-cache.ts` / `account-detail-toast.ts` / `account-detail.types.ts` は `account-detail/` へ寄せられるが、account detail views / hooks / tests / add account flow にまたがるため単独バッチにする
+  - `add-account-services.ts` / `add-account-services.types.ts` / `add-account-form.types.ts` は `add-account/` へ寄せられるが、service picker / account config form / account nav / tests にまたがるため単独バッチにする
+  - `settings-nav.types.ts` / `settings-page.types.ts` / `settings-modal.types.ts` は view contract として参照範囲が広いため、移動するなら nav/page/modal のファイル群と一緒に判断する
+  - `settings-components.tsx` と `service-picker.tsx` は store access や add-account 専用性があり、settings shared には混ぜず、責務を分ける時に扱う
+
 - [ ] 小粒 cleanup 候補を別バッチで見直す
   - `safeInvoke` 周辺の schema / error guard を型安全に整理する
   - UI class variant のテスト固定は、見た目を過剰に固定しない範囲に限定する

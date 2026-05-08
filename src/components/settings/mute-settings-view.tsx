@@ -1,8 +1,8 @@
 import { AlertTriangle } from "lucide-react";
 import type { MuteKeywordScope } from "@/api/schemas";
-import { SettingsActionButton } from "@/components/settings/settings-action-button";
-import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
+import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
