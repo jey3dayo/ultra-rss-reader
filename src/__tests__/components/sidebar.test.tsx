@@ -11,14 +11,14 @@ import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 import {
   type MockTauriCommandCall,
   sampleAccounts,
   sampleFeeds,
   sampleTags,
   setupTauriMocks,
-} from "../../../tests/helpers/tauri-mocks";
+} from "@tests/helpers/tauri-mocks";
 
 const { devIntentState } = vi.hoisted(() => ({
   devIntentState: {

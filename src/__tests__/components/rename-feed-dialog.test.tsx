@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 
 vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
   RenameFeedDialogView: (props: {

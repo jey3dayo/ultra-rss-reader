@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "@/api/tauri-commands";
 import { createFolderIfNeeded, createFolderIfNeededResult } from "@/components/reader/feed-folder-flow";
-import { setupTauriMocks, teardownTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("feed-folder-flow", () => {
   afterEach(() => {

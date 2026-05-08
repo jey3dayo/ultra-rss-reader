@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/tauri-mocks";
 
 describe("useArticlesByTag", () => {
   let queryClient: QueryClient;

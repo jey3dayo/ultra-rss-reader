@@ -6,7 +6,7 @@ import { useReadingSettingsViewProps } from "@/components/settings/use-reading-s
 import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 
 const t = i18n.getFixedT("en", "settings");
 

@@ -6,7 +6,7 @@ import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 
 describe("shared form controls", () => {
   it("renders form action buttons with loading and disabled states", async () => {

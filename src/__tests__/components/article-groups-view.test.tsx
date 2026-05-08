@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleGroupsView } from "@/components/reader/article-groups-view";
-import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/tauri-mocks";
 
 describe("ArticleGroupsView", () => {
   it("renders group headers and article items, preserving selection state", async () => {

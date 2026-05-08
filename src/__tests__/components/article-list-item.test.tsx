@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListItem } from "@/components/reader/article-list-item";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleArticles } from "@tests/helpers/tauri-mocks";
 
 describe("ArticleListItem", () => {
   beforeEach(() => {

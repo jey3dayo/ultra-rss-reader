@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useBadge } from "@/hooks/use-badge";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const { setBadgeCountMock } = vi.hoisted(() => ({
   setBadgeCountMock: vi.fn(),

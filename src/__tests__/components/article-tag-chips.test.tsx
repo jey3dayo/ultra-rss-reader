@@ -2,8 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ArticleTagChips, buildArticleTagPickerLists } from "@/components/reader/article-tag-chips";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("ArticleTagChips", () => {
   it("builds assigned and available tag picker lists", () => {

@@ -6,8 +6,8 @@ import { APP_EVENTS } from "@/constants/events";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const settingsModalState = vi.hoisted(() => ({ shouldThrow: false }));
 

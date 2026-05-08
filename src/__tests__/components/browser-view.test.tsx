@@ -9,8 +9,8 @@ import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CL
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const { listenMock, registeredHandlers } = vi.hoisted(() => {
   const handlers = new Map<string, (event: { payload: unknown }) => void>();
@@ -30,6 +30,17 @@ type MockHostRect = {
   top: number;
   width: number;
   height: number;
+};
+
+type BrowserDebugGeometryDetail = {
+  layoutDiagnostics: {
+    hostLogical: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+  };
 };
 
 const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
@@ -99,6 +110,10 @@ function expectInlineStyles(element: HTMLElement, expected: Partial<Record<Inlin
   for (const [property, value] of Object.entries(expected) as [InlineStyleKey, string][]) {
     expect(element.style[property]).toBe(value);
   }
+}
+
+function isBrowserDebugGeometryEvent(event: Event): event is CustomEvent<BrowserDebugGeometryDetail> {
+  return event instanceof CustomEvent;
 }
 
 function resolveMockRect(element: HTMLElement): MockHostRect {
@@ -764,9 +779,13 @@ describe("BrowserView", () => {
       prefs: { debug_browser_hud: "true" },
       loaded: true,
     });
-    const geometryEvents: CustomEvent[] = [];
+    const geometryEvents: CustomEvent<BrowserDebugGeometryDetail>[] = [];
     const handleGeometryEvent = (event: Event) => {
-      geometryEvents.push(event as CustomEvent);
+      if (!isBrowserDebugGeometryEvent(event)) {
+        throw new Error("Expected browser debug geometry event");
+      }
+
+      geometryEvents.push(event);
     };
     window.addEventListener(APP_EVENTS.browserDebugGeometry, handleGeometryEvent);
 

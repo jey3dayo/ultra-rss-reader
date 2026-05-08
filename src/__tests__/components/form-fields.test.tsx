@@ -6,8 +6,8 @@ import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { SettingsSelect, SettingsSwitch } from "@/components/settings/settings-components";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const sampleFolders = [
   { id: "folder-1", account_id: "acc-1", name: "Work", sort_order: 0 },

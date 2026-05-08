@@ -11,7 +11,7 @@ import {
   resolveArticleSummaryWebsiteLabel,
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/article-view";
-import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 
 describe("article-view utils", () => {
   it("resolves the selected article from feed articles", () => {

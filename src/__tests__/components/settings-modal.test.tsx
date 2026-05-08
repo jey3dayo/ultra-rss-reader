@@ -10,8 +10,8 @@ import { SettingsModal } from "@/components/settings/settings-modal";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleAccounts, type sampleTags, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleAccounts, type sampleTags, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
-import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/tauri-mocks";
 
 describe("ArticleListScreenView", () => {
   it("renders the loading state inside the article list body", () => {

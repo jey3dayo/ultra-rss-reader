@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("GeneralSettings", () => {
   beforeEach(() => {

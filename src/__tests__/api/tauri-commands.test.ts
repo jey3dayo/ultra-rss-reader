@@ -31,7 +31,7 @@ import {
   updateMuteKeyword,
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
-import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("tauri-commands with mockIPC", () => {
   const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };

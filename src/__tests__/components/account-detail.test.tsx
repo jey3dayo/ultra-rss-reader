@@ -6,10 +6,20 @@ import { AccountDetail } from "@/components/settings/account-detail";
 import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const accountDetailViewSpy = vi.fn();
+
+async function findPasswordInput() {
+  const input = await screen.findByPlaceholderText("Enter new password");
+
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error("Expected password field to be an input element");
+  }
+
+  return input;
+}
 
 vi.mock("@/components/settings/account-detail-view", () => ({
   AccountDetailView: (props: {
@@ -660,7 +670,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    const passwordInput = (await screen.findByPlaceholderText("Enter new password")) as HTMLInputElement;
+    const passwordInput = await findPasswordInput();
     expect(passwordInput).toHaveValue("••••••••");
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
@@ -725,7 +735,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    const passwordInput = (await screen.findByPlaceholderText("Enter new password")) as HTMLInputElement;
+    const passwordInput = await findPasswordInput();
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
     passwordInput.blur();

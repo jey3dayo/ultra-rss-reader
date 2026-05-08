@@ -8,7 +8,7 @@ import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 import {
   type MockTauriCommandCall,
   sampleAccounts,
@@ -16,7 +16,7 @@ import {
   sampleFeeds,
   sampleTags,
   setupTauriMocks,
-} from "../../../tests/helpers/tauri-mocks";
+} from "@tests/helpers/tauri-mocks";
 
 vi.mock("@/hooks/use-resolved-dev-intent", () => ({
   useResolvedDevIntent: () => ({

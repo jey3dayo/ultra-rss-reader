@@ -11,7 +11,7 @@ import {
   useSearchArticles,
   useToggleStar,
 } from "@/hooks/use-articles";
-import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 
 describe("useToggleStar", () => {
   let queryClient: QueryClient;

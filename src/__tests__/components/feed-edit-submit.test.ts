@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
 import type { SubmitFeedEditsParams } from "@/components/reader/rename-feed-dialog.types";
-import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const feed: FeedDto = {
   id: "feed-1",

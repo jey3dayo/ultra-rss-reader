@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 
 describe("stacked shared fields", () => {
   it("associates stacked input fields with their label", () => {

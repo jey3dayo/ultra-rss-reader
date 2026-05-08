@@ -5,8 +5,8 @@ import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscri
 import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {

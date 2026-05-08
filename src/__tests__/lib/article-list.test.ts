@@ -22,7 +22,7 @@ import {
   selectVisibleArticles,
 } from "@/lib/article-list";
 import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader-query";
-import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 
 function buildTestSourcePlan(params: {
   sourceFilter: ReaderFilter;

@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("useFeedLanding", () => {
   beforeEach(() => {

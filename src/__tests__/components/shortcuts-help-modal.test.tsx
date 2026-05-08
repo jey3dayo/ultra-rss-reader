@@ -5,7 +5,7 @@ import { ShortcutsHelpModal } from "@/components/reader/shortcuts-help-modal";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 
 describe("ShortcutsHelpModal", () => {
   beforeEach(() => {
