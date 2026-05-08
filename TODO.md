@@ -519,11 +519,6 @@
   - key/value が単なる string のまま不正値を通さないよう、API args schema の境界値 test を追加する
   - backend persistence、toast 文言、settings control layout は別バッチに残す
 
-- [ ] command args schema coverage 候補を別バッチで追加する
-  - `safeInvoke(... args)` を使う command と `commandArgsSchemas` の登録漏れを raw source contract test で検出する
-  - response schema、Rust DTO、command 実装変更とは混ぜず、frontend API registry coverage だけを扱う
-  - pagination/search args の境界値 validation は別候補として分ける
-
 - [ ] shortcut row individual reset 候補を別バッチで追加する
   - `shortcuts-settings.tsx` と `shortcuts-settings-view.tsx` で、全リセットとは別に 1 行ごとに default へ戻す操作を追加できるか確認する
   - shortcut 定義追加、native menu shortcut、i18n 表記整理とは混ぜず、row action と persistence update に限定する

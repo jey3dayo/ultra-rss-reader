@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   AccountDtoSchema,
@@ -28,6 +30,53 @@ import {
   toggleArticleStarArgs,
   UpdateInfoDtoSchema,
 } from "@/api/schemas";
+
+function readTauriCommandsSource() {
+  return readFileSync(join(process.cwd(), "src/api/tauri-commands.ts"), "utf8");
+}
+
+function extractSafeInvokeCalls(source: string) {
+  const calls: string[] = [];
+  let searchFrom = 0;
+
+  while (searchFrom < source.length) {
+    const start = source.indexOf("safeInvoke(", searchFrom);
+    if (start === -1) {
+      break;
+    }
+
+    let depth = 0;
+    let end = start;
+    for (; end < source.length; end += 1) {
+      const char = source[end];
+      if (char === "(") {
+        depth += 1;
+      } else if (char === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          calls.push(source.slice(start, end + 1));
+          break;
+        }
+      }
+    }
+
+    searchFrom = end + 1;
+  }
+
+  return calls;
+}
+
+function extractSafeInvokeCommandsWithArgs(source: string) {
+  const commands = extractSafeInvokeCalls(source)
+    .filter((call) => /\bargs\s*:/.test(call))
+    .map((call) => {
+      const match = call.match(/safeInvoke\(\s*"([^"]+)"/);
+      return match?.[1];
+    })
+    .filter((command): command is string => typeof command === "string");
+
+  return [...new Set(commands)].sort();
+}
 
 describe("DTO schemas", () => {
   it("parses valid AccountDto", () => {
@@ -268,5 +317,11 @@ describe("command args schemas", () => {
     expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.set_mute_auto_mark_read).toBeDefined();
     expect(commandArgsSchemas.list_accounts).toBeUndefined(); // no args
+  });
+
+  it("keeps every safeInvoke args schema registered by command name", () => {
+    const commandsWithArgs = extractSafeInvokeCommandsWithArgs(readTauriCommandsSource());
+
+    expect(Object.keys(commandArgsSchemas).sort()).toEqual(commandsWithArgs);
   });
 });
