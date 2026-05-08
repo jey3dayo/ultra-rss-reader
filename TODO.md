@@ -338,3 +338,33 @@
   - `src/types/i18next.d.ts`、`src/lib/i18n.ts`、reader/settings/sidebar/subscriptions locale files の namespace と key presence を棚卸しする
   - copy 文面の改善ではなく、missing key、namespace drift、test fixture の型補完を検出する contract test に限定する
   - platform-specific shortcut label や native menu label は既存の menu/copy 候補に残し、web UI locale key の整合だけを見る
+
+- [ ] theme bootstrap / appearance state 候補を別バッチで検証する
+  - `theme-bootstrap-script`、appearance settings、app icon theme の初期 theme 解決を、before React hydration と store state で分けて確認する
+  - system theme / persisted theme / dev scenario の優先順位は startup UX に影響するため、DOM class と store value の契約 test を先に固定する
+  - icon asset や color palette 変更は含めず、theme source と fallback の compatibility に限定する
+
+- [ ] progress / loading surface contract 候補を別バッチで見直す
+  - `settings-loading-action-button.tsx`、`indeterminate-progress.tsx`、skeleton surfaces の loading / pending / disabled 表現を棚卸しする
+  - sync progress、settings save、feed discovery は待機時間と retry 導線が違うため、shared loading component の props 整理とは分ける
+  - animation token や visual polish は含めず、aria busy / disabled / label fallback の contract test を優先する
+
+- [ ] exception palette / semantic tone contract 候補を別バッチで追加する
+  - `exception-palettes.ts`、semantic tone token tests、article state icon / status chip の tone mapping を対応表で確認する
+  - danger / warning / success / neutral の意味が feature ごとにズレないよう、visual snapshot ではなく semantic role と token name の test に限定する
+  - destructive dialog や error toast の copy は dialog/copy batch に残し、ここでは tone taxonomy だけを見る
+
+- [ ] GitHub issue template / label taxonomy 候補を別バッチで整理する
+  - `.github/ISSUE_TEMPLATE/*`、`.github/labeler.yml`、`pr-insights-labeler` の labels / risk / size / manual-verification 表現を対応表にする
+  - workflow 変更は CI 影響があるため、まず issue template の選択肢と label source of truth の整合だけを確認する
+  - release-readiness や manual-verification の運用 copy は release checklist と混ぜず、GitHub metadata contract に限定する
+
+- [ ] release manual verification checklist 候補を別バッチで更新する
+  - `docs/release-manual-verification.md` の keyring / updater / packaged startup / live provider 確認観点を、現行 release workflow と照合する
+  - 実 release 作業や artifact signing は含めず、チェックリストが CI と手動検証のどちらで担保されるかを明確にする
+  - FreshRSS live verification や native keyring は secret を扱うため、値ではなく手順・合格条件・失敗時ログの確認に限定する
+
+- [ ] reader keyboard docs alignment 候補を別バッチで見直す
+  - `docs/reader-keyboard-navigation.md` と `keyboard-shortcuts.ts` / `use-keyboard.ts` / pane-specific key handlers の対応を棚卸しする
+  - shortcut label や i18n copy の変更は含めず、documented ownership と実装の event ownership がズレていないかを確認する
+  - browser overlay、article list、sidebar の keyboard contract は参照範囲が広いため、pane ごとに worker scope を分ける
