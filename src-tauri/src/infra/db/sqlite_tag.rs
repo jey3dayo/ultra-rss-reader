@@ -494,6 +494,60 @@ mod tests {
     }
 
     #[test]
+    fn count_articles_per_tag_includes_muted_articles_without_account_filter() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        db.writer()
+            .execute(
+                "UPDATE articles SET title = ?1 WHERE id = ?2",
+                params!["Kindle Unlimited digest", article_id.0],
+            )
+            .unwrap();
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "muted-count".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let counts = repo.count_articles_per_tag(None).unwrap();
+
+        assert_eq!(counts.iter().find(|(id, _)| id == &tag.id).unwrap().1, 1);
+    }
+
+    #[test]
+    fn count_articles_per_tag_includes_muted_articles_with_account_filter() {
+        let db = test_db();
+        let (account_id, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        db.writer()
+            .execute(
+                "UPDATE articles SET title = ?1 WHERE id = ?2",
+                params!["Kindle Unlimited digest", article_id.0],
+            )
+            .unwrap();
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "muted-account-count".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let counts = repo.count_articles_per_tag(Some(&account_id)).unwrap();
+
+        assert_eq!(counts.iter().find(|(id, _)| id == &tag.id).unwrap().1, 1);
+    }
+
+    #[test]
     fn tag_article_idempotent() {
         let db = test_db();
         let (_, _, article_id) = insert_test_data(&db);

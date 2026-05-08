@@ -37,6 +37,11 @@ fn validate_color(color: &str) -> bool {
     bytes[1..].iter().all(|b| b.is_ascii_hexdigit())
 }
 
+fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
+    tags.iter()
+        .any(|tag| tag.id.0 != tag_id && tag.name.eq_ignore_ascii_case(name))
+}
+
 fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
     ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
 }
@@ -116,8 +121,7 @@ pub fn rename_tag(
             message: "Tag not found".to_string(),
         })?;
 
-    // Check for duplicate tag name (case-sensitive)
-    if tags.iter().any(|t| t.name == name && t.id.0 != tag_id) {
+    if has_duplicate_tag_name(&tags, &tag_id, &name) {
         return Err(AppError::UserVisible {
             message: format!("Tag name \"{name}\" already exists"),
         });
@@ -132,12 +136,19 @@ pub fn rename_tag(
     Ok(TagDto::from(updated))
 }
 
-#[tauri::command]
-pub fn delete_tag(state: State<'_, AppState>, tag_id: String) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
+fn delete_tag_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    tag_id: String,
+) -> Result<(), AppError> {
+    let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.writer());
     repo.delete(&TagId(tag_id))?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn delete_tag(state: State<'_, AppState>, tag_id: String) -> Result<(), AppError> {
+    delete_tag_impl(&state.db, tag_id)
 }
 
 #[tauri::command]
@@ -206,4 +217,53 @@ pub fn get_tag_article_counts(
     let aid = account_id.map(AccountId);
     let counts = repo.count_articles_per_tag(aid.as_ref())?;
     Ok(counts.into_iter().map(|(id, c)| (id.0, c)).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infra::db::connection::DbManager;
+
+    fn test_db() -> std::sync::Mutex<DbManager> {
+        std::sync::Mutex::new(DbManager::new_in_memory().unwrap())
+    }
+
+    #[test]
+    fn validate_color_accepts_full_hex_and_rejects_empty_short_or_invalid_values() {
+        assert!(validate_color("#ff0000"));
+        assert!(validate_color("#FF0000"));
+        assert!(validate_color("#Cf7868"));
+
+        assert!(!validate_color(""));
+        assert!(!validate_color("#fff"));
+        assert!(!validate_color("ff0000"));
+        assert!(!validate_color("#gg0000"));
+    }
+
+    #[test]
+    fn duplicate_tag_name_check_rejects_other_tags_case_insensitively() {
+        let current = Tag {
+            id: TagId("tag-current".to_string()),
+            name: "Inbox".to_string(),
+            color: None,
+        };
+        let other = Tag {
+            id: TagId("tag-other".to_string()),
+            name: "Read Later".to_string(),
+            color: None,
+        };
+        let tags = vec![current, other];
+
+        assert!(has_duplicate_tag_name(&tags, "tag-current", "read later"));
+        assert!(has_duplicate_tag_name(&tags, "tag-current", "READ LATER"));
+        assert!(!has_duplicate_tag_name(&tags, "tag-current", "Inbox"));
+        assert!(!has_duplicate_tag_name(&tags, "tag-current", "inbox"));
+    }
+
+    #[test]
+    fn delete_missing_tag_is_successful_noop() {
+        let db = test_db();
+
+        delete_tag_impl(&db, "missing-tag".to_string()).unwrap();
+    }
 }

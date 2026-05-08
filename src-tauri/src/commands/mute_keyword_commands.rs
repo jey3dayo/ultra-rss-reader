@@ -22,6 +22,18 @@ fn lock_db(
 fn maybe_mark_existing_muted_articles_as_read(
     db: &crate::infra::db::connection::DbManager,
 ) -> Result<(), AppError> {
+    let account_ids = account_ids_with_feeds(db)?;
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    for account_id in account_ids {
+        article_repo.mark_muted_unread_as_read(&account_id, None)?;
+    }
+
+    Ok(())
+}
+
+fn account_ids_with_feeds(
+    db: &crate::infra::db::connection::DbManager,
+) -> Result<Vec<AccountId>, AppError> {
     let mut stmt = db
         .reader()
         .prepare("SELECT DISTINCT account_id FROM feeds")
@@ -31,13 +43,7 @@ fn maybe_mark_existing_muted_articles_as_read(
         .map_err(crate::domain::error::DomainError::from)?
         .collect::<Result<Vec<_>, _>>()
         .map_err(crate::domain::error::DomainError::from)?;
-
-    let article_repo = SqliteArticleRepository::new(db.writer());
-    for account_id in account_ids {
-        article_repo.mark_muted_unread_as_read(&AccountId(account_id), None)?;
-    }
-
-    Ok(())
+    Ok(account_ids.into_iter().map(AccountId).collect())
 }
 
 fn set_mute_auto_mark_read_impl(
@@ -101,15 +107,22 @@ pub fn delete_mute_keyword(
     state: State<'_, AppState>,
     mute_keyword_id: String,
 ) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
-    let repo = SqliteMuteKeywordRepository::new(db.writer());
-    repo.delete(&mute_keyword_id)?;
-    Ok(())
+    delete_mute_keyword_impl(&state.db, mute_keyword_id)
 }
 
 #[tauri::command]
 pub fn set_mute_auto_mark_read(state: State<'_, AppState>, enabled: bool) -> Result<(), AppError> {
     set_mute_auto_mark_read_impl(&state.db, enabled)
+}
+
+fn delete_mute_keyword_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    mute_keyword_id: String,
+) -> Result<(), AppError> {
+    let db = lock_db(db)?;
+    let repo = SqliteMuteKeywordRepository::new(db.writer());
+    repo.delete(&mute_keyword_id)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -207,5 +220,25 @@ mod tests {
             )
             .unwrap();
         assert!(is_read);
+    }
+
+    #[test]
+    fn account_ids_with_feeds_returns_each_account_once() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        let account_id = insert_test_account(&guard);
+        insert_test_feed(&guard, &account_id);
+        insert_test_feed(&guard, &account_id);
+
+        let account_ids = account_ids_with_feeds(&guard).unwrap();
+
+        assert_eq!(account_ids, vec![account_id]);
+    }
+
+    #[test]
+    fn delete_missing_mute_keyword_is_successful_noop() {
+        let db = test_db();
+
+        delete_mute_keyword_impl(&db, "missing-mute-keyword".to_string()).unwrap();
     }
 }

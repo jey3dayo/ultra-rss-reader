@@ -254,6 +254,34 @@ mod tests {
     }
 
     #[test]
+    fn find_all_returns_error_for_unknown_stored_scope() {
+        let db = test_db();
+        let repo = SqliteMuteKeywordRepository::new(db.writer());
+
+        db.writer()
+            .execute("PRAGMA ignore_check_constraints = ON", [])
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    "mute-invalid-scope",
+                    "Kindle Unlimited",
+                    "title_body",
+                    Utc::now().to_rfc3339(),
+                    Utc::now().to_rfc3339()
+                ],
+            )
+            .unwrap();
+
+        let error = repo.find_all().unwrap_err();
+
+        assert!(matches!(error, DomainError::Persistence(_)));
+        assert!(error.to_string().contains("Unknown mute keyword scope"));
+    }
+
+    #[test]
     fn create_trims_keyword_and_rejects_same_scope_duplicates_ignoring_ascii_case() {
         let db = test_db();
         let repo = SqliteMuteKeywordRepository::new(db.writer());
