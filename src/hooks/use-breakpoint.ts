@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { bindWindowEvents } from "@/lib/window-events";
 import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
-import { resolveResponsiveLayoutMode } from "./use-layout";
+import { type PreferredLayoutMode, resolveResponsiveLayoutMode } from "./use-layout";
 
-export function resolvePreferredLayoutMode(layoutPref: string): "wide" | "compact" {
+export function resolvePreferredLayoutMode(layoutPref: string): PreferredLayoutMode {
   return layoutPref === "compact" ? "compact" : "wide";
 }
 

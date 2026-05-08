@@ -4,11 +4,11 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard-shortcuts";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
-import type { ArticleNavigationDirection, UiSelection } from "@/lib/ui-state.types";
+import type { ArticleNavigationDirection, FocusedPane, LayoutMode, UiSelection } from "@/lib/ui-state.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
-export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
+export type ArticleListLayoutMode = LayoutMode;
 export type ArticleListViewMode = ViewMode;
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
@@ -178,7 +178,7 @@ export type UseArticleListEffectsParams = {
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   filteredArticles: ArticleDto[];
-  focusedPane: "sidebar" | "list" | "content";
+  focusedPane: FocusedPane;
   selectedArticleId: string | null;
   isPrimarySourceLoading: boolean;
   clearArticle: () => void;
@@ -243,7 +243,7 @@ export type UseArticleListPresentationParams = {
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
   selection: UseArticleListViewStateParams["selection"];
-  focusedPane: "sidebar" | "list" | "content";
+  focusedPane: FocusedPane;
   selectedAccountId: string | null;
   accountCount?: number;
   feeds: UseArticleListSourcesResult["feeds"];

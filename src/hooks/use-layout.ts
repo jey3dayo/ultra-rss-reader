@@ -3,14 +3,15 @@ import {
   MOBILE_LAYOUT_BREAKPOINT_PX,
   SIDEBAR_PANE_WIDTH_PX,
 } from "@/constants/ui-layout";
+import type { FocusedPane, LayoutMode } from "@/lib/ui-state.types";
 
-export type Pane = "sidebar" | "list" | "content";
-export type ResponsiveLayoutMode = "wide" | "compact" | "mobile";
-type SlidingLayoutMode = "compact" | "mobile";
-type FocusedPane = "sidebar" | "list" | "content";
+export type Pane = FocusedPane;
+export type ResponsiveLayoutMode = LayoutMode;
+export type PreferredLayoutMode = Extract<LayoutMode, "wide" | "compact">;
+type SlidingLayoutMode = Extract<LayoutMode, "compact" | "mobile">;
 
 export function resolveResponsiveLayoutMode(
-  preferredLayoutMode: "wide" | "compact",
+  preferredLayoutMode: PreferredLayoutMode,
   viewportWidth: number,
 ): ResponsiveLayoutMode {
   if (viewportWidth < MOBILE_LAYOUT_BREAKPOINT_PX) {
@@ -22,11 +23,7 @@ export function resolveResponsiveLayoutMode(
   return preferredLayoutMode;
 }
 
-export function resolveLayout(
-  layoutMode: "wide" | "compact" | "mobile",
-  focusedPane: FocusedPane,
-  _contentMode: string,
-): Pane[] {
+export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, _contentMode: string): Pane[] {
   if (layoutMode === "wide") {
     return ["sidebar", "list", "content"];
   }
