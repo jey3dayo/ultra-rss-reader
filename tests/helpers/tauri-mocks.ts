@@ -8,6 +8,7 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import { parseWithSchema } from "@/schemas/parse";
 
 export type MockTauriCommandCall = {
   cmd: string;
@@ -129,11 +130,7 @@ function isRecord(payload: unknown): payload is Record<string, unknown> {
 function validateArgs(cmd: string, payload: unknown): Record<string, unknown> {
   const schema = commandArgsSchemas[cmd];
   if (schema) {
-    const result = schema.safeParse(payload);
-    if (!result.success) {
-      throw result.error;
-    }
-    return result.data;
+    return parseWithSchema(schema, payload);
   }
   return isRecord(payload) ? payload : {};
 }

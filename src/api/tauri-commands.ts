@@ -107,6 +107,7 @@ import {
   updateMuteKeywordArgs,
 } from "@/api/schemas";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
+import { parseWithSchema } from "@/schemas/parse";
 
 // Re-export types so existing consumers don't break
 export type {
@@ -149,14 +150,6 @@ function hasParseMethod(v: unknown): v is Pick<z.ZodType, "parse"> {
 
 function isSchemas(v: unknown): v is InvokeSchemas {
   return isRecord(v) && hasParseMethod(v.response);
-}
-
-function parseWithSchema<R extends z.ZodType>(schema: R, value: unknown): z.output<R> {
-  const result = schema.safeParse(value);
-  if (!result.success) {
-    throw result.error;
-  }
-  return result.data;
 }
 
 function toAppError(cmd: string, error: unknown): AppError {

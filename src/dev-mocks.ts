@@ -4,7 +4,6 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import type { z } from "zod";
 import {
   addAccountArgs,
   addLocalFeedArgs,
@@ -69,6 +68,7 @@ import type {
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "./lib/datetime";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
+import { parseWithSchema as parseMockArgs } from "./schemas/parse";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
@@ -100,14 +100,6 @@ function titleFromUrl(feedUrl: string): string {
   } catch {
     return feedUrl;
   }
-}
-
-function parseMockArgs<TSchema extends z.ZodType>(schema: TSchema, payload: unknown): z.output<TSchema> {
-  const result = schema.safeParse(payload);
-  if (!result.success) {
-    throw result.error;
-  }
-  return result.data;
 }
 
 function recalcUnread(feedId: string) {
