@@ -12,9 +12,11 @@ export type ArticleToastActionParams = {
   successMessage: string;
 };
 
-export type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
+type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 
-export type ToggleStarMutation = UseMutationResult<unknown, Error, { id: string; starred: boolean }, unknown>;
+export type SetReadMutation = ArticleStatusMutation<{ id: string; read: boolean }>;
+
+export type ToggleStarMutation = ArticleStatusMutation<{ id: string; starred: boolean }>;
 
 export type UseArticleStatusActionsParams = {
   articleId: string | null;

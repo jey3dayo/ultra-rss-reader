@@ -10,15 +10,15 @@ describe("useArticleStatusActions", () => {
     const retainArticle = vi.fn();
     const showToast = vi.fn();
 
-    const setRead = {
+    const setRead: SetReadMutation = {
       mutate: vi.fn((_variables, options) => {
-        options?.onSuccess?.(undefined, undefined, undefined);
+        options?.onSuccess?.(undefined, _variables, undefined);
       }),
-    } as unknown as SetReadMutation;
+    };
 
-    const toggleStar = {
+    const toggleStar: ToggleStarMutation = {
       mutate: vi.fn(),
-    } as unknown as ToggleStarMutation;
+    };
 
     const { result } = renderHook(() =>
       useArticleStatusActions({
