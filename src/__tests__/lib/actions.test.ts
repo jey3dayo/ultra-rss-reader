@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
+import { APP_ACTIONS } from "@/lib/app-actions";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -357,6 +358,41 @@ describe("executeAction", () => {
       expect(useUiStore.getState().browserCloseInFlight).toBe(false);
 
       window.removeEventListener(APP_EVENTS.navigateArticle, handler);
+    });
+
+    it("overwrites pending browser close navigation with the latest action before flush", () => {
+      const articleHandler = vi.fn();
+      const feedHandler = vi.fn();
+      window.addEventListener(APP_EVENTS.navigateArticle, articleHandler);
+      window.addEventListener(APP_EVENTS.navigateFeed, feedHandler);
+      useUiStore.setState({
+        browserCloseInFlight: true,
+        pendingBrowserCloseAction: null,
+      });
+
+      executeAction("next-article");
+      executeAction("prev-feed");
+
+      expect(articleHandler).not.toHaveBeenCalled();
+      expect(feedHandler).not.toHaveBeenCalled();
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("prev-feed");
+
+      flushPendingBrowserCloseAction();
+
+      expect(articleHandler).not.toHaveBeenCalled();
+      expect(feedHandler).toHaveBeenCalledTimes(1);
+      const event = feedHandler.mock.calls[0]?.[0];
+      expectCustomEvent<number>(event);
+      expect(event.detail).toBe(-1);
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+      expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+
+      flushPendingBrowserCloseAction();
+
+      expect(feedHandler).toHaveBeenCalledTimes(1);
+
+      window.removeEventListener(APP_EVENTS.navigateArticle, articleHandler);
+      window.removeEventListener(APP_EVENTS.navigateFeed, feedHandler);
     });
   });
 
@@ -796,6 +832,12 @@ describe("executeAction", () => {
   });
 
   describe("isAppAction", () => {
+    it("accepts every action registered for runtime boundaries", () => {
+      for (const action of APP_ACTIONS) {
+        expect(isAppAction(action)).toBe(true);
+      }
+    });
+
     it("returns true for valid actions", () => {
       expect(isAppAction("open-settings")).toBe(true);
       expect(isAppAction("sync-all")).toBe(true);

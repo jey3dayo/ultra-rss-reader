@@ -37,7 +37,7 @@ export type AppAction =
   | "check-for-updates";
 
 /** All concrete action strings accepted at runtime boundaries. */
-const APP_ACTIONS: readonly AppAction[] = [
+export const APP_ACTIONS: readonly AppAction[] = [
   "set-filter-unread",
   "set-filter-all",
   "set-filter-starred",
