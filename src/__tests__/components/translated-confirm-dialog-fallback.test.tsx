@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
+import type { FeedDto } from "@/api/tauri-commands";
 
 vi.mock("react-i18next", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -14,18 +15,30 @@ vi.mock("react-i18next", () => ({
         delete_tag: "Delete Tag",
         unsubscribe: "Unsubscribe",
       };
-      const dictionaries = {
+      const dictionaries: Record<string, Record<string, string>> = {
         common,
         reader,
-      } as const;
+      };
 
-      return dictionaries[namespace as keyof typeof dictionaries]?.[key as never] ?? key;
+      return dictionaries[namespace ?? ""]?.[key] ?? key;
     },
   }),
 }));
 
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
+
+const feed: FeedDto = {
+  id: "feed-1",
+  account_id: "account-1",
+  folder_id: null,
+  title: "Tech News",
+  url: "https://example.com/feed.xml",
+  site_url: "https://example.com",
+  unread_count: 0,
+  reader_mode: "inherit",
+  web_preview_mode: "inherit",
+};
 
 describe("translated destructive confirmation fallbacks", () => {
   it("renders the delete-tag fallback copy without crashing", () => {
@@ -39,12 +52,7 @@ describe("translated destructive confirmation fallbacks", () => {
   it("renders the unsubscribe fallback copy without crashing", () => {
     expect(() =>
       render(
-        <UnsubscribeDialog
-          feed={{ title: "Tech News" } as never}
-          open={true}
-          onOpenChange={vi.fn()}
-          onConfirm={vi.fn()}
-        />,
+        <UnsubscribeDialog feed={feed} open={true} onOpenChange={vi.fn()} onConfirm={vi.fn()} />,
       ),
     ).not.toThrow();
 
