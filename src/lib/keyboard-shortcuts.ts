@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { PlatformInfo } from "@/api/schemas";
 import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import type { ContentMode } from "@/lib/ui-state.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export const keyboardEvents = {
@@ -14,8 +15,6 @@ export const keyboardEvents = {
   copyLink: "ultra-rss:copy-link",
   addToReadingList: "ultra-rss:add-to-reading-list",
 } as const;
-
-type ContentMode = "empty" | "reader" | "browser" | "loading";
 
 export type { ViewMode } from "@/lib/view-mode.types";
 
