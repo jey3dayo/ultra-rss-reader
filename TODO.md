@@ -150,6 +150,69 @@
   - `.github/labeler.yml` で `scripts/**` と `mise.toml` 変更に `ci` か maintenance 系ラベルが付く contract を追加する
   - workflow 実行条件や issue template 文面の変更とは別に、repo metadata の drift 防止だけを扱う
 
+- [ ] sync scheduler abnormal state contract 候補を追加する
+  - `src-tauri/src/service/sync_scheduler.rs` の `error_count` が負値・異常値になった時の backoff clamp を固定する
+  - scheduler の account load / DB lock 失敗を silent `continue` で捨てず、warning として観測できるようにする
+  - UI sync feedback や account status row の copy 変更とは混ぜない
+
+- [ ] account command creation validation 候補を追加する
+  - `src-tauri/src/commands/account_commands.rs` の `add_account` に account name trim / empty / duplicate validation を追加する
+  - `test_account_connection` で FreshRSS の `server_url` 欠落を明示エラーにし、空文字から認証へ進まない contract を固定する
+  - keyring 保存や provider login flow の再設計とは別に、command input validation だけを扱う
+
+- [ ] GReader compatibility parsing 候補を追加する
+  - `src-tauri/src/infra/provider/greader.rs` で subscription JSON の `categories` / `htmlUrl` 欠落許容 contract を追加する
+  - item category の read / star 判定を `contains` ではなく exact state id contract に寄せる
+  - 実サービス通信ではなく provider adapter fixture test に限定する
+
+- [ ] local provider site URL fallback 候補を追加する
+  - `src-tauri/src/infra/provider/local.rs` の `create_subscription` で `site_url` 欠落時 fallback を feed URL に寄せる
+  - 追加直後の link / open 系挙動が空文字に依存しないことを provider unit test で固定する
+
+- [ ] updater menu availability contract 候補を追加する
+  - `src-tauri/src/menu.rs` の `Check for Updates` menu 表示方針を updater 初期化可否と分けて固定する
+  - updater command 側の runtime error 表示や release artifact 検証とは混ぜない
+
+- [ ] command palette resource recents 候補を追加する
+  - `src/components/reader/hooks/command-palette/use-command-palette-data.ts` で feed / tag / article resource recent を表示に戻す contract を追加する
+  - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` で article 検索結果選択時に tag / starred / recent 文脈を維持するかを固定する
+  - command palette の広い action taxonomy 変更とは混ぜない
+
+- [ ] command palette resource display polish 候補を追加する
+  - `src/components/reader/command-palette-resource-groups.tsx` で feed / tag / article 結果の同名判別用に URL や feed 名などの補助表示を検討する
+  - `Dev Scenarios` 見出しの直書きを command palette heading key に寄せる
+  - search ranking や resource grouping の再設計とは別に、表示 contract だけを扱う
+
+- [ ] article list loading a11y contract 候補を追加する
+  - `src/components/reader/article-list-screen-view.tsx` の loading 表示に `role="status"` / `aria-live` を追加する
+  - sidebar skeleton と同じ最小 a11y contract として固定し、loading UI の visual 変更は含めない
+
+- [ ] sidebar sync failure invalidation 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-sync.ts` で manual sync error 時にも account sync status を invalidate する
+  - sync result toast や scheduler retry copy とは分け、失敗後の sidebar 表示更新契約に限定する
+
+- [ ] tag section empty/open state 候補を追加する
+  - `src/components/reader/tag-list-view.tsx` で tag 0 件でも section open state と empty state の意味が混ざらないようにする
+  - tag settings / article tag picker mutation とは別に、reader sidebar tag section の UI contract だけを扱う
+
+- [ ] package manager / E2E port drift 候補を追加する
+  - `package.json` の `packageManager` と `mise.toml` の `npm:pnpm` version が drift しない静的 contract を追加する
+  - `playwright.config.ts` の `webServer.command` / `baseURL` / Vite port を package script と合わせて固定する
+  - Storybook E2E port contract とは別に、app E2E の起動 contract として扱う
+
+- [ ] CI quality gate / labeler test coverage 候補を追加する
+  - `.github/workflows/ci.yml` の `quality-gate.needs` が全チェック job を含むことを repo contract test で固定する
+  - `.github/labeler.yml` で `tests/**` / `e2e/**` / `playwright*.config.ts` に test 系ラベルが付く contract を追加する
+  - workflow job 追加や label taxonomy 変更とは分け、drift 防止に限定する
+
+- [ ] seed dev DB cleanup contract 候補を追加する
+  - `scripts/seed-dev-db-from-prod.ts` で staging copy 後の途中失敗時に `.staging` が残らない cleanup contract を追加する
+  - production credential や seed UX 変更は扱わず、script failure cleanup の test に限定する
+
+- [ ] E2E runtime error guard 候補を追加する
+  - `e2e/app.spec.ts` に Storybook smoke と同様の `pageerror` guard を追加する
+  - 表示 assertion だけでは見逃す runtime error を拾う smoke contract として扱い、E2E scenario 追加とは混ぜない
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
