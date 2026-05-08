@@ -1101,8 +1101,8 @@ export function setupDevMocks() {
           wal_size_bytes: 0,
           total_size_bytes: 2_100_000,
         };
-      case "get_log_dir":
-        return "/tmp/mock-logs";
+      case "open_log_dir":
+        return null;
       case "check_for_update":
         return null;
       case "download_and_install_update":

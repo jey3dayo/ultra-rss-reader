@@ -310,7 +310,7 @@ pub fn run() {
             commands::updater_commands::restart_app,
             commands::database_commands::get_database_info,
             commands::database_commands::vacuum_database,
-            commands::log_commands::get_log_dir,
+            commands::log_commands::open_log_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

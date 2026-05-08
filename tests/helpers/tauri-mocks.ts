@@ -1,8 +1,20 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { commandArgsSchemas } from "@/api/schemas";
-import type { AccountDto, AccountSyncStatusDto, ArticleDto, MuteKeywordDto, TagDto } from "@/api/tauri-commands";
+import type {
+  AccountDto,
+  AccountSyncStatusDto,
+  ArticleDto,
+  MuteKeywordDto,
+  TagDto,
+} from "@/api/tauri-commands";
 import { parseWithSchema } from "@/schemas/parse";
-import { sampleAccounts, sampleArticles, sampleFeeds, sampleMuteKeywords, sampleTags } from "./fixtures";
+import {
+  sampleAccounts,
+  sampleArticles,
+  sampleFeeds,
+  sampleMuteKeywords,
+  sampleTags,
+} from "./fixtures";
 
 // --- Mock setup ---
 
@@ -33,12 +45,18 @@ function createDefaultHandler(): MockHandler {
         return [];
       case "list_articles":
         return sampleArticles.filter(
-          (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read) && (!args.starredOnly || a.is_starred),
+          (a) =>
+            a.feed_id === args.feedId &&
+            (!args.unreadOnly || !a.is_read) &&
+            (!args.starredOnly || a.is_starred),
         );
       case "list_account_articles":
         return sampleArticles.filter((a) =>
           sampleFeeds.some(
-            (f) => f.id === a.feed_id && f.account_id === args.accountId && (!args.unreadOnly || !a.is_read),
+            (f) =>
+              f.id === a.feed_id &&
+              f.account_id === args.accountId &&
+              (!args.unreadOnly || !a.is_read),
           ),
         );
       case "list_folder_articles":
@@ -58,7 +76,11 @@ function createDefaultHandler(): MockHandler {
         );
       case "list_starred_articles":
         return sampleArticles.filter(
-          (a) => a.is_starred && sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
+          (a) =>
+            a.is_starred &&
+            sampleFeeds.some(
+              (f) => f.id === a.feed_id && f.account_id === args.accountId,
+            ),
         );
       case "list_recent_articles":
         return [sampleArticles[1], sampleArticles[0]]
@@ -72,15 +94,31 @@ function createDefaultHandler(): MockHandler {
             }
             return true;
           })
-          .slice(Number(args.offset ?? 0), Number(args.offset ?? 0) + Number(args.limit ?? 20))
-          .map((article) => ({ ...article, viewed_at: "2026-04-20T10:00:00Z" }));
+          .slice(
+            Number(args.offset ?? 0),
+            Number(args.offset ?? 0) + Number(args.limit ?? 20),
+          )
+          .map((article) => ({
+            ...article,
+            viewed_at: "2026-04-20T10:00:00Z",
+          }));
       case "count_account_unread_articles":
         return sampleArticles.filter((a) =>
-          sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
+          sampleFeeds.some(
+            (f) =>
+              f.id === a.feed_id &&
+              f.account_id === args.accountId &&
+              !a.is_read,
+          ),
         ).length;
       case "count_account_starred_articles":
         return sampleArticles.filter((a) =>
-          sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
+          sampleFeeds.some(
+            (f) =>
+              f.id === a.feed_id &&
+              f.account_id === args.accountId &&
+              a.is_starred,
+          ),
         ).length;
       case "get_feed_integrity_report":
         return { orphaned_article_count: 0, orphaned_feeds: [] };
@@ -136,9 +174,16 @@ function createDefaultHandler(): MockHandler {
         const nextTag = {
           ...renamedTag,
           name: String(args.name),
-          color: typeof args.color === "string" ? args.color : args.color === null ? null : renamedTag.color,
+          color:
+            typeof args.color === "string"
+              ? args.color
+              : args.color === null
+                ? null
+                : renamedTag.color,
         };
-        mockTags = mockTags.map((tag) => (tag.id === targetTagId ? nextTag : tag));
+        mockTags = mockTags.map((tag) =>
+          tag.id === targetTagId ? nextTag : tag,
+        );
         return nextTag;
       }
       case "delete_tag":
@@ -157,7 +202,8 @@ function createDefaultHandler(): MockHandler {
           id: String(args.muteKeywordId),
           keyword: sampleMuteKeywords[0]?.keyword ?? "Kindle Unlimited",
           scope: String(args.scope) as "title" | "body" | "title_and_body",
-          created_at: sampleMuteKeywords[0]?.created_at ?? "2026-04-15T01:00:00Z",
+          created_at:
+            sampleMuteKeywords[0]?.created_at ?? "2026-04-15T01:00:00Z",
           updated_at: "2026-04-15T01:10:00Z",
         } satisfies MuteKeywordDto;
       case "delete_mute_keyword":
@@ -181,7 +227,10 @@ function createDefaultHandler(): MockHandler {
           web_preview_mode: "inherit",
         };
       case "test_account_connection":
-        return sampleAccounts.find((account) => account.id === args.accountId) ?? sampleAccounts[0];
+        return (
+          sampleAccounts.find((account) => account.id === args.accountId) ??
+          sampleAccounts[0]
+        );
       case "delete_account":
         return null;
       case "get_account_sync_status":
@@ -192,6 +241,7 @@ function createDefaultHandler(): MockHandler {
           next_retry_at: null,
         } satisfies AccountSyncStatusDto;
       case "open_in_browser":
+      case "open_log_dir":
         return null;
       case "get_platform_info":
         return {
@@ -232,9 +282,21 @@ function createDefaultHandler(): MockHandler {
       case "trigger_startup_sync":
       case "trigger_sync_account":
       case "trigger_sync_feed":
-        return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };
+        return {
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+          warnings: [],
+        };
       case "trigger_automatic_sync":
-        return { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] };
+        return {
+          synced: false,
+          total: 0,
+          succeeded: 0,
+          failed: [],
+          warnings: [],
+        };
       default:
         return undefined;
     }

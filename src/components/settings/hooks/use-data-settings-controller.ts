@@ -1,9 +1,16 @@
 import { Result } from "@praha/byethrow";
-import { openPath } from "@tauri-apps/plugin-opener";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer } from "react";
-import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands";
-import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } from "@/constants/data-size";
+import {
+  getDatabaseInfo,
+  openLogDir,
+  vacuumDatabase,
+} from "@/api/tauri-commands";
+import {
+  BYTES_PER_KIBIBYTE,
+  BYTES_PER_MEBIBYTE,
+  DATA_SIZE_FRACTION_DIGITS,
+} from "@/constants/data-size";
 
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
@@ -61,14 +68,21 @@ export function useDataSettingsController({
   showToast,
   setSettingsLoading,
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
-  const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
+  const [state, dispatch] = useReducer(
+    dataSettingsControllerReducer,
+    initialDataSettingsControllerState,
+  );
   const { totalSize, vacuuming } = state;
 
   const fetchDbInfo = useCallback(async () => {
     Result.pipe(
       await getDatabaseInfo(),
-      Result.inspect((info) => dispatch({ type: "set-total-size", value: info.total_size_bytes })),
-      Result.inspectError((error) => console.error("Failed to get database info:", error)),
+      Result.inspect((info) =>
+        dispatch({ type: "set-total-size", value: info.total_size_bytes }),
+      ),
+      Result.inspectError((error) =>
+        console.error("Failed to get database info:", error),
+      ),
     );
   }, []);
 
@@ -89,8 +103,13 @@ export function useDataSettingsController({
         await vacuumDatabase(),
         Result.inspect((info) => {
           dispatch({ type: "set-total-size", value: info.total_size_bytes });
-          const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
-          showToast(t("data.vacuum_success", { saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0) }));
+          const saved =
+            sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
+          showToast(
+            t("data.vacuum_success", {
+              saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0),
+            }),
+          );
         }),
         Result.inspectError((error) => {
           console.error("VACUUM failed:", error);
@@ -105,17 +124,9 @@ export function useDataSettingsController({
 
   const handleOpenLogDir = async () => {
     Result.pipe(
-      await getLogDir(),
-      Result.inspect(async (dir) => {
-        try {
-          await openPath(dir);
-        } catch (error) {
-          console.error("Failed to open log directory:", error);
-          showToast(t("data.open_log_dir_failed", { message: String(error) }));
-        }
-      }),
+      await openLogDir(),
       Result.inspectError((error) => {
-        console.error("Failed to get log directory:", error);
+        console.error("Failed to open log directory:", error);
         showToast(t("data.open_log_dir_failed", { message: error.message }));
       }),
     );
