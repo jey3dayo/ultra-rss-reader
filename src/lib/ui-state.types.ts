@@ -1,4 +1,4 @@
-import type { SmartViewKind } from "@/lib/smart-view.types";
+import type { ReaderSelection } from "@/lib/reader-selection.types";
 
 export type ToastAction = {
   label: string;
@@ -44,12 +44,7 @@ export type AccountSetupSession = {
   errorMessage?: string;
 };
 
-export type UiSelection =
-  | { type: "feed"; feedId: string }
-  | { type: "folder"; folderId: string }
-  | { type: "smart"; kind: SmartViewKind }
-  | { type: "tag"; tagId: string }
-  | { type: "all" };
+export type UiSelection = ReaderSelection;
 
 export type LayoutMode = "wide" | "compact" | "mobile";
 export type FocusedPane = "sidebar" | "list" | "content";

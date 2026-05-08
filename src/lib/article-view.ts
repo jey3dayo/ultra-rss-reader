@@ -3,6 +3,7 @@ import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-command
 import { countUnreadArticles } from "@/lib/article-list";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
+import type { ReaderSelection } from "@/lib/reader-selection.types";
 import { countFeedsInFolder } from "@/lib/sidebar";
 import type { SmartViewKind } from "@/lib/smart-view.types";
 
@@ -57,12 +58,7 @@ type ArticleViewSummaryStats = {
 };
 
 export type BuildArticleViewSummaryParams = {
-  selection:
-    | { type: "all" }
-    | { type: "feed"; feedId: string }
-    | { type: "folder"; folderId: string }
-    | { type: "tag"; tagId: string }
-    | { type: "smart"; kind: SmartViewKind };
+  selection: ReaderSelection;
   selectedFeedId: string | null;
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;

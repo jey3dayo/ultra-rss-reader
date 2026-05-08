@@ -9,8 +9,8 @@ import {
   getStartOfLocalDay,
   parseDateInput,
 } from "@/lib/datetime";
+import type { ReaderSelection } from "@/lib/reader-selection.types";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
-import type { SmartViewKind } from "@/lib/smart-view.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export type SelectVisibleArticlesParams = {
@@ -56,23 +56,13 @@ export type RetainedArticlesSnapshot = {
 };
 
 export type ArticleListMarkAllReadCountParams = {
-  selection:
-    | { type: "all" }
-    | { type: "feed"; feedId: string }
-    | { type: "folder"; folderId: string }
-    | { type: "tag"; tagId: string }
-    | { type: "smart"; kind: SmartViewKind };
+  selection: ReaderSelection;
   selectedFeedUnreadCount: number;
   folderUnreadCount: number;
   filteredArticles: ArticleDto[];
 };
 
-export type ArticleListSelectionForDerivedState =
-  | { type: "all" }
-  | { type: "feed"; feedId: string }
-  | { type: "folder"; folderId: string }
-  | { type: "tag"; tagId: string }
-  | { type: "smart"; kind: SmartViewKind };
+export type ArticleListSelectionForDerivedState = ReaderSelection;
 
 function getDateGroup(dateStr: string): string {
   const date = parseDateInput(dateStr);
