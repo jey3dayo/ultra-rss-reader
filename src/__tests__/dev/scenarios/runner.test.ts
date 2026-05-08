@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { QueryKey, Updater } from "@tanstack/react-query";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
@@ -16,7 +17,10 @@ const mockWindow = {
 function mockInnerLogicalSizes(sizes: Array<{ width: number; height: number }>) {
   let index = 0;
   mockWindow.innerSize.mockImplementation(async () => {
-    const current = sizes[Math.min(index, sizes.length - 1)] ?? { width: 1440, height: 960 };
+    const current = sizes[Math.min(index, sizes.length - 1)] ?? {
+      width: 1440,
+      height: 960,
+    };
     index += 1;
     return {
       toLogical: () => current,
@@ -40,20 +44,29 @@ vi.mock("@tauri-apps/api/dpi", () => ({
   },
 }));
 
-type QueryKey = readonly unknown[];
-
 function createQueryClientStub() {
   const cache = new Map<string, unknown>();
 
-  const getQueryData: DevScenarioContext["queryClient"]["getQueryData"] = (key) =>
-    cache.get(JSON.stringify(key as QueryKey)) as never;
-  const setQueryData: DevScenarioContext["queryClient"]["setQueryData"] = (key, updater) => {
-    const serializedKey = JSON.stringify(key as QueryKey);
-    const previousValue = cache.get(serializedKey);
-    const nextValue = typeof updater === "function" ? (updater as (value: unknown) => unknown)(previousValue) : updater;
+  function isUpdaterFunction<TData>(
+    updater: Updater<TData | undefined, TData | undefined>,
+  ): updater is (input: TData | undefined) => TData | undefined {
+    return typeof updater === "function";
+  }
+
+  function getCachedQueryData<TData>(key: QueryKey): TData | undefined {
+    return cache.get(JSON.stringify(key)) as TData | undefined;
+  }
+
+  function setCachedQueryData<TData>(key: QueryKey, updater: Updater<TData | undefined, TData | undefined>) {
+    const serializedKey = JSON.stringify(key);
+    const nextValue = isUpdaterFunction(updater) ? updater(getCachedQueryData<TData>(key)) : updater;
     cache.set(serializedKey, nextValue);
-    return nextValue as never;
-  };
+    return nextValue;
+  }
+
+  const getQueryData: DevScenarioContext["queryClient"]["getQueryData"] = (key) => getCachedQueryData(key);
+  const setQueryData: DevScenarioContext["queryClient"]["setQueryData"] = (key, updater) =>
+    setCachedQueryData(key, updater);
 
   const queryClient: DevScenarioContext["queryClient"] = {
     getQueryData,
