@@ -4,6 +4,7 @@ import {
   WORKSPACE_CHROME_SPACING_CLASS,
   workspaceSplitShellClassName,
 } from "@/components/shared/workspace-pane-layout";
+import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -17,6 +18,48 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "./subscriptions-overview-summary";
+
+export type SubscriptionsIndexPageViewProps = {
+  title: string;
+  subtitle: string;
+  summaryCards: SubscriptionSummaryCard[];
+  reviewCriteriaLabel: string;
+  inventoryHeading: string;
+  detailHeading: string;
+  groups: SubscriptionListGroup[];
+  selectedFeedId: string | null;
+  selectedRow: SubscriptionListRow | null;
+  selectedMetrics: SubscriptionDetailMetrics | null;
+  selectedDetailCandidate: SubscriptionDetailCandidate | null;
+  emptyLabel: string;
+  detailEmptyLabel: string;
+  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
+  formatUnreadCountLabel: (count: number) => string;
+  formatLatestArticleLabel: (value: string | null) => string;
+  dateLocale: string;
+  listScrollTop: number;
+  folderLabel: string;
+  latestArticleLabel: string;
+  unreadCountLabel: string;
+  starredCountLabel: string;
+  reasonHeading: string;
+  reasonHint: string;
+  recentArticlesHeading: string;
+  displayModeLabel: string;
+  displayModeValue: string;
+  decisionActions: SubscriptionDecisionActions | null;
+  managementActions: SubscriptionManagementActions | null;
+  backLabel: string;
+  closeLabel: string;
+  isGroupExpanded: (groupKey: string) => boolean;
+  onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  onSelectFeed: (feedId: string) => void;
+  onListScrollTopChange: (scrollTop: number) => void;
+  onToggleGroup: (groupKey: string) => void;
+  onBack: () => void;
+  onClose: () => void;
+};
 
 export function SubscriptionsIndexPageView({
   title,
@@ -58,54 +101,7 @@ export function SubscriptionsIndexPageView({
   onToggleGroup,
   onBack,
   onClose,
-}: {
-  title: string;
-  subtitle: string;
-  summaryCards: SubscriptionSummaryCard[];
-  reviewCriteriaLabel: string;
-  inventoryHeading: string;
-  detailHeading: string;
-  groups: SubscriptionListGroup[];
-  selectedFeedId: string | null;
-  selectedRow: SubscriptionListRow | null;
-  selectedMetrics: SubscriptionDetailMetrics | null;
-  selectedDetailCandidate: SubscriptionDetailCandidate | null;
-  emptyLabel: string;
-  detailEmptyLabel: string;
-  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
-  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
-  formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string | null) => string;
-  dateLocale: string;
-  listScrollTop: number;
-  folderLabel: string;
-  latestArticleLabel: string;
-  unreadCountLabel: string;
-  starredCountLabel: string;
-  reasonHeading: string;
-  reasonHint: string;
-  recentArticlesHeading: string;
-  displayModeLabel: string;
-  displayModeValue: string;
-  decisionActions: {
-    keepLabel: string;
-    deferLabel: string;
-    deleteLabel: string;
-    onKeep: () => void;
-    onDefer: () => void;
-    onDelete: () => void;
-  } | null;
-  managementActions: SubscriptionManagementActions | null;
-  backLabel: string;
-  closeLabel: string;
-  isGroupExpanded: (groupKey: string) => boolean;
-  onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
-  onSelectFeed: (feedId: string) => void;
-  onListScrollTopChange: (scrollTop: number) => void;
-  onToggleGroup: (groupKey: string) => void;
-  onBack: () => void;
-  onClose: () => void;
-}) {
+}: SubscriptionsIndexPageViewProps) {
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
     platformKind,

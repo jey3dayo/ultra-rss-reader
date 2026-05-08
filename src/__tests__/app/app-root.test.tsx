@@ -1,14 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { act, render, waitFor } from "@testing-library/react";
+import type { DevIntentState } from "@tests/helpers/dev-intent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import type { AccountDto } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "@/constants/ui-runtime";
-
-type DevIntentState = {
-  intent: string | null;
-};
 
 type UiState = {
   selectedAccountId: string | null;

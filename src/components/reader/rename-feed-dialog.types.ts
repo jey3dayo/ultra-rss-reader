@@ -2,8 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/articles/article-display";
-import type { FeedDialogSelectOption } from "./feed-dialog-form.types";
-import type { FolderSelectViewProps } from "./folder-select-view";
+import type { FeedDialogControllerFolderSelectProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
 
@@ -53,16 +52,6 @@ export type RenameFeedDialogControllerParams = {
 
 export type RenameDialogProps = RenameFeedDialogControllerParams;
 
-export type RenameFeedDialogControllerFolderSelectProps = {
-  folderSelectValue: string;
-  folderOptions: FolderSelectViewProps["options"];
-  isCreatingFolder: boolean;
-  newFolderName: string;
-  newFolderInputRef: RefObject<HTMLInputElement | null>;
-  handleFolderChange: (value: string) => void;
-  setNewFolderName: (value: string) => void;
-};
-
 export type RenameFeedDialogController = {
   title: string;
   loading: boolean;
@@ -73,7 +62,7 @@ export type RenameFeedDialogController = {
   setDisplayPreset: (value: FeedEditDisplayPreset) => void;
   handleCopy: (value: string) => Promise<void>;
   handleSubmit: () => Promise<void>;
-  folderSelectProps: RenameFeedDialogControllerFolderSelectProps;
+  folderSelectProps: FeedDialogControllerFolderSelectProps;
 };
 
 export type UseRenameFeedDialogViewPropsParams = {

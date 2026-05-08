@@ -4,20 +4,16 @@ import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import type { OptionWithLabel } from "@/lib/ui/options";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";
-
-type AddAccountFormOption = {
-  value: string;
-  label: string;
-};
 
 type AddAccountFormSelectControl = {
   label: string;
   name: string;
   value: string;
-  options: AddAccountFormOption[];
+  options: readonly OptionWithLabel[];
   onChange: (value: string) => void;
   disabled: boolean;
 };

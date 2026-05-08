@@ -2,18 +2,14 @@ import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
 import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
+import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
-
-type LabeledSelectOption = {
-  value: string;
-  label: string;
-};
 
 type LabeledSelectRowProps = {
   label: string;
   name: string;
   value: string;
-  options: LabeledSelectOption[];
+  options: readonly OptionWithLabel[];
   onChange: (value: string) => void;
   disabled?: boolean;
   open?: boolean;

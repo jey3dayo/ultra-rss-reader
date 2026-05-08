@@ -1,19 +1,15 @@
 import { useId } from "react";
 import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
 import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
+import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
-
-type StackedSelectOption = {
-  value: string;
-  label: string;
-};
 
 type StackedSelectFieldProps = {
   labelId?: string;
   label: string;
   name: string;
   value: string;
-  options: readonly StackedSelectOption[];
+  options: readonly OptionWithLabel[];
   disabled?: boolean;
   onChange: (value: string) => void;
   className?: string;

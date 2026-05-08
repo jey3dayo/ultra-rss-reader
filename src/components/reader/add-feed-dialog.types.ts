@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { Dispatch, RefObject } from "react";
 import type { DiscoveredFeedDto, FolderDto } from "@/api/tauri-commands";
-import type { FolderSelectViewProps } from "./folder-select-view";
+import type { FeedDialogControllerFolderSelectProps } from "./feed-dialog-form.types";
 
 export type AddFeedDialogSuccessMessage = "feed_url_ready" | "feed_detected";
 
@@ -49,16 +49,6 @@ export type AddFeedDialogViewLabels = {
   cancel: string;
   add: string;
   adding: string;
-};
-
-export type AddFeedDialogControllerFolderSelectProps = {
-  folderSelectValue: string;
-  folderOptions: FolderSelectViewProps["options"];
-  isCreatingFolder: boolean;
-  newFolderName: string;
-  newFolderInputRef: RefObject<HTMLInputElement | null>;
-  handleFolderChange: (value: string) => void;
-  setNewFolderName: (value: string) => void;
 };
 
 export type AddFeedDialogControllerDerived = {
@@ -125,7 +115,7 @@ export type AddFeedDialogController = {
   setSelectedFeedUrl: (value: string | null) => void;
   handleDiscover: () => Promise<void>;
   handleSubmit: () => Promise<void>;
-  folderSelectProps: AddFeedDialogControllerFolderSelectProps;
+  folderSelectProps: FeedDialogControllerFolderSelectProps;
   derived: AddFeedDialogControllerDerived;
 };
 

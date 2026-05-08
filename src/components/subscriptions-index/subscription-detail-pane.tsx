@@ -5,14 +5,34 @@ import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {
-  SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
   SubscriptionManagementActions,
 } from "@/lib/subscriptions/subscriptions-index.types";
+
+type SubscriptionDetailPaneProps = {
+  heading: string;
+  emptyLabel: string;
+  row: SubscriptionListRow | null;
+  metrics: SubscriptionDetailMetrics | null;
+  detailCandidate: SubscriptionDetailCandidate | null;
+  folderLabel: string;
+  latestArticleLabel: string;
+  unreadCountLabel: string;
+  starredCountLabel: string;
+  reasonHeading: string;
+  reasonHint: string;
+  recentArticlesHeading: string;
+  displayModeLabel: string;
+  displayModeValue: string;
+  dateLocale: string;
+  decisionActions: SubscriptionDecisionActions | null;
+  managementActions: SubscriptionManagementActions | null;
+};
 
 type DecisionActionConfig = {
   key: "keep" | "defer" | "delete";
@@ -66,25 +86,7 @@ export function SubscriptionDetailPane({
   dateLocale,
   decisionActions,
   managementActions,
-}: {
-  heading: string;
-  emptyLabel: string;
-  row: SubscriptionListRow | null;
-  metrics: SubscriptionDetailMetrics | null;
-  detailCandidate: SubscriptionDetailCandidate | null;
-  folderLabel: string;
-  latestArticleLabel: string;
-  unreadCountLabel: string;
-  starredCountLabel: string;
-  reasonHeading: string;
-  reasonHint: string;
-  recentArticlesHeading: string;
-  displayModeLabel: string;
-  displayModeValue: string;
-  dateLocale: string;
-  decisionActions: SubscriptionDecisionActions | null;
-  managementActions: SubscriptionManagementActions | null;
-}) {
+}: SubscriptionDetailPaneProps) {
   return (
     <section
       data-testid="subscriptions-detail-pane"

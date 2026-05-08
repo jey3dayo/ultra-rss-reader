@@ -7,7 +7,10 @@ import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscript
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
-  | { tone: "medium"; labelKey: "review" | "stale_90d" | "no_unread" | "no_stars" };
+  | {
+      tone: "medium";
+      labelKey: "review" | "stale_90d" | "no_unread" | "no_stars";
+    };
 
 export type SubscriptionSummaryCard = {
   filterKey: SubscriptionSummaryFilterKey;
@@ -48,15 +51,6 @@ export type SubscriptionDetailCandidate = {
   summary: string | null;
   reasonBoxBody: string | null;
   reasonLabels: string[];
-};
-
-export type SubscriptionDecisionActions = {
-  keepLabel: string;
-  deferLabel: string;
-  deleteLabel: string;
-  onKeep: () => void;
-  onDefer: () => void;
-  onDelete: () => void;
 };
 
 export type SubscriptionManagementActions = {
