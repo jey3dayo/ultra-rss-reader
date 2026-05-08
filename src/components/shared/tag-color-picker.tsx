@@ -18,6 +18,8 @@ export function TagColorPicker({
   optionAriaLabel,
   onChange,
 }: TagColorPickerProps) {
+  const uniqueColorOptions = [...new Set(colorOptions)];
+
   return (
     <div className="space-y-3">
       {label ? <span className="block text-sm font-medium text-foreground-soft">{label}</span> : null}
@@ -37,7 +39,7 @@ export function TagColorPicker({
         >
           <span className="leading-none">X</span>
         </button>
-        {colorOptions.map((option) => (
+        {uniqueColorOptions.map((option) => (
           <button
             key={option}
             type="button"

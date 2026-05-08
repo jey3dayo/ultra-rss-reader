@@ -38,4 +38,22 @@ describe("TagColorPicker", () => {
 
     expect(onChange).toHaveBeenCalledWith("#6f8eb8");
   });
+
+  it("deduplicates duplicate color options and preserves null selection state", () => {
+    const onChange = vi.fn();
+
+    render(
+      <TagColorPicker
+        color={null}
+        colorOptions={["#6f8eb8", "#6f8eb8", "#cf7868"]}
+        noColorLabel="No color"
+        optionAriaLabel={(color) => `Select ${color}`}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: "Select #6f8eb8" })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "No color" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Select #6f8eb8" })).toHaveAttribute("aria-pressed", "false");
+  });
 });

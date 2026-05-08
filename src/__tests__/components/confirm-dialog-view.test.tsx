@@ -45,4 +45,45 @@ describe("ConfirmDialogView", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+
+  it("uses variant fallback icons and action button variants when no icon is specified", () => {
+    const variants = [
+      {
+        variant: undefined,
+        iconClassName: "text-primary",
+        actionClassName: "bg-surface-3",
+      },
+      {
+        variant: "warning" as const,
+        iconClassName: "text-state-warning-foreground",
+        actionClassName: "border-state-warning-border",
+      },
+      {
+        variant: "destructive" as const,
+        iconClassName: "text-state-danger-foreground",
+        actionClassName: "bg-state-danger-surface",
+      },
+    ];
+
+    variants.forEach(({ variant, iconClassName, actionClassName }) => {
+      const { unmount } = render(
+        <ConfirmDialogView
+          open={true}
+          title="Confirm action"
+          message="Run this action?"
+          actionLabel="Run"
+          cancelLabel="Cancel"
+          variant={variant}
+          onOpenChange={vi.fn()}
+          onConfirm={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId("confirm-dialog-icon-svg")).toHaveClass(iconClassName);
+      expect(screen.getByRole("button", { name: "Run" })).toHaveClass(actionClassName);
+
+      unmount();
+    });
+  });
 });

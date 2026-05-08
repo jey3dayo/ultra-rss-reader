@@ -14,6 +14,10 @@ type AppToastViewProps = {
 
 const UPDATE_TOAST_WIDTH_CLASS_NAME = "w-[min(320px,calc(100vw-2rem))]";
 
+function clampProgressWidth(progress: number) {
+  return Math.min(Math.max(progress, 0), 100);
+}
+
 export function AppToastView({
   toastMessage,
   onClose,
@@ -59,7 +63,7 @@ export function AppToastView({
           {progress != null ? (
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-200 motion-reduce:transition-none"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${clampProgressWidth(progress)}%` }}
             />
           ) : (
             <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
