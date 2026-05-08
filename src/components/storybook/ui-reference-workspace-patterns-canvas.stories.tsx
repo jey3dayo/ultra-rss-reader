@@ -5,7 +5,6 @@ import {
   DetailPanelSpecimen,
   MotionNumberSpecimen,
   ReferencePage,
-  SettingsHeaderSummarySpecimen,
   SubscriptionGroupDisclosureSpecimen,
   SummaryFilterCardsSpecimen,
   WorkspaceActionClusterSpecimen,
@@ -30,7 +29,6 @@ export function ViewSpecimensCanvas() {
           <AnnouncementCardsSpecimen />
           <DetailPanelSpecimen />
         </div>
-        <SettingsHeaderSummarySpecimen />
         <WorkspaceTwoPaneSpecimen />
       </div>
     </ReferencePage>

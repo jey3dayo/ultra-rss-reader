@@ -355,9 +355,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByTestId("reference-detail-panel-frame")).toBeInTheDocument();
-    expect(screen.getByTestId("reference-settings-header-summary-frame")).toBeInTheDocument();
-    expect(screen.getByText("Settings header summary")).toBeInTheDocument();
-    expect(screen.getAllByText("確認済み").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("reference-settings-header-summary-frame")).not.toBeInTheDocument();
+    expect(screen.queryByText("Settings header summary")).not.toBeInTheDocument();
     expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);
     expect(screen.getByTestId("reference-workspace-two-pane-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-workspace-two-pane-detail")).toHaveClass("motion-content-swap");
@@ -390,6 +389,9 @@ describe("UI Reference canvases", () => {
     render(<SettingsWorkspaceCanvas />);
 
     expect(screen.getByText("Settings workspace")).toBeInTheDocument();
+    expect(screen.getByText("Settings header summary")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-settings-header-summary-frame")).toBeInTheDocument();
+    expect(screen.getAllByText("確認済み").length).toBeGreaterThan(0);
     expect(screen.getByTestId("reference-settings-workspace-detail-shell")).toHaveClass("rounded-xl");
     expect(screen.getByTestId("reference-settings-workspace-add-shell")).toHaveClass("rounded-xl");
     expect(screen.getAllByText("Settings").length).toBeGreaterThan(0);

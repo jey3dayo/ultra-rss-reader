@@ -10,7 +10,11 @@ import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
-import { AnnotatedNote, ReferencePage } from "@/components/storybook/ui-reference-canvas-specimens";
+import {
+  AnnotatedNote,
+  ReferencePage,
+  SettingsHeaderSummarySpecimen,
+} from "@/components/storybook/ui-reference-canvas-specimens";
 
 const SHELL_SECTION_LABEL_CLASS =
   "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
@@ -180,6 +184,7 @@ export function SettingsWorkspaceCanvas() {
               <SettingsActionButton>Open log directory</SettingsActionButton>
             </div>
           </div>
+          <SettingsHeaderSummarySpecimen />
 
           <div className="grid gap-6">
             <div className="space-y-3">
