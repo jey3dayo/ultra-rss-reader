@@ -1,6 +1,6 @@
 # Ultra RSS Reader
 
-> Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite. It supports local RSS/Atom feeds and FreshRSS, includes Feed Cleanup and Web Preview workflows, stores credentials in the OS keyring, and uses a layered Rust backend with a React frontend.
+> Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite. It supports local RSS/Atom feeds and FreshRSS, includes subscription review and Web Preview workflows, stores credentials in the OS keyring, and uses a layered Rust backend with a React frontend.
 
 Read `README.md` first for product and architecture context. Read `CLAUDE.md` and `AGENTS.md` before changing code. Use `mise run check` as the default verification gate. Native integrations such as keyring behavior, updater installation, and packaged app flows still need manual verification.
 
@@ -37,7 +37,7 @@ Important implementation constraints:
 ## Code Map
 
 - [src-tauri/src](src-tauri/src/): Rust application code including Tauri commands, services, repositories, domain types, providers, browser webview, and platform integration.
-- [src](src/): React application code including the app shell, reader UI, settings UI, accounts flow, feed cleanup, subscriptions index, hooks, stores, API schemas, and utilities.
+- [src](src/): React application code including the app shell, reader UI, settings UI, subscription review, subscriptions index, hooks, stores, API schemas, and utilities.
 - [src/locales/ja](src/locales/ja/): Japanese UI copy for reader, settings, sidebar, subscriptions, and shared actions.
 - [src-tauri/migrations](src-tauri/migrations/): SQLite schema migrations and persistence history.
 - [src/api/tauri-commands.ts](src/api/tauri-commands.ts): Canonical TypeScript IPC boundary and `safeInvoke` wrapper.

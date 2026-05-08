@@ -22,3 +22,9 @@ For current day-to-day work in this repository, prefer the equivalent `mise` tas
 - `pnpm dev --host 127.0.0.1 --port 4173 --strictPort` → `mise run app:dev:browser`
 
 The historical command text is kept as-is inside the dated records unless there is a specific reason to rewrite that document.
+
+## Notes On Historical Paths
+
+Some records mention feature names or paths that have since changed, such as older `Feed Cleanup` files under
+`src/components/feed-cleanup/`. Treat those as historical snapshots. Current subscription review UI lives under the
+subscriptions index workspace described in [../../README.md](../../README.md).
