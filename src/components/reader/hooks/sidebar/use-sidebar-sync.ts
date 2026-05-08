@@ -1,8 +1,17 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useSyncExternalStore,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
+import {
+  accountSyncStatusQueryKey,
+  useAccountSyncStatus,
+} from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
@@ -12,7 +21,10 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
-import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
+import {
+  summarizeSyncResult,
+  summarizeSyncWarnings,
+} from "@/lib/sync/sync-result-feedback";
 import type {
   SidebarSyncParams,
   SidebarSyncProgressPayload,
@@ -34,7 +46,10 @@ function createInitialSidebarSyncState() {
   } satisfies SidebarSyncState;
 }
 
-function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction): SidebarSyncState {
+function sidebarSyncReducer(
+  state: SidebarSyncState,
+  action: SidebarSyncAction,
+): SidebarSyncState {
   switch (action.type) {
     case "set-cooldown-tick":
       return { ...state, cooldownTick: action.value };
@@ -44,7 +59,53 @@ function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction):
 }
 
 function extractTauriEventPayload<T>(event: T | TauriPayloadEvent<T>): T {
-  return typeof event === "object" && event !== null && "payload" in event ? event.payload : event;
+  return typeof event === "object" && event !== null && "payload" in event
+    ? event.payload
+    : event;
+}
+
+export function resolveSidebarLastSyncedLabel({
+  selectedAccountId,
+  lastSuccessAt,
+  isPending,
+  isError,
+  language,
+  labels,
+}: {
+  selectedAccountId: string | null;
+  lastSuccessAt: string | null | undefined;
+  isPending: boolean;
+  isError: boolean;
+  language: string;
+  labels: {
+    todayAt: (time: string) => string;
+    dateAt: (date: string, time: string) => string;
+    checkingSyncStatus: string;
+    syncStatusUnavailable: string;
+    notSyncedYet: string;
+  };
+}): string {
+  const lastSuccessLabel = formatAccountLastSuccessLabel(
+    lastSuccessAt ?? undefined,
+    language,
+  );
+  if (lastSuccessLabel) {
+    if (lastSuccessLabel.isToday) {
+      return labels.todayAt(lastSuccessLabel.time);
+    }
+
+    return labels.dateAt(lastSuccessLabel.date, lastSuccessLabel.time);
+  }
+
+  if (selectedAccountId && isPending) {
+    return labels.checkingSyncStatus;
+  }
+
+  if (selectedAccountId && isError) {
+    return labels.syncStatusUnavailable;
+  }
+
+  return labels.notSyncedYet;
 }
 
 export function useSidebarSync({
@@ -62,10 +123,16 @@ export function useSidebarSync({
     getManualSyncCooldownUntil,
     getManualSyncCooldownUntil,
   );
-  const [state, dispatch] = useReducer(sidebarSyncReducer, undefined, createInitialSidebarSyncState);
+  const [state, dispatch] = useReducer(
+    sidebarSyncReducer,
+    undefined,
+    createInitialSidebarSyncState,
+  );
   const { cooldownTick } = state;
   const invalidateAccountSyncStatuses = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
+    void queryClient.invalidateQueries({
+      queryKey: accountSyncStatusQueryKey(),
+    });
   }, [queryClient]);
 
   useEffect(() => {
@@ -85,36 +152,42 @@ export function useSidebarSync({
   }, [manualSyncCooldownUntil]);
 
   const lastSyncedLabel = useMemo(() => {
-    const lastSuccessAt = syncStatusQuery.data?.last_success_at;
-    const lastSuccessLabel = formatAccountLastSuccessLabel(lastSuccessAt ?? undefined, i18n.language);
-    if (lastSuccessLabel) {
-      if (lastSuccessLabel.isToday) {
-        return t("today_at", { time: lastSuccessLabel.time });
-      }
-
-      return t("date_at", { date: lastSuccessLabel.date, time: lastSuccessLabel.time });
-    }
-
-    if (selectedAccountId && syncStatusQuery.isPending && syncStatusQuery.data === undefined) {
-      return t("checking_sync_status");
-    }
-
-    if (!selectedAccountId) {
-      return t("not_synced_yet");
-    }
-    return t("not_synced_yet");
-  }, [selectedAccountId, syncStatusQuery.data, syncStatusQuery.isPending, t]);
+    return resolveSidebarLastSyncedLabel({
+      selectedAccountId,
+      lastSuccessAt: syncStatusQuery.data?.last_success_at,
+      isPending:
+        syncStatusQuery.isPending && syncStatusQuery.data === undefined,
+      isError: syncStatusQuery.isError,
+      language: i18n.language,
+      labels: {
+        todayAt: (time) => t("today_at", { time }),
+        dateAt: (date, time) => t("date_at", { date, time }),
+        checkingSyncStatus: t("checking_sync_status"),
+        syncStatusUnavailable: t("sync_failed"),
+        notSyncedYet: t("not_synced_yet"),
+      },
+    });
+  }, [
+    selectedAccountId,
+    syncStatusQuery.data,
+    syncStatusQuery.isError,
+    syncStatusQuery.isPending,
+    t,
+  ]);
 
   const cooldownRemainingMs = manualSyncCooldownUntil - cooldownTick;
   const isSyncCoolingDown = cooldownRemainingMs > 0;
   const syncTooltipLabel = isSyncCoolingDown
-    ? t("sync_cooldown_remaining", { seconds: Math.ceil(cooldownRemainingMs / 1_000) })
+    ? t("sync_cooldown_remaining", {
+        seconds: Math.ceil(cooldownRemainingMs / 1_000),
+      })
     : null;
 
   useEffect(() => {
     return attachTauriListeners([
       listen<SidebarSyncProgressPayload>("sync-progress", (event) => {
-        const payload = extractTauriEventPayload<SidebarSyncProgressPayload>(event);
+        const payload =
+          extractTauriEventPayload<SidebarSyncProgressPayload>(event);
         applySyncProgress(payload);
       }),
       listen("sync-completed", () => {
@@ -122,14 +195,26 @@ export function useSidebarSync({
         invalidateAccountSyncStatuses();
       }),
       listen<SidebarSyncWarningPayload>("sync-warning", (event) => {
-        const payload = extractTauriEventPayload<SidebarSyncWarningPayload>(event);
+        const payload =
+          extractTauriEventPayload<SidebarSyncWarningPayload>(event);
         if (payload.length > 0) {
           invalidateAccountSyncStatuses();
-          showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
+          showToast(
+            resolveSidebarSyncFeedbackMessage(
+              t,
+              summarizeSyncWarnings(payload),
+            ),
+          );
         }
       }),
     ]);
-  }, [applySyncProgress, clearSyncProgress, invalidateAccountSyncStatuses, showToast, t]);
+  }, [
+    applySyncProgress,
+    clearSyncProgress,
+    invalidateAccountSyncStatuses,
+    showToast,
+    t,
+  ]);
 
   const handleSync = useCallback(async () => {
     if (syncProgress.active) {
@@ -142,7 +227,9 @@ export function useSidebarSync({
       },
       onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses();
-        showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
+        showToast(
+          resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)),
+        );
       },
       onError: (error) => {
         console.error("Sync failed:", error);

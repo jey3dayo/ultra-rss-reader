@@ -1,8 +1,10 @@
 import { Result } from "@praha/byethrow";
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
+import type { AccountDto } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "@/constants/ui-runtime";
 
 type DevIntentState = {
   intent: string | null;
@@ -10,6 +12,11 @@ type DevIntentState = {
 
 type UiState = {
   selectedAccountId: string | null;
+};
+
+type TestAppError = {
+  type: "UserVisible";
+  message: string;
 };
 
 const {
@@ -26,9 +33,15 @@ const {
 
   return {
     loadPreferencesMock: vi.fn(),
-    triggerStartupSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
-    syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
-    listAccountsMock: vi.fn(() => Promise.resolve(Result.succeed([]))),
+    triggerStartupSyncMock: vi.fn<
+      (accountId?: string) => Promise<Result.Result<boolean, TestAppError>>
+    >(() => Promise.resolve(Result.succeed(true))),
+    syncAccountMock: vi.fn<
+      (accountId: string) => Promise<Result.Result<boolean, TestAppError>>
+    >(() => Promise.resolve(Result.succeed(true))),
+    listAccountsMock: vi.fn<
+      () => Promise<Result.Result<AccountDto[], TestAppError>>
+    >(() => Promise.resolve(Result.succeed([]))),
     preferencesState: {
       prefs: {},
       loaded: true,
@@ -44,7 +57,11 @@ vi.mock("@/components/app-shell", () => ({
 
 vi.mock("@/stores/preferences-store", () => ({
   usePreferencesStore: <T,>(
-    selector: (state: { loadPreferences: () => void; prefs: Record<string, string>; loaded: boolean }) => T,
+    selector: (state: {
+      loadPreferences: () => void;
+      prefs: Record<string, string>;
+      loaded: boolean;
+    }) => T,
   ) =>
     selector({
       loadPreferences: loadPreferencesMock,
@@ -54,7 +71,9 @@ vi.mock("@/stores/preferences-store", () => ({
 }));
 
 vi.mock("@/stores/ui-store", () => ({
-  useUiStore: <T,>(selector: (state: { selectedAccountId: string | null }) => T) =>
+  useUiStore: <T,>(
+    selector: (state: { selectedAccountId: string | null }) => T,
+  ) =>
     selector({
       selectedAccountId: uiState.selectedAccountId,
     }),
@@ -76,6 +95,40 @@ vi.mock("@/dev/use-resolved-dev-intent", () => ({
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(async () => () => {}),
 }));
+
+function createAccount(overrides: Partial<AccountDto> = {}): AccountDto {
+  return {
+    id: "acc-1",
+    kind: "local",
+    name: "Local",
+    server_url: null,
+    username: null,
+    sync_interval_secs: 3600,
+    sync_on_startup: true,
+    sync_on_wake: true,
+    keep_read_items_days: 30,
+    ...overrides,
+  };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+function setDocumentHidden(hidden: boolean): void {
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    value: hidden,
+  });
+}
+
+function dispatchVisibilityChange(): void {
+  document.dispatchEvent(new Event("visibilitychange"));
+}
 
 describe("App", () => {
   beforeEach(() => {
@@ -135,7 +188,10 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now - 89_000));
+    localStorage.setItem(
+      STORAGE_KEYS.startupSyncLastTriggeredAt,
+      String(now - 89_000),
+    );
 
     render(<App />);
 
@@ -150,7 +206,10 @@ describe("App", () => {
     const now = new Date("2026-04-18T03:00:00+09:00").getTime();
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     preferencesState.prefs = { sync_on_startup: "true" };
-    localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now - 90_001));
+    localStorage.setItem(
+      STORAGE_KEYS.startupSyncLastTriggeredAt,
+      String(now - 90_001),
+    );
 
     render(<App />);
 
@@ -158,5 +217,157 @@ describe("App", () => {
       expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
     });
     dateNowSpy.mockRestore();
+  });
+
+  it("cleans an invalid startup sync timestamp and runs startup sync", async () => {
+    preferencesState.prefs = { sync_on_startup: "true" };
+    localStorage.setItem(
+      STORAGE_KEYS.startupSyncLastTriggeredAt,
+      "not-a-timestamp",
+    );
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt),
+    ).not.toBe("not-a-timestamp");
+  });
+
+  it("cleans a future startup sync timestamp and runs startup sync", async () => {
+    const now = new Date("2026-04-18T03:00:00+09:00").getTime();
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    preferencesState.prefs = { sync_on_startup: "true" };
+    localStorage.setItem(
+      STORAGE_KEYS.startupSyncLastTriggeredAt,
+      String(now + 1_000),
+    );
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      Number(localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt)),
+    ).toBe(now);
+    dateNowSpy.mockRestore();
+  });
+
+  it("does not start duplicate sync-on-wake work while a wake sync is in flight", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now");
+    const listAccountsDeferred =
+      createDeferred<Awaited<ReturnType<typeof listAccountsMock>>>();
+    listAccountsMock.mockReturnValueOnce(listAccountsDeferred.promise);
+    dateNowSpy.mockReturnValue(0);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      setDocumentHidden(true);
+      dispatchVisibilityChange();
+    });
+    dateNowSpy.mockReturnValue(APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS + 1);
+    act(() => {
+      setDocumentHidden(false);
+      dispatchVisibilityChange();
+      dispatchVisibilityChange();
+    });
+
+    expect(listAccountsMock).toHaveBeenCalledTimes(1);
+    expect(syncAccountMock).not.toHaveBeenCalled();
+
+    listAccountsDeferred.resolve(
+      Result.succeed([
+        createAccount({ id: "acc-wake", sync_on_wake: true }),
+        createAccount({ id: "acc-manual", sync_on_wake: false }),
+      ]),
+    );
+
+    await waitFor(() => {
+      expect(syncAccountMock).toHaveBeenCalledTimes(1);
+    });
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-wake");
+    dateNowSpy.mockRestore();
+  });
+
+  it("logs sync-on-wake list account failures", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now");
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+    const error = { type: "UserVisible" as const, message: "list failed" };
+    listAccountsMock.mockResolvedValueOnce(Result.fail(error));
+    dateNowSpy.mockReturnValue(0);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      setDocumentHidden(true);
+      dispatchVisibilityChange();
+    });
+    dateNowSpy.mockReturnValue(APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS + 1);
+    act(() => {
+      setDocumentHidden(false);
+      dispatchVisibilityChange();
+    });
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Sync on wake failed to list accounts:",
+        error,
+      );
+    });
+    expect(syncAccountMock).not.toHaveBeenCalled();
+    dateNowSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("logs sync-on-wake account sync failures", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now");
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+    const error = { type: "UserVisible" as const, message: "sync failed" };
+    listAccountsMock.mockResolvedValueOnce(
+      Result.succeed([createAccount({ id: "acc-wake" })]),
+    );
+    syncAccountMock.mockResolvedValueOnce(Result.fail(error));
+    dateNowSpy.mockReturnValue(0);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      setDocumentHidden(true);
+      dispatchVisibilityChange();
+    });
+    dateNowSpy.mockReturnValue(APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS + 1);
+    act(() => {
+      setDocumentHidden(false);
+      dispatchVisibilityChange();
+    });
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Sync on wake failed:",
+        error,
+      );
+    });
+    dateNowSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 });

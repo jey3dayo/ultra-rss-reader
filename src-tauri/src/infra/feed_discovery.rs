@@ -119,8 +119,9 @@ fn is_feed_content_type(ct: &str) -> bool {
 
 /// Extract feed URLs from HTML `<link>` tags using simple string parsing.
 ///
-/// Looks for `<link rel="alternate" type="application/rss+xml" ...>` and
-/// `<link rel="alternate" type="application/atom+xml" ...>` tags.
+/// Looks for `<link rel="alternate" type="application/rss+xml" ...>`,
+/// `<link rel="alternate" type="application/atom+xml" ...>`, and
+/// `<link rel="alternate" type="application/feed+json" ...>` tags.
 fn extract_feed_links(html: &str, base_url: &str) -> Vec<DiscoveredFeed> {
     let mut feeds = Vec::new();
     let html_lower = html.to_lowercase();
@@ -135,21 +136,13 @@ fn extract_feed_links(html: &str, base_url: &str) -> Vec<DiscoveredFeed> {
             None => break,
         };
         let tag = &html[abs_start..abs_start + end + 1];
-        let tag_lower = &html_lower[abs_start..abs_start + end + 1];
         search_from = abs_start + end + 1;
 
-        // Must have rel="alternate"
-        if !tag_lower.contains("rel=\"alternate\"") && !tag_lower.contains("rel='alternate'") {
+        if !has_alternate_rel(tag) {
             continue;
         }
 
-        // Must have a feed type
-        let is_rss = tag_lower.contains("type=\"application/rss+xml\"")
-            || tag_lower.contains("type='application/rss+xml'");
-        let is_atom = tag_lower.contains("type=\"application/atom+xml\"")
-            || tag_lower.contains("type='application/atom+xml'");
-
-        if !is_rss && !is_atom {
+        if !extract_attribute(tag, "type").is_some_and(|feed_type| is_feed_link_type(&feed_type)) {
             continue;
         }
 
@@ -168,6 +161,27 @@ fn extract_feed_links(html: &str, base_url: &str) -> Vec<DiscoveredFeed> {
     }
 
     feeds
+}
+
+fn has_alternate_rel(tag: &str) -> bool {
+    extract_attribute(tag, "rel").is_some_and(|rel| {
+        rel.split_ascii_whitespace()
+            .any(|token| token.eq_ignore_ascii_case("alternate"))
+    })
+}
+
+fn is_feed_link_type(feed_type: &str) -> bool {
+    let normalized = feed_type
+        .split(';')
+        .next()
+        .unwrap_or(feed_type)
+        .trim()
+        .to_ascii_lowercase();
+
+    matches!(
+        normalized.as_str(),
+        "application/rss+xml" | "application/atom+xml" | "application/feed+json"
+    )
 }
 
 /// Extract the value of an HTML attribute from a tag string.
@@ -266,6 +280,44 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_feed_links_with_rel_token_list() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate nofollow" type="application/rss+xml" title="RSS" href="/rss.xml">
+            <link rel="canonical alternate" type="application/atom+xml" title="Atom" href="/atom.xml">
+            </head><body></body></html>
+        "#;
+        let feeds = extract_feed_links(html, "https://example.com");
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(feeds[0].url, "https://example.com/rss.xml");
+        assert_eq!(feeds[1].url, "https://example.com/atom.xml");
+    }
+
+    #[test]
+    fn test_extract_feed_links_json_feed() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/feed+json" title="JSON Feed" href="/feed.json">
+            </head><body></body></html>
+        "#;
+        let feeds = extract_feed_links(html, "https://example.com");
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].url, "https://example.com/feed.json");
+        assert_eq!(feeds[0].title, "JSON Feed");
+    }
+
+    #[test]
+    fn test_extract_feed_links_rejects_non_alternate_rel_tokens() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate-stylesheet" type="application/rss+xml" title="RSS" href="/rss.xml">
+            </head><body></body></html>
+        "#;
+        let feeds = extract_feed_links(html, "https://example.com");
+        assert!(feeds.is_empty());
+    }
+
+    #[test]
     fn test_extract_no_feeds() {
         let html = r#"
             <html><head>
@@ -304,6 +356,7 @@ mod tests {
     fn test_is_feed_content_type() {
         assert!(is_feed_content_type("application/rss+xml; charset=utf-8"));
         assert!(is_feed_content_type("application/atom+xml"));
+        assert!(is_feed_content_type("application/feed+json"));
         assert!(is_feed_content_type("text/xml"));
         assert!(!is_feed_content_type("text/html; charset=utf-8"));
     }
