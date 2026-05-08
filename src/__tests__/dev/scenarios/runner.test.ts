@@ -81,7 +81,8 @@ function createQueryClientStub() {
 }
 
 function expectCachedQuery(cache: Map<string, unknown>, key: QueryKey, expected: unknown) {
-  expect(cache.get(serializeQueryKey(key))).toEqual(expected);
+  const serializedKey = serializeQueryKey(key);
+  expect(cache.get(serializedKey), `query cache entry ${serializedKey}`).toEqual(expected);
 }
 
 function createUiStub(overrides?: Partial<DevScenarioContext["ui"]>): DevScenarioContext["ui"] {

@@ -32,7 +32,7 @@ function createViewTransition(finished: Promise<void>): ViewTransition {
 function mockReducedMotion(matches: boolean): void {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
-    value: vi.fn((query: string): MediaQueryList => {
+    value: vi.fn<typeof window.matchMedia>((query) => {
       return {
         matches: query === "(prefers-reduced-motion: reduce)" ? matches : false,
         media: query,
