@@ -58,6 +58,8 @@ Confirm:
 
 - Release logs are written to disk.
 - You can locate the logs needed for updater or sync troubleshooting.
+- The log-directory action opens the native folder without showing a raw path in the webview.
+- Any shared logs are redacted for credentials, tokens, cookies, and passwords.
 - Any failure observed during this checklist leaves enough logs to debug it later.
 
 ## Record the Result

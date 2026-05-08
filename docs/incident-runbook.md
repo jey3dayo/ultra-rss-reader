@@ -14,6 +14,7 @@ Use this page when the app is already failing and you need the fastest path to t
    - OS
    - whether this is a dev build or packaged build
 3. If this is a packaged build, open the log directory first.
+4. Do not paste secrets into tickets or chat. Mask credentials, tokens, cookie values, and account passwords before sharing logs.
 
 ## Where To Look
 
@@ -21,7 +22,22 @@ Use this page when the app is already failing and you need the fastest path to t
 
 - Packaged builds write file logs.
 - Use the in-app "Open log directory" flow or `get_log_dir`.
+- `open_log_dir` opens the native folder picker and intentionally does not expose the resolved filesystem path to the webview.
 - Keep the log bundle before retrying destructive recovery steps.
+- When escalating, share the saved log file or redacted snippets, not an unredacted full user data directory.
+
+### Diagnostic Sources
+
+Use the source that matches the failure mode before collecting broader artifacts:
+
+| Failure area | First diagnostic source | Escalate when |
+| --- | --- | --- |
+| startup / migration | Packaged release log plus reported database or backup path | The app cannot reopen the database after preserving backup artifacts |
+| account credentials / keyring | Packaged release log plus OS keyring behavior notes | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled |
+| sync | Packaged release log plus account name and toast/warning text | The same account repeatedly reports failure, partial failure, or retry-pending warnings |
+| WebView / browser preview | Debug HUD geometry rows plus packaged release log when available | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
+
+Do not mix app UI debug actions with log collection in the same note. Record which button or command was used, then attach the corresponding diagnostic source separately.
 
 ### Database Backups
 
