@@ -142,8 +142,47 @@ describe("Storybook Explorer organization", () => {
     const internalTitles = titlesUnder("Internal");
     const actualGroups = [...new Set(internalTitles.map((title) => title.split("/")[1]))].sort();
 
-    expect(actualGroups).toEqual([...internalGroups].sort());
+    expect(actualGroups, internalTitles.join("\n")).toEqual([...internalGroups].sort());
     expect(internalTitles.every((title) => title.split("/").length === 3)).toBe(true);
     expect(internalTitles).toContain("Internal/Review/ArticleReadingRhythm");
   });
+
+  it("keeps story title top-levels aligned with component folders", () => {
+    const mismatches = storyMetas.flatMap(({ path, title }) => {
+      const expectedGroup = expectedTopLevelGroupForPath(path, title);
+      if (expectedGroup === null || title.startsWith(`${expectedGroup}/`)) {
+        return [];
+      }
+
+      return [`${path} -> ${title} should be under ${expectedGroup}`];
+    });
+
+    expect(mismatches).toEqual([]);
+  });
 });
+
+function expectedTopLevelGroupForPath(path: string, title: string) {
+  if (path.startsWith("../../components/storybook/")) {
+    return "UI Reference";
+  }
+  if (path.startsWith("../../components/shared/")) {
+    return "Shared";
+  }
+  if (path.startsWith("../../components/ui/")) {
+    return "Primitives";
+  }
+  if (path.startsWith("../../components/settings/")) {
+    return "Settings";
+  }
+  if (path.startsWith("../../components/subscriptions-index/")) {
+    return "Subscriptions";
+  }
+  if (path.startsWith("../../components/debug/")) {
+    return "Internal";
+  }
+  if (path.startsWith("../../components/reader/")) {
+    return title.startsWith("Internal/Review/") ? "Internal" : "Reader";
+  }
+
+  return null;
+}

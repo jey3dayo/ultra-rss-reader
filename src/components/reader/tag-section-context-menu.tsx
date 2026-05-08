@@ -1,9 +1,9 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { CreateTagDialogView } from "@/components/settings/create-tag-dialog-view";
 import { useCreateTag } from "@/hooks/use-tags";
 import { getErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/ui-store";
+import { CreateTagDialogView } from "./create-tag-dialog-view";
 import { TagSectionContextMenuView } from "./tag-section-context-menu-view";
 
 export type TagSectionContextMenuProps = {
