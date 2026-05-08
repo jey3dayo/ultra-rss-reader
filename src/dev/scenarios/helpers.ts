@@ -84,7 +84,13 @@ function updateFeedDisplayModes(
 ): void {
   ctx.queryClient.setQueryData<FeedDto[]>(["feeds", accountId], (currentFeeds) =>
     currentFeeds?.map((feed) =>
-      feed.id === feedId ? { ...feed, reader_mode: readerMode, web_preview_mode: webPreviewMode } : feed,
+      feed.id === feedId
+        ? {
+            ...feed,
+            reader_mode: readerMode,
+            web_preview_mode: webPreviewMode,
+          }
+        : feed,
     ),
   );
 }
@@ -174,10 +180,10 @@ export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Pro
     return;
   }
 
-  await applyDevWindowSize();
+  await applyDevWindowSize(ctx.ui.showToast);
 
   const applyPreviewState = () => {
-    void applyDevWindowSize();
+    void applyDevWindowSize(ctx.ui.showToast);
     ctx.ui.openBrowser(webUrl);
   };
 
@@ -204,7 +210,7 @@ function wait(ms: number): Promise<void> {
   });
 }
 
-async function applyDevWindowSize(): Promise<void> {
+async function applyDevWindowSize(showToast: (message: string) => void): Promise<void> {
   const requestedSize = readDevWindowSize();
   if (!requestedSize) {
     return;
@@ -258,12 +264,14 @@ async function applyDevWindowSize(): Promise<void> {
         targetSize,
         finalSize,
       });
+      showToast(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not verify the requested window size.`);
     }
   } catch (error) {
     console.warn(
       `Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not apply the requested window size.`,
       error,
     );
+    showToast(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not apply the requested window size.`);
   }
 }
 

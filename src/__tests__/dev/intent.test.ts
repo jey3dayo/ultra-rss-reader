@@ -121,6 +121,19 @@ describe("dev-intent helpers", () => {
     expect(readDevWindowSize()).toBeNull();
   });
 
+  it.each([
+    ["zero", "0", "0"],
+    ["negative", "-1", "-200"],
+    ["non-numeric", "wide", "tall"],
+    ["overlarge", "10001", "10001"],
+  ] as const)("drops %s dev window dimensions from env", (_label, width, height) => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", width);
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", height);
+
+    expect(readDevWindowSize()).toBeNull();
+  });
+
   it("keeps valid env dimensions while dropping invalid ones", () => {
     vi.stubEnv("DEV", true);
     vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
@@ -183,6 +196,52 @@ describe("dev-intent helpers", () => {
     expect(readDevWindowSize()).toEqual({ width: 520, height: 900 });
   });
 
+  it("falls back to runtime dev intent when VITE_DEV_INTENT is unset", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-command-palette",
+        dev_web_url: null,
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+
+    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+
+    expect(readDevIntent()).toBe("open-command-palette");
+  });
+
+  it("falls back to runtime dev intent when VITE_DEV_INTENT is invalid", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "removed-dev-intent");
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-settings-general",
+        dev_web_url: null,
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+
+    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+
+    expect(readDevIntent()).toBe("open-settings-general");
+  });
+
+  it("uses the unset fallback when neither env nor runtime dev intent is available", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+
+    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+
+    expect(readDevIntent()).toBeNull();
+  });
+
   it("rounds positive runtime window dimensions and drops invalid runtime values", async () => {
     getDevRuntimeOptionsMock.mockResolvedValueOnce(
       Result.succeed({
@@ -196,6 +255,21 @@ describe("dev-intent helpers", () => {
     expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
 
     expect(readDevWindowSize()).toEqual({ width: 640, height: null });
+  });
+
+  it("drops overlarge runtime window dimensions", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: 10_001,
+        dev_window_height: 900,
+      }),
+    );
+
+    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+
+    expect(readDevWindowSize()).toEqual({ width: null, height: 900 });
   });
 
   it("returns typed runtime option failures for unavailable contexts", async () => {

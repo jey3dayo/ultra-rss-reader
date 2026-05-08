@@ -14,11 +14,12 @@ const DEV_INTENT_ENV_KEYS = ["VITE_DEV_INTENT"] as const;
 const DEV_WEB_URL_ENV_KEYS = ["VITE_DEV_WEB_URL"] as const;
 const DEV_WINDOW_WIDTH_ENV_KEYS = ["VITE_DEV_WINDOW_WIDTH"] as const;
 const DEV_WINDOW_HEIGHT_ENV_KEYS = ["VITE_DEV_WINDOW_HEIGHT"] as const;
+const MAX_DEV_WINDOW_DIMENSION_PX = 10_000;
 let runtimeDevOptionsCache: DevRuntimeOptions | null | undefined;
 let runtimeDevOptionsErrorCache: LoadDevRuntimeOptionsError | null = null;
 let runtimeDevOptionsPromise: Result.ResultAsync<DevRuntimeOptions, LoadDevRuntimeOptionsError> | null = null;
 
-type ParsePositiveIntegerError = "missing_value" | "invalid_integer" | "non_positive_integer";
+type ParsePositiveIntegerError = "missing_value" | "invalid_integer" | "non_positive_integer" | "integer_too_large";
 type ParseDevIntentError = "missing_value" | "unknown_dev_intent";
 export type LoadDevRuntimeOptionsError = "not_dev_build" | "tauri_unavailable" | "request_failed";
 type ReadDevWindowSizeFieldState =
@@ -51,6 +52,10 @@ function parsePositiveIntegerResult(value: string | undefined): Result.Result<nu
     return Result.fail("non_positive_integer");
   }
 
+  if (parsed > MAX_DEV_WINDOW_DIMENSION_PX) {
+    return Result.fail("integer_too_large");
+  }
+
   return Result.succeed(parsed);
 }
 
@@ -70,7 +75,12 @@ function resolveDevWindowSizeFieldState(value: string | undefined): ReadDevWindo
 }
 
 function parsePositiveIntegerOrNull(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  const rounded = Math.round(value);
+  return rounded <= MAX_DEV_WINDOW_DIMENSION_PX ? rounded : null;
 }
 
 function readRuntimeDevIntent(): DevIntent {

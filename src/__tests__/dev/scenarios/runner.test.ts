@@ -288,6 +288,59 @@ describe("runDevScenario", () => {
     expect(context.ui.openBrowser).toHaveBeenCalledWith("https://example.com/debug-preview");
   });
 
+  it("warns, shows a toast, and still opens the web preview when dev window resize fails", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockWindow.setSize.mockRejectedValueOnce(new Error("resize failed"));
+    const context = createContext();
+
+    await runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Dev scenario "open-web-preview-url" could not apply the requested window size.',
+      expect.any(Error),
+    );
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-web-preview-url" could not apply the requested window size.',
+    );
+    expect(context.ui.openBrowser).toHaveBeenCalledWith("https://example.com/debug-preview");
+  });
+
+  it("warns, shows a toast, and still opens the web preview when dev window size never matches", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockInnerLogicalSizes([
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+    ]);
+    const context = createContext();
+
+    const scenarioPromise = runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+    await scenarioPromise;
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Dev scenario "open-web-preview-url" did not reach the requested window size.',
+      {
+        targetSize: { width: 520, height: 900 },
+        finalSize: { width: 1440, height: 960 },
+      },
+    );
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-web-preview-url" could not verify the requested window size.',
+    );
+    expect(context.ui.openBrowser).toHaveBeenCalledWith("https://example.com/debug-preview");
+  });
+
   it("shows a toast when the direct web preview scenario is missing a url", async () => {
     vi.stubEnv("DEV", true);
     const context = createContext();
@@ -479,7 +532,9 @@ describe("runDevScenario", () => {
     );
     expectCachedQuery(queryClient, ["accounts"], [account, otherAccount]);
     expectCachedQuery(queryClient, ["tags"], [primaryTag, secondaryTag]);
-    expectCachedQuery(queryClient, ["tagArticleCounts", otherAccount.id], { [secondaryTag.id]: 2 });
+    expectCachedQuery(queryClient, ["tagArticleCounts", otherAccount.id], {
+      [secondaryTag.id]: 2,
+    });
     expectCachedQuery(
       queryClient,
       ["articlesByTag", secondaryTag.id, otherAccount.id],
@@ -513,7 +568,9 @@ describe("runDevScenario", () => {
 
     expect(context.actions.getTagArticleCounts).toHaveBeenCalledWith(account.id);
     expect(context.actions.listArticlesByTag).toHaveBeenCalledWith(primaryTag.id, undefined, undefined, account.id);
-    expectCachedQuery(queryClient, ["tagArticleCounts", account.id], { [primaryTag.id]: 1 });
+    expectCachedQuery(queryClient, ["tagArticleCounts", account.id], {
+      [primaryTag.id]: 1,
+    });
     expectCachedQuery(queryClient, ["articlesByTag", primaryTag.id, account.id], [landingNewestArticle]);
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);

@@ -2,9 +2,42 @@ import { describe, expect, it } from "vitest";
 import { getDevScenario, listDevScenarios } from "@/dev/scenarios/registry";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS } from "@/dev/scenarios/types";
 
+function findDuplicates(values: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value);
+    }
+    seen.add(value);
+  }
+
+  return [...duplicates].sort();
+}
+
 describe("dev scenario registry", () => {
   it("lists the registered scenario ids", () => {
     expect(listDevScenarios().map((scenario) => scenario.id)).toEqual(DEV_SCENARIO_IDS);
+  });
+
+  it("keeps scenario ids and titles unique", () => {
+    const scenarios = listDevScenarios();
+
+    expect(findDuplicates(DEV_SCENARIO_IDS)).toEqual([]);
+    expect(findDuplicates(scenarios.map((scenario) => scenario.id))).toEqual([]);
+    expect(findDuplicates(scenarios.map((scenario) => scenario.title))).toEqual([]);
+  });
+
+  it("keeps keywords unique within each scenario", () => {
+    const scenariosWithDuplicateKeywords = listDevScenarios()
+      .map((scenario) => ({
+        id: scenario.id,
+        duplicates: findDuplicates(scenario.keywords),
+      }))
+      .filter(({ duplicates }) => duplicates.length > 0);
+
+    expect(scenariosWithDuplicateKeywords).toEqual([]);
   });
 
   it("returns a registered scenario for a known id", () => {
