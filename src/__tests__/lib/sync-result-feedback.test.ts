@@ -27,11 +27,40 @@ describe("sync-result-feedback", () => {
         succeeded: 1,
         failed: [
           { account_id: "acc-1", account_name: "FreshRSS", message: "boom" },
-          { account_id: "acc-2", account_name: "FreshRSS", message: "boom again" },
+          {
+            account_id: "acc-2",
+            account_name: "FreshRSS",
+            message: "boom again",
+          },
         ],
         warnings: [{ account_id: "acc-3", account_name: "Local", message: "warn" }],
       }),
     ).toEqual({ kind: "partial-failure", accounts: "FreshRSS" });
+  });
+
+  it("shows duplicate failed account names once", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 4,
+        succeeded: 1,
+        failed: [
+          { account_id: "acc-1", account_name: "FreshRSS", message: "boom" },
+          {
+            account_id: "acc-2",
+            account_name: "FreshRSS",
+            message: "boom again",
+          },
+          { account_id: "acc-3", account_name: "Local", message: "local boom" },
+          {
+            account_id: "acc-4",
+            account_name: "Local",
+            message: "local boom again",
+          },
+        ],
+        warnings: [],
+      }),
+    ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, Local" });
   });
 
   it("summarizes warning-only sync results", () => {
@@ -49,6 +78,21 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "warnings", accounts: "FreshRSS, Local" });
   });
 
+  it("deduplicates account names for warning-only sync results", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 2,
+        succeeded: 2,
+        failed: [],
+        warnings: [
+          { account_id: "acc-1", account_name: "FreshRSS", message: "warn 1" },
+          { account_id: "acc-2", account_name: "FreshRSS", message: "warn 2" },
+        ],
+      }),
+    ).toEqual({ kind: "warnings", accounts: "FreshRSS" });
+  });
+
   it("prefers retry-pending when warnings include a queued retry", () => {
     expect(
       summarizeSyncResult({
@@ -56,7 +100,14 @@ describe("sync-result-feedback", () => {
         total: 1,
         succeeded: 1,
         failed: [],
-        warnings: [{ account_id: "acc-1", account_name: "FreshRSS", message: "Retry later", kind: "retry_pending" }],
+        warnings: [
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            message: "Retry later",
+            kind: "retry_pending",
+          },
+        ],
       }),
     ).toEqual({ kind: "retry-pending", accounts: "FreshRSS" });
   });
@@ -74,7 +125,12 @@ describe("sync-result-feedback", () => {
   it("summarizes warning payloads for event-driven retry notifications", () => {
     expect(
       summarizeSyncWarnings([
-        { account_id: "acc-1", account_name: "FreshRSS", message: "Retry later", kind: "retry_pending" },
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "Retry later",
+          kind: "retry_pending",
+        },
         { account_id: "acc-2", account_name: "Local", message: "warn 2" },
       ]),
     ).toEqual({ kind: "retry-pending", accounts: "FreshRSS, Local" });
@@ -91,7 +147,12 @@ describe("sync-result-feedback", () => {
           retry_at: "2026-04-13T03:15:00Z",
           retry_in_seconds: 120,
         },
-        { account_id: "acc-2", account_name: "Local", message: "Retry later", kind: "retry_pending" },
+        {
+          account_id: "acc-2",
+          account_name: "Local",
+          message: "Retry later",
+          kind: "retry_pending",
+        },
       ]),
     ).toEqual({
       kind: "retry-scheduled",
@@ -153,6 +214,41 @@ describe("sync-result-feedback", () => {
       accounts: "FreshRSS, Local",
       retryAt: "2026-04-13T03:17:00Z",
       retryInSeconds: 90,
+    });
+  });
+
+  it("uses scheduled retry warnings with missing retry seconds last", () => {
+    expect(
+      summarizeSyncWarnings([
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "Retry sooner",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:18:00Z",
+          retry_in_seconds: 120,
+        },
+        {
+          account_id: "acc-2",
+          account_name: "Local",
+          message: "Retry scheduled",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:17:00Z",
+        },
+        {
+          account_id: "acc-3",
+          account_name: "Other",
+          message: "Retry earliest",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:16:00Z",
+          retry_in_seconds: 60,
+        },
+      ]),
+    ).toEqual({
+      kind: "retry-scheduled",
+      accounts: "FreshRSS, Local, Other",
+      retryAt: "2026-04-13T03:16:00Z",
+      retryInSeconds: 60,
     });
   });
 

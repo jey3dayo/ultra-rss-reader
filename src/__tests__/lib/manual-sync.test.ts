@@ -117,12 +117,63 @@ describe("manual-sync", () => {
     expect(onError).toHaveBeenCalledWith(appError);
   });
 
-  it("stops notifying an unsubscribed cooldown listener", () => {
+  it("starts cooldown after triggerSync failure", async () => {
+    const appError = { type: "UserVisible", message: "sync failed" };
+    triggerSyncMock.mockResolvedValue(Result.fail(appError));
+
+    const result = await triggerManualSyncWithCooldownResult();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual(appError);
+    expect(isManualSyncCoolingDown()).toBe(true);
+    expect(getManualSyncCooldownUntil()).toBe(Date.now() + 15_000);
+  });
+
+  it("uses the same cooldown deadline after triggerSync success and failure", async () => {
+    const syncStartedAt = Date.now();
+    const successResult = await triggerManualSyncWithCooldownResult();
+
+    expect(Result.isSuccess(successResult)).toBe(true);
+    expect(getManualSyncCooldownUntil()).toBe(syncStartedAt + 15_000);
+
+    resetManualSyncCooldownForTests();
+    const failureStartedAt = syncStartedAt + 30_000;
+    vi.setSystemTime(failureStartedAt);
+    const appError = { type: "UserVisible", message: "sync failed" };
+    triggerSyncMock.mockResolvedValue(Result.fail(appError));
+
+    const failureResult = await triggerManualSyncWithCooldownResult();
+
+    expect(Result.isFailure(failureResult)).toBe(true);
+    expect(Result.unwrapError(failureResult)).toEqual(appError);
+    expect(getManualSyncCooldownUntil()).toBe(failureStartedAt + 15_000);
+  });
+
+  it("stops notifying an unsubscribed cooldown listener", async () => {
     const listener = vi.fn();
     const unsubscribe = subscribeManualSyncCooldown(listener);
 
     unsubscribe();
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
+    vi.advanceTimersByTime(15_000);
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("clears cooldown listeners when resetting test state", async () => {
+    const listener = vi.fn();
+    subscribeManualSyncCooldown(listener);
+
     resetManualSyncCooldownForTests();
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
 
     expect(listener).not.toHaveBeenCalled();
   });

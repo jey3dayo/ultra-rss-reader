@@ -104,5 +104,5 @@ export function resetManualSyncCooldownForTests() {
     manualSyncCooldownTimer = null;
   }
   manualSyncCooldownUntil = 0;
-  emitManualSyncCooldownChanged();
+  manualSyncCooldownListeners.clear();
 }

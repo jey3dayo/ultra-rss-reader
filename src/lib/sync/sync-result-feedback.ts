@@ -3,7 +3,12 @@ import type { AccountSyncError, AccountSyncWarning, SyncResultDto } from "@/api/
 export type SyncFeedback =
   | { kind: "already-in-progress" }
   | { kind: "partial-failure"; accounts: string }
-  | { kind: "retry-scheduled"; accounts: string; retryAt?: string; retryInSeconds?: number }
+  | {
+      kind: "retry-scheduled";
+      accounts: string;
+      retryAt?: string;
+      retryInSeconds?: number;
+    }
   | { kind: "retry-pending"; accounts: string }
   | { kind: "warnings"; accounts: string }
   | { kind: "success" };
