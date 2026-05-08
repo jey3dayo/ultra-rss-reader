@@ -2,6 +2,19 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 
+type SnapshotCandidate = { value: string };
+
+type ScreenSnapshotHookProps = {
+  candidate: SnapshotCandidate | null;
+  canAdopt: boolean;
+};
+
+function renderScreenSnapshotHook(initialProps: ScreenSnapshotHookProps) {
+  return renderHook(({ candidate, canAdopt }: ScreenSnapshotHookProps) => useScreenSnapshot(candidate, canAdopt), {
+    initialProps,
+  });
+}
+
 describe("useScreenSnapshot", () => {
   it("adopts immediately on the initial render when canAdopt is true", () => {
     const { result } = renderHook(() => useScreenSnapshot({ value: "sqlite" }, true));
@@ -12,11 +25,9 @@ describe("useScreenSnapshot", () => {
   });
 
   it("keeps the previous snapshot while the next fetch is pending", () => {
-    const { result, rerender } = renderHook(({ candidate, canAdopt }) => useScreenSnapshot(candidate, canAdopt), {
-      initialProps: {
-        candidate: null as { value: string } | null,
-        canAdopt: false,
-      },
+    const { result, rerender } = renderScreenSnapshotHook({
+      candidate: null,
+      canAdopt: false,
     });
 
     expect(result.current.snapshot).toBeNull();
@@ -43,11 +54,9 @@ describe("useScreenSnapshot", () => {
   });
 
   it("keeps the previous snapshot when the candidate changes while canAdopt is false", () => {
-    const { result, rerender } = renderHook(({ candidate, canAdopt }) => useScreenSnapshot(candidate, canAdopt), {
-      initialProps: {
-        candidate: { value: "first" } as { value: string } | null,
-        canAdopt: true,
-      },
+    const { result, rerender } = renderScreenSnapshotHook({
+      candidate: { value: "first" },
+      canAdopt: true,
     });
 
     expect(result.current.snapshot).toEqual({ value: "first" });
@@ -65,11 +74,9 @@ describe("useScreenSnapshot", () => {
   });
 
   it("adopts the latest candidate when canAdopt toggles from false to true", () => {
-    const { result, rerender } = renderHook(({ candidate, canAdopt }) => useScreenSnapshot(candidate, canAdopt), {
-      initialProps: {
-        candidate: null as { value: string } | null,
-        canAdopt: false,
-      },
+    const { result, rerender } = renderScreenSnapshotHook({
+      candidate: null,
+      canAdopt: false,
     });
 
     expect(result.current.snapshot).toBeNull();
@@ -96,11 +103,9 @@ describe("useScreenSnapshot", () => {
   });
 
   it("treats a null candidate as unresolved while canAdopt is true", () => {
-    const { result, rerender } = renderHook(({ candidate, canAdopt }) => useScreenSnapshot(candidate, canAdopt), {
-      initialProps: {
-        candidate: { value: "adopted" } as { value: string } | null,
-        canAdopt: true,
-      },
+    const { result, rerender } = renderScreenSnapshotHook({
+      candidate: { value: "adopted" },
+      canAdopt: true,
     });
 
     expect(result.current.snapshot).toEqual({ value: "adopted" });
