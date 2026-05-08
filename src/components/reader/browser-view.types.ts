@@ -1,14 +1,11 @@
-import type { Dispatch, MutableRefObject, ReactNode, RefObject, SetStateAction } from "react";
-import type { PlatformInfo } from "@/api/schemas";
-import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
+import type { ReactNode, RefObject } from "react";
+import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser/browser-debug-geometry";
 import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser/browser-viewer-geometry";
-import type { ToastData } from "@/lib/ui/toast.types";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
-import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 
 export type BrowserViewScope = BrowserViewerScope;
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
@@ -62,11 +59,6 @@ export type BrowserViewProps = {
   toolbarActions?: BrowserOverlayToolbarAction[];
 };
 
-export type UseBrowserViewControllerParams = {
-  scope: BrowserViewScope;
-  onCloseOverlay: () => void;
-};
-
 export type BrowserViewController = {
   browserUrl: string | null;
   browserState: BrowserWebviewState | null;
@@ -83,9 +75,9 @@ export type BrowserViewController = {
   handleRetry: () => void;
   handleReload: () => Promise<void>;
   handleOpenExternal: () => Promise<void>;
-  hostRef: React.RefObject<HTMLDivElement | null>;
-  overlayRef: React.RefObject<HTMLDivElement | null>;
-  stageRef: React.RefObject<HTMLDivElement | null>;
+  hostRef: RefObject<HTMLDivElement | null>;
+  overlayRef: RefObject<HTMLDivElement | null>;
+  stageRef: RefObject<HTMLDivElement | null>;
 };
 
 export type BrowserOverlayChromeController = Pick<
@@ -110,191 +102,4 @@ export type BrowserOverlayStageController = Pick<
   | "showDiagnostics"
   | "handleRetry"
   | "handleOpenExternal"
->;
-
-export type UseBrowserViewRuntimeParams = {
-  onCloseOverlay: () => void;
-};
-
-export type UseBrowserViewRuntimeResult = {
-  showDiagnostics: boolean;
-  browserUrl: string | null;
-  browserState: BrowserWebviewState | null;
-  showToast: (message: string | ToastData) => void;
-  platformKind: PlatformInfo["kind"];
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  hostRef: RefObject<HTMLDivElement | null>;
-  overlayRef: RefObject<HTMLDivElement | null>;
-  stageRef: RefObject<HTMLDivElement | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
-  handleNativeDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
-  viewportWidth: number;
-  isLoading: boolean;
-  handleCloseOverlay: () => void;
-};
-
-export type UseBrowserViewEventBridgeParams = {
-  showDiagnostics: boolean;
-  isLoading: boolean;
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  onCloseOverlay: () => void;
-  onDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
-};
-
-export type UseBrowserViewEventBridgeResult = {
-  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
-  handleLostEmbeddedBrowserWebview: (error: AppError) => void;
-  showSurfaceFailure: (error: AppError) => void;
-  activeSurfaceIssue: BrowserSurfaceIssue | null;
-  waitForBrowserWebviewListeners: () => Promise<void>;
-};
-
-export type UseBrowserViewSurfaceControllerParams = {
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  isLoading: boolean;
-  onCloseOverlay: () => void;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-};
-
-export type UseBrowserViewSurfaceControllerResult = {
-  surfaceIssue: BrowserSurfaceIssue | null;
-  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
-  handleLostEmbeddedBrowserWebview: (error: AppError) => void;
-  handleBrowserWebviewFallback: (payload: BrowserWebviewFallbackPayload) => void;
-  showSurfaceFailure: (error: AppError) => void;
-  activeSurfaceIssue: BrowserSurfaceIssue | null;
-};
-
-export type UseBrowserViewSurfaceStateParams = {
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  isLoading: boolean;
-  runtimeUnavailable: boolean;
-  onCloseOverlay: () => void;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  browserMode: string;
-  browserModeHint: string;
-  failed: string;
-  failedHint: string;
-  blocked: string;
-  blockedHint: string;
-};
-
-export type UseBrowserViewSurfaceStateResult = UseBrowserViewSurfaceControllerResult;
-
-export type UseBrowserWebviewEventsParams = {
-  showDiagnostics: boolean;
-  onStateChanged: (payload: BrowserWebviewState) => void;
-  onFallback: (payload: BrowserWebviewFallbackPayload) => void;
-  onClosed: () => void;
-  onDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
-};
-
-export type UseBrowserWebviewEventsResult = () => Promise<void>;
-
-export type UseBrowserOverlayShortcutsParams = {
-  browserUrl: string | null;
-  handleCloseOverlay: () => void;
-};
-
-export type UseBrowserWebviewLoadTimeoutParams = {
-  browserUrl: string | null;
-  isLoading: boolean;
-  isStillLoading: () => boolean;
-  showSurfaceFailure: (error: { type: "UserVisible"; message: string }) => void;
-};
-
-export type UseBrowserWebviewStateChangedParams = {
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  setSurfaceIssue: (issue: null) => void;
-  getRequestedUrl: () => string;
-};
-
-export type UseBrowserWebviewBoundsSyncParams = {
-  browserUrl: string | null;
-  hostRef: RefObject<HTMLDivElement | null>;
-  waitForBrowserWebviewListeners: () => Promise<void>;
-  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
-};
-
-export type UseBrowserWebviewRequestStateParams = {
-  browserUrl: string | null;
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  resetBrowserWebviewSyncState: () => void;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  setSurfaceIssue: (issue: null) => void;
-};
-
-export type UseBrowserWebviewSyncParams = {
-  hostRef: RefObject<HTMLDivElement | null>;
-  platformKind: PlatformInfo["kind"];
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  captureLayoutDiagnostics: () => void;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  onMissingEmbeddedBrowserWebview: (error: AppError) => void;
-  showSurfaceFailure: (error: AppError) => void;
-};
-
-export type UseBrowserWebviewSyncResult = {
-  resetBrowserWebviewSyncState: () => void;
-  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
-};
-
-export type UseBrowserDebugGeometryEventsParams = {
-  showDiagnostics: boolean;
-  layoutDiagnostics: BrowserDebugGeometryLayoutDiagnostics | null;
-  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
-};
-
-export type UseBrowserNativeDiagnosticsResult = {
-  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
-  handleNativeDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
-};
-
-export type UseBrowserLayoutDiagnosticsParams = {
-  browserUrl: string | null;
-  showDiagnostics: boolean;
-  overlayRef: RefObject<HTMLDivElement | null>;
-  stageRef: RefObject<HTMLDivElement | null>;
-  hostRef: RefObject<HTMLDivElement | null>;
-};
-
-export type UseBrowserLayoutDiagnosticsResult = {
-  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
-  captureLayoutDiagnostics: () => void;
-};
-
-export type UseBrowserOverlayFocusReturnParams = {
-  articleId: string;
-  isBrowserOpen: boolean;
-};
-
-export type UseBrowserOverlayFocusReturnResult = {
-  focusSelectedArticleRow: () => void;
-  rememberOverlayFocusReturnTarget: () => void;
-};
-
-export type UseBrowserViewActionsParams = {
-  browserUrl: string | null;
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  resetBrowserWebviewSyncState: () => void;
-  setSurfaceIssue: (issue: null) => void;
-  showToast: (message: string) => void;
-  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
-  initialBrowserState: (url: string) => BrowserWebviewState;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-};
-
-export type UseBrowserViewActionsResult = Pick<
-  BrowserViewController,
-  "handleGoBack" | "handleGoForward" | "handleRetry" | "handleReload" | "handleOpenExternal"
 >;

@@ -1,17 +1,41 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { AppError } from "@/api/tauri-commands";
+import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import {
   type BrowserSurfaceIssue,
   createBrowserSurfaceFailure,
   createBrowserSurfaceFallback,
   resolveRuntimeUnavailableSurfaceIssue,
 } from "../../browser-surface-issue";
-import type { UseBrowserViewSurfaceStateParams, UseBrowserViewSurfaceStateResult } from "../../browser-view.types";
 import {
   type BrowserWebviewFallbackPayload,
   setBrowserStateWithRef,
   updateBrowserStateWithRef,
 } from "../../browser-webview-state";
+
+type UseBrowserViewSurfaceStateParams = {
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  isLoading: boolean;
+  runtimeUnavailable: boolean;
+  onCloseOverlay: () => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  browserMode: string;
+  browserModeHint: string;
+  failed: string;
+  failedHint: string;
+  blocked: string;
+  blockedHint: string;
+};
+
+type UseBrowserViewSurfaceStateResult = {
+  surfaceIssue: BrowserSurfaceIssue | null;
+  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
+  handleLostEmbeddedBrowserWebview: (error: AppError) => void;
+  handleBrowserWebviewFallback: (payload: BrowserWebviewFallbackPayload) => void;
+  showSurfaceFailure: (error: AppError) => void;
+  activeSurfaceIssue: BrowserSurfaceIssue | null;
+};
 
 export function useBrowserViewSurfaceState({
   browserStateRef,

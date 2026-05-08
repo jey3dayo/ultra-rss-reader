@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback } from "react";
 import {
   type AppError,
@@ -11,10 +12,27 @@ import {
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { openUrlInExternalBrowser } from "../../article-browser-actions";
-import type { UseBrowserViewActionsParams, UseBrowserViewActionsResult } from "../../browser-view.types";
+import type { BrowserViewController } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
 
 type BrowserWebviewCommand = () => Promise<Result.Result<BrowserWebviewState, AppError>>;
+
+type UseBrowserViewActionsParams = {
+  browserUrl: string | null;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  resetBrowserWebviewSyncState: () => void;
+  setSurfaceIssue: (issue: null) => void;
+  showToast: (message: string) => void;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+  initialBrowserState: (url: string) => BrowserWebviewState;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+};
+
+type UseBrowserViewActionsResult = Pick<
+  BrowserViewController,
+  "handleGoBack" | "handleGoForward" | "handleRetry" | "handleReload" | "handleOpenExternal"
+>;
 
 export function useBrowserViewActions({
   browserUrl,

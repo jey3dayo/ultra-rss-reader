@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
-import type { UseBrowserDebugGeometryEventsParams } from "../../browser-view.types";
+import type { BrowserViewLayoutDiagnostics, BrowserWebviewDiagnosticsPayload } from "../../browser-view.types";
+
+type UseBrowserDebugGeometryEventsParams = {
+  showDiagnostics: boolean;
+  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+};
 
 export function useBrowserDebugGeometryEvents({
   showDiagnostics,

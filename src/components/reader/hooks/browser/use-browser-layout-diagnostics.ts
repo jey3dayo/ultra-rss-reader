@@ -1,11 +1,21 @@
+import type { RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { toBrowserWebviewBounds } from "@/lib/browser/browser-webview";
-import type {
-  BrowserViewLayoutDiagnostics,
-  UseBrowserLayoutDiagnosticsParams,
-  UseBrowserLayoutDiagnosticsResult,
-} from "../../browser-view.types";
+import type { BrowserViewLayoutDiagnostics } from "../../browser-view.types";
 import { resolveBrowserOverlayClientRelativeRect } from "../../browser-webview-sync-helpers";
+
+type UseBrowserLayoutDiagnosticsParams = {
+  browserUrl: string | null;
+  showDiagnostics: boolean;
+  overlayRef: RefObject<HTMLDivElement | null>;
+  stageRef: RefObject<HTMLDivElement | null>;
+  hostRef: RefObject<HTMLDivElement | null>;
+};
+
+type UseBrowserLayoutDiagnosticsResult = {
+  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
+  captureLayoutDiagnostics: () => void;
+};
 
 export function useBrowserLayoutDiagnostics({
   browserUrl,

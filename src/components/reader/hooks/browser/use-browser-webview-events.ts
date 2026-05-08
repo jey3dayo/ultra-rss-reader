@@ -4,8 +4,17 @@ import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
 import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
-import type { UseBrowserWebviewEventsParams, UseBrowserWebviewEventsResult } from "../../browser-view.types";
 import type { BrowserWebviewFallbackPayload } from "../../browser-webview-state";
+
+type UseBrowserWebviewEventsParams = {
+  showDiagnostics: boolean;
+  onStateChanged: (payload: BrowserWebviewState) => void;
+  onFallback: (payload: BrowserWebviewFallbackPayload) => void;
+  onClosed: () => void;
+  onDiagnostics: (payload: BrowserDebugGeometryNativeDiagnostics) => void;
+};
+
+type UseBrowserWebviewEventsResult = () => Promise<void>;
 
 export function useBrowserWebviewEvents({
   showDiagnostics,

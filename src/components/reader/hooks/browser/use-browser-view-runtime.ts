@@ -1,12 +1,38 @@
+import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { useCallback, useRef, useState } from "react";
+import type { PlatformInfo } from "@/api/schemas";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserNativeDiagnostics } from "@/components/reader/hooks/browser/use-browser-native-diagnostics";
 import { useBrowserOverlayViewportWidth } from "@/components/reader/hooks/browser/use-browser-overlay-viewport-width";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseBrowserViewRuntimeParams, UseBrowserViewRuntimeResult } from "../../browser-view.types";
+import type { BrowserWebviewDiagnosticsPayload } from "../../browser-view.types";
+
+type UseBrowserViewRuntimeParams = {
+  onCloseOverlay: () => void;
+};
+
+type UseBrowserViewRuntimeResult = {
+  showDiagnostics: boolean;
+  browserUrl: string | null;
+  browserState: BrowserWebviewState | null;
+  showToast: (message: string | ToastData) => void;
+  platformKind: PlatformInfo["kind"];
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  hostRef: RefObject<HTMLDivElement | null>;
+  overlayRef: RefObject<HTMLDivElement | null>;
+  stageRef: RefObject<HTMLDivElement | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+  handleNativeDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
+  viewportWidth: number;
+  isLoading: boolean;
+  handleCloseOverlay: () => void;
+};
 
 export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeParams): UseBrowserViewRuntimeResult {
   const prefs = usePreferencesStore((s) => s.prefs);

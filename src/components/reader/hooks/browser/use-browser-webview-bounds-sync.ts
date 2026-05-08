@@ -1,6 +1,13 @@
+import type { RefObject } from "react";
 import { useBrowserUrlLayoutEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { bindWindowEvents } from "@/lib/window/window-events";
-import type { UseBrowserWebviewBoundsSyncParams } from "../../browser-view.types";
+
+type UseBrowserWebviewBoundsSyncParams = {
+  browserUrl: string | null;
+  hostRef: RefObject<HTMLDivElement | null>;
+  waitForBrowserWebviewListeners: () => Promise<void>;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+};
 
 export function useBrowserWebviewBoundsSync({
   browserUrl,

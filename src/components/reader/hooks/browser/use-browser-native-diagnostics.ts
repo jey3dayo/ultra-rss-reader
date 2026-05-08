@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import type { BrowserWebviewDiagnosticsPayload, UseBrowserNativeDiagnosticsResult } from "../../browser-view.types";
+import type { BrowserWebviewDiagnosticsPayload } from "../../browser-view.types";
+
+type UseBrowserNativeDiagnosticsResult = {
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+  handleNativeDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
+};
 
 export function useBrowserNativeDiagnostics(showDiagnostics: boolean): UseBrowserNativeDiagnosticsResult {
   const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);

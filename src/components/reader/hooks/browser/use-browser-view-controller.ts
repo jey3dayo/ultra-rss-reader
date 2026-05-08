@@ -11,9 +11,14 @@ import { useBrowserWebviewLoadTimeout } from "@/components/reader/hooks/browser/
 import { useBrowserWebviewRequestState } from "@/components/reader/hooks/browser/use-browser-webview-request-state";
 import { useBrowserWebviewSync } from "@/components/reader/hooks/browser/use-browser-webview-sync";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
-import type { BrowserViewController, UseBrowserViewControllerParams } from "../../browser-view.types";
+import type { BrowserViewController, BrowserViewScope } from "../../browser-view.types";
 import { resolveBrowserViewPresentation } from "../../browser-view-presentation";
 import { initialBrowserState } from "../../browser-webview-state";
+
+type UseBrowserViewControllerParams = {
+  scope: BrowserViewScope;
+  onCloseOverlay: () => void;
+};
 
 export function useBrowserViewController({
   scope,

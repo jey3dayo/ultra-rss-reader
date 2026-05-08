@@ -1,6 +1,10 @@
 import { useBrowserUrlEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
-import type { UseBrowserOverlayShortcutsParams } from "../../browser-view.types";
+
+type UseBrowserOverlayShortcutsParams = {
+  browserUrl: string | null;
+  handleCloseOverlay: () => void;
+};
 
 export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
   useBrowserUrlEffect(browserUrl, () => {

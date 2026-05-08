@@ -1,7 +1,15 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import type { UseBrowserWebviewStateChangedParams } from "../../browser-view.types";
 import { mergeBrowserState, setBrowserStateWithRef } from "../../browser-webview-state";
+
+type UseBrowserWebviewStateChangedParams = {
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  setSurfaceIssue: (issue: null) => void;
+  getRequestedUrl: () => string;
+};
 
 export function useBrowserWebviewStateChanged({
   browserStateRef,

@@ -1,11 +1,33 @@
 import { Result } from "@praha/byethrow";
+import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { useCallback, useRef } from "react";
-import { createOrUpdateBrowserWebview, focusBrowserWebview, setBrowserWebviewBounds } from "@/api/tauri-commands";
+import type { PlatformInfo } from "@/api/schemas";
+import {
+  type AppError,
+  type BrowserWebviewState,
+  createOrUpdateBrowserWebview,
+  focusBrowserWebview,
+  setBrowserWebviewBounds,
+} from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseBrowserWebviewSyncParams, UseBrowserWebviewSyncResult } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
 import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "../../browser-webview-sync-helpers";
+
+type UseBrowserWebviewSyncParams = {
+  hostRef: RefObject<HTMLDivElement | null>;
+  platformKind: PlatformInfo["kind"];
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  captureLayoutDiagnostics: () => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  onMissingEmbeddedBrowserWebview: (error: AppError) => void;
+  showSurfaceFailure: (error: AppError) => void;
+};
+
+type UseBrowserWebviewSyncResult = {
+  resetBrowserWebviewSyncState: () => void;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+};
 
 export function useBrowserWebviewSync({
   hostRef,

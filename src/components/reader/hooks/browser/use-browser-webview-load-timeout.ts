@@ -1,6 +1,12 @@
 import { useBrowserUrlEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
-import type { UseBrowserWebviewLoadTimeoutParams } from "../../browser-view.types";
+
+type UseBrowserWebviewLoadTimeoutParams = {
+  browserUrl: string | null;
+  isLoading: boolean;
+  isStillLoading: () => boolean;
+  showSurfaceFailure: (error: { type: "UserVisible"; message: string }) => void;
+};
 
 export function useBrowserWebviewLoadTimeout({
   browserUrl,
