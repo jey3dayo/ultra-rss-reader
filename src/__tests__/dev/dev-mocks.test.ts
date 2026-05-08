@@ -1,6 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { clearMocks } from "@tauri-apps/api/mocks";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commandArgsSchemas } from "@/api/schemas";
 import {
   countAccountStarredArticles,
   createOrUpdateBrowserWebview,
@@ -10,12 +13,18 @@ import {
   getPlatformInfo,
   listStarredArticles,
   testAccountConnection,
+  updateAccountCredentials,
 } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 describe("setupDevMocks", () => {
-  const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };
+  const browserBounds: BrowserWebviewBounds = {
+    x: 380,
+    y: 48,
+    width: 900,
+    height: 720,
+  };
 
   beforeEach(() => {
     clearMocks();
@@ -30,7 +39,10 @@ describe("setupDevMocks", () => {
   it("returns a settled browser state for browser-only UI checks", async () => {
     setupDevMocks();
 
-    const result = await createOrUpdateBrowserWebview("https://example.com/article", browserBounds);
+    const result = await createOrUpdateBrowserWebview(
+      "https://example.com/article",
+      browserBounds,
+    );
     const state = Result.unwrap(result);
 
     expect(state).toEqual({
@@ -98,15 +110,52 @@ describe("setupDevMocks", () => {
     expect(account.id).toBe("acc-local");
   });
 
+  it("updates account credential fields in browser-only mode", async () => {
+    setupDevMocks();
+
+    const account = Result.unwrap(
+      await updateAccountCredentials(
+        "acc-freshrss",
+        "https://reader.example.com",
+        "demo-user",
+        "secret",
+      ),
+    );
+
+    expect(account.id).toBe("acc-freshrss");
+    expect(account.server_url).toBe("https://reader.example.com");
+    expect(account.username).toBe("demo-user");
+  });
+
   it("returns starred counts and articles in browser-only mode", async () => {
     setupDevMocks();
 
-    const starredCount = Result.unwrap(await countAccountStarredArticles("acc-freshrss"));
-    const starredArticles = Result.unwrap(await listStarredArticles("acc-freshrss"));
+    const starredCount = Result.unwrap(
+      await countAccountStarredArticles("acc-freshrss"),
+    );
+    const starredArticles = Result.unwrap(
+      await listStarredArticles("acc-freshrss"),
+    );
 
     expect(starredCount).toBe(2);
     expect(starredArticles).toHaveLength(2);
     expect(starredArticles[0]?.is_starred).toBe(true);
+  });
+
+  it("keeps every schema-validated command covered by the browser-only mock switch", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/dev/mocks.ts"),
+      "utf8",
+    );
+    const mockedCommands = new Set(
+      [...source.matchAll(/case "([^"]+)"/g)].map((match) => match[1]),
+    );
+
+    expect(
+      Object.keys(commandArgsSchemas).filter(
+        (command) => !mockedCommands.has(command),
+      ),
+    ).toEqual([]);
   });
 
   it("returns an empty integrity report in browser-only mode", async () => {

@@ -579,20 +579,10 @@
   - 必要なら `ProviderSyncWarning` へ乗せる contract を追加し、scheduler backoff、provider error mapping、manual sync toast 文言とは混ぜない
   - warning DTO / log / sync result feedback の対応は別段階で扱う
 
-- [ ] dev runtime window env parsing contract 候補を別バッチで追加する
-  - `platform_commands.rs` と `platform-info.ts` の `VITE_DEV_WINDOW_WIDTH` / `HEIGHT` の空文字、0、負数、非数値の扱いを揃える
-  - platform capability DTO、window sizing 実装、dev scenario 追加とは混ぜず、dev runtime options DTO と TS schema の境界に限定する
-  - frontend / Rust の片側だけで許容される値がないか contract test で見る
-
 - [ ] GReader subscription icon persistence boundary 候補を別バッチで検証する
   - `greader.rs` と `sync_providers.rs` で `iconUrl` を受け取った subscription が sync 保存時に icon を保存する / しない契約を固定する
   - provider icon visual fallback、app icon theme、feed row UI とは混ぜず、provider DTO から feed persistence への mapping だけを見る
   - 保存しない判断なら diagnostic / fallback source を test comment ではなく contract として明示する
-
-- [ ] test Tauri mock command coverage guard 候補を別バッチで追加する
-  - `tests/helpers/tauri-mocks.ts` と command schema registry を照合し、schema 登録済み command が test mock 未対応になっていないか検出する
-  - 明示 allowlist を用意し、実 command schema 変更、dev browser mock、UI fallback 表示とは混ぜない
-  - mock 追加の漏れを test helper の contract として固定する
 
 - [ ] UI reference canvas iframe smoke matrix 候補を別バッチで追加する
   - Storybook Playwright smoke に UI Reference の主要 iframe URL が blank / error にならない確認を追加する
@@ -638,11 +628,6 @@
   - `get_feed_integrity_report` で見つかる orphaned articles を削除する backend command と TS wrapper / schema を追加できるか確認する
   - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
   - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
-
-- [ ] menu-action hook dispatch guard 候補を別バッチで追加する
-  - `use-menu-events.ts` で `menu-action` payload が `AppAction` の時だけ `executeAction` され、未知 payload は warn / debug trace に留まることを固定する
-  - Rust `menu.rs` の action 対応表、native checked state、Tauri listener lifecycle 汎用化とは混ぜない
-  - malformed payload と known action の hook test を分ける
 
 - [ ] contenteditable global shortcut guard 候補を別バッチで追加する
   - `use-keyboard.ts` と `keyboard-shortcuts.ts` で `contenteditable` / `role="textbox"` 内の `m` / `s` / `j` / `k` が global shortcut として発火しないことを固定する
@@ -774,11 +759,6 @@
   - pubkey rotation、署名 secret、download / install lifecycle とは混ぜない
   - endpoint single-source と protocol validation だけを見る
 
-- [ ] preferences store load dedupe 候補を別バッチで追加する
-  - `preferences-store.ts` の `loadPreferences()` に in-flight guard を追加し、StrictMode や複数 mount で同時に `getPreferences()` が走らない契約を固定する
-  - preference schema 追加、settings UI、theme 表示変更とは混ぜない
-  - success / failure / retry の state 更新を store test で分ける
-
 - [ ] startup sync timestamp storage recovery 候補を別バッチで追加する
   - `App.tsx` と storage constants の `startupSyncLastTriggeredAt` を helper 化し、invalid / future timestamp / 旧 key 移行の扱いを固定する
   - sync-completed invalidation、sync scheduler、本体 sync flow とは混ぜない
@@ -788,11 +768,6 @@
   - `visibilitychange` 復帰時の `listAccounts()` と `syncAccount()` が二重起動しない guard と失敗ログ契約を固定する
   - account sync status UI、retry / backoff、provider error copy とは混ぜない
   - wake event 連打と sync failure の挙動を app-root test に分ける
-
-- [ ] fullscreen toggle failure contract 候補を別バッチで追加する
-  - `actions.ts` と `windows.ts` で `isFullscreen()` 成功後に `setFullscreen()` が失敗した場合も未処理にならないことを Result contract で固定する
-  - window always-on-top、native menu checked state、shortcut label / i18n とは混ぜない
-  - read failure と write failure の error category を分ける
 
 - [ ] provider HTTP client policy 候補を別バッチで追加する
   - `local.rs`、`greader.rs`、`feed_discovery.rs` の timeout / redirect limit / User-Agent の差を provider HTTP contract として fixture test で固定する

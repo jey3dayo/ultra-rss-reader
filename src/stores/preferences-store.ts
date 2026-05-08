@@ -14,7 +14,10 @@ import {
   type SortSubscriptions,
   type Theme,
 } from "@/schemas/preferences";
-import type { PreferencesActions, PreferencesState } from "@/stores/preferences-store.types";
+import type {
+  PreferencesActions,
+  PreferencesState,
+} from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
@@ -26,9 +29,13 @@ export { preferenceDefaults, resolvePreferenceValue };
 
 let systemThemeCleanup: (() => void) | null = null;
 let themeViewTransitionId = 0;
+let preferencesLoadPromise: Promise<void> | null = null;
 
 function getSystemPrefersDark(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
 }
 
 function mirrorThemePreference(theme: Theme): void {
@@ -52,16 +59,27 @@ function readMirroredThemePreference(): Theme | null {
 }
 
 function getPrefersReducedMotion(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
-function updateResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark"): void {
+function updateResolvedTheme(
+  root: HTMLElement,
+  resolvedTheme: "light" | "dark",
+): void {
   root.classList.toggle("dark", resolvedTheme === "dark");
   root.style.colorScheme = resolvedTheme;
 }
 
-function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", withTransition: boolean): void {
-  const canUseViewTransition = typeof document.startViewTransition === "function";
+function applyResolvedTheme(
+  root: HTMLElement,
+  resolvedTheme: "light" | "dark",
+  withTransition: boolean,
+): void {
+  const canUseViewTransition =
+    typeof document.startViewTransition === "function";
 
   if (!withTransition || !canUseViewTransition || getPrefersReducedMotion()) {
     root.classList.remove(THEME_VIEW_TRANSITION_CLASS);
@@ -83,7 +101,10 @@ function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", 
   void transition.finished.then(cleanupTransitionClass, cleanupTransitionClass);
 }
 
-function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void {
+function applyTheme(
+  theme: Theme,
+  options?: { withTransition?: boolean },
+): void {
   // Clean up previous system theme listener
   systemThemeCleanup?.();
   systemThemeCleanup = null;
@@ -91,7 +112,11 @@ function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void 
   const root = document.documentElement;
   const withTransition = options?.withTransition ?? true;
   if (theme === "system") {
-    applyResolvedTheme(root, getSystemPrefersDark() ? "dark" : "light", withTransition);
+    applyResolvedTheme(
+      root,
+      getSystemPrefersDark() ? "dark" : "light",
+      withTransition,
+    );
     if (typeof window.matchMedia !== "function") {
       return;
     }
@@ -103,7 +128,11 @@ function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void 
     mq.addEventListener("change", handler);
     systemThemeCleanup = () => mq.removeEventListener("change", handler);
   } else {
-    applyResolvedTheme(root, theme === "dark" ? "dark" : "light", withTransition);
+    applyResolvedTheme(
+      root,
+      theme === "dark" ? "dark" : "light",
+      withTransition,
+    );
   }
 }
 
@@ -137,35 +166,50 @@ function applyFontSize(size: string): void {
   root.classList.add(cls);
 }
 
-function applyLanguage(language: ReturnType<typeof parseLanguagePreference>): void {
+function applyLanguage(
+  language: ReturnType<typeof parseLanguagePreference>,
+): void {
   i18n.changeLanguage(resolveUiLanguage(language, navigator.language));
 }
 
-export const usePreferencesStore = create<PreferencesState & PreferencesActions>()((set, getState) => ({
+export const usePreferencesStore = create<
+  PreferencesState & PreferencesActions
+>()((set, getState) => ({
   prefs: {},
   loaded: false,
 
   loadPreferences: async () => {
-    const result = await getPreferences();
-    Result.pipe(
-      result,
-      Result.inspect((data) => {
-        set({ prefs: data, loaded: true });
-        const theme = objectHasOwnProperty.call(data, "theme")
-          ? resolvePreferenceValue(data, "theme")
-          : (readMirroredThemePreference() ?? resolvePreferenceValue(data, "theme"));
-        applyTheme(theme, { withTransition: false });
-        mirrorThemePreference(theme);
-        applyLanguage(resolvePreferenceValue(data, "language"));
-        applyFontStyle(resolvePreferenceValue(data, "font_style"));
-        applyFontSize(resolvePreferenceValue(data, "font_size"));
-      }),
-      Result.inspectError((e) => {
-        console.error("Failed to load preferences:", e);
-        set({ loaded: true });
-        applyLanguage(resolvePreferenceValue({}, "language"));
-      }),
-    );
+    if (preferencesLoadPromise) {
+      return preferencesLoadPromise;
+    }
+
+    preferencesLoadPromise = (async () => {
+      const result = await getPreferences();
+      Result.pipe(
+        result,
+        Result.inspect((data) => {
+          set({ prefs: data, loaded: true });
+          const theme = objectHasOwnProperty.call(data, "theme")
+            ? resolvePreferenceValue(data, "theme")
+            : (readMirroredThemePreference() ??
+              resolvePreferenceValue(data, "theme"));
+          applyTheme(theme, { withTransition: false });
+          mirrorThemePreference(theme);
+          applyLanguage(resolvePreferenceValue(data, "language"));
+          applyFontStyle(resolvePreferenceValue(data, "font_style"));
+          applyFontSize(resolvePreferenceValue(data, "font_size"));
+        }),
+        Result.inspectError((e) => {
+          console.error("Failed to load preferences:", e);
+          set({ loaded: true });
+          applyLanguage(resolvePreferenceValue({}, "language"));
+        }),
+      );
+    })().finally(() => {
+      preferencesLoadPromise = null;
+    });
+
+    return preferencesLoadPromise;
   },
 
   setPref: (key, value) => {
@@ -195,7 +239,11 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
         result,
         Result.inspectError((e: { message: string }) => {
           console.error(`Failed to persist preference ${key}:`, e);
-          useUiStore.getState().showToast(i18n.t("failed_to_save_setting", { message: e.message }));
+          useUiStore
+            .getState()
+            .showToast(
+              i18n.t("failed_to_save_setting", { message: e.message }),
+            );
         }),
       ),
     );
