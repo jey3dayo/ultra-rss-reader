@@ -45,6 +45,22 @@ function requireStringArray(value: unknown, fieldName: string): string[] {
   throw new Error(`${fieldName} must be a string array`);
 }
 
+type ArticlesResult = ReturnType<typeof articleHooks.useArticles>;
+type AccountArticlesResult = ReturnType<typeof articleHooks.useAccountArticles>;
+type TagArticlesResult = ReturnType<typeof tagHooks.useArticlesByTag>;
+
+function articlesResult(result: Pick<ArticlesResult, "data" | "isLoading">): ArticlesResult {
+  return result as ArticlesResult;
+}
+
+function accountArticlesResult(result: Pick<AccountArticlesResult, "data" | "isLoading">): AccountArticlesResult {
+  return result as AccountArticlesResult;
+}
+
+function tagArticlesResult(result: Pick<TagArticlesResult, "data" | "isLoading">): TagArticlesResult {
+  return result as TagArticlesResult;
+}
+
 function createDomRect({
   left = 0,
   top,
@@ -120,29 +136,31 @@ describe("ArticleList", () => {
     const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
     const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
 
-    articlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useArticles>);
-    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
-      typeof articleHooks.useAccountArticles
-    >);
-    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
-      typeof tagHooks.useArticlesByTag
-    >);
+    articlesSpy.mockReturnValue(articlesResult({ data: undefined, isLoading: false }));
+    accountArticlesSpy.mockReturnValue(accountArticlesResult({ data: undefined, isLoading: false }));
+    tagArticlesSpy.mockReturnValue(tagArticlesResult({ data: undefined, isLoading: false }));
 
     if (label === "feed") {
-      articlesSpy.mockReturnValue({
-        data: [initialArticle],
-        isLoading: false,
-      } as ReturnType<typeof articleHooks.useArticles>);
+      articlesSpy.mockReturnValue(
+        articlesResult({
+          data: [initialArticle],
+          isLoading: false,
+        }),
+      );
     } else if (label === "all") {
-      accountArticlesSpy.mockReturnValue({
-        data: [initialArticle],
-        isLoading: false,
-      } as ReturnType<typeof articleHooks.useAccountArticles>);
+      accountArticlesSpy.mockReturnValue(
+        accountArticlesResult({
+          data: [initialArticle],
+          isLoading: false,
+        }),
+      );
     } else {
-      tagArticlesSpy.mockReturnValue({
-        data: [initialArticle],
-        isLoading: false,
-      } as ReturnType<typeof tagHooks.useArticlesByTag>);
+      tagArticlesSpy.mockReturnValue(
+        tagArticlesResult({
+          data: [initialArticle],
+          isLoading: false,
+        }),
+      );
     }
 
     useUiStore.setState({
@@ -159,20 +177,26 @@ describe("ArticleList", () => {
     });
 
     if (label === "feed") {
-      articlesSpy.mockReturnValue({
-        data: undefined,
-        isLoading: true,
-      } as ReturnType<typeof articleHooks.useArticles>);
+      articlesSpy.mockReturnValue(
+        articlesResult({
+          data: undefined,
+          isLoading: true,
+        }),
+      );
     } else if (label === "all") {
-      accountArticlesSpy.mockReturnValue({
-        data: undefined,
-        isLoading: true,
-      } as ReturnType<typeof articleHooks.useAccountArticles>);
+      accountArticlesSpy.mockReturnValue(
+        accountArticlesResult({
+          data: undefined,
+          isLoading: true,
+        }),
+      );
     } else {
-      tagArticlesSpy.mockReturnValue({
-        data: undefined,
-        isLoading: true,
-      } as ReturnType<typeof tagHooks.useArticlesByTag>);
+      tagArticlesSpy.mockReturnValue(
+        tagArticlesResult({
+          data: undefined,
+          isLoading: true,
+        }),
+      );
     }
 
     rerender(<ArticleList />);
@@ -187,39 +211,35 @@ describe("ArticleList", () => {
     const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
     const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
 
-    articlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useArticles>);
-    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
-      typeof articleHooks.useAccountArticles
-    >);
-    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
-      typeof tagHooks.useArticlesByTag
-    >);
+    articlesSpy.mockReturnValue(articlesResult({ data: undefined, isLoading: false }));
+    accountArticlesSpy.mockReturnValue(accountArticlesResult({ data: undefined, isLoading: false }));
+    tagArticlesSpy.mockReturnValue(tagArticlesResult({ data: undefined, isLoading: false }));
 
     articlesSpy.mockImplementation((feedId) => {
       if (feedId === "feed-1") {
-        return {
+        return articlesResult({
           data: [{ ...sampleArticles[0], id: "feed-1-snapshot", title: "Feed 1 Snapshot Article" }],
           isLoading: false,
-        } as ReturnType<typeof articleHooks.useArticles>;
+        });
       }
 
-      return {
+      return articlesResult({
         data: undefined,
         isLoading: false,
-      } as ReturnType<typeof articleHooks.useArticles>;
+      });
     });
     accountArticlesSpy.mockImplementation((accountId) => {
       if (accountId === "acc-1" && useUiStore.getState().selection.type === "all") {
-        return {
+        return accountArticlesResult({
           data: undefined,
           isLoading: true,
-        } as ReturnType<typeof articleHooks.useAccountArticles>;
+        });
       }
 
-      return {
+      return accountArticlesResult({
         data: undefined,
         isLoading: false,
-      } as ReturnType<typeof articleHooks.useAccountArticles>;
+      });
     });
 
     useUiStore.getState().selectAccount("acc-1");
