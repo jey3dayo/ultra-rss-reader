@@ -41,6 +41,7 @@ describe("useDeleteFeed", () => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feedArticleSummaries"] });
     });
     expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
     expect(onSuccess).toHaveBeenCalledTimes(1);

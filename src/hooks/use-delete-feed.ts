@@ -25,6 +25,7 @@ export function useDeleteFeed() {
     onSuccess: (_data, variables) => {
       invalidateFeedQueries(queryClient, { includeFolders: false, includeAccountUnreadCount: true });
       void queryClient.invalidateQueries({ queryKey: ["accountArticles"] });
+      void queryClient.invalidateQueries({ queryKey: ["feedArticleSummaries"] });
       showToast(t("unsubscribed_from", { title: variables.title }));
       variables.onSuccess?.();
     },

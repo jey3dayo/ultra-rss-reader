@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ArticleDto,
@@ -133,18 +133,29 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
   return null;
 }
 
-function resolveAccountQueryKeysForArticle(qc: QueryClient, feedId: string): QueryKey[] {
-  return qc.getQueriesData<unknown>({ queryKey: ["feeds"] }).flatMap(([queryKey, data]) => {
+function resolveAccountIdsForArticle(qc: QueryClient, feedId: string): string[] {
+  const accountIds = new Set<string>();
+
+  for (const [, data] of qc.getQueriesData<unknown>({ queryKey: ["feeds"] })) {
     if (!Array.isArray(data)) {
-      return [];
+      continue;
     }
 
-    const belongsToQuery = data.some(
-      (candidate) => candidate && typeof candidate === "object" && "id" in candidate && candidate.id === feedId,
-    );
+    for (const candidate of data) {
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        "id" in candidate &&
+        candidate.id === feedId &&
+        "account_id" in candidate &&
+        typeof candidate.account_id === "string"
+      ) {
+        accountIds.add(candidate.account_id);
+      }
+    }
+  }
 
-    return belongsToQuery ? [queryKey] : [];
-  });
+  return Array.from(accountIds);
 }
 
 function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, options?: { insertIfMissing?: boolean }) {
@@ -176,19 +187,27 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   }
 
   const nextArticle = { ...cachedArticle, is_starred: starred };
-  const accountQueryKeys = resolveAccountQueryKeysForArticle(qc, cachedArticle.feed_id);
+  const accountIds = resolveAccountIdsForArticle(qc, cachedArticle.feed_id);
 
   qc.setQueriesData({ queryKey: ["articles"] }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: ["articlesByTag"] }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: ["search"] }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: ["recentArticles"] }, (current) => updateCachedArticleArray(current, nextArticle));
 
-  if (accountQueryKeys.length > 0) {
-    for (const queryKey of accountQueryKeys) {
-      const [, accountId] = queryKey;
-      qc.setQueryData(["accountArticles", accountId], (current: unknown) =>
-        updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
-      );
+  if (accountIds.length > 0) {
+    for (const accountId of accountIds) {
+      const accountArticleQueries = qc.getQueriesData<unknown>({ queryKey: ["accountArticles", accountId] });
+
+      if (accountArticleQueries.length === 0) {
+        qc.setQueryData(["accountArticles", accountId, { mode: "all" }], [nextArticle]);
+      } else {
+        for (const [queryKey] of accountArticleQueries) {
+          qc.setQueryData(queryKey, (current: unknown) =>
+            updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
+          );
+        }
+      }
+
       qc.setQueryData(["starredArticles", accountId], (current: unknown) => {
         if (!Array.isArray(current)) {
           return starred ? [nextArticle] : [];
@@ -353,6 +372,7 @@ export function useRecordArticleView() {
         includeAccountUnreadCount: false,
         includeAccountStarredCount: false,
         includeFeeds: false,
+        includeArticles: false,
         includeArticlesByTag: false,
         includeSearch: false,
         includeRecentArticles: true,
@@ -368,6 +388,7 @@ export const useClearArticleViewHistory = createMutation(clearArticleViewHistory
     includeAccountUnreadCount: false,
     includeAccountStarredCount: false,
     includeFeeds: false,
+    includeArticles: false,
     includeArticlesByTag: false,
     includeSearch: false,
     includeRecentArticles: true,
