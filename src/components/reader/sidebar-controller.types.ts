@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { SettingsCategory } from "@/lib/ui-state.types";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
 export type SidebarSetSelectedAccountPreference = (accountId: string) => void;
 

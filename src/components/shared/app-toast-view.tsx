@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
-import type { ToastData } from "@/lib/ui-state.types";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 

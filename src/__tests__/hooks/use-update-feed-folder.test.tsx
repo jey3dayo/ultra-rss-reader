@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import type { ToastData } from "@/lib/ui-state.types";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useUpdateFeedFolder", () => {

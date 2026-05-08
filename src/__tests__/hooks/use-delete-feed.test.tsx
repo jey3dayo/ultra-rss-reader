@@ -5,7 +5,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
-import type { ToastData } from "@/lib/ui-state.types";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useDeleteFeed", () => {

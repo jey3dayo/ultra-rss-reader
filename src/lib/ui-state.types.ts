@@ -1,19 +1,6 @@
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 
-export type ToastAction = {
-  label: string;
-  onClick: () => void;
-};
-
-export type ToastData = {
-  message: string;
-  persistent?: boolean;
-  progress?: number | null;
-  actions?: ToastAction[];
-  variant?: "update";
-};
-
 export type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";
 export type SyncProgressKind = "manual_all" | "manual_account" | "automatic";
 
@@ -73,15 +60,3 @@ export type SubscriptionsWorkspace = {
   kind: "index";
   returnState?: SubscriptionsWorkspaceReturnState;
 };
-
-export type SettingsCategory =
-  | "general"
-  | "appearance"
-  | "mute"
-  | "reading"
-  | "shortcuts"
-  | "actions"
-  | "data"
-  | "debug"
-  | "tags"
-  | "accounts";

@@ -7,7 +7,7 @@ import type { SettingsModalViewProps } from "@/components/settings/settings-moda
 import type { AccountNavItem, SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import type { SettingsCategory } from "@/lib/ui-state.types";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
 type SettingsModalTranslator = TFunction<"settings"> | ((key: string) => string);
 

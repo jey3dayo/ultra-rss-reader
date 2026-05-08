@@ -4,7 +4,9 @@ import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
+import type { ToastData } from "@/lib/ui/toast.types";
 import type {
   AccountSetupSession,
   ArticleNavigationDirection,
@@ -13,26 +15,24 @@ import type {
   FocusedPane,
   LayoutMode,
   PendingBrowserCloseAction,
-  SettingsCategory,
   SubscriptionsWorkspace,
   SubscriptionsWorkspaceReturnState,
   SyncProgressEvent,
   SyncProgressState,
-  ToastData,
   UiSelection,
 } from "@/lib/ui-state.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
+export type { SettingsCategory } from "@/lib/settings/settings-category.types";
+export type { ToastData } from "@/lib/ui/toast.types";
 export type {
   AccountSetupSessionState,
   ArticleNavigationDirection,
   ContentMode,
-  SettingsCategory,
   SyncProgressEvent,
   SyncProgressState,
-  ToastData,
   UiSelection,
 } from "@/lib/ui-state.types";
 
