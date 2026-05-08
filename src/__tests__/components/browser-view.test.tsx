@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction, BrowserViewScope } from "@/components/reader/browser-view.types";

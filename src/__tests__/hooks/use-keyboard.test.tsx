@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
-import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";

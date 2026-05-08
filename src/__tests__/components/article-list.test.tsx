@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
-import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";

@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
-import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";

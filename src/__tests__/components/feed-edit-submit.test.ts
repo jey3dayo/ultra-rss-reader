@@ -1,5 +1,6 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
-import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
