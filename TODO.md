@@ -62,6 +62,5 @@
 - [ ] 小粒 cleanup 候補を別バッチで見直す
   - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
   - pure helper の追加テストは、境界値・source selection・query plan など挙動の契約として価値があるものだけ残す
-  - schema migration 後の残り cleanup として、localStorage JSON 読み取りに非 throw の safe JSON helper を足す場合は `use-command-history` と `use-sidebar-startup-folder-expansion` を同じバッチで扱う
   - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`copyable-field.types.ts` のように複数 component で共有するものは一括移動せず、呼び出し境界が変わる時に見直す
   - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
