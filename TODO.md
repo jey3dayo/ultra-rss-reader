@@ -1308,3 +1308,51 @@
 - [ ] Local feed subscription metadata fallback contract 候補を別バッチで追加する
   - `local.rs` の `create_subscription()` で feed title が無い時は URL を title にし、site link が無い時は `site_url=\"\"`、icon があれば `icon_url` に入る契約を fixture test で固定する
   - feed discovery、add feed dialog UI、network policy、provider sync flow は混ぜない
+
+- [ ] Preference hidden defaults exclusion contract 候補を別バッチで追加する
+  - `preferences.ts` で `sort_subscriptions` など hidden defaults が `preferenceDefaults` から除外されつつ `resolvePreferenceValue` では解決できる契約を pure test で固定する
+  - settings UI option、preference DB migration、subscriptions sort behavior は混ぜない
+
+- [ ] Set preference shortcut key rejection contract 候補を別バッチで追加する
+  - `commands.ts` の `setPreferenceArgs` で unknown `shortcut_*` key が reject され、known shortcut key だけ `shortcutPreferenceValueSchema` で検証される契約を schema test で固定する
+  - shortcut recording UI、keyboard shortcut conflict resolver、Rust preference command は別バッチにする
+
+- [ ] Reading List URL newline schema contract 候補を別バッチで追加する
+  - `commands.ts` の `addToReadingListArgs` で http/https 以外と CR/LF を含む URL を frontend schema で reject する契約を固定する
+  - macOS AppleScript quote escaping、share command unsupported scheme guard、Safari 実機 verification は混ぜない
+
+- [ ] UI language locale prefix resolution contract 候補を別バッチで追加する
+  - `ui-language.ts` で `system` preference の時に `ja-JP` / `en-US` / undefined / unknown locale を `ja` or `en` へ解決する契約を pure test で固定する
+  - locale copy、i18next resource loading、native menu language update は別バッチにする
+
+- [ ] Test i18n namespace fixture parity 候補を別バッチで追加する
+  - `tests/helpers/i18n-setup.ts` で test i18n resources の namespace list が app 側で使う common/settings/reader/sidebar/subscriptions とズレない契約を static test で固定する
+  - locale key parity、copy 文面改善、Storybook decorator は混ぜない
+
+- [ ] Tauri runtime helper reset flags contract 候補を別バッチで追加する
+  - `tests/helpers/tauri-runtime.ts` で `resetTauriRuntimeFlags()` が `__DEV_BROWSER_MOCKS__` と `__ULTRA_RSS_BROWSER_MOCKS__` を false に戻し、Tauri internals も missing に戻す契約を固定する
+  - Story Tauri runtime helper、production runtime detection、Tauri command mock responses は別スコープにする
+
+- [ ] Mute keyword duplicate trim contract 候補を別バッチで追加する
+  - `sqlite_mute_keyword.rs` で create 時に keyword が trim され、前後 whitespace 違いと ASCII case 違いの duplicate が同一 scope で reject される契約を repository test で固定する
+  - SQL/Rust match parity、auto mark preference guard、settings form copy は混ぜない
+
+- [ ] Mute keyword invalid stored scope conversion contract 候補を別バッチで追加する
+  - `sqlite_mute_keyword.rs` で DB に unknown scope が入った場合、`find_all` が silent fallback せず conversion error として扱う契約を repository test で固定する
+  - command input validation、migration cleanup、UI error projection は別バッチにする
+
+- [ ] AppError domain mapping contract 候補を別バッチで追加する
+  - `dto.rs` で `DomainError::Network` は retryable、それ以外は user-visible へ写る contract を unit test で固定する
+  - provider-specific error copy、sync warning projection、frontend toast mapping は混ぜない
+
+- [ ] Feed DTO unread nonnegative schema contract 候補を別バッチで追加する
+  - `feed.ts` の `FeedDtoSchema` で `unread_count` が nonnegative integer として検証され、negative / fractional を reject する契約を schema test で固定する
+  - Rust unread count recalculation、badge display、feed list sorting は別バッチにする
+
+- [ ] Command args registry coverage contract 候補を別バッチで追加する
+  - `commands.ts` の `commandArgsSchemas` で argument schema を持つ exported command wrapper が registry に登録されていることを代表的な static test で固定する
+  - response schema validation、Tauri mock argument coercion、command implementation 変更は混ぜない
+
+- [ ] Mute keyword auto-mark account enumeration contract 候補を別バッチで追加する
+  - `mute_keyword_commands.rs` の `maybe_mark_existing_muted_articles_as_read` で feeds から distinct account_id を列挙し、同一 account の複数 feed でも mark 処理が重複しない契約を helper test で固定する
+  - mute keyword create/update UI、article cache invalidation、provider sync flow は別バッチにする
