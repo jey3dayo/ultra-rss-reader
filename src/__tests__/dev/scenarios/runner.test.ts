@@ -63,7 +63,7 @@ function createQueryClientStub() {
   return { cache, queryClient };
 }
 
-function createUiStub(overrides?: Record<string, unknown>): DevScenarioContext["ui"] {
+function createUiStub(overrides?: Partial<DevScenarioContext["ui"]>): DevScenarioContext["ui"] {
   return {
     selectedAccountId: null,
     showToast: vi.fn(),
@@ -83,7 +83,7 @@ function createUiStub(overrides?: Record<string, unknown>): DevScenarioContext["
     closeCommandPalette: vi.fn(),
     toggleCommandPalette: vi.fn(),
     ...overrides,
-  } as unknown as DevScenarioContext["ui"];
+  };
 }
 
 function createActions(overrides?: Partial<DevScenarioContext["actions"]>): DevScenarioContext["actions"] {
