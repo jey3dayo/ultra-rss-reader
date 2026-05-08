@@ -27,10 +27,8 @@ type ReadDevWindowSizeFieldState =
   | { kind: "value"; value: number };
 
 function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
-  const env = import.meta.env as Record<string, string | undefined>;
-
   for (const key of keys) {
-    const value = env[key];
+    const value = import.meta.env[key];
     if (typeof value === "string" && value.trim().length > 0) {
       return value.trim();
     }
