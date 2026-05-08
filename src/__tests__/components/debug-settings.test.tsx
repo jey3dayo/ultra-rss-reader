@@ -12,7 +12,7 @@ const { runRuntimeDevScenarioMock } = vi.hoisted(() => ({
   runRuntimeDevScenarioMock: vi.fn(),
 }));
 
-vi.mock("@/lib/dev-scenario-runtime", () => ({
+vi.mock("@/dev/scenario-runtime", () => ({
   runRuntimeDevScenario: runRuntimeDevScenarioMock,
 }));
 

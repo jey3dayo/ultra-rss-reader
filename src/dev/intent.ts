@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
-import { type DevScenarioId, isDevScenarioId } from "@/lib/dev-scenario-ids";
+import { type DevScenarioId, isDevScenarioId } from "@/dev/scenario-ids";
 import { hasTauriRuntime } from "@/lib/window-chrome";
 
 export type DevIntent = DevScenarioId | null;

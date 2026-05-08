@@ -65,9 +65,9 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "@/dev/mock-data";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
-import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
 import { parseWithSchema as parseMockArgs } from "@/schemas/parse";
 
 let nextAccountId = 100;

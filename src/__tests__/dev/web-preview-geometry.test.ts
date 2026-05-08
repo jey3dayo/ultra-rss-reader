@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
+import { resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
 
 describe("dev-web-preview-geometry", () => {
   afterEach(() => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type DevIntent, loadDevRuntimeOptions, readDevIntent } from "@/lib/dev-intent";
+import { type DevIntent, loadDevRuntimeOptions, readDevIntent } from "@/dev/intent";
 
 type ResolvedDevIntentState = {
   intent: DevIntent;

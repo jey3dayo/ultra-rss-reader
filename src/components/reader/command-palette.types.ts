@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import type { PlatformInfo } from "@/api/schemas";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { AppAction } from "@/lib/app-actions";
-import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import type { ToastData } from "@/lib/ui-state.types";
 
 export type CommandPaletteItemKind = "action" | "feed" | "tag" | "article" | "scenario";

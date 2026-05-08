@@ -1,13 +1,13 @@
 import { useCallback } from "react";
 import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import type { DevIntent } from "@/dev/intent";
+import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import { useClearArticleViewHistory } from "@/hooks/use-articles";
 import {
   displayPresetToPreferenceValues,
   isArticleDisplayPreset,
   resolveAppDefaultDisplayPreset,
 } from "@/lib/article-display";
-import type { DevIntent } from "@/lib/dev-intent";
-import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "./reading-settings-view";

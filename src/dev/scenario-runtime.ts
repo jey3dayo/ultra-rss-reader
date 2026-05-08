@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { DevScenarioId } from "@/lib/dev-scenario-ids";
+import type { DevScenarioId } from "@/dev/scenario-ids";
 
 export type RuntimeDevScenario = {
   id: DevScenarioId;

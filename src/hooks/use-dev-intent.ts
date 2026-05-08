@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { loadDevRuntimeOptions, readDevIntent } from "@/lib/dev-intent";
-import { runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import { loadDevRuntimeOptions, readDevIntent } from "@/dev/intent";
+import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useDevIntent() {

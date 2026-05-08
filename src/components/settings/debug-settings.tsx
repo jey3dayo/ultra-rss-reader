@@ -1,9 +1,9 @@
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
-import { DEV_SCENARIO_ID, type DevScenarioId } from "@/lib/dev-scenario-ids";
-import { runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
+import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
+import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
+import { resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";

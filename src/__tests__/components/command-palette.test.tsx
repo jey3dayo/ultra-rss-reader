@@ -7,7 +7,7 @@ const { loadCommandPaletteDevScenariosMock, runCommandPaletteDevScenarioMock } =
   runCommandPaletteDevScenarioMock: vi.fn(),
 }));
 
-vi.mock("@/lib/dev-scenario-runtime", () => ({
+vi.mock("@/dev/scenario-runtime", () => ({
   loadRuntimeDevScenarios: loadCommandPaletteDevScenariosMock,
   runRuntimeDevScenario: runCommandPaletteDevScenarioMock,
 }));

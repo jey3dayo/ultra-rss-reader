@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
-import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenarioId } from "@/lib/dev-scenario-ids";
+import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenarioId } from "@/dev/scenario-ids";
 
 export type { DevScenarioId };
 export { DEV_SCENARIO_ID, DEV_SCENARIO_IDS };

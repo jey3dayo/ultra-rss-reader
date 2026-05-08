@@ -1,9 +1,9 @@
 ---
 paths:
   - "src/dev/scenarios/**/*.ts"
-  - "src/lib/dev-intent.ts"
-  - "src/lib/dev-scenario-runtime.ts"
-  - "src/lib/dev-scenario-ids.ts"
+  - "src/dev/intent.ts"
+  - "src/dev/scenario-runtime.ts"
+  - "src/dev/scenario-ids.ts"
   - "src/hooks/use-dev-intent.ts"
   - "src/components/reader/command-palette.tsx"
   - "src/__tests__/dev/scenarios/**/*.ts"

@@ -1,6 +1,6 @@
+import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { addToHistory } from "@/hooks/use-command-history";
 import { executeAction } from "@/lib/actions";
-import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import type {
   PaletteAction,
   UseCommandPaletteHandlersParams,

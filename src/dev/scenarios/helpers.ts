@@ -1,4 +1,6 @@
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
+import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import {
   DEV_FEED_DISPLAY_MODE_SCORE,
   DEV_FEED_HINT_SCORE_STEP,
@@ -10,8 +12,6 @@ import {
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
 } from "@/dev/scenarios/constants";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
-import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
-import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolveFeedLandingArticle } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

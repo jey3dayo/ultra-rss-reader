@@ -281,7 +281,7 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 | `components/icons/`               | Provider and product icon components plus their narrow icon-only types                                             |
 | `components/shared/`              | Cross-feature primitives reused by reader, settings, and workspaces                                                |
 | `components/ui/`                  | shadcn/ui + Base UI headless primitives wrapped with Tailwind                                                      |
-| `dev/scenarios/`                  | `VITE_DEV_INTENT` scenarios for direct dev entry points and command palette dev commands                           |
+| `dev/`                            | Browser/dev-only mocks, runtime dev intent helpers, and `VITE_DEV_INTENT` scenarios                                |
 | `dev/mocks.ts`                    | Browser/dev-only mock IPC handlers                                                                                 |
 | `dev/mock-data.ts`                | Deterministic sample data for browser/dev-only mocks                                                               |
 | `locales/`                        | i18next resources; Japanese product copy lives under `locales/ja/`                                                 |

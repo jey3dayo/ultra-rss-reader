@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AccountDto } from "@/api/tauri-commands";
 import { resolveSidebarAccountSelectionAction } from "@/components/reader/hooks/sidebar/use-sidebar-account-selection";
-import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
+import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 
 const accounts: AccountDto[] = [
   {

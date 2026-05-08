@@ -1,3 +1,4 @@
+import { isDevScenarioId } from "@/dev/scenario-ids";
 import {
   runOpenFeedFirstArticleScenario,
   runOpenTagViewScenario,
@@ -5,9 +6,8 @@ import {
 } from "@/dev/scenarios/helpers";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
+import { resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
 import type { AppAction } from "@/lib/app-actions";
-import { isDevScenarioId } from "@/lib/dev-scenario-ids";
-import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 
 function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
   return async ({ actions }: DevScenarioContext) => {

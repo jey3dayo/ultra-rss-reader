@@ -22,7 +22,7 @@ import {
   readDevWebUrl,
   readDevWindowSize,
   resetDevRuntimeOptionsCacheForTests,
-} from "@/lib/dev-intent";
+} from "@/dev/intent";
 
 describe("dev-intent helpers", () => {
   beforeEach(() => {

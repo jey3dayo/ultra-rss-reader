@@ -1,12 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
+import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import {
   loadRuntimeDevScenarios,
   loadRuntimeDevScenariosResult,
   runRuntimeDevScenario,
   runRuntimeDevScenarioResult,
-} from "@/lib/dev-scenario-runtime";
+} from "@/dev/scenario-runtime";
 
 describe("dev-scenario-runtime", () => {
   afterEach(() => {

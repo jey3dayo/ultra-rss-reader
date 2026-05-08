@@ -9,7 +9,7 @@ const { runRuntimeDevScenarioMock, getDevRuntimeOptionsMock } = vi.hoisted(() =>
   getDevRuntimeOptionsMock: vi.fn(),
 }));
 
-vi.mock("@/lib/dev-scenario-runtime", () => ({
+vi.mock("@/dev/scenario-runtime", () => ({
   runRuntimeDevScenario: runRuntimeDevScenarioMock,
 }));
 
@@ -21,8 +21,8 @@ vi.mock("@/lib/window-chrome", () => ({
   hasTauriRuntime: () => true,
 }));
 
+import { resetDevRuntimeOptionsCacheForTests } from "@/dev/intent";
 import { useDevIntent } from "@/hooks/use-dev-intent";
-import { resetDevRuntimeOptionsCacheForTests } from "@/lib/dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useDevIntent", () => {
