@@ -4,8 +4,6 @@ import type { AccountDto, AccountSyncStatusDto, ArticleDto, MuteKeywordDto, TagD
 import { parseWithSchema } from "@/schemas/parse";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleMuteKeywords, sampleTags } from "./fixtures";
 
-export { sampleAccounts, sampleArticles, sampleFeeds, sampleMuteKeywords, sampleTags } from "./fixtures";
-
 export type MockTauriCommandCall = {
   cmd: string;
   args: Record<string, unknown>;
