@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
 import type { AccountDetailContentProps } from "@/components/settings/account-detail.types";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
-import { useAccountDetailController } from "@/components/settings/use-account-detail-controller";
-import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
-import { useAccountDetailViewProps } from "@/components/settings/use-account-detail-view-props";
+import { useAccountDetailController } from "@/components/settings/hooks/account-detail/use-account-detail-controller";
+import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/account-detail/use-account-detail-sync-status-rows";
+import { useAccountDetailViewProps } from "@/components/settings/hooks/account-detail/use-account-detail-view-props";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";

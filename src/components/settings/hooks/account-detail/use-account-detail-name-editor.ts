@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
-import type { UseAccountDetailNameEditorParams, UseAccountDetailNameEditorResult } from "./account-detail.types";
-import { updateCachedAccount } from "./account-detail-query-cache";
-import { createAccountDetailErrorToast } from "./account-detail-toast";
+import type { UseAccountDetailNameEditorParams, UseAccountDetailNameEditorResult } from "../../account-detail.types";
+import { updateCachedAccount } from "../../account-detail-query-cache";
+import { createAccountDetailErrorToast } from "../../account-detail-toast";
 
 type AccountDetailNameEditorState = {
   editingName: boolean;

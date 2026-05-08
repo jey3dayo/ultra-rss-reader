@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { getOptionLabelByValue } from "@/lib/ui/options";
-import type { MuteSettingsViewProps } from "./mute-settings-view";
+import type { MuteSettingsViewProps } from "../mute-settings-view";
 
 type UseMuteSettingsViewPropsParams = {
   t: TFunction<"settings">;

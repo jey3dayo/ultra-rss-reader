@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { useActionsSettingsViewProps as buildActionsSettingsViewProps } from "@/components/settings/use-actions-settings-view-props";
+import { useActionsSettingsViewProps as buildActionsSettingsViewProps } from "@/components/settings/hooks/use-actions-settings-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");

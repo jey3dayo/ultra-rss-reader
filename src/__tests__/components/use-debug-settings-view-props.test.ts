@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { useDebugSettingsViewProps as buildDebugSettingsViewProps } from "@/components/settings/use-debug-settings-view-props";
+import { useDebugSettingsViewProps as buildDebugSettingsViewProps } from "@/components/settings/hooks/use-debug-settings-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");

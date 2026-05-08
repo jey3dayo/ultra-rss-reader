@@ -2,8 +2,8 @@ import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
+import { useMuteSettingsViewProps } from "@/components/settings/hooks/use-mute-settings-view-props";
 import { MuteSettingsView } from "@/components/settings/mute-settings-view";
-import { useMuteSettingsViewProps } from "@/components/settings/use-mute-settings-view-props";
 import {
   useCreateMuteKeyword,
   useDeleteMuteKeyword,

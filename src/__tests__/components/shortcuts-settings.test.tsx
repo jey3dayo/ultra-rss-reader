@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it } from "vitest";
+import { buildShortcutCategoryOrder } from "@/components/settings/hooks/use-shortcuts-settings-view-props";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
-import { buildShortcutCategoryOrder } from "@/components/settings/use-shortcuts-settings-view-props";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

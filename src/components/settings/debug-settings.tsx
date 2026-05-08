@@ -8,7 +8,7 @@ import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { useDebugSettingsViewProps } from "./use-debug-settings-view-props";
+import { useDebugSettingsViewProps } from "./hooks/use-debug-settings-view-props";
 
 export function DebugSettings() {
   const { t } = useTranslation("settings");

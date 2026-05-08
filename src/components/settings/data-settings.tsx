@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
 import { useUiStore } from "@/stores/ui-store";
-import { useDataSettingsController } from "./use-data-settings-controller";
+import { useDataSettingsController } from "./hooks/use-data-settings-controller";
 
 export function DataSettings() {
   const { t } = useTranslation("settings");

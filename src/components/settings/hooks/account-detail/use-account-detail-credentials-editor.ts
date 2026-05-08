@@ -5,9 +5,9 @@ import { useUiStore } from "@/stores/ui-store";
 import type {
   UseAccountDetailCredentialsEditorParams,
   UseAccountDetailCredentialsEditorResult,
-} from "./account-detail.types";
-import { updateCachedAccount } from "./account-detail-query-cache";
-import { createAccountDetailErrorToast } from "./account-detail-toast";
+} from "../../account-detail.types";
+import { updateCachedAccount } from "../../account-detail-query-cache";
+import { createAccountDetailErrorToast } from "../../account-detail-toast";
 
 const MASKED_PASSWORD_VALUE = "••••••••";
 

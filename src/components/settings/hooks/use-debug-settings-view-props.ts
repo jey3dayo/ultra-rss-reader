@@ -1,5 +1,5 @@
 import { resolvePreferenceValue } from "@/schemas/preferences";
-import type { SettingsPageViewProps, SettingsPreferenceViewPropsParams } from "./settings-page.types";
+import type { SettingsPageViewProps, SettingsPreferenceViewPropsParams } from "../settings-page.types";
 
 type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devBuild: boolean;

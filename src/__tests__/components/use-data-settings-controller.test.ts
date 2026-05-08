@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes } from "@/components/settings/use-data-settings-controller";
+import { formatBytes } from "@/components/settings/hooks/use-data-settings-controller";
 
 describe("formatBytes", () => {
   it("formats byte, kibibyte, and mebibyte values for data settings", () => {

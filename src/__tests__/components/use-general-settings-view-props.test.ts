@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { useGeneralSettingsViewProps as buildGeneralSettingsViewProps } from "@/components/settings/use-general-settings-view-props";
+import { useGeneralSettingsViewProps as buildGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");

@@ -2,8 +2,8 @@ import { Result } from "@praha/byethrow";
 import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseAccountDetailDangerZoneParams, UseAccountDetailDangerZoneResult } from "./account-detail.types";
-import { createAccountDetailErrorToast } from "./account-detail-toast";
+import type { UseAccountDetailDangerZoneParams, UseAccountDetailDangerZoneResult } from "../../account-detail.types";
+import { createAccountDetailErrorToast } from "../../account-detail-toast";
 
 export function useAccountDetailDangerZone({
   account,

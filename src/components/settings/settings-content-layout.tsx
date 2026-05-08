@@ -1,5 +1,5 @@
 import { type CSSProperties, createContext, type ReactNode, useContext } from "react";
-import { useScrollOverflowState } from "@/components/settings/use-scroll-overflow-state";
+import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 

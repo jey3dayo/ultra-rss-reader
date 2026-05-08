@@ -6,7 +6,7 @@ import { type ShortcutActionId, shortcutDefinitions, shortcutPrefKey } from "@/l
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { useShortcutsSettingsViewProps } from "./use-shortcuts-settings-view-props";
+import { useShortcutsSettingsViewProps } from "./hooks/use-shortcuts-settings-view-props";
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,

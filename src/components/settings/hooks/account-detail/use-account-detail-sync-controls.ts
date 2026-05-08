@@ -9,9 +9,9 @@ import type {
   UpdateAccountSyncParams,
   UseAccountDetailSyncControlsParams,
   UseAccountDetailSyncControlsResult,
-} from "./account-detail.types";
-import { updateCachedAccount } from "./account-detail-query-cache";
-import { createAccountDetailErrorToast } from "./account-detail-toast";
+} from "../../account-detail.types";
+import { updateCachedAccount } from "../../account-detail-query-cache";
+import { createAccountDetailErrorToast } from "../../account-detail-toast";
 
 type RunAccountSetupSyncParams = {
   accountId: string;

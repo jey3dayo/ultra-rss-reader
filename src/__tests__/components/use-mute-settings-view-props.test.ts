@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
-import { useMuteSettingsViewProps as buildMuteSettingsViewProps } from "@/components/settings/use-mute-settings-view-props";
+import { useMuteSettingsViewProps as buildMuteSettingsViewProps } from "@/components/settings/hooks/use-mute-settings-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");

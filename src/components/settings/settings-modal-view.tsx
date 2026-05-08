@@ -1,8 +1,8 @@
 import { X } from "lucide-react";
+import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentScrollBehaviorProvider } from "@/components/settings/settings-content-layout";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
-import { useScrollOverflowState } from "@/components/settings/use-scroll-overflow-state";
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";

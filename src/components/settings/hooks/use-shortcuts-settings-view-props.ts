@@ -6,7 +6,7 @@ import {
   type ShortcutCategoryKey,
   shortcutDefinitions,
 } from "@/lib/keyboard/keyboard-shortcuts";
-import type { ShortcutsSettingsViewProps } from "./shortcuts-settings-view";
+import type { ShortcutsSettingsViewProps } from "../shortcuts-settings-view";
 
 type UseShortcutsSettingsViewPropsParams = {
   t: TFunction<"settings">;

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { useShortcutsSettingsViewProps } from "@/components/settings/hooks/use-shortcuts-settings-view-props";
 import type { ShortcutsSettingsViewProps } from "@/components/settings/shortcuts-settings-view";
-import { useShortcutsSettingsViewProps } from "@/components/settings/use-shortcuts-settings-view-props";
 import i18n from "@/lib/i18n";
 import type { ShortcutActionId } from "@/lib/keyboard/keyboard-shortcuts";
 
