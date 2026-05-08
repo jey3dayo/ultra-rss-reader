@@ -603,3 +603,63 @@
   - `greader.rs` と `sync_providers.rs` で `iconUrl` を受け取った subscription が sync 保存時に icon を保存する / しない契約を固定する
   - provider icon visual fallback、app icon theme、feed row UI とは混ぜず、provider DTO から feed persistence への mapping だけを見る
   - 保存しない判断なら diagnostic / fallback source を test comment ではなく contract として明示する
+
+- [ ] test Tauri mock command coverage guard 候補を別バッチで追加する
+  - `tests/helpers/tauri-mocks.ts` と command schema registry を照合し、schema 登録済み command が test mock 未対応になっていないか検出する
+  - 明示 allowlist を用意し、実 command schema 変更、dev browser mock、UI fallback 表示とは混ぜない
+  - mock 追加の漏れを test helper の contract として固定する
+
+- [ ] Story render helper decorator parity 候補を別バッチで追加する
+  - `tests/helpers/render-story.tsx` と shared stories test で、args だけでなく decorators 付き story も render できる最小 contract を追加する
+  - Storybook taxonomy、canvas 分割、Query / Tauri runtime provider 整理とは混ぜない
+  - story test helper の責務だけを扱い、個別 story の visual 差分は別バッチに残す
+
+- [ ] UI reference canvas iframe smoke matrix 候補を別バッチで追加する
+  - Storybook Playwright smoke に UI Reference の主要 iframe URL が blank / error にならない確認を追加する
+  - visual snapshot、canvas 名変更、Storybook fixture runtime 整理とは混ぜず、loadable smoke gate だけを見る
+  - 既存 1 canvas smoke から対象 URL の小さい matrix へ広げる
+
+- [ ] dev mock state reset boundary 候補を別バッチで追加する
+  - `src/dev/mocks.ts` と `mock-data.ts` の mutable mock 配列、採番 counter、preference map が `setupDevMocks()` 間で初期化されることを固定する
+  - mock data の表示文言、scenario 追加、browser geometry / dev intent とは混ぜない
+  - dev mock の state leak を focused test で検出できるようにする
+
+- [ ] browser debug input trace lifecycle 候補を別バッチで追加する
+  - `browser-webview-debug-input` が Debug HUD に流れる条件、diagnostics off 時に出ないこと、trace の保持 / 解除を小さい test で固定する
+  - geometry diagnostics 表示、incident runbook、native shortcut 挙動変更とは混ぜない
+  - debug input trace の source と lifetime だけを扱う
+
+- [ ] browser webview pending bounds flush 候補を別バッチで検証する
+  - `use-browser-webview-sync.ts` と `use-browser-webview-bounds-sync.ts` で、create 中 resize が pending bounds に積まれ、create 成功後に最新 bounds だけ flush されることを固定する
+  - bounds args validation、native WebView 実装、dev geometry diagnostics とは混ぜず、hook 内の pending flush contract に限定する
+  - resize 連打と create failure の扱いを fake runtime test で見る
+
+- [ ] focus override initialization script 候補を別バッチで追加する
+  - `browser_webview.rs` と preference command の `web_preview_keep_focus=true` 時だけ focus / visibility override script が initialization script に入ることを固定する
+  - Web Preview transient override、reader focus return、Windows accelerator bridge とは混ぜない
+  - false / 未設定時に script が入らないことも Rust unit test で見る
+
+- [ ] browser load timeout surface state 候補を別バッチで検証する
+  - `use-browser-webview-load-timeout.ts` と `use-browser-view-surface-state.ts` で、loading 中の同一 URL だけ timeout issue を出すことを fake timer で固定する
+  - URL 変更、load 完了、unmount では issue を出さないことを確認し、native timeout fallback や overlay issue Storybook とは混ぜない
+  - history / shortcut 挙動は別バッチに残す
+
+- [ ] subscriptions index URL search 候補を別バッチで追加する
+  - `subscriptions-index.ts` の `rowMatchesSubscriptionSearch` を title / folder だけでなく feed url / site_url まで広げる
+  - review candidate 条件、summary filter、UI layout とは混ぜず、search matching helper と test に限定する
+  - URL 大文字小文字と host 部分一致の扱いを test で固定する
+
+- [ ] feed discovery rel / JSON Feed detection 候補を別バッチで追加する
+  - `feed_discovery.rs` の `rel="alternate nofollow"` のような token 判定と `application/feed+json` link type 対応を pure test 付きで補強する
+  - duplicate title 表示、add feed dialog UI、実 network 検証とは混ぜない
+  - HTML link parsing の判定だけを狭く扱う
+
+- [ ] mute keyword auto mark preference guard 候補を別バッチで追加する
+  - `mute_keyword_commands.rs` と `sqlite_mute_keyword.rs` で、create / update 時の既存一致記事 auto mark read を `mute_auto_mark_read=true` の時だけ適用する
+  - SQL/Rust match parity、settings UI copy、記事フィルタリング仕様とは混ぜず、preference guard と既存記事更新条件だけを見る
+  - preference false / missing の fallback を contract test で固定する
+
+- [ ] feed integrity orphan cleanup command 候補を別バッチで追加する
+  - `get_feed_integrity_report` で見つかる orphaned articles を削除する backend command と TS wrapper / schema を追加できるか確認する
+  - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
+  - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
