@@ -5,18 +5,23 @@ import { createElement } from "react";
 
 export type StoryArgs = Record<string, unknown>;
 type StoryRender<TArgs extends StoryArgs> = (args: TArgs, context: StoryContext<TArgs>) => ReactNode;
+export type StoryDecorator<TArgs extends StoryArgs> = (
+  Story: () => ReactNode,
+  context: StoryContext<TArgs>,
+) => ReactNode;
 
-function createStoryContext<TArgs extends StoryArgs>() {
-  return {} as StoryContext<TArgs>;
+function createStoryContext<TArgs extends StoryArgs>(args: TArgs) {
+  return { args } as StoryContext<TArgs>;
 }
 
 export type StoryMeta<TArgs extends StoryArgs = StoryArgs> = {
   component: ElementType;
   args?: Partial<TArgs>;
   render?: StoryRender<TArgs> | undefined;
+  decorators?: unknown;
 };
 
-export type StoryLike<TArgs extends StoryArgs = StoryArgs> = Pick<StoryMeta<TArgs>, "args" | "render">;
+export type StoryLike<TArgs extends StoryArgs = StoryArgs> = Pick<StoryMeta<TArgs>, "args" | "render" | "decorators">;
 
 export function renderStory<TArgs extends StoryArgs>(
   meta: StoryMeta<TArgs>,
@@ -25,6 +30,15 @@ export function renderStory<TArgs extends StoryArgs>(
 ) {
   const args = { ...(meta.args ?? {}), ...(story.args ?? {}) } as TArgs;
   const renderStoryFn = story.render ?? meta.render;
-  const ui = renderStoryFn ? renderStoryFn(args, createStoryContext<TArgs>()) : createElement(meta.component, args);
+  const context = createStoryContext(args);
+  const baseStory = () => (renderStoryFn ? renderStoryFn(args, context) : createElement(meta.component, args));
+  const decorators = [
+    ...(Array.isArray(meta.decorators) ? meta.decorators : meta.decorators ? [meta.decorators] : []),
+    ...(Array.isArray(story.decorators) ? story.decorators : story.decorators ? [story.decorators] : []),
+  ] as StoryDecorator<TArgs>[];
+  const ui = decorators.reduceRight<() => ReactNode>(
+    (Story, decorator) => () => decorator(Story, context),
+    baseStory,
+  )();
   return render(ui, options);
 }

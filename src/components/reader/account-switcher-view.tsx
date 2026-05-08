@@ -94,8 +94,8 @@ export function AccountSwitcherView({
   renderContextMenu,
 }: AccountSwitcherProps) {
   const { selectedAccountName, selectedIndex } = resolveSelectedAccountViewModel(accounts, selectedAccountId);
-  const canOpenAccountList = accounts.length > 0;
-  const hasMultipleAccounts = accounts.length > 1;
+  const canOpenAccountList = selectedIndex >= 0 && accounts.length > 0;
+  const hasMultipleAccounts = canOpenAccountList && accounts.length > 1;
 
   useEffect(() => {
     if (!isExpanded || accounts.length === 0) return;

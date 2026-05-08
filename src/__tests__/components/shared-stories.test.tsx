@@ -3,6 +3,7 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import {
   renderStory as renderStoryHelper,
   type StoryArgs,
+  type StoryDecorator,
   type StoryLike,
   type StoryMeta,
 } from "@tests/helpers/render-story";
@@ -39,6 +40,35 @@ function renderStory<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: Sto
 }
 
 describe("Shared stories", () => {
+  it("applies meta and story decorators when rendering stories", () => {
+    const meta = {
+      component: ({ label }: { label: string }) => <span>{label}</span>,
+      args: { label: "Meta label" },
+      decorators: [
+        ((Story) => (
+          <section data-testid="meta-decorator">
+            <Story />
+          </section>
+        )) satisfies StoryDecorator<{ label: string }>,
+      ],
+    } satisfies StoryMeta<{ label: string }>;
+    const story = {
+      args: { label: "Story label" },
+      decorators: [
+        ((Story) => (
+          <div data-testid="story-decorator">
+            <Story />
+          </div>
+        )) satisfies StoryDecorator<{ label: string }>,
+      ],
+    } satisfies StoryLike<{ label: string }>;
+
+    renderStory(meta, story);
+
+    expect(screen.getByTestId("meta-decorator")).toContainElement(screen.getByTestId("story-decorator"));
+    expect(screen.getByText("Story label")).toBeInTheDocument();
+  });
+
   it("renders labeled field stories with their story-specific controls", async () => {
     renderStory(labeledInputRowMeta, LabeledInputRowInsideIconAction);
     expect(screen.getByRole("textbox", { name: "Username" })).toHaveValue("ultra-reader");

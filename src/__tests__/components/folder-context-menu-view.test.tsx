@@ -1,5 +1,5 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FolderContextMenuView } from "@/components/reader/folder-context-menu-view";
@@ -38,6 +38,41 @@ describe("FolderContextMenuView", () => {
     expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
     expect(screen.getByText("Display mode")).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Preview" })).toHaveTextContent("✓Preview");
+  });
+
+  it("renders old unread day presets and delegates the selected day", async () => {
+    const user = userEvent.setup();
+    const onMarkOldUnreadRead = vi.fn();
+
+    render(
+      <ContextMenu.Root open>
+        <FolderContextMenuView
+          markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
+          displayModeLabel="Display mode"
+          displayPresetOptions={[
+            { value: "default", label: "Default" },
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
+          ]}
+          selectedDisplayPreset="preview"
+          onMarkAllRead={vi.fn()}
+          onMarkOldUnreadRead={onMarkOldUnreadRead}
+          onSetDisplayPreset={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    await user.hover(screen.getByRole("menuitem", { name: "Mark old unread as read" }));
+
+    expect(await screen.findByRole("menuitem", { name: "7 days" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "30 days" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "90 days" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "30 days" }));
+
+    expect(onMarkOldUnreadRead).toHaveBeenCalledWith(30);
   });
 
   it("shows no selected preset marker when folder feeds have mixed display modes", () => {

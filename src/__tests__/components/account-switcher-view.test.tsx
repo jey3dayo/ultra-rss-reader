@@ -121,4 +121,66 @@ describe("AccountSwitcherView", () => {
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
+
+  it("uses the title fallback and disables menu semantics when accounts are empty", async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+
+    render(
+      <AccountSwitcherView
+        title="Ultra RSS"
+        lastSyncedLabel="Not synced yet"
+        accounts={[]}
+        accountStatusLabels={{}}
+        selectedAccountId={null}
+        isExpanded={false}
+        menuId="account-menu"
+        menuLabel="Accounts"
+        triggerRef={createRef<HTMLButtonElement>()}
+        itemRefs={{ current: [] }}
+        onToggle={onToggle}
+        onSelectAccount={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /Ultra RSS/ });
+
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
+    expect(trigger).not.toHaveAttribute("aria-expanded");
+    expect(trigger).not.toHaveAttribute("aria-controls");
+    await user.click(trigger);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("uses the title fallback and disables menu semantics when selected account is missing", async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+
+    render(
+      <AccountSwitcherView
+        title="Ultra RSS"
+        lastSyncedLabel="Not synced yet"
+        accounts={sampleAccounts}
+        accountStatusLabels={{}}
+        selectedAccountId="missing-account"
+        isExpanded={false}
+        menuId="account-menu"
+        menuLabel="Accounts"
+        triggerRef={createRef<HTMLButtonElement>()}
+        itemRefs={{ current: [] }}
+        onToggle={onToggle}
+        onSelectAccount={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /Ultra RSS/ });
+
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
+    expect(trigger).not.toHaveAttribute("aria-expanded");
+    expect(trigger).not.toHaveAttribute("aria-controls");
+    await user.click(trigger);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
 });

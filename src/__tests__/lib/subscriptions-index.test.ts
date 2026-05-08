@@ -463,6 +463,26 @@ describe("subscriptions index helpers", () => {
         sortKey: "unread_count",
       }).map((row) => row.feed.id),
     ).toEqual(["feed-active", "feed-mid", "feed-dormant"]);
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "all",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery: "EXAMPLE.COM/ACTIVE",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-active"]);
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "all",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery: "quiet.xml",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-mid"]);
   });
 
   it("sorts rows with invalid update dates after valid update dates", () => {

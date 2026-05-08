@@ -80,6 +80,8 @@ function rowMatchesSubscriptionSearch(row: SubscriptionListRow, normalizedQuery:
 
   return (
     row.feed.title.toLowerCase().includes(normalizedQuery) ||
+    row.feed.url.toLowerCase().includes(normalizedQuery) ||
+    row.feed.site_url.toLowerCase().includes(normalizedQuery) ||
     (row.folderName ?? "").toLowerCase().includes(normalizedQuery)
   );
 }

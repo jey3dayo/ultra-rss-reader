@@ -853,3 +853,78 @@
   - `old-unread-context-menu-items.tsx` で 7 / 30 / 90 day preset の表示と `onSelect(days)` だけを固定する
   - mark-all-read confirmation、pending / error 状態、feed / folder / smart-view mutation 実行とは混ぜない
   - narrow component test で menu item text と callback value を確認する
+
+- [ ] Playwright dev server contract 候補を別バッチで追加する
+  - `playwright.config.ts`、`vite.config.ts`、`package-scripts.test.ts` で E2E の `baseURL` / `webServer.url` / Vite port が 1420 で揃うことを静的に固定する
+  - E2E シナリオ追加、Tauri dev 起動、`app:dev:browser` の 4173 系とは混ぜない
+  - config 値の drift guard に限定し、実ブラウザ操作は別バッチに残す
+
+- [ ] Storybook e2e script mise task 候補を別バッチで追加する
+  - `package.json`、`mise.toml`、`playwright.storybook.config.ts` で既存 `pnpm test:storybook:e2e` を `mise run test:storybook:e2e` から呼べるようにする
+  - UI reference iframe smoke、Storybook story 追加、CI 必須化とは混ぜない
+  - README のコマンド表を触る場合は task 名 parity の最小更新に限定する
+
+- [ ] Storybook build quality gate 候補を別バッチで追加する
+  - `mise.toml` と `package.json` に `build-storybook` 系 task を明示し、`check` / `ci` に入れるか単独 gate にするかを固定する
+  - quality gate wording parity、Storybook render helper、visual / a11y 検証追加とは混ぜない
+  - 初回は task 定義と実行ログだけを確認し、CI 必須化は別判断にする
+
+- [ ] Tauri dev Vite manager check mode mise 候補を別バッチで追加する
+  - `tauri-dev-vite-manager.ts` の `--check` 分岐を `mise run app:dev:vite-check` のような dry-run task から呼べるようにする
+  - stale listener kill の挙動変更、dev server 自動起動、Windows dispatch refactor とは混ぜない
+  - 1420 port 衝突検知と exit code だけを script test で固定する
+
+- [ ] docs command table task parity 候補を別バッチで追加する
+  - `README.md` に載っている主要 `mise run ...` が `mise.toml` / `package.json` に実在することを静的 test で固定する
+  - quality gate wording parity、release manual verification、コマンド説明文の全面整理とは混ぜない
+  - docs の表示文言ではなく command existence の drift guard に限定する
+
+- [ ] article same-timestamp pagination stability 候補を別バッチで追加する
+  - `sqlite_article.rs` と `sqlite_tag.rs` の `ORDER BY published_at DESC` 系に `fetched_at` / `id` の tie-breaker を足せるか確認する
+  - account / feed stable sort、UI 側 sort、reader grouping とは混ぜない
+  - 同一日時記事の pagination fixture を repository test に追加する
+
+- [ ] article search empty / FTS special char guard 候補を別バッチで追加する
+  - `sqlite_article.rs` と必要なら `article_commands.rs` で whitespace-only / quote / FTS 予約記号の扱いを固定する
+  - frontend empty state、search ranking、CJK 検索改善とは混ぜない
+  - 空検索を空配列にするか validation error にするかを command / repository contract として明示する
+
+- [ ] FTS / LIKE merged search order contract 候補を別バッチで追加する
+  - `sqlite_article.rs` で FTS 結果と LIKE fallback 結果を merge した後の最終表示順を repository test で固定する
+  - tokenizer 変更、search UI、reader scope matrix とは混ぜない
+  - duplicate hit の dedupe と order priority を別 assertion にする
+
+- [ ] startup unread count mute reconcile 候補を別バッチで追加する
+  - `connection.rs` と `sqlite_feed.rs` で startup reconcile と `recalculate_unread_count` の mute count 定義を揃える
+  - mute keyword parity 本体、preferences guard、badge / UI 表示とは混ぜない
+  - 小さい DB fixture で muted article を含む unread count を確認する
+
+- [ ] article_tags orphan integrity guard 候補を別バッチで追加する
+  - `sqlite_tag.rs` と必要なら `dto.rs` で foreign_keys off の破損 `article_tags` を検出する read-only helper / repository test から始める
+  - feed integrity orphan cleanup command、tag settings UI、tag color / rename 挙動とは混ぜない
+  - cleanup 実行ではなく検出 contract の追加に限定する
+
+- [ ] account detail sync progress render contract 候補を別バッチで追加する
+  - `sync-section-view.tsx` と `use-account-detail-view-props.tsx` で `progressLabel` / `progressValue` / `progressCurrentLabel` が view に表示される契約を固定する
+  - manual sync toast、sync scheduler、provider error mapping とは混ぜない
+  - progress なし / indeterminate / current label ありを focused component test で分ける
+
+- [ ] account detail sync-now in-flight guard 候補を別バッチで追加する
+  - `use-account-detail-sync-controls.ts` と `sync-section-view.tsx` で `Sync Now` 連打時に `syncAccount(account.id)` が二重起動しないことを固定する
+  - sync-on-wake guard、global sync progress、manual sync feedback copy とは混ぜない
+  - hook と view の disabled / pending contract を分けて見る
+
+- [ ] account connection test in-flight guard 候補を別バッチで追加する
+  - `use-account-detail-credentials-editor.ts` と `credentials-section-view.tsx` で `Test connection` 連打時に `testAccountConnection()` が重複しない契約を追加する
+  - keyring backend、credential migration、FreshRSS auth copy とは混ぜない
+  - credential save dedupe と connection test dedupe を別 assertion にする
+
+- [ ] add account submit double-click guard 候補を別バッチで追加する
+  - `account-config-form.tsx` と `add-account-form.ts` で submit 直後の再クリック / Enter 連打が `addAccount()` と setup sync を二重起動しないことを固定する
+  - account setup lock、provider login flow、keyring orphan rollback とは混ぜない
+  - focused test では pending submit と validation failure の再送可否を分ける
+
+- [ ] data settings action pending state 候補を別バッチで追加する
+  - `use-data-settings-controller.ts` と `data-settings-view.tsx` で `Open log directory` / `VACUUM` の pending 表示と連打抑止を data settings 内だけで固定する
+  - native open command 化、backup / export UX、DB migration recovery とは混ぜない
+  - action ごとの pending flag と shared disabled 表示を別 assertion にする

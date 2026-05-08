@@ -32,4 +32,22 @@ describe("ArticleContextMenuView", () => {
     expect(onToggleStar).toHaveBeenCalledTimes(1);
     expect(onOpenInBrowser).toHaveBeenCalledTimes(1);
   });
+
+  it("omits open in browser when no URL action is available", () => {
+    render(
+      <ContextMenu.Root open>
+        <ArticleContextMenuView
+          toggleReadLabel="Mark as Read"
+          toggleStarLabel="Star"
+          openInBrowserLabel="Open in Browser"
+          onToggleRead={vi.fn()}
+          onToggleStar={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    expect(screen.getByRole("menuitem", { name: "Mark as Read" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Star" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Open in Browser" })).toBeNull();
+  });
 });
