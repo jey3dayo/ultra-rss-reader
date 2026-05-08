@@ -164,3 +164,33 @@
   - reader / settings / native menu / updater の表示文言が、同じ概念に対して異なるキー名や表現を使っていないか棚卸しする
   - `ja-locales` / `ui-language` 系 tests に、キー存在だけでなく reader/preview/external browser の意味差分を固定する assertion を追加する
   - copy 変更は UI regression になりやすいため、型整理や layout 変更とは混ぜない
+
+- [ ] OPML import/export contract test 候補を別バッチで追加する
+  - `src-tauri/src/infra/opml.rs` の parse/generate round trip、folder nesting、missing xmlUrl/htmlUrl、特殊文字 escape を境界値で固定する
+  - frontend import/export command schema と Rust OPML parser の責務を分け、UI copy や file picker 挙動とは混ぜない
+  - 大きな end-to-end import ではなく、parser/generator と command response contract の小さい test を優先する
+
+- [ ] provider / sync flow boundary 整理候補を別バッチで見直す
+  - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
+  - pending mutation / sync state / account sync status はデータ整合性に関わるため、UI sync feedback の型整理とは混ぜない
+  - network error / auth error / rate limit など失敗種別は domain error contract の test を先に固定する
+
+- [ ] feed content privacy hardening 候補を別バッチで設計する
+  - `docs/feed-content-privacy.md` の方針に沿って、reader mode remote image / frame / sanitizer version の実測観点を整理する
+  - CSP や sanitizer を一括で締めず、provider compatibility と Web Preview 影響を分けて検証する
+  - privacy mode や tracking pixel 対策を入れる場合は、settings UI と Rust sanitizer の境界を別々に扱う
+
+- [ ] runtime utility contract 整理候補を別バッチで見直す
+  - clipboard / window events / badge / always-on-top / window chrome の runtime wrapper を、Tauri runtime あり/なしの fallback contract として棚卸しする
+  - dev/browser tests で固定できる fallback と packaged app manual verification が必要な挙動を分ける
+  - capability JSON の permission 変更は runtime wrapper 整理とは別コミットにする
+
+- [ ] scripts dispatch contract 整理候補を別バッチで見直す
+  - `tauri-cli-dispatch.ts` / `windows-command-dispatch.ts` / `windows-dispatch.ts` の WSL/Windows path/env handling を test fixture と実行 contract に分ける
+  - seed dev DB script は安全確認・backup・process check を優先し、dispatch helper の refactor と混ぜない
+  - CI で拾える dry-run test とローカル実機検証が必要な path conversion を分ける
+
+- [ ] GitHub workflow / issue template 整理候補を別バッチで見直す
+  - `.github/workflows/*` と issue templates の label / release-readiness / manual-verification 表現を、運用ラベルの source of truth に揃える
+  - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
+  - release workflow の artifact matrix と updater signing は、docs 更新だけでなく実 release dry-run の観点を残す
