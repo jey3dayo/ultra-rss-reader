@@ -1240,3 +1240,51 @@
 - [ ] VACUUM reopen failure recoverable error 候補を別バッチで追加する
   - `connection.rs` と `database_commands.rs` で `vacuum()` 後の file connection reopen failure が panic ではなく `DomainError` / `AppError` として返る契約へ寄せる
   - migration restore、sync 中 guard、DB compaction UI は同じバッチに混ぜない
+
+- [ ] Subscription visible row decision filter contract 候補を別バッチで追加する
+  - `subscriptions-index.ts` の `buildVisibleSubscriptionRows` で active summary filter が `all` の時だけ kept/deferred feed を残し、review/stale では除外する契約を pure test で固定する
+  - decision button UI、delete feed mutation、subscriptions workspace return state は混ぜない
+
+- [ ] Subscription selected row auto-recovery contract 候補を別バッチで追加する
+  - `use-subscriptions-index-state.ts` で selected feed が visible rows から消えた時に first visible row へ戻り、visible rows が空なら null へ戻る契約を hook test で固定する
+  - list row visual、summary filter copy、feed deletion side effect は別バッチにする
+
+- [ ] Subscription review hidden feed exclusion contract 候補を別バッチで追加する
+  - `subscription-review-candidates.ts` で hidden feed IDs が review candidates から除外され、summary/reason sort に混ざらない契約を pure test で固定する
+  - hide decision persistence、subscriptions list filter、delete/defer UI は混ぜない
+
+- [ ] Subscription detail metrics summary fallback contract 候補を別バッチで追加する
+  - `subscriptions-index.ts` の `buildSubscriptionDetailMetrics` で feed article summary が無い時に articles から latest/starred/preview を計算し、summary がある時の優先順位を固定する
+  - preview article card visual、date locale formatting、feed article summary command は別バッチに残す
+
+- [ ] Shortcuts category order stability contract 候補を別バッチで追加する
+  - `use-shortcuts-settings-view-props.ts` の `buildShortcutCategoryOrder` で definition の出現順を保ち、重複 category を一度だけ出す契約を pure test で固定する
+  - shortcut recording、conflict detection、keyboard shortcut preference schema は混ぜない
+
+- [ ] General settings sidebar preference controls contract 候補を別バッチで追加する
+  - `use-general-settings-view-props.ts` で sidebar visibility prefs と startup folder expansion の control id/name/pref key 対応を view-props test で固定する
+  - sidebar hidden-section fallback、settings copy、preference schema migration は別バッチにする
+
+- [ ] Dev intent cancellation before scenario run 候補を別バッチで追加する
+  - `use-dev-intent.ts` で runtime options load 中または timeout 前に unmount された場合、`runRuntimeDevScenario` が起動しない契約を fake timer test で固定する
+  - dev scenario registry、scenario error toast copy、production bundle leak guard は混ぜない
+
+- [ ] Story Tauri runtime restore contract 候補を別バッチで追加する
+  - `story-tauri-runtime.ts` で `setStoryTauriRuntimePresent` / `setStoryTauriRuntimeMissing` が `window.__TAURI_INTERNALS__` を configurable に保ち、story 間で runtime state を戻せる契約を test で固定する
+  - Storybook smoke gate、Tauri mock response schema、runtime wrapper 実装は別スコープにする
+
+- [ ] Story query client retry isolation contract 候補を別バッチで追加する
+  - `story-query-client-provider.tsx` で story ごとに retry=false の QueryClient が作られ、query cache が story render 間で漏れない契約を lightweight test で固定する
+  - Storybook decorator runtime provider parity、production query retry policy、visual specimen は混ぜない
+
+- [ ] GReader FreshRSS API base normalization contract 候補を別バッチで追加する
+  - `greader.rs` の FreshRSS provider factory で server URL 末尾 slash と `/api/greader.php` 既指定の正規化を Rust unit test で固定する
+  - auth flow、HTTP client policy、subscription URL merge は別バッチに残す
+
+- [ ] Platform dev runtime positive integer parsing contract 候補を別バッチで追加する
+  - `platform_commands.rs` の dev runtime options で window width/height env が positive integer の時だけ DTO に入り、空文字・0・負数・非数値を無視する契約を固定する
+  - dev scenario window sizing failure surface、platform capabilities mock parity、Tauri capability JSON は混ぜない
+
+- [ ] Reading List URL quote escaping contract 候補を別バッチで追加する
+  - `share_commands.rs` の macOS Reading List command で URL 内の double quote が AppleScript 文字列を壊さないよう escape 方針を contract test 化する
+  - unsupported scheme guard、clipboard runtime category、Safari 実機 verification は別バッチにする
