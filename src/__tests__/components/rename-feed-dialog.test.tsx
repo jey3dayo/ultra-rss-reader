@@ -1,6 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
@@ -99,11 +99,7 @@ describe("RenameDialog", () => {
   it("creates a new folder only when saving the edited feed", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
     const onOpenChange = vi.fn();
 
@@ -125,11 +121,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     expect(screen.getByTestId("folder-create-enabled")).toHaveTextContent("true");
 
@@ -165,19 +157,9 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider
-        client={
-          new QueryClient({
-            defaultOptions: {
-              queries: { retry: false },
-            },
-          })
-        }
-      >
-        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
 
     await user.click(screen.getByRole("button", { name: "New folder" }));
     await user.type(screen.getByLabelText("Folder name"), "Reading");
@@ -190,11 +172,7 @@ describe("RenameDialog", () => {
   it("continues renaming and display-mode updates when folder update fails", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
     const onOpenChange = vi.fn();
     const feed = { ...sampleFeeds[0], folder_id: "folder-1" };
@@ -215,11 +193,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <RenameDialog feed={feed} open={true} onOpenChange={onOpenChange} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={feed} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Renamed Feed");
@@ -245,11 +219,7 @@ describe("RenameDialog", () => {
   it("keeps the dialog open when the display-mode update fails", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    const { wrapper } = createQueryWrapper();
     const onOpenChange = vi.fn();
 
     setupTauriMocks((cmd, args) => {
@@ -265,11 +235,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Set preview" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -300,19 +266,9 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider
-        client={
-          new QueryClient({
-            defaultOptions: {
-              queries: { retry: false },
-            },
-          })
-        }
-      >
-        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
 
     await user.click(screen.getByRole("button", { name: "Set custom mode" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -326,11 +282,7 @@ describe("RenameDialog", () => {
   it("keeps the dialog open when renaming fails", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    const { wrapper } = createQueryWrapper();
     const onOpenChange = vi.fn();
 
     setupTauriMocks((cmd, args) => {
@@ -346,11 +298,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Renamed Feed");
@@ -383,19 +331,9 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider
-        client={
-          new QueryClient({
-            defaultOptions: {
-              queries: { retry: false },
-            },
-          })
-        }
-      >
-        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />
-      </QueryClientProvider>,
-    );
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
 
     await user.click(screen.getByRole("button", { name: "Copy Website URL" }));
     await user.click(screen.getByRole("button", { name: "Copy Feed URL" }));

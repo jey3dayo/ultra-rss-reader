@@ -1,6 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
@@ -72,11 +72,7 @@ describe("AddFeedDialog", () => {
   it("keeps async discovery and folder assignment in the container", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
     const onOpenChange = vi.fn();
 
@@ -112,11 +108,7 @@ describe("AddFeedDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <AddFeedDialog open={true} onOpenChange={onOpenChange} accountId="acc-1" />
-      </QueryClientProvider>,
-    );
+    render(<AddFeedDialog open={true} onOpenChange={onOpenChange} accountId="acc-1" />, { wrapper });
 
     await user.type(screen.getByLabelText("Feed URL"), "https://example.com");
     await user.click(screen.getByRole("button", { name: "Discover" }));
@@ -146,11 +138,7 @@ describe("AddFeedDialog", () => {
 
   it("shows inline guidance and keeps actions disabled for invalid URLs", async () => {
     const user = userEvent.setup();
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    const { wrapper } = createQueryWrapper();
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -161,11 +149,7 @@ describe("AddFeedDialog", () => {
       }
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <AddFeedDialog open={true} onOpenChange={vi.fn()} accountId="acc-1" />
-      </QueryClientProvider>,
-    );
+    render(<AddFeedDialog open={true} onOpenChange={vi.fn()} accountId="acc-1" />, { wrapper });
 
     await user.type(screen.getByLabelText("Feed URL"), "example.com");
 

@@ -1,11 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -19,33 +17,6 @@ const accountConfigFormSource = readFileSync(
 
 async function selectService(user: ReturnType<typeof userEvent.setup>, serviceName: string) {
   await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
-}
-
-function QueryClientCapture({ onReady }: { onReady: (queryClient: QueryClient) => void }) {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    onReady(queryClient);
-  }, [onReady, queryClient]);
-
-  return null;
-}
-
-function createWrapperWithClient(onReady: (queryClient: QueryClient) => void) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <QueryClientCapture onReady={onReady} />
-        {children}
-      </QueryClientProvider>
-    );
-  };
 }
 
 describe("AddAccountForm", () => {
@@ -422,7 +393,7 @@ describe("AddAccountForm", () => {
 
   it("adds the new account to the accounts query cache immediately after registration", async () => {
     const user = userEvent.setup();
-    let queryClient: QueryClient | undefined;
+    const { queryClient, wrapper } = createQueryWrapper();
 
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
@@ -444,11 +415,7 @@ describe("AddAccountForm", () => {
       return null;
     });
 
-    render(<AddAccountForm />, {
-      wrapper: createWrapperWithClient((captured) => {
-        queryClient = captured;
-      }),
-    });
+    render(<AddAccountForm />, { wrapper });
 
     await selectService(user, "FreshRSS");
     await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");

@@ -1,9 +1,7 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, type sampleTags, setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ActionsSettings } from "@/components/settings/actions-settings";
@@ -46,33 +44,6 @@ describe("SettingsModal", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
-
-  function QueryClientCapture({ onReady }: { onReady: (queryClient: QueryClient) => void }) {
-    const queryClient = useQueryClient();
-
-    useEffect(() => {
-      onReady(queryClient);
-    }, [onReady, queryClient]);
-
-    return null;
-  }
-
-  function createWrapperWithClient(onReady: (queryClient: QueryClient) => void) {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
-
-    return function Wrapper({ children }: { children: React.ReactNode }) {
-      return (
-        <QueryClientProvider client={queryClient}>
-          <QueryClientCapture onReady={onReady} />
-          {children}
-        </QueryClientProvider>
-      );
-    };
-  }
 
   it("closes the modal when the view requests it", async () => {
     const user = userEvent.setup();
@@ -366,12 +337,8 @@ describe("SettingsModal", () => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.getState().openSettings("accounts");
 
-    let queryClient: QueryClient | undefined;
-    render(<SettingsModal />, {
-      wrapper: createWrapperWithClient((captured) => {
-        queryClient = captured;
-      }),
-    });
+    const { queryClient, wrapper } = createQueryWrapper();
+    render(<SettingsModal />, { wrapper });
 
     expect(await screen.findByRole("button", { name: /Local/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
@@ -407,7 +374,7 @@ describe("SettingsModal", () => {
 
   it("does not keep showing a deleted account while accounts are pending after delete", async () => {
     const user = userEvent.setup();
-    let queryClient: QueryClient | undefined;
+    const { queryClient, wrapper } = createQueryWrapper();
     let listedAccounts = [...sampleAccounts];
     let pauseAccountsQuery = false;
 
@@ -435,11 +402,7 @@ describe("SettingsModal", () => {
         <SettingsModal />
         <AppConfirmDialog />
       </>,
-      {
-        wrapper: createWrapperWithClient((captured) => {
-          queryClient = captured;
-        }),
-      },
+      { wrapper },
     );
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
