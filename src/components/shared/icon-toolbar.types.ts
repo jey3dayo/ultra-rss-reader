@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
-export type IconToolbarPressedTone = "none" | "neutral" | "accent" | "starred";
+type IconToolbarPressedTone = "none" | "neutral" | "accent" | "starred";
 
-export type IconToolbarControlBaseProps = {
+type IconToolbarControlBaseProps = {
   label: string;
   tooltipLabel?: string;
   tooltipSide?: "top" | "right" | "bottom" | "left";
