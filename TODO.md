@@ -103,3 +103,33 @@
   - Browser overlay motion は WebView bounds 同期と重なるため、open / close / resize / diagnostics toggle の実機計測を先に行う
   - Article transition は title / meta / tag area / body のどこへ適用するかを、連続記事移動と読書中の視線移動で確認する
   - Feed tree drag overlay は pointer move 中の高頻度更新と重なるため、drag preview 自体へ motion を入れない選択肢も含めて検証する
+
+- [ ] reader article action hook contract 整理候補を別バッチで見直す
+  - `article-actions.types.ts` の status actions / shortcut / auto-mark params/results を、各 hook の近くへ分けられるか確認する
+  - toast action params は article action と browser action の境界にまたがるため、移動する場合は `article-browser-actions.ts` の責務も同じバッチで見る
+  - shortcut wiring は `src/hooks/use-keyboard.ts` との関係があるため、表示 props local 化とは混ぜない
+
+- [ ] command palette hook contract 整理候補を別バッチで見直す
+  - `command-palette.types.ts` の data / runtime / handlers / view props params/results を、hooks 配下の責務単位へ分けられるか確認する
+  - `CommandPaletteResultsProps` と controller result は palette view contract として残し、hook 内部 params の移動とは分ける
+  - search prefix / recent actions / dev scenario / article search はデータ取得境界が違うため、worker scope を分ける
+
+- [ ] subscriptions index view contract 整理候補を別バッチで見直す
+  - `subscriptions-index-page-view.tsx` / list pane / detail pane / overview summary の props を、view file local と shared page contract に分ける
+  - `src/lib/subscriptions/subscriptions-index.types.ts` は list row / summary card / detail metrics の共有モデルとして扱い、UI props と混ぜない
+  - keep / defer / delete の decision flow は状態更新と toast にまたがるため、型整理とは別バッチにする
+
+- [ ] subscriptions helper test 候補を別バッチで追加する
+  - `subscription-review-candidates.ts` は stale / no unread / no stars の組み合わせと title/tone 判定を境界値で固定する
+  - `subscriptions-index.ts` は summary counts / filter application / selected candidate resolution / row status reason を pure helper test で追加する
+  - 大きな page rendering test ではなく、候補生成と表示モデル変換の契約に絞る
+
+- [ ] app shell / keyboard boundary 整理候補を別バッチで見直す
+  - global keyboard handling に reader pane 固有の分岐が増えていないか、pane helper へ戻せるものを棚卸しする
+  - focus return / selected sidebar target / selected article row の復帰処理は、reader focus helper と hook の責務境界を先に整理する
+  - shortcut の表示ラベル変更や i18n copy 変更は、挙動整理と同じバッチに混ぜない
+
+- [ ] dev data seed command 候補を別バッチで設計する
+  - まずは debug UI ではなく `mise run app:dev:seed-from-prod` 相当の手動コマンドとして、対象 DB / wal / shm / backup / app stop 手順を固定する
+  - macOS / Windows の app data path と credential 差を明示し、production DB を直接書き換えない安全確認を入れる
+  - UI ボタン化はコマンド手順が安全に固まってから別バッチで扱う
