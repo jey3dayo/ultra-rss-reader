@@ -65,6 +65,8 @@ export const countAccountStarredArticlesArgs = z.object({
 
 export const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
 export const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
+export type OldUnreadScopeKind = z.infer<typeof oldUnreadScopeKindSchema>;
+export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
 // --- markAccountRead ---
 export const markAccountReadArgs = z.object({ accountId: z.string() });

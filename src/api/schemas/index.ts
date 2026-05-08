@@ -54,6 +54,8 @@ export {
   markArticlesReadArgs,
   markFeedReadArgs,
   markFolderReadArgs,
+  type OldUnreadDays,
+  type OldUnreadScopeKind,
   oldUnreadArticlesArgs,
   oldUnreadDaysSchema,
   oldUnreadScopeKindSchema,
@@ -80,6 +82,12 @@ export {
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
 } from "./commands";
+export {
+  BooleanResponseSchema,
+  IntResponseSchema,
+  NullResponseSchema,
+  StringResponseSchema,
+} from "./common";
 export { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "./database-info";
 export {
   type DiscoveredFeedDto,
