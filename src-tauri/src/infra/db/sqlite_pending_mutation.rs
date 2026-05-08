@@ -302,6 +302,59 @@ mod tests {
     }
 
     #[test]
+    fn save_replacement_is_scoped_to_the_same_account() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_a.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "shared-entry".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_b.clone(),
+            mutation_type: PendingMutationType::Star,
+            remote_entry_id: "shared-entry".to_string(),
+            created_at: "2024-01-01T00:00:01Z".to_string(),
+        })
+        .unwrap();
+
+        let found_a = repo.find_by_account(&account_a).unwrap();
+        let found_b = repo.find_by_account(&account_b).unwrap();
+
+        assert_eq!(found_a.len(), 1);
+        assert_eq!(found_a[0].mutation_type, PendingMutationType::MarkRead);
+        assert_eq!(found_b.len(), 1);
+        assert_eq!(found_b[0].mutation_type, PendingMutationType::Star);
+    }
+
+    #[test]
+    fn find_by_account_projects_invalid_stored_mutation_type_as_error() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'delete_remote_entry', 'entry-1', '2024-01-01T00:00:00Z')",
+                params![account_id.0],
+            )
+            .unwrap();
+
+        let repo = SqlitePendingMutationRepository::new(db.reader());
+        let error = repo.find_by_account(&account_id).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("Unknown pending mutation type: delete_remote_entry"));
+    }
+
+    #[test]
     fn save_keeps_existing_pending_mutation_when_replacement_insert_fails() {
         let db = test_db();
         let account_id = insert_test_account(&db);

@@ -150,12 +150,15 @@ const freshRssAddAccountArgs = z.object({
 export const addAccountArgs = z.discriminatedUnion("kind", [localAddAccountArgs, freshRssAddAccountArgs]);
 
 // --- updateAccountSync ---
+const syncIntervalSecsSchema = z.number().int().min(60).max(86_400);
+const keepReadItemsDaysSchema = z.number().int().min(1).max(3650);
+
 export const updateAccountSyncArgs = z.object({
   accountId: z.string(),
-  syncIntervalSecs: z.number(),
+  syncIntervalSecs: syncIntervalSecsSchema,
   syncOnStartup: z.boolean(),
   syncOnWake: z.boolean(),
-  keepReadItemsDays: z.number(),
+  keepReadItemsDays: keepReadItemsDaysSchema,
 });
 
 // --- updateAccountCredentials ---

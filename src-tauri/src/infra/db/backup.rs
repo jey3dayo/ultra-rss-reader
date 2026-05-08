@@ -40,6 +40,33 @@ fn auxiliary_backup_path(base_backup: &Path, suffix: &str) -> PathBuf {
     PathBuf::from(name)
 }
 
+fn temp_backup_path(final_path: &Path) -> PathBuf {
+    let mut name = final_path.as_os_str().to_owned();
+    name.push(".tmp");
+    PathBuf::from(name)
+}
+
+fn copy_backup_file_atomic(src: &Path, dest: &Path) -> DomainResult<()> {
+    let temp_dest = temp_backup_path(dest);
+    if temp_dest.exists() {
+        fs::remove_file(&temp_dest).map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to remove stale temporary backup {}: {e}",
+                temp_dest.display()
+            ))
+        })?;
+    }
+    fs::copy(src, &temp_dest).map_err(|e| {
+        let _ = fs::remove_file(&temp_dest);
+        DomainError::Migration(format!("Failed to backup {}: {e}", src.display()))
+    })?;
+    fs::rename(&temp_dest, dest).map_err(|e| {
+        let _ = fs::remove_file(&temp_dest);
+        DomainError::Migration(format!("Failed to finalize backup {}: {e}", dest.display()))
+    })?;
+    Ok(())
+}
+
 /// Copy the SQLite file to a backup location before migration.
 /// WAL and SHM files are also copied if they exist.
 /// Returns the path to the backup file.
@@ -60,12 +87,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
         dest.display()
     );
 
-    fs::copy(db_path, &dest).map_err(|e| {
-        DomainError::Migration(format!(
-            "Failed to backup database {}: {e}",
-            db_path.display()
-        ))
-    })?;
+    copy_backup_file_atomic(db_path, &dest)?;
 
     // Copy WAL and SHM if they exist (SQLite WAL mode)
     for suffix in &["wal", "shm"] {
@@ -74,9 +96,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
         let src = PathBuf::from(src_name);
         if src.exists() {
             let aux_dest = auxiliary_backup_path(&dest, suffix);
-            fs::copy(&src, &aux_dest).map_err(|e| {
-                DomainError::Migration(format!("Failed to backup {}: {e}", src.display()))
-            })?;
+            copy_backup_file_atomic(&src, &aux_dest)?;
         }
     }
 
@@ -212,11 +232,21 @@ mod tests {
     }
 
     #[test]
+    fn temp_backup_path_pairs_with_final_backup_name() {
+        let path = Path::new("/tmp/backups/app_v2_20260330T000000.db");
+        assert_eq!(
+            temp_backup_path(path),
+            PathBuf::from("/tmp/backups/app_v2_20260330T000000.db.tmp")
+        );
+    }
+
+    #[test]
     fn create_backup_copies_file() {
         let (_dir, db_path) = setup_temp_db();
         let bp = create_backup(&db_path, 1).unwrap();
         assert!(bp.exists());
         assert_eq!(fs::read(&bp).unwrap(), b"test database content");
+        assert!(!temp_backup_path(&bp).exists());
     }
 
     #[test]
@@ -242,6 +272,8 @@ mod tests {
             fs::read(auxiliary_backup_path(&bp, "shm")).unwrap(),
             b"shm data"
         );
+        assert!(!temp_backup_path(&auxiliary_backup_path(&bp, "wal")).exists());
+        assert!(!temp_backup_path(&auxiliary_backup_path(&bp, "shm")).exists());
     }
 
     #[test]

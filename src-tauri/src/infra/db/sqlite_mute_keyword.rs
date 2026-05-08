@@ -233,10 +233,90 @@ impl MuteKeywordRepository for SqliteMuteKeywordRepository<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::types::{AccountId, ArticleId, FeedId};
     use crate::infra::db::connection::DbManager;
 
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
+    }
+
+    fn article_fixture(
+        title: &str,
+        content_sanitized: &str,
+        summary: Option<&str>,
+        _content_text: Option<&str>,
+    ) -> Article {
+        Article {
+            id: ArticleId("art-1".to_string()),
+            feed_id: FeedId("feed-1".to_string()),
+            remote_id: None,
+            title: title.to_string(),
+            content_raw: "".to_string(),
+            content_sanitized: content_sanitized.to_string(),
+            sanitizer_version: 1,
+            summary: summary.map(str::to_string),
+            url: None,
+            author: None,
+            published_at: Utc::now(),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: Utc::now(),
+        }
+    }
+
+    fn sql_matches_article(
+        db: &DbManager,
+        article: &Article,
+        content_text: Option<&str>,
+        rule: &MuteKeyword,
+    ) -> bool {
+        let content_text = content_text.unwrap_or("").to_string();
+        let summary = article.summary.clone();
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Test')",
+                params![AccountId("acc-1".to_string()).0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url, site_url)
+                 VALUES (?1, 'acc-1', 'Feed', 'https://example.com/rss', 'https://example.com')",
+                params![article.feed_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, content_text, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, NULL, ?3, '', ?4, ?5, 1, ?6, NULL, NULL, datetime('now'), NULL, 0, 0, datetime('now'))",
+                params![
+                    article.id.0,
+                    article.feed_id.0,
+                    article.title,
+                    article.content_sanitized,
+                    content_text,
+                    summary,
+                ],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params![rule.id, rule.keyword, rule.scope.as_str()],
+            )
+            .unwrap();
+
+        let match_clause = build_mute_keyword_match_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let sql =
+            format!("SELECT EXISTS(SELECT 1 FROM articles a WHERE a.id = ?1 AND {match_clause})");
+        db.reader()
+            .query_row(&sql, params![article.id.0], |row| row.get::<_, bool>(0))
+            .unwrap()
     }
 
     #[test]
@@ -448,5 +528,62 @@ mod tests {
         };
 
         assert!(matches_mute_keyword(&article, &rule));
+    }
+
+    #[test]
+    fn sql_and_rust_matchers_share_title_and_body_contract() {
+        let fixtures = [
+            (
+                article_fixture("Kindle Unlimited deal", "", Some("summary"), None),
+                "kindle unlimited",
+                MuteKeywordScope::Title,
+                None,
+            ),
+            (
+                article_fixture(
+                    "Visible article",
+                    "",
+                    Some("Kindle Unlimited summary"),
+                    None,
+                ),
+                "kindle unlimited",
+                MuteKeywordScope::Body,
+                None,
+            ),
+            (
+                article_fixture(
+                    "Visible article",
+                    "<p>Kindle Unlimited content</p>",
+                    Some("ignored summary"),
+                    Some("Kindle Unlimited content"),
+                ),
+                "kindle unlimited",
+                MuteKeywordScope::TitleAndBody,
+                Some("Kindle Unlimited content"),
+            ),
+            (
+                article_fixture("Visible article", "", Some("plain summary"), None),
+                "kindle unlimited",
+                MuteKeywordScope::TitleAndBody,
+                None,
+            ),
+        ];
+
+        for (index, (article, keyword, scope, content_text)) in fixtures.into_iter().enumerate() {
+            let db = test_db();
+            let rule = MuteKeyword {
+                id: format!("mute-{index}"),
+                keyword: keyword.to_string(),
+                scope,
+                created_at: Utc::now().to_rfc3339(),
+                updated_at: Utc::now().to_rfc3339(),
+            };
+
+            assert_eq!(
+                sql_matches_article(&db, &article, content_text, &rule),
+                matches_mute_keyword(&article, &rule),
+                "fixture {index} should match SQL and Rust behavior",
+            );
+        }
     }
 }

@@ -37,6 +37,7 @@ import {
   TagDtoSchema,
   toggleArticleStarArgs,
   UpdateInfoDtoSchema,
+  updateAccountSyncArgs,
 } from "@/api/schemas";
 
 function readTauriCommandsSource() {
@@ -412,6 +413,31 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
     expect(() => addAccountArgs.parse({ kind: "Unknown", name: "Test" })).toThrow();
+  });
+  it("validates updateAccountSyncArgs numeric range", () => {
+    const valid = {
+      accountId: "acc-1",
+      syncIntervalSecs: 3600,
+      syncOnStartup: true,
+      syncOnWake: false,
+      keepReadItemsDays: 30,
+    };
+
+    expect(updateAccountSyncArgs.parse(valid)).toEqual(valid);
+    expect(updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 60 })).toEqual({
+      ...valid,
+      syncIntervalSecs: 60,
+    });
+    expect(updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 3650 })).toEqual({
+      ...valid,
+      keepReadItemsDays: 3650,
+    });
+    expect(() => updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 59 })).toThrow();
+    expect(() => updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 86_401 })).toThrow();
+    expect(() => updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 60.5 })).toThrow();
+    expect(() => updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 0 })).toThrow();
+    expect(() => updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 3651 })).toThrow();
+    expect(() => updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 30.5 })).toThrow();
   });
   it("parses createMuteKeywordArgs", () => {
     expect(createMuteKeywordArgs.parse({ keyword: "Kindle Unlimited", scope: "title" })).toEqual({

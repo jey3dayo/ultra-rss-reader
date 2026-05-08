@@ -17,12 +17,53 @@ use crate::repository::folder::FolderRepository;
 use crate::commands::dto::DiscoveredFeedDto;
 use crate::infra::feed_discovery;
 
+const FEED_TITLE_MAX_CHARS: usize = 200;
+const FOLDER_NAME_MAX_CHARS: usize = 100;
+
 pub(super) fn lock_db(
     db: &Mutex<DbManager>,
 ) -> Result<std::sync::MutexGuard<'_, DbManager>, AppError> {
     db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })
+}
+
+fn validate_feed_title(title: &str) -> Result<String, AppError> {
+    let title = title.trim();
+    if title.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Feed title cannot be empty".into(),
+        });
+    }
+    if title.chars().count() > FEED_TITLE_MAX_CHARS {
+        return Err(AppError::UserVisible {
+            message: format!("Feed title must be {FEED_TITLE_MAX_CHARS} characters or less"),
+        });
+    }
+    Ok(title.to_string())
+}
+
+fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String, AppError> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Folder name cannot be empty".into(),
+        });
+    }
+    if name.chars().count() > FOLDER_NAME_MAX_CHARS {
+        return Err(AppError::UserVisible {
+            message: format!("Folder name must be {FOLDER_NAME_MAX_CHARS} characters or less"),
+        });
+    }
+    if existing_names
+        .iter()
+        .any(|existing| existing.eq_ignore_ascii_case(name))
+    {
+        return Err(AppError::UserVisible {
+            message: format!("Folder name \"{name}\" is already in use"),
+        });
+    }
+    Ok(name.to_string())
 }
 
 #[tauri::command]
@@ -61,6 +102,13 @@ pub fn create_folder(
 
     // Determine next sort_order
     let existing = folder_repo.find_by_account(&account_id)?;
+    let name = validate_folder_name(
+        &name,
+        &existing
+            .iter()
+            .map(|folder| folder.name.clone())
+            .collect::<Vec<_>>(),
+    )?;
     let sort_order = existing.len() as i32;
 
     // NOTE: Local-only folder; remote sync will be handled in a future iteration
@@ -90,6 +138,7 @@ pub fn rename_feed(
     title: String,
 ) -> Result<(), AppError> {
     let db = lock_db(&state.db)?;
+    let title = validate_feed_title(&title)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.rename(&FeedId(feed_id), &title)?;
     Ok(())
@@ -148,18 +197,52 @@ pub async fn add_local_feed(
         feed_repo.save(&feed)?;
     }
 
+    let persisted_feed = {
+        let db = lock_db(&state.db)?;
+        let feed_repo = SqliteFeedRepository::new(db.reader());
+        feed_repo
+            .find_by_url(&account_id, &feed.url)?
+            .ok_or_else(|| AppError::UserVisible {
+                message: "Saved feed could not be reloaded".into(),
+            })?
+    };
+
     // 3. Fetch initial articles for the new feed
-    super::sync_providers::sync_local_feed(&state.db, &provider, &account_id, &feed).await?;
+    super::sync_providers::sync_local_feed(&state.db, &provider, &account_id, &persisted_feed)
+        .await?;
 
     // 4. Re-read unread count from DB
     let unread_count = {
         let db = lock_db(&state.db)?;
         let feed_repo = SqliteFeedRepository::new(db.reader());
-        feed_repo.recalculate_unread_count(&feed.id).unwrap_or(0)
+        feed_repo
+            .recalculate_unread_count(&persisted_feed.id)
+            .unwrap_or(0)
     };
-    let mut updated_feed = feed;
+    let mut updated_feed = persisted_feed;
     updated_feed.unread_count = unread_count;
     Ok(FeedDto::from(updated_feed))
+}
+
+#[cfg(test)]
+mod validation_tests {
+    use super::{validate_feed_title, validate_folder_name};
+
+    #[test]
+    fn validates_feed_rename_title() {
+        assert_eq!(validate_feed_title("  Blog  ").unwrap(), "Blog");
+        assert!(validate_feed_title("   ").is_err());
+        assert!(validate_feed_title(&"a".repeat(201)).is_err());
+    }
+
+    #[test]
+    fn validates_folder_create_name() {
+        let existing = vec!["Tech".to_string()];
+        assert_eq!(validate_folder_name("  News  ", &existing).unwrap(), "News");
+        assert!(validate_folder_name("   ", &existing).is_err());
+        assert!(validate_folder_name(&"a".repeat(101), &existing).is_err());
+        assert!(validate_folder_name("tech", &existing).is_err());
+    }
 }
 
 #[tauri::command]

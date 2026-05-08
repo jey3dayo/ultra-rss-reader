@@ -1,6 +1,10 @@
 pub const SANITIZER_VERSION: u32 = 1;
 
 pub fn sanitize_html(raw: &str) -> String {
+    if raw.trim().is_empty() {
+        return String::new();
+    }
+
     ammonia::Builder::default()
         .add_tags(&[
             "img",
@@ -82,5 +86,29 @@ mod tests {
         let input = "<p>Kindle <strong>Unlimited</strong></p>";
         let output = extract_visible_text(input);
         assert_eq!(output, "Kindle Unlimited");
+    }
+
+    #[test]
+    fn sanitizer_boundary_removes_script_style_and_event_handlers() {
+        let input = r#"<article><p onclick="evil()">Hello</p><script>alert(1)</script><style>.x{}</style></article>"#;
+        let output = sanitize_html(input);
+
+        assert!(output.contains("Hello"));
+        assert!(!output.contains("onclick"));
+        assert!(!output.contains("script"));
+        assert!(!output.contains("style"));
+        assert_eq!(extract_visible_text(&output), "Hello");
+    }
+
+    #[test]
+    fn sanitizer_boundary_handles_empty_and_malformed_content() {
+        assert_eq!(sanitize_html("   "), "");
+        assert_eq!(extract_visible_text("   "), "");
+
+        let output = sanitize_html("<p>Hello <strong>world</p>");
+
+        assert!(output.contains("Hello"));
+        assert!(output.contains("world"));
+        assert_eq!(extract_visible_text(&output), "Hello world");
     }
 }

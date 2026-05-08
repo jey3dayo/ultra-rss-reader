@@ -292,6 +292,37 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_url_save_reuses_existing_row_id() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let existing = make_feed(&account_id, "Existing", "http://rust.com/feed");
+        let existing_id = existing.id.clone();
+        repo.save(&existing).unwrap();
+
+        let duplicate = Feed {
+            id: FeedId::new(),
+            title: "Updated".to_string(),
+            remote_id: Some("remote-updated".to_string()),
+            unread_count: 5,
+            ..make_feed(&account_id, "Duplicate", "http://rust.com/feed")
+        };
+        repo.save(&duplicate).unwrap();
+
+        let by_url = repo
+            .find_by_url(&account_id, "http://rust.com/feed")
+            .unwrap()
+            .unwrap();
+        let feeds = repo.find_by_account(&account_id).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(by_url.id, existing_id);
+        assert_eq!(by_url.title, "Updated");
+        assert_eq!(by_url.remote_id.as_deref(), Some("remote-updated"));
+    }
+
+    #[test]
     fn find_by_account_excludes_muted_unread_articles_from_counts() {
         let db = test_db();
         let account_id = insert_test_account(&db);

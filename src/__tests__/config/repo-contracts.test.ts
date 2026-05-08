@@ -60,6 +60,19 @@ function stripAnchor(link: string) {
   return decodeURIComponent(path);
 }
 
+function migrationVersionsFromFiles() {
+  return readdirSync(join(repoRoot, "src-tauri/migrations"))
+    .flatMap((entry) => {
+      const version = entry.match(/^V(\d+)__.+\.sql$/)?.[1];
+      return version ? [Number(version)] : [];
+    })
+    .sort((a, b) => a - b);
+}
+
+function extractRustLatestMigrationVersion(source: string) {
+  return Number(source.match(/pub const LATEST_VERSION: i32 = (\d+);/)?.[1] ?? Number.NaN);
+}
+
 describe("repository static contracts", () => {
   it("keeps CI mise tasks resolvable", () => {
     const miseTasks = extractMiseTaskNames(readRepoFile("mise.toml"));
@@ -136,5 +149,46 @@ describe("repository static contracts", () => {
     expect(readRepoFile("README.md")).toContain(
       "Version is kept in sync across `tauri.conf.json`, `Cargo.toml`, and `package.json`.",
     );
+  });
+
+  it("keeps migration manifest versions aligned with the Rust runner", () => {
+    const migrationSource = readRepoFile("src-tauri/src/infra/db/migration.rs");
+    const fileVersions = migrationVersionsFromFiles();
+    const latestVersion = extractRustLatestMigrationVersion(migrationSource);
+    const expectedVersions = Array.from({ length: latestVersion }, (_, index) => index + 1);
+    const missingFileVersions = expectedVersions.filter((version) => !fileVersions.includes(version));
+    const unhandledFileVersions = fileVersions.filter((version) => {
+      const hasEmbeddedSql = migrationSource.includes(`MIGRATION_V${version}`);
+      const hasInlineHelper = migrationSource.includes(`apply_v${version}_`);
+      return !hasEmbeddedSql && !hasInlineHelper;
+    });
+
+    expect(latestVersion).toBe(Math.max(...fileVersions));
+    expect(missingFileVersions).toEqual([10]);
+    expect(migrationSource).toContain("set_schema_version(&tx, 10)");
+    expect(unhandledFileVersions).toEqual([]);
+  });
+
+  it("keeps dev scenario implementation behind the runtime production guard", () => {
+    const scenarioRuntime = readRepoFile("src/dev/scenario-runtime.ts");
+    const runtimeGuardIndex = scenarioRuntime.indexOf("if (!import.meta.env.DEV)");
+    const sourceFiles = [
+      ...readdirSync(join(repoRoot, "src"), { recursive: true })
+        .filter((entry): entry is string => typeof entry === "string")
+        .filter((entry) => /\.(ts|tsx)$/.test(entry)),
+    ];
+    const eagerScenarioImports = sourceFiles.flatMap((entry) => {
+      const filePath = `src/${entry}`;
+      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
+        return [];
+      }
+      const source = readRepoFile(filePath);
+      return source.includes("@/dev/scenarios") ? [filePath] : [];
+    });
+
+    expect(runtimeGuardIndex).toBeGreaterThanOrEqual(0);
+    expect(scenarioRuntime).toContain('return Promise.resolve(Result.fail({ type: "unavailable"');
+    expect(scenarioRuntime).toContain("await import(/* @vite-ignore */ getDevScenariosModuleUrl())");
+    expect(eagerScenarioImports).toEqual([]);
   });
 });

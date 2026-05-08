@@ -65,8 +65,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
         .map_err(|e| DomainError::Network(e.to_string()))?;
 
     // Try to detect if the body is a feed even without correct content-type
-    let trimmed = body.trim_start();
-    if trimmed.starts_with("<?xml") || trimmed.starts_with("<rss") || trimmed.starts_with("<feed") {
+    if is_feed_body_fallback(&body) {
         return Ok(vec![DiscoveredFeed {
             url: final_url,
             title: String::new(),
@@ -116,6 +115,11 @@ fn is_feed_content_type(ct: &str) -> bool {
         || ct.contains("application/feed+json")
         || ct.contains("application/xml")
         || ct.contains("text/xml")
+}
+
+fn is_feed_body_fallback(body: &str) -> bool {
+    let trimmed = body.trim_start();
+    trimmed.starts_with("<?xml") || trimmed.starts_with("<rss") || trimmed.starts_with("<feed")
 }
 
 /// Extract feed URLs from HTML `<link>` tags using simple string parsing.
@@ -354,6 +358,38 @@ mod tests {
         assert!(is_feed_content_type("application/feed+json"));
         assert!(is_feed_content_type("text/xml"));
         assert!(!is_feed_content_type("text/html; charset=utf-8"));
+    }
+
+    #[test]
+    fn test_feed_body_fallback_accepts_rss_atom_and_xml_when_content_type_is_misleading_or_missing()
+    {
+        for body in [
+            r#"<rss version="2.0"><channel><title>RSS</title></channel></rss>"#,
+            r#"<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom</title></feed>"#,
+            r#"<?xml version="1.0"?><rss version="2.0"></rss>"#,
+            r#"
+                <?xml version="1.0"?><feed></feed>
+            "#,
+        ] {
+            assert!(
+                is_feed_body_fallback(body),
+                "body should be treated as a feed fallback: {body}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_feed_body_fallback_rejects_html_when_content_type_is_misleading_or_missing() {
+        for body in [
+            r#"<html><head><title>Site</title></head><body></body></html>"#,
+            r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
+            "",
+        ] {
+            assert!(
+                !is_feed_body_fallback(body),
+                "body should not be treated as a feed fallback: {body}"
+            );
+        }
     }
 
     #[test]

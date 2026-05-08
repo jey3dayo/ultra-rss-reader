@@ -682,6 +682,15 @@ async fn sync_greader_feeds(
 
     let local_provider = LocalProvider::new();
     let mut warnings = Vec::new();
+    let remote_subscription_ids = remote_subs
+        .iter()
+        .map(|subscription| subscription.remote_id.as_str())
+        .collect::<HashSet<_>>();
+    warnings.extend(detect_stale_remote_subscriptions(
+        account,
+        &feeds,
+        &remote_subscription_ids,
+    ));
     let provider_managed_feeds = feeds
         .iter()
         .filter(|feed| is_provider_managed_greader_feed(feed.remote_id.as_deref()))
@@ -1263,6 +1272,37 @@ fn provider_managed_feed_snapshots(
         .map_err(AppError::from)
 }
 
+fn detect_stale_remote_subscriptions(
+    account: &Account,
+    feeds: &[Feed],
+    remote_subscription_ids: &HashSet<&str>,
+) -> Vec<ProviderSyncWarning> {
+    feeds
+        .iter()
+        .filter_map(|feed| {
+            let remote_id = feed.remote_id.as_deref()?;
+            if !is_provider_managed_greader_feed(Some(remote_id))
+                || remote_subscription_ids.contains(remote_id)
+            {
+                return None;
+            }
+            warn!(
+                "FreshRSS account '{}' feed '{}' is missing from the remote subscription list",
+                account.name, feed.title
+            );
+            Some(ProviderSyncWarning {
+                kind: AccountSyncWarningKind::Generic,
+                message: format!(
+                    "Remote subscription '{}' is no longer present on FreshRSS.",
+                    feed.title
+                ),
+                retry_at: None,
+                retry_in_seconds: None,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1334,6 +1374,59 @@ mod tests {
             connection_verified_at: None,
             connection_verification_error: None,
         }
+    }
+
+    #[test]
+    fn detects_stale_remote_subscriptions_without_deleting_local_feed() {
+        let account = test_account("https://rss.example.com");
+        let feeds = vec![
+            Feed {
+                id: FeedId("feed-present".to_string()),
+                account_id: account.id.clone(),
+                folder_id: None,
+                remote_id: Some("feed/https://example.com/present.xml".to_string()),
+                title: "Present".to_string(),
+                url: "https://example.com/present.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            },
+            Feed {
+                id: FeedId("feed-stale".to_string()),
+                account_id: account.id.clone(),
+                folder_id: None,
+                remote_id: Some("feed/https://example.com/stale.xml".to_string()),
+                title: "Stale".to_string(),
+                url: "https://example.com/stale.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            },
+            Feed {
+                id: FeedId("feed-local".to_string()),
+                account_id: account.id.clone(),
+                folder_id: None,
+                remote_id: None,
+                title: "Local".to_string(),
+                url: "https://example.com/local.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            },
+        ];
+        let remote_ids = HashSet::from(["feed/https://example.com/present.xml"]);
+
+        let warnings = detect_stale_remote_subscriptions(&account, &feeds, &remote_ids);
+
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].kind, AccountSyncWarningKind::Generic);
+        assert!(warnings[0].message.contains("Stale"));
     }
 
     fn test_feed(account_id: &AccountId) -> Feed {

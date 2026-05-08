@@ -436,7 +436,10 @@ pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> 
         .build()
         .map_err(DomainError::from)?;
 
-    let response = client.get(&url).send().await.map_err(DomainError::from)?;
+    let response = match client.head(&url).send().await.map_err(DomainError::from)? {
+        head_response if head_response.status().is_success() => head_response,
+        _ => client.get(&url).send().await.map_err(DomainError::from)?,
+    };
 
     let headers = response.headers();
     Ok(!(has_blocking_x_frame_options(headers) || has_blocking_frame_ancestors(headers)))
@@ -1013,6 +1016,30 @@ mod tests {
             .expect("embed check should succeed");
 
         assert!(!supported);
+    }
+
+    #[tokio::test]
+    async fn embed_support_falls_back_to_get_when_head_is_rejected() {
+        let mut server = Server::new_async().await;
+        let head_mock = server
+            .mock("HEAD", "/article")
+            .with_status(405)
+            .with_header("x-frame-options", "SAMEORIGIN")
+            .create_async()
+            .await;
+        let get_mock = server
+            .mock("GET", "/article")
+            .with_status(200)
+            .create_async()
+            .await;
+
+        let supported = check_browser_embed_support(format!("{}/article", server.url()))
+            .await
+            .expect("embed check should fall back to GET");
+
+        assert!(supported);
+        head_mock.assert_async().await;
+        get_mock.assert_async().await;
     }
 
     #[test]

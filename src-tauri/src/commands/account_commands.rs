@@ -45,6 +45,23 @@ fn validate_add_account_args(
     }
 }
 
+fn validate_account_sync_settings(
+    sync_interval_secs: i64,
+    keep_read_items_days: i64,
+) -> Result<(), AppError> {
+    if !(60..=86_400).contains(&sync_interval_secs) {
+        return Err(AppError::UserVisible {
+            message: "Sync interval must be between 60 and 86400 seconds".into(),
+        });
+    }
+    if !(1..=3650).contains(&keep_read_items_days) {
+        return Err(AppError::UserVisible {
+            message: "Keep read items days must be between 1 and 3650".into(),
+        });
+    }
+    Ok(())
+}
+
 fn save_account_after_optional_password<F, S, D>(
     account: &Account,
     password: Option<&str>,
@@ -86,7 +103,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{save_account_after_optional_password, validate_add_account_args};
+    use super::{
+        save_account_after_optional_password, validate_account_sync_settings,
+        validate_add_account_args,
+    };
     use crate::commands::dto::AppError;
     use crate::domain::account::{Account, ConnectionVerificationStatus};
     use crate::domain::provider::ProviderKind;
@@ -156,6 +176,16 @@ mod tests {
         )
         .is_err());
         assert!(validate_add_account_args("Unknown", None, None, None).is_err());
+    }
+
+    #[test]
+    fn validates_sync_settings_range() {
+        assert!(validate_account_sync_settings(60, 1).is_ok());
+        assert!(validate_account_sync_settings(86_400, 3650).is_ok());
+        assert!(validate_account_sync_settings(59, 30).is_err());
+        assert!(validate_account_sync_settings(86_401, 30).is_err());
+        assert!(validate_account_sync_settings(3600, 0).is_err());
+        assert!(validate_account_sync_settings(3600, 3651).is_err());
     }
 
     #[test]
@@ -304,6 +334,7 @@ pub fn update_account_sync(
     sync_on_wake: bool,
     keep_read_items_days: i64,
 ) -> Result<AccountDto, AppError> {
+    validate_account_sync_settings(sync_interval_secs, keep_read_items_days)?;
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
