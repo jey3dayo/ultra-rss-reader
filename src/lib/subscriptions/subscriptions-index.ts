@@ -91,15 +91,27 @@ function compareSubscriptionRows(
   right: SubscriptionListRow,
   sortKey: SubscriptionSortKey,
 ): number {
+  const compareByTitleAndId = () => {
+    const titleOrder = left.feed.title.localeCompare(right.feed.title);
+    if (titleOrder !== 0) {
+      return titleOrder;
+    }
+
+    return left.feed.id.localeCompare(right.feed.id);
+  };
+
   if (sortKey === "updated_at") {
-    return (getDateInputTimeMs(right.latestArticleAt) ?? 0) - (getDateInputTimeMs(left.latestArticleAt) ?? 0);
+    const updatedAtOrder =
+      (getDateInputTimeMs(right.latestArticleAt) ?? 0) - (getDateInputTimeMs(left.latestArticleAt) ?? 0);
+    return updatedAtOrder === 0 ? compareByTitleAndId() : updatedAtOrder;
   }
 
   if (sortKey === "unread_count") {
-    return right.feed.unread_count - left.feed.unread_count;
+    const unreadCountOrder = right.feed.unread_count - left.feed.unread_count;
+    return unreadCountOrder === 0 ? compareByTitleAndId() : unreadCountOrder;
   }
 
-  return left.feed.title.localeCompare(right.feed.title);
+  return compareByTitleAndId();
 }
 
 export function buildVisibleSubscriptionRows({

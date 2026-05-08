@@ -669,7 +669,7 @@ describe("subscriptions index helpers", () => {
         searchQuery: "feed",
         sortKey: "unread_count",
       }).map((row) => row.feed.id),
-    ).toEqual(["feed-active", "feed-mid", "feed-dormant"]);
+    ).toEqual(["feed-active", "feed-dormant", "feed-mid"]);
     expect(
       buildVisibleSubscriptionRows({
         rows,
@@ -720,6 +720,62 @@ describe("subscriptions index helpers", () => {
     });
 
     expect(visibleRows[visibleRows.length - 1]?.feed.id).toBe("feed-stale");
+  });
+
+  it("uses title and feed id tie-breakers for rows with the same update date", () => {
+    const tieFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-z", title: "Shared", unread_count: 0 },
+      { ...feeds[1], id: "feed-b", title: "Alpha", unread_count: 0 },
+      { ...feeds[2], id: "feed-a", title: "Shared", unread_count: 0 },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: tieFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: buildFeedArticleSummaryMap(
+        tieFeeds.map((feed) => ({
+          feed_id: feed.id,
+          latest_article_at: "2026-04-01T09:00:00Z",
+          starred_count: 0,
+        })),
+      ),
+      folderNameById: new Map(),
+    });
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "updated_at",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-b", "feed-a", "feed-z"]);
+  });
+
+  it("uses title and feed id tie-breakers for rows with the same unread count", () => {
+    const tieFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-z", title: "Shared", unread_count: 4 },
+      { ...feeds[1], id: "feed-b", title: "Alpha", unread_count: 4 },
+      { ...feeds[2], id: "feed-a", title: "Shared", unread_count: 4 },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: tieFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map(),
+    });
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "unread_count",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-b", "feed-a", "feed-z"]);
   });
 
   it("groups subscription rows by folder label", () => {

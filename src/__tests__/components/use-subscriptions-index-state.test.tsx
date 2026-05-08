@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useSubscriptionsIndexState } from "@/components/subscriptions-index/use-subscriptions-index-state";
@@ -70,5 +70,71 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.selectedRow).toBeNull();
       expect(result.current.visibleRows).toEqual([]);
     });
+  });
+
+  it("keeps the current selection when it remains visible", () => {
+    const firstRow = makeRow("feed-first");
+    const selectedRow = makeRow("feed-selected");
+    const { result, rerender } = renderHook(
+      ({ rows }: { rows: SubscriptionListRow[] }) =>
+        useSubscriptionsIndexState(rows, { initialSelectedFeedId: "feed-selected" }),
+      {
+        initialProps: { rows: [firstRow, selectedRow] },
+      },
+    );
+
+    rerender({ rows: [selectedRow, firstRow] });
+
+    expect(result.current.selectedFeedId).toBe("feed-selected");
+    expect(result.current.selectedRow?.feed.id).toBe("feed-selected");
+  });
+
+  it("defaults groups to expanded and preserves explicit disclosure state across filtering", () => {
+    const { result } = renderHook(() => useSubscriptionsIndexState([makeRow("feed-first")]));
+
+    expect(result.current.isGroupExpanded("folder-work")).toBe(true);
+
+    act(() => {
+      result.current.toggleGroup("folder-work");
+    });
+
+    expect(result.current.isGroupExpanded("folder-work")).toBe(false);
+
+    act(() => {
+      result.current.setSearchQuery("missing");
+    });
+
+    expect(result.current.visibleRows).toEqual([]);
+    expect(result.current.isGroupExpanded("folder-work")).toBe(false);
+
+    act(() => {
+      result.current.setSearchQuery("");
+    });
+
+    expect(result.current.visibleRows.map((row) => row.feed.id)).toEqual(["feed-first"]);
+    expect(result.current.isGroupExpanded("folder-work")).toBe(false);
+  });
+
+  it("keeps group disclosure state isolated by group key", () => {
+    const { result } = renderHook(() =>
+      useSubscriptionsIndexState([makeRow("feed-first")], {
+        initialExpandedGroups: {
+          "folder-a": false,
+          "folder-b": true,
+        },
+      }),
+    );
+
+    expect(result.current.isGroupExpanded("folder-a")).toBe(false);
+    expect(result.current.isGroupExpanded("folder-b")).toBe(true);
+    expect(result.current.isGroupExpanded("folder-c")).toBe(true);
+
+    act(() => {
+      result.current.toggleGroup("folder-b");
+    });
+
+    expect(result.current.isGroupExpanded("folder-a")).toBe(false);
+    expect(result.current.isGroupExpanded("folder-b")).toBe(false);
+    expect(result.current.isGroupExpanded("folder-c")).toBe(true);
   });
 });
