@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { DevRuntimeOptions } from "@/api/tauri-commands";
 
 const { runRuntimeDevScenarioMock, getDevRuntimeOptionsMock } = vi.hoisted(() => ({
   runRuntimeDevScenarioMock: vi.fn(),
@@ -220,5 +221,44 @@ describe("useDevIntent", () => {
 
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-web-preview-url");
+  });
+
+  it("does not run the runtime fallback scenario after unmounting while options load", async () => {
+    let resolveOptions: (result: Result.Result<DevRuntimeOptions, never>) => void = () => {};
+    getDevRuntimeOptionsMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOptions = resolve;
+      }),
+    );
+
+    const hook = renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    hook.unmount();
+    resolveOptions(
+      Result.succeed({
+        dev_intent: "open-web-preview-url",
+        dev_web_url: "https://example.com",
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
+  });
+
+  it("cancels a queued runtime scenario before the timeout fires", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
+
+    const hook = renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    hook.unmount();
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
   });
 });

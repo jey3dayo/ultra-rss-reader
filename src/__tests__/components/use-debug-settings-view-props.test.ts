@@ -58,7 +58,7 @@ describe("useDebugSettingsViewProps", () => {
     expect(openWebPreviewUrl).toHaveBeenCalledOnce();
   });
 
-  it("disables scenario actions outside dev builds", () => {
+  it("disables scenario actions outside dev builds and guards their handlers", () => {
     const openWebPreviewGeometryCheck = vi.fn();
     const openWebPreviewToastCheck = vi.fn();
     const runReadingDisplayModeScenario = vi.fn();
@@ -85,8 +85,8 @@ describe("useDebugSettingsViewProps", () => {
       }
     }
 
-    expect(openWebPreviewGeometryCheck).toHaveBeenCalledOnce();
-    expect(openWebPreviewToastCheck).toHaveBeenCalledOnce();
-    expect(runReadingDisplayModeScenario).toHaveBeenCalledOnce();
+    expect(openWebPreviewGeometryCheck).not.toHaveBeenCalled();
+    expect(openWebPreviewToastCheck).not.toHaveBeenCalled();
+    expect(runReadingDisplayModeScenario).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,15 @@ import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 
+const { clearHistoryMutateMock, useClearArticleViewHistoryMock } = vi.hoisted(() => ({
+  clearHistoryMutateMock: vi.fn(),
+  useClearArticleViewHistoryMock: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-articles", () => ({
+  useClearArticleViewHistory: () => useClearArticleViewHistoryMock(),
+}));
+
 const t = i18n.getFixedT("en", "settings");
 
 function getControl(props: ReadingSettingsViewProps, id: string): SettingsPageControl {
@@ -53,6 +62,12 @@ function getActionControl(props: ReadingSettingsViewProps, id: string): Settings
 describe("useReadingSettingsViewProps", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+    clearHistoryMutateMock.mockReset();
+    useClearArticleViewHistoryMock.mockReset();
+    useClearArticleViewHistoryMock.mockReturnValue({
+      mutate: clearHistoryMutateMock,
+      isPending: false,
+    });
   });
 
   it("maps display preset and ignores invalid preset writes", () => {
@@ -248,7 +263,9 @@ describe("useReadingSettingsViewProps", () => {
     expect(getSelectControl(result.current, "display-preset")).toEqual(expect.objectContaining({ open: true }));
   });
 
-  it("disables recent history clearing until an account is selected", () => {
+  it("disables recent history clearing and skips confirm when no account is selected", () => {
+    const showConfirm = vi.fn();
+    useUiStore.setState({ selectedAccountId: null, showConfirm });
     const { result } = renderHook(
       () =>
         useReadingSettingsViewProps({
@@ -268,5 +285,10 @@ describe("useReadingSettingsViewProps", () => {
         disabled: true,
       }),
     );
+
+    getActionControl(result.current, "clear-recent-articles").onAction?.();
+
+    expect(showConfirm).not.toHaveBeenCalled();
+    expect(clearHistoryMutateMock).not.toHaveBeenCalled();
   });
 });

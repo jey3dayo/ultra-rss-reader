@@ -21,6 +21,12 @@ export function useDebugSettingsViewProps({
   openWebPreviewToastCheck,
   runReadingDisplayModeScenario,
 }: UseDebugSettingsViewPropsParams): SettingsPageViewProps {
+  const runDevAction = (action: () => void) => {
+    if (devBuild) {
+      action();
+    }
+  };
+
   return {
     title: t("debug.heading"),
     sections: [
@@ -76,7 +82,7 @@ export function useDebugSettingsViewProps({
             rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
             labelClassName: "whitespace-nowrap",
             disabled: !devBuild,
-            onAction: openWebPreviewGeometryCheck,
+            onAction: () => runDevAction(openWebPreviewGeometryCheck),
           },
           {
             id: "debug-web-preview-toast-check",
@@ -86,7 +92,7 @@ export function useDebugSettingsViewProps({
             rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
             labelClassName: "whitespace-nowrap",
             disabled: !devBuild,
-            onAction: openWebPreviewToastCheck,
+            onAction: () => runDevAction(openWebPreviewToastCheck),
           },
           {
             id: "debug-reading-display-mode",
@@ -96,7 +102,7 @@ export function useDebugSettingsViewProps({
             rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
             labelClassName: "whitespace-nowrap",
             disabled: !devBuild,
-            onAction: runReadingDisplayModeScenario,
+            onAction: () => runDevAction(runReadingDisplayModeScenario),
           },
         ],
       },
