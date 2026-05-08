@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserViewActions } from "@/components/reader/hooks/browser/use-browser-view-actions";
 
@@ -48,6 +48,10 @@ describe("useBrowserViewActions", () => {
     goForwardBrowserWebviewMock.mockReset();
     reloadBrowserWebviewMock.mockReset();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("recreates the embedded webview when back navigation reports that it is missing", async () => {
@@ -98,6 +102,52 @@ describe("useBrowserViewActions", () => {
         is_loading: true,
       }),
     );
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("recreates the embedded webview from the fallback browser URL when reload reports that it is missing", async () => {
+    reloadBrowserWebviewMock.mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "Embedded browser webview is not open",
+      }),
+    );
+
+    const resetBrowserWebviewSyncState = vi.fn();
+    const setSurfaceIssue = vi.fn();
+    const showToast = vi.fn();
+    const syncBrowserWebview = vi.fn(async () => {});
+
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const actions = useBrowserViewActions({
+        browserUrl: "https://example.com/fallback",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState,
+        setSurfaceIssue,
+        showToast,
+        syncBrowserWebview,
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+
+      return { ...actions, browserState, fallbackInFlightRef };
+    });
+
+    await act(async () => {
+      await result.current.handleReload();
+    });
+
+    expect(result.current.fallbackInFlightRef.current).toBe(false);
+    expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
+    expect(setSurfaceIssue).toHaveBeenCalledWith(null);
+    expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/fallback", "create");
+    expect(result.current.browserState).toEqual(createInitialBrowserState("https://example.com/fallback"));
     expect(showToast).not.toHaveBeenCalled();
   });
 
@@ -174,6 +224,59 @@ describe("useBrowserViewActions", () => {
     });
 
     expect(focusBrowserWebviewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps successful browser state when focus restoration fails after toolbar navigation", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    usePreferencesStore.setState({ prefs: { web_preview_keep_focus: "true" }, loaded: true });
+    const nextState = createBrowserState({
+      url: "https://example.com/reloaded",
+      can_go_back: false,
+      can_go_forward: true,
+      is_loading: false,
+    });
+    reloadBrowserWebviewMock.mockResolvedValue(Result.succeed(nextState));
+    focusBrowserWebviewMock.mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "Focus failed",
+      }),
+    );
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const actions = useBrowserViewActions({
+        browserUrl: "https://example.com/article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        setSurfaceIssue: vi.fn(),
+        showToast,
+        syncBrowserWebview: vi.fn(async () => {}),
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+
+      return { ...actions, browserState, fallbackInFlightRef };
+    });
+
+    await act(async () => {
+      await result.current.handleReload();
+    });
+
+    expect(result.current.browserState).toEqual(nextState);
+    expect(result.current.fallbackInFlightRef.current).toBe(false);
+    expect(focusBrowserWebviewMock).toHaveBeenCalledTimes(1);
+    expect(showToast).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith("Failed to restore embedded browser focus:", {
+      type: "UserVisible",
+      message: "Focus failed",
+    });
   });
 
   it("does not restore webview focus after toolbar navigation when focus retention is disabled", async () => {

@@ -629,34 +629,56 @@ mod tests {
     }
 
     #[test]
-    fn bounds_validation_rejects_non_positive_dimensions() {
-        let result = validated_bounds(BrowserWebviewBounds {
-            x: 100.0,
-            y: 48.0,
-            width: 0.0,
-            height: 720.0,
-            unit: BrowserWebviewBoundsUnit::Logical,
-        });
-
-        match result {
-            Err(AppError::UserVisible { message }) => {
-                assert_eq!(message, INVALID_BROWSER_BOUNDS_ERROR);
+    fn bounds_validation_rejects_invalid_geometry_values() {
+        for (label, bounds) in [
+            (
+                "nan x",
+                BrowserWebviewBounds {
+                    x: f64::NAN,
+                    y: 48.0,
+                    width: 900.0,
+                    height: 720.0,
+                    unit: BrowserWebviewBoundsUnit::Logical,
+                },
+            ),
+            (
+                "infinite y",
+                BrowserWebviewBounds {
+                    x: 100.0,
+                    y: f64::INFINITY,
+                    width: 900.0,
+                    height: 720.0,
+                    unit: BrowserWebviewBoundsUnit::Logical,
+                },
+            ),
+            (
+                "zero width",
+                BrowserWebviewBounds {
+                    x: 100.0,
+                    y: 48.0,
+                    width: 0.0,
+                    height: 720.0,
+                    unit: BrowserWebviewBoundsUnit::Logical,
+                },
+            ),
+            (
+                "negative height",
+                BrowserWebviewBounds {
+                    x: 100.0,
+                    y: 48.0,
+                    width: 900.0,
+                    height: -1.0,
+                    unit: BrowserWebviewBoundsUnit::Logical,
+                },
+            ),
+        ] {
+            match validated_bounds(bounds) {
+                Err(AppError::UserVisible { message }) => {
+                    assert_eq!(message, INVALID_BROWSER_BOUNDS_ERROR, "{label}");
+                }
+                other => panic!("expected user-visible bounds error for {label}, got {other:?}"),
             }
-            other => panic!("expected user-visible bounds error, got {other:?}"),
         }
-    }
-
-    #[test]
-    fn bounds_validation_rejects_non_finite_values() {
-        let result = validated_bounds(BrowserWebviewBounds {
-            x: f64::NAN,
-            y: 48.0,
-            width: 900.0,
-            height: 720.0,
-            unit: BrowserWebviewBoundsUnit::Logical,
-        });
-
-        assert!(matches!(result, Err(AppError::UserVisible { .. })));
     }
 
     #[test]

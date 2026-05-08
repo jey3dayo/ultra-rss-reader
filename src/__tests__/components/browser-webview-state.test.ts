@@ -1,14 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   initialBrowserState,
   isMissingEmbeddedBrowserWebviewError,
   mergeBrowserState,
   resolveBrowserStateForRequestedUrl,
+  setBrowserStateWithRef,
   updateBrowserStateWithRef,
 } from "@/components/reader/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("browser-webview-state", () => {
+  beforeEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
   it("creates an initial loading state for a requested url", () => {
     expect(initialBrowserState("https://example.com/article")).toEqual({
       url: "https://example.com/article",
@@ -114,7 +119,6 @@ describe("browser-webview-state", () => {
   });
 
   it("updates the browser ref and navigation store outside the React state updater", () => {
-    useUiStore.setState(useUiStore.getInitialState());
     const browserStateRef = {
       current: {
         url: "https://example.com/current",
@@ -144,5 +148,49 @@ describe("browser-webview-state", () => {
     });
     expect(setBrowserState).toHaveBeenCalledWith(browserStateRef.current);
     expect(typeof setBrowserState.mock.calls[0]?.[0]).not.toBe("function");
+  });
+
+  it("keeps the ref, React state, and navigation store in sync when setting a loading state", () => {
+    const browserStateRef = {
+      current: null,
+    };
+    const setBrowserState = vi.fn();
+    const nextState = {
+      url: "https://example.com/loading",
+      can_go_back: false,
+      can_go_forward: true,
+      is_loading: true,
+    };
+
+    setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
+
+    expect(browserStateRef.current).toBe(nextState);
+    expect(setBrowserState).toHaveBeenCalledWith(nextState);
+    expect(useUiStore.getState().browserNavigationState).toEqual({
+      canGoBack: false,
+      canGoForward: true,
+    });
+  });
+
+  it("clears the ref, React state, and navigation store when setting a null state", () => {
+    useUiStore.getState().setBrowserNavigationState({
+      canGoBack: true,
+      canGoForward: true,
+    });
+    const browserStateRef = {
+      current: {
+        url: "https://example.com/current",
+        can_go_back: true,
+        can_go_forward: true,
+        is_loading: false,
+      },
+    };
+    const setBrowserState = vi.fn();
+
+    setBrowserStateWithRef(browserStateRef, setBrowserState, null);
+
+    expect(browserStateRef.current).toBeNull();
+    expect(setBrowserState).toHaveBeenCalledWith(null);
+    expect(useUiStore.getState().browserNavigationState).toBeNull();
   });
 });

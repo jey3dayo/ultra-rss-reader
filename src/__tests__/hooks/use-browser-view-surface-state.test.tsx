@@ -76,7 +76,7 @@ describe("useBrowserViewSurfaceState", () => {
     });
   });
 
-  it("shows a surface failure once and marks the browser state as no longer loading", () => {
+  it("shows a surface failure and marks the browser state as no longer loading", () => {
     const onCloseOverlay = vi.fn();
     const { result } = renderHook(() => {
       const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createLoadingState());
@@ -112,6 +112,32 @@ describe("useBrowserViewSurfaceState", () => {
       description: labels.failedHint,
       detail: "first failure",
       canRetry: true,
+    });
+  });
+
+  it("ignores duplicate surface failures while fallback handling is already in flight", () => {
+    const onCloseOverlay = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createLoadingState());
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      const hook = useBrowserViewSurfaceState({
+        browserStateRef,
+        fallbackInFlightRef,
+        isLoading: false,
+        runtimeUnavailable: false,
+        onCloseOverlay,
+        setBrowserState,
+        ...labels,
+      });
+
+      return { ...hook, browserState, fallbackInFlightRef };
+    });
+
+    act(() => {
+      result.current.showSurfaceFailure(createError("first failure"));
     });
 
     act(() => {
