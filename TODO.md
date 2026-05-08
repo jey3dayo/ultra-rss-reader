@@ -1583,3 +1583,53 @@
   - `opml.rs` / `opml_commands.rs` で export 時の folder outline と feed outline の順序を name / sort_order / input order のどれにするか固定する
   - OPML duplicate import policy、outline text fallback、feed discovery title normalization は混ぜない
   - no-folder feeds と foldered feeds の混在 case を fixture に分ける
+
+- [ ] App action registry dispatch coverage contract 候補を別バッチで追加する
+  - `app-actions.ts` の `APP_ACTIONS` と `executeAction` の switch が drift しないよう、全 action が runtime guard と dispatch test の代表 case に乗る契約を固定する
+  - command palette ranking、shortcut preference registry、native menu label は同じバッチに混ぜない
+  - action 追加時に guard だけ通って dispatch が no-op になる漏れを検出する static / behavior test を分ける
+
+- [ ] executeAction fullscreen failure no-op contract 候補を別バッチで追加する
+  - `actions.ts` の `toggle-fullscreen` で `isWindowFullscreen()` が failure の時に `setWindowFullscreen` を呼ばず silent no-op になる契約を固定する
+  - window wrapper non-Error normalization、platform capability、menu action label は混ぜない
+  - fullscreen=false / true の toggle success と failure no-op を別 assertion にする
+
+- [ ] Command history storage schema string-only contract 候補を別バッチで追加する
+  - `schemas/storage.ts` の `CommandHistoryStorageSchema` が non-string entry を落とし、string entry の順序を保持する契約を pure test で固定する
+  - command palette history compaction、resource existence validation、recent item UI 表示順は別バッチに残す
+  - null / object / number / empty string の扱いを別 fixture にする
+
+- [ ] Stored sidebar expanded folders schema account map contract 候補を別バッチで追加する
+  - `StoredSidebarExpandedFoldersSchema` で account id ごとの folder id 配列だけを保持し、invalid account entry や non-string folder id を drop する契約を固定する
+  - sidebar startup expanded-folder persistence guard、folder disclosure UI、localStorage migration は混ぜない
+  - valid account と invalid account が混在する object を schema test にする
+
+- [ ] Updater check single-flight manual/startup contract 候補を別バッチで追加する
+  - `use-updater.ts` の `performUpdateCheckResult` で startup check と manual check が同時に走った時、`checkForUpdate` が一度だけ呼ばれる契約を hook/helper test で固定する
+  - updater pending update lifecycle、download progress、release artifact config は混ぜない
+  - success / failure のどちらでも in-flight guard が解除されることを別 assertion にする
+
+- [ ] Updater startup silent failure contract 候補を別バッチで追加する
+  - `useUpdater()` の startup check failure が toast を出さず console warn に留まり、manual check failure は toast を出す差分を固定する
+  - restart failure guard、download failure toast、update-ready event handling は別バッチにする
+  - startup と manual の failure projection を同じ mock error で比較する
+
+- [ ] Browser webview bounds validation finite-positive contract 候補を別バッチで追加する
+  - `browser_webview_commands.rs` の `BrowserWebviewBounds::validated` で NaN / infinity / zero / negative width-height を user-visible error にする契約を固定する
+  - browser geometry 数値調整、WebView bounds 実機検証、diagnostics rendering は混ぜない
+  - logical / physical unit の変換 test とは分け、validation error だけを小さく見る
+
+- [ ] Browser preview shortcut bridge registry contract 候補を別バッチで追加する
+  - `browser_webview.rs` の `BROWSER_PREVIEW_SHORTCUT_SPECS` で default binding、app_action、script bridge 対応が `AppAction` と shortcut prefs から drift しないことを固定する
+  - shortcut recording UI、native menu accelerator label、browser overlay shortcut ownership は混ぜない
+  - script bridge 対象外の Escape と対象内の article actions を別 case にする
+
+- [ ] Browser webview diagnostics emit gating contract 候補を別バッチで追加する
+  - `browser_webview_commands.rs` の `log_browser_webview_bounds` が diagnostics disabled の時に event emit せず、enabled の時だけ requested/applied/native bounds を payload にする契約を固定する
+  - Debug HUD visual、geometry calculation policy、native WebView bounds 実機確認は同じバッチに混ぜない
+  - disabled no-op と enabled payload shape を別 fixture にする
+
+- [ ] Database vacuum syncing guard contract 候補を別バッチで追加する
+  - `database_commands.rs` の `vacuum_database` が sync 中は DB lock や VACUUM を実行せず user-visible error を返す契約を固定する
+  - database vacuum busy error、data settings pending state、migration recovery は別バッチに残す
+  - syncing=true の early return と syncing=false の database_info refresh を command test で分ける
