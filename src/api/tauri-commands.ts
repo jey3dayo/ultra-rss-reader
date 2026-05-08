@@ -160,11 +160,8 @@ function parseWithSchema<R extends z.ZodType>(schema: R, value: unknown): z.outp
 }
 
 function toAppError(cmd: string, error: unknown): AppError {
-  if (error instanceof Error && "issues" in error) {
-    const zodErr = error as {
-      issues: Array<{ path: (string | number)[]; message: string }>;
-    };
-    const detail = zodErr.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
+  if (error instanceof z.ZodError) {
+    const detail = error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
     console.error(`[tauri-commands] ${cmd} validation failed:`, detail);
     return {
       type: "UserVisible",
