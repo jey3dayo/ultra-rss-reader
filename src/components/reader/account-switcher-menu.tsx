@@ -1,9 +1,20 @@
 import type { RefObject } from "react";
+import type { AccountDto } from "@/api/tauri-commands";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import type { AccountSwitcherMenuProps } from "./account-switcher.types";
 import { focusRovingButton, getActiveRovingButtonIndex } from "./roving-focus";
+
+type AccountSwitcherMenuProps = {
+  accounts: AccountDto[];
+  accountStatusLabels?: Record<string, string>;
+  selectedAccountId: string | null;
+  menuId: string;
+  menuLabel: string;
+  itemRefs: RefObject<Array<HTMLButtonElement | null>>;
+  onSelectAccount: (accountId: string) => void;
+  onClose: (restoreFocus: boolean) => void;
+};
 
 function shouldShowKindLabel(name: string, kind: string): boolean {
   return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();

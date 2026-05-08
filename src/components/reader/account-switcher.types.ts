@@ -17,15 +17,3 @@ export type AccountSwitcherProps = {
   onClose: (restoreFocus: boolean) => void;
   renderContextMenu?: () => ReactNode;
 };
-
-export type AccountSwitcherMenuProps = Pick<
-  AccountSwitcherProps,
-  | "accounts"
-  | "accountStatusLabels"
-  | "selectedAccountId"
-  | "menuId"
-  | "menuLabel"
-  | "itemRefs"
-  | "onSelectAccount"
-  | "onClose"
->;

@@ -1,7 +1,33 @@
+import type { RefObject } from "react";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
-import type { FeedDialogUrlSectionViewProps } from "./feed-dialog-form.types";
+
+type FeedDialogUrlSectionProps = {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  onDiscover: () => void;
+  discoverLabel: string;
+  discoveringLabel: string;
+  discovering: boolean;
+  disabled: boolean;
+  discoverDisabled: boolean;
+  placeholder: string;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  discoveredFeedsFoundLabel: string | null;
+  discoveredFeedOptions: DiscoveredFeedOption[];
+  selectedFeedUrl: string;
+  onSelectedFeedUrlChange: (value: string) => void;
+  helperText?: string | null;
+  helperTone?: "muted" | "error";
+};
+
+type FeedDialogUrlSectionViewProps = FeedDialogUrlSectionProps & {
+  inputId: string;
+  helperTextId: string;
+};
 
 export function FeedDialogUrlSection({
   label,
