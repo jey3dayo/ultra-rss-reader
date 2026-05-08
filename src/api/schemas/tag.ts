@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NonnegativeIntegerSchema } from "./common";
 
 export const TagDtoSchema = z.object({
   id: z.string(),
@@ -7,6 +8,6 @@ export const TagDtoSchema = z.object({
 });
 
 export const TagDtoListSchema = z.array(TagDtoSchema);
-export const TagArticleCountsSchema = z.record(z.string(), z.number());
+export const TagArticleCountsSchema = z.record(z.string(), NonnegativeIntegerSchema);
 
 export type TagDto = z.infer<typeof TagDtoSchema>;

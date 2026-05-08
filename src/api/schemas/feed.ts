@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NonnegativeIntegerSchema } from "./common";
 
 export const FeedDisplayModeSchema = z.enum(["inherit", "on", "off"]);
 
@@ -9,7 +10,7 @@ export const FeedDtoSchema = z.object({
   title: z.string(),
   url: z.string(),
   site_url: z.string(),
-  unread_count: z.number(),
+  unread_count: NonnegativeIntegerSchema,
   reader_mode: FeedDisplayModeSchema,
   web_preview_mode: FeedDisplayModeSchema,
 });

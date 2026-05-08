@@ -544,11 +544,6 @@
   - release workflow preflight、version dry-run、署名 / artifact matrix 変更とは混ぜず、updater command lifecycle だけを扱う
   - check / download / install の user action availability を focused test と manual verification に分ける
 
-- [ ] API DTO count nonnegative schema 候補を別バッチで追加する
-  - `src/api/schemas/feed.ts`、`tag.ts`、`feed-article-summary.ts` の unread / tag article / starred count を nonnegative integer として固定する
-  - negative / fractional count を reject する schema contract test を追加し、Rust repository の count 算出変更とは混ぜない
-  - sidebar 表示、subscriptions index sort、badge projection は別バッチに残し、DTO schema 境界だけを見る
-
 - [ ] browser webview bounds args contract 候補を別バッチで追加する
   - `src/api/schemas/commands.ts` と browser geometry helper の webview bounds args を、width / height は positive finite、x / y は finite として固定する
   - native webview 実装、dev geometry diagnostics、browser shortcut / history とは混ぜず、frontend command args validation に限定する

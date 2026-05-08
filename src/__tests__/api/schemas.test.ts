@@ -26,6 +26,7 @@ import {
   oldUnreadArticlesArgs,
   PlatformInfoSchema,
   setMuteAutoMarkReadArgs,
+  TagArticleCountsSchema,
   TagDtoSchema,
   toggleArticleStarArgs,
   UpdateInfoDtoSchema,
@@ -123,6 +124,22 @@ describe("DTO schemas", () => {
     };
     expect(FeedDtoSchema.parse(data)).toEqual(data);
   });
+  it("rejects invalid feed unread counts", () => {
+    const data = {
+      id: "feed-1",
+      account_id: "acc-1",
+      folder_id: null,
+      title: "Blog",
+      url: "https://example.com/feed.xml",
+      site_url: "https://example.com",
+      unread_count: 0,
+      reader_mode: "on",
+      web_preview_mode: "off",
+    };
+
+    expect(() => FeedDtoSchema.parse({ ...data, unread_count: -1 })).toThrow();
+    expect(() => FeedDtoSchema.parse({ ...data, unread_count: 1.5 })).toThrow();
+  });
   it("parses valid FeedArticleSummaryDto", () => {
     const data = {
       feed_id: "feed-1",
@@ -134,6 +151,16 @@ describe("DTO schemas", () => {
       ...data,
       latest_article_at: null,
     });
+  });
+  it("rejects invalid feed summary starred counts", () => {
+    const data = {
+      feed_id: "feed-1",
+      latest_article_at: "2026-04-01T10:00:00Z",
+      starred_count: 0,
+    };
+
+    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: -1 })).toThrow();
+    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: 1.5 })).toThrow();
   });
   it("parses valid ArticleDto", () => {
     const data = {
@@ -164,6 +191,10 @@ describe("DTO schemas", () => {
       name: "Important",
       color: null,
     });
+  });
+  it("rejects invalid tag article counts", () => {
+    expect(() => TagArticleCountsSchema.parse({ "tag-1": -1 })).toThrow();
+    expect(() => TagArticleCountsSchema.parse({ "tag-1": 1.5 })).toThrow();
   });
   it("parses valid MuteKeywordDto", () => {
     const data = {
