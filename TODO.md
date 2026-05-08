@@ -133,3 +133,33 @@
   - まずは debug UI ではなく `mise run app:dev:seed-from-prod` 相当の手動コマンドとして、対象 DB / wal / shm / backup / app stop 手順を固定する
   - macOS / Windows の app data path と credential 差を明示し、production DB を直接書き換えない安全確認を入れる
   - UI ボタン化はコマンド手順が安全に固まってから別バッチで扱う
+
+- [ ] store slice boundary 整理候補を別バッチで見直す
+  - `ui-store.ts` の reader selection / layout state / settings modal / toast / sync progress / account setup session を、参照範囲ごとに slice 化できるか確認する
+  - `preferences-store.ts` は schema と永続化 contract があるため、UI store 分割とは同じバッチに混ぜない
+  - store selector の import 先が多いため、まずは type alias / action group の棚卸しだけ行い、挙動変更は避ける
+
+- [ ] subscriptions index state hook 整理候補を別バッチで見直す
+  - `use-subscriptions-index-state.ts` の selected row / summary filter / kept-deferred state / return state を、page state と list state に分けられるか確認する
+  - `SubscriptionsWorkspaceReturnState` は navigation return contract なので、内部 state 整理とは別扱いにする
+  - keep / defer / delete 後の選択維持は UX 挙動に直結するため、型整理より先に existing tests を確認する
+
+- [ ] subscriptions component props local 化候補を別バッチで見直す
+  - `subscriptions-index-page-view.tsx`、`subscriptions-list-pane.tsx`、`subscription-detail-pane.tsx`、`subscriptions-overview-summary.tsx` の view props を component-local に寄せられるか確認する
+  - `subscriptions-index.types.ts` の row / summary / detail model は lib 共有 contract として残し、component props と混ぜない
+  - Storybook stories と component tests の fixture 型が参照している場合は、fixture helper 側へ型境界を寄せる
+
+- [ ] Storybook UI reference 分割候補を別バッチで見直す
+  - `ui-reference-canvas-specimens.tsx` が大きくなっているため、foundations / controls / workspace / settings / navigation の specimen 群へ分割できるか確認する
+  - visual specimen の copy や className 変更はデザイン差分になるため、まずは export / import 境界だけを整理する
+  - `storybook-explorer-organization.test.ts` が期待する構成を先に確認し、story title / canvas 名を変えない
+
+- [ ] schema contract test 整理候補を別バッチで追加する
+  - preferences schema / API schemas / Tauri command result parsing のうち、境界値が不足している contract test を棚卸しする
+  - runtime validation の失敗時メッセージや fallback は、ユーザー表示 copy ではなく typed result の契約として固定する
+  - schema helper の追加は既存の schema/parser API に合わせ、新しい独自 parser を増やさない
+
+- [ ] shared workspace layout contract 整理候補を別バッチで見直す
+  - `workspace-pane-layout.ts` と `app-layout.tsx` の pane sizing / shell boundary / responsive constraints を、shared layout contract と app shell usage に分けられるか確認する
+  - layout token や CSS class の変更は visual impact があるため、まずは型・helper配置と tests の責務整理に限定する
+  - app shell の overlay / debug HUD / modal collision とは別バッチにする
