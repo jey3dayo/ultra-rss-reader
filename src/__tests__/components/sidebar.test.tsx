@@ -20,11 +20,14 @@ import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { devIntentState } = vi.hoisted(() => ({
-  devIntentState: {
-    intent: null as string | null,
-  },
-}));
+type DevIntentState = {
+  intent: string | null;
+};
+
+const { devIntentState } = vi.hoisted(() => {
+  const devIntentState: DevIntentState = { intent: null };
+  return { devIntentState };
+});
 
 type SidebarSourceOverrides = {
   feedsEnabled: boolean;
@@ -2925,7 +2928,7 @@ describe("Sidebar", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Create tag" });
     const nameInput = within(dialog).getByRole("textbox", { name: "Name" });
-    await user.type(nameInput, "Later");
+    fireEvent.change(nameInput, { target: { value: "Later" } });
     await user.click(within(dialog).getByRole("button", { name: "Create tag" }));
 
     await waitFor(() => {
