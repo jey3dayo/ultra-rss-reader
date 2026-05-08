@@ -1483,3 +1483,53 @@
 - [ ] shared labeled row description a11y contract 候補を別バッチで追加する
   - `labeled-control-row.tsx` と `labeled-switch-row.tsx` で description element に安定 id を付け、row-owned control が `aria-describedby` で参照できる契約を固定する
   - visual token、form layout、input helper text 全体設計、settings copy は混ぜない
+
+- [ ] useBadge selected account null clear contract 候補を別バッチで追加する
+  - `use-badge.ts` で selected account が null の時に `only_inbox` / `all_unread` の query を起動せず、OS badge を clear する契約を hook test で固定する
+  - unread count source 整理、OS badge 実機検証、sidebar unread 表示とは混ぜない
+  - selected account ありで 0 件の時に `undefined` を渡す case と、account null の clear case を別 assertion にする
+
+- [ ] useAppIconTheme system listener cleanup contract 候補を別バッチで追加する
+  - `use-app-icon-theme.ts` で theme が `system` から `light` / `dark` に変わった時、前の media query listener が remove される契約を hook test で固定する
+  - preferences store の system theme listener、theme bootstrap、icon asset 変更は別バッチにする
+  - listener cleanup 後の system change が `setWindowIcon` を再実行しないことまで確認する
+
+- [ ] dev scenario runtime invalid module cache contract 候補を別バッチで追加する
+  - `scenario-runtime.ts` で dynamic import が invalid module を返した時、typed error が `invalid_module` になり、promise wrapper は同じ message で reject する契約を固定する
+  - production bundle leak guard、scenario registry の追加、command palette dev scenario UI は混ぜない
+  - invalid module と module load failure を別 case にし、cache が次の test に漏れない reset 方針も合わせて確認する
+
+- [ ] webview history iframe target selection contract 候補を別バッチで追加する
+  - `webview-history.ts` で複数 iframe がある時に最初の iframe だけへ back / forward / reload を適用する現行 contract を明示する
+  - native WebView history、requested URL merge、browser overlay action availability は混ぜない
+  - iframe src が空の時の reload 結果を成功 / failure のどちらにするかも小さい test で固定する
+
+- [ ] subscription list group stable sort contract 候補を別バッチで追加する
+  - `subscriptions-index.ts` の `buildSubscriptionListGroups` で folder label が同じ場合の group order を folderId / key など安定 tie-breaker として固定できるか確認する
+  - subscriptions list visual、group disclosure state、folder rename / drag-drop は混ぜない
+  - no-folder group と同名 folder group が並ぶ case を pure helper test に分ける
+
+- [ ] subscription decision action callback capture contract 候補を別バッチで追加する
+  - `buildSubscriptionDecisionActions` で selected row が flagged の時だけ actions を返し、keep/defer callbacks が生成時点の selected row を渡す契約を固定する
+  - decision button UI、delete feed mutation、keep/defer persistence は同じバッチに混ぜない
+  - unflagged row / null selected row / selected row change 後の callback capture を別 assertion にする
+
+- [ ] pending mutation account order contract 候補を別バッチで追加する
+  - `sqlite_pending_mutation.rs` の `find_by_account` が account ごとに絞り込み、`created_at` 昇順で返す契約を repository test で固定する
+  - mutation type enum 化、replace atomicity、provider retry/backoff は混ぜない
+  - 同一 remote entry の latest replacement と account filter の case を分ける
+
+- [ ] tag find_or_create existing-name identity contract 候補を別バッチで追加する
+  - `sqlite_tag.rs` の `find_or_create` で同名 tag が既にある場合、新規 id/color を使わず既存 tag を返す契約を repository test で固定する
+  - tag color validation、tag settings UI、article tag mutation cache は別バッチにする
+  - case-insensitive name conflict と exact name conflict を別 assertion にする
+
+- [ ] mute keyword update scope duplicate guard contract 候補を別バッチで追加する
+  - `sqlite_mute_keyword.rs` の `update_scope` で同じ keyword / target scope の既存 rule がある時に duplicate として reject する契約を repository test で固定する
+  - create duplicate guard、SQL/Rust match parity、auto mark preference guard は混ぜない
+  - 同一 rule の scope 変更成功と、別 rule との duplicate 失敗を分けて確認する
+
+- [ ] tag articles muted pagination order contract 候補を別バッチで追加する
+  - `sqlite_tag.rs` の `find_articles_by_tag` で mute exclusion、mode filter、account filter が pagination より前に適用される契約を repository test で固定する
+  - SQL/Rust mute match parity、article same-timestamp pagination stability、tag count cache は混ぜない
+  - muted article が 1 ページ目から消えた後に次の visible article が詰めて返る case を追加する
