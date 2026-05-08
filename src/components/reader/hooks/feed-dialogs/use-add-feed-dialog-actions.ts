@@ -122,5 +122,5 @@ export function useAddFeedDialogActions({
   return {
     handleDiscover,
     handleSubmit,
-  } as const;
+  };
 }

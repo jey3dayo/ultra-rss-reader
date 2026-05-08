@@ -97,5 +97,5 @@ export function useAddFeedDialogController({
       folderOptions: buildFolderOptions(folders, noFolderLabel),
     },
     derived,
-  } as const;
+  };
 }

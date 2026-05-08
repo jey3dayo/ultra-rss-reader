@@ -149,5 +149,5 @@ export function useRenameFeedDialogController({
       handleFolderChange,
       setNewFolderName,
     },
-  } as const;
+  };
 }
