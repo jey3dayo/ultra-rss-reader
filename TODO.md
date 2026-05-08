@@ -438,3 +438,33 @@
   - article list search、header search input、empty state、footer filter control の no result / loading / filtered out 状態を整理する
   - source scope resolver や reader query contract とは分け、user-visible empty reason と clear action の semantics を test で固定する
   - search debounce 実装詳細は固定せず、最終表示状態と focus/clear behavior に限定する
+
+- [ ] pending mutation queue recovery 候補を別バッチで検証する
+  - `src-tauri/src/repository/pending_mutation.rs` / `sqlite_pending_mutation.rs` と sync retry の queue state を、remote mutation と local DB mutation で分けて棚卸しする
+  - retry pending / conflict / permanent failure の分類は user-visible sync feedback に直結するため、DTO と repository state の contract test を先に固定する
+  - provider sync flow や scheduler backoff とは混ぜず、pending mutation queue の persistence / dequeue / failure projection に限定する
+
+- [ ] content HTML helper / sanitizer boundary 候補を別バッチで追加する
+  - `src/lib/content/html.ts` と `src-tauri/src/infra/sanitizer.rs` の frontend display helper / backend sanitize policy を、入力 HTML と保存済み content で分ける
+  - malformed HTML、empty content、script/style removal、text extraction は privacy hardening と混ぜず、normalization contract として固定する
+  - remote image / CSP / tracking pixel policy は既存 privacy batch に残し、ここでは helper boundary と fallback rendering だけを見る
+
+- [ ] toast / UI error projection contract 候補を別バッチで見直す
+  - `src/lib/ui/toast.types.ts`、`src/lib/ui/errors.ts`、feature-specific toast helpers の error kind / severity / action label を棚卸しする
+  - account setup、feed discovery、sync result、clipboard failure は retry action が違うため、toast copy ではなく projection contract を先に固定する
+  - dialog state や semantic tone taxonomy とは分け、toast payload と caller fallback の対応だけを扱う
+
+- [ ] data settings export / backup UX 候補を別バッチで整理する
+  - data settings、database info command、dev seed DB、release/manual verification の backup / export / restore 表現を、user-facing operation と dev-only operation で分ける
+  - user data を触る操作は rollback condition と file path visibility が重要なので、実装前に confirmation copy と manual verification を固定する
+  - DB migration recovery や dev seed command とは混ぜず、data settings surface の action availability と safety checklist に限定する
+
+- [ ] provider icon / favicon fallback contract 候補を別バッチで追加する
+  - `provider-icons.tsx`、`feed-favicon.tsx`、feed/account DTO の icon URL / binary icon / fallback icon を対応表で確認する
+  - missing icon、invalid URL、grayscale preference、provider brand icon は visual asset 変更ではなく fallback decision の test に限定する
+  - app icon theme や provider capability command とは混ぜず、feed/account row の icon projection だけを見る
+
+- [ ] incident runbook / diagnostic log bridge 候補を別バッチで更新する
+  - `docs/incident-runbook.md`、`log_commands.rs`、release manual verification の failure investigation path を、keyring / DB / sync / WebView ごとに分ける
+  - log file path や secret masking の扱いを明示し、実ログ収集手順と app UI debug action を混ぜない
+  - docs link audit とは別に、incident response で必要な diagnostic source と escalation criteria に限定する
