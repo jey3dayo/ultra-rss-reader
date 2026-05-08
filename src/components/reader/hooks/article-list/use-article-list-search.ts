@@ -12,6 +12,7 @@ type ArticleListSearchState = {
 type ArticleListSearchAction =
   | { type: "open-search" }
   | { type: "close-search" }
+  | { type: "reset-search" }
   | { type: "set-search-query"; value: string }
   | { type: "set-debounced-query"; value: string };
 
@@ -30,6 +31,8 @@ function articleListSearchReducer(
       return { ...state, showSearch: true };
     case "close-search":
       return { ...state, showSearch: false, searchQuery: "" };
+    case "reset-search":
+      return initialArticleListSearchState;
     case "set-search-query":
       return { ...state, searchQuery: action.value };
     case "set-debounced-query":
@@ -43,6 +46,16 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const [state, dispatch] = useReducer(articleListSearchReducer, initialArticleListSearchState);
   const { showSearch, searchQuery, debouncedQuery } = state;
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const previousAccountIdRef = useRef(selectedAccountId);
+
+  useEffect(() => {
+    if (previousAccountIdRef.current === selectedAccountId) {
+      return;
+    }
+
+    previousAccountIdRef.current = selectedAccountId;
+    dispatch({ type: "reset-search" });
+  }, [selectedAccountId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
