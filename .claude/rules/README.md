@@ -23,6 +23,10 @@
 - 複数 feature で再利用する UI は `src/components/shared/` に置く
 - shadcn/Base UI wrapper は `src/components/ui/` に限定する
 - cross-feature data hook は `src/hooks/`、cross-feature pure helper は `src/lib/` に置く
+- frontend-owned runtime schema は `src/schemas/` に置く。local config、localStorage、preferences など IPC 以外の検証が対象
+- Tauri IPC request / response schema は `src/api/schemas/` に置く。local storage や app config schema と混ぜない
+- cross-feature literal は `src/constants/`、共有 type-only contract は `src/lib/*.types.ts` に置く
+- reusable test helper は `tests/helpers/` に置き、frontend tests からは `@tests/helpers/*` で import する
 - 大きい feature の controller hook は、再利用されない限り feature 配下の `hooks/` に co-locate してよい
 - reader 専用の pure helper は `src/components/reader/` に残してよい。`lib` / `stores` / 他 feature から必要になった時だけ `src/lib/` へ出す
 - `mock/` は historical / visual reference artifact として扱い、通常の実装追加先にしない
