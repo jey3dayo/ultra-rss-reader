@@ -7,8 +7,13 @@ import type { ShortcutActionId } from "@/lib/keyboard/keyboard-shortcuts";
 const t = i18n.getFixedT("en", "settings");
 const tReader = i18n.getFixedT("en", "reader");
 
-function getShortcutItem(props: ShortcutsSettingsViewProps, id: ShortcutActionId) {
-  const item = props.categories.flatMap((category) => category.items).find((shortcut) => shortcut.id === id);
+function getShortcutItem(
+  props: ShortcutsSettingsViewProps,
+  id: ShortcutActionId,
+) {
+  const item = props.categories
+    .flatMap((category) => category.items)
+    .find((shortcut) => shortcut.id === id);
 
   if (!item) {
     throw new Error(`Missing shortcut item: ${id}`);
@@ -28,9 +33,12 @@ describe("useShortcutsSettingsViewProps", () => {
       recordingId: "show_unread",
       conflictMessage: "Resolve shortcut conflicts",
       hasCustomBindings: false,
-      getKey: (id) => (id === "open_settings" ? "⌘," : id === "show_unread" ? "⌘+1" : ""),
-      findConflict: (id) => (id === "show_unread" ? "Toggle read / unread" : null),
+      getKey: (id) =>
+        id === "open_settings" ? "⌘," : id === "show_unread" ? "⌘+1" : "",
+      findConflict: (id) =>
+        id === "show_unread" ? "Toggle read / unread" : null,
       onResetAll,
+      onResetShortcut: vi.fn(),
       onStartRecording: vi.fn(),
       onBadgeKeyDown: vi.fn(),
     });
@@ -54,7 +62,9 @@ describe("useShortcutsSettingsViewProps", () => {
         displayKey: "Ctrl 1",
         isLocked: false,
         isRecording: true,
-        conflictLabel: t("shortcuts.conflict", { name: "Toggle read / unread" }),
+        conflictLabel: t("shortcuts.conflict", {
+          name: "Toggle read / unread",
+        }),
       }),
     );
     expect(openSettings).toEqual(
@@ -82,6 +92,7 @@ describe("useShortcutsSettingsViewProps", () => {
       getKey: (id) => (id === "next_article" ? "j" : ""),
       findConflict: () => null,
       onResetAll: vi.fn(),
+      onResetShortcut: vi.fn(),
       onStartRecording,
       onBadgeKeyDown,
     });

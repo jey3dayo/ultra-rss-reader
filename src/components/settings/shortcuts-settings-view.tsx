@@ -1,10 +1,19 @@
-import { type ButtonHTMLAttributes, forwardRef, type ReactNode, useEffect, useRef } from "react";
+import {
+  type ButtonHTMLAttributes,
+  forwardRef,
+  type ReactNode,
+  useEffect,
+  useRef,
+} from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { cn } from "@/lib/utils";
-import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
+import {
+  bindWindowEvents,
+  createKeyboardEventListener,
+} from "@/lib/window/window-events";
 
 type ShortcutsSettingsItem = {
   id: string;
@@ -12,7 +21,9 @@ type ShortcutsSettingsItem = {
   displayKey: string;
   isRecording: boolean;
   isLocked?: boolean;
+  resetDisabled?: boolean;
   conflictLabel?: string | null;
+  onReset?: () => void;
   onStartRecording?: () => void;
   onKeyDown?: (event: globalThis.KeyboardEvent) => void;
 };
@@ -36,6 +47,7 @@ export type ShortcutsSettingsViewProps = {
 type ShortcutKeyBadgeProps = {
   item: ShortcutsSettingsItem;
   pressAKeyLabel: string;
+  resetLabel: string;
 };
 
 type ShortcutKeyButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -44,8 +56,43 @@ type ShortcutKeyButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   recording?: boolean;
 };
 
-export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButtonProps>(
-  ({ children, className, conflict = false, recording = false, type = "button", ...props }, ref) => (
+function ShortcutResetButton({
+  item,
+  resetLabel,
+  disabled = item.resetDisabled,
+}: {
+  item: ShortcutsSettingsItem;
+  resetLabel: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="rounded-md border border-border/60 bg-surface-1 px-2 py-1 text-[12px] font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-border-strong hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none"
+      disabled={disabled}
+      onClick={item.onReset}
+      aria-label={`${resetLabel}: ${item.label}`}
+    >
+      {resetLabel}
+    </button>
+  );
+}
+
+export const ShortcutKeyButton = forwardRef<
+  HTMLButtonElement,
+  ShortcutKeyButtonProps
+>(
+  (
+    {
+      children,
+      className,
+      conflict = false,
+      recording = false,
+      type = "button",
+      ...props
+    },
+    ref,
+  ) => (
     <button
       ref={ref}
       type={type}
@@ -68,7 +115,11 @@ export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButton
 
 ShortcutKeyButton.displayName = "ShortcutKeyButton";
 
-function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
+function ShortcutKeyBadge({
+  item,
+  pressAKeyLabel,
+  resetLabel,
+}: ShortcutKeyBadgeProps) {
   const badgeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -80,22 +131,29 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
       item.onKeyDown?.(event);
     });
 
-    return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
+    return bindWindowEvents([
+      { type: "keydown", listener: handler, options: true },
+    ]);
   }, [item.isRecording, item.onKeyDown]);
 
   return (
     <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-      <ShortcutKeyButton
-        ref={badgeRef}
-        data-testid={`shortcut-badge-${item.id}`}
-        onClick={item.onStartRecording}
-        recording={item.isRecording}
-        conflict={Boolean(item.conflictLabel)}
-      >
-        {item.isRecording ? pressAKeyLabel : item.displayKey}
-      </ShortcutKeyButton>
+      <div className="flex w-full items-center gap-1.5 sm:w-auto">
+        <ShortcutKeyButton
+          ref={badgeRef}
+          data-testid={`shortcut-badge-${item.id}`}
+          onClick={item.onStartRecording}
+          recording={item.isRecording}
+          conflict={Boolean(item.conflictLabel)}
+        >
+          {item.isRecording ? pressAKeyLabel : item.displayKey}
+        </ShortcutKeyButton>
+        <ShortcutResetButton item={item} resetLabel={resetLabel} />
+      </div>
       {item.conflictLabel && !item.isRecording && (
-        <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
+        <span className="text-[10px] text-state-danger-foreground">
+          {item.conflictLabel}
+        </span>
       )}
     </div>
   );
@@ -113,7 +171,11 @@ export function ShortcutsSettingsView({
   return (
     <SettingsContentLayout title={title} outerTestId="shortcuts-settings-root">
       <div className="mb-5 flex justify-end sm:mb-6">
-        <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled}>
+        <SettingsActionButton
+          tone="header"
+          onClick={onResetAll}
+          disabled={resetDisabled}
+        >
           {resetLabel}
         </SettingsActionButton>
       </div>
@@ -124,7 +186,12 @@ export function ShortcutsSettingsView({
       )}
 
       {categories.map((category) => (
-        <SettingsSection key={category.id} heading={category.heading} surface="flat" className="mb-5">
+        <SettingsSection
+          key={category.id}
+          heading={category.heading}
+          surface="flat"
+          className="mb-5"
+        >
           {category.items.map((item) => (
             <LabeledControlRow
               key={item.id}
@@ -132,11 +199,22 @@ export function ShortcutsSettingsView({
               className="flex-col items-stretch sm:flex-row sm:items-center"
             >
               {item.isLocked ? (
-                <kbd className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto">
-                  {item.displayKey}
-                </kbd>
+                <div className="flex w-full items-center gap-1.5 sm:w-auto">
+                  <kbd className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto">
+                    {item.displayKey}
+                  </kbd>
+                  <ShortcutResetButton
+                    item={item}
+                    resetLabel={resetLabel}
+                    disabled
+                  />
+                </div>
               ) : (
-                <ShortcutKeyBadge item={item} pressAKeyLabel={pressAKeyLabel} />
+                <ShortcutKeyBadge
+                  item={item}
+                  pressAKeyLabel={pressAKeyLabel}
+                  resetLabel={resetLabel}
+                />
               )}
             </LabeledControlRow>
           ))}

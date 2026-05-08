@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 
 function expectNoButtonMinWidth(button: HTMLElement) {
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+  expect(
+    [...button.classList].filter((className) => className.includes("min-w")),
+  ).toEqual([]);
 }
 
 describe("ShortcutsSettingsView", () => {
@@ -30,6 +32,8 @@ describe("ShortcutsSettingsView", () => {
                 label: "Next article",
                 displayKey: "J",
                 isRecording: false,
+                resetDisabled: false,
+                onReset: vi.fn(),
                 conflictLabel: "Already used",
                 onStartRecording,
                 onKeyDown: () => {},
@@ -53,29 +57,100 @@ describe("ShortcutsSettingsView", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
-    expect(screen.getByText("Shortcut j is already used by Next article")).toHaveClass(
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Shortcuts" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Shortcut j is already used by Next article"),
+    ).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByText("Already used")).toHaveClass("text-state-danger-foreground");
+    expect(screen.getByText("Already used")).toHaveClass(
+      "text-state-danger-foreground",
+    );
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
+    expect(
+      screen.getByRole("button", { name: "Reset to defaults: Next article" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Reset to defaults" }),
+    ).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
-    expect(screen.getByText("⌘ ,")).toHaveClass("bg-surface-1", "text-foreground-soft");
+    expect(screen.getByText("⌘ ,")).toHaveClass(
+      "bg-surface-1",
+      "text-foreground-soft",
+    );
 
     await user.click(screen.getByRole("button", { name: "J" }));
 
     expect(onStartRecording).toHaveBeenCalledTimes(1);
-    const resetButton = screen.getByRole("button", { name: "Reset to defaults" });
+    const resetButton = screen.getByRole("button", {
+      name: "Reset to defaults",
+    });
     expect(resetButton).toBeDisabled();
     expectNoButtonMinWidth(resetButton);
+  });
+
+  it("keeps row reset disabled only for default bindings and activates focused row reset from the keyboard", async () => {
+    const user = userEvent.setup();
+    const onResetDefault = vi.fn();
+    const onResetCustom = vi.fn();
+
+    render(
+      <ShortcutsSettingsView
+        title="Shortcuts"
+        conflictMessage={null}
+        pressAKeyLabel="Press a key"
+        resetLabel="Reset to defaults"
+        resetDisabled={false}
+        onResetAll={vi.fn()}
+        categories={[
+          {
+            id: "navigation",
+            heading: "Navigation",
+            items: [
+              {
+                id: "next_article",
+                label: "Next article",
+                displayKey: "J",
+                isRecording: false,
+                resetDisabled: true,
+                onReset: onResetDefault,
+              },
+              {
+                id: "prev_article",
+                label: "Previous article",
+                displayKey: "P",
+                isRecording: false,
+                resetDisabled: false,
+                onReset: onResetCustom,
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Reset to defaults: Next article" }),
+    ).toBeDisabled();
+    const rowReset = screen.getByRole("button", {
+      name: "Reset to defaults: Previous article",
+    });
+    expect(rowReset).toBeEnabled();
+
+    rowReset.focus();
+    await user.keyboard("{Enter}");
+
+    expect(onResetDefault).not.toHaveBeenCalled();
+    expect(onResetCustom).toHaveBeenCalledTimes(1);
   });
 
   it("focuses the active badge and captures the next window key press while recording", async () => {
@@ -102,6 +177,8 @@ describe("ShortcutsSettingsView", () => {
                 label: "Next article",
                 displayKey: "J",
                 isRecording: false,
+                resetDisabled: false,
+                onReset: vi.fn(),
                 onStartRecording,
                 onKeyDown: onRecordKeyDown,
               },
@@ -133,6 +210,8 @@ describe("ShortcutsSettingsView", () => {
                 label: "Next article",
                 displayKey: "J",
                 isRecording: true,
+                resetDisabled: false,
+                onReset: vi.fn(),
                 onStartRecording,
                 onKeyDown: onRecordKeyDown,
               },

@@ -2,7 +2,11 @@ import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
-import { type ShortcutActionId, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
+import {
+  type ShortcutActionId,
+  shortcutDefinitions,
+  shortcutPrefKey,
+} from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -10,10 +14,17 @@ import { useShortcutsSettingsViewProps } from "./hooks/use-shortcuts-settings-vi
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
-  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "preventDefault" | "stopPropagation"
+  | "key"
+  | "metaKey"
+  | "ctrlKey"
+  | "shiftKey"
+  | "preventDefault"
+  | "stopPropagation"
 >;
 
-function normalizeRecordedKey(e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">): string | null {
+function normalizeRecordedKey(
+  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">,
+): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
 
@@ -63,7 +74,9 @@ export function ShortcutsSettings() {
     (id: ShortcutActionId, key: string) => {
       const conflict = findConflict(id, key);
       if (conflict) {
-        setConflictMessage(t("shortcuts.conflict_message", { key, name: conflict }));
+        setConflictMessage(
+          t("shortcuts.conflict_message", { key, name: conflict }),
+        );
       } else {
         setConflictMessage(null);
         setPref(shortcutPrefKey(id), key);
@@ -112,6 +125,20 @@ export function ShortcutsSettings() {
     });
   }, [showConfirm, doResetAll, t]);
 
+  const handleResetShortcut = useCallback(
+    (id: ShortcutActionId) => {
+      const def = shortcutDefinitions.find((shortcut) => shortcut.id === id);
+      if (!def || def.id === "open_settings") {
+        return;
+      }
+
+      setConflictMessage(null);
+      setRecordingId(null);
+      setPref(shortcutPrefKey(def.id), def.defaultKey);
+    },
+    [setPref],
+  );
+
   const hasCustomBindings = shortcutDefinitions.some((def) => {
     const current = prefs[shortcutPrefKey(def.id)];
     return current !== undefined && current !== def.defaultKey;
@@ -127,6 +154,7 @@ export function ShortcutsSettings() {
     getKey,
     findConflict,
     onResetAll: handleResetAll,
+    onResetShortcut: handleResetShortcut,
     onStartRecording: handleStartRecording,
     onBadgeKeyDown: handleBadgeKeyDown,
   });

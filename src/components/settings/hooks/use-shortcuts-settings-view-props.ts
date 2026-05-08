@@ -18,12 +18,19 @@ type UseShortcutsSettingsViewPropsParams = {
   getKey: (id: ShortcutActionId) => string;
   findConflict: (targetId: ShortcutActionId, key: string) => string | null;
   onResetAll: () => void;
+  onResetShortcut: (id: ShortcutActionId) => void;
   onStartRecording: (id: ShortcutActionId) => void;
-  onBadgeKeyDown: (id: ShortcutActionId, event: globalThis.KeyboardEvent) => void;
+  onBadgeKeyDown: (
+    id: ShortcutActionId,
+    event: globalThis.KeyboardEvent,
+  ) => void;
 };
 
 export function buildShortcutCategoryOrder(
-  definitions: readonly Pick<(typeof shortcutDefinitions)[number], "categoryKey">[],
+  definitions: readonly Pick<
+    (typeof shortcutDefinitions)[number],
+    "categoryKey"
+  >[],
 ): ShortcutCategoryKey[] {
   return [...new Set(definitions.map((definition) => definition.categoryKey))];
 }
@@ -38,6 +45,7 @@ export function useShortcutsSettingsViewProps({
   getKey,
   findConflict,
   onResetAll,
+  onResetShortcut,
   onStartRecording,
   onBadgeKeyDown,
 }: UseShortcutsSettingsViewPropsParams): ShortcutsSettingsViewProps {
@@ -58,16 +66,22 @@ export function useShortcutsSettingsViewProps({
         .map((definition) => {
           const currentKey = getKey(definition.id);
           const conflict = findConflict(definition.id, currentKey);
+          const isLocked = definition.id === "open_settings";
 
           return {
             id: definition.id,
             label: tReader(definition.labelKey),
             displayKey: formatKeyForDisplay(currentKey, platformKind),
-            isLocked: definition.id === "open_settings",
+            isLocked,
             isRecording: recordingId === definition.id,
-            conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
+            resetDisabled: isLocked || currentKey === definition.defaultKey,
+            conflictLabel: conflict
+              ? t("shortcuts.conflict", { name: conflict })
+              : null,
+            onReset: () => onResetShortcut(definition.id),
             onStartRecording: () => onStartRecording(definition.id),
-            onKeyDown: (event: globalThis.KeyboardEvent) => onBadgeKeyDown(definition.id, event),
+            onKeyDown: (event: globalThis.KeyboardEvent) =>
+              onBadgeKeyDown(definition.id, event),
           };
         }),
     })),
