@@ -1023,3 +1023,78 @@
   - reader sidebar、article list、settings modal の dense / narrow viewport story を追加し、主要 toolbar / row / footer action の存在だけを smoke test で固定する
   - Playwright screenshot、responsive redesign、mobile recovery layout とは混ぜない
   - viewport story の目的は layout inspection 用 fixture に限定する
+
+- [ ] dev intent env precedence contract 候補を別バッチで追加する
+  - `src/dev/intent.ts` で `VITE_DEV_INTENT`、runtime dev options、未設定時 fallback の優先順位を pure test で固定する
+  - dev scenario production bundle leak、command palette dev scenario 実行、mock data 変更とは混ぜない
+  - invalid env と runtime option の組み合わせを別 case にする
+
+- [ ] dev runtime options bounds contract 候補を別バッチで追加する
+  - `src/dev/intent.ts` の dev window width / height parse で 0、負数、非数値、過大値をどう扱うかを固定する
+  - web preview geometry fixture、Tauri window resize 実行、dev server 起動とは混ぜない
+  - parse helper の typed error と public fallback を別 assertion にする
+
+- [ ] dev scenario keyword uniqueness contract 候補を別バッチで追加する
+  - `scenario-ids.ts` と `scenarios/registry.ts` で scenario id / title / keyword の重複を static test で固定する
+  - scenario 追加、command palette ranking、dev scenario UI copy とは混ぜない
+  - id duplicate と keyword duplicate を別 assertion にする
+
+- [ ] dev scenario window sizing failure surface 候補を別バッチで追加する
+  - `scenarios/helpers.ts` の web preview window resize helper で resize 失敗時の toast / warn / continuation を固定する
+  - browser geometry 数値変更、Tauri window API wrapper、Playwright 実機検証とは混ぜない
+  - apply size failure と final size mismatch を別 fixture にする
+
+- [ ] browser webview event listener cleanup contract 候補を別バッチで追加する
+  - `use-browser-webview-events.ts` で diagnostics / fallback / state changed の listen cleanup が unmount 時に必ず呼ばれることを focused test で固定する
+  - generic Tauri event listener lifecycle、browser state reducer、native WebView event payload 変更とは混ぜない
+  - runtime unavailable と listener registration failure の扱いを分ける
+
+- [ ] browser overlay focus return fallback 候補を別バッチで追加する
+  - `use-browser-overlay-focus-return.ts` で return target が消えた時に open-in-browser button か safe fallback へ戻る contract を固定する
+  - reader focus navigation 全体、browser overlay shortcut、article selection UX とは混ぜない
+  - previous target あり / target missing / no browser URL を別 case にする
+
+- [ ] browser requested-url state merge contract 候補を別バッチで追加する
+  - `browser-webview-state.ts` と `use-browser-webview-request-state.ts` で requested URL と native state changed payload の merge priority を固定する
+  - browser history stack、load timeout surface、WebView bounds とは混ぜない
+  - same URL reload、redirected URL、stale native payload を別 assertion にする
+
+- [ ] browser debug geometry null reset contract 候補を別バッチで追加する
+  - `use-browser-debug-geometry-events.ts` と `browser-debug-geometry.ts` で diagnostics off / unmount 時に `browserDebugGeometry` event が null reset されることを固定する
+  - Debug HUD visual、geometry calculation、native diagnostics payload 変更とは混ぜない
+  - initial off と on -> off transition を別 test にする
+
+- [ ] updater restart failure state guard 候補を別バッチで追加する
+  - `use-updater.ts` で download 済み update の restart 失敗時に pending update / loading / error state がどう残るかを hook contract として固定する
+  - updater pending update lifecycle 全体、release artifact config、restart UI copy とは混ぜない
+  - restart command failure と runtime unavailable を別 case にする
+
+- [ ] clipboard runtime unavailable category 候補を別バッチで追加する
+  - `clipboard.ts` と article copy actions で Tauri clipboard unavailable / permission denied / invalid text の error category を固定する
+  - share command unsupported scheme、toast copy、article share menu visual とは混ぜない
+  - web fallback と native failure の projection を別 assertion にする
+
+- [ ] window event helper options parity 候補を別バッチで追加する
+  - `window-events.ts` で keyboard / pointer / custom event helper が add/remove に同じ target / type / listener / options を渡すことを test で固定する
+  - browser webview event listener cleanup、global shortcut guard、DOM event behavior 変更とは混ぜない
+  - capture/passive/options object の parity を小さい fake target で確認する
+
+- [ ] platform capabilities mock parity 候補を別バッチで追加する
+  - `platform/mod.rs` の capability DTO と `tests/helpers/tauri-mocks.ts` の mock platform info が同じ field set を持つことを schema / fixture test で固定する
+  - platform abstraction contract 全体、capability JSON、packaged app manual verification とは混ぜない
+  - missing field と stale extra field を別 assertion にする
+
+- [ ] locale plural form parity 候補を別バッチで追加する
+  - `src/locales/en/*.json` と `ja/*.json` で `_one` / `_other` など plural suffix の key set が locale 間でズレないことを static test にする
+  - placeholder parity、文言改善、i18next namespace drift とは混ぜない
+  - plural family だけを対象にし、通常 key existence は既存候補へ残す
+
+- [ ] menu i18n accelerator label parity 候補を別バッチで追加する
+  - `menu_i18n.rs` と frontend shortcut label の「ブラウザで開く」「コピー」系 action の語彙がズレないことを小さい contract として棚卸しする
+  - native menu checked state、shortcut preference validation、copy 文言改善全体とは混ぜない
+  - action id と label source の対応表だけを固定する
+
+- [ ] browser surface runtime issue reset contract 候補を別バッチで追加する
+  - `use-browser-view-surface-state.ts` で runtime unavailable / failed / blocked issue が URL 変更、close、retry success でどう reset されるかを固定する
+  - browser overlay issue Storybook、load timeout surface、native WebView command 変更とは混ぜない
+  - issue kind ごとの reset trigger を fake runtime test に分ける
