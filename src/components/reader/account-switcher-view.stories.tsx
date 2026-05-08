@@ -29,6 +29,11 @@ const sampleAccounts: AccountDto[] = [
   },
 ];
 
+function createAccountItemRefs() {
+  const current: Array<HTMLButtonElement | null> = [];
+  return { current };
+}
+
 const meta = {
   title: "Reader/Sidebar/AccountSwitcherView",
   component: AccountSwitcherView,
@@ -45,7 +50,7 @@ const meta = {
     menuId: "account-switcher-menu",
     menuLabel: "Accounts",
     triggerRef: createRef<HTMLButtonElement>(),
-    itemRefs: { current: [] as Array<HTMLButtonElement | null> },
+    itemRefs: createAccountItemRefs(),
     onToggle: fn(),
     onSelectAccount: fn(),
     onClose: fn(),

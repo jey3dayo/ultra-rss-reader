@@ -4,12 +4,17 @@ import { sampleAccounts } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSwitcherMenu } from "@/components/reader/account-switcher-menu";
 
+function createAccountItemRefs() {
+  const current: Array<HTMLButtonElement | null> = [];
+  return { current };
+}
+
 describe("AccountSwitcherMenu", () => {
   it("renders the selected account with the emphasized sidebar pattern and delegates clicks", async () => {
     const user = userEvent.setup();
     const onSelectAccount = vi.fn();
     const onClose = vi.fn();
-    const itemRefs = { current: [] as Array<HTMLButtonElement | null> };
+    const itemRefs = createAccountItemRefs();
 
     render(
       <AccountSwitcherMenu
@@ -56,7 +61,7 @@ describe("AccountSwitcherMenu", () => {
   it("returns focus to the selected sidebar target with ArrowRight", async () => {
     const onSelectAccount = vi.fn();
     const onClose = vi.fn();
-    const itemRefs = { current: [] as Array<HTMLButtonElement | null> };
+    const itemRefs = createAccountItemRefs();
 
     render(
       <>

@@ -5,11 +5,16 @@ import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSwitcherView } from "@/components/reader/account-switcher-view";
 
+function createAccountItemRefs() {
+  const current: Array<HTMLButtonElement | null> = [];
+  return { current };
+}
+
 describe("AccountSwitcherView", () => {
   it("renders an expandable account menu and selects an account", async () => {
     const user = userEvent.setup();
     const triggerRef = createRef<HTMLButtonElement>();
-    const itemRefs = { current: [] as Array<HTMLButtonElement | null> };
+    const itemRefs = createAccountItemRefs();
     const onToggle = vi.fn();
     const onSelectAccount = vi.fn();
     const onClose = vi.fn();
@@ -53,7 +58,7 @@ describe("AccountSwitcherView", () => {
 
   it("supports arrow key roving and Escape close behavior", () => {
     const triggerRef = createRef<HTMLButtonElement>();
-    const itemRefs = { current: [] as Array<HTMLButtonElement | null> };
+    const itemRefs = createAccountItemRefs();
     const onToggle = vi.fn();
     const onSelectAccount = vi.fn();
     const onClose = vi.fn();
