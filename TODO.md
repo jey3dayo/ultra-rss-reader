@@ -202,3 +202,33 @@
   - Windows file lock、backup/restore failure、WAL/SHM 残存時の migration recovery path を、手順と検証観点に分けて TODO 化する
   - repository test と実 app data recovery はリスクが違うため、fixture DB test と manual verification を別々に扱う
   - ユーザーデータに触れるため、実装に入る前に backup location / rollback condition / log collection の checklist を固定する
+
+- [ ] tag / mute settings contract 整理候補を別バッチで見直す
+  - tag settings、reader tag list、article tag picker、mute settings の command/schema/hook/view contract を、tag と mute で分けて棚卸しする
+  - `tag-color-picker` や tag chip の visual token 変更は避け、まずは create/rename/delete と count 更新のデータ契約を固定する
+  - mute keyword scope と article filtering は reader 表示に直結するため、settings form props local 化とは別バッチにする
+
+- [ ] credentials / keyring verification 候補を別バッチで整理する
+  - `src-tauri/src/infra/keyring_store.rs` と account detail credentials editor の保存/更新/削除/restart 復元を、native keyring と dev credentials で分けて検証する
+  - `.env` や実 credential 値は扱わず、存在確認・失敗種別・fallback 表示の contract test と packaged manual verification に分ける
+  - FreshRSS connection verification と keyring 保存はユーザー影響が違うため、provider login flow の refactor とは混ぜない
+
+- [ ] command palette search / history contract 候補を別バッチで追加する
+  - `use-command-search.ts`、`use-command-history.ts`、`command-palette-history.ts` の prefix parsing / recent action storage / invalid entry discard を pure test で固定する
+  - article search、tag search、dev scenario search は data source が違うため、同じ UI rendering test に詰め込まない
+  - recent history に dev scenario を保存しない挙動は既存 UI test と重なるため、history helper 側の契約を先に補強する
+
+- [ ] browser webview history / shortcut contract 候補を別バッチで見直す
+  - `src/lib/browser/webview-history.ts` と `src-tauri/src/browser_webview.rs` の back/forward/reload/open external availability を、frontend helper と native webview state で分けて棚卸しする
+  - browser overlay shortcut は article shortcut と衝突しやすいため、`use-browser-overlay-shortcuts.ts` の event ownership を別に確認する
+  - geometry/layout 数値は既存の browser geometry 候補に残し、ここでは history stack と action availability のみ扱う
+
+- [ ] app icon / badge runtime 検証候補を別バッチで追加する
+  - `use-app-icon-theme.ts`、`use-badge.ts`、provider icon fallback の runtime あり/なし contract を、frontend hook test と packaged app manual verification に分ける
+  - macOS dock badge、Windows taskbar badge、icon theme replacement は OS 差が大きいため、shared runtime wrapper の型整理とは別に検証する
+  - visual asset の差し替えや icon デザイン変更は入れず、状態反映と failure fallback だけを固定する
+
+- [ ] sanitizer / article content migration 候補を別バッチで検証する
+  - `src-tauri/src/infra/sanitizer.rs`、`sanitizer_version`、`article_content_text` migration の関係を、保存済み記事と新規同期記事で分けて確認する
+  - privacy hardening とは別に、既存記事の再 sanitize 条件、検索用 text extraction、malformed HTML の fallback を test で固定する
+  - CSP や remote image policy は privacy batch に残し、ここでは content normalization と migration compatibility に限定する
