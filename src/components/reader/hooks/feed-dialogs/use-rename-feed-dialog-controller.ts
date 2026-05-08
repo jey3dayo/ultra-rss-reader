@@ -7,7 +7,7 @@ import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { resolveFeedDisplayPreset } from "@/lib/articles/article-display";
-import { copyValueToClipboard } from "@/lib/clipboard";
+import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { type FeedEditorState, submitFeedEdits } from "../../feed-edit-submit";
 import type {

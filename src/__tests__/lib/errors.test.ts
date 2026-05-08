@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage } from "@/lib/ui/errors";
 
 describe("errors", () => {
   it("returns Error messages", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { attachTauriListeners, createTauriListenerGroup } from "@/lib/tauri-event-listeners";
+import { attachTauriListeners, createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
 
 function createDeferredCleanup() {
   let resolveCleanup: (cleanup: () => void) => void = () => {};

@@ -1,5 +1,5 @@
 import { SelectItem, SelectValue } from "@/components/ui/select";
-import { getOptionLabelByValue, type OptionWithLabel } from "@/lib/options";
+import { getOptionLabelByValue, type OptionWithLabel } from "@/lib/ui/options";
 
 type SelectOptionContentProps = {
   options: readonly OptionWithLabel[];

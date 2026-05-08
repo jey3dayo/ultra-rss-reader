@@ -10,7 +10,7 @@ import { useDevIntent } from "./dev/use-dev-intent";
 import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
-import { attachTauriListeners } from "./lib/tauri-event-listeners";
+import { attachTauriListeners } from "./lib/runtime/tauri-event-listeners";
 import { usePreferencesStore } from "./stores/preferences-store";
 import { useUiStore } from "./stores/ui-store";
 

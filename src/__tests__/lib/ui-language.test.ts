@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveUiLanguage } from "@/lib/ui-language";
+import { resolveUiLanguage } from "@/lib/ui/ui-language";
 
 describe("resolveUiLanguage", () => {
   it("resolves system to Japanese for ja locales", () => {

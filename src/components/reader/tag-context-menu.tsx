@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { DeleteTagDialogView } from "./delete-tag-dialog-view";
 import { RenameTagDialogView } from "./rename-tag-dialog-view";

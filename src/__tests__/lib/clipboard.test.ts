@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { copyValueToClipboard } from "@/lib/clipboard";
+import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 
 const { copyToClipboardMock } = vi.hoisted(() => ({
   copyToClipboardMock: vi.fn(),

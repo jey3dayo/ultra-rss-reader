@@ -4,7 +4,7 @@ import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
 import { isAppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
-import { attachTauriListeners } from "@/lib/tauri-event-listeners";
+import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 
 export function useMenuEvents(): void {
   useEffect(() => {

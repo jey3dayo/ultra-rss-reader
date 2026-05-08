@@ -6,7 +6,7 @@ import { RenameTagDialogView } from "@/components/reader/rename-tag-dialog-view"
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useCreateTag, useDeleteTag, useRenameTag, useTags } from "@/hooks/use-tags";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 
 type TagsSettingsState = {

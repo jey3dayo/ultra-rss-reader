@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
-import { attachTauriListeners } from "@/lib/tauri-event-listeners";
+import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
 type UpdateInfo = { version: string; body: string | null };

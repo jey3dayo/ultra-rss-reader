@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOptionLabelByValue } from "@/lib/options";
+import { getOptionLabelByValue } from "@/lib/ui/options";
 
 describe("getOptionLabelByValue", () => {
   const options = [

@@ -9,7 +9,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import { getOptionLabelByValue } from "@/lib/options";
+import { getOptionLabelByValue } from "@/lib/ui/options";
 
 export type MuteSettingsScopeOption = {
   value: MuteKeywordScope;

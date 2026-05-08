@@ -278,8 +278,10 @@ Error mapping: `DomainError` → `AppError` at the command boundary (`Network` �
 | `lib/debug/`                      | Debug HUD element summaries and input trace formatting/dispatch helpers                                            |
 | `lib/keyboard/`                   | Keyboard shortcut definitions, display labels, preference defaults, and action resolution                          |
 | `lib/query/`                      | React Query client singleton and focused query invalidation helpers                                                |
+| `lib/runtime/`                    | Tauri runtime listener grouping and clipboard command helpers                                                      |
 | `lib/subscriptions/`              | Subscriptions index rows, review candidates, summary filters, and related workspace types                          |
 | `lib/sync/`                       | Manual sync cooldown handling and sync-result feedback summarization                                               |
+| `lib/ui/`                         | UI-only pure helpers for option labels, UI language resolution, and user-facing error messages                     |
 | `lib/window/`                     | DOM window event binding, Tauri window commands, and desktop chrome runtime helpers                                |
 | `lib/*.types.ts`                  | Cross-feature TypeScript contracts that are shared without React runtime dependencies                              |
 | `stores/`                         | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence)                        |

@@ -6,13 +6,13 @@ import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
+import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import {
   getManualSyncCooldownUntil,
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
-import { attachTauriListeners } from "@/lib/tauri-event-listeners";
 import type {
   SidebarSyncParams,
   SidebarSyncProgressPayload,

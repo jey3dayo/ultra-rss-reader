@@ -28,6 +28,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Keep shadcn/Base UI wrappers in `src/components/ui/`; do not place app-specific feature UI there.
 - Co-locate large feature controller hooks under that feature's `hooks/` directory when they are not reused elsewhere.
 - Put cross-feature data hooks in `src/hooks/` and cross-feature pure helpers in `src/lib/`.
+- Put UI-only pure helpers in `src/lib/ui/`.
+- Put Tauri/browser runtime boundary helpers in `src/lib/runtime/`.
 - Put frontend-owned runtime schemas in `src/schemas/` when they validate local config, localStorage, preferences, or other non-IPC data.
 - Keep Tauri IPC request/response schemas in `src/api/schemas/`; do not mix them with local storage or app-config schemas.
 - Put cross-feature literals in `src/constants/`, and shared type-only contracts in `src/lib/*.types.ts` unless an existing feature-local type file is narrower.
