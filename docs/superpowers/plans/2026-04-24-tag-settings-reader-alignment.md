@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `Settings > タグ` の `保存済みタグ` 一覧を reader 寄せの軽い行デザインへ更新し、記事数を出さずに編集・削除導線だけを残す。
+Goal: `Settings > タグ` の `保存済みタグ` 一覧を reader 寄せの軽い行デザインへ更新し、記事数を出さずに編集・削除導線だけを残す。
 
-**Architecture:** `TagsSettingsView` の保存済みタグ一覧だけを専用 row markup に差し替え、作成フォーム・mutation・dialog の責務はそのまま維持する。sidebar の `TagListView` は流用せず、settings 側で必要な視覚言語だけを取り込む。回帰防止は view 単体テスト、`SettingsModal` の結合テスト、Storybook fixture で固める。
+Architecture: `TagsSettingsView` の保存済みタグ一覧だけを専用 row markup に差し替え、作成フォーム・mutation・dialog の責務はそのまま維持する。sidebar の `TagListView` は流用せず、settings 側で必要な視覚言語だけを取り込む。回帰防止は view 単体テスト、`SettingsModal` の結合テスト、Storybook fixture で固める。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Storybook 10, Tailwind utility classes, Biome, mise
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook 10, Tailwind utility classes, Biome, mise
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## Task 1: Lock The Compact Tag Row Contract
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/tags-settings-view.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
@@ -249,7 +249,7 @@ git commit -m "feat: align tag settings rows with reader tags"
 
 ## Task 2: Add A Stable Storybook Fixture For The New Settings Row
 
-**Files:**
+### Files:
 
 - Create: `src/components/settings/tags-settings-view.stories.tsx`
 - Create: `src/__tests__/components/tags-settings-view.stories.test.tsx`
@@ -381,7 +381,7 @@ git commit -m "test: add tags settings story coverage"
 
 ## Task 3: Run The Repository Quality Gate
 
-**Files:**
+### Files:
 
 - Modify: none expected
 - Verify: current branch state after Tasks 1-2

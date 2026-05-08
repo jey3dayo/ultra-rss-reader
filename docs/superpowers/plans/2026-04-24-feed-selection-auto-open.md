@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a reading setting that automatically opens the first article when a feed is selected.
+Goal: Add a reading setting that automatically opens the first article when a feed is selected.
 
-**Architecture:** Persist a new reading preference, expose it in the Reading settings page, and route feed selection through the existing feed landing hook only when that preference is enabled. Keep folder/tag/smart-view selection unchanged.
+Architecture: Persist a new reading preference, expose it in the Reading settings page, and route feed selection through the existing feed landing hook only when that preference is enabled. Keep folder/tag/smart-view selection unchanged.
 
-**Tech Stack:** React 19, Zustand, React Query, Vitest, i18next
+Tech Stack: React 19, Zustand, React Query, Vitest, i18next
 
 ---
 
 ## Task 1: Add failing tests
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
@@ -24,7 +24,7 @@
 
 ## Task 2: Add preference and settings UI
 
-**Files:**
+### Files:
 
 - Modify: `src/stores/preferences-store.ts`
 - Modify: `src/components/settings/use-reading-settings-view-props.ts`
@@ -37,7 +37,7 @@
 
 ## Task 3: Wire feed selection behavior
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/use-sidebar-feed-tree-props.ts`
 - Modify: `src/components/reader/use-sidebar-feed-section-controller.ts`
@@ -51,7 +51,7 @@
 
 ## Task 4: Verify
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/article-list.test.tsx` if the new behavior needs expectation updates
 

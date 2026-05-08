@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** focus debug HUD を、透明感は維持したまま product UI の button / surface 文法に揃え、情報の読み順を少し整理する。
+Goal: focus debug HUD を、透明感は維持したまま product UI の button / surface 文法に揃え、情報の読み順を少し整理する。
 
-**Architecture:** `DebugHudFrame` は shell role に専念させ、`FocusDebugHudView` は情報配置に責務を絞る。HUD 専用の button class 直書きはやめて、shared button family を使うか、必要最小限の `DebugHudActionButton` wrapper に寄せる。回帰防止は `focus-debug-hud-view` と `debug-hud-frame` の既存テストを更新して担保する。
+Architecture: `DebugHudFrame` は shell role に専念させ、`FocusDebugHudView` は情報配置に責務を絞る。HUD 専用の button class 直書きはやめて、shared button family を使うか、必要最小限の `DebugHudActionButton` wrapper に寄せる。回帰防止は `focus-debug-hud-view` と `debug-hud-frame` の既存テストを更新して担保する。
 
-**Tech Stack:** React 19, TypeScript, class-variance-authority, Vitest, Testing Library, Tailwind utility classes, Biome, mise
+Tech Stack: React 19, TypeScript, class-variance-authority, Vitest, Testing Library, Tailwind utility classes, Biome, mise
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## Task 1: Replace HUD-Specific Buttons With A Shared Button Family
 
-**Files:**
+### Files:
 
 - Create: `src/components/debug/debug-hud-action-button.tsx`
 - Modify: `src/components/debug/focus-debug-hud-view.tsx`
@@ -183,7 +183,7 @@ git commit -m "refactor: align debug hud actions with shared buttons"
 
 ## Task 2: Align HUD Shell And Inner Surfaces With Product Overlay Language
 
-**Files:**
+### Files:
 
 - Modify: `src/components/debug/debug-hud-frame.tsx`
 - Modify: `src/components/debug/focus-debug-hud-view.tsx`
@@ -273,7 +273,7 @@ git commit -m "style: align debug hud shell surfaces"
 
 ## Task 3: Lightly Reorder Information For Faster Reading
 
-**Files:**
+### Files:
 
 - Modify: `src/components/debug/focus-debug-hud-view.tsx`
 - Modify: `src/__tests__/components/focus-debug-hud-view.test.tsx`
@@ -389,7 +389,7 @@ git commit -m "feat: refine debug hud information hierarchy"
 
 ## Task 4: Run The Quality Gate For The HUD Changes
 
-**Files:**
+### Files:
 
 - Verify: `src/components/debug/debug-hud-action-button.tsx`
 - Verify: `src/components/debug/debug-hud-frame.tsx`
