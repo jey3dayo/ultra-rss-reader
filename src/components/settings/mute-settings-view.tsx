@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import type { MuteKeywordScope } from "@/api/schemas";
 import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
@@ -8,7 +9,6 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import type { MuteKeywordScope } from "@/api/schemas";
 import { getOptionLabelByValue } from "@/lib/options";
 
 export type MuteSettingsScopeOption = {

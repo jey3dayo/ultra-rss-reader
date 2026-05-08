@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
+import type { MuteKeywordScope } from "@/api/schemas";
 import {
   createMuteKeyword,
   deleteMuteKeyword,
@@ -8,7 +9,6 @@ import {
   setMuteAutoMarkRead,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
-import type { MuteKeywordScope } from "@/api/schemas";
 import { createMutation } from "@/hooks/create-mutation";
 
 export type CreateMuteKeywordMutationInput = {

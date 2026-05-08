@@ -9,8 +9,8 @@ import {
   getStartOfLocalDay,
   parseDateInput,
 } from "@/lib/datetime";
-import type { ReaderSelection } from "@/lib/reader-selection.types";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
+import type { ReaderSelection } from "@/lib/reader-selection.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export type SelectVisibleArticlesParams = {
