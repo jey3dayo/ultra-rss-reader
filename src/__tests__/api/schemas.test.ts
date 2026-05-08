@@ -7,6 +7,7 @@ import {
   AppErrorSchema,
   ArticleDtoSchema,
   addAccountArgs,
+  addToReadingListArgs,
   BrowserWebviewStateSchema,
   browserWebviewBoundsArgs,
   commandArgsSchemas,
@@ -401,6 +402,22 @@ describe("command args schemas", () => {
     ).toThrow();
     expect(() => browserWebviewBoundsArgs.parse({ x: 0, y: 0, width: 0, height: 240 })).toThrow();
     expect(() => browserWebviewBoundsArgs.parse({ x: 0, y: 0, width: 320, height: -1 })).toThrow();
+  });
+  it("accepts only http or https Reading List URLs without CR/LF", () => {
+    expect(addToReadingListArgs.parse({ url: "http://example.com/article" })).toEqual({
+      url: "http://example.com/article",
+    });
+    expect(
+      addToReadingListArgs.parse({
+        url: 'https://example.com/article?title="quoted"',
+      }),
+    ).toEqual({
+      url: 'https://example.com/article?title="quoted"',
+    });
+    expect(() => addToReadingListArgs.parse({ url: "mailto:hello@example.com" })).toThrow();
+    expect(() => addToReadingListArgs.parse({ url: "ftp://example.com/article" })).toThrow();
+    expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\nnext" })).toThrow();
+    expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\rnext" })).toThrow();
   });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
