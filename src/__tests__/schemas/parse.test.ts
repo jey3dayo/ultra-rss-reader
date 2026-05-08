@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { parseJsonWithSchema, parseWithSchema } from "@/schemas/parse";
+import { parseJsonWithSchema, parseWithSchema, safeParseJsonWithSchema } from "@/schemas/parse";
 
 const userSchema = z.object({
   id: z.string(),
@@ -24,5 +24,10 @@ describe("schema parse helpers", () => {
       id: "acc-2",
       unreadCount: 0,
     });
+  });
+
+  it("returns null when safe JSON parsing fails", () => {
+    expect(safeParseJsonWithSchema("not-json", userSchema)).toBeNull();
+    expect(safeParseJsonWithSchema('{"id":"acc-2","unreadCount":-1}', userSchema)).toBeNull();
   });
 });

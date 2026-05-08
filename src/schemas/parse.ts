@@ -11,3 +11,16 @@ export function parseWithSchema<TSchema extends z.ZodType>(schema: TSchema, valu
 export function parseJsonWithSchema<TSchema extends z.ZodType>(contents: string, schema: TSchema): z.output<TSchema> {
   return parseWithSchema(schema, JSON.parse(contents));
 }
+
+export function safeParseJsonWithSchema<TSchema extends z.ZodType>(
+  contents: string,
+  schema: TSchema,
+): z.output<TSchema> | null {
+  try {
+    const parsed = JSON.parse(contents) as unknown;
+    const result = schema.safeParse(parsed);
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}

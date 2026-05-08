@@ -1,5 +1,5 @@
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
-import { parseJsonWithSchema } from "@/schemas/parse";
+import { safeParseJsonWithSchema } from "@/schemas/parse";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
 function readStorage(): Storage | null {
@@ -22,7 +22,7 @@ export function getHistory(): string[] {
       return [];
     }
 
-    return parseJsonWithSchema(raw, CommandHistoryStorageSchema);
+    return safeParseJsonWithSchema(raw, CommandHistoryStorageSchema) ?? [];
   } catch {
     return [];
   }
