@@ -1,8 +1,5 @@
 import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
-import {
-  type RuntimeDevScenario,
-  runRuntimeDevScenario,
-} from "@/dev/scenario-runtime";
+import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { executeAction } from "@/lib/actions";
 import type { ToastData } from "@/lib/ui/toast.types";
 import type { PaletteAction } from "../../command-palette.types";
@@ -46,26 +43,19 @@ export function useCommandPaletteHandlers({
       return;
     }
     if (
-      (!selectedAccountId &&
-        (action === "open-add-feed" ||
-          action === "sync-all" ||
-          action === "mark-all-read")) ||
+      (!selectedAccountId && (action === "open-add-feed" || action === "sync-all" || action === "mark-all-read")) ||
       (isSyncing && action === "sync-all")
     ) {
       return;
     }
 
-    addToHistory(
-      createCommandPaletteHistoryValue({ kind: "action", id: action }),
-    );
+    addToHistory(createCommandPaletteHistoryValue({ kind: "action", id: action }));
     executeAction(action);
     closePalette();
   }
 
   function handleFeedSelect(feedId: string) {
-    addToHistory(
-      createCommandPaletteHistoryValue({ kind: "feed", id: feedId }),
-    );
+    addToHistory(createCommandPaletteHistoryValue({ kind: "feed", id: feedId }));
     void openFeedLanding(feedId).catch((error) => {
       const message = error instanceof Error ? error.message : "Unknown error";
       showToast(`Failed to open feed "${feedId}": ${message}`);
@@ -80,9 +70,7 @@ export function useCommandPaletteHandlers({
   }
 
   function handleArticleSelect(feedId: string, articleId: string) {
-    addToHistory(
-      createCommandPaletteHistoryValue({ kind: "article", id: articleId }),
-    );
+    addToHistory(createCommandPaletteHistoryValue({ kind: "article", id: articleId }));
     selectFeedFromCurrentContext(feedId);
     selectArticle(articleId);
     closePalette();
