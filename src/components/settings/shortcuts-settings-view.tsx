@@ -6,7 +6,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { cn } from "@/lib/utils";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 
-export type ShortcutsSettingsItem = {
+type ShortcutsSettingsItem = {
   id: string;
   label: string;
   displayKey: string;
@@ -17,7 +17,7 @@ export type ShortcutsSettingsItem = {
   onKeyDown?: (event: globalThis.KeyboardEvent) => void;
 };
 
-export type ShortcutsSettingsCategory = {
+type ShortcutsSettingsCategory = {
   id: string;
   heading: string;
   items: ShortcutsSettingsItem[];

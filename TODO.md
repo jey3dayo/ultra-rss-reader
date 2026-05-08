@@ -55,6 +55,7 @@
 
 - [ ] 参照範囲が広い reader type surface を別バッチで分割する
   - `article-list.types.ts` は list view / header / footer / hooks にまたがるため、article-list controller 境界を見直す時に分割する
+  - `add-feed-dialog.types.ts` / `rename-feed-dialog.types.ts` は dialog state / controller hooks / shared form parts にまたがるため、feed dialog flow の責務分割時に再評価する
   - `sidebar.types.ts` は sidebar view / section props / smart views / content props にまたがるため、sidebar controller と view contract の分割単位を先に決める
   - `browser-view.types.ts` は browser overlay / webview sync / diagnostics hooks / tests にまたがるため、native webview 境界の変更と同じバッチで扱う
   - `command-palette.types.ts` は palette data / runtime / action groups / result rendering にまたがるため、command palette hooks の責務分割時に再評価する

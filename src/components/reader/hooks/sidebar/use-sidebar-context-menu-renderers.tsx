@@ -3,9 +3,9 @@ import { FeedContextMenuContent } from "../../feed-context-menu";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
 import { FolderContextMenuContent } from "../../folder-context-menu";
 import type { SidebarContextMenuRenderersResult } from "../../sidebar.types";
+import type { SidebarTagItem } from "../../sidebar-tag-items.types";
 import { SubscriptionsSectionContextMenu } from "../../subscriptions-section-context-menu";
 import { TagContextMenuContent } from "../../tag-context-menu";
-import type { TagListItemViewModel } from "../../tag-list-view";
 import { TagSectionContextMenu } from "../../tag-section-context-menu";
 
 type UseSidebarContextMenuRenderersParams = {
@@ -37,7 +37,7 @@ function toFeedContextMenuFeed(feed: FeedTreeFeedViewModel) {
   };
 }
 
-function toTagContextMenuTag(tag: TagListItemViewModel) {
+function toTagContextMenuTag(tag: SidebarTagItem) {
   return {
     id: tag.id,
     name: tag.name,
@@ -67,7 +67,7 @@ export function useSidebarContextMenuRenderers({
   );
 
   const renderTagContextMenu = useCallback(
-    (tag: TagListItemViewModel) => <TagContextMenuContent tag={toTagContextMenuTag(tag)} />,
+    (tag: SidebarTagItem) => <TagContextMenuContent tag={toTagContextMenuTag(tag)} />,
     [],
   );
 

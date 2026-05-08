@@ -4,9 +4,7 @@ import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { getSidebarDensityTokens } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
-import type { SidebarTagItem, SidebarTagListProps } from "./sidebar-tag-items.types";
-
-export type TagListItemViewModel = SidebarTagItem;
+import type { SidebarTagListProps } from "./sidebar-tag-items.types";
 
 export function TagListView({
   tagsLabel,

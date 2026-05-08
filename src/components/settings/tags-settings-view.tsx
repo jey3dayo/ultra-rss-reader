@@ -7,7 +7,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { Input } from "@/components/ui/input";
 
-export type TagsSettingsListItem = {
+type TagsSettingsListItem = {
   id: string;
   name: string;
   color: string | null;

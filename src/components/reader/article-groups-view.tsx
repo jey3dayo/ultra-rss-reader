@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ArticleListItem } from "./article-list-item";
 
-export type ArticleGroupsViewItem = {
+type ArticleGroupsViewItem = {
   article: ArticleDto;
   feedName: string | undefined;
   isSelected: boolean;
