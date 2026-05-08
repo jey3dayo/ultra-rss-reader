@@ -1,5 +1,5 @@
 import type { AccountSyncWarning } from "@/api/schemas/sync-result";
-import type { SyncProgressEvent, SyncProgressState } from "@/lib/ui-state.types";
+import type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
 
 export type SidebarSyncProgressPayload = SyncProgressEvent;
 export type SidebarSyncWarningPayload = AccountSyncWarning[];

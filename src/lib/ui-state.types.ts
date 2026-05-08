@@ -1,37 +1,6 @@
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 
-export type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";
-export type SyncProgressKind = "manual_all" | "manual_account" | "automatic";
-
-export type SyncProgressEvent = {
-  stage: SyncProgressStage;
-  kind: SyncProgressKind;
-  total: number;
-  completed: number;
-  account_id?: string | null;
-  account_name?: string | null;
-  success?: boolean | null;
-};
-
-export type SyncProgressState = {
-  active: boolean;
-  kind: SyncProgressKind | null;
-  stage: SyncProgressStage | null;
-  total: number;
-  completed: number;
-  currentAccountName: string | null;
-  activeAccountIds: Set<string>;
-};
-
-export type AccountSetupSessionState = "syncing" | "failed" | "succeeded";
-
-export type AccountSetupSession = {
-  accountId: string;
-  state: AccountSetupSessionState;
-  errorMessage?: string;
-};
-
 export type UiSelection = ReaderSelection;
 
 export type LayoutMode = "wide" | "compact" | "mobile";

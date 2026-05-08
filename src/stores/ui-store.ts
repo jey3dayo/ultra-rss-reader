@@ -1,14 +1,15 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
+import type { AccountSetupSession } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
+import type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
 import type { ToastData } from "@/lib/ui/toast.types";
 import type {
-  AccountSetupSession,
   ArticleNavigationDirection,
   BrowserNavigationState,
   ContentMode,
@@ -17,24 +18,17 @@ import type {
   PendingBrowserCloseAction,
   SubscriptionsWorkspace,
   SubscriptionsWorkspaceReturnState,
-  SyncProgressEvent,
-  SyncProgressState,
   UiSelection,
 } from "@/lib/ui-state.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
+export type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 export type { SettingsCategory } from "@/lib/settings/settings-category.types";
+export type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
 export type { ToastData } from "@/lib/ui/toast.types";
-export type {
-  AccountSetupSessionState,
-  ArticleNavigationDirection,
-  ContentMode,
-  SyncProgressEvent,
-  SyncProgressState,
-  UiSelection,
-} from "@/lib/ui-state.types";
+export type { ArticleNavigationDirection, ContentMode, UiSelection } from "@/lib/ui-state.types";
 
 function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
   return state.contentMode === "empty" ? "list" : "content";
