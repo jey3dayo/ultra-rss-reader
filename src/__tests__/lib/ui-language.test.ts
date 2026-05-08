@@ -31,6 +31,18 @@ describe("resolveUiLanguage", () => {
     expect(resolveUiLanguage("system", "")).toBe("en");
   });
 
+  it.each([
+    ["ja-JP", "ja"],
+    ["en-US", "en"],
+    [undefined, "en"],
+    ["unknown", "en"],
+  ] as const)(
+    "resolves system preference from locale prefix %#",
+    (locale, expected) => {
+      expect(resolveUiLanguage("system", locale)).toBe(expected);
+    },
+  );
+
   it("keeps explicit Japanese regardless of system locale", () => {
     expect(resolveUiLanguage("ja", "en-US")).toBe("ja");
   });

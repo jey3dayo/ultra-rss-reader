@@ -251,6 +251,53 @@ describe("subscriptions index helpers", () => {
     ).toBe("2025-10-15T10:00:00Z");
   });
 
+  it("falls back to articles for missing detail summaries and preserves summary priority when present", () => {
+    const newerUnstarredArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-fallback-new",
+      feed_id: "feed-stale",
+      published_at: "2026-04-02T10:00:00Z",
+      is_starred: false,
+    };
+    const olderStarredArticle: ArticleDto = {
+      ...articles[1],
+      id: "art-fallback-starred",
+      feed_id: "feed-stale",
+      published_at: "2026-03-01T10:00:00Z",
+      is_starred: true,
+    };
+    const feedArticles = [olderStarredArticle, newerUnstarredArticle];
+    const summary = {
+      feed_id: "feed-stale",
+      latest_article_at: "2025-01-01T00:00:00Z",
+      starred_count: 7,
+    };
+
+    expect(
+      buildSubscriptionDetailMetrics({
+        feed: feeds[0],
+        articles: feedArticles,
+        feedArticleSummary: null,
+      }),
+    ).toEqual({
+      latestArticleAt: "2026-04-02T10:00:00Z",
+      starredCount: 1,
+      previewArticles: [newerUnstarredArticle, olderStarredArticle],
+    });
+
+    expect(
+      buildSubscriptionDetailMetrics({
+        feed: feeds[0],
+        articles: feedArticles,
+        feedArticleSummary: summary,
+      }),
+    ).toEqual({
+      latestArticleAt: "2025-01-01T00:00:00Z",
+      starredCount: 7,
+      previewArticles: [newerUnstarredArticle, olderStarredArticle],
+    });
+  });
+
   it("builds summary cards and derives the filtered inventory heading", () => {
     const summaryCards = buildSubscriptionSummaryCards({
       summary: { totalCount: 4, reviewCount: 3, staleCount: 2 },
@@ -433,6 +480,57 @@ describe("subscriptions index helpers", () => {
         sortKey: "updated_at",
       }).map((row) => row.feed.id),
     ).toEqual(["feed-dormant", "feed-stale"]);
+  });
+
+  it("keeps decided rows only for the all summary filter", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      feedArticleSummaries,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+    const keptFeedIds = new Set(["feed-stale"]);
+    const deferredFeedIds = new Set(["feed-mid"]);
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "all",
+        keptFeedIds,
+        deferredFeedIds,
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-active", "feed-dormant", "feed-stale", "feed-mid"]);
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "review",
+        keptFeedIds,
+        deferredFeedIds,
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-dormant"]);
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "stale",
+        keptFeedIds,
+        deferredFeedIds,
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual([]);
   });
 
   it("filters visible rows by folder or feed search and sorts by unread count", () => {

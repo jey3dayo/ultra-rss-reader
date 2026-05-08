@@ -138,6 +138,34 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-active"]);
   });
 
+  it("excludes hidden feeds before summary and reason sorting", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-hidden-critical", title: "A Hidden Critical Feed", unread_count: 0 },
+        { ...feeds[0], id: "feed-visible-medium", title: "B Visible Medium Feed", unread_count: 4 },
+        { ...feeds[0], id: "feed-visible-low", title: "C Visible Low Feed", unread_count: 4 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        { feed_id: "feed-hidden-critical", latest_article_at: "2025-01-01T00:00:00Z", starred_count: 0 },
+        { feed_id: "feed-visible-medium", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 1 },
+        { feed_id: "feed-visible-low", latest_article_at: "2026-03-01T00:00:00Z", starred_count: 1 },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(["feed-hidden-critical"]),
+    });
+
+    expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-visible-medium", "feed-visible-low"]);
+    expect(candidates.map((candidate) => summarizeSubscriptionReviewCandidate(candidate).summaryKey)).toEqual([
+      "stale_but_supported",
+      "healthy_feed",
+    ]);
+    expect(candidates.map((candidate) => buildSubscriptionReviewReasonFacts(candidate))).toEqual([
+      [{ key: "stale_days", value: 94 }],
+      [],
+    ]);
+  });
+
   it("does not mark feeds with no fetched articles as review candidates just because counts are zero", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [

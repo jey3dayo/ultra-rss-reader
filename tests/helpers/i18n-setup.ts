@@ -6,6 +6,8 @@ import enSettings from "@/locales/en/settings.json";
 import enSidebar from "@/locales/en/sidebar.json";
 import enSubscriptions from "@/locales/en/subscriptions.json";
 
+export const testI18nResourceNamespaces = ["common", "settings", "reader", "sidebar", "subscriptions"] as const;
+
 i18n.use(initReactI18next).init({
   resources: {
     en: {
@@ -19,7 +21,7 @@ i18n.use(initReactI18next).init({
   lng: "en",
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "settings", "reader", "sidebar", "subscriptions"],
+  ns: testI18nResourceNamespaces,
   interpolation: { escapeValue: false },
 });
 

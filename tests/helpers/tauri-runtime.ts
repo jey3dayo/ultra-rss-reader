@@ -7,11 +7,7 @@ export function setTauriRuntimePresent() {
 }
 
 export function setTauriRuntimeMissing() {
-  Object.defineProperty(window, "__TAURI_INTERNALS__", {
-    configurable: true,
-    writable: true,
-    value: undefined,
-  });
+  delete window.__TAURI_INTERNALS__;
 }
 
 export function resetTauriRuntimeFlags() {

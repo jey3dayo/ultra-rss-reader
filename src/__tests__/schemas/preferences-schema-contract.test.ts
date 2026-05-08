@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
+import {
+  preferenceDefaults,
+  resolvePreferenceValue,
+} from "@/schemas/preferences";
 import frontendSource from "@/schemas/preferences.ts?raw";
 import backendSource from "../../../src-tauri/src/commands/preference_commands.rs?raw";
 
@@ -102,6 +106,19 @@ describe("preference contract", () => {
     expect(frontendKeys).not.toContain("inoreader_app_key");
     expect(backendAllowedKeys).not.toContain("inoreader_app_id");
     expect(backendAllowedKeys).not.toContain("inoreader_app_key");
+  });
+
+  it("excludes hidden defaults while still resolving their fallback values", () => {
+    expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
+    expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe(
+      "folders_first",
+    );
+    expect(
+      resolvePreferenceValue(
+        { sort_subscriptions: "unexpected" },
+        "sort_subscriptions",
+      ),
+    ).toBe("folders_first");
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {

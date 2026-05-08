@@ -1,0 +1,74 @@
+import { renderHook, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import type { FeedDto } from "@/api/tauri-commands";
+import { useSubscriptionsIndexState } from "@/components/subscriptions-index/use-subscriptions-index-state";
+import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+
+function makeRow(feedId: string): SubscriptionListRow {
+  const feed: FeedDto = {
+    id: feedId,
+    account_id: "acc-1",
+    folder_id: null,
+    title: feedId,
+    url: `https://example.com/${feedId}.xml`,
+    site_url: `https://example.com/${feedId}`,
+    unread_count: 0,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  };
+
+  return {
+    feed,
+    folderId: null,
+    folderName: null,
+    latestArticleAt: null,
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: null,
+  };
+}
+
+describe("useSubscriptionsIndexState", () => {
+  it("moves selection to the first visible row when the selected feed disappears", async () => {
+    const firstRow = makeRow("feed-first");
+    const selectedRow = makeRow("feed-selected");
+    const { result, rerender } = renderHook(
+      ({ rows }: { rows: SubscriptionListRow[] }) =>
+        useSubscriptionsIndexState(rows, { initialSelectedFeedId: "feed-selected" }),
+      {
+        initialProps: { rows: [firstRow, selectedRow] },
+      },
+    );
+
+    expect(result.current.selectedFeedId).toBe("feed-selected");
+    expect(result.current.selectedRow?.feed.id).toBe("feed-selected");
+
+    rerender({ rows: [firstRow] });
+
+    await waitFor(() => {
+      expect(result.current.selectedFeedId).toBe("feed-first");
+      expect(result.current.selectedRow?.feed.id).toBe("feed-first");
+    });
+  });
+
+  it("clears selection when the selected feed disappears and no rows are visible", async () => {
+    const selectedRow = makeRow("feed-selected");
+    const { result, rerender } = renderHook(
+      ({ rows }: { rows: SubscriptionListRow[] }) =>
+        useSubscriptionsIndexState(rows, { initialSelectedFeedId: "feed-selected" }),
+      {
+        initialProps: { rows: [selectedRow] },
+      },
+    );
+
+    expect(result.current.selectedFeedId).toBe("feed-selected");
+    expect(result.current.selectedRow?.feed.id).toBe("feed-selected");
+
+    rerender({ rows: [] });
+
+    await waitFor(() => {
+      expect(result.current.selectedFeedId).toBeNull();
+      expect(result.current.selectedRow).toBeNull();
+      expect(result.current.visibleRows).toEqual([]);
+    });
+  });
+});
