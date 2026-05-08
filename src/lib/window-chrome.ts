@@ -5,6 +5,12 @@ type DesktopOverlayTitlebarOptions = {
   hasTauriRuntime: boolean;
 };
 
+type NavigatorWithOptionalUserAgentData = Navigator & {
+  userAgentData?: {
+    platform?: string;
+  };
+};
+
 export function hasTauriRuntime(): boolean {
   if (typeof window === "undefined") {
     return false;
@@ -17,25 +23,16 @@ export function hasTauriRuntime(): boolean {
   return window.__TAURI_INTERNALS__ != null;
 }
 
+function readUserAgentDataPlatform(navigator: NavigatorWithOptionalUserAgentData): string | null {
+  return typeof navigator.userAgentData?.platform === "string" ? navigator.userAgentData.platform : null;
+}
+
 function looksLikeMacPlatform(): boolean {
   if (typeof navigator === "undefined") {
     return false;
   }
 
-  const userAgentDataPlatform =
-    "userAgentData" in navigator
-      ? (() => {
-          const userAgentData = (
-            navigator as Navigator & {
-              userAgentData?: {
-                platform?: string;
-              };
-            }
-          ).userAgentData;
-
-          return typeof userAgentData?.platform === "string" ? userAgentData.platform : null;
-        })()
-      : null;
+  const userAgentDataPlatform = readUserAgentDataPlatform(navigator);
   const platform = userAgentDataPlatform ?? navigator.platform ?? "";
 
   return /mac/i.test(platform);
