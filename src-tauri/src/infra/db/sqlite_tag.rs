@@ -91,6 +91,10 @@ impl TagRepository for SqliteTagRepository<'_> {
     }
 
     fn find_or_create(&self, tag: &Tag) -> DomainResult<Tag> {
+        if let Some(existing) = self.find_by_name(&tag.name)? {
+            return Ok(existing);
+        }
+
         self.conn.execute(
             "INSERT OR IGNORE INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
             params![tag.id.0, tag.name, tag.color],
@@ -310,6 +314,60 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(names, vec!["Fav", "Gray", "news", "Red"]);
+    }
+
+    #[test]
+    fn find_or_create_returns_existing_tag_for_exact_name_conflict() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+        let existing_tag = Tag {
+            id: TagId::new(),
+            name: "important".to_string(),
+            color: Some("#cf7868".to_string()),
+        };
+        let new_tag = Tag {
+            id: TagId::new(),
+            name: existing_tag.name.clone(),
+            color: Some("#6f8eb8".to_string()),
+        };
+        repo.save(&existing_tag).unwrap();
+
+        let found = repo.find_or_create(&new_tag).unwrap();
+        let tags = repo.find_all().unwrap();
+
+        assert_eq!(found.id, existing_tag.id);
+        assert_eq!(found.name, existing_tag.name);
+        assert_eq!(found.color, existing_tag.color);
+        assert_ne!(found.id, new_tag.id);
+        assert_ne!(found.color, new_tag.color);
+        assert_eq!(tags.len(), 1);
+    }
+
+    #[test]
+    fn find_or_create_returns_existing_tag_for_case_insensitive_name_conflict() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+        let existing_tag = Tag {
+            id: TagId::new(),
+            name: "Important".to_string(),
+            color: Some("#cf7868".to_string()),
+        };
+        let new_tag = Tag {
+            id: TagId::new(),
+            name: "important".to_string(),
+            color: Some("#6f8eb8".to_string()),
+        };
+        repo.save(&existing_tag).unwrap();
+
+        let found = repo.find_or_create(&new_tag).unwrap();
+        let tags = repo.find_all().unwrap();
+
+        assert_eq!(found.id, existing_tag.id);
+        assert_eq!(found.name, existing_tag.name);
+        assert_eq!(found.color, existing_tag.color);
+        assert_ne!(found.id, new_tag.id);
+        assert_ne!(found.color, new_tag.color);
+        assert_eq!(tags.len(), 1);
     }
 
     #[test]
@@ -750,5 +808,121 @@ mod tests {
         assert_eq!(all[0].title, "Newest read");
         assert_eq!(unread[0].title, "Middle unread");
         assert_eq!(starred[0].title, "Oldest starred");
+    }
+
+    #[test]
+    fn find_articles_by_tag_applies_account_mode_and_mute_filters_before_pagination() {
+        let db = test_db();
+        let (account_id, feed_id, _) = insert_test_data(&db);
+        let other_account_id = AccountId::new();
+        let other_feed_id = FeedId::new();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![other_account_id.0, "Local", "Other"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    other_feed_id.0,
+                    other_account_id.0,
+                    "Other Feed",
+                    "http://other.example.com"
+                ],
+            )
+            .unwrap();
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "filtered-page".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+
+        let articles = [
+            (
+                ArticleId("tag-other-account-newest".to_string()),
+                other_feed_id.clone(),
+                "Other account newest",
+                "2026-04-05T00:00:05Z",
+                false,
+            ),
+            (
+                ArticleId("tag-muted-newest".to_string()),
+                feed_id.clone(),
+                "Kindle Unlimited muted newest",
+                "2026-04-05T00:00:04Z",
+                false,
+            ),
+            (
+                ArticleId("tag-read-before-visible".to_string()),
+                feed_id.clone(),
+                "Read before visible",
+                "2026-04-05T00:00:03Z",
+                true,
+            ),
+            (
+                ArticleId("tag-visible-first".to_string()),
+                feed_id.clone(),
+                "Visible first unread",
+                "2026-04-05T00:00:02Z",
+                false,
+            ),
+            (
+                ArticleId("tag-visible-second".to_string()),
+                feed_id.clone(),
+                "Visible second unread",
+                "2026-04-05T00:00:01Z",
+                false,
+            ),
+        ];
+
+        for (article_id, article_feed_id, title, published_at, is_read) in &articles {
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![
+                        article_id.0,
+                        article_feed_id.0,
+                        title,
+                        "",
+                        "",
+                        1,
+                        published_at,
+                        is_read,
+                        false,
+                        published_at
+                    ],
+                )
+                .unwrap();
+            repo.tag_article(article_id, &tag.id).unwrap();
+        }
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let first_page = Pagination {
+            offset: 0,
+            limit: 2,
+        };
+        let articles = repo
+            .find_articles_by_tag(
+                &tag.id,
+                &first_page,
+                Some(&account_id),
+                ArticleListMode::Unread,
+            )
+            .unwrap();
+
+        assert_eq!(
+            articles
+                .iter()
+                .map(|article| article.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Visible first unread", "Visible second unread"]
+        );
     }
 }

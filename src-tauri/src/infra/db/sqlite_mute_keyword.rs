@@ -319,6 +319,49 @@ mod tests {
     }
 
     #[test]
+    fn update_scope_allows_same_rule_scope_change_without_duplicate_error() {
+        let db = test_db();
+        let repo = SqliteMuteKeywordRepository::new(db.writer());
+
+        let created = repo
+            .create("Kindle Unlimited", MuteKeywordScope::Title)
+            .unwrap();
+
+        let updated = repo
+            .update_scope(&created.id, MuteKeywordScope::Body)
+            .unwrap();
+
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.keyword, "Kindle Unlimited");
+        assert_eq!(updated.scope, MuteKeywordScope::Body);
+    }
+
+    #[test]
+    fn update_scope_rejects_duplicate_keyword_when_another_rule_has_target_scope() {
+        let db = test_db();
+        let repo = SqliteMuteKeywordRepository::new(db.writer());
+
+        let title_rule = repo
+            .create("Kindle Unlimited", MuteKeywordScope::Title)
+            .unwrap();
+        repo.create("kindle unlimited", MuteKeywordScope::Body)
+            .unwrap();
+
+        let error = repo
+            .update_scope(&title_rule.id, MuteKeywordScope::Body)
+            .unwrap_err();
+
+        assert!(matches!(error, DomainError::Validation(_)));
+        let title_rule_after_error = repo
+            .find_all()
+            .unwrap()
+            .into_iter()
+            .find(|rule| rule.id == title_rule.id)
+            .unwrap();
+        assert_eq!(title_rule_after_error.scope, MuteKeywordScope::Title);
+    }
+
+    #[test]
     fn body_matching_ignores_html_attributes() {
         let article = Article {
             id: crate::domain::types::ArticleId("art-1".to_string()),

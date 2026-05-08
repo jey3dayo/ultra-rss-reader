@@ -112,6 +112,60 @@ mod tests {
     }
 
     #[test]
+    fn find_by_account_filters_account_and_orders_by_created_at_ascending() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        for mutation in [
+            PendingMutation {
+                id: None,
+                account_id: account_a.clone(),
+                mutation_type: "MarkRead".to_string(),
+                remote_entry_id: "entry-new".to_string(),
+                created_at: "2024-01-01T00:00:03Z".to_string(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_b,
+                mutation_type: "MarkRead".to_string(),
+                remote_entry_id: "entry-other-account".to_string(),
+                created_at: "2024-01-01T00:00:01Z".to_string(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_a.clone(),
+                mutation_type: "MarkUnread".to_string(),
+                remote_entry_id: "entry-old".to_string(),
+                created_at: "2024-01-01T00:00:01Z".to_string(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_a.clone(),
+                mutation_type: "Star".to_string(),
+                remote_entry_id: "entry-mid".to_string(),
+                created_at: "2024-01-01T00:00:02Z".to_string(),
+            },
+        ] {
+            repo.save(&mutation).unwrap();
+        }
+
+        let found = repo.find_by_account(&account_a).unwrap();
+
+        assert_eq!(
+            found
+                .iter()
+                .map(|mutation| mutation.remote_entry_id.as_str())
+                .collect::<Vec<_>>(),
+            ["entry-old", "entry-mid", "entry-new"]
+        );
+        assert!(found
+            .iter()
+            .all(|mutation| mutation.account_id == account_a));
+    }
+
+    #[test]
     fn delete_removes_by_ids() {
         let db = test_db();
         let account_id = insert_test_account(&db);
