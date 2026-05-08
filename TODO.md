@@ -48,13 +48,20 @@
   - `settings-nav.types.ts` は settings rail contract として `SettingsNavView` / `AccountsNavView` / Storybook specimen / view tests にまたがるため、settings nav 境界が増えた時に再評価する
   - `settings-page.types.ts` は public page/control contract に絞る。control union が肥大化した時は page/control contract 自体の分割を検討する
   - `settings-modal.types.ts` は modal view contract に絞る。新しい settings surface が増えて content routing props が再び肥大化した時に分離する
-  - account detail / add account の view components 本体まで feature folder 化する場合は、Storybook と test の参照範囲が広いため別バッチにする
 
 - [ ] 参照範囲が広い root-level type を別バッチで分割する
   - reader selection は `src/lib/reader/reader-selection.types.ts` を source of truth にする。新しい `UiSelection` alias は増やさない
   - さらに state type を分割する場合は、`src/stores/ui-store.ts` 自体を slice 化できる段階で実施する。store action / selector / dev scenario への参照が広いため別バッチにする
 
+- [ ] 参照範囲が広い reader type surface を別バッチで分割する
+  - `article-list.types.ts` は list view / header / footer / hooks にまたがるため、article-list controller 境界を見直す時に分割する
+  - `sidebar.types.ts` は sidebar view / section props / smart views / content props にまたがるため、sidebar controller と view contract の分割単位を先に決める
+  - `browser-view.types.ts` は browser overlay / webview sync / diagnostics hooks / tests にまたがるため、native webview 境界の変更と同じバッチで扱う
+  - `command-palette.types.ts` は palette data / runtime / action groups / result rendering にまたがるため、command palette hooks の責務分割時に再評価する
+
 - [ ] 小粒 cleanup 候補を別バッチで見直す
   - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
   - pure helper の追加テストは、境界値・source selection・query plan など挙動の契約として価値があるものだけ残す
+  - schema migration 後の残り cleanup として、localStorage JSON 読み取りに非 throw の safe JSON helper を足す場合は `use-command-history` と `use-sidebar-startup-folder-expansion` を同じバッチで扱う
+  - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`copyable-field.types.ts` のように複数 component で共有するものは一括移動せず、呼び出し境界が変わる時に見直す
   - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
