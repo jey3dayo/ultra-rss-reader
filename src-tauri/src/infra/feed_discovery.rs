@@ -1,5 +1,9 @@
 use crate::domain::error::{DomainError, DomainResult};
 
+const PRIVATE_URL_VALIDATION_MESSAGE: &str =
+    "Requests to private/loopback addresses are not allowed";
+const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+
 /// A discovered feed from an HTML page.
 #[derive(Debug, Clone)]
 pub struct DiscoveredFeed {
@@ -12,36 +16,22 @@ pub struct DiscoveredFeed {
 /// If the URL itself points to a feed (Content-Type contains xml or json feed),
 /// it is returned as-is. Otherwise, the HTML `<link rel="alternate">` tags are parsed.
 pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
-    // Only allow http/https schemes to prevent SSRF against internal services
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err(DomainError::Validation(
-            "Only http:// and https:// URLs are supported".to_string(),
-        ));
-    }
-
-    // Block requests to loopback and private network addresses
-    if let Ok(parsed) = reqwest::Url::parse(url) {
-        if let Some(host) = parsed.host_str() {
-            if is_private_host(host) {
-                return Err(DomainError::Validation(
-                    "Requests to private/loopback addresses are not allowed".to_string(),
-                ));
-            }
-        }
-    }
+    let initial_url = reqwest::Url::parse(url)
+        .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
+    validate_discovery_url(&initial_url)?;
 
     let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::limited(5))
+        .redirect(discovery_redirect_policy())
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| DomainError::Network(e.to_string()))?;
 
     let response = client
-        .get(url)
+        .get(initial_url)
         .header("User-Agent", "UltraRSSReader/0.1")
         .send()
         .await
-        .map_err(|e| DomainError::Network(e.to_string()))?;
+        .map_err(map_feed_discovery_request_error)?;
     let final_url = response.url().to_string();
 
     let content_type = response
@@ -74,6 +64,47 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
 
     let feeds = extract_feed_links(&body, &final_url);
     Ok(feeds)
+}
+
+fn discovery_redirect_policy() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        if attempt.previous().len() > 5 {
+            return attempt.error("too many redirects");
+        }
+
+        match validate_discovery_url(attempt.url()) {
+            Ok(()) => attempt.follow(),
+            Err(error) => attempt.error(error.to_string()),
+        }
+    })
+}
+
+fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return Err(DomainError::Validation(
+            UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    if url.host_str().is_some_and(is_private_host) {
+        return Err(DomainError::Validation(
+            PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
+    let message = error.to_string();
+    if message.contains(PRIVATE_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(PRIVATE_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
+    }
+
+    DomainError::Network(message)
 }
 
 /// Check if a host string refers to a loopback or private network address.
@@ -349,6 +380,41 @@ mod tests {
             resolve_url("https://example.com", "//cdn.example.com/feed.xml"),
             "https://cdn.example.com/feed.xml"
         );
+    }
+
+    #[test]
+    fn validate_discovery_url_allows_public_http_and_https_urls() {
+        for url in [
+            reqwest::Url::parse("https://example.com/feed.xml").unwrap(),
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        ] {
+            assert!(validate_discovery_url(&url).is_ok());
+        }
+    }
+
+    #[test]
+    fn validate_discovery_url_rejects_private_and_loopback_redirect_targets() {
+        for url in [
+            reqwest::Url::parse("http://localhost/feed.xml").unwrap(),
+            reqwest::Url::parse("http://127.0.0.1/feed.xml").unwrap(),
+            reqwest::Url::parse("http://10.0.0.2/feed.xml").unwrap(),
+            reqwest::Url::parse("http://[::1]/feed.xml").unwrap(),
+        ] {
+            assert!(matches!(
+                validate_discovery_url(&url),
+                Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+            ));
+        }
+    }
+
+    #[test]
+    fn validate_discovery_url_rejects_unsupported_redirect_schemes() {
+        let url = reqwest::Url::parse("file:///etc/passwd").unwrap();
+
+        assert!(matches!(
+            validate_discovery_url(&url),
+            Err(DomainError::Validation(message)) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE
+        ));
     }
 
     #[test]
