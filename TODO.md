@@ -662,16 +662,6 @@
   - Web Preview transient override、reader focus return、Windows accelerator bridge とは混ぜない
   - false / 未設定時に script が入らないことも Rust unit test で見る
 
-- [ ] browser load timeout surface state 候補を別バッチで検証する
-  - `use-browser-webview-load-timeout.ts` と `use-browser-view-surface-state.ts` で、loading 中の同一 URL だけ timeout issue を出すことを fake timer で固定する
-  - URL 変更、load 完了、unmount では issue を出さないことを確認し、native timeout fallback や overlay issue Storybook とは混ぜない
-  - history / shortcut 挙動は別バッチに残す
-
-- [ ] feed discovery rel / JSON Feed detection 候補を別バッチで追加する
-  - `feed_discovery.rs` の `rel="alternate nofollow"` のような token 判定と `application/feed+json` link type 対応を pure test 付きで補強する
-  - duplicate title 表示、add feed dialog UI、実 network 検証とは混ぜない
-  - HTML link parsing の判定だけを狭く扱う
-
 - [ ] mute keyword auto mark preference guard 候補を別バッチで追加する
   - `mute_keyword_commands.rs` と `sqlite_mute_keyword.rs` で、create / update 時の既存一致記事 auto mark read を `mute_auto_mark_read=true` の時だけ適用する
   - SQL/Rust match parity、settings UI copy、記事フィルタリング仕様とは混ぜず、preference guard と既存記事更新条件だけを見る
@@ -681,11 +671,6 @@
   - `get_feed_integrity_report` で見つかる orphaned articles を削除する backend command と TS wrapper / schema を追加できるか確認する
   - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
   - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
-
-- [ ] log directory native-open command 候補を別バッチで追加する
-  - `log_commands.rs` と data settings controller で、webview に log dir path を返さず Rust 側で app log dir のみ open する command へ寄せられるか確認する
-  - log rotation、incident runbook、Data settings backup / export UX とは混ぜない
-  - path exposure と open failure の error projection を command contract として固定する
 
 - [ ] account create keyring orphan rollback 候補を別バッチで追加する
   - `account_commands.rs` で keyring 保存成功後に DB save が失敗した場合、作成した credential を削除する contract test を追加する
@@ -706,26 +691,6 @@
   - `App.tsx` の `sync-completed` listener と `query-invalidation.ts` を見直し、全量 `invalidateQueries()` を必要 query key に限定できるか確認する
   - sync scheduler、toast 文言、manual sync UI とは混ぜず、feed / article / account sync status の cache invalidation scope だけを扱う
   - event payload なしの場合の fallback と scoped invalidation を test で分ける
-
-- [ ] mute keyword article cache invalidation parity 候補を別バッチで追加する
-  - `use-mute-keywords.ts` と `query-invalidation.ts` で、mute keyword 更新時に recent / folder / starred count 系 article cache が必要十分に invalidated されるか照合する
-  - mute settings UI、filter 仕様変更、copy 変更とは混ぜず、article query key の parity だけを見る
-  - create / update / delete の invalidation 差分を focused test に分ける
-
-- [ ] account sync status query error surface 候補を別バッチで追加する
-  - `use-account-sync-status.ts` と sidebar sync hook で、sync status query failure が `not_synced_yet` と同じ表示に落ちないよう error / loading / retry の最小 contract を固定する
-  - provider error mapping、sidebar layout、同期実行処理とは混ぜない
-  - single account と all accounts status の fallback を分けて見る
-
-- [ ] startup sync timestamp storage recovery 候補を別バッチで追加する
-  - `App.tsx` と storage constants の `startupSyncLastTriggeredAt` を helper 化し、invalid / future timestamp / 旧 key 移行の扱いを固定する
-  - sync-completed invalidation、sync scheduler、本体 sync flow とは混ぜない
-  - localStorage 破損時の fallback と cleanup を app-root test で見る
-
-- [ ] sync-on-wake in-flight guard 候補を別バッチで追加する
-  - `visibilitychange` 復帰時の `listAccounts()` と `syncAccount()` が二重起動しない guard と失敗ログ契約を固定する
-  - account sync status UI、retry / backoff、provider error copy とは混ぜない
-  - wake event 連打と sync failure の挙動を app-root test に分ける
 
 - [ ] provider HTTP client policy 候補を別バッチで追加する
   - `local.rs`、`greader.rs`、`feed_discovery.rs` の timeout / redirect limit / User-Agent の差を provider HTTP contract として fixture test で固定する
