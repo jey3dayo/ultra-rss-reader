@@ -1186,10 +1186,11 @@ mod tests {
 
     use super::{
         browser_preview_action_for_shortcut, browser_preview_close_bridge_source,
-        browser_preview_focus_override_source, browser_preview_script_bindings,
-        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
-        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
-        BrowserWebviewState, BrowserWebviewTracker,
+        browser_preview_focus_override_source, browser_preview_initialization_script,
+        browser_preview_script_bindings, browser_webview_diagnostics_enabled,
+        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
+        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
+        BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1502,5 +1503,33 @@ mod tests {
         assert!(script.contains("typeof listener === 'object'"));
         assert!(script.contains("visibilitychange"));
         assert!(script.contains("blur"));
+    }
+
+    #[test]
+    fn browser_preview_initialization_script_includes_focus_override_only_when_preference_is_true()
+    {
+        let enabled_prefs =
+            HashMap::from([("web_preview_keep_focus".to_string(), "true".to_string())]);
+        let disabled_prefs =
+            HashMap::from([("web_preview_keep_focus".to_string(), "false".to_string())]);
+        let missing_prefs = HashMap::new();
+
+        let enabled_script = browser_preview_initialization_script(&enabled_prefs)
+            .expect("initialization script should exist when focus override is enabled");
+        let disabled_script = browser_preview_initialization_script(&disabled_prefs)
+            .expect("close bridge script should still exist when focus override is disabled");
+        let missing_script = browser_preview_initialization_script(&missing_prefs)
+            .expect("close bridge script should still exist when focus override is unset");
+
+        assert!(enabled_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(enabled_script.contains("Document.prototype, 'hidden', false"));
+        assert!(enabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
+        assert!(enabled_script.contains("Document.prototype, 'hasFocus', () => true"));
+        assert!(disabled_script.contains("close_browser_webview"));
+        assert!(missing_script.contains("close_browser_webview"));
+        assert!(!disabled_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(!missing_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(!disabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
+        assert!(!missing_script.contains("Document.prototype, 'visibilityState', 'visible'"));
     }
 }
