@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { addToHistory, clearHistory, getHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
-import { addToHistory, clearHistory, getHistory } from "../../hooks/use-command-history";
 
 describe("use-command-history", () => {
   beforeEach(() => {

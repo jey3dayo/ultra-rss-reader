@@ -289,7 +289,7 @@ Error mapping: `DomainError` → `AppError` at the command boundary (`Network` �
 | `lib/window/`                     | DOM window event binding, Tauri window commands, and desktop chrome runtime helpers                                |
 | `lib/*.types.ts`                  | Cross-feature TypeScript contracts that are shared without React runtime dependencies                              |
 | `stores/`                         | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence)                        |
-| `hooks/`                          | React Query hooks (articles, feeds, accounts, folders) + UI hooks                                                  |
+| `hooks/`                          | Cross-feature React Query hooks, app-shell/runtime hooks, and shared hook factories                                |
 | `components/reader/`              | Three-pane layout: sidebar, article-list, article-view, browser-view, command palette                              |
 | `components/settings/`            | Per-category settings panels (general, reading, appearance, mute, tags, shortcuts, actions, data, dev-only debug)  |
 | `components/subscriptions-index/` | Subscriptions index management workspace, including subscription review / cleanup flow                             |

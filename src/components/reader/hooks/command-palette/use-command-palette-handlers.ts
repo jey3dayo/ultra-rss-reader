@@ -1,5 +1,5 @@
+import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
-import { addToHistory } from "@/hooks/use-command-history";
 import { executeAction } from "@/lib/actions";
 import type {
   PaletteAction,

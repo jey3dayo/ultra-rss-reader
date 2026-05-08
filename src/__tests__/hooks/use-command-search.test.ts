@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { parsePrefix, useCommandSearch } from "../../hooks/use-command-search";
+import { parsePrefix, useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
 
 describe("parsePrefix", () => {
   it("returns null prefix for plain text", () => {

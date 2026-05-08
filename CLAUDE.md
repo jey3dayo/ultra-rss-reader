@@ -28,6 +28,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Keep shadcn/Base UI wrappers in `src/components/ui/`; do not place app-specific feature UI there.
 - Co-locate large feature controller hooks under that feature's `hooks/` directory when they are not reused elsewhere.
 - Put cross-feature data hooks in `src/hooks/` and cross-feature pure helpers in `src/lib/`.
+- Put feature-owned hooks under `src/components/<feature>/hooks/` once every runtime consumer is within that feature boundary.
 - Put article/content normalization helpers in `src/lib/content/`.
 - Put feed URL/host helpers and feed landing helpers in `src/lib/feed/`.
 - Put reader query/source planning helpers in `src/lib/reader/`.

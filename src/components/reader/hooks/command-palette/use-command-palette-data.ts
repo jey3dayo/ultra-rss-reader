@@ -1,6 +1,6 @@
 import { useMemo } from "react";
+import { getHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { useSearchArticles } from "@/hooks/use-articles";
-import { getHistory } from "@/hooks/use-command-history";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type {

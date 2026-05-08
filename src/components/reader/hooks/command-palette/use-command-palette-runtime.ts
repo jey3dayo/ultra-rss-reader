@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from "react";
+import { useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
 import { loadRuntimeDevScenarios, type RuntimeDevScenario } from "@/dev/scenario-runtime";
-import { useCommandSearch } from "@/hooks/use-command-search";
 import type { UseCommandPaletteRuntimeParams, UseCommandPaletteRuntimeResult } from "../../command-palette.types";
 
 type CommandPaletteRuntimeState = {

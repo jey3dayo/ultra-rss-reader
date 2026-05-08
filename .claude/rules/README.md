@@ -23,6 +23,7 @@
 - 複数 feature で再利用する UI は `src/components/shared/` に置く
 - shadcn/Base UI wrapper は `src/components/ui/` に限定する
 - cross-feature data hook は `src/hooks/`、cross-feature pure helper は `src/lib/` に置く
+- feature 内だけで使う hook は `src/components/<feature>/hooks/` に置く
 - app-wide action boundary は `src/lib/actions.ts` / `src/lib/app-actions.ts` に残す。keyboard、menu、command palette、dev scenario、IPC validation で共有されるため
 - app-wide runtime singleton や中立 primitive は `src/lib` root に残す。例: `i18n.ts`、`datetime.ts`、`utils.ts`
 - cross-pane DOM focus helper は `src/lib/reader-focus.ts` に残す。`src/lib/reader/` は reader query / source planning 用
