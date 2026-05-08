@@ -1,8 +1,32 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import type { KeyboardEvent, RefObject } from "react";
 import { ArticleContextMenu } from "./article-context-menu";
-import type { ArticleListBodyProps } from "./article-list.types";
+import type { ArticleGroupsViewGroup } from "./article-groups-view";
+import type { ArticleListEmptyStateVariant } from "./article-list-screen-view";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
+
+export type ArticleListBodyProps = {
+  listAriaLabel: string;
+  listRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  onListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
+  isLoading: boolean;
+  loadingMessage: string;
+  emptyStateVariant?: ArticleListEmptyStateVariant;
+  emptyMessage: string;
+  emptyDescription?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
+  groups: ArticleGroupsViewGroup[];
+  dimArchived: string;
+  textPreview: string;
+  imagePreviews: string;
+  selectionStyle: string;
+  onSelectArticle: (articleId: string) => void;
+  markAllReadLabel: string;
+  onMarkAllRead: () => void;
+};
 
 export function ArticleListBody({
   listAriaLabel,

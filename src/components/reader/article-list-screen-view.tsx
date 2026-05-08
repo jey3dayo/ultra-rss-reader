@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
-import type { ArticleListEmptyStateVariant } from "./article-list.types";
 import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
+
+export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 
 type ArticleListScreenViewProps = {
   listAriaLabel: string;

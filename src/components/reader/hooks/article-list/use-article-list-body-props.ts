@@ -1,4 +1,5 @@
-import type { ArticleListBodyProps, UseArticleListBodyPropsParams } from "../../article-list.types";
+import type { UseArticleListBodyPropsParams } from "../../article-list.types";
+import type { ArticleListBodyProps } from "../../article-list-body";
 
 type ArticleListBodyEmptyStateProps = Pick<
   ArticleListBodyProps,

@@ -1,7 +1,15 @@
-import { useEffect } from "react";
+import { type RefObject, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import type { ArticleListHeaderSearchProps } from "./article-list.types";
+
+type ArticleListHeaderSearchProps = {
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  searchQuery: string;
+  searchArticlesLabel: string;
+  searchArticlesPlaceholder: string;
+  onSearchQueryChange: (query: string) => void;
+  onCloseSearch: () => void;
+};
 
 export function ArticleListHeaderSearch({
   searchInputRef,

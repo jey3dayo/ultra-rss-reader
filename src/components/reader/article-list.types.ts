@@ -8,112 +8,15 @@ import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
+import type { ArticleListBodyProps } from "./article-list-body";
+import type { ArticleListContextStripProps } from "./article-list-context-strip";
+import type { ArticleListFooterProps } from "./article-list-footer";
+import type { ArticleListHeaderProps } from "./article-list-header";
 
 export type ArticleListLayoutMode = LayoutMode;
 export type ArticleListSelection = ReaderSelection;
 export type ArticleListViewMode = ViewMode;
-export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
-
-export type ArticleListHeaderSearchProps = {
-  searchInputRef: RefObject<HTMLInputElement | null>;
-  searchQuery: string;
-  searchArticlesLabel: string;
-  searchArticlesPlaceholder: string;
-  onSearchQueryChange: (query: string) => void;
-  onCloseSearch: () => void;
-};
-
-export type ArticleListHeaderProps = {
-  showSearch: boolean;
-  searchQuery: string;
-  searchInputRef: RefObject<HTMLInputElement | null>;
-  showSidebarButton: boolean;
-  sidebarButtonLabel: string;
-  sidebarButtonText?: string;
-  isSidebarVisible?: boolean;
-  feedModeControl?: ReactNode;
-  onMarkAllRead: () => void;
-  onToggleSidebar: () => void;
-  onToggleSearch: () => void;
-  onCloseSearch: () => void;
-  onSearchQueryChange: (query: string) => void;
-};
-
-export type ArticleListHeaderActionsProps = Pick<
-  ArticleListHeaderProps,
-  | "showSearch"
-  | "showSidebarButton"
-  | "sidebarButtonLabel"
-  | "sidebarButtonText"
-  | "isSidebarVisible"
-  | "feedModeControl"
-  | "onMarkAllRead"
-  | "onToggleSidebar"
-  | "onToggleSearch"
-  | "onCloseSearch"
-> & {
-  markAllReadLabel: string;
-  markAllReadButtonText: string;
-  searchArticlesLabel: string;
-  searchArticlesButtonText: string;
-  closeSearchLabel: string;
-};
-
-export type ArticleListContextStripProps = {
-  primaryLabel?: string | null;
-  secondaryLabel?: string | null;
-  tone?: "unread" | "starred" | null;
-};
-
-export type ArticleListBodyProps = {
-  listAriaLabel: string;
-  listRef: RefObject<HTMLDivElement | null>;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  onListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
-  isLoading: boolean;
-  loadingMessage: string;
-  emptyStateVariant?: ArticleListEmptyStateVariant;
-  emptyMessage: string;
-  emptyDescription?: string;
-  emptyActionLabel?: string;
-  onEmptyAction?: () => void;
-  groups: ArticleGroupsViewGroup[];
-  dimArchived: string;
-  textPreview: string;
-  imagePreviews: string;
-  selectionStyle: string;
-  onSelectArticle: (articleId: string) => void;
-  markAllReadLabel: string;
-  onMarkAllRead: () => void;
-};
-
-export type ArticleListFooterProps = {
-  viewMode: ArticleListViewMode;
-  modes?: readonly ArticleListViewMode[];
-  disabledModes?: readonly ArticleListViewMode[];
-  onSetViewMode: (mode: ArticleListViewMode) => void;
-};
-
-export type ArticleListFeedModeControlProps = {
-  ariaLabel: string;
-  value: FeedDisplayPresetOption;
-  options: Array<{ value: FeedDisplayPresetOption; label: string }>;
-  onValueChange: (value: FeedDisplayPresetOption) => void;
-};
-
-export type ArticleListItemProps = {
-  article: ArticleDto;
-  isSelected: boolean;
-  isActivePane?: boolean;
-  isRecentlyRead: boolean;
-  dimArchived: string;
-  textPreview: string;
-  imagePreviews: string;
-  selectionStyle: string;
-  feedName: string | undefined;
-  onSelect: () => void;
-};
 
 export type UseArticleListViewPropsResult = {
   layoutMode: ArticleListLayoutMode;

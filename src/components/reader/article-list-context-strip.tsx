@@ -1,5 +1,10 @@
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import type { ArticleListContextStripProps } from "./article-list.types";
+
+export type ArticleListContextStripProps = {
+  primaryLabel?: string | null;
+  secondaryLabel?: string | null;
+  tone?: "unread" | "starred" | null;
+};
 
 type ArticleListContextTone = NonNullable<ArticleListContextStripProps["tone"]> | "neutral";
 

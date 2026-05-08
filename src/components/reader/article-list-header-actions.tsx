@@ -1,9 +1,27 @@
 import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ArticleListHeaderActionsProps } from "./article-list.types";
+
+type ArticleListHeaderActionsProps = {
+  showSearch: boolean;
+  showSidebarButton: boolean;
+  sidebarButtonLabel: string;
+  sidebarButtonText?: string;
+  isSidebarVisible?: boolean;
+  feedModeControl?: ReactNode;
+  onMarkAllRead: () => void;
+  onToggleSidebar: () => void;
+  onToggleSearch: () => void;
+  onCloseSearch: () => void;
+  markAllReadLabel: string;
+  markAllReadButtonText: string;
+  searchArticlesLabel: string;
+  searchArticlesButtonText: string;
+  closeSearchLabel: string;
+};
 
 export function ArticleListHeaderActions({
   showSearch,

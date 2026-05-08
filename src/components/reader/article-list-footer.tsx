@@ -2,7 +2,14 @@ import { ToggleGroup } from "@base-ui/react/toggle-group";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
-import type { ArticleListFooterProps, ArticleListViewMode } from "./article-list.types";
+import type { ArticleListViewMode } from "./article-list.types";
+
+export type ArticleListFooterProps = {
+  viewMode: ArticleListViewMode;
+  modes?: readonly ArticleListViewMode[];
+  disabledModes?: readonly ArticleListViewMode[];
+  onSetViewMode: (mode: ArticleListViewMode) => void;
+};
 
 type ArticleListFooterMode = {
   value: ArticleListViewMode;
