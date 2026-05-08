@@ -503,3 +503,63 @@
   - `sync_providers.rs`、`repository/feed.rs`、`sqlite_feed.rs` の remote subscription 差分検出を棚卸しし、消えた購読を stale diagnostic として扱えるか確認する
   - pending mutation queue、手動 unsubscribe UX、article retention とは混ぜず、remote subscription presence の検出と記録だけを見る
   - いきなり削除せず、diagnostic DTO / log / test fixture から始める
+
+- [ ] preference key registry parity 候補を別バッチで追加する
+  - `src/api/schemas/preferences.ts`、`preference_commands.rs`、preferences schema contract test の frontend/backend key registry を双方向に照合する
+  - frontend key が backend で許可されるだけでなく、backend-only key と重複 key も検出できる contract test にする
+  - preference value validation、settings UI、migration は混ぜず、key registry parity だけを扱う
+
+- [ ] shortcut preference validation 候補を別バッチで追加する
+  - `keyboard-shortcuts.ts`、preferences schema、`preference_commands.rs` の `shortcut_` 動的 key を既知 shortcut id と保存値形式で検証する
+  - prefix 全許可を続けるか、known shortcut registry へ寄せるかを test で固定する
+  - shortcut UI 再設計、native menu shortcut、表示 copy 変更とは混ぜない
+
+- [ ] set_preference per-key schema 候補を別バッチで追加する
+  - `src/api/schemas/commands.ts` と `src/api/tauri-commands.ts` の `set_preference` args を、既存 preference schemas と接続できるか確認する
+  - key/value が単なる string のまま不正値を通さないよう、API args schema の境界値 test を追加する
+  - backend persistence、toast 文言、settings control layout は別バッチに残す
+
+- [ ] command args schema coverage 候補を別バッチで追加する
+  - `safeInvoke(... args)` を使う command と `commandArgsSchemas` の登録漏れを raw source contract test で検出する
+  - response schema、Rust DTO、command 実装変更とは混ぜず、frontend API registry coverage だけを扱う
+  - pagination/search args の境界値 validation は別候補として分ける
+
+- [ ] shortcut row individual reset 候補を別バッチで追加する
+  - `shortcuts-settings.tsx` と `shortcuts-settings-view.tsx` で、全リセットとは別に 1 行ごとに default へ戻す操作を追加できるか確認する
+  - shortcut 定義追加、native menu shortcut、i18n 表記整理とは混ぜず、row action と persistence update に限定する
+  - reset disabled state と focused row の keyboard 操作を component test で固定する
+
+- [ ] article tag picker existing-name assignment 候補を別バッチで追加する
+  - `article-tag-chips.tsx` と `article-tag-picker-popover.tsx` で、既存タグ名を入力した場合に重複作成ではなく既存タグ割り当てへ寄せる
+  - tag settings、tag color、mute keyword、Rust tag schema とは混ぜず、picker input resolution と submit action だけを扱う
+  - case sensitivity と trim の扱いを先に test で固定する
+
+- [ ] command palette unavailable action guard 候補を別バッチで追加する
+  - `use-command-palette-actions.ts` と `use-command-palette-handlers.ts` の現在記事 / 選択 / 同期状態が必要な action を disabled または非表示にする
+  - 検索 ranking、history、dev scenario error surface とは混ぜず、実行不能 action の guard と表示状態に限定する
+  - action 実行時の二重 guard を残すかどうかも test で固定する
+
+- [ ] discovered feed duplicate title disambiguation 候補を別バッチで追加する
+  - `discovered-feed-options-view.tsx` と `add-feed-dialog-state.ts` で、同じ title の discovered feed を URL / host 付きで識別できる表示へ寄せる
+  - feed discovery pipeline、folder create validation、duplicate local feed ID reload とは混ぜず、検出結果 view model と表示に限定する
+  - single candidate 時の表示密度を変えず、duplicate title 時だけ補助情報を出す
+
+- [ ] article mutation missing-id contract 候補を別バッチで検証する
+  - `article_commands.rs` と `sqlite_article.rs` の `mark_article_read` / `mark_articles_read` / `toggle_article_star` で存在しない article id の扱いを固定する
+  - pending mutation queue、toast 表示、auto mark retry とは混ぜず、repository / command result の contract test に限定する
+  - no-op と user-visible error のどちらにするかを既存 caller fallback と照合して決める
+
+- [ ] mute keyword SQL/Rust match parity 候補を別バッチで追加する
+  - `sqlite_mute_keyword.rs`、`sqlite_article.rs`、`sqlite_tag.rs` の Rust 側 match helper と SQL 側 match clause を同じ fixture で比較する
+  - summary / content_text / content_sanitized / title の body 判定がズレないよう、境界値 test で固定する
+  - sanitizer policy、settings form props、tag chip visual は混ぜない
+
+- [ ] Reading List URL escaping contract 候補を別バッチで追加する
+  - `share_commands.rs` と `src/api/schemas/commands.ts` の macOS Reading List 追加で、AppleScript 生成の quote / newline / non-http URL を固定する
+  - native share menu 表示、clipboard fallback、article share menu UI とは混ぜず、URL escaping helper と command args validation に限定する
+  - platform unavailable 時の error projection は既存 platform command scope に残す
+
+- [ ] updater pending update lifecycle 候補を別バッチで検証する
+  - `updater_commands.rs` と `use-updater.ts` の `PendingUpdate` cache、download 二重起動、download 失敗後の state reset を棚卸しする
+  - release workflow preflight、version dry-run、署名 / artifact matrix 変更とは混ぜず、updater command lifecycle だけを扱う
+  - check / download / install の user action availability を focused test と manual verification に分ける
