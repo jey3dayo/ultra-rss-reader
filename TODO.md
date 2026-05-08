@@ -124,11 +124,6 @@
   - `ja-locales` / `ui-language` 系 tests に、キー存在だけでなく reader/preview/external browser の意味差分を固定する assertion を追加する
   - copy 変更は UI regression になりやすいため、型整理や layout 変更とは混ぜない
 
-- [ ] OPML import/export contract test 候補を別バッチで追加する
-  - `src-tauri/src/infra/opml.rs` の parse/generate round trip、folder nesting、missing xmlUrl/htmlUrl、特殊文字 escape を境界値で固定する
-  - frontend import/export command schema と Rust OPML parser の責務を分け、UI copy や file picker 挙動とは混ぜない
-  - 大きな end-to-end import ではなく、parser/generator と command response contract の小さい test を優先する
-
 - [ ] provider / sync flow boundary 整理候補を別バッチで見直す
   - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
   - pending mutation / sync state / account sync status はデータ整合性に関わるため、UI sync feedback の型整理とは混ぜない
@@ -934,31 +929,6 @@
   - data settings pending state、backup / export UX、migration recovery とは混ぜない
   - UI 文言ではなく backend error category と TS schema compatibility に限定する
 
-- [ ] read-state optimistic cache membership contract 候補を別バッチで追加する
-  - `use-articles.ts` の `useSetRead` 成功時に、`mode: "unread"` の article cache で既読化した記事を即時に残す / 落とす契約を fixed test にする
-  - unread count、feed count、mark-all-read 系 mutation、reader selection UX とは混ぜない
-  - feed / folder / account scope で cache membership の扱いが揃うかを代表 case に絞る
-
-- [ ] star-state mode-aware cache key contract 候補を別バッチで追加する
-  - `useToggleStar` の即時 cache patch が実 hook の `["accountArticles", accountId, { mode }]` / `["starredArticles", accountId]` とズレた unscoped key を作らないことを固定する
-  - starred count invalidation、context menu 表示、article toolbar 操作とは混ぜない
-  - account article cache と starred article cache の key update を別 assertion にする
-
-- [ ] recent article history mutation invalidation contract 候補を別バッチで追加する
-  - `useRecordArticleView` / `useClearArticleViewHistory` が `recentArticles` だけを invalidation し、通常 article list / counts を巻き込まないことを固定する
-  - 最近表示 UI、viewMode clamp、browser open / close、reader scope matrix とは混ぜない
-  - record と clear の invalidation target を hook test で分ける
-
-- [ ] article tag mutation cache boundary contract 候補を別バッチで追加する
-  - `use-tags.ts` の `useTagArticle` / `useUntagArticle` が `articleTags`、`articlesByTag`、`tagArticleCounts` のどこまでを contract とするかを代表 mutation で固定する
-  - tag create / rename / delete、tag settings UI、tag chip visual、mute keyword filter とは混ぜない
-  - tag assignment と unassignment の cache invalidation 差分を確認する
-
-- [ ] subscription summary cache invalidation after feed deletion 候補を別バッチで追加する
-  - `use-delete-feed.ts` 成功時に `feedArticleSummaries` cache をどう扱うかを subscriptions index 専用 query contract として確認する
-  - subscriptions decision flow、keep / defer / delete UX、feed cleanup candidate 判定、unsubscribe dialog copy とは混ぜない
-  - deleted feed の summary 残留と account summary invalidation を分けて見る
-
 - [ ] migration duplicate column fallback guard 候補を別バッチで追加する
   - `migration.rs` の idempotent column helpers と V8 / V16 系 migration で duplicate column error を許容する範囲を test で固定する
   - full rollback behavior、backup restore、schema redesign とは混ぜない
@@ -968,11 +938,6 @@
   - `connection.rs` と V14 migration 後の `content_text` backfill が sanitizer / text extraction helper と drift しないことを fixture で固定する
   - sanitizer privacy hardening、article content migration 全体、reader display UI とは混ぜない
   - migration-time backfill と runtime sanitized update の差分を明示する
-
-- [ ] Storybook decorator runtime provider parity 候補を別バッチで追加する
-  - `story-tauri-runtime.ts`、`story-query-client-provider.tsx`、decorator 付き stories が required providers を揃えているかを representative render test で固定する
-  - render-story helper decorator parity、Storybook fixture runtime 整理全体、mock data 文言変更とは混ぜない
-  - Query provider 必須 story と Tauri runtime 必須 story を別 case にする
 
 - [ ] dev intent env precedence contract 候補を別バッチで追加する
   - `src/dev/intent.ts` で `VITE_DEV_INTENT`、runtime dev options、未設定時 fallback の優先順位を pure test で固定する
@@ -1081,10 +1046,6 @@
   - `preference_commands.rs` で `ui_language` 保存後に menu update が失敗した時の error category と保存済み preference の扱いを contract として固定する
   - locale copy、menu accelerator label、settings view option schema は混ぜない
 
-- [ ] OPML malformed document error category 候補を別バッチで追加する
-  - `opml.rs` と `opml_commands.rs` で malformed XML、OPML root missing、outline missing URL の error / skip 方針を parser contract として整理する
-  - duplicate outline URL policy、outline text fallback、file picker UI は同じバッチに混ぜない
-
 - [ ] Article list search debounce / close contract 候補を別バッチで追加する
   - `use-article-list-search.ts` で `openSearch` / `handleToggleSearch` / `handleCloseSearch` と `ARTICLE_SEARCH_DEBOUNCE_MS` 後の trimmed query 反映を hook test で固定する
   - article scope matrix、footer filter、search UI の見た目、検索 API/schema 変更は混ぜない
@@ -1129,14 +1090,6 @@
   - `preferences-store.ts` で concurrent `loadPreferences()` が single-flight になり、失敗時も `loaded=true` と default language fallback が適用される契約を固定する
   - preference schema migration、theme view transition、settings UI 表示は別バッチにする
 
-- [ ] Article display invalid feed override fallback 候補を別バッチで追加する
-  - `article-display.ts` の `resolveFeedDisplayOverrides` で reader/web preview override の片方だけ invalid な時に両方 inherit へ戻す契約を pure test で固定する
-  - feed display settings command、settings select UI、article browser display override reset は混ぜない
-
-- [ ] Article summary latest invalid date order 候補を別バッチで追加する
-  - `article-view.ts` の `findLatestArticleOrNull` で invalid date と valid date が混在する時の latest 判定、全件 invalid の fallback を pure test で固定する
-  - article list sort order、locale formatting、summary card visual は別バッチに残す
-
 - [ ] Browser tracker redirect history replacement 候補を別バッチで追加する
   - `browser_webview.rs` の `BrowserWebviewTracker` で new/back/forward/reload 後に finish URL が redirect 済み URL へ置換される契約を Rust unit test で固定する
   - native WebView bounds、frontend requested-url merge、browser history UI は混ぜない
@@ -1161,17 +1114,9 @@
   - `use-dev-intent.ts` で runtime options load 中または timeout 前に unmount された場合、`runRuntimeDevScenario` が起動しない契約を fake timer test で固定する
   - dev scenario registry、scenario error toast copy、production bundle leak guard は混ぜない
 
-- [ ] Story Tauri runtime restore contract 候補を別バッチで追加する
-  - `story-tauri-runtime.ts` で `setStoryTauriRuntimePresent` / `setStoryTauriRuntimeMissing` が `window.__TAURI_INTERNALS__` を configurable に保ち、story 間で runtime state を戻せる契約を test で固定する
-  - Storybook smoke gate、Tauri mock response schema、runtime wrapper 実装は別スコープにする
-
 - [ ] Story query client retry isolation contract 候補を別バッチで追加する
   - `story-query-client-provider.tsx` で story ごとに retry=false の QueryClient が作られ、query cache が story render 間で漏れない契約を lightweight test で固定する
   - Storybook decorator runtime provider parity、production query retry policy、visual specimen は混ぜない
-
-- [ ] GReader FreshRSS API base normalization contract 候補を別バッチで追加する
-  - `greader.rs` の FreshRSS provider factory で server URL 末尾 slash と `/api/greader.php` 既指定の正規化を Rust unit test で固定する
-  - auth flow、HTTP client policy、subscription URL merge は別バッチに残す
 
 - [ ] Platform dev runtime positive integer parsing contract 候補を別バッチで追加する
   - `platform_commands.rs` の dev runtime options で window width/height env が positive integer の時だけ DTO に入り、空文字・0・負数・非数値を無視する契約を固定する
@@ -1180,10 +1125,6 @@
 - [ ] Reading List URL quote escaping contract 候補を別バッチで追加する
   - `share_commands.rs` の macOS Reading List command で URL 内の double quote が AppleScript 文字列を壊さないよう escape 方針を contract test 化する
   - unsupported scheme guard、clipboard runtime category、Safari 実機 verification は別バッチにする
-
-- [ ] Settings overflow observer fallback contract 候補を別バッチで追加する
-  - `use-scroll-overflow-state.ts` で ResizeObserver / MutationObserver が未定義でも resize listener と animation frame により overflow state が安定する契約を fixed test で固定する
-  - settings layout の見た目調整、scrollbar styling、各 settings page の配置変更は混ぜない
 
 - [ ] Subscriptions list scroll restore idempotency contract 候補を別バッチで追加する
   - `subscriptions-list-pane.tsx` で `initialScrollTop` が同じ値で再 render された時は再代入せず、値が変わった時だけ scrollTop を復元する契約を固定する
@@ -1196,10 +1137,6 @@
 - [ ] Set preference shortcut key rejection contract 候補を別バッチで追加する
   - `commands.ts` の `setPreferenceArgs` で unknown `shortcut_*` key が reject され、known shortcut key だけ `shortcutPreferenceValueSchema` で検証される契約を schema test で固定する
   - shortcut recording UI、keyboard shortcut conflict resolver、Rust preference command は別バッチにする
-
-- [ ] Reading List URL newline schema contract 候補を別バッチで追加する
-  - `commands.ts` の `addToReadingListArgs` で http/https 以外と CR/LF を含む URL を frontend schema で reject する契約を固定する
-  - macOS AppleScript quote escaping、share command unsupported scheme guard、Safari 実機 verification は混ぜない
 
 - [ ] Mute keyword invalid stored scope conversion contract 候補を別バッチで追加する
   - `sqlite_mute_keyword.rs` で DB に unknown scope が入った場合、`find_all` が silent fallback せず conversion error として扱う契約を repository test で固定する
