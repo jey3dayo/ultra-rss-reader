@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { ScreenSnapshotResult } from "@/hooks/use-screen-snapshot";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 
 type SnapshotCandidate = { value: string };
@@ -15,13 +16,21 @@ function renderScreenSnapshotHook(initialProps: ScreenSnapshotHookProps) {
   });
 }
 
+function expectSnapshotState<T>(result: ScreenSnapshotResult<T>, expected: ScreenSnapshotResult<T>) {
+  expect(result.snapshot).toEqual(expected.snapshot);
+  expect(result.hasResolvedSnapshot).toBe(expected.hasResolvedSnapshot);
+  expect(result.hasAdoptedSnapshot).toBe(expected.hasAdoptedSnapshot);
+}
+
 describe("useScreenSnapshot", () => {
   it("adopts immediately on the initial render when canAdopt is true", () => {
     const { result } = renderHook(() => useScreenSnapshot({ value: "sqlite" }, true));
 
-    expect(result.current.snapshot).toEqual({ value: "sqlite" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "sqlite" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
   });
 
   it("keeps the previous snapshot while the next fetch is pending", () => {
@@ -30,27 +39,33 @@ describe("useScreenSnapshot", () => {
       canAdopt: false,
     });
 
-    expect(result.current.snapshot).toBeNull();
-    expect(result.current.hasResolvedSnapshot).toBe(false);
-    expect(result.current.hasAdoptedSnapshot).toBe(false);
+    expectSnapshotState(result.current, {
+      snapshot: null,
+      hasResolvedSnapshot: false,
+      hasAdoptedSnapshot: false,
+    });
 
     rerender({
       candidate: { value: "sqlite" },
       canAdopt: true,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "sqlite" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "sqlite" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
 
     rerender({
       candidate: null,
       canAdopt: false,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "sqlite" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "sqlite" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
   });
 
   it("keeps the previous snapshot when the candidate changes while canAdopt is false", () => {
@@ -59,18 +74,22 @@ describe("useScreenSnapshot", () => {
       canAdopt: true,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "first" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "first" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
 
     rerender({
       candidate: { value: "second" },
       canAdopt: false,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "first" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "first" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
   });
 
   it("adopts the latest candidate when canAdopt toggles from false to true", () => {
@@ -79,27 +98,33 @@ describe("useScreenSnapshot", () => {
       canAdopt: false,
     });
 
-    expect(result.current.snapshot).toBeNull();
-    expect(result.current.hasResolvedSnapshot).toBe(false);
-    expect(result.current.hasAdoptedSnapshot).toBe(false);
+    expectSnapshotState(result.current, {
+      snapshot: null,
+      hasResolvedSnapshot: false,
+      hasAdoptedSnapshot: false,
+    });
 
     rerender({
       candidate: { value: "queued" },
       canAdopt: false,
     });
 
-    expect(result.current.snapshot).toBeNull();
-    expect(result.current.hasResolvedSnapshot).toBe(false);
-    expect(result.current.hasAdoptedSnapshot).toBe(false);
+    expectSnapshotState(result.current, {
+      snapshot: null,
+      hasResolvedSnapshot: false,
+      hasAdoptedSnapshot: false,
+    });
 
     rerender({
       candidate: { value: "queued" },
       canAdopt: true,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "queued" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "queued" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
   });
 
   it("treats a null candidate as unresolved while canAdopt is true", () => {
@@ -108,25 +133,31 @@ describe("useScreenSnapshot", () => {
       canAdopt: true,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "adopted" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "adopted" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
 
     rerender({
       candidate: null,
       canAdopt: true,
     });
 
-    expect(result.current.snapshot).toEqual({ value: "adopted" });
-    expect(result.current.hasResolvedSnapshot).toBe(true);
-    expect(result.current.hasAdoptedSnapshot).toBe(true);
+    expectSnapshotState(result.current, {
+      snapshot: { value: "adopted" },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
   });
 
   it("stays unresolved when canAdopt is true but no snapshot has been adopted yet", () => {
     const { result } = renderHook(() => useScreenSnapshot(null, true));
 
-    expect(result.current.snapshot).toBeNull();
-    expect(result.current.hasResolvedSnapshot).toBe(false);
-    expect(result.current.hasAdoptedSnapshot).toBe(false);
+    expectSnapshotState(result.current, {
+      snapshot: null,
+      hasResolvedSnapshot: false,
+      hasAdoptedSnapshot: false,
+    });
   });
 });
