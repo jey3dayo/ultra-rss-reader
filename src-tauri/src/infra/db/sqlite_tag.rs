@@ -15,9 +15,48 @@ pub struct SqliteTagRepository<'a> {
     conn: &'a Connection,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrphanedArticleTag {
+    pub article_id: ArticleId,
+    pub tag_id: TagId,
+}
+
 impl<'a> SqliteTagRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
+    }
+
+    pub fn list_orphaned_article_tags(&self) -> DomainResult<Vec<OrphanedArticleTag>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT at.article_id, at.tag_id
+             FROM article_tags at
+             LEFT JOIN articles a ON a.id = at.article_id
+             LEFT JOIN tags t ON t.id = at.tag_id
+             WHERE a.id IS NULL OR t.id IS NULL
+             ORDER BY at.article_id ASC, at.tag_id ASC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(OrphanedArticleTag {
+                    article_id: ArticleId(row.get(0)?),
+                    tag_id: TagId(row.get(1)?),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
+    pub fn count_orphaned_article_tags(&self) -> DomainResult<i64> {
+        let count = self.conn.query_row(
+            "SELECT COUNT(*)
+             FROM article_tags at
+             LEFT JOIN articles a ON a.id = at.article_id
+             LEFT JOIN tags t ON t.id = at.tag_id
+             WHERE a.id IS NULL OR t.id IS NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(count)
     }
 }
 
@@ -166,7 +205,7 @@ impl TagRepository for SqliteTagRepository<'_> {
              JOIN article_tags at ON a.id = at.article_id \
              JOIN feeds f ON a.feed_id = f.id \
              WHERE {where_clause} \
-             ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+             ORDER BY a.published_at DESC, a.fetched_at DESC, a.id DESC LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
         let account_id_param = account_id.map(|aid| aid.0.as_str());
@@ -566,6 +605,58 @@ mod tests {
 
         let tags = repo.find_tags_for_article(&article_id).unwrap();
         assert_eq!(tags.len(), 1);
+    }
+
+    #[test]
+    fn detects_orphaned_article_tags_without_cleanup() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let healthy_tag = Tag {
+            id: TagId("tag-healthy".to_string()),
+            name: "healthy".to_string(),
+            color: None,
+        };
+        repo.save(&healthy_tag).unwrap();
+        repo.tag_article(&article_id, &healthy_tag.id).unwrap();
+
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = OFF;")
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+                params!["missing-article", healthy_tag.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+                params![article_id.0, "missing-tag"],
+            )
+            .unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
+
+        let orphans = repo.list_orphaned_article_tags().unwrap();
+
+        assert_eq!(repo.count_orphaned_article_tags().unwrap(), 2);
+        assert_eq!(
+            orphans,
+            vec![
+                OrphanedArticleTag {
+                    article_id: ArticleId("art-1".to_string()),
+                    tag_id: TagId("missing-tag".to_string()),
+                },
+                OrphanedArticleTag {
+                    article_id: ArticleId("missing-article".to_string()),
+                    tag_id: TagId("tag-healthy".to_string()),
+                },
+            ]
+        );
+        assert_eq!(repo.find_tags_for_article(&article_id).unwrap().len(), 1);
     }
 
     #[test]

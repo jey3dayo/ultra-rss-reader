@@ -24,7 +24,7 @@ use ultra_rss_reader_lib::repository::account::AccountRepository;
 use ultra_rss_reader_lib::repository::article::{ArticleRepository, Pagination};
 use ultra_rss_reader_lib::repository::feed::FeedRepository;
 use ultra_rss_reader_lib::repository::pending_mutation::{
-    PendingMutation, PendingMutationRepository,
+    PendingMutation, PendingMutationRepository, PendingMutationType,
 };
 use ultra_rss_reader_lib::repository::sync_state::SyncStateRepository;
 use ultra_rss_reader_lib::service::sync_flow;
@@ -301,7 +301,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             .save(&PendingMutation {
                 id: None,
                 account_id: account_id.clone(),
-                mutation_type: "mark_read".into(),
+                mutation_type: PendingMutationType::MarkRead,
                 remote_entry_id: "local-guid-1".into(),
                 created_at: "2026-04-01T00:00:00Z".into(),
             })

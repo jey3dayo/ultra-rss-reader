@@ -18,7 +18,7 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::repository::account::AccountRepository;
-use crate::repository::sync_state::{SyncState, SyncStateRepository};
+use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 const SCHEDULER_TICK_INTERVAL_SECS: u64 = 10;
 const DEFAULT_SYNC_INTERVAL_SECS: u64 = 3_600;
@@ -28,7 +28,6 @@ const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
 
 const TICK_INTERVAL: Duration = Duration::from_secs(SCHEDULER_TICK_INTERVAL_SECS);
 const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
-const SYNC_STATE_SCOPE: &str = "scheduler";
 
 /// Per-account scheduling state kept in memory.
 struct AccountSchedule {
@@ -272,7 +271,8 @@ fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bool {
         return false;
     };
     let repo = SqliteSyncStateRepository::new(db_guard.reader());
-    let Some(state) = repo.get(account_id, SYNC_STATE_SCOPE).ok().flatten() else {
+    let scope_key = SyncStateScopeKey::scheduler();
+    let Some(state) = repo.get(account_id, &scope_key).ok().flatten() else {
         return false;
     };
     if state.error_count == 0 {
@@ -292,13 +292,14 @@ fn reset_error_count(db: &Mutex<DbManager>, account_id: &AccountId) {
         return;
     };
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
+    let scope_key = SyncStateScopeKey::scheduler();
     let mut state = repo
-        .get(account_id, SYNC_STATE_SCOPE)
+        .get(account_id, &scope_key)
         .ok()
         .flatten()
         .unwrap_or_else(|| SyncState {
             account_id: account_id.clone(),
-            scope_key: SYNC_STATE_SCOPE.to_string(),
+            scope_key: scope_key.as_string(),
             timestamp_usec: None,
             continuation: None,
             etag: None,
@@ -328,13 +329,14 @@ fn increment_error_count(
         };
     };
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
+    let scope_key = SyncStateScopeKey::scheduler();
     let mut state = repo
-        .get(account_id, SYNC_STATE_SCOPE)
+        .get(account_id, &scope_key)
         .ok()
         .flatten()
         .unwrap_or_else(|| SyncState {
             account_id: account_id.clone(),
-            scope_key: SYNC_STATE_SCOPE.to_string(),
+            scope_key: scope_key.as_string(),
             timestamp_usec: None,
             continuation: None,
             etag: None,

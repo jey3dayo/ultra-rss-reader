@@ -107,14 +107,11 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                reader_mode = excluded.reader_mode,
                web_preview_mode = excluded.web_preview_mode
              ON CONFLICT(account_id, url) DO UPDATE SET
-               folder_id = excluded.folder_id,
                remote_id = excluded.remote_id,
                title = excluded.title,
                site_url = excluded.site_url,
                icon = excluded.icon,
-               unread_count = excluded.unread_count,
-               reader_mode = excluded.reader_mode,
-               web_preview_mode = excluded.web_preview_mode",
+               unread_count = excluded.unread_count",
             params![
                 feed.id.0,
                 feed.account_id.0,
@@ -606,38 +603,52 @@ mod tests {
     }
 
     #[test]
-    fn save_updates_existing_feed_when_account_and_url_match() {
+    fn save_updates_existing_feed_when_account_and_url_match_preserves_local_settings() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, 'Local Folder', 0)",
+                params![folder_id.0, account_id.0],
+            )
+            .unwrap();
 
         let existing_feed = Feed {
             id: FeedId::new(),
             account_id: account_id.clone(),
-            folder_id: None,
+            folder_id: Some(folder_id.clone()),
             remote_id: None,
             title: "Original Feed".to_string(),
             url: "http://example.com/rss".to_string(),
             site_url: "http://example.com".to_string(),
             icon: None,
             unread_count: 0,
-            reader_mode: "inherit".to_string(),
-            web_preview_mode: "inherit".to_string(),
+            reader_mode: "on".to_string(),
+            web_preview_mode: "off".to_string(),
         };
         repo.save(&existing_feed).unwrap();
 
+        let remote_folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, 'Remote Folder', 1)",
+                params![remote_folder_id.0, account_id.0],
+            )
+            .unwrap();
         let replacement_feed = Feed {
             id: FeedId::new(),
             account_id: account_id.clone(),
-            folder_id: None,
+            folder_id: Some(remote_folder_id),
             remote_id: Some("feed/1".to_string()),
             title: "Remote Feed".to_string(),
             url: existing_feed.url.clone(),
             site_url: "https://example.com".to_string(),
             icon: Some(vec![1, 2, 3]),
             unread_count: 12,
-            reader_mode: "on".to_string(),
-            web_preview_mode: "off".to_string(),
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
         };
 
         repo.save(&replacement_feed).unwrap();
@@ -650,6 +661,7 @@ mod tests {
         assert_eq!(feeds[0].site_url, "https://example.com");
         assert_eq!(feeds[0].icon.as_deref(), Some(&[1, 2, 3][..]));
         assert_eq!(feeds[0].unread_count, 12);
+        assert_eq!(feeds[0].folder_id.as_ref(), Some(&folder_id));
         assert_eq!(feeds[0].reader_mode, "on");
         assert_eq!(feeds[0].web_preview_mode, "off");
     }
@@ -700,8 +712,8 @@ mod tests {
         assert_eq!(saved_feed.title, "Updated Feed");
         assert_eq!(saved_feed.site_url, "https://example.com/articles");
         assert_eq!(saved_feed.icon.as_deref(), Some(&[9, 8, 7][..]));
-        assert_eq!(saved_feed.reader_mode, "off");
-        assert_eq!(saved_feed.web_preview_mode, "on");
+        assert_eq!(saved_feed.reader_mode, "inherit");
+        assert_eq!(saved_feed.web_preview_mode, "inherit");
     }
 
     #[test]

@@ -45,10 +45,70 @@ fn validate_add_account_args(
     }
 }
 
+fn save_account_after_optional_password<F, S, D>(
+    account: &Account,
+    password: Option<&str>,
+    set_password: F,
+    save_account: S,
+    delete_password: D,
+) -> Result<(), AppError>
+where
+    F: FnOnce(&str, &str) -> Result<(), AppError>,
+    S: FnOnce(&Account) -> Result<(), AppError>,
+    D: FnOnce(&str) -> Result<(), AppError>,
+{
+    let credential_account_id = if matches!(account.kind, ProviderKind::FreshRss) {
+        if let Some(pw) = password {
+            set_password(account.id.as_ref(), pw)?;
+            Some(account.id.as_ref().to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    match save_account(account) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            if let Some(account_id) = credential_account_id {
+                if let Err(rollback_error) = delete_password(&account_id) {
+                    warn!(
+                        "Failed to roll back keyring entry for account {} after DB save failure: {:?}",
+                        account_id, rollback_error
+                    );
+                }
+            }
+            Err(error)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::validate_add_account_args;
+    use super::{save_account_after_optional_password, validate_add_account_args};
+    use crate::commands::dto::AppError;
+    use crate::domain::account::{Account, ConnectionVerificationStatus};
     use crate::domain::provider::ProviderKind;
+    use crate::domain::types::AccountId;
+    use std::cell::RefCell;
+
+    fn fresh_rss_account() -> Account {
+        Account {
+            id: AccountId::new(),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some("https://rss.example.com".to_string()),
+            username: Some("alice".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
 
     #[test]
     fn validates_add_account_args_by_provider_kind() {
@@ -96,6 +156,70 @@ mod tests {
         )
         .is_err());
         assert!(validate_add_account_args("Unknown", None, None, None).is_err());
+    }
+
+    #[test]
+    fn add_account_rolls_back_keyring_entry_when_db_save_fails() {
+        let account = fresh_rss_account();
+        let saved_passwords = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        let result = save_account_after_optional_password(
+            &account,
+            Some("secret"),
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+            |_| {
+                Err(AppError::UserVisible {
+                    message: "db failed".to_string(),
+                })
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        );
+
+        assert!(result.is_err());
+        assert_eq!(
+            saved_passwords.borrow().as_slice(),
+            &[(account.id.as_ref().to_string(), "secret".to_string())]
+        );
+        assert_eq!(
+            deleted_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+    }
+
+    #[test]
+    fn add_account_keeps_original_db_error_when_keyring_rollback_fails() {
+        let account = fresh_rss_account();
+
+        let error = save_account_after_optional_password(
+            &account,
+            Some("secret"),
+            |_, _| Ok(()),
+            |_| {
+                Err(AppError::UserVisible {
+                    message: "db failed".to_string(),
+                })
+            },
+            |_| {
+                Err(AppError::UserVisible {
+                    message: "rollback failed".to_string(),
+                })
+            },
+        )
+        .expect_err("DB save failure should remain the returned error");
+
+        match error {
+            AppError::UserVisible { message } => assert_eq!(message, "db failed"),
+            AppError::Retryable { message } => panic!("unexpected retryable error: {message}"),
+        }
     }
 }
 
@@ -156,18 +280,17 @@ pub async fn add_account(
         account.connection_verified_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
-    // Store password in OS keyring BEFORE DB save (fail fast)
-    if matches!(account.kind, ProviderKind::FreshRss) {
-        if let Some(ref pw) = password {
-            keyring_store::set_password(account.id.as_ref(), pw)?;
-        }
-    }
-
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteAccountRepository::new(db.writer());
-    repo.save(&account)?;
+    save_account_after_optional_password(
+        &account,
+        password.as_deref(),
+        |account_id, pw| keyring_store::set_password(account_id, pw).map_err(AppError::from),
+        |account| repo.save(account).map_err(AppError::from),
+        |account_id| keyring_store::delete_password(account_id).map_err(AppError::from),
+    )?;
 
     Ok(AccountDto::from(account))
 }

@@ -235,6 +235,13 @@ pub struct FeedIntegrityReportDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct FeedIntegrityCleanupDto {
+    pub dry_run: bool,
+    pub orphaned_article_count: i64,
+    pub deleted_article_count: i64,
+}
+
+#[derive(Debug, Serialize)]
 pub struct TagDto {
     pub id: String,
     pub name: String,

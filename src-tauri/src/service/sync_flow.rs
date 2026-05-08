@@ -7,7 +7,7 @@ use crate::infra::sanitizer;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
-use crate::repository::pending_mutation::PendingMutationRepository;
+use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
 use chrono::Utc;
 
 /// Generic repository-driven sync flow used by non-delta providers and lower-level tests.
@@ -36,23 +36,20 @@ pub async fn sync_account(
         if !pending.is_empty() {
             let mutations: Vec<Mutation> = pending
                 .iter()
-                .map(|p| match p.mutation_type.as_str() {
-                    "mark_read" => Mutation::MarkRead {
+                .map(|p| match p.mutation_type {
+                    PendingMutationType::MarkRead => Mutation::MarkRead {
                         remote_entry_id: p.remote_entry_id.clone(),
                     },
-                    "mark_unread" => Mutation::MarkUnread {
+                    PendingMutationType::MarkUnread => Mutation::MarkUnread {
                         remote_entry_id: p.remote_entry_id.clone(),
                     },
-                    "set_starred" => Mutation::SetStarred {
+                    PendingMutationType::Star => Mutation::SetStarred {
                         remote_entry_id: p.remote_entry_id.clone(),
                         starred: true,
                     },
-                    "unset_starred" => Mutation::SetStarred {
+                    PendingMutationType::Unstar => Mutation::SetStarred {
                         remote_entry_id: p.remote_entry_id.clone(),
                         starred: false,
-                    },
-                    _ => Mutation::MarkRead {
-                        remote_entry_id: p.remote_entry_id.clone(),
                     },
                 })
                 .collect();

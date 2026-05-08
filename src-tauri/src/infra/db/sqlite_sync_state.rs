@@ -2,7 +2,7 @@ use rusqlite::{params, Connection};
 
 use crate::domain::error::DomainResult;
 use crate::domain::types::AccountId;
-use crate::repository::sync_state::{SyncState, SyncStateRepository};
+use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 pub struct SqliteSyncStateRepository<'a> {
     conn: &'a Connection,
@@ -15,11 +15,15 @@ impl<'a> SqliteSyncStateRepository<'a> {
 }
 
 impl SyncStateRepository for SqliteSyncStateRepository<'_> {
-    fn get(&self, account_id: &AccountId, scope_key: &str) -> DomainResult<Option<SyncState>> {
+    fn get<K>(&self, account_id: &AccountId, scope_key: K) -> DomainResult<Option<SyncState>>
+    where
+        K: Into<SyncStateScopeKey>,
+    {
+        let scope_key = scope_key.into();
         let mut stmt = self.conn.prepare(
             "SELECT account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
         )?;
-        let mut rows = stmt.query_map(params![account_id.0, scope_key], |row| {
+        let mut rows = stmt.query_map(params![account_id.0, scope_key.as_string()], |row| {
             Ok(SyncState {
                 account_id: AccountId(row.get(0)?),
                 scope_key: row.get(1)?,
@@ -87,7 +91,7 @@ mod tests {
 
         let state = SyncState {
             account_id: account_id.clone(),
-            scope_key: "all".to_string(),
+            scope_key: SyncStateScopeKey::greader_account_all().as_string(),
             timestamp_usec: Some(1_700_000_100_000_000),
             continuation: Some("cont-123".to_string()),
             etag: Some("etag-abc".to_string()),
@@ -99,7 +103,10 @@ mod tests {
         };
         repo.save(&state).unwrap();
 
-        let found = repo.get(&account_id, "all").unwrap().unwrap();
+        let found = repo
+            .get(&account_id, &SyncStateScopeKey::greader_account_all())
+            .unwrap()
+            .unwrap();
         assert_eq!(found.timestamp_usec, Some(1_700_000_100_000_000));
         assert_eq!(found.continuation, Some("cont-123".to_string()));
         assert_eq!(found.etag, Some("etag-abc".to_string()));
@@ -112,7 +119,9 @@ mod tests {
         let account_id = insert_test_account(&db);
         let repo = SqliteSyncStateRepository::new(db.writer());
 
-        let result = repo.get(&account_id, "nonexistent").unwrap();
+        let result = repo
+            .get(&account_id, &SyncStateScopeKey::feed("nonexistent"))
+            .unwrap();
         assert!(result.is_none());
     }
 
@@ -124,7 +133,7 @@ mod tests {
 
         let mut state = SyncState {
             account_id: account_id.clone(),
-            scope_key: "all".to_string(),
+            scope_key: SyncStateScopeKey::greader_account_all().as_string(),
             timestamp_usec: None,
             continuation: None,
             etag: None,
@@ -141,9 +150,34 @@ mod tests {
         state.error_count = 3;
         repo.save(&state).unwrap();
 
-        let found = repo.get(&account_id, "all").unwrap().unwrap();
+        let found = repo
+            .get(&account_id, &SyncStateScopeKey::greader_account_all())
+            .unwrap()
+            .unwrap();
         assert_eq!(found.timestamp_usec, Some(1_700_000_200_000_000));
         assert_eq!(found.continuation, Some("new-cont".to_string()));
         assert_eq!(found.error_count, 3);
+    }
+
+    #[test]
+    fn scope_key_helper_builds_known_disjoint_keys() {
+        let keys = [
+            SyncStateScopeKey::scheduler().as_string(),
+            SyncStateScopeKey::greader_account_all().as_string(),
+            SyncStateScopeKey::greader_remote_state_full().as_string(),
+            SyncStateScopeKey::feed("feed/1").as_string(),
+            SyncStateScopeKey::local_feed("https://example.com/rss").as_string(),
+            SyncStateScopeKey::from("legacy").as_string(),
+        ];
+
+        assert_eq!(keys[0], "scheduler");
+        assert_eq!(keys[1], "account:greader:all");
+        assert_eq!(keys[2], "account:greader:remote-state-full");
+        assert_eq!(keys[3], "feed:feed/1");
+        assert_eq!(keys[4], "local_feed:https://example.com/rss");
+        assert_eq!(keys[5], "legacy");
+
+        let unique = keys.iter().collect::<std::collections::HashSet<_>>();
+        assert_eq!(unique.len(), keys.len());
     }
 }

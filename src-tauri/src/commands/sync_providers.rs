@@ -24,8 +24,8 @@ use crate::infra::sanitizer;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
-use crate::repository::pending_mutation::PendingMutationRepository;
-use crate::repository::sync_state::{SyncState, SyncStateRepository};
+use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
+use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 use super::feed_commands::lock_db;
 
@@ -60,8 +60,6 @@ struct GReaderAccountEntriesSyncOutcome {
     feeds_seen: usize,
 }
 
-const GREADER_ACCOUNT_SYNC_STATE_SCOPE: &str = "account:greader:all";
-const GREADER_REMOTE_STATE_SYNC_SCOPE: &str = "account:greader:remote-state-full";
 const GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES: i64 = 10;
 
 fn build_article_from_remote_entry(
@@ -114,7 +112,7 @@ fn update_latest_timestamp_usec(
 fn load_sync_state(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
-    scope_key: &str,
+    scope_key: &SyncStateScopeKey,
 ) -> Result<Option<SyncState>, AppError> {
     let db_guard = lock_db(db)?;
     let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
@@ -133,7 +131,8 @@ fn should_pull_remote_state(
     account_id: &AccountId,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Result<bool, AppError> {
-    let state = load_sync_state(db, account_id, GREADER_REMOTE_STATE_SYNC_SCOPE)?;
+    let scope_key = SyncStateScopeKey::greader_remote_state_full();
+    let state = load_sync_state(db, account_id, &scope_key)?;
     let Some(last_success_at) = state.and_then(|saved| saved.last_success_at) else {
         return Ok(true);
     };
@@ -153,11 +152,12 @@ fn mark_remote_state_sync_completed(
     account_id: &AccountId,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Result<(), AppError> {
+    let scope_key = SyncStateScopeKey::greader_remote_state_full();
     save_sync_state(
         db,
         &SyncState {
             account_id: account_id.clone(),
-            scope_key: GREADER_REMOTE_STATE_SYNC_SCOPE.to_string(),
+            scope_key: scope_key.as_string(),
             timestamp_usec: Some(now.timestamp_micros()),
             continuation: None,
             etag: None,
@@ -247,7 +247,7 @@ pub(super) async fn sync_local_feed(
 
     let next_state = SyncState {
         account_id: account_id.clone(),
-        scope_key,
+        scope_key: scope_key.as_string(),
         timestamp_usec: None,
         continuation: None,
         etag: result
@@ -489,6 +489,17 @@ fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
     remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
 }
 
+fn resolve_greader_subscription_folder_id(
+    remote_folder_id: Option<&str>,
+    folder_remote_id_map: &HashMap<String, FolderId>,
+    existing_feed: Option<&Feed>,
+) -> Option<FolderId> {
+    remote_folder_id
+        .and_then(|remote_id| folder_remote_id_map.get(remote_id))
+        .cloned()
+        .or_else(|| existing_feed.and_then(|feed| feed.folder_id.clone()))
+}
+
 fn pending_mutation_targets_provider_managed_greader_feed(
     db: &Mutex<DbManager>,
     pending_mutation_id: i64,
@@ -518,7 +529,8 @@ async fn sync_greader_account_entries(
     account: &Account,
     feeds_by_remote_id: &HashMap<String, Feed>,
 ) -> Result<GReaderAccountEntriesSyncOutcome, AppError> {
-    let saved_state = load_sync_state(db, &account.id, GREADER_ACCOUNT_SYNC_STATE_SCOPE)?;
+    let account_scope_key = SyncStateScopeKey::greader_account_all();
+    let saved_state = load_sync_state(db, &account.id, &account_scope_key)?;
 
     let mut cursor = cursor_from_state(saved_state.as_ref());
     let mut latest_timestamp_usec = saved_state.as_ref().and_then(|state| state.timestamp_usec);
@@ -579,7 +591,7 @@ async fn sync_greader_account_entries(
 
     let next_state = SyncState {
         account_id: account.id.clone(),
-        scope_key: GREADER_ACCOUNT_SYNC_STATE_SCOPE.to_string(),
+        scope_key: account_scope_key.as_string(),
         timestamp_usec: latest_timestamp_usec,
         continuation: None,
         etag: None,
@@ -631,17 +643,16 @@ async fn sync_greader_feeds(
                     .map(|f| f.id.clone())
                     .unwrap_or_else(FeedId::new),
                 account_id: account.id.clone(),
-                folder_id: rs
-                    .folder_remote_id
-                    .as_ref()
-                    .and_then(|rid| folder_remote_id_map.get(rid))
-                    .cloned()
-                    .or_else(|| existing.as_ref().and_then(|f| f.folder_id.clone())),
+                folder_id: resolve_greader_subscription_folder_id(
+                    rs.folder_remote_id.as_deref(),
+                    &folder_remote_id_map,
+                    existing.as_ref(),
+                ),
                 remote_id: Some(rs.remote_id.clone()),
                 title: rs.title.clone(),
                 url: rs.url.clone(),
                 site_url: rs.site_url.clone(),
-                icon: None,
+                icon: existing.as_ref().and_then(|f| f.icon.clone()),
                 unread_count: 0,
                 reader_mode: existing
                     .as_ref()
@@ -708,6 +719,15 @@ async fn sync_greader_feeds(
         }
         if let Err(error) = sync_local_feed(db, &local_provider, &account.id, feed).await {
             warn!("Failed to pull entries for feed {}: {error}", feed.url);
+            warnings.push(ProviderSyncWarning {
+                kind: AccountSyncWarningKind::Generic,
+                message: format!(
+                    "Local feed '{}' failed during provider sync: {error}",
+                    feed.title
+                ),
+                retry_at: None,
+                retry_in_seconds: None,
+            });
         }
     }
     info!(
@@ -737,7 +757,8 @@ async fn sync_greader_feeds(
         if !pending_mutation_targets_provider_managed_greader_feed(db, pending_mutation_id)? {
             warn!(
                 "Dropping pending mutation {} for non-GReader feed entry {}",
-                pm.mutation_type, pm.remote_entry_id
+                pm.mutation_type.as_str(),
+                pm.remote_entry_id
             );
             let db_guard = lock_db(db)?;
             let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
@@ -745,25 +766,21 @@ async fn sync_greader_feeds(
             continue;
         }
 
-        let mutation = match pm.mutation_type.as_str() {
-            "mark_read" => Mutation::MarkRead {
+        let mutation = match pm.mutation_type {
+            PendingMutationType::MarkRead => Mutation::MarkRead {
                 remote_entry_id: pm.remote_entry_id.clone(),
             },
-            "mark_unread" => Mutation::MarkUnread {
+            PendingMutationType::MarkUnread => Mutation::MarkUnread {
                 remote_entry_id: pm.remote_entry_id.clone(),
             },
-            "star" => Mutation::SetStarred {
+            PendingMutationType::Star => Mutation::SetStarred {
                 remote_entry_id: pm.remote_entry_id.clone(),
                 starred: true,
             },
-            "unstar" => Mutation::SetStarred {
+            PendingMutationType::Unstar => Mutation::SetStarred {
                 remote_entry_id: pm.remote_entry_id.clone(),
                 starred: false,
             },
-            other => {
-                warn!("Unknown mutation type: {other}");
-                continue;
-            }
         };
 
         match provider.push_mutations(&[mutation]).await {
@@ -776,13 +793,15 @@ async fn sync_greader_feeds(
             Err(error) => {
                 warn!(
                     "Failed to push mutation {} for entry {}: {error}. Will retry next sync.",
-                    pm.mutation_type, pm.remote_entry_id
+                    pm.mutation_type.as_str(),
+                    pm.remote_entry_id
                 );
                 warnings.push(ProviderSyncWarning {
                     kind: AccountSyncWarningKind::RetryPending,
                     message: format!(
                         "Local change '{}' for entry {} will retry next sync.",
-                        pm.mutation_type, pm.remote_entry_id
+                        pm.mutation_type.as_str(),
+                        pm.remote_entry_id
                     ),
                     retry_at: None,
                     retry_in_seconds: None,
@@ -1067,12 +1086,12 @@ async fn fetch_greader_unread_entries_for_feed(
     Ok(unread_remote_ids)
 }
 
-fn feed_scope_key(remote_id: &str) -> String {
-    format!("feed:{remote_id}")
+fn feed_scope_key(remote_id: &str) -> SyncStateScopeKey {
+    SyncStateScopeKey::feed(remote_id)
 }
 
-fn local_feed_scope_key(feed_url: &str) -> String {
-    format!("local_feed:{feed_url}")
+fn local_feed_scope_key(feed_url: &str) -> SyncStateScopeKey {
+    SyncStateScopeKey::local_feed(feed_url)
 }
 
 fn article_count_for_feed(db: &Mutex<DbManager>, feed_id: &FeedId) -> Result<usize, AppError> {
@@ -1191,7 +1210,7 @@ async fn sync_greader_feed_entries(
 
     let next_state = SyncState {
         account_id: account.id.clone(),
-        scope_key,
+        scope_key: scope_key.as_string(),
         timestamp_usec: latest_timestamp_usec,
         continuation: None,
         // GReader delta sync is driven by continuation + `ot`; HTTP validators
@@ -1462,6 +1481,52 @@ mod tests {
         }
     }
 
+    #[test]
+    fn resolve_greader_subscription_folder_id_preserves_existing_folder_when_remote_folder_is_missing(
+    ) {
+        let account_id = AccountId::new();
+        let existing_folder_id = FolderId::new();
+        let existing_feed = Feed {
+            id: FeedId::new(),
+            account_id,
+            folder_id: Some(existing_folder_id.clone()),
+            remote_id: Some("feed/https://example.com/rss".to_string()),
+            title: "Feed".to_string(),
+            url: "https://example.com/rss".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "on".to_string(),
+            web_preview_mode: "off".to_string(),
+        };
+        let folder_remote_id_map = HashMap::new();
+
+        let resolved = resolve_greader_subscription_folder_id(
+            Some("user/-/label/Deleted Remote Folder"),
+            &folder_remote_id_map,
+            Some(&existing_feed),
+        );
+
+        assert_eq!(resolved, Some(existing_folder_id));
+    }
+
+    #[test]
+    fn resolve_greader_subscription_folder_id_uses_remote_folder_when_present() {
+        let remote_folder_id = FolderId::new();
+        let folder_remote_id_map = HashMap::from([(
+            "user/-/label/Remote Folder".to_string(),
+            remote_folder_id.clone(),
+        )]);
+
+        let resolved = resolve_greader_subscription_folder_id(
+            Some("user/-/label/Remote Folder"),
+            &folder_remote_id_map,
+            None,
+        );
+
+        assert_eq!(resolved, Some(remote_folder_id));
+    }
+
     #[tokio::test]
     async fn sync_greader_account_uses_account_stream_for_full_sync_and_maps_entries_to_feeds() {
         let mut server = mockito::Server::new_async().await;
@@ -1494,7 +1559,8 @@ mod tests {
                             "title": "Feed One",
                             "url": "https://example.com/feed-1.xml",
                             "htmlUrl": "https://example.com/one",
-                            "categories": []
+                            "categories": [],
+                            "iconUrl": "https://example.com/icon-one.png"
                         },
                         {
                             "id": "feed/https://example.com/feed-2.xml",
@@ -1660,6 +1726,7 @@ mod tests {
         let feed_two = feed_repo.find_by_id(&feeds[1].id).unwrap().unwrap();
 
         assert!(outcome.warnings.is_empty());
+        assert_eq!(feed_one.icon.as_deref(), None);
         assert_eq!(feed_one_articles.len(), 1);
         assert_eq!(feed_two_articles.len(), 1);
         assert_eq!(feed_one_articles[0].title, "Article One");
@@ -1963,7 +2030,7 @@ mod tests {
             sync_state_repo
                 .save(&SyncState {
                     account_id: account.id.clone(),
-                    scope_key: "account:greader:all".to_string(),
+                    scope_key: SyncStateScopeKey::greader_account_all().as_string(),
                     timestamp_usec: Some(1_700_000_000_000_000),
                     continuation: None,
                     etag: None,
@@ -1985,7 +2052,7 @@ mod tests {
         let db_guard = db.lock().unwrap();
         let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
         let state = sync_state_repo
-            .get(&account.id, "account:greader:all")
+            .get(&account.id, &SyncStateScopeKey::greader_account_all())
             .unwrap()
             .unwrap();
 
@@ -2111,17 +2178,32 @@ mod tests {
             )
             .create_async()
             .await;
+        let local_failure_mock = server
+            .mock("GET", "/local-broken.xml")
+            .with_status(500)
+            .with_body("server error")
+            .create_async()
+            .await;
 
+        let local_broken_url = format!("{}/local-broken.xml", server.url());
         let db = test_db();
         let (account, feeds) = insert_account_and_feeds(
             &db,
             &server.url(),
-            &[(
-                "feed/https://example.com/feed-1.xml",
-                "Feed One",
-                "https://example.com/feed-1.xml",
-                "https://example.com/one",
-            )],
+            &[
+                (
+                    "feed/https://example.com/feed-1.xml",
+                    "Feed One",
+                    "https://example.com/feed-1.xml",
+                    "https://example.com/one",
+                ),
+                (
+                    "",
+                    "Broken Local",
+                    &local_broken_url,
+                    "https://example.com/local",
+                ),
+            ],
         );
         let _credentials = configure_dev_credentials(&account.id).await;
 
@@ -2130,6 +2212,7 @@ mod tests {
 
         account_stream_mock.assert_async().await;
         per_feed_one_mock.assert_async().await;
+        local_failure_mock.assert_async().await;
 
         let db_guard = db.lock().unwrap();
         let article_repo = SqliteArticleRepository::new(db_guard.reader());
@@ -2138,10 +2221,13 @@ mod tests {
             .unwrap();
 
         assert!(articles.is_empty());
-        assert_eq!(outcome.warnings.len(), 1);
-        assert!(outcome.warnings[0]
+        assert_eq!(outcome.warnings.len(), 2);
+        assert!(outcome.warnings.iter().any(|warning| warning
             .message
-            .contains("skipped 1 entry item(s) during sync"));
+            .contains("skipped 1 entry item(s) during sync")));
+        assert!(outcome.warnings.iter().any(|warning| warning
+            .message
+            .contains("Local feed 'Broken Local' failed during provider sync")));
     }
 
     #[tokio::test]
@@ -2251,7 +2337,7 @@ mod tests {
             sync_state_repo
                 .save(&SyncState {
                     account_id: account.id.clone(),
-                    scope_key: GREADER_REMOTE_STATE_SYNC_SCOPE.to_string(),
+                    scope_key: SyncStateScopeKey::greader_remote_state_full().as_string(),
                     timestamp_usec: Some(chrono::Utc::now().timestamp_micros()),
                     continuation: None,
                     etag: None,
@@ -2300,7 +2386,7 @@ mod tests {
         let (account, feed) = insert_account_and_feed(&db, &server.url());
         let saved_state = SyncState {
             account_id: account.id.clone(),
-            scope_key: feed_scope_key(FEED_REMOTE_ID),
+            scope_key: feed_scope_key(FEED_REMOTE_ID).as_string(),
             timestamp_usec: Some(1_700_000_000_000_000),
             continuation: Some("stale-continuation".to_string()),
             etag: Some("etag-old".to_string()),
@@ -2423,7 +2509,7 @@ mod tests {
             sync_state_repo
                 .save(&SyncState {
                     account_id: account.id.clone(),
-                    scope_key: feed_scope_key(FEED_REMOTE_ID),
+                    scope_key: feed_scope_key(FEED_REMOTE_ID).as_string(),
                     timestamp_usec: Some(1_700_000_000_000_000),
                     continuation: None,
                     etag: None,
@@ -2521,7 +2607,7 @@ mod tests {
         let (account, feed) = insert_account_and_feed(&db, &server.url());
         let saved_state = SyncState {
             account_id: account.id.clone(),
-            scope_key: feed_scope_key(FEED_REMOTE_ID),
+            scope_key: feed_scope_key(FEED_REMOTE_ID).as_string(),
             timestamp_usec: Some(1_700_000_000_000_000),
             continuation: None,
             etag: Some("etag-old".to_string()),
@@ -2763,7 +2849,7 @@ mod tests {
             sync_state_repo
                 .save(&SyncState {
                     account_id: account.id.clone(),
-                    scope_key: local_feed_scope_key(&feed.url),
+                    scope_key: local_feed_scope_key(&feed.url).as_string(),
                     timestamp_usec: None,
                     continuation: None,
                     etag: Some(LOCAL_ETAG_OLD.to_string()),
@@ -2853,7 +2939,7 @@ mod tests {
             sync_state_repo
                 .save(&SyncState {
                     account_id: account.id.clone(),
-                    scope_key: local_feed_scope_key(&feed.url),
+                    scope_key: local_feed_scope_key(&feed.url).as_string(),
                     timestamp_usec: None,
                     continuation: None,
                     etag: Some(LOCAL_ETAG_OLD.to_string()),
@@ -2920,7 +3006,7 @@ mod tests {
             sync_state_repo
                 .save(&SyncState {
                     account_id: account.id.clone(),
-                    scope_key: local_feed_scope_key(&feed.url),
+                    scope_key: local_feed_scope_key(&feed.url).as_string(),
                     timestamp_usec: None,
                     continuation: None,
                     etag: Some(LOCAL_ETAG_OLD.to_string()),

@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::infra::db::sqlite_mute_keyword::build_mute_keyword_exclusion_clause;
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -151,22 +152,32 @@ impl DbManager {
     }
 
     fn reconcile_feed_unread_counts(&self) -> DomainResult<()> {
-        let updated_rows = self.writer.execute(
-            "UPDATE feeds
-             SET unread_count = (
-               SELECT COUNT(*)
-               FROM articles
-               WHERE articles.feed_id = feeds.id
-                 AND articles.is_read = 0
-             )
-             WHERE unread_count != (
-               SELECT COUNT(*)
-               FROM articles
-               WHERE articles.feed_id = feeds.id
-                 AND articles.is_read = 0
-             )",
+        let has_mute_keywords_table: bool = self.writer.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'mute_keywords')",
             [],
+            |row| row.get(0),
         )?;
+        let visible_unread_clause = if has_mute_keywords_table {
+            build_mute_keyword_exclusion_clause(
+                "articles.title",
+                "CASE WHEN trim(coalesce(articles.content_text, '')) = '' THEN coalesce(articles.summary, '') ELSE articles.content_text END",
+            )
+        } else {
+            "1 = 1".to_string()
+        };
+        let count_visible_unread = format!(
+            "SELECT COUNT(*)
+             FROM articles
+             WHERE articles.feed_id = feeds.id
+               AND articles.is_read = 0
+               AND {visible_unread_clause}"
+        );
+        let sql = format!(
+            "UPDATE feeds
+             SET unread_count = ({count_visible_unread})
+             WHERE unread_count != ({count_visible_unread})"
+        );
+        let updated_rows = self.writer.execute(&sql, [])?;
 
         if updated_rows > 0 {
             tracing::info!("Reconciled unread counts for {updated_rows} feed(s) on startup");
@@ -747,6 +758,60 @@ mod tests {
             .unwrap();
 
         assert_eq!(unread_count, 2);
+    }
+
+    #[test]
+    fn new_reconciles_stale_feed_unread_counts_excluding_muted_articles() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("stale-muted-unread-counts.db");
+
+        {
+            let db = DbManager::new(&db_path).unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES ('mk1', 'kindle unlimited', 'title', '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, content_text, sanitizer_version, published_at, fetched_at, is_read) \
+                     VALUES ('art-visible', 'f1', 'Visible unread', '', '', '', 1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0)",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, content_text, sanitizer_version, published_at, fetched_at, is_read) \
+                     VALUES ('art-muted', 'f1', 'Kindle Unlimited deal', '', '', '', 1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0)",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let repaired = DbManager::new(&db_path).unwrap();
+        let unread_count: i32 = repaired
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = 'f1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(unread_count, 1);
     }
 
     #[test]

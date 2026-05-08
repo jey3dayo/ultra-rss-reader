@@ -4,7 +4,8 @@ use rusqlite::OptionalExtension;
 use tauri::State;
 
 use crate::commands::dto::{
-    AppError, ArticleDto, FeedArticleSummaryDto, FeedIntegrityIssueDto, FeedIntegrityReportDto,
+    AppError, ArticleDto, FeedArticleSummaryDto, FeedIntegrityCleanupDto, FeedIntegrityIssueDto,
+    FeedIntegrityReportDto,
 };
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
@@ -14,7 +15,9 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::feed::FeedRepository;
-use crate::repository::pending_mutation::{PendingMutation, PendingMutationRepository};
+use crate::repository::pending_mutation::{
+    PendingMutation, PendingMutationRepository, PendingMutationType,
+};
 
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
@@ -237,7 +240,7 @@ fn collect_old_unread_rows(
 fn queue_bulk_pending_mutations(
     conn: &rusqlite::Connection,
     rows: &[BulkArticleMutationRow],
-    mutation_type: &str,
+    mutation_type: PendingMutationType,
 ) -> Result<(), AppError> {
     let pending_repo = SqlitePendingMutationRepository::new(conn);
     for row in rows {
@@ -246,7 +249,7 @@ fn queue_bulk_pending_mutations(
                 pending_repo.save(&PendingMutation {
                     id: None,
                     account_id: AccountId(row.account_id.clone()),
-                    mutation_type: mutation_type.to_string(),
+                    mutation_type,
                     remote_entry_id: remote_entry_id.clone(),
                     created_at: Utc::now().to_rfc3339(),
                 })?;
@@ -286,7 +289,7 @@ fn mark_rows_read(
         .map_err(DomainError::from)?;
     }
     recalculate_bulk_feed_unread_counts(conn, rows)?;
-    queue_bulk_pending_mutations(conn, rows, "mark_read")
+    queue_bulk_pending_mutations(conn, rows, PendingMutationType::MarkRead)
 }
 
 fn bulk_mark_account_read(
@@ -334,7 +337,7 @@ fn bulk_unstar_account_articles(
         )
         .map_err(DomainError::from)?;
     }
-    queue_bulk_pending_mutations(conn, &rows, "unstar")?;
+    queue_bulk_pending_mutations(conn, &rows, PendingMutationType::Unstar)?;
     Ok(count)
 }
 
@@ -359,7 +362,11 @@ fn mark_article_read_with_conn(
         let feed_repo = SqliteFeedRepository::new(conn);
         feed_repo.recalculate_unread_count(&FeedId(feed_id_str))?;
 
-        let mutation_type = if read { "mark_read" } else { "mark_unread" };
+        let mutation_type = if read {
+            PendingMutationType::MarkRead
+        } else {
+            PendingMutationType::MarkUnread
+        };
         maybe_queue_mutation(conn, &article_id, mutation_type)?;
     }
 
@@ -398,7 +405,7 @@ fn mark_articles_read_with_conn(
     }
 
     for id in ids {
-        maybe_queue_mutation(conn, id, "mark_read")?;
+        maybe_queue_mutation(conn, id, PendingMutationType::MarkRead)?;
     }
 
     Ok(())
@@ -412,7 +419,11 @@ fn toggle_article_star_with_conn(
     let repo = SqliteArticleRepository::new(conn);
     repo.mark_as_starred(&article_id, starred)?;
 
-    let mutation_type = if starred { "star" } else { "unstar" };
+    let mutation_type = if starred {
+        PendingMutationType::Star
+    } else {
+        PendingMutationType::Unstar
+    };
     maybe_queue_mutation(conn, &article_id, mutation_type)?;
 
     Ok(())
@@ -687,6 +698,29 @@ pub fn get_feed_integrity_report(
 }
 
 #[tauri::command]
+pub fn cleanup_feed_integrity_orphans(
+    state: State<'_, AppState>,
+    dry_run: bool,
+) -> Result<FeedIntegrityCleanupDto, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.writer());
+    let orphaned_article_count = repo.count_orphaned_articles()?;
+    let deleted_article_count = if dry_run {
+        0
+    } else {
+        repo.delete_orphaned_articles()?
+    };
+
+    Ok(FeedIntegrityCleanupDto {
+        dry_run,
+        orphaned_article_count,
+        deleted_article_count,
+    })
+}
+
+#[tauri::command]
 pub fn mark_article_read(
     state: State<'_, AppState>,
     article_id: String,
@@ -770,7 +804,11 @@ pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(),
 
     // Queue pending mutations only for newly-marked articles
     for article_id in &newly_read_ids {
-        maybe_queue_mutation(db.writer(), &ArticleId(article_id.clone()), "mark_read")?;
+        maybe_queue_mutation(
+            db.writer(),
+            &ArticleId(article_id.clone()),
+            PendingMutationType::MarkRead,
+        )?;
     }
 
     Ok(())
@@ -823,7 +861,11 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
 
     // Queue pending mutations only for newly-marked articles
     for article_id in &newly_read_ids {
-        maybe_queue_mutation(db.writer(), &ArticleId(article_id.clone()), "mark_read")?;
+        maybe_queue_mutation(
+            db.writer(),
+            &ArticleId(article_id.clone()),
+            PendingMutationType::MarkRead,
+        )?;
     }
 
     Ok(())
@@ -846,7 +888,7 @@ pub fn toggle_article_star(
 fn maybe_queue_mutation(
     conn: &rusqlite::Connection,
     article_id: &ArticleId,
-    mutation_type: &str,
+    mutation_type: PendingMutationType,
 ) -> Result<(), AppError> {
     // Single query to get remote_id, account kind, and account_id
     let row: Option<(String, String, String, Option<String>)> = conn
@@ -874,7 +916,7 @@ fn maybe_queue_mutation(
             pending_repo.save(&PendingMutation {
                 id: None,
                 account_id: AccountId(account_id),
-                mutation_type: mutation_type.to_string(),
+                mutation_type,
                 remote_entry_id,
                 created_at: chrono::Utc::now().to_rfc3339(),
             })?;
@@ -920,7 +962,7 @@ mod tests {
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::platform::{platform_info_for_kind, PlatformKind};
     use crate::repository::article::ArticleListMode;
-    use crate::repository::pending_mutation::PendingMutationRepository;
+    use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
     use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 
@@ -1064,7 +1106,7 @@ mod tests {
             )
             .expect("article insert should succeed");
 
-        maybe_queue_mutation(db.writer(), &article_id, "mark_read")
+        maybe_queue_mutation(db.writer(), &article_id, PendingMutationType::MarkRead)
             .expect("local-like feeds should be ignored without error");
 
         let pending_repo = SqlitePendingMutationRepository::new(db.reader());
@@ -1204,7 +1246,7 @@ mod tests {
         assert_eq!(account_a_unread, 0);
         assert_eq!(account_b_unread, 1);
         assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].mutation_type, "mark_read");
+        assert_eq!(pending[0].mutation_type, PendingMutationType::MarkRead);
         assert_eq!(pending[0].remote_entry_id, "remote-a");
     }
 
@@ -1322,7 +1364,7 @@ mod tests {
         assert_eq!(account_a_starred, 0);
         assert_eq!(account_b_starred, 1);
         assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].mutation_type, "unstar");
+        assert_eq!(pending[0].mutation_type, PendingMutationType::Unstar);
         assert_eq!(pending[0].remote_entry_id, "remote-a");
     }
 }

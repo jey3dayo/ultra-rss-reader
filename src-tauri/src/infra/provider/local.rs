@@ -1,12 +1,16 @@
 use async_trait::async_trait;
 use reqwest::header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
 use reqwest::StatusCode;
+use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
+
+const LOCAL_PROVIDER_TIMEOUT: Duration = Duration::from_secs(15);
+const LOCAL_PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
@@ -21,7 +25,12 @@ impl Default for LocalProvider {
 impl LocalProvider {
     pub fn new() -> Self {
         Self {
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .timeout(LOCAL_PROVIDER_TIMEOUT)
+                .redirect(reqwest::redirect::Policy::limited(5))
+                .user_agent(LOCAL_PROVIDER_USER_AGENT)
+                .build()
+                .unwrap_or_default(),
         }
     }
 
@@ -154,7 +163,13 @@ impl FeedProvider for LocalProvider {
         _folder: Option<&str>,
     ) -> DomainResult<RemoteSubscription> {
         // For local feeds, just validate the URL by fetching and parsing
-        let response = self.http_client.get(url).send().await?;
+        let response = self
+            .http_client
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| DomainError::Network(e.to_string()))?;
         let bytes = response.bytes().await?;
         let feed =
             feed_rs::parser::parse(&bytes[..]).map_err(|e| DomainError::Parse(e.to_string()))?;
@@ -203,6 +218,7 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
         let mock = server
             .mock("GET", "/feed.xml")
+            .match_header("user-agent", LOCAL_PROVIDER_USER_AGENT)
             .with_body(SAMPLE_RSS)
             .with_header("content-type", "application/rss+xml")
             .create_async()
@@ -218,6 +234,52 @@ mod tests {
         assert_eq!(result.entries[0].title, "Article 1");
         assert!(!result.not_modified);
         assert!(!result.has_more);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_parses_json_feed_body() {
+        let json_feed = r#"{
+            "version": "https://jsonfeed.org/version/1.1",
+            "title": "JSON Feed",
+            "home_page_url": "https://example.com",
+            "feed_url": "https://example.com/feed.json",
+            "items": [
+                {
+                    "id": "json-1",
+                    "url": "https://example.com/json-1",
+                    "title": "JSON Article",
+                    "content_html": "<p>JSON body</p>",
+                    "date_published": "2026-03-27T12:00:00Z"
+                }
+            ]
+        }"#;
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/feed.json")
+            .with_body(json_feed)
+            .with_header("content-type", "application/feed+json")
+            .create_async()
+            .await;
+
+        let provider = LocalProvider::new();
+        let feed_url = format!("{}/feed.json", server.url());
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: feed_url.clone(),
+        });
+
+        let result = provider.pull_entries(scope, None).await.unwrap();
+
+        assert_eq!(result.entries.len(), 1);
+        assert_eq!(result.entries[0].id.as_deref(), Some("json-1"));
+        assert_eq!(result.entries[0].title, "JSON Article");
+        assert_eq!(result.entries[0].content, "<p>JSON body</p>");
+        match &result.entries[0].source_feed_id {
+            FeedIdentifier::Local {
+                feed_url: source_feed_url,
+            } => assert_eq!(source_feed_url, &feed_url),
+            FeedIdentifier::Remote { .. } => panic!("JSON feed entry should stay local-scoped"),
+        }
         mock.assert_async().await;
     }
 
@@ -344,6 +406,49 @@ mod tests {
         assert_eq!(subscription.title, subscription.url);
         assert_eq!(subscription.site_url, "");
         assert_eq!(subscription.folder_remote_id, None);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_returns_network_error_for_http_status_failure() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/missing.xml", server.url());
+        let mock = server
+            .mock("GET", "/missing.xml")
+            .with_status(404)
+            .with_body("not found")
+            .create_async()
+            .await;
+
+        let provider = LocalProvider::new();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("HTTP status errors should not be parsed as feeds");
+
+        assert!(matches!(error, DomainError::Network(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_returns_parse_error_for_html_success_response() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/page", server.url());
+        let mock = server
+            .mock("GET", "/page")
+            .with_status(200)
+            .with_body("<html><body>not a feed</body></html>")
+            .with_header("content-type", "text/html")
+            .create_async()
+            .await;
+
+        let provider = LocalProvider::new();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("successful non-feed responses should be parser errors");
+
+        assert!(matches!(error, DomainError::Parse(_)));
         mock.assert_async().await;
     }
 

@@ -42,6 +42,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
         .send()
         .await
         .map_err(|e| DomainError::Network(e.to_string()))?;
+    let final_url = response.url().to_string();
 
     let content_type = response
         .headers()
@@ -53,7 +54,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
     // If the URL itself is a feed, return it directly
     if is_feed_content_type(&content_type) {
         return Ok(vec![DiscoveredFeed {
-            url: url.to_string(),
+            url: final_url,
             title: String::new(),
         }]);
     }
@@ -67,12 +68,12 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
     let trimmed = body.trim_start();
     if trimmed.starts_with("<?xml") || trimmed.starts_with("<rss") || trimmed.starts_with("<feed") {
         return Ok(vec![DiscoveredFeed {
-            url: url.to_string(),
+            url: final_url,
             title: String::new(),
         }]);
     }
 
-    let feeds = extract_feed_links(&body, url);
+    let feeds = extract_feed_links(&body, &final_url);
     Ok(feeds)
 }
 
@@ -204,37 +205,10 @@ fn extract_attribute(tag: &str, attr_name: &str) -> Option<String> {
 
 /// Resolve a potentially relative URL against a base URL.
 fn resolve_url(base: &str, href: &str) -> String {
-    if href.starts_with("http://") || href.starts_with("https://") {
-        return href.to_string();
-    }
-
-    if href.starts_with("//") {
-        // Protocol-relative URL
-        let protocol = if base.starts_with("https://") {
-            "https:"
-        } else {
-            "http:"
-        };
-        return format!("{protocol}{href}");
-    }
-
-    // Parse base URL to get origin
-    if let Some(scheme_end) = base.find("://") {
-        let after_scheme = &base[scheme_end + 3..];
-        let host_end = after_scheme.find('/').unwrap_or(after_scheme.len());
-        let origin = &base[..scheme_end + 3 + host_end];
-
-        if href.starts_with('/') {
-            return format!("{origin}{href}");
-        }
-
-        // Relative path
-        let base_path_end = base.rfind('/').unwrap_or(origin.len());
-        let base_dir = &base[..base_path_end + 1];
-        return format!("{base_dir}{href}");
-    }
-
-    href.to_string()
+    reqwest::Url::parse(base)
+        .and_then(|base_url| base_url.join(href))
+        .map(|url| url.to_string())
+        .unwrap_or_else(|_| href.to_string())
 }
 
 #[cfg(test)]
@@ -342,6 +316,27 @@ mod tests {
             resolve_url("https://example.com/page", "/feed.xml"),
             "https://example.com/feed.xml"
         );
+    }
+
+    #[test]
+    fn test_extract_feed_links_resolves_relative_href_from_final_page_url() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="feeds/rss.xml">
+            <link rel="alternate" type="application/atom+xml" title="Atom" href="../atom.xml">
+            <link rel="alternate" type="application/feed+json" title="JSON" href="/json/feed.json">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(feeds.len(), 3);
+        assert_eq!(
+            feeds[0].url,
+            "https://example.com/articles/2026/feeds/rss.xml"
+        );
+        assert_eq!(feeds[1].url, "https://example.com/articles/atom.xml");
+        assert_eq!(feeds[2].url, "https://example.com/json/feed.json");
     }
 
     #[test]

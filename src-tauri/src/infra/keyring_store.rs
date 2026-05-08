@@ -146,11 +146,15 @@ where
     )
 }
 
-fn read_dev_store(path: &PathBuf) -> HashMap<String, String> {
-    std::fs::read_to_string(path)
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+fn read_dev_store(path: &PathBuf) -> DomainResult<HashMap<String, String>> {
+    match std::fs::read_to_string(path) {
+        Ok(content) => serde_json::from_str(&content)
+            .map_err(|e| DomainError::Keychain(format!("Failed to parse dev store: {e}"))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(HashMap::new()),
+        Err(error) => Err(DomainError::Keychain(format!(
+            "Failed to read dev store: {error}"
+        ))),
+    }
 }
 
 fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainResult<()> {
@@ -173,7 +177,7 @@ fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainRes
 }
 
 fn delete_dev_password_at_path(path: &PathBuf, account_id: &str) -> DomainResult<()> {
-    let mut store = read_dev_store(path);
+    let mut store = read_dev_store(path)?;
     store.remove(account_id);
     write_dev_store(path, &store)
 }
@@ -231,7 +235,7 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
 
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
-        let mut store = read_dev_store(&path);
+        let mut store = read_dev_store(&path)?;
         store.insert(account_id.to_string(), password.to_string());
         write_dev_store(&path, &store)?;
         return verify_saved_password(account_id, password);
@@ -255,7 +259,7 @@ pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
 
 pub fn get_password(account_id: &str) -> DomainResult<String> {
     if let Some(path) = dev_credentials_path() {
-        let store = read_dev_store(&path);
+        let store = read_dev_store(&path)?;
         return store
             .get(account_id)
             .cloned()
@@ -541,7 +545,33 @@ mod tests {
         super::delete_dev_password_at_path(&path, "missing-account")
             .expect("repeated missing dev credential cleanup should stay a no-op");
 
-        assert_eq!(super::read_dev_store(&path), store);
+        assert_eq!(super::read_dev_store(&path).unwrap(), store);
+    }
+
+    #[test]
+    fn read_dev_store_rejects_corrupted_json_without_overwriting_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        std::fs::write(&path, "{not-json").unwrap();
+
+        let error =
+            super::read_dev_store(&path).expect_err("corrupted dev credentials must fail closed");
+
+        assert!(matches!(error, DomainError::Keychain(_)));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{not-json");
+    }
+
+    #[test]
+    fn delete_dev_password_at_path_rejects_corrupted_json_without_overwriting_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        std::fs::write(&path, "{not-json").unwrap();
+
+        let error = super::delete_dev_password_at_path(&path, "account")
+            .expect_err("corrupted dev credentials should block writes");
+
+        assert!(matches!(error, DomainError::Keychain(_)));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{not-json");
     }
 
     #[test]

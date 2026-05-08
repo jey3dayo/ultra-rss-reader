@@ -25,14 +25,13 @@ use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::preference::PreferenceRepository;
-use crate::repository::sync_state::{SyncState, SyncStateRepository};
+use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 use super::feed_commands::lock_db;
 use super::sync_providers::{
     repair_greader_remote_state, sync_greader_account, sync_greader_feed, sync_local_feed,
 };
 
-const SCHEDULER_SYNC_STATE_SCOPE: &str = "scheduler";
 const STARTUP_REMOTE_STATE_REPAIR_KEY: &str = "startup_remote_state_repair_v1";
 const STARTUP_REMOTE_STATE_REPAIR_VALUE: &str = "done";
 pub(crate) const SYNC_COMPLETED_EVENT: &str = "sync-completed";
@@ -493,11 +492,12 @@ fn clear_scheduler_sync_status(
 ) -> Result<(), AppError> {
     let db_guard = lock_db(db)?;
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
+    let scope_key = SyncStateScopeKey::scheduler().as_string();
     let mut state = repo
-        .get(account_id, SCHEDULER_SYNC_STATE_SCOPE)?
+        .get(account_id, &scope_key)?
         .unwrap_or_else(|| SyncState {
             account_id: account_id.clone(),
-            scope_key: SCHEDULER_SYNC_STATE_SCOPE.to_string(),
+            scope_key,
             timestamp_usec: None,
             continuation: None,
             etag: None,
@@ -648,7 +648,8 @@ pub fn get_account_sync_status(
 ) -> Result<AccountSyncStatus, AppError> {
     let db_guard = lock_db(&state.db)?;
     let repo = SqliteSyncStateRepository::new(db_guard.reader());
-    let state = repo.get(&AccountId(account_id), SCHEDULER_SYNC_STATE_SCOPE)?;
+    let scope_key = SyncStateScopeKey::scheduler().as_string();
+    let state = repo.get(&AccountId(account_id), &scope_key)?;
     Ok(map_account_sync_status(state))
 }
 
@@ -1042,7 +1043,7 @@ mod tests {
         let account_id = AccountId::new();
         let status = map_account_sync_status(Some(SyncState {
             account_id,
-            scope_key: SCHEDULER_SYNC_STATE_SCOPE.to_string(),
+            scope_key: SyncStateScopeKey::scheduler().as_string(),
             timestamp_usec: None,
             continuation: None,
             etag: None,

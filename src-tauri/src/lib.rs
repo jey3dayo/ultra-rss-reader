@@ -266,6 +266,7 @@ pub fn run() {
             commands::article_commands::mark_old_unread_read,
             commands::article_commands::unstar_account_articles,
             commands::article_commands::get_feed_integrity_report,
+            commands::article_commands::cleanup_feed_integrity_orphans,
             commands::article_commands::mark_article_read,
             commands::article_commands::record_article_view,
             commands::article_commands::clear_article_view_history,

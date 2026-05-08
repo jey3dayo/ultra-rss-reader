@@ -11,7 +11,7 @@ use crate::infra::db::sqlite_mute_keyword::{
 };
 use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::mute_keyword::MuteKeywordRepository;
-use crate::repository::pending_mutation::PendingMutation;
+use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
 
 pub struct SqliteArticleRepository<'a> {
     conn: &'a Connection,
@@ -47,6 +47,19 @@ impl<'a> SqliteArticleRepository<'a> {
             |row| row.get(0),
         )?;
         Ok(count)
+    }
+
+    pub fn delete_orphaned_articles(&self) -> DomainResult<i64> {
+        let deleted = self.conn.execute(
+            "DELETE FROM articles
+             WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM feeds f
+                 WHERE f.id = articles.feed_id
+             )",
+            [],
+        )?;
+        Ok(deleted as i64)
     }
 
     pub fn list_orphaned_feed_groups(&self) -> DomainResult<Vec<OrphanedFeedGroup>> {
@@ -154,7 +167,7 @@ impl<'a> SqliteArticleRepository<'a> {
             "SELECT {select_cols_prefixed} FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              WHERE {where_clause}
-             ORDER BY a.published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -201,12 +214,27 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 }
 
 const SELECT_COLS: &str = "id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at";
+const ARTICLE_ORDER_DESC: &str = "published_at DESC, fetched_at DESC, id DESC";
+const ARTICLE_ORDER_DESC_PREFIXED: &str = "a.published_at DESC, a.fetched_at DESC, a.id DESC";
 
 pub(super) fn article_body_text(value: &str, summary: Option<&str>) -> String {
     if value.trim().is_empty() {
         summary.unwrap_or("").to_string()
     } else {
         crate::infra::sanitizer::extract_visible_text(value)
+    }
+}
+
+fn build_fts_query(query: &str) -> Option<String> {
+    let terms = query
+        .split_whitespace()
+        .filter(|term| !term.is_empty())
+        .map(|term| format!("\"{}\"", term.replace('"', "\"\"")))
+        .collect::<Vec<_>>();
+    if terms.is_empty() {
+        None
+    } else {
+        Some(terms.join(" "))
     }
 }
 
@@ -230,7 +258,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
     ) -> DomainResult<Vec<Article>> {
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             let sql = format!(
-                "SELECT {SELECT_COLS} FROM articles WHERE feed_id = ?1 ORDER BY published_at DESC LIMIT ?2 OFFSET ?3"
+                "SELECT {SELECT_COLS} FROM articles WHERE feed_id = ?1 ORDER BY {ARTICLE_ORDER_DESC} LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
             let articles = stmt
@@ -250,7 +278,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             "SELECT {SELECT_COLS} FROM articles
              WHERE feed_id = ?1
                AND {mute_clause}
-             ORDER BY published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -273,7 +301,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                 "SELECT {SELECT_COLS} FROM articles
                  WHERE feed_id = ?1
                    AND is_read = 0
-                 ORDER BY published_at DESC
+                 ORDER BY {ARTICLE_ORDER_DESC}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -295,7 +323,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              WHERE feed_id = ?1
                AND is_read = 0
                AND {mute_clause}
-             ORDER BY published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -318,7 +346,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                 "SELECT {SELECT_COLS} FROM articles
                  WHERE feed_id = ?1
                    AND is_starred = 1
-                 ORDER BY published_at DESC
+                 ORDER BY {ARTICLE_ORDER_DESC}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -340,7 +368,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              WHERE feed_id = ?1
                AND is_starred = 1
                AND {mute_clause}
-             ORDER BY published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -368,7 +396,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                 "SELECT {select_cols_prefixed} FROM articles a
                  JOIN feeds f ON a.feed_id = f.id
                  WHERE f.account_id = ?1
-                 ORDER BY a.published_at DESC
+                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -399,7 +427,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              JOIN feeds f ON a.feed_id = f.id
              WHERE f.account_id = ?1
                AND {mute_clause}
-             ORDER BY a.published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -433,7 +461,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                  JOIN feeds f ON a.feed_id = f.id
                  WHERE f.account_id = ?1
                    AND a.is_read = 0
-                 ORDER BY a.published_at DESC
+                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -460,7 +488,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              WHERE f.account_id = ?1
                AND a.is_read = 0
                AND {mute_clause}
-             ORDER BY a.published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -518,7 +546,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                  JOIN feeds f ON a.feed_id = f.id
                  WHERE f.account_id = ?1
                    AND a.is_starred = 1
-                 ORDER BY a.published_at DESC
+                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -545,7 +573,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              WHERE f.account_id = ?1
                AND a.is_starred = 1
                AND {mute_clause}
-             ORDER BY a.published_at DESC
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -880,7 +908,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                         let mutation = PendingMutation {
                             id: None,
                             account_id: AccountId(row_account_id.clone()),
-                            mutation_type: "mark_read".to_string(),
+                            mutation_type: PendingMutationType::MarkRead,
                             remote_entry_id: remote_entry_id.clone(),
                             created_at: now.clone(),
                         };
@@ -888,7 +916,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                             .execute(params![mutation.account_id.0, mutation.remote_entry_id])?;
                         insert_pending_stmt.execute(params![
                             mutation.account_id.0,
-                            mutation.mutation_type,
+                            mutation.mutation_type.as_str(),
                             mutation.remote_entry_id,
                             mutation.created_at,
                         ])?;
@@ -1030,6 +1058,9 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         query: &str,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
+        let Some(fts_query) = build_fts_query(query) else {
+            return Ok(Vec::new());
+        };
         let select_cols_prefixed = SELECT_COLS
             .split(", ")
             .map(|c| format!("a.{c}"))
@@ -1037,11 +1068,6 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .join(", ");
 
         // Try FTS5 first for performance
-        let fts_query = query
-            .split_whitespace()
-            .map(|term| format!("\"{term}\""))
-            .collect::<Vec<_>>()
-            .join(" ");
         // Do not apply LIMIT/OFFSET per-query — pagination is applied after
         // merging FTS and LIKE results to ensure correct page boundaries.
         let fts_sql = format!(
@@ -1088,7 +1114,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                ) LIKE ?2 ESCAPE '\\'
              )
              AND {}
-             ORDER BY a.published_at DESC"
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}"
             ,
             build_mute_keyword_exclusion_clause(
                 "a.title",
@@ -1108,6 +1134,13 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                 merged.push(article);
             }
         }
+        merged.sort_by(|left, right| {
+            right
+                .published_at
+                .cmp(&left.published_at)
+                .then_with(|| right.fetched_at.cmp(&left.fetched_at))
+                .then_with(|| right.id.0.cmp(&left.id.0))
+        });
         let start = pagination.offset.min(merged.len());
         let end = (start + pagination.limit).min(merged.len());
         Ok(merged[start..end].to_vec())
@@ -1341,6 +1374,62 @@ mod tests {
             )
             .unwrap();
         assert_eq!(page3.len(), 1);
+    }
+
+    #[test]
+    fn find_by_feed_uses_stable_tie_breakers_for_same_published_at() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let published_at = DateTime::parse_from_rfc3339("2026-04-14T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut older_fetch = make_article(&feed_id, "Older fetch");
+        older_fetch.id = ArticleId("article-b".to_string());
+        older_fetch.published_at = published_at;
+        older_fetch.fetched_at = DateTime::parse_from_rfc3339("2026-04-14T00:01:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut newer_fetch_low_id = make_article(&feed_id, "Newer fetch low id");
+        newer_fetch_low_id.id = ArticleId("article-a".to_string());
+        newer_fetch_low_id.published_at = published_at;
+        newer_fetch_low_id.fetched_at = DateTime::parse_from_rfc3339("2026-04-14T00:02:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut newer_fetch_high_id = make_article(&feed_id, "Newer fetch high id");
+        newer_fetch_high_id.id = ArticleId("article-c".to_string());
+        newer_fetch_high_id.published_at = published_at;
+        newer_fetch_high_id.fetched_at = newer_fetch_low_id.fetched_at;
+        repo.upsert(&[older_fetch, newer_fetch_low_id, newer_fetch_high_id])
+            .unwrap();
+
+        let page1 = repo
+            .find_by_feed(
+                &feed_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 2,
+                },
+            )
+            .unwrap();
+        let page2 = repo
+            .find_by_feed(
+                &feed_id,
+                &Pagination {
+                    offset: 2,
+                    limit: 2,
+                },
+            )
+            .unwrap();
+        let ids = page1
+            .into_iter()
+            .chain(page2)
+            .map(|article| article.id.0)
+            .collect::<Vec<_>>();
+
+        assert_eq!(ids, vec!["article-c", "article-a", "article-b"]);
     }
 
     #[test]
@@ -2374,6 +2463,81 @@ mod tests {
     }
 
     #[test]
+    fn search_returns_empty_for_whitespace_only_query() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        repo.upsert(&[make_article(&feed_id, "Rust Programming Guide")])
+            .unwrap();
+
+        let results = repo
+            .search(&account_id, " \n\t ", &Pagination::default())
+            .unwrap();
+
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn search_treats_fts_special_characters_as_literal_input() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let quoted = make_article(&feed_id, "Rust \"Guide\"");
+        let punctuated = make_article(&feed_id, "SQLite NEAR(search) notes");
+        repo.upsert(&[quoted, punctuated]).unwrap();
+
+        let quoted_results = repo
+            .search(&account_id, "\"Guide\"", &Pagination::default())
+            .unwrap();
+        let punctuated_results = repo
+            .search(&account_id, "NEAR(search)", &Pagination::default())
+            .unwrap();
+
+        assert_eq!(quoted_results.len(), 1);
+        assert_eq!(quoted_results[0].title, "Rust \"Guide\"");
+        assert_eq!(punctuated_results.len(), 1);
+        assert_eq!(punctuated_results[0].title, "SQLite NEAR(search) notes");
+    }
+
+    #[test]
+    fn search_dedupes_fts_and_like_hits_before_applying_stable_order() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest = make_article(&feed_id, "Rust duplicate newest");
+        newest.id = ArticleId("article-newest".to_string());
+        newest.published_at = DateTime::parse_from_rfc3339("2026-04-14T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        newest.fetched_at = DateTime::parse_from_rfc3339("2026-04-14T00:03:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut older = make_article(&feed_id, "Rust duplicate older");
+        older.id = ArticleId("article-older".to_string());
+        older.published_at = newest.published_at;
+        older.fetched_at = DateTime::parse_from_rfc3339("2026-04-14T00:01:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        repo.upsert(&[older, newest]).unwrap();
+
+        let results = repo
+            .search(&account_id, "Rust", &Pagination::default())
+            .unwrap();
+        let ids = results
+            .into_iter()
+            .map(|article| article.id.0)
+            .collect::<Vec<_>>();
+
+        assert_eq!(ids, vec!["article-newest", "article-older"]);
+    }
+
+    #[test]
     fn count_orphaned_articles_detects_missing_feed_references() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -2489,6 +2653,56 @@ mod tests {
                 latest_article_title: Some("Broken Latest".to_string()),
                 latest_article_published_at: Some("2026-04-02T00:00:00Z".to_string()),
             }]
+        );
+    }
+
+    #[test]
+    fn delete_orphaned_articles_removes_only_missing_feed_references() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        repo.upsert(&[make_article(&feed_id, "Healthy Article")])
+            .unwrap();
+
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = OFF;")
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                params![
+                    "orphan-article",
+                    "missing-feed",
+                    Option::<String>::None,
+                    "Broken Article",
+                    "",
+                    "",
+                    1,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    "2026-04-01T00:00:00Z",
+                    Option::<String>::None,
+                    false,
+                    false,
+                    "2026-04-01T00:00:00Z"
+                ],
+            )
+            .unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
+
+        assert_eq!(repo.delete_orphaned_articles().unwrap(), 1);
+        assert_eq!(repo.count_orphaned_articles().unwrap(), 0);
+        assert_eq!(
+            repo.find_by_feed(&feed_id, &Pagination::default())
+                .unwrap()
+                .len(),
+            1
         );
     }
 }
