@@ -1,12 +1,27 @@
 import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { executeAction } from "@/lib/actions";
-import type {
-  PaletteAction,
-  UseCommandPaletteHandlersParams,
-  UseCommandPaletteHandlersResult,
-} from "../../command-palette.types";
+import type { ToastData } from "@/lib/ui/toast.types";
+import type { PaletteAction } from "../../command-palette.types";
 import { createCommandPaletteHistoryValue } from "../../command-palette-history";
+
+type UseCommandPaletteHandlersParams = {
+  closePalette: () => void;
+  openShortcutsHelp: () => void;
+  showToast: (message: string | ToastData) => void;
+  selectFeedFromCurrentContext: (feedId: string) => void;
+  selectTagFromCurrentContext: (tagId: string) => void;
+  selectArticle: (articleId: string) => void;
+  openFeedLanding: (feedId: string) => Promise<void>;
+};
+
+type UseCommandPaletteHandlersResult = {
+  handleActionSelect: (action: PaletteAction["id"]) => void;
+  handleFeedSelect: (feedId: string) => void;
+  handleTagSelect: (tagId: string) => void;
+  handleArticleSelect: (feedId: string, articleId: string) => void;
+  handleDevScenarioSelect: (scenarioId: RuntimeDevScenario["id"]) => void;
+};
 
 export function useCommandPaletteHandlers({
   closePalette,

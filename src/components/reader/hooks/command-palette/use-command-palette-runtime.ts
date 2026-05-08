@@ -1,7 +1,19 @@
 import { useEffect, useReducer } from "react";
 import { useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
 import { loadRuntimeDevScenarios, type RuntimeDevScenario } from "@/dev/scenario-runtime";
-import type { UseCommandPaletteRuntimeParams, UseCommandPaletteRuntimeResult } from "../../command-palette.types";
+
+type UseCommandPaletteRuntimeParams = {
+  open: boolean;
+};
+
+type UseCommandPaletteRuntimeResult = {
+  input: string;
+  setInput: (value: string) => void;
+  devScenarios: RuntimeDevScenario[];
+  prefix: string | null;
+  query: string;
+  deferredQuery: string;
+};
 
 type CommandPaletteRuntimeState = {
   input: string;

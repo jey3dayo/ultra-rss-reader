@@ -58,6 +58,38 @@ describe("getVisibleSidebarFeedTreeData", () => {
     ).toEqual(["feed-c", "feed-a"]);
   });
 
+  it("filters starred view by per-feed starred counts", () => {
+    expect(
+      getVisibleSidebarFeeds(
+        feeds,
+        "starred",
+        (candidateFeeds) => candidateFeeds,
+        new Map([
+          ["feed-a", 0],
+          ["feed-b", 2],
+          ["feed-c", 1],
+        ]),
+      ).map((feed) => feed.id),
+    ).toEqual(["feed-b", "feed-c"]);
+  });
+
+  it("uses starred counts for feed view model unread badges in starred mode", () => {
+    expect(
+      mapFeedsToFeedTreeViewModels(feeds.slice(0, 2), {
+        selectedFeedId: null,
+        grayscaleFavicons: false,
+        viewMode: "starred",
+        starredCountByFeedId: new Map([
+          ["feed-a", 4],
+          ["feed-b", 0],
+        ]),
+      }).map((feed) => ({ id: feed.id, unreadCount: feed.unreadCount })),
+    ).toEqual([
+      { id: "feed-a", unreadCount: 4 },
+      { id: "feed-b", unreadCount: 0 },
+    ]);
+  });
+
   it("maps feeds to feed tree view models with display settings", () => {
     expect(
       mapFeedsToFeedTreeViewModels(
@@ -186,6 +218,29 @@ describe("getVisibleSidebarFeedTreeData", () => {
         isExpanded: false,
         isSelected: true,
         feeds: [],
+      },
+    ]);
+  });
+
+  it("uses visible feed count as folder badge in starred mode", () => {
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: folders,
+      feedsByFolder,
+      visibleFolderFeedsById: new Map([["folder-1", [feeds[1]]]]),
+      expandedFolderIds: new Set(["folder-1"]),
+      selectedFolderId: null,
+      selectedFeedId: null,
+      grayscaleFavicons: false,
+      viewMode: "starred",
+      starredCountByFeedId: new Map([["feed-b", 5]]),
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels).toMatchObject([
+      {
+        id: "folder-1",
+        unreadCount: 1,
+        feeds: [{ id: "feed-b", unreadCount: 5 }],
       },
     ]);
   });

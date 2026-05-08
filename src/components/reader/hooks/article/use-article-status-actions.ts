@@ -1,5 +1,36 @@
+import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { UseArticleStatusActionsParams, UseArticleStatusActionsResult } from "../../article-actions.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { ArticleStatusToast } from "../../article-actions.types";
+
+type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
+
+type SetReadMutation = ArticleStatusMutation<{ id: string; read: boolean }>;
+
+type ToggleStarMutation = ArticleStatusMutation<{ id: string; starred: boolean }>;
+
+export type UseArticleStatusActionsParams = {
+  articleId: string | null;
+  isRead: boolean;
+  isStarred: boolean;
+  viewMode: ViewMode;
+  retainOnUnstar: boolean;
+  showToast: ArticleStatusToast;
+  addRecentlyRead: (articleId: string) => void;
+  removeRecentlyRead: (articleId: string) => void;
+  retainArticle: (articleId: string) => void;
+  setRead: SetReadMutation;
+  toggleStar: ToggleStarMutation;
+  starredMessage: string;
+  unstarredMessage: string;
+};
+
+type UseArticleStatusActionsResult = {
+  setReadStatus: (pressed: boolean) => void;
+  setStarStatus: (pressed: boolean, options?: { showStatusToast?: boolean }) => void;
+  handleToggleRead: () => void;
+  handleToggleStar: () => void;
+};
 
 export function useArticleStatusActions({
   articleId,

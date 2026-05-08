@@ -1,15 +1,38 @@
 import { useMemo } from "react";
+import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { getHistory } from "@/components/reader/hooks/command-palette/use-command-history";
+import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
-import type {
-  PaletteAction,
-  UseCommandPaletteDataParams,
-  UseCommandPaletteDataResult,
-} from "../../command-palette.types";
+import type { PaletteAction } from "../../command-palette.types";
 import type { CommandPaletteHistoryEntry } from "../../command-palette-history";
 import { parseCommandPaletteHistoryEntry } from "../../command-palette-history";
+
+type UseCommandPaletteDataParams = {
+  actions: PaletteAction[];
+  deferredQuery: string;
+  devScenarios: RuntimeDevScenario[];
+  prefix: string | null;
+  query: string;
+  selectedAccountId: string | null;
+};
+
+type UseCommandPaletteDataResult = {
+  articles: ArticleDto[];
+  filteredActions: PaletteAction[];
+  filteredDevScenarios: RuntimeDevScenario[];
+  filteredFeeds: FeedDto[];
+  filteredTags: TagDto[];
+  recentActions: PaletteAction[];
+  showRecentActions: boolean;
+  showActions: boolean;
+  showDevScenarios: boolean;
+  showFeeds: boolean;
+  showTags: boolean;
+  showArticles: boolean;
+  hasVisibleResults: boolean;
+};
 
 function normalize(text: string): string {
   return text.trim().toLowerCase();

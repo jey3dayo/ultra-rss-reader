@@ -1,7 +1,16 @@
 import { useEffect } from "react";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { bindWindowEvents } from "@/lib/window/window-events";
-import type { UseArticleActionShortcutsParams } from "../../article-actions.types";
+import type { ArticleActionKeyboardShortcuts } from "../../article-actions.types";
+
+type UseArticleActionShortcutsParams = {
+  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
+  onToggleRead: () => void;
+  onToggleStar: () => void;
+  onOpenExternalBrowser: () => void;
+  onCopyLink: () => void;
+  onAddToReadingList: () => void;
+};
 
 export function useArticleActionShortcuts({
   keyboardShortcuts,

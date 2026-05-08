@@ -1,9 +1,38 @@
+import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActionShortcuts } from "@/components/reader/hooks/article/use-article-action-shortcuts";
 import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
-import type { UseArticleActionsParams, UseArticleActionsResult } from "../../article-actions.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { ArticleActionKeyboardShortcuts, ArticleStatusToast } from "../../article-actions.types";
 import { addArticleToReadingList, copyArticleLink, openArticleInExternalBrowser } from "../../article-browser-actions";
+
+type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
+
+type UseArticleActionsParams = {
+  article: ArticleDto | null;
+  viewMode: ViewMode;
+  retainOnUnstar: boolean;
+  supportsReadingList: boolean;
+  showToast: ArticleStatusToast;
+  addRecentlyRead: (articleId: string) => void;
+  removeRecentlyRead: (articleId: string) => void;
+  retainArticle: (articleId: string) => void;
+  setRead: ArticleStatusMutation<{ id: string; read: boolean }>;
+  toggleStar: ArticleStatusMutation<{ id: string; starred: boolean }>;
+  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
+};
+
+type UseArticleActionsResult = {
+  setReadStatus: (pressed: boolean) => void;
+  setStarStatus: (pressed: boolean, options?: { showStatusToast?: boolean }) => void;
+  handleToggleRead: () => void;
+  handleToggleStar: () => void;
+  handleOpenExternalBrowser: () => void;
+  handleCopyLink: () => void;
+  handleAddToReadingList: () => void;
+};
 
 export function useArticleActions({
   article,

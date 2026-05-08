@@ -1,9 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import type { PlatformInfo } from "@/api/schemas";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { AppAction } from "@/lib/app-actions";
-import type { ToastData } from "@/lib/ui/toast.types";
 
 export type CommandPaletteItemKind = "action" | "feed" | "tag" | "article" | "scenario";
 
@@ -70,100 +68,4 @@ export type CommandPaletteControllerResult = CommandPaletteViewPropsResult & {
   input: string;
   setInput: (value: string) => void;
   closePalette: () => void;
-};
-
-export type UseCommandPaletteDataParams = {
-  actions: PaletteAction[];
-  deferredQuery: string;
-  devScenarios: RuntimeDevScenario[];
-  prefix: string | null;
-  query: string;
-  selectedAccountId: string | null;
-};
-
-export type UseCommandPaletteDataResult = {
-  articles: ArticleDto[];
-  filteredActions: PaletteAction[];
-  filteredDevScenarios: RuntimeDevScenario[];
-  filteredFeeds: FeedDto[];
-  filteredTags: TagDto[];
-  recentActions: PaletteAction[];
-  showRecentActions: boolean;
-  showActions: boolean;
-  showDevScenarios: boolean;
-  showFeeds: boolean;
-  showTags: boolean;
-  showArticles: boolean;
-  hasVisibleResults: boolean;
-};
-
-export type UseCommandPaletteActionsParams = {
-  platformKind: PlatformInfo["kind"];
-  shortcutPrefs: Record<string, string>;
-};
-
-export type UseCommandPaletteActionsResult = PaletteAction[];
-
-export type UseCommandPaletteHandlersParams = {
-  closePalette: () => void;
-  openShortcutsHelp: () => void;
-  showToast: (message: string | ToastData) => void;
-  selectFeedFromCurrentContext: (feedId: string) => void;
-  selectTagFromCurrentContext: (tagId: string) => void;
-  selectArticle: (articleId: string) => void;
-  openFeedLanding: (feedId: string) => Promise<void>;
-};
-
-export type UseCommandPaletteHandlersResult = {
-  handleActionSelect: (action: PaletteAction["id"]) => void;
-  handleFeedSelect: (feedId: string) => void;
-  handleTagSelect: (tagId: string) => void;
-  handleArticleSelect: (feedId: string, articleId: string) => void;
-  handleDevScenarioSelect: (scenarioId: RuntimeDevScenario["id"]) => void;
-};
-
-export type UseCommandPaletteRuntimeParams = {
-  open: boolean;
-};
-
-export type UseCommandPaletteRuntimeResult = {
-  input: string;
-  setInput: (value: string) => void;
-  devScenarios: RuntimeDevScenario[];
-  prefix: string | null;
-  query: string;
-  deferredQuery: string;
-};
-
-export type UseCommandPaletteViewPropsParams = {
-  title: string;
-  description: string;
-  placeholder: string;
-  noResultsLabel: string;
-  recentActionsHeading: string;
-  actionsHeading: string;
-  feedsHeading: string;
-  tagsHeading: string;
-  articlesHeading: string;
-  recentActions: CommandPaletteActionItem[];
-  filteredActions: CommandPaletteActionItem[];
-  filteredDevScenarios: RuntimeDevScenario[];
-  filteredFeeds: CommandPaletteResultsProps["filteredFeeds"];
-  filteredTags: CommandPaletteResultsProps["filteredTags"];
-  articles: CommandPaletteResultsProps["articles"];
-  showRecentActions: boolean;
-  showActions: boolean;
-  showDevScenarios: boolean;
-  showFeeds: boolean;
-  showTags: boolean;
-  showArticles: boolean;
-  hasVisibleResults: boolean;
-  onActionSelect: CommandPaletteResultsProps["onActionSelect"];
-  onDevScenarioSelect: CommandPaletteResultsProps["onDevScenarioSelect"];
-  onFeedSelect: CommandPaletteResultsProps["onFeedSelect"];
-  onTagSelect: CommandPaletteResultsProps["onTagSelect"];
-  onArticleSelect: CommandPaletteResultsProps["onArticleSelect"];
-  prefixHintActions: string;
-  prefixHintFeeds: string;
-  prefixHintTags: string;
 };

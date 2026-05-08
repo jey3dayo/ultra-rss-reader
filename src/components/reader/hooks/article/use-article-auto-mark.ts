@@ -1,5 +1,22 @@
+import type { UseMutationResult } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import type { UseArticleAutoMarkParams } from "../../article-actions.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { AfterReadingPreference } from "@/schemas/preferences";
+import type { ArticleStatusToast } from "../../article-actions.types";
+
+type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
+
+type UseArticleAutoMarkParams = {
+  articleId: string;
+  isRead: boolean;
+  afterReading: AfterReadingPreference;
+  viewMode: ViewMode;
+  retainArticle: (articleId: string) => void;
+  addRecentlyRead: (articleId: string) => void;
+  removeRecentlyRead?: (articleId: string) => void;
+  setRead: ArticleStatusMutation<{ id: string; read: boolean }>;
+  showToast: ArticleStatusToast;
+};
 
 type DelayedAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never" | "immediately">;
 
