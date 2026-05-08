@@ -3,7 +3,7 @@ import { SettingsContentLayout } from "@/components/settings/shared/settings-con
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 
-export type DataSettingsViewProps = {
+type DataSettingsViewProps = {
   title: string;
   databaseHeading: string;
   databaseSizeLabel: string;

@@ -13,7 +13,7 @@ type TagsSettingsListItem = {
   color: string | null;
 };
 
-export type TagsSettingsViewProps = {
+type TagsSettingsViewProps = {
   title: string;
   addHeading: string;
   intro: string;
