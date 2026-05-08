@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

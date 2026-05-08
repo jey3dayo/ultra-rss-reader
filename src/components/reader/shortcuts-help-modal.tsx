@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
-import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard-shortcuts";
+import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import type { ShortcutsHelpModalProps } from "./shortcuts-help-modal.types";

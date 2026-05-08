@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ShortcutsSettingsViewProps } from "@/components/settings/shortcuts-settings-view";
 import { useShortcutsSettingsViewProps } from "@/components/settings/use-shortcuts-settings-view-props";
 import i18n from "@/lib/i18n";
-import type { ShortcutActionId } from "@/lib/keyboard-shortcuts";
+import type { ShortcutActionId } from "@/lib/keyboard/keyboard-shortcuts";
 
 const t = i18n.getFixedT("en", "settings");
 const tReader = i18n.getFixedT("en", "reader");

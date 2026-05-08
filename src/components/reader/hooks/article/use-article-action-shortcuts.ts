@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { bindWindowEvents } from "@/lib/window-events";
 import type { UseArticleActionShortcutsParams } from "../../article-actions.types";
 

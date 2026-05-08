@@ -8,7 +8,7 @@ import {
 } from "@/lib/account/account-pane-navigation";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";

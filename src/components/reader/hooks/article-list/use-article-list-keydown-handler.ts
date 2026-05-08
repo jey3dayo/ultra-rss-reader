@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback } from "react";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleContentTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleListKeydownHandlerParams } from "../../article-list.types";

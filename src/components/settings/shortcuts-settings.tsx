@@ -2,7 +2,7 @@ import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
-import { type ShortcutActionId, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard-shortcuts";
+import { type ShortcutActionId, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

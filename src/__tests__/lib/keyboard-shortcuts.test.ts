@@ -5,7 +5,7 @@ import {
   formatKeyForDisplay,
   keyboardEvents,
   resolveKeyboardAction,
-} from "@/lib/keyboard-shortcuts";
+} from "@/lib/keyboard/keyboard-shortcuts";
 
 describe("keyboard shortcut resolver", () => {
   afterEach(() => {

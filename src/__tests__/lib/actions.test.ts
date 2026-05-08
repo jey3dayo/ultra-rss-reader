@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
 const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({

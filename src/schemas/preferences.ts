@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { shortcutDefaults } from "@/lib/keyboard-shortcuts";
+import { shortcutDefaults } from "@/lib/keyboard/keyboard-shortcuts";
 
 export const themeSchema = z.enum(["light", "dark", "system"]);
 const languageSchema = z.enum(["system", "en", "ja"]);

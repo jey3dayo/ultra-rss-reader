@@ -5,7 +5,7 @@ import { runManualUpdateCheck } from "@/hooks/use-updater";
 import type { AppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { triggerManualSyncWithCooldown } from "@/lib/manual-sync";
 import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";

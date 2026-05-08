@@ -14,7 +14,7 @@ import * as articleHooks from "@/hooks/use-articles";
 import * as tagHooks from "@/hooks/use-tags";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
 import { isTriStateDisplayMode } from "@/lib/articles/article-display";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

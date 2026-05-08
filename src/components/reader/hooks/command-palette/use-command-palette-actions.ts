@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
+import { getShortcutDisplay } from "@/lib/keyboard/keyboard-shortcuts";
 import type { UseCommandPaletteActionsParams, UseCommandPaletteActionsResult } from "../../command-palette.types";
 
 export function useCommandPaletteActions({

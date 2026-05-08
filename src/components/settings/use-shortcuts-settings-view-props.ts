@@ -5,7 +5,7 @@ import {
   type ShortcutActionId,
   type ShortcutCategoryKey,
   shortcutDefinitions,
-} from "@/lib/keyboard-shortcuts";
+} from "@/lib/keyboard/keyboard-shortcuts";
 import type { ShortcutsSettingsViewProps } from "./shortcuts-settings-view";
 
 type UseShortcutsSettingsViewPropsParams = {
