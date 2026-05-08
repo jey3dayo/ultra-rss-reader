@@ -1,19 +1,10 @@
-import {
-  type ButtonHTMLAttributes,
-  forwardRef,
-  type ReactNode,
-  useEffect,
-  useRef,
-} from "react";
+import { type ButtonHTMLAttributes, forwardRef, type ReactNode, useEffect, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { cn } from "@/lib/utils";
-import {
-  bindWindowEvents,
-  createKeyboardEventListener,
-} from "@/lib/window/window-events";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 
 type ShortcutsSettingsItem = {
   id: string;
@@ -78,21 +69,8 @@ function ShortcutResetButton({
   );
 }
 
-export const ShortcutKeyButton = forwardRef<
-  HTMLButtonElement,
-  ShortcutKeyButtonProps
->(
-  (
-    {
-      children,
-      className,
-      conflict = false,
-      recording = false,
-      type = "button",
-      ...props
-    },
-    ref,
-  ) => (
+export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButtonProps>(
+  ({ children, className, conflict = false, recording = false, type = "button", ...props }, ref) => (
     <button
       ref={ref}
       type={type}
@@ -115,11 +93,7 @@ export const ShortcutKeyButton = forwardRef<
 
 ShortcutKeyButton.displayName = "ShortcutKeyButton";
 
-function ShortcutKeyBadge({
-  item,
-  pressAKeyLabel,
-  resetLabel,
-}: ShortcutKeyBadgeProps) {
+function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel }: ShortcutKeyBadgeProps) {
   const badgeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -131,9 +105,7 @@ function ShortcutKeyBadge({
       item.onKeyDown?.(event);
     });
 
-    return bindWindowEvents([
-      { type: "keydown", listener: handler, options: true },
-    ]);
+    return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
   }, [item.isRecording, item.onKeyDown]);
 
   return (
@@ -151,9 +123,7 @@ function ShortcutKeyBadge({
         <ShortcutResetButton item={item} resetLabel={resetLabel} />
       </div>
       {item.conflictLabel && !item.isRecording && (
-        <span className="text-[10px] text-state-danger-foreground">
-          {item.conflictLabel}
-        </span>
+        <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
       )}
     </div>
   );
@@ -171,11 +141,7 @@ export function ShortcutsSettingsView({
   return (
     <SettingsContentLayout title={title} outerTestId="shortcuts-settings-root">
       <div className="mb-5 flex justify-end sm:mb-6">
-        <SettingsActionButton
-          tone="header"
-          onClick={onResetAll}
-          disabled={resetDisabled}
-        >
+        <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled}>
           {resetLabel}
         </SettingsActionButton>
       </div>
@@ -186,12 +152,7 @@ export function ShortcutsSettingsView({
       )}
 
       {categories.map((category) => (
-        <SettingsSection
-          key={category.id}
-          heading={category.heading}
-          surface="flat"
-          className="mb-5"
-        >
+        <SettingsSection key={category.id} heading={category.heading} surface="flat" className="mb-5">
           {category.items.map((item) => (
             <LabeledControlRow
               key={item.id}
@@ -203,18 +164,10 @@ export function ShortcutsSettingsView({
                   <kbd className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto">
                     {item.displayKey}
                   </kbd>
-                  <ShortcutResetButton
-                    item={item}
-                    resetLabel={resetLabel}
-                    disabled
-                  />
+                  <ShortcutResetButton item={item} resetLabel={resetLabel} disabled />
                 </div>
               ) : (
-                <ShortcutKeyBadge
-                  item={item}
-                  pressAKeyLabel={pressAKeyLabel}
-                  resetLabel={resetLabel}
-                />
+                <ShortcutKeyBadge item={item} pressAKeyLabel={pressAKeyLabel} resetLabel={resetLabel} />
               )}
             </LabeledControlRow>
           ))}

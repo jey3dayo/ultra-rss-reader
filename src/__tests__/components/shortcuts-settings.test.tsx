@@ -35,21 +35,11 @@ describe("ShortcutsSettings", () => {
     expect(screen.getByText("Show unread articles")).toBeInTheDocument();
     expect(screen.getByText("Show all articles")).toBeInTheDocument();
     expect(screen.getByText("Show starred articles")).toBeInTheDocument();
-    expect(screen.getByTestId("shortcut-badge-show_unread")).toHaveTextContent(
-      "⌘ 1",
-    );
-    expect(screen.getByTestId("shortcut-badge-show_all")).toHaveTextContent(
-      "⌘ 2",
-    );
-    expect(screen.getByTestId("shortcut-badge-show_starred")).toHaveTextContent(
-      "⌘ 3",
-    );
-    expect(screen.getByTestId("shortcut-badge-toggle_read")).toHaveTextContent(
-      "m",
-    );
-    expect(screen.getByTestId("shortcut-badge-toggle_star")).toHaveTextContent(
-      "s",
-    );
+    expect(screen.getByTestId("shortcut-badge-show_unread")).toHaveTextContent("⌘ 1");
+    expect(screen.getByTestId("shortcut-badge-show_all")).toHaveTextContent("⌘ 2");
+    expect(screen.getByTestId("shortcut-badge-show_starred")).toHaveTextContent("⌘ 3");
+    expect(screen.getByTestId("shortcut-badge-toggle_read")).toHaveTextContent("m");
+    expect(screen.getByTestId("shortcut-badge-toggle_star")).toHaveTextContent("s");
   });
 
   it("builds shortcut categories in definition order", () => {
@@ -60,11 +50,7 @@ describe("ShortcutsSettings", () => {
         { categoryKey: "shortcuts.category_navigation" },
         { categoryKey: "shortcuts.category_global" },
       ]),
-    ).toEqual([
-      "shortcuts.category_navigation",
-      "shortcuts.category_actions",
-      "shortcuts.category_global",
-    ]);
+    ).toEqual(["shortcuts.category_navigation", "shortcuts.category_actions", "shortcuts.category_global"]);
   });
 
   it("shows conflicts when a direct filter shortcut collides with an article toggle shortcut", () => {
@@ -79,12 +65,25 @@ describe("ShortcutsSettings", () => {
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
     expect(screen.getAllByText(/Conflict:/)).toHaveLength(2);
-    expect(
-      screen.getByText(/Conflict: Toggle read \/ unread/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Conflict: Show unread articles/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Conflict: Toggle read \/ unread/)).toBeInTheDocument();
+    expect(screen.getByText(/Conflict: Show unread articles/)).toBeInTheDocument();
+  });
+
+  it("clears the global conflict message when recording a different shortcut starts", async () => {
+    const user = userEvent.setup();
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-show_unread"));
+    await user.keyboard("m");
+
+    const conflictMessage = /"m" is already assigned to "Toggle read \/ unread"/;
+
+    expect(await screen.findByText(conflictMessage)).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("shortcut-badge-prev_article"));
+
+    expect(screen.queryByText(conflictMessage)).not.toBeInTheDocument();
   });
 
   it("resets one shortcut row without resetting all bindings", async () => {
@@ -101,21 +100,15 @@ describe("ShortcutsSettings", () => {
 
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
-    expect(
-      screen.getByRole("button", { name: "Reset to Defaults: Next article" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset to Defaults: Next article" })).toBeEnabled();
     expect(
       screen.getByRole("button", {
         name: "Reset to Defaults: Previous article",
       }),
     ).toBeEnabled();
-    expect(
-      screen.getByRole("button", { name: "Reset to Defaults: Open settings" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset to Defaults: Open settings" })).toBeDisabled();
 
-    await user.click(
-      screen.getByRole("button", { name: "Reset to Defaults: Next article" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Reset to Defaults: Next article" }));
 
     expect(setPref).toHaveBeenCalledTimes(1);
     expect(setPref).toHaveBeenCalledWith("shortcut_next_article", "j");

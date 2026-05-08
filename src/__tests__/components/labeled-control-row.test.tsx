@@ -17,4 +17,22 @@ describe("LabeledControlRow", () => {
       "border-border/70",
     );
   });
+
+  it("exposes a stable description id to row-owned controls", () => {
+    render(
+      <LabeledControlRow label="Open links" description="Choose how article links open.">
+        {({ descriptionId }) => (
+          <button type="button" aria-describedby={descriptionId}>
+            Control
+          </button>
+        )}
+      </LabeledControlRow>,
+    );
+
+    const description = screen.getByText("Choose how article links open.");
+    const control = screen.getByRole("button", { name: "Control" });
+
+    expect(description).toHaveAttribute("id");
+    expect(control).toHaveAttribute("aria-describedby", description.id);
+  });
 });

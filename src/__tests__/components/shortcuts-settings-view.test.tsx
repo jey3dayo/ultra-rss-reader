@@ -4,15 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 
 function expectNoButtonMinWidth(button: HTMLElement) {
-  expect(
-    [...button.classList].filter((className) => className.includes("min-w")),
-  ).toEqual([]);
+  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
 }
 
 describe("ShortcutsSettingsView", () => {
   it("renders shortcut categories, conflicts, and static bindings", async () => {
     const user = userEvent.setup();
     const onStartRecording = vi.fn();
+    const onLockedReset = vi.fn();
 
     render(
       <ShortcutsSettingsView
@@ -50,6 +49,7 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "⌘ ,",
                 isLocked: true,
                 isRecording: false,
+                onReset: onLockedReset,
               },
             ],
           },
@@ -57,40 +57,33 @@ describe("ShortcutsSettingsView", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { level: 2, name: "Shortcuts" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Shortcut j is already used by Next article"),
-    ).toHaveClass(
+    expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
+    expect(screen.getByText("Shortcut j is already used by Next article")).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByText("Already used")).toHaveClass(
-      "text-state-danger-foreground",
-    );
+    expect(screen.getByText("Already used")).toHaveClass("text-state-danger-foreground");
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
+    const lockedResetButton = screen.getByRole("button", {
+      name: "Reset to defaults: Open settings",
+    });
+    expect(lockedResetButton).toBeDisabled();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(
-      screen.getByRole("button", { name: "Reset to defaults: Next article" }),
-    ).toBeEnabled();
-    expect(
-      screen.getByRole("button", { name: "Reset to defaults" }),
-    ).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "Reset to defaults: Next article" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
-    expect(screen.getByText("⌘ ,")).toHaveClass(
-      "bg-surface-1",
-      "text-foreground-soft",
-    );
+    expect(screen.getByText("⌘ ,")).toHaveClass("bg-surface-1", "text-foreground-soft");
 
     await user.click(screen.getByRole("button", { name: "J" }));
+    await user.click(lockedResetButton);
 
     expect(onStartRecording).toHaveBeenCalledTimes(1);
+    expect(onLockedReset).not.toHaveBeenCalled();
     const resetButton = screen.getByRole("button", {
       name: "Reset to defaults",
     });
@@ -138,9 +131,7 @@ describe("ShortcutsSettingsView", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "Reset to defaults: Next article" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset to defaults: Next article" })).toBeDisabled();
     const rowReset = screen.getByRole("button", {
       name: "Reset to defaults: Previous article",
     });

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { useShortcutsSettingsViewProps } from "@/components/settings/hooks/use-shortcuts-settings-view-props";
+import {
+  buildShortcutCategoryOrder,
+  useShortcutsSettingsViewProps,
+} from "@/components/settings/hooks/use-shortcuts-settings-view-props";
 import type { ShortcutsSettingsViewProps } from "@/components/settings/shortcuts-settings-view";
 import i18n from "@/lib/i18n";
 import type { ShortcutActionId } from "@/lib/keyboard/keyboard-shortcuts";
@@ -7,13 +10,8 @@ import type { ShortcutActionId } from "@/lib/keyboard/keyboard-shortcuts";
 const t = i18n.getFixedT("en", "settings");
 const tReader = i18n.getFixedT("en", "reader");
 
-function getShortcutItem(
-  props: ShortcutsSettingsViewProps,
-  id: ShortcutActionId,
-) {
-  const item = props.categories
-    .flatMap((category) => category.items)
-    .find((shortcut) => shortcut.id === id);
+function getShortcutItem(props: ShortcutsSettingsViewProps, id: ShortcutActionId) {
+  const item = props.categories.flatMap((category) => category.items).find((shortcut) => shortcut.id === id);
 
   if (!item) {
     throw new Error(`Missing shortcut item: ${id}`);
@@ -23,6 +21,18 @@ function getShortcutItem(
 }
 
 describe("useShortcutsSettingsViewProps", () => {
+  it("builds category order from first appearance and emits duplicate categories once", () => {
+    expect(
+      buildShortcutCategoryOrder([
+        { categoryKey: "shortcuts.category_actions" },
+        { categoryKey: "shortcuts.category_navigation" },
+        { categoryKey: "shortcuts.category_actions" },
+        { categoryKey: "shortcuts.category_global" },
+        { categoryKey: "shortcuts.category_navigation" },
+      ]),
+    ).toEqual(["shortcuts.category_actions", "shortcuts.category_navigation", "shortcuts.category_global"]);
+  });
+
   it("maps reset state, shortcut display, conflicts, and static bindings", () => {
     const onResetAll = vi.fn();
 
@@ -33,10 +43,8 @@ describe("useShortcutsSettingsViewProps", () => {
       recordingId: "show_unread",
       conflictMessage: "Resolve shortcut conflicts",
       hasCustomBindings: false,
-      getKey: (id) =>
-        id === "open_settings" ? "⌘," : id === "show_unread" ? "⌘+1" : "",
-      findConflict: (id) =>
-        id === "show_unread" ? "Toggle read / unread" : null,
+      getKey: (id) => (id === "open_settings" ? "⌘," : id === "show_unread" ? "⌘+1" : ""),
+      findConflict: (id) => (id === "show_unread" ? "Toggle read / unread" : null),
       onResetAll,
       onResetShortcut: vi.fn(),
       onStartRecording: vi.fn(),

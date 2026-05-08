@@ -51,4 +51,68 @@ describe("useGeneralSettingsViewProps", () => {
 
     expect(setPref).toHaveBeenCalledWith("sync_on_startup", "false");
   });
+
+  it("maps sidebar visibility and startup folder expansion controls to their preference keys", () => {
+    const setPref = vi.fn();
+    const props = buildGeneralSettingsViewProps({
+      t,
+      prefs: {
+        show_sidebar_unread: "true",
+        show_sidebar_starred: "false",
+        show_sidebar_recent_articles: "true",
+        show_sidebar_tags: "false",
+        startup_folder_expansion: "restore_previous",
+      },
+      setPref,
+    });
+
+    const navigationSection = props.sections.find((section) => section.id === "navigation");
+    const controls = navigationSection?.controls ?? [];
+    const sidebarControls = [
+      ["show-sidebar-unread", "show_sidebar_unread", true],
+      ["show-sidebar-starred", "show_sidebar_starred", false],
+      ["show-sidebar-recent-articles", "show_sidebar_recent_articles", true],
+      ["show-sidebar-tags", "show_sidebar_tags", false],
+    ] as const;
+
+    for (const [controlId, preferenceKey, checked] of sidebarControls) {
+      const control = controls.find((candidate) => candidate.id === controlId);
+
+      expect(control).toEqual(
+        expect.objectContaining({
+          id: controlId,
+          type: "switch",
+          checked,
+        }),
+      );
+
+      if (control?.type === "switch") {
+        control.onChange(!checked);
+      }
+
+      expect(setPref).toHaveBeenCalledWith(preferenceKey, String(!checked));
+    }
+
+    const startupExpansionControl = controls.find((control) => control.id === "startup-folder-expansion");
+
+    expect(startupExpansionControl).toEqual(
+      expect.objectContaining({
+        id: "startup-folder-expansion",
+        type: "select",
+        name: "startup_folder_expansion",
+        value: "restore_previous",
+        options: [
+          expect.objectContaining({ value: "all_collapsed" }),
+          expect.objectContaining({ value: "unread_folders" }),
+          expect.objectContaining({ value: "restore_previous" }),
+        ],
+      }),
+    );
+
+    if (startupExpansionControl?.type === "select") {
+      startupExpansionControl.onChange("unread_folders");
+    }
+
+    expect(setPref).toHaveBeenCalledWith("startup_folder_expansion", "unread_folders");
+  });
 });

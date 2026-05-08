@@ -20,17 +20,11 @@ type UseShortcutsSettingsViewPropsParams = {
   onResetAll: () => void;
   onResetShortcut: (id: ShortcutActionId) => void;
   onStartRecording: (id: ShortcutActionId) => void;
-  onBadgeKeyDown: (
-    id: ShortcutActionId,
-    event: globalThis.KeyboardEvent,
-  ) => void;
+  onBadgeKeyDown: (id: ShortcutActionId, event: globalThis.KeyboardEvent) => void;
 };
 
 export function buildShortcutCategoryOrder(
-  definitions: readonly Pick<
-    (typeof shortcutDefinitions)[number],
-    "categoryKey"
-  >[],
+  definitions: readonly Pick<(typeof shortcutDefinitions)[number], "categoryKey">[],
 ): ShortcutCategoryKey[] {
   return [...new Set(definitions.map((definition) => definition.categoryKey))];
 }
@@ -75,13 +69,10 @@ export function useShortcutsSettingsViewProps({
             isLocked,
             isRecording: recordingId === definition.id,
             resetDisabled: isLocked || currentKey === definition.defaultKey,
-            conflictLabel: conflict
-              ? t("shortcuts.conflict", { name: conflict })
-              : null,
+            conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
             onReset: () => onResetShortcut(definition.id),
             onStartRecording: () => onStartRecording(definition.id),
-            onKeyDown: (event: globalThis.KeyboardEvent) =>
-              onBadgeKeyDown(definition.id, event),
+            onKeyDown: (event: globalThis.KeyboardEvent) => onBadgeKeyDown(definition.id, event),
           };
         }),
     })),

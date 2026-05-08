@@ -183,7 +183,12 @@ describe("shared form controls", () => {
           ]}
           onChange={onSelectChange}
         />
-        <LabeledSwitchRow label="Open links in background" checked={false} onChange={onSwitchChange} />
+        <LabeledSwitchRow
+          label="Open links in background"
+          description="Keep the reader visible when opening links."
+          checked={false}
+          onChange={onSwitchChange}
+        />
       </>,
       { wrapper: createWrapper() },
     );
@@ -194,6 +199,7 @@ describe("shared form controls", () => {
     expect(combobox).toHaveClass("sm:w-[220px]", "motion-reduce:transition-none");
     expect(switchControl.parentElement).toHaveClass("sm:justify-end");
     expect(switchControl).toHaveClass("motion-reduce:transition-none");
+    expect(switchControl).toHaveAccessibleDescription("Keep the reader visible when opening links.");
 
     await user.click(combobox);
     await user.click(await screen.findByRole("option", { name: "Feedbin" }));

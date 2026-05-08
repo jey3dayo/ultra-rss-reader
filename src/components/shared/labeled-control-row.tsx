@@ -1,13 +1,19 @@
 import type { ReactNode } from "react";
+import { useId } from "react";
 import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
+
+type LabeledControlRowA11y = {
+  descriptionId: string | undefined;
+};
 
 type LabeledControlRowProps = {
   label: string;
   description?: string;
-  children?: ReactNode;
+  children?: ReactNode | ((a11y: LabeledControlRowA11y) => ReactNode);
   htmlFor?: string;
   labelId?: string;
+  descriptionId?: string;
   className?: string;
   labelClassName?: string;
 };
@@ -18,15 +24,22 @@ export function LabeledControlRow({
   children,
   htmlFor,
   labelId,
+  descriptionId,
   className,
   labelClassName,
 }: LabeledControlRowProps) {
+  const generatedDescriptionId = useId();
+  const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
   const labelClasses = cn("font-sans text-[14px] leading-[1.35] text-[color:var(--form-row-label)]", labelClassName);
+  const resolvedChildren =
+    typeof children === "function" ? children({ descriptionId: resolvedDescriptionId }) : children;
   const labelContent = (
     <span className="flex min-w-0 flex-col gap-1.5">
       <span className={labelClasses}>{label}</span>
       {description ? (
-        <span className="font-serif text-xs leading-[1.45] text-foreground-soft">{description}</span>
+        <span id={resolvedDescriptionId} className="font-serif text-xs leading-[1.45] text-foreground-soft">
+          {description}
+        </span>
       ) : null}
     </span>
   );
@@ -48,7 +61,7 @@ export function LabeledControlRow({
           {labelContent}
         </span>
       )}
-      <div className="min-w-0 sm:flex sm:items-center sm:justify-end">{children}</div>
+      <div className="min-w-0 sm:flex sm:items-center sm:justify-end">{resolvedChildren}</div>
     </div>
   );
 }

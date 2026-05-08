@@ -1,0 +1,59 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
+
+describe("SettingsLoadingActionButton", () => {
+  it("marks the action busy and disables it while loading by default", () => {
+    render(
+      <SettingsLoadingActionButton loading={true} loadingLabel="Saving">
+        Save
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Saving" });
+
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toBeDisabled();
+  });
+
+  it("renders the default spinner slot and loading label while loading", () => {
+    render(
+      <SettingsLoadingActionButton loading={true} loadingLabel="Checking">
+        Check
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Checking" });
+    const spinner = button.querySelector("[data-slot='loading-spinner']");
+
+    expect(spinner).not.toBeNull();
+    expect(spinner).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByText("Check")).not.toBeInTheDocument();
+  });
+
+  it("keeps the loading action enabled when disabledWhenLoading is false", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <SettingsLoadingActionButton
+        loading={true}
+        loadingLabel="Refreshing"
+        disabledWhenLoading={false}
+        onClick={onClick}
+      >
+        Refresh
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Refreshing" });
+
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).not.toBeDisabled();
+
+    await user.click(button);
+
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+});

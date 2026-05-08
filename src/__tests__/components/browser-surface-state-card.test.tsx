@@ -84,6 +84,43 @@ describe("BrowserSurfaceStateCard", () => {
     expect(openButton).toBeEnabled();
   });
 
+  it("keeps external recovery available when retry is unavailable", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const onOpenExternal = vi.fn();
+
+    render(
+      <BrowserSurfaceStateCard
+        issue={{
+          kind: "unsupported",
+          title: "Embedded Web Preview is unavailable in this runtime.",
+          description: "Open this page externally.",
+          detail: null,
+          canRetry: false,
+        }}
+        showTechnicalDetail={false}
+        onRetry={onRetry}
+        onOpenExternal={onOpenExternal}
+        labels={{
+          technicalDetail: "Technical detail",
+          retryWebPreview: "Retry Web Preview",
+          openInExternalBrowser: "Open in External Browser",
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Retry Web Preview" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Open in External Browser" }),
+    );
+
+    expect(onRetry).not.toHaveBeenCalled();
+    expect(onOpenExternal).toHaveBeenCalledTimes(1);
+  });
+
   it("uses a semantic detail surface for technical browser errors", () => {
     render(
       <BrowserSurfaceStateCard

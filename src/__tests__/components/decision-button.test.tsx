@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import type { FormEvent } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { DecisionButton } from "@/components/shared/decision-button";
 
 describe("DecisionButton", () => {
@@ -45,5 +47,25 @@ describe("DecisionButton", () => {
     );
 
     expect(screen.getByRole("button", { name: "Delete disabled" })).toBeDisabled();
+  });
+
+  it("defaults to a non-submit button inside forms", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+    });
+
+    render(
+      <form onSubmit={onSubmit}>
+        <DecisionButton intent="keep">Keep</DecisionButton>
+      </form>,
+    );
+
+    const button = screen.getByRole("button", { name: "Keep" });
+    expect(button).toHaveAttribute("type", "button");
+
+    await user.click(button);
+
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });
