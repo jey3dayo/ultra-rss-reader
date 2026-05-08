@@ -1198,3 +1198,75 @@
 - [ ] Sidebar hidden-section fallback contract 候補を別バッチで追加する
   - `use-sidebar-visibility-fallback.ts` で unread / starred / recent / tag section が非表示、または選択中 tag が消えた時の fallback 順を hook test で固定する
   - sidebar visual、section collapse UI、account switcher、tag create/delete mutation は混ぜない
+
+- [ ] Article status actions null selection guard 候補を別バッチで追加する
+  - `use-article-status-actions.ts` で `articleId` が null の時に read/star mutation、retain、toast が呼ばれない契約を hook test で固定する
+  - optimistic cache、auto mark timer、article toolbar visual state は混ぜず、action guard のみ扱う
+
+- [ ] Article view browser-only fallback precedence 候補を別バッチで追加する
+  - `use-article-view-selection.ts` で `contentMode=browser` かつ selected article が見つからない時の browser-only fallback と not-found の優先順を固定する
+  - article list source planning、browser overlay display override、empty summary copy は別バッチに残す
+
+- [ ] Command palette shortcuts help history exclusion 候補を別バッチで追加する
+  - `use-command-palette-handlers.ts` で `open-shortcuts-help` が palette close と modal open だけを行い、command history に記録されない契約を固定する
+  - command history compaction、shortcut help modal UI、action availability guard は混ぜない
+
+- [ ] Command palette feed landing failure projection 候補を別バッチで追加する
+  - `use-command-palette-handlers.ts` で `openFeedLanding(feedId)` が reject した時の close 済み状態、history 記録、error projection 方針を明示する
+  - feed landing query、toast copy、resource search result ranking は別バッチにする
+
+- [ ] Debug settings dev action disabled guard 候補を別バッチで追加する
+  - `use-debug-settings-view-props.ts` で devBuild=false 時の scenario action が disabled になり、呼び出し側が誤って onAction しても runtime scenario を起動しない方針を固定する
+  - Debug HUD visual、dev scenario registry、settings layout は混ぜない
+
+- [ ] Screen snapshot adoption latch 候補を別バッチで追加する
+  - `use-screen-snapshot.ts` で `candidate=null` は未解決入力として扱い、いったん採用した snapshot と `hasAdoptedSnapshot` が dependency change で意図せず戻らない契約を固定する
+  - first-screen readiness 全体、startup data loading、visual skeleton は別スコープに残す
+
+- [ ] Menu event unknown action guard 候補を別バッチで追加する
+  - `use-menu-events.ts` で Tauri menu event の payload が unknown action の場合に `executeAction` を呼ばず、debug trace と warning のみになる契約を固定する
+  - native menu i18n、checked state sync、shortcut preference validation は混ぜない
+
+- [ ] Mouse navigation editable target guard 候補を別バッチで追加する
+  - `use-mouse-navigation.ts` で mouse back/forward button が input、textarea、select、contenteditable、textbox/searchbox、`data-disable-global-shortcuts` 配下では action dispatch されない契約を固定する
+  - browser history availability、reader focus return、OS-level mouse gesture 設定は別バッチにする
+
+- [ ] Reading settings clear recent articles no-account guard 候補を別バッチで追加する
+  - `use-reading-settings-view-props.ts` で selected account が無い時、clear recent articles action が disabled になり confirm/mutation を起動しない契約を固定する
+  - recent history repository、settings copy、reader recent smart view 表示は混ぜない
+
+- [ ] Preferences load single-flight fallback 候補を別バッチで追加する
+  - `preferences-store.ts` で concurrent `loadPreferences()` が single-flight になり、失敗時も `loaded=true` と default language fallback が適用される契約を固定する
+  - preference schema migration、theme view transition、settings UI 表示は別バッチにする
+
+- [ ] Article display invalid feed override fallback 候補を別バッチで追加する
+  - `article-display.ts` の `resolveFeedDisplayOverrides` で reader/web preview override の片方だけ invalid な時に両方 inherit へ戻す契約を pure test で固定する
+  - feed display settings command、settings select UI、article browser display override reset は混ぜない
+
+- [ ] Article summary latest invalid date order 候補を別バッチで追加する
+  - `article-view.ts` の `findLatestArticleOrNull` で invalid date と valid date が混在する時の latest 判定、全件 invalid の fallback を pure test で固定する
+  - article list sort order、locale formatting、summary card visual は別バッチに残す
+
+- [ ] Browser tracker redirect history replacement 候補を別バッチで追加する
+  - `browser_webview.rs` の `BrowserWebviewTracker` で new/back/forward/reload 後に finish URL が redirect 済み URL へ置換される契約を Rust unit test で固定する
+  - native WebView bounds、frontend requested-url merge、browser history UI は混ぜない
+
+- [ ] Browser webview timeout fallback emission 候補を別バッチで追加する
+  - `browser_webview_commands.rs` と `browser_webview.rs` で load timeout 時に tracker clear、fallback event、closed event の発火順と重複防止を helper contract として整理する
+  - frontend load timeout surface、external browser fallback、geometry diagnostics は同じバッチに混ぜない
+
+- [ ] Account credentials update verification reset 候補を別バッチで追加する
+  - `sqlite_account.rs` の `update_credentials` で server_url / username 更新時に verification status、verified_at、verification_error が必ず reset される契約を repository test で固定する
+  - keyring save、connection verification command、account detail form validation は別バッチにする
+
+- [ ] Browser WebView preference read failure fallback 候補を別バッチで追加する
+  - `browser_webview.rs` と `browser_webview_commands.rs` で `load_browser_preview_prefs` 失敗時にも WebView 作成全体を失敗させない fallback を契約化する
+  - shortcut 割り当て仕様、WebView bounds、Windows WebView2 bridge の挙動変更は混ぜない
+
+- [ ] Database size info auxiliary files contract 候補を別バッチで追加する
+  - `connection.rs` と `database_commands.rs` で database info の total が db / wal / shm のどこまでを含むかを DTO 名と test で明示する
+  - migration recovery、backup cleanup policy、data settings UI copy は別バッチに残す
+
+- [ ] VACUUM reopen failure recoverable error 候補を別バッチで追加する
+  - `connection.rs` と `database_commands.rs` で `vacuum()` 後の file connection reopen failure が panic ではなく `DomainError` / `AppError` として返る契約へ寄せる
+  - migration restore、sync 中 guard、DB compaction UI は同じバッチに混ぜない
