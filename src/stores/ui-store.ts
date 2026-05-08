@@ -1,8 +1,8 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
-import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/article-retention";
+import type { ConfirmDialogVariant } from "@/lib/confirm-dialog";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
