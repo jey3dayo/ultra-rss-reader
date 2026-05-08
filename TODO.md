@@ -55,5 +55,6 @@
   - さらに state type を分割する場合は、`src/stores/ui-store.ts` 自体を slice 化できる段階で実施する。store action / selector / dev scenario への参照が広いため別バッチにする
 
 - [ ] 小粒 cleanup 候補を別バッチで見直す
-  - UI class variant のテスト固定は、見た目を過剰に固定しない範囲に限定する
-  - pure helper の追加テストは、挙動の契約として価値があるものだけ残す
+  - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
+  - pure helper の追加テストは、境界値・source selection・query plan など挙動の契約として価値があるものだけ残す
+  - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う

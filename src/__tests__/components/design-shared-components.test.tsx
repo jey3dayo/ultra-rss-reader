@@ -93,6 +93,12 @@ describe("Design-themed shared components", () => {
         <ControlChipButton pressed>Unread</ControlChipButton>
         <GradientSwitch checked={true} aria-label="Live preview" />
         <LabelChip tone="muted">Muted chip</LabelChip>
+        <LabelChip>Neutral chip</LabelChip>
+        <LabelChip tone="success" size="compact">
+          Success chip
+        </LabelChip>
+        <LabelChip tone="warning">Warning chip</LabelChip>
+        <LabelChip tone="danger">Danger chip</LabelChip>
       </>,
     );
 
@@ -122,6 +128,24 @@ describe("Design-themed shared components", () => {
     );
     expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
     expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft", "motion-reduce:transition-none");
+    expect(screen.getByText("Neutral chip")).toHaveAttribute("data-label-chip", "neutral");
+    expect(screen.getByText("Success chip")).toHaveClass(
+      "border-state-success-border",
+      "bg-state-success-surface",
+      "text-state-success-foreground",
+      "px-2",
+      "py-0.5",
+    );
+    expect(screen.getByText("Warning chip")).toHaveClass(
+      "border-state-warning-border",
+      "bg-state-warning-surface",
+      "text-state-warning-foreground",
+    );
+    expect(screen.getByText("Danger chip")).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
   });
 
   it("keeps base switch transitions explicit", () => {

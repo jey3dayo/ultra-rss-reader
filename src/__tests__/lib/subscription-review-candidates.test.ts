@@ -101,6 +101,31 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(candidates[0]?.staleDays).toBeGreaterThan(90);
   });
 
+  it("marks stale feeds at the 90 day boundary only", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-stale-boundary", unread_count: 1 },
+        { ...feeds[1], id: "feed-recent-boundary", unread_count: 1 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        { feed_id: "feed-stale-boundary", latest_article_at: "2026-01-05T00:00:00Z", starred_count: 1 },
+        { feed_id: "feed-recent-boundary", latest_article_at: "2026-01-06T00:00:00Z", starred_count: 1 },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates.find((candidate) => candidate.feedId === "feed-stale-boundary")).toMatchObject({
+      staleDays: 90,
+      reasonKeys: ["stale_90d"],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-recent-boundary")).toMatchObject({
+      staleDays: 89,
+      reasonKeys: [],
+    });
+  });
+
   it("excludes candidates removed by keep or later local state", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,

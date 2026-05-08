@@ -217,4 +217,19 @@ describe("resolveReaderSourcePlan", () => {
       effectiveViewMode: "unread",
     });
   });
+
+  it("keeps smart unread source filtering ahead of footer display filters", () => {
+    expect(resolveReaderSourcePlan({ type: "smart", kind: "unread" }, "all", "acc-1")).toMatchObject({
+      sourceKind: "account",
+      sourceKey: "account:acc-1:articles:unread",
+      accountMode: "unread",
+      effectiveViewMode: "unread",
+    });
+    expect(resolveReaderSourcePlan({ type: "smart", kind: "unread" }, "starred", "acc-1")).toMatchObject({
+      sourceKind: "account",
+      sourceKey: "account:acc-1:articles:unread",
+      accountMode: "unread",
+      effectiveViewMode: "unread",
+    });
+  });
 });

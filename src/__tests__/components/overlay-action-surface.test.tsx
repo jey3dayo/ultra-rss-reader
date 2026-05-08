@@ -43,4 +43,19 @@ describe("OverlayActionSurface", () => {
     expect(regular).toHaveClass("px-3");
     expect(regular).toHaveClass("bg-overlay-action-surface-subtle");
   });
+
+  it("keeps chrome actions visually borderless while preserving active and focus state hooks", () => {
+    render(
+      <OverlayActionSurface data-testid="chrome-action" compact variant="chrome">
+        <button type="button">Chrome action</button>
+      </OverlayActionSurface>,
+    );
+
+    const chrome = screen.getByTestId("chrome-action");
+
+    expect(chrome).toHaveClass("bg-transparent", "text-foreground-soft", "shadow-none");
+    expect(chrome.className).toContain("has-[:focus-visible]:ring-0");
+    expect(chrome.className).toContain("has-[:active]:bg-overlay-action-surface-chrome-active");
+    expect(chrome).not.toHaveClass("border");
+  });
 });

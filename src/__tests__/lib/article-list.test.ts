@@ -101,6 +101,24 @@ describe("article-list utils", () => {
     expect(result).toEqual([sampleArticles[1]]);
   });
 
+  it("keeps the normal article source when search is open with an empty query", () => {
+    const result = selectVisibleArticles({
+      articles: sampleArticles,
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [sampleArticles[1]],
+      feedId: "feed-1",
+      tagId: null,
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: true,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+  });
+
   it("filters account articles to the selected folder feed ids before unread filtering", () => {
     const result = selectVisibleArticles({
       articles: [],
