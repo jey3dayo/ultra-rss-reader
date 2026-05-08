@@ -2,9 +2,15 @@ import { Result } from "@praha/byethrow";
 import { useState } from "react";
 import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
-import type { FeedFaviconProps } from "./feed-favicon.types";
+import type { FeedFaviconProps, FeedFaviconSize } from "./feed-favicon.types";
 
-const faviconSizeClassNames = {
+type FaviconSizeClassNames = {
+  fallback: string;
+  image: string;
+  requestSize: number;
+};
+
+const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   sm: {
     fallback: "h-5 w-5 text-[10px]",
     image: "h-4 w-4",
@@ -20,7 +26,7 @@ const faviconSizeClassNames = {
     image: "h-6 w-6",
     requestSize: 64,
   },
-} as const;
+};
 
 export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
   const [failed, setFailed] = useState(false);

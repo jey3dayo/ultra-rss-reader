@@ -1,10 +1,16 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import type { SidebarSmartViewsProps } from "./sidebar.types";
+import type { SidebarSmartViewsProps, SmartViewKind } from "./sidebar.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
-const SMART_VIEW_TONE_CLASSNAMES = {
+type SmartViewToneClassNames = {
+  selected: string;
+  hover: string;
+  trailing: string;
+};
+
+const SMART_VIEW_TONE_CLASSNAMES: Record<SmartViewKind, SmartViewToneClassNames> = {
   unread: {
     selected: "bg-[var(--semantic-tone-unread-surface)] text-[var(--semantic-tone-unread-sidebar-foreground)]",
     hover: "hover:text-[var(--semantic-tone-unread-sidebar-foreground)]",
@@ -20,7 +26,7 @@ const SMART_VIEW_TONE_CLASSNAMES = {
     hover: "hover:text-foreground",
     trailing: "text-foreground-soft opacity-80",
   },
-} as const;
+};
 
 export function SmartViewsView({ title, views, onSelectSmartView, renderContextMenu }: SidebarSmartViewsProps) {
   return (

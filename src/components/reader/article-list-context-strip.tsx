@@ -1,7 +1,15 @@
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { ArticleListContextStripProps } from "./article-list.types";
 
-const TONE_STYLES = {
+type ArticleListContextTone = NonNullable<ArticleListContextStripProps["tone"]> | "neutral";
+
+type ArticleListContextToneStyle = {
+  accent: string;
+  primary: string;
+  secondary: string;
+};
+
+const TONE_STYLES: Record<ArticleListContextTone, ArticleListContextToneStyle> = {
   unread: {
     accent: "bg-[var(--tone-unread)]",
     primary:
@@ -19,7 +27,7 @@ const TONE_STYLES = {
     primary: "text-[var(--sidebar-foreground-muted-strong)]",
     secondary: "text-[var(--sidebar-foreground-soft-strong)]",
   },
-} as const;
+};
 
 export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: ArticleListContextStripProps) {
   if (!primaryLabel && !secondaryLabel) {

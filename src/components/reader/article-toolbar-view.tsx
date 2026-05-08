@@ -12,7 +12,9 @@ import { useUiStore } from "@/stores/ui-store";
 import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
-const articleToolbarVisualActiveClassNames = {
+type ArticleToolbarVisualActiveTone = "unread" | "neutral" | "accent" | "starred";
+
+const articleToolbarVisualActiveClassNames: Record<ArticleToolbarVisualActiveTone, string> = {
   unread:
     "bg-[var(--semantic-tone-unread-surface)] text-[var(--semantic-tone-unread-content-foreground)] hover:bg-[var(--semantic-tone-unread-surface)] hover:text-[var(--semantic-tone-unread-content-foreground)] focus-visible:bg-[var(--semantic-tone-unread-surface)] focus-visible:text-[var(--semantic-tone-unread-content-foreground)]",
   neutral:
@@ -21,7 +23,7 @@ const articleToolbarVisualActiveClassNames = {
     "bg-primary/12 text-primary hover:bg-primary/12 hover:text-primary focus-visible:bg-primary/12 focus-visible:text-primary",
   starred:
     "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)] focus-visible:bg-[var(--semantic-tone-starred-surface)] focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
-} as const;
+};
 
 const articleToolbarUnavailableClassName =
   "disabled:opacity-35 disabled:saturate-0 disabled:hover:bg-transparent disabled:focus-visible:bg-transparent";
@@ -94,7 +96,7 @@ function ArticleToolbarMobilePrimaryButton({
   onPressedChange: (nextPressed: boolean) => void;
   disabled?: boolean;
   active?: boolean;
-  activeTone?: keyof typeof articleToolbarVisualActiveClassNames;
+  activeTone?: ArticleToolbarVisualActiveTone;
   children: ReactNode;
 }) {
   return (
