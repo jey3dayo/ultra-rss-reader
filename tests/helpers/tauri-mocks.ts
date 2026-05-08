@@ -122,12 +122,20 @@ export const sampleTags: TagDto[] = [
 
 type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
 
+function isRecord(payload: unknown): payload is Record<string, unknown> {
+  return typeof payload === "object" && payload !== null;
+}
+
 function validateArgs(cmd: string, payload: unknown): Record<string, unknown> {
   const schema = commandArgsSchemas[cmd];
   if (schema) {
-    return schema.parse(payload) as Record<string, unknown>;
+    const result = schema.safeParse(payload);
+    if (!result.success) {
+      throw result.error;
+    }
+    return result.data;
   }
-  return (payload ?? {}) as Record<string, unknown>;
+  return isRecord(payload) ? payload : {};
 }
 
 function createDefaultHandler(): MockHandler {

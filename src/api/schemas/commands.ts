@@ -306,7 +306,7 @@ export const setMuteAutoMarkReadArgs = z.object({
 });
 
 // Registry: command names (snake_case) -> schema (only commands with args)
-export const commandArgsSchemas: Record<string, z.ZodType> = {
+export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown>>> = {
   list_folders: listFoldersArgs,
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,
