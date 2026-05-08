@@ -1,8 +1,8 @@
 import { useId } from "react";
+import { useRenameFeedDialogController } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller";
+import { useRenameFeedDialogViewProps } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-view-props";
 import type { RenameDialogProps } from "./rename-feed-dialog.types";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
-import { useRenameFeedDialogController } from "./use-rename-feed-dialog-controller";
-import { useRenameFeedDialogViewProps } from "./use-rename-feed-dialog-view-props";
 
 export function RenameDialog({ feed, open, onOpenChange }: RenameDialogProps) {
   const folderLabelId = useId();

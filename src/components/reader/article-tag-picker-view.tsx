@@ -1,10 +1,10 @@
 import { Plus } from "lucide-react";
 import { useId } from "react";
+import { useArticleTagPickerPopover } from "@/components/reader/hooks/article/use-article-tag-picker-popover";
 import { ArticleTagChipList } from "./article-tag-chip-list";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker.types";
 import { TagPickerTriggerButton } from "./article-tag-picker-buttons";
 import { ArticleTagPickerPopover } from "./article-tag-picker-popover";
-import { useArticleTagPickerPopover } from "./use-article-tag-picker-popover";
 
 export function ArticleTagPickerView({
   assignedTags,

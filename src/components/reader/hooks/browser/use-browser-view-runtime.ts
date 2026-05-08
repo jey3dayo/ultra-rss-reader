@@ -1,0 +1,48 @@
+import { useCallback, useRef, useState } from "react";
+import type { BrowserWebviewState } from "@/api/tauri-commands";
+import { useBrowserNativeDiagnostics } from "@/components/reader/hooks/browser/use-browser-native-diagnostics";
+import { useBrowserOverlayViewportWidth } from "@/components/reader/hooks/browser/use-browser-overlay-viewport-width";
+import { usePlatformStore } from "@/stores/platform-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
+import type { UseBrowserViewRuntimeParams, UseBrowserViewRuntimeResult } from "../../browser-view.types";
+
+export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeParams): UseBrowserViewRuntimeResult {
+  const prefs = usePreferencesStore((s) => s.prefs);
+  const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
+  const browserUrl = useUiStore((s) => s.browserUrl);
+  const showToast = useUiStore((s) => s.showToast);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+  const browserStateRef = useRef<BrowserWebviewState | null>(null);
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const fallbackInFlightRef = useRef(false);
+  const { nativeDiagnostics, handleNativeDiagnostics } = useBrowserNativeDiagnostics(showDiagnostics);
+  const viewportWidth = useBrowserOverlayViewportWidth();
+  const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
+
+  const handleCloseOverlay = useCallback(() => {
+    onCloseOverlay();
+  }, [onCloseOverlay]);
+
+  return {
+    showDiagnostics,
+    browserUrl,
+    browserState,
+    showToast,
+    platformKind,
+    setBrowserState,
+    browserStateRef,
+    hostRef,
+    overlayRef,
+    stageRef,
+    fallbackInFlightRef,
+    nativeDiagnostics,
+    handleNativeDiagnostics,
+    viewportWidth,
+    isLoading,
+    handleCloseOverlay,
+  };
+}

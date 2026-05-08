@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import { useBrowserViewActions } from "@/components/reader/use-browser-view-actions";
+import { useBrowserViewActions } from "@/components/reader/hooks/browser/use-browser-view-actions";
 
 import { usePreferencesStore } from "@/stores/preferences-store";
 

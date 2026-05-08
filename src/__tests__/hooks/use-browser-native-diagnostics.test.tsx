@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useBrowserNativeDiagnostics } from "@/components/reader/use-browser-native-diagnostics";
+import { useBrowserNativeDiagnostics } from "@/components/reader/hooks/browser/use-browser-native-diagnostics";
 
 function createDiagnostics() {
   return {

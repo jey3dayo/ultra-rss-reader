@@ -1,11 +1,11 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
+import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";
 import type { ArticleContextMenuProps } from "./article-menu.types";
-import { useArticleActions } from "./use-article-actions";
 
 export function ArticleContextMenu({ article, children }: ArticleContextMenuProps) {
   const { t } = useTranslation("reader");

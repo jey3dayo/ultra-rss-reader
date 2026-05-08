@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import { useBrowserWebviewRequestState } from "@/components/reader/use-browser-webview-request-state";
+import { useBrowserWebviewRequestState } from "@/components/reader/hooks/browser/use-browser-webview-request-state";
 
 function createBrowserState(url: string, isLoading = false): BrowserWebviewState {
   return {

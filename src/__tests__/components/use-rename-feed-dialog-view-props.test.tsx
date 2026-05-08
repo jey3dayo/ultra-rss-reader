@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { useRenameFeedDialogViewProps } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-view-props";
 import type { RenameFeedDialogController } from "@/components/reader/rename-feed-dialog.types";
-import { useRenameFeedDialogViewProps } from "@/components/reader/use-rename-feed-dialog-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "reader");

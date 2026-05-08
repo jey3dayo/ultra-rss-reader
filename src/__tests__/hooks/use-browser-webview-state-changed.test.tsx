@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import { useBrowserWebviewStateChanged } from "@/components/reader/use-browser-webview-state-changed";
+import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
 
 function createState(url: string, isLoading: boolean): BrowserWebviewState {
   return {

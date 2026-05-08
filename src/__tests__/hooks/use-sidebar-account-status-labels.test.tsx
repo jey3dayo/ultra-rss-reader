@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildSidebarAccountStatusLabels,
   useSidebarAccountStatusLabels,
-} from "@/components/reader/use-sidebar-account-status-labels";
+} from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import i18n from "@/lib/i18n";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";

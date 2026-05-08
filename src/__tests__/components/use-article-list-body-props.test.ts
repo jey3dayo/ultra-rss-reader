@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildArticleListBodyEmptyState } from "@/components/reader/use-article-list-body-props";
+import { buildArticleListBodyEmptyState } from "@/components/reader/hooks/article-list/use-article-list-body-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "reader");

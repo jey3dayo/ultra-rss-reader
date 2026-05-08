@@ -1,10 +1,10 @@
+import { useArticleListController } from "@/components/reader/hooks/article-list/use-article-list-controller";
 import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { cn } from "@/lib/utils";
 import { ArticleListBody } from "./article-list-body";
 import { ArticleListContextStrip } from "./article-list-context-strip";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
-import { useArticleListController } from "./use-article-list-controller";
 
 export function ArticleList() {
   const { layoutMode, headerProps, contextStripProps, bodyProps, footerProps } = useArticleListController();

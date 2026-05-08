@@ -1,6 +1,9 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useBrowserUrlEffect, useBrowserUrlLayoutEffect } from "@/components/reader/use-browser-url-effect";
+import {
+  useBrowserUrlEffect,
+  useBrowserUrlLayoutEffect,
+} from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useBrowserUrlEffect", () => {

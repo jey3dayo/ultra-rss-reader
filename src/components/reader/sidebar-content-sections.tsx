@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useSidebarTagItems } from "@/components/reader/hooks/sidebar/use-sidebar-tag-items";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
 import type { SidebarContentSectionsProps } from "./sidebar.types";
 import { SidebarContentView } from "./sidebar-content-view";
 import { SidebarFeedTreeSkeleton } from "./sidebar-feed-tree-skeleton";
 import { SidebarTagSection } from "./sidebar-tag-section";
-import { useSidebarTagItems } from "./use-sidebar-tag-items";
 
 export function SidebarContentSections({
   subscriptionsLabel,

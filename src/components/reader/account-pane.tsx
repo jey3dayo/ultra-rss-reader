@@ -1,5 +1,6 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { useAccounts } from "@/hooks/use-accounts";
 import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
@@ -16,7 +17,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { SidebarNavButton } from "./sidebar-nav-button";
-import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 
 function shouldShowKindLabel(name: string, kind: string): boolean {
   return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();

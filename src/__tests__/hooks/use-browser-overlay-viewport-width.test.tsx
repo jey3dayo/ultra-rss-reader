@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { useBrowserOverlayViewportWidth } from "@/components/reader/use-browser-overlay-viewport-width";
+import { useBrowserOverlayViewportWidth } from "@/components/reader/hooks/browser/use-browser-overlay-viewport-width";
 
 describe("useBrowserOverlayViewportWidth", () => {
   beforeEach(() => {

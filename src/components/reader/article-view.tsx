@@ -1,6 +1,8 @@
 import { FolderClosed, Inbox, Star, Tag as TagIcon } from "lucide-react";
 import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
+import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { MotionNumber } from "@/components/shared/motion-number";
@@ -16,8 +18,6 @@ import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
 import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
-import { useArticleViewSelection } from "./use-article-view-selection";
-import { useArticleViewUiState } from "./use-article-view-ui-state";
 
 const LazySubscriptionsIndexPage = lazy(async () => {
   const mod = await import("../subscriptions-index/subscriptions-index-page");

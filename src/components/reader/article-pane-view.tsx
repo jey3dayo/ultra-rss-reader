@@ -1,3 +1,5 @@
+import { useArticlePaneController } from "@/components/reader/hooks/article/use-article-pane-controller";
+import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
 import {
   MOTION_ARTICLE_SLIDE_CLASS_NAME,
   MOTION_DATA_DIRECTION_ATTRIBUTE,
@@ -12,8 +14,6 @@ import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import type { ArticlePaneProps, ArticleToolbarProps } from "./article-view.types";
 import { BrowserOverlaySurface } from "./article-view-state";
-import { useArticlePaneController } from "./use-article-pane-controller";
-import { useArticleToolbarControls } from "./use-article-toolbar-controls";
 
 export function ArticleToolbar({ article, isBrowserOpen, onCloseView, onToggleBrowserOverlay }: ArticleToolbarProps) {
   const actionStripProps = useArticleToolbarControls({

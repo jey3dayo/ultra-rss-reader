@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
 import { useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
@@ -11,7 +12,6 @@ import {
   resolveFolderDisplayPreset,
 } from "@/lib/article-display";
 import { FolderContextMenuView } from "./folder-context-menu-view";
-import { useOldUnreadReadAction } from "./use-old-unread-read-action";
 
 export type FolderContextMenuContentProps = {
   folder: FolderDto;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFolderOptions } from "@/components/reader/use-folder-selection";
+import { buildFolderOptions } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
 
 describe("use-folder-selection", () => {
   it("builds a no-folder option when folders are not loaded", () => {

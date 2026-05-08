@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { SetReadMutation, ToggleStarMutation } from "@/components/reader/article-actions.types";
-import { useArticleStatusActions } from "@/components/reader/use-article-status-actions";
+import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
 
 describe("useArticleStatusActions", () => {
   it("removes recently-read state when an article is marked unread", () => {

@@ -1,9 +1,9 @@
 import { createRef, type RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { useSidebarAccountSectionProps } from "@/components/reader/hooks/sidebar/use-sidebar-account-section-props";
+import { useSidebarContentSectionsProps } from "@/components/reader/hooks/sidebar/use-sidebar-content-sections-props";
+import { useSidebarSmartViewsProps } from "@/components/reader/hooks/sidebar/use-sidebar-smart-views-props";
 import type { SmartViewItemViewModel } from "@/components/reader/sidebar.types";
-import { useSidebarAccountSectionProps } from "@/components/reader/use-sidebar-account-section-props";
-import { useSidebarContentSectionsProps } from "@/components/reader/use-sidebar-content-sections-props";
-import { useSidebarSmartViewsProps } from "@/components/reader/use-sidebar-smart-views-props";
 import i18n from "@/lib/i18n";
 import type { UiSelection } from "@/stores/ui-store";
 

@@ -1,6 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
 import {
   useClearArticleViewHistory,
   useMarkAccountRead,
@@ -12,7 +13,6 @@ import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems } from "./old-unread-context-menu-items";
 import type { SmartViewItemViewModel } from "./sidebar.types";
-import { useOldUnreadReadAction } from "./use-old-unread-read-action";
 
 export type SmartViewContextMenuContentProps = {
   accountId: string;

@@ -1,11 +1,11 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useSidebarController } from "@/components/reader/hooks/sidebar/use-sidebar-controller";
 import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { SidebarAccountSection } from "./sidebar-account-section";
 import { SidebarContentSections } from "./sidebar-content-sections";
 import { SidebarHeaderView } from "./sidebar-header-view";
 import { SmartViewsView } from "./smart-views-view";
-import { useSidebarController } from "./use-sidebar-controller";
 
 function getSidebarNavigationTargets() {
   return Array.from(document.querySelectorAll<HTMLButtonElement>('[data-sidebar-navigation-target="true"]')).filter(

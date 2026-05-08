@@ -3,6 +3,7 @@ import { useCallback, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
+import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
@@ -19,7 +20,6 @@ import { FeedContextMenuView } from "./feed-context-menu-view";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
-import { useOldUnreadReadAction } from "./use-old-unread-read-action";
 
 export type FeedContextMenuContentProps = {
   feed: FeedDto;

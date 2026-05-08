@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useBrowserViewController } from "@/components/reader/hooks/browser/use-browser-view-controller";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -7,7 +8,6 @@ import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
 import type { BrowserViewProps } from "./browser-view.types";
-import { useBrowserViewController } from "./use-browser-view-controller";
 
 function prefersReducedMotion() {
   return (

@@ -1,10 +1,10 @@
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { useAddFeedDialogController } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-controller";
+import { useAddFeedDialogViewProps } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-view-props";
 import { useFolders } from "@/hooks/use-folders";
 import type { AddFeedDialogProps } from "./add-feed-dialog.types";
 import { AddFeedDialogView } from "./add-feed-dialog-view";
-import { useAddFeedDialogController } from "./use-add-feed-dialog-controller";
-import { useAddFeedDialogViewProps } from "./use-add-feed-dialog-view-props";
 
 export function AddFeedDialog({ open, onOpenChange, accountId }: AddFeedDialogProps) {
   const { t } = useTranslation("reader");

@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
-import { useBrowserViewSurfaceState } from "@/components/reader/use-browser-view-surface-state";
+import { useBrowserViewSurfaceState } from "@/components/reader/hooks/browser/use-browser-view-surface-state";
 
 const labels = {
   browserMode: "Embedded preview isn't available in browser mode.",
