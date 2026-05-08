@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { sampleAccounts } from "@tests/helpers/fixtures";
-import { createRef } from "react";
+import { createRef, type RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSwitcherView } from "@/components/reader/account-switcher-view";
 
-function createAccountItemRefs() {
+function createAccountItemRefs(): RefObject<Array<HTMLButtonElement | null>> {
   const current: Array<HTMLButtonElement | null> = [];
   return { current };
 }
