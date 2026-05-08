@@ -1374,3 +1374,27 @@
 - [ ] Article mark many empty no-op contract 候補を別バッチで追加する
   - `sqlite_article.rs` の `mark_many_as_read` で empty ids が DB transaction や SQL error を起こさず no-op になる契約を repository test で固定する
   - bulk mutation feed count dedupe、mark-all-read confirmation、pending mutation queue は混ぜない
+
+- [ ] folder article list mode invalid value contract 候補を別バッチで追加する
+  - `article_commands.rs` の `list_folder_articles` で `mode` を `ArticleListMode::from_optional_str` 経由で検証し、未知値を silent に `all` 扱いしない契約を Rust test で固定する
+  - old unread、article scope matrix、frontend schema/copy、command registry は混ぜない
+
+- [ ] feed folder assignment account boundary contract 候補を別バッチで追加する
+  - `sqlite_feed.rs` と `feed_commands.rs` で `update_folder(feed_id, folder_id)` が別 account の folder を feed に紐づけない契約を repository test で固定する
+  - folder drag/drop UI、folder selection view、provider sync、remote folder mutation は混ぜない
+
+- [ ] duplicate feed URL upsert identity contract 候補を別バッチで追加する
+  - `sqlite_feed.rs` の `save` で `ON CONFLICT(account_id, url)` 時に既存 row の id が維持され、title/site_url/icon/display settings だけが期待通り更新される契約を固定する
+  - feed discovery、add feed dialog、feed DTO、unread count 再計算 policy は混ぜない
+
+- [ ] browser overlay stories render contract 候補を別バッチで追加する
+  - `browser-overlay-stage.stories.tsx` の Loading / Loaded / RetryableIssue / RuntimeUnavailableIssue を `renderStory` で描画し、主要 button/state card/history state の存在だけを固定する
+  - geometry 数値調整、motion、native WebView bounds、overlay close guard は混ぜない
+
+- [ ] shortcuts recording conflict banner lifecycle 候補を別バッチで追加する
+  - `shortcuts-settings.tsx` で conflict 発生後に別 shortcut の recording を開始した時、stale な global conflict message を消す契約を component test で固定する
+  - shortcut label/i18n、default key 変更、global keyboard resolver、open settings lock 仕様は混ぜない
+
+- [ ] shared labeled row description a11y contract 候補を別バッチで追加する
+  - `labeled-control-row.tsx` と `labeled-switch-row.tsx` で description element に安定 id を付け、row-owned control が `aria-describedby` で参照できる契約を固定する
+  - visual token、form layout、input helper text 全体設計、settings copy は混ぜない
