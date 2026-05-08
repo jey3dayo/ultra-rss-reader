@@ -7,12 +7,12 @@ export type FeedTreeDragOverlayPreview = {
   y: number;
 };
 
-export type FeedTreeDragOverlayProps = {
+type FeedTreeDragOverlayProps = {
   preview: FeedTreeDragOverlayPreview;
   displayFavicons: boolean;
 };
 
-export type FeedTreeDragOverlayCardProps = {
+type FeedTreeDragOverlayCardProps = {
   feed: FeedTreeFeedViewModel;
   displayFavicons: boolean;
 };

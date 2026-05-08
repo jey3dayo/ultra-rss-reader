@@ -11,7 +11,7 @@ function getFolderUnreadCount(feeds: FeedDto[]) {
   return sumUnreadCounts(feeds);
 }
 
-export type FolderSectionViewProps = {
+type FolderSectionViewProps = {
   folder: FolderDto;
   feeds: FeedDto[];
   isExpanded: boolean;
@@ -22,7 +22,7 @@ export type FolderSectionViewProps = {
   grayscaleFavicons?: boolean;
 };
 
-export type FolderSectionTriggerContentProps = {
+type FolderSectionTriggerContentProps = {
   folderName: string;
   folderUnread: number;
   isExpanded: boolean;

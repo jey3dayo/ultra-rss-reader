@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TagChipProps = {
+type TagChipProps = {
   label: string;
   color?: string | null;
   onRemove?: () => void;

@@ -8,7 +8,7 @@ import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups
 import type { ArticleListEmptyStateVariant } from "./article-list.types";
 import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
 
-export type ArticleListScreenViewProps = {
+type ArticleListScreenViewProps = {
   listAriaLabel: string;
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef?: RefObject<HTMLDivElement | null>;

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 
-export type CreateTagDialogViewProps = {
+type CreateTagDialogViewProps = {
   open: boolean;
   name: string;
   loading: boolean;

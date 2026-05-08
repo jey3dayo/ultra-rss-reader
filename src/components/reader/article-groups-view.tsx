@@ -16,7 +16,7 @@ export type ArticleGroupsViewGroup = {
   items: ArticleGroupsViewItem[];
 };
 
-export type ArticleGroupsViewProps = {
+type ArticleGroupsViewProps = {
   groups: ArticleGroupsViewGroup[];
   dimArchived: string;
   textPreview: string;

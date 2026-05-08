@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 export type FormDialogShellSize = "compact" | "wide";
 
-export type FormDialogShellProps = {
+type FormDialogShellProps = {
   open: boolean;
   title: ReactNode;
   description?: ReactNode;

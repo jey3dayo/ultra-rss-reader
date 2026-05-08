@@ -7,7 +7,7 @@ import { TagColorPicker } from "@/components/shared/tag-color-picker";
 const EMPTY_COLOR_OPTIONS: string[] = [];
 const NO_OP_COLOR_CHANGE = () => {};
 
-export type RenameTagDialogViewProps = {
+type RenameTagDialogViewProps = {
   open: boolean;
   name: string;
   color?: string | null;

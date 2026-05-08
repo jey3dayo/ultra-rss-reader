@@ -6,7 +6,7 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import { FeedContextMenuContent } from "./feed-context-menu";
 
-export type FeedItemViewProps = {
+type FeedItemViewProps = {
   feed: FeedDto;
   isSelected: boolean;
   onSelect: (feedId: string) => void;
@@ -14,7 +14,7 @@ export type FeedItemViewProps = {
   grayscaleFavicons?: boolean;
 };
 
-export type FeedItemContentProps = {
+type FeedItemContentProps = {
   feed: FeedDto;
   displayFavicons: boolean;
   grayscaleFavicons: boolean;

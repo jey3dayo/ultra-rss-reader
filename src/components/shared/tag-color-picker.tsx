@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TagColorPickerProps = {
+type TagColorPickerProps = {
   label?: string;
   color: string | null;
   colorOptions: readonly string[];

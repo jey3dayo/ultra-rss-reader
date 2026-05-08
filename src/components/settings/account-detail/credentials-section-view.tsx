@@ -9,7 +9,7 @@ import type { AccountCredentialInputRow } from "./types";
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";
 
-export type AccountCredentialsSectionViewProps = {
+type AccountCredentialsSectionViewProps = {
   heading: string;
   note?: string;
   disabled?: boolean;

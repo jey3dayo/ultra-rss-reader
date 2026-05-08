@@ -3,7 +3,7 @@ import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { cn } from "@/lib/utils";
 
-export type AccountDetailSettingsRowProps =
+type AccountDetailSettingsRowProps =
   | { label: string; labelClassName?: string; valueClassName?: string; type: "switch"; checked?: boolean }
   | { label: string; labelClassName?: string; valueClassName?: string; type: "select"; value?: string }
   | {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
 
-export type UnsubscribeFeedDialogViewProps = {
+type UnsubscribeFeedDialogViewProps = {
   open: boolean;
   title: string;
   description: ReactNode;
