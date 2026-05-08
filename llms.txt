@@ -46,7 +46,10 @@ Important implementation constraints:
 - [src/schemas](src/schemas/): Frontend-owned runtime schemas and parse helpers for config, storage, and preferences.
 - [src/constants](src/constants/): Shared literal values, storage keys, layout constants, and motion tokens.
 - [src/App.tsx](src/App.tsx): Frontend entry composition.
+- [src/components/icons](src/components/icons/): Provider and product icon components plus narrow icon-only types.
 - [src/dev/scenarios](src/dev/scenarios/): `VITE_DEV_INTENT` scenarios powering direct dev entry points and command palette dev commands.
+- [src/dev-mocks.ts](src/dev-mocks.ts) and [src/dev-mock-data.ts](src/dev-mock-data.ts): Browser/dev-only mock IPC handlers and deterministic sample data.
+- [src/locales](src/locales/): i18next resources; Japanese product copy lives under `src/locales/ja/`.
 - [src/lib/reader-query.ts](src/lib/reader-query.ts): Reader article list intent normalization via `ReaderQuery` and `ReaderSourcePlan`.
 - [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md): Canonical mapping for reader source, scope, filter, API hook, and paging order.
 - [src-tauri/src/lib.rs](src-tauri/src/lib.rs): Rust bootstrap and shared module wiring.
