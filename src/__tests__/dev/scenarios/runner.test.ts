@@ -1,4 +1,4 @@
-import type { QueryKey, Updater } from "@tanstack/react-query";
+import { QueryClient, type QueryKey } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
@@ -44,45 +44,20 @@ vi.mock("@tauri-apps/api/dpi", () => ({
   },
 }));
 
-function serializeQueryKey(key: QueryKey) {
-  return JSON.stringify(key);
-}
-
 function createQueryClientStub() {
-  const cache = new Map<string, unknown>();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
 
-  function isUpdaterFunction<TData>(
-    updater: Updater<TData | undefined, TData | undefined>,
-  ): updater is (input: TData | undefined) => TData | undefined {
-    return typeof updater === "function";
-  }
-
-  function getCachedQueryData<TData>(key: QueryKey): TData | undefined {
-    return cache.get(serializeQueryKey(key)) as TData | undefined;
-  }
-
-  function setCachedQueryData<TData>(key: QueryKey, updater: Updater<TData | undefined, TData | undefined>) {
-    const serializedKey = serializeQueryKey(key);
-    const nextValue = isUpdaterFunction(updater) ? updater(getCachedQueryData<TData>(key)) : updater;
-    cache.set(serializedKey, nextValue);
-    return nextValue;
-  }
-
-  const getQueryData: DevScenarioContext["queryClient"]["getQueryData"] = (key) => getCachedQueryData(key);
-  const setQueryData: DevScenarioContext["queryClient"]["setQueryData"] = (key, updater) =>
-    setCachedQueryData(key, updater);
-
-  const queryClient: DevScenarioContext["queryClient"] = {
-    getQueryData,
-    setQueryData,
-  };
-
-  return { cache, queryClient };
+  return { queryClient };
 }
 
-function expectCachedQuery(cache: Map<string, unknown>, key: QueryKey, expected: unknown) {
-  const serializedKey = serializeQueryKey(key);
-  expect(cache.get(serializedKey), `query cache entry ${serializedKey}`).toEqual(expected);
+function expectCachedQuery(queryClient: DevScenarioContext["queryClient"], key: QueryKey, expected: unknown) {
+  expect(queryClient.getQueryData(key), `query cache entry ${JSON.stringify(key)}`).toEqual(expected);
 }
 
 function createUiStub(overrides?: Partial<DevScenarioContext["ui"]>): DevScenarioContext["ui"] {
@@ -323,7 +298,7 @@ describe("runDevScenario", () => {
   });
 
   it("opens the feed landing article in reader mode", async () => {
-    const { cache, queryClient } = createQueryClientStub();
+    const { queryClient } = createQueryClientStub();
     const ui = createUiStub();
     const context: DevScenarioContext = {
       ui,
@@ -357,14 +332,14 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, otherFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
-    expectCachedQuery(cache, ["accounts"], [otherAccount, account]);
+    expectCachedQuery(queryClient, ["accounts"], [otherAccount, account]);
     expectCachedQuery(
-      cache,
+      queryClient,
       ["feeds", account.id],
       [genericFeed, { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" }],
     );
     expectCachedQuery(
-      cache,
+      queryClient,
       ["articles", mangaFeed.id],
       [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
     );
@@ -377,7 +352,7 @@ describe("runDevScenario", () => {
   });
 
   it("continues searching until a ranked feed has a usable landing article", async () => {
-    const { cache, queryClient } = createQueryClientStub();
+    const { queryClient } = createQueryClientStub();
     const ui = createUiStub();
     const blockedRankedFeed: FeedDto = {
       ...genericFeed,
@@ -415,14 +390,14 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, blockedRankedFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
-    expectCachedQuery(cache, ["articles", blockedRankedFeed.id], [blockedReadArticle]);
+    expectCachedQuery(queryClient, ["articles", blockedRankedFeed.id], [blockedReadArticle]);
     expectCachedQuery(
-      cache,
+      queryClient,
       ["articles", mangaFeed.id],
       [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
     );
     expectCachedQuery(
-      cache,
+      queryClient,
       ["feeds", account.id],
       [blockedRankedFeed, { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" }],
     );
@@ -459,7 +434,7 @@ describe("runDevScenario", () => {
   });
 
   it("reproduces tag navigation state for the currently selected account without opening an article", async () => {
-    const { cache, queryClient } = createQueryClientStub();
+    const { queryClient } = createQueryClientStub();
     const ui = createUiStub({ selectedAccountId: otherAccount.id });
     const context: DevScenarioContext = {
       ui,
@@ -502,10 +477,14 @@ describe("runDevScenario", () => {
       undefined,
       otherAccount.id,
     );
-    expectCachedQuery(cache, ["accounts"], [account, otherAccount]);
-    expectCachedQuery(cache, ["tags"], [primaryTag, secondaryTag]);
-    expectCachedQuery(cache, ["tagArticleCounts", otherAccount.id], { [secondaryTag.id]: 2 });
-    expectCachedQuery(cache, ["articlesByTag", secondaryTag.id, otherAccount.id], [landingNewestArticle, readArticle]);
+    expectCachedQuery(queryClient, ["accounts"], [account, otherAccount]);
+    expectCachedQuery(queryClient, ["tags"], [primaryTag, secondaryTag]);
+    expectCachedQuery(queryClient, ["tagArticleCounts", otherAccount.id], { [secondaryTag.id]: 2 });
+    expectCachedQuery(
+      queryClient,
+      ["articlesByTag", secondaryTag.id, otherAccount.id],
+      [landingNewestArticle, readArticle],
+    );
     expect(ui.selectAccount).not.toHaveBeenCalled();
     expect(ui.selectTag).toHaveBeenCalledWith(secondaryTag.id);
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
@@ -514,7 +493,7 @@ describe("runDevScenario", () => {
   });
 
   it("falls back to the first account for tag view when no account is selected", async () => {
-    const { cache, queryClient } = createQueryClientStub();
+    const { queryClient } = createQueryClientStub();
     const ui = createUiStub({ selectedAccountId: null });
     const context: DevScenarioContext = {
       ui,
@@ -534,8 +513,8 @@ describe("runDevScenario", () => {
 
     expect(context.actions.getTagArticleCounts).toHaveBeenCalledWith(account.id);
     expect(context.actions.listArticlesByTag).toHaveBeenCalledWith(primaryTag.id, undefined, undefined, account.id);
-    expectCachedQuery(cache, ["tagArticleCounts", account.id], { [primaryTag.id]: 1 });
-    expectCachedQuery(cache, ["articlesByTag", primaryTag.id, account.id], [landingNewestArticle]);
+    expectCachedQuery(queryClient, ["tagArticleCounts", account.id], { [primaryTag.id]: 1 });
+    expectCachedQuery(queryClient, ["articlesByTag", primaryTag.id, account.id], [landingNewestArticle]);
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
     expect(ui.selectArticle).not.toHaveBeenCalled();
