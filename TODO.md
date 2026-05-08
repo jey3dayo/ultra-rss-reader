@@ -723,3 +723,68 @@
   - `backup.rs` と `connection.rs` で backup を temp file 経由で作成し、DB / WAL / SHM の一部だけ残る失敗ケースを固定できるか確認する
   - migration recovery runbook、Data settings backup UX、repository test とは混ぜない
   - atomic write と auxiliary file pairing を小さい infra/db test に分ける
+
+- [ ] sync-completed invalidation scope guard 候補を別バッチで追加する
+  - `App.tsx` の `sync-completed` listener と `query-invalidation.ts` を見直し、全量 `invalidateQueries()` を必要 query key に限定できるか確認する
+  - sync scheduler、toast 文言、manual sync UI とは混ぜず、feed / article / account sync status の cache invalidation scope だけを扱う
+  - event payload なしの場合の fallback と scoped invalidation を test で分ける
+
+- [ ] mute keyword article cache invalidation parity 候補を別バッチで追加する
+  - `use-mute-keywords.ts` と `query-invalidation.ts` で、mute keyword 更新時に recent / folder / starred count 系 article cache が必要十分に invalidated されるか照合する
+  - mute settings UI、filter 仕様変更、copy 変更とは混ぜず、article query key の parity だけを見る
+  - create / update / delete の invalidation 差分を focused test に分ける
+
+- [ ] account sync status query error surface 候補を別バッチで追加する
+  - `use-account-sync-status.ts` と sidebar sync hook で、sync status query failure が `not_synced_yet` と同じ表示に落ちないよう error / loading / retry の最小 contract を固定する
+  - provider error mapping、sidebar layout、同期実行処理とは混ぜない
+  - single account と all accounts status の fallback を分けて見る
+
+- [ ] feed landing fetchQuery fallback 候補を別バッチで追加する
+  - `use-feed-landing.ts` の `fetchQuery` 失敗時に、cached articles がある場合の fallback と完全失敗時の挙動を分けて test する
+  - reader scope matrix、feed display preference、article selection UX 全体とは混ぜない
+  - browser close / keep-open の条件を feed landing helper の contract として固定する
+
+- [ ] local IPC query retry policy 候補を別バッチで追加する
+  - `query-client.ts` と test wrapper の React Query retry 設定を照合し、Tauri IPC read query に default retry を効かせるかを明示する
+  - 個別 hook の cache key 整理、staleTime 調整、network provider retry とは混ぜない
+  - production client と test helper の差分を小さい contract test で固定する
+
+- [ ] dialog / command scrim token contract 候補を別バッチで追加する
+  - `global.css`、`dialog.tsx`、`command.tsx` の overlay / scrim が named CSS token 経由で使われることを固定する
+  - command palette action 境界、popup motion、見た目の濃さ調整とは混ぜない
+  - light / dark と `@theme` の token presence を static test で見る
+
+- [ ] reader passive card surface unification 候補を別バッチで追加する
+  - `reader-passive-card.tsx`、article empty state、article list screen の empty / search empty / selection summary が shared passive surface を通ることを固定する
+  - welcome card の装飾変更、radius 変更、copy 変更とは混ぜない
+  - shared class または shared component の利用だけを contract test にする
+
+- [ ] shared radius scale usage guard 候補を別バッチで追加する
+  - shared primitives が `rounded-md` / `rounded-full` など scale utility を使い、px radius literal を持たないことを固定する
+  - feature-local radius 棚卸し、全面 radius 統一、visual token 調整とは混ぜない
+  - `surface-card` / `button` / form control 系の小さい static test に限定する
+
+- [ ] settings content fade helper contract 候補を別バッチで追加する
+  - `settings-content-layout.tsx` と `global.css` の fade top / bottom が `aria-hidden`、`pointer-events-none`、named CSS variable に閉じていることを固定する
+  - settings layout 寸法変更、scroll behavior 変更、copy 変更とは混ぜない
+  - fade helper の DOM contract と CSS token usage を別 assertion にする
+
+- [ ] release artifact matrix contract 候補を別バッチで追加する
+  - `.github/workflows/release.yml` の release matrix が macOS aarch64 と Windows を維持し、`tauri-action` args が release config を含むことを static test で固定する
+  - signing secret preflight、version / tag 整合、実 artifact 生成確認とは混ぜない
+  - workflow YAML の matrix と action args だけを見る
+
+- [ ] updater artifact config split guard 候補を別バッチで追加する
+  - `tauri.conf.json` と `tauri.release.conf.json` で、通常 config は updater artifact 作成を無効、release overlay だけ有効にする契約を固定する
+  - updater endpoint / pubkey 変更、release workflow secret、pending update lifecycle とは混ぜない
+  - schema test で base / release overlay の役割を明示する
+
+- [ ] dev/release bundle identity separation 候補を別バッチで追加する
+  - `tauri.dev.conf.json`、`tauri.conf.json`、`tauri.release.conf.json` の productName / identifier / window title が dev と production で混線しないことを固定する
+  - data dir migration、seed dev DB、release version dry-run とは混ぜない
+  - dev-only identifier と production identifier の static contract に限定する
+
+- [ ] release updater endpoint HTTPS guard 候補を別バッチで追加する
+  - updater endpoint が HTTPS の GitHub Releases `latest/download/latest.json` だけを指し、空配列や http endpoint を許さないことを schema / test で固定する
+  - pubkey rotation、署名 secret、download / install lifecycle とは混ぜない
+  - endpoint single-source と protocol validation だけを見る
