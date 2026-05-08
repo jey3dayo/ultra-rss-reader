@@ -1,4 +1,4 @@
-import type { AccountGeneralSectionViewProps } from "@/components/settings/account-detail.types";
+import type { AccountGeneralSectionViewProps } from "@/components/settings/account-detail/types";
 import { SettingsRow } from "@/components/settings/settings-components";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";

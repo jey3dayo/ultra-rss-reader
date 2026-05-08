@@ -1,4 +1,4 @@
-import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "@/components/settings/account-detail.types";
+import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "@/components/settings/account-detail/types";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";

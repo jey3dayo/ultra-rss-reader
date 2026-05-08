@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAccountDetailErrorToast } from "@/components/settings/account-detail-toast";
+import { createAccountDetailErrorToast } from "@/components/settings/account-detail/toast";
 import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 

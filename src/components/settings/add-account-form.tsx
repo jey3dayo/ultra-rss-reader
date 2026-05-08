@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { AccountConfigForm } from "@/components/settings/account-config-form";
-import type { AccountConfigFormProps } from "@/components/settings/add-account-services.types";
+import type { AccountConfigFormProps } from "@/components/settings/add-account/services.types";
 import { ServicePicker } from "@/components/settings/service-picker";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findServiceDefinition, SERVICE_CATEGORIES } from "@/components/settings/add-account-services";
+import { findServiceDefinition, SERVICE_CATEGORIES } from "@/components/settings/add-account/services";
 
 describe("add-account-services", () => {
   it("keeps enabled add account providers discoverable", () => {

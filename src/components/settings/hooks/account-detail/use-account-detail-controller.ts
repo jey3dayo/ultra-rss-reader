@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { UseAccountDetailControllerParams, UseAccountDetailControllerResult } from "../../account-detail.types";
+import type { UseAccountDetailControllerParams, UseAccountDetailControllerResult } from "../../account-detail/types";
 import { useAccountDetailCredentialsEditor } from "./use-account-detail-credentials-editor";
 import { useAccountDetailDangerZone } from "./use-account-detail-danger-zone";
 import { useAccountDetailNameEditor } from "./use-account-detail-name-editor";

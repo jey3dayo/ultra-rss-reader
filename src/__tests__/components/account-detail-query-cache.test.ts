@@ -1,7 +1,7 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it } from "vitest";
 import type { AccountDto } from "@/api/tauri-commands";
-import { updateCachedAccount, upsertCachedAccount } from "@/components/settings/account-detail-query-cache";
+import { updateCachedAccount, upsertCachedAccount } from "@/components/settings/account-detail/query-cache";
 
 function buildAccount(id: string, name = id): AccountDto {
   return {

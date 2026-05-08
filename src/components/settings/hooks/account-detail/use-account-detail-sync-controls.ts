@@ -5,13 +5,13 @@ import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
+import { updateCachedAccount } from "../../account-detail/query-cache";
+import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type {
   UpdateAccountSyncParams,
   UseAccountDetailSyncControlsParams,
   UseAccountDetailSyncControlsResult,
-} from "../../account-detail.types";
-import { updateCachedAccount } from "../../account-detail-query-cache";
-import { createAccountDetailErrorToast } from "../../account-detail-toast";
+} from "../../account-detail/types";
 
 type RunAccountSetupSyncParams = {
   accountId: string;

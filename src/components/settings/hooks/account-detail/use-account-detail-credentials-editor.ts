@@ -2,12 +2,12 @@ import { Result } from "@praha/byethrow";
 import { useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
+import { updateCachedAccount } from "../../account-detail/query-cache";
+import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type {
   UseAccountDetailCredentialsEditorParams,
   UseAccountDetailCredentialsEditorResult,
-} from "../../account-detail.types";
-import { updateCachedAccount } from "../../account-detail-query-cache";
-import { createAccountDetailErrorToast } from "../../account-detail-toast";
+} from "../../account-detail/types";
 
 const MASKED_PASSWORD_VALUE = "••••••••";
 

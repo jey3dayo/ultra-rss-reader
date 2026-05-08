@@ -20,9 +20,9 @@ import {
 } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
-import { upsertCachedAccount } from "./account-detail-query-cache";
-import { findServiceDefinition } from "./add-account-services";
-import type { AccountConfigFormProps } from "./add-account-services.types";
+import { upsertCachedAccount } from "./account-detail/query-cache";
+import { findServiceDefinition } from "./add-account/services";
+import type { AccountConfigFormProps } from "./add-account/services.types";
 
 type AccountConfigUiState = {
   submitting: boolean;

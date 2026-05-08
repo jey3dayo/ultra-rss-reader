@@ -1,7 +1,7 @@
 import { Plus, Rss } from "lucide-react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
-import { SERVICE_CATEGORIES } from "./add-account-services";
+import { SERVICE_CATEGORIES } from "./add-account/services";
 import type { AccountsNavViewProps } from "./settings-nav.types";
 
 export type { AccountNavItem, AccountsNavViewProps } from "./settings-nav.types";

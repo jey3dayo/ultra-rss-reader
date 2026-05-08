@@ -1,5 +1,5 @@
 import { AccountDangerZoneView } from "@/components/settings/account-danger-zone-view";
-import type { AccountDetailViewProps } from "@/components/settings/account-detail.types";
+import type { AccountDetailViewProps } from "@/components/settings/account-detail/types";
 import { AccountGeneralSectionView } from "@/components/settings/account-general-section-view";
 import { AccountSyncSectionView } from "@/components/settings/account-sync-section-view";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";

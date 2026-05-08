@@ -2,7 +2,7 @@ import type {
   AddAccountFormInputRowProps,
   AddAccountFormSelectRowProps,
   AddAccountFormViewProps,
-} from "@/components/settings/add-account-form.types";
+} from "@/components/settings/add-account/form.types";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";

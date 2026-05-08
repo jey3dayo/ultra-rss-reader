@@ -3,7 +3,7 @@ import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-statu
 import type {
   UseAccountDetailSyncStatusRowsParams,
   UseAccountDetailSyncStatusRowsResult,
-} from "../../account-detail.types";
+} from "../../account-detail/types";
 
 export function useAccountDetailSyncStatusRows({
   syncStatus,
