@@ -5,7 +5,6 @@
   "webviews": ["main"],
   "permissions": [
     "core:default",
-    "mcp-bridge:default",
     "opener:default",
     "clipboard-manager:allow-write-text",
     "updater:default",

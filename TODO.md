@@ -629,30 +629,10 @@
   - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
   - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
 
-- [ ] command palette pseudo-action boundary 候補を別バッチで追加する
-  - `open-shortcuts-help` だけが `executeAction` を通らない例外で、history 保存や close order が通常 `AppAction` と混ざらないことを固定する
-  - command palette unavailable action guard、search ranking、shortcut help UI visual とは混ぜない
-  - pseudo-action と AppAction の型境界を handler test で見る
-
-- [ ] dev scenario executeAction type boundary 候補を別バッチで追加する
-  - `DevScenarioContext.actions.executeAction` を `AppAction` に寄せ、action-backed scenario が未知 action を積めない契約にする
-  - dev mock state reset、production bundle leak guard、scenario UI / copy 変更とは混ぜない
-  - scenario registry と runner test で型と runtime fallback を分けて確認する
-
-- [ ] frontend/native language resolver parity 候補を別バッチで追加する
-  - `ui-language.ts` と `menu_i18n.rs` で `system`、`ja-JP`、`JA`、`fr-FR`、empty locale の解決結果が揃うことを固定する
-  - native menu label 本文、shortcut 表示、menu action id とは混ぜず、language code normalization だけを見る
-  - frontend と Rust の既存 test に同じ fixture set を持たせる
-
 - [ ] rich translation fallback render guard 候補を別バッチで追加する
   - `<Trans>` の rich text key が missing / mock fallback でも destructive dialog の accessible name と本文が壊れないことを固定する
   - destructive dialog tone / variant、確認文言の全面変更とは混ぜず、fallback render contract だけを見る
   - delete tag / unsubscribe feed の代表ケースに限定する
-
-- [ ] release capability MCP permission guard 候補を別バッチで追加する
-  - `src-tauri/capabilities/default.json` と `lib.rs` を確認し、debug build だけ `mcp-bridge` plugin / permission を許す設定検証を追加する
-  - dev scenario production leak、release workflow permissions、通常 Tauri window permission 整理とは混ぜない
-  - release artifact に debug-only permission が残らないことを static check で固定する
 
 - [ ] log directory native-open command 候補を別バッチで追加する
   - `log_commands.rs` と data settings controller で、webview に log dir path を返さず Rust 側で app log dir のみ open する command へ寄せられるか確認する
@@ -698,11 +678,6 @@
   - `query-client.ts` と test wrapper の React Query retry 設定を照合し、Tauri IPC read query に default retry を効かせるかを明示する
   - 個別 hook の cache key 整理、staleTime 調整、network provider retry とは混ぜない
   - production client と test helper の差分を小さい contract test で固定する
-
-- [ ] dialog / command scrim token contract 候補を別バッチで追加する
-  - `global.css`、`dialog.tsx`、`command.tsx` の overlay / scrim が named CSS token 経由で使われることを固定する
-  - command palette action 境界、popup motion、見た目の濃さ調整とは混ぜない
-  - light / dark と `@theme` の token presence を static test で見る
 
 - [ ] reader passive card surface unification 候補を別バッチで追加する
   - `reader-passive-card.tsx`、article empty state、article list screen の empty / search empty / selection summary が shared passive surface を通ることを固定する

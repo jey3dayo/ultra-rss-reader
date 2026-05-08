@@ -2,6 +2,20 @@ import { describe, expect, it } from "vitest";
 import { resolveUiLanguage } from "@/lib/ui/ui-language";
 
 describe("resolveUiLanguage", () => {
+  it.each([
+    ["system", "ja-JP", "ja"],
+    ["system", "JA", "ja"],
+    ["system", "fr-FR", "en"],
+    ["system", "", "en"],
+    ["ja", "en-US", "ja"],
+    ["en", "ja-JP", "en"],
+  ] as const)(
+    "matches the native menu resolver fixture %#",
+    (preference, locale, expected) => {
+      expect(resolveUiLanguage(preference, locale)).toBe(expected);
+    },
+  );
+
   it("resolves system to Japanese for ja locales", () => {
     expect(resolveUiLanguage("system", "ja-JP")).toBe("ja");
     expect(resolveUiLanguage("system", "JA")).toBe("ja");

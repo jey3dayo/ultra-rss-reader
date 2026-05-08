@@ -4,9 +4,22 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CommandDialog } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
@@ -33,7 +46,10 @@ import {
   MOTION_STATIC_HOVER_SURFACE_CLASS_NAME,
 } from "@/constants";
 
-const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
+const globalCss = readFileSync(
+  join(process.cwd(), "src/styles/global.css"),
+  "utf8",
+);
 
 describe("Design-themed UI primitives", () => {
   it("uses warm surface styling for shared button variants", () => {
@@ -46,25 +62,46 @@ describe("Design-themed UI primitives", () => {
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("bg-surface-3", "shadow-elevation-1");
-    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(MOTION_BUTTON_SURFACE_CLASS_NAME);
-    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("rounded-md");
-    expect(screen.getByRole("button", { name: "Outline" })).toHaveClass("bg-surface-1", "border-border-strong");
-    expect(screen.getByRole("button", { name: "Outline" })).toHaveClass("rounded-md");
-    expect(screen.getByRole("button", { name: "Ghost" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Ghost" })).toHaveClass("rounded-md");
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
+      "bg-surface-3",
+      "shadow-elevation-1",
+    );
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
+      MOTION_BUTTON_SURFACE_CLASS_NAME,
+    );
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(
+      "rounded-md",
+    );
+    expect(screen.getByRole("button", { name: "Outline" })).toHaveClass(
+      "bg-surface-1",
+      "border-border-strong",
+    );
+    expect(screen.getByRole("button", { name: "Outline" })).toHaveClass(
+      "rounded-md",
+    );
+    expect(screen.getByRole("button", { name: "Ghost" })).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(screen.getByRole("button", { name: "Ghost" })).toHaveClass(
+      "rounded-md",
+    );
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("rounded-md");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
+      "rounded-md",
+    );
   });
 
   it("uses warm field surfaces for inputs and selects", () => {
     render(
       <>
-        <Input aria-label="Feed URL" placeholder="https://example.com/feed.xml" />
+        <Input
+          aria-label="Feed URL"
+          placeholder="https://example.com/feed.xml"
+        />
         <Select value="dark" onValueChange={vi.fn()}>
           <SelectTrigger aria-label="Theme">
             <SelectValue />
@@ -77,16 +114,26 @@ describe("Design-themed UI primitives", () => {
       </>,
     );
 
-    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("bg-surface-1", "border-border");
-    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass(
+      "bg-surface-1",
+      "border-border",
+    );
+    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass(
+      "bg-surface-1",
+      "border-border",
+    );
     expect(globalCss).toContain("--motion-duration-disclosure: 200ms;");
     expect(globalCss).toContain("--motion-duration-popup: 160ms;");
     expect(globalCss).toContain("--motion-duration-resize: 260ms;");
     expect(globalCss).toContain("--motion-duration-theme: 180ms;");
     expect(globalCss).toContain("--motion-duration-contextual: 180ms;");
     expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
-    expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
-    expect(globalCss).toContain("--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);");
+    expect(globalCss).toContain(
+      "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
+    );
+    expect(globalCss).toContain(
+      "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
+    );
     expect(globalCss).toContain(`.${MOTION_DISCLOSURE_PANEL_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_STATIC_HOVER_SURFACE_CLASS_NAME}`);
@@ -101,32 +148,58 @@ describe("Design-themed UI primitives", () => {
       `.${MOTION_POPUP_SURFACE_CLASS_NAME}[${MOTION_DATA_SIDE_ATTRIBUTE}="${MOTION_POPUP_SIDE_TOP}"]`,
     );
     expect(globalCss).toContain("@starting-style");
-    expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}[${MOTION_DATA_STARTING_STYLE_ATTRIBUTE}]`);
-    expect(globalCss).toContain(`.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
+    expect(globalCss).toContain(
+      `.${MOTION_POPUP_SURFACE_CLASS_NAME}[${MOTION_DATA_STARTING_STYLE_ATTRIBUTE}]`,
+    );
+    expect(globalCss).toContain(
+      `.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`,
+    );
     expect(globalCss).not.toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );
-    expect(globalCss).toContain("border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);");
-    expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`);
+    expect(globalCss).toContain(
+      "border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
+    );
+    expect(globalCss).toContain(
+      `.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`,
+    );
     expect(globalCss).toContain(
       `.${MOTION_CONTENT_SWAP_CLASS_NAME}[${MOTION_DATA_PHASE_ATTRIBUTE}="${MOTION_PHASE_ENTERING}"]`,
     );
-    expect(globalCss).toContain(`@keyframes ${MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME}`);
+    expect(globalCss).toContain(
+      `@keyframes ${MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME}`,
+    );
     expect(globalCss).toContain(".motion-article-slide");
     expect(globalCss).toContain("@keyframes motion-article-slide-next");
     expect(globalCss).toContain("@keyframes motion-article-slide-prev");
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="next"]');
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="prev"]');
+    expect(globalCss).toContain(
+      '.motion-article-slide[data-motion-direction="next"]',
+    );
+    expect(globalCss).toContain(
+      '.motion-article-slide[data-motion-direction="prev"]',
+    );
     expect(globalCss).toContain("@keyframes vertical-wipe");
-    expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-old(root)");
-    expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-new(root)");
-    expect(globalCss).toContain("animation: vertical-wipe 0.75s ease-in-out forwards;");
-    expect(globalCss).toContain(`.${MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME}`);
+    expect(globalCss).toContain(
+      "html.vertical-wipe-transition::view-transition-old(root)",
+    );
+    expect(globalCss).toContain(
+      "html.vertical-wipe-transition::view-transition-new(root)",
+    );
+    expect(globalCss).toContain(
+      "animation: vertical-wipe 0.75s ease-in-out forwards;",
+    );
+    expect(globalCss).toContain(
+      `.${MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME}`,
+    );
     expect(globalCss).toContain("will-change: clip-path;");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="next"],');
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="prev"],');
+    expect(globalCss).toContain(
+      '.motion-article-slide[data-motion-direction="next"],',
+    );
+    expect(globalCss).toContain(
+      '.motion-article-slide[data-motion-direction="prev"],',
+    );
     expect(globalCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(
       "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",
@@ -148,12 +221,22 @@ describe("Design-themed UI primitives", () => {
       </>,
     );
 
-    expect(screen.getByRole("textbox", { name: "Broken URL" })).toHaveClass("aria-invalid:border-state-danger-border");
-    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("aria-invalid:border-state-danger-border");
+    expect(screen.getByRole("textbox", { name: "Broken URL" })).toHaveClass(
+      "aria-invalid:border-state-danger-border",
+    );
+    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass(
+      "aria-invalid:border-state-danger-border",
+    );
   });
 
   it("uses semantic success tokens for checked checkboxes", () => {
-    render(<Checkbox aria-label="Keep selected" checked={true} onCheckedChange={vi.fn()} />);
+    render(
+      <Checkbox
+        aria-label="Keep selected"
+        checked={true}
+        onCheckedChange={vi.fn()}
+      />,
+    );
 
     expect(screen.getByRole("checkbox", { name: "Keep selected" })).toHaveClass(
       "data-[checked]:border-state-success-border",
@@ -176,9 +259,15 @@ describe("Design-themed UI primitives", () => {
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
-    expect(overlay).toHaveClass("bg-dialog-overlay", "bg-dialog-scrim", "supports-backdrop-filter:backdrop-blur-sm");
+    expect(overlay).toHaveClass(
+      "bg-dialog-overlay",
+      "bg-dialog-scrim",
+      "supports-backdrop-filter:backdrop-blur-sm",
+    );
     expect(overlay).toHaveClass(MOTION_POPUP_OVERLAY_CLASS_NAME);
-    expect(globalCss).toContain("--color-dialog-overlay: var(--dialog-overlay);");
+    expect(globalCss).toContain(
+      "--color-dialog-overlay: var(--dialog-overlay);",
+    );
     expect(globalCss).toContain("--dialog-overlay: rgba(38, 37, 30, 0.18);");
     expect(globalCss).toContain(":root.dark {");
     expect(globalCss).toContain("--dialog-overlay: rgba(28, 25, 21, 0.6);");
@@ -188,7 +277,9 @@ describe("Design-themed UI primitives", () => {
       "border-border",
       "shadow-elevation-3",
     );
-    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(MOTION_POPUP_DIALOG_CLASS_NAME);
+    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(
+      MOTION_POPUP_DIALOG_CLASS_NAME,
+    );
     expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(
       "focus-visible:border-border-strong",
       "focus-visible:ring-3",
@@ -215,8 +306,30 @@ describe("Design-themed UI primitives", () => {
       "bg-dialog-scrim-readable",
       "supports-backdrop-filter:backdrop-blur-none",
     );
-    expect(globalCss).toContain("--color-dialog-overlay-readable: var(--dialog-overlay-readable);");
-    expect(globalCss).toContain("--dialog-overlay-readable: rgba(242, 241, 237, 0.6);");
-    expect(globalCss).toContain("--dialog-overlay-readable: rgba(28, 25, 21, 0.72);");
+    expect(globalCss).toContain(
+      "--color-dialog-overlay-readable: var(--dialog-overlay-readable);",
+    );
+    expect(globalCss).toContain(
+      "--dialog-overlay-readable: rgba(242, 241, 237, 0.6);",
+    );
+    expect(globalCss).toContain(
+      "--dialog-overlay-readable: rgba(28, 25, 21, 0.72);",
+    );
+  });
+
+  it("uses the readable scrim token for command palette dialogs", () => {
+    render(
+      <CommandDialog open={true} onOpenChange={vi.fn()}>
+        <div>Command content</div>
+      </CommandDialog>,
+    );
+
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+
+    expect(overlay).toHaveClass(
+      "bg-dialog-overlay-readable",
+      "bg-dialog-scrim-readable",
+      "supports-backdrop-filter:backdrop-blur-none",
+    );
   });
 });
