@@ -4,8 +4,8 @@ import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
-} from "@/lib/browser-debug-geometry";
-import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser-viewer-geometry";
+} from "@/lib/browser/browser-debug-geometry";
+import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser/browser-viewer-geometry";
 import type { ToastData } from "@/lib/ui-state.types";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";

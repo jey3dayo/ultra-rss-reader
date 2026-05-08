@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
-import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser-debug-geometry";
+import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
 import { createTauriListenerGroup } from "@/lib/tauri-event-listeners";
 import type { UseBrowserWebviewEventsParams, UseBrowserWebviewEventsResult } from "../../browser-view.types";
 import type { BrowserWebviewFallbackPayload } from "../../browser-webview-state";

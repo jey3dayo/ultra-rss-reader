@@ -3,7 +3,7 @@ import { useSidebarAccountSwitcher } from "@/components/reader/hooks/sidebar/use
 import { useSidebarSources } from "@/components/reader/hooks/sidebar/use-sidebar-sources";
 import { useSidebarSync } from "@/components/reader/hooks/sidebar/use-sidebar-sync";
 import { useSidebarUiState } from "@/components/reader/hooks/sidebar/use-sidebar-ui-state";
-import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
+import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
 import type { SidebarRuntimeResult } from "../../sidebar-runtime.types";
 import type { SidebarSyncResult } from "../../sidebar-sync.types";
 

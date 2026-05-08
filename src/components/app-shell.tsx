@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { APP_EVENTS } from "../constants/events";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
@@ -12,7 +13,6 @@ import { useMenuEvents } from "../hooks/use-menu-events";
 import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { useWindowAlwaysOnTop } from "../hooks/use-window-always-on-top";
-import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
 import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "../lib/debug-hud-active-element";
 import {

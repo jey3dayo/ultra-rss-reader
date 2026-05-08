@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ReadingSettingsView } from "@/components/settings/reading-settings-view";
-import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
+import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useReadingSettingsViewProps } from "./use-reading-settings-view-props";

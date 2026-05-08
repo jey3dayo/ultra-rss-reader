@@ -22,7 +22,7 @@ vi.mock("@/lib/window-chrome", () => ({
 }));
 
 import { resetDevRuntimeOptionsCacheForTests } from "@/dev/intent";
-import { useDevIntent } from "@/hooks/use-dev-intent";
+import { useDevIntent } from "@/dev/use-dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useDevIntent", () => {

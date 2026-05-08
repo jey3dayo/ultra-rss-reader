@@ -12,7 +12,7 @@ import {
   testAccountConnection,
 } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev/mocks";
-import type { BrowserWebviewBounds } from "@/lib/browser-webview";
+import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 describe("setupDevMocks", () => {
   const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };

@@ -6,8 +6,8 @@ import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-comma
 import { AppShell } from "./components/app-shell";
 import { STORAGE_KEYS } from "./constants/storage";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS, STARTUP_SYNC_THROTTLE_MS } from "./constants/ui-runtime";
-import { useDevIntent } from "./hooks/use-dev-intent";
-import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
+import { useDevIntent } from "./dev/use-dev-intent";
+import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query-client";
 import { attachTauriListeners } from "./lib/tauri-event-listeners";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { toBrowserWebviewBounds } from "@/lib/browser-webview";
+import { toBrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import type {
   BrowserViewLayoutDiagnostics,
   UseBrowserLayoutDiagnosticsParams,

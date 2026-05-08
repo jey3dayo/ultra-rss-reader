@@ -13,7 +13,7 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-vi.mock("@/hooks/use-resolved-dev-intent", () => ({
+vi.mock("@/dev/use-resolved-dev-intent", () => ({
   useResolvedDevIntent: () => ({
     intent: null,
     ready: true,

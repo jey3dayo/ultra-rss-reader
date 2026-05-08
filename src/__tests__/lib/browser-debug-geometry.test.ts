@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBrowserGeometryRows } from "@/lib/browser-debug-geometry";
+import { getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
 
 const layoutDiagnostics = {
   viewport: { width: 1200, height: 800 },

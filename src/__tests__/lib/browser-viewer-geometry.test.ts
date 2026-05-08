@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
+import { resolveBrowserViewerGeometry } from "@/lib/browser/browser-viewer-geometry";
 
 describe("resolveBrowserViewerGeometry", () => {
   it("exposes the content-pane inset geometry contract", () => {

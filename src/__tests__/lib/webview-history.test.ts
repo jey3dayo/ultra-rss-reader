@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it } from "vitest";
-import { goBackInWebview, goForwardInWebview, reloadWebview } from "@/lib/webview-history";
+import { goBackInWebview, goForwardInWebview, reloadWebview } from "@/lib/browser/webview-history";
 
 function appendIframe(src = "https://example.com/article") {
   const iframe = document.createElement("iframe");

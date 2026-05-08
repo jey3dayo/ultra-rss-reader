@@ -32,7 +32,7 @@ import {
   unstarAccountArticles,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
-import type { BrowserWebviewBounds } from "@/lib/browser-webview";
+import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 describe("tauri-commands with mockIPC", () => {
   const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };

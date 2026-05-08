@@ -106,7 +106,7 @@ import {
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
 } from "@/api/schemas";
-import type { BrowserWebviewBounds } from "@/lib/browser-webview";
+import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import { parseWithSchema } from "@/schemas/parse";
 
 // Re-export types so existing consumers don't break

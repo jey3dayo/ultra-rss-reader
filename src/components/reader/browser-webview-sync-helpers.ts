@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { PlatformInfo } from "@/api/schemas";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
+import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 export function resolveBrowserOverlayClientRelativeRect(element: HTMLElement, rect: DOMRect): DOMRect {
   const overlayRoot =

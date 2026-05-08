@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
+import type { BrowserDebugGeometryRow } from "@/lib/browser/browser-debug-geometry";
 import { FocusDebugHudView } from "./focus-debug-hud-view";
 
 const sampleTraces = [

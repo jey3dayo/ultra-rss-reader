@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useCallback, useRef } from "react";
 import { createOrUpdateBrowserWebview, focusBrowserWebview, setBrowserWebviewBounds } from "@/api/tauri-commands";
-import type { BrowserWebviewBounds } from "@/lib/browser-webview";
+import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewSyncParams, UseBrowserWebviewSyncResult } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";

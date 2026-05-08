@@ -176,7 +176,7 @@ vi.mock("@/components/reader/feed-context-menu", () => ({
   },
 }));
 
-vi.mock("@/hooks/use-resolved-dev-intent", () => ({
+vi.mock("@/dev/use-resolved-dev-intent", () => ({
   useResolvedDevIntent: () => ({
     intent: devIntentState.intent,
     ready: true,

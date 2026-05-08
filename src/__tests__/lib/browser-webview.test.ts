@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { toBrowserWebviewBounds, toBrowserWebviewBoundsResult } from "@/lib/browser-webview";
+import { toBrowserWebviewBounds, toBrowserWebviewBoundsResult } from "@/lib/browser/browser-webview";
 
 describe("browser-webview helpers", () => {
   it("returns typed browser bounds for measurable rectangles", () => {

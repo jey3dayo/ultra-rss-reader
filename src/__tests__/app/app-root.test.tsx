@@ -66,7 +66,7 @@ vi.mock("@/api/tauri-commands", () => ({
   triggerStartupSync: triggerStartupSyncMock,
 }));
 
-vi.mock("@/hooks/use-resolved-dev-intent", () => ({
+vi.mock("@/dev/use-resolved-dev-intent", () => ({
   useResolvedDevIntent: () => ({
     intent: devIntentState.intent,
     ready: true,

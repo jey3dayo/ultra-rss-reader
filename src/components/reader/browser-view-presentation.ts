@@ -1,4 +1,4 @@
-import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
+import { resolveBrowserViewerGeometry } from "@/lib/browser/browser-viewer-geometry";
 import {
   getBrowserOverlayActionSurfacePresentation,
   getBrowserOverlayLeadingActionPresentation,
