@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useCallback } from "react";
-import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/article-list";
+import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/articles/article-list";
 import type { UseArticleListNavigationParams } from "../../article-list.types";
 
 export function useArticleListNavigation({

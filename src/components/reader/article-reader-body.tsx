@@ -5,7 +5,7 @@ import {
   formatArticleDate,
   resolveArticleDateLocale,
   shouldOpenArticleTitleInExternalBrowser,
-} from "@/lib/article-view";
+} from "@/lib/articles/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { openArticleInExternalBrowser } from "./article-browser-actions";

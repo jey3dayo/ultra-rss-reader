@@ -1,7 +1,7 @@
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
-import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
-import { countStarredArticles } from "@/lib/article-list";
-import { findLatestArticleOrNull } from "@/lib/article-view";
+import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/articles/article-display";
+import { countStarredArticles } from "@/lib/articles/article-list";
+import { findLatestArticleOrNull } from "@/lib/articles/article-view";
 import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
@@ -20,7 +20,7 @@ import type {
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
 
-export { countStarredArticles } from "@/lib/article-list";
+export { countStarredArticles } from "@/lib/articles/article-list";
 export type { SubscriptionRowStatus } from "@/lib/subscriptions/subscriptions-index.types";
 
 export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";

@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
-import { getAdjacentItemId } from "@/lib/article-list";
+import { getAdjacentItemId } from "@/lib/articles/article-list";
 import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window-events";
 import type { SidebarFeedNavigationParams } from "../../sidebar-feed-section.types";
 

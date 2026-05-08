@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/article-retention";
+import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
 
 describe("article retention", () => {
   it("retains the selected article in unread mode before auto-read can refetch it away", () => {

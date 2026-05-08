@@ -5,7 +5,7 @@ import {
   groupArticles,
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
-} from "@/lib/article-list";
+} from "@/lib/articles/article-list";
 import type { ViewMode } from "@/lib/view-mode.types";
 import type { UseArticleListDataParams, UseArticleListDataResult } from "../../article-list.types";
 

@@ -1,6 +1,6 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { ResolvedArticleDisplay } from "@/lib/article-display";
+import type { ResolvedArticleDisplay } from "@/lib/articles/article-display";
 import type { ContentMode } from "@/lib/ui-state.types";
 import type { BrowserOverlayToolbarAction } from "./browser-view.types";
 

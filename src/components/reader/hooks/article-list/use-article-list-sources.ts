@@ -9,7 +9,7 @@ import {
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
   type RetainedArticlesSnapshot,
-} from "@/lib/article-list";
+} from "@/lib/articles/article-list";
 import { type ReaderSourceKind, resolveReaderSourcePlan } from "@/lib/reader-query";
 import type {
   ArticleListPrimarySourceSnapshot,

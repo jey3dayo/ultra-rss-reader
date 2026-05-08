@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/article-retention";
+import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
 import type { ConfirmDialogVariant } from "@/lib/confirm-dialog";
 import type { SmartViewKind } from "@/lib/smart-view.types";
 import type {

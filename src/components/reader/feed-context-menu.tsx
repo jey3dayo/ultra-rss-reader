@@ -13,7 +13,7 @@ import {
   displayPresetToTriStateModes,
   isFeedDisplayPresetOption,
   resolveFeedDisplayPreset,
-} from "@/lib/article-display";
+} from "@/lib/articles/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";

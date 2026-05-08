@@ -7,7 +7,7 @@ import {
   displayPresetToPreferenceValues,
   isArticleDisplayPreset,
   resolveAppDefaultDisplayPreset,
-} from "@/lib/article-display";
+} from "@/lib/articles/article-display";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "./reading-settings-view";

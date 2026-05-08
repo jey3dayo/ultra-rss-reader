@@ -6,7 +6,11 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
-import { type ArticleViewSummaryState, buildArticleViewSummaryResult, findSelectedArticle } from "@/lib/article-view";
+import {
+  type ArticleViewSummaryState,
+  buildArticleViewSummaryResult,
+  findSelectedArticle,
+} from "@/lib/articles/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

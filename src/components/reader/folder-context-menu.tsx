@@ -10,7 +10,7 @@ import {
   displayPresetToTriStateModes,
   isFeedDisplayPresetOption,
   resolveFolderDisplayPreset,
-} from "@/lib/article-display";
+} from "@/lib/articles/article-display";
 import { FolderContextMenuView } from "./folder-context-menu-view";
 
 export type FolderContextMenuContentProps = {

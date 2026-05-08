@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
-import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
+import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
 import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";

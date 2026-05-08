@@ -18,7 +18,7 @@ import {
   resolveFeedDisplayPreset,
   resolveFeedDisplayPresetLabel,
   resolveFolderDisplayPreset,
-} from "@/lib/article-display";
+} from "@/lib/articles/article-display";
 
 describe("article-display preset conversions", () => {
   it.each([

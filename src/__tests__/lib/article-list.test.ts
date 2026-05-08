@@ -21,7 +21,7 @@ import {
   resolveArticleListMarkAllReadCount,
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
-} from "@/lib/article-list";
+} from "@/lib/articles/article-list";
 import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader-query";
 
 function buildTestSourcePlan(params: {

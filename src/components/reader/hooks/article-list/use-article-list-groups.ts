@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { buildArticleGroupItems, resolveArticleGroupLabelToken } from "@/lib/article-list";
+import { buildArticleGroupItems, resolveArticleGroupLabelToken } from "@/lib/articles/article-list";
 import type { ArticleGroupsViewGroup } from "../../article-groups-view";
 import type { UseArticleListGroupsParams } from "../../article-list.types";
 

@@ -5,8 +5,8 @@ import {
   resolveAppDefaultDisplayModes,
   resolveArticleDisplay,
   resolveFeedDisplayOverrides,
-} from "@/lib/article-display";
-import { selectVisibleArticles } from "@/lib/article-list";
+} from "@/lib/articles/article-display";
+import { selectVisibleArticles } from "@/lib/articles/article-list";
 import type { ReaderFilter } from "@/lib/reader-query";
 
 export type ResolveFeedLandingArticleError = "no_visible_article";

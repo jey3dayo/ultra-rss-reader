@@ -12,7 +12,7 @@ import {
   resolveArticleDateLocale,
   resolveArticleSummaryWebsiteHref,
   resolveArticleSummaryWebsiteLabel,
-} from "@/lib/article-view";
+} from "@/lib/articles/article-view";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";

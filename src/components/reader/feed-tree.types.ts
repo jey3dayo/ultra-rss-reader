@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, ReactNode, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
-import type { TriStateDisplayMode } from "@/lib/article-display";
+import type { TriStateDisplayMode } from "@/lib/articles/article-display";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import type { FeedTreePointerDragSession } from "./feed-tree-drag-session";
 import type { SidebarDensity } from "./sidebar-density";

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/article-display";
+import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type {
   RenameFeedDialogViewOption,
   RenameFeedDialogViewProps,

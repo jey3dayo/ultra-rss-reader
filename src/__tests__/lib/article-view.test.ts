@@ -11,7 +11,7 @@ import {
   resolveArticleSummaryWebsiteHref,
   resolveArticleSummaryWebsiteLabel,
   shouldOpenArticleTitleInExternalBrowser,
-} from "@/lib/article-view";
+} from "@/lib/articles/article-view";
 
 describe("article-view utils", () => {
   it("resolves the selected article from feed articles", () => {

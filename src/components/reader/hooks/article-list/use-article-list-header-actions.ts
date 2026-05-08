@@ -8,8 +8,8 @@ import {
   displayPresetToTriStateModes,
   type FeedDisplayPresetOption,
   resolveFeedDisplayPreset,
-} from "@/lib/article-display";
-import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/article-list";
+} from "@/lib/articles/article-display";
+import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/articles/article-list";
 import { countUnreadFeedsInFolder } from "@/lib/sidebar";
 import type { UseArticleListHeaderActionsParams, UseArticleListHeaderActionsResult } from "../../article-list.types";
 

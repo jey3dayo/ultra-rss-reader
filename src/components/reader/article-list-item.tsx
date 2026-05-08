@@ -1,7 +1,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { formatArticleTime } from "@/lib/article-list";
+import { formatArticleTime } from "@/lib/articles/article-list";
 import { stripHtmlTags } from "@/lib/html";
 import { focusArticleContentTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";

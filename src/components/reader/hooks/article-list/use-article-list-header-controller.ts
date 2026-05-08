@@ -1,6 +1,6 @@
 import { useArticleListHeaderActions } from "@/components/reader/hooks/article-list/use-article-list-header-actions";
 import { useArticleListHeaderControls } from "@/components/reader/hooks/article-list/use-article-list-header-controls";
-import type { FeedDisplayPresetOption } from "@/lib/article-display";
+import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type {
   UseArticleListHeaderControllerParams,
   UseArticleListHeaderControllerResult,

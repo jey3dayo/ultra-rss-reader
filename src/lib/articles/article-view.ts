@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
-import { countUnreadArticles } from "@/lib/article-list";
+import { countUnreadArticles } from "@/lib/articles/article-list";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
 import type { ReaderSelection } from "@/lib/reader-selection.types";

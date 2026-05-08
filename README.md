@@ -273,6 +273,7 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 | `schemas/`                        | Frontend-owned runtime schemas and schema parse helpers for config, storage, and preferences                       |
 | `constants/`                      | Cross-feature literal values, storage keys, layout constants, and motion tokens                                    |
 | `lib/account/`                    | Account selection, add-account form state, pane navigation, and sync status formatting helpers                     |
+| `lib/articles/`                   | Article display modes, list derivation, retained-selection state, and article-view summary helpers                 |
 | `lib/browser/`                    | Browser/WebView geometry, bounds normalization, and history helpers shared across API and reader UI                |
 | `lib/subscriptions/`              | Subscriptions index rows, review candidates, summary filters, and related workspace types                          |
 | `lib/*.types.ts`                  | Cross-feature TypeScript contracts that are shared without React runtime dependencies                              |

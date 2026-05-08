@@ -5,7 +5,7 @@ import {
   resolveAppDefaultDisplayModes,
   resolveArticleDisplay,
   resolveFeedDisplayOverrides,
-} from "@/lib/article-display";
+} from "@/lib/articles/article-display";
 import { bindWindowEvents } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import type {
