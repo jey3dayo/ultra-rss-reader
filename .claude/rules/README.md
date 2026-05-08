@@ -23,6 +23,9 @@
 - 複数 feature で再利用する UI は `src/components/shared/` に置く
 - shadcn/Base UI wrapper は `src/components/ui/` に限定する
 - cross-feature data hook は `src/hooks/`、cross-feature pure helper は `src/lib/` に置く
+- app-wide action boundary は `src/lib/actions.ts` / `src/lib/app-actions.ts` に残す。keyboard、menu、command palette、dev scenario、IPC validation で共有されるため
+- app-wide runtime singleton や中立 primitive は `src/lib` root に残す。例: `i18n.ts`、`datetime.ts`、`utils.ts`
+- cross-pane DOM focus helper は `src/lib/reader-focus.ts` に残す。`src/lib/reader/` は reader query / source planning 用
 - frontend-owned runtime schema は `src/schemas/` に置く。local config、localStorage、preferences など IPC 以外の検証が対象
 - Tauri IPC request / response schema は `src/api/schemas/` に置く。local storage や app config schema と混ぜない
 - cross-feature literal は `src/constants/`、共有 type-only contract は `src/lib/*.types.ts` に置く

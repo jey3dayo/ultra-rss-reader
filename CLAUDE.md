@@ -34,6 +34,9 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Put sidebar feed grouping and smart-view helpers in `src/lib/sidebar/`.
 - Put UI-only pure helpers in `src/lib/ui/`.
 - Put Tauri/browser runtime boundary helpers in `src/lib/runtime/`.
+- Keep app-wide action boundaries at `src/lib/actions.ts` and `src/lib/app-actions.ts` when they are shared by keyboard, menu, command palette, dev scenarios, and IPC validation.
+- Keep app-wide runtime singletons and domain-neutral primitives at the `src/lib` root when no narrower feature owns them, including `i18n.ts`, `datetime.ts`, and `utils.ts`.
+- Keep cross-pane DOM focus helpers at `src/lib/reader-focus.ts`; `src/lib/reader/` is for pure reader query/source planning.
 - Put frontend-owned runtime schemas in `src/schemas/` when they validate local config, localStorage, preferences, or other non-IPC data.
 - Keep Tauri IPC request/response schemas in `src/api/schemas/`; do not mix them with local storage or app-config schemas.
 - Put cross-feature literals in `src/constants/`, and shared type-only contracts in `src/lib/*.types.ts` unless an existing feature-local type file is narrower.

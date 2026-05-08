@@ -23,9 +23,9 @@ The general rule is:
 Keep pane-local behavior close to the pane component. Use the global keyboard hook only for cross-pane fallback and browser-level focus recovery.
 
 - Account pane local handler: `src/components/reader/account-pane.tsx`
-- Account pane shared helpers: `src/lib/reader-pane-navigation.ts`
+- Account pane shared helpers: `src/lib/account/account-pane-navigation.ts`
 - Sidebar pane local handler: `src/components/reader/sidebar.tsx`
-- Article list local handler: `src/components/reader/use-article-list-keydown-handler.ts`
+- Article list local handler: `src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts`
 - Article content fallback handling: `src/hooks/use-keyboard.ts`
 - Focus target helpers: `src/lib/reader-focus.ts`
 
