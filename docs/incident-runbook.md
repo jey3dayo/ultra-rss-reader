@@ -44,6 +44,9 @@ Do not mix app UI debug actions with log collection in the same note. Record whi
 - Migration recovery keeps the relevant backup artifacts for manual investigation.
 - Check the migration error output first to find the backup path that was created for the failed startup.
 - Do not delete backup files until you have confirmed the app can reopen the database safely.
+- Treat the main `.db` file and any matching `-wal` / `-shm` sidecars as a backup set.
+- On Windows, close the app before copying or replacing any database files; file locks can make partial restores look successful.
+- If restore fails, preserve the failed database, backup set, and release log before trying another restore path.
 
 ### Manual Verification Checklist
 
@@ -58,7 +61,9 @@ Do not mix app UI debug actions with log collection in the same note. Record whi
 2. Open the release log directory and save the latest log file.
 3. Check whether a backup was created before the failed migration.
 4. If the failure happened after an upgrade, stop and preserve the backup before retrying.
-5. If needed, continue from the migration recovery docs and issue tracking instead of improvising manual DB edits.
+5. Confirm whether a matching `-wal` or `-shm` file exists for either the current database or the backup.
+6. If manual restore is needed, restore the complete backup set with the app closed, then reopen once and capture the result.
+7. If needed, continue from the migration recovery docs and issue tracking instead of improvising manual DB edits.
 
 ### 2. Updater Failure
 
