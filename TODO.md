@@ -1066,29 +1066,9 @@
   - `use-article-view-selection.ts` で `contentMode=browser` かつ selected article が見つからない時の browser-only fallback と not-found の優先順を固定する
   - article list source planning、browser overlay display override、empty summary copy は別バッチに残す
 
-- [ ] Command palette shortcuts help history exclusion 候補を別バッチで追加する
-  - `use-command-palette-handlers.ts` で `open-shortcuts-help` が palette close と modal open だけを行い、command history に記録されない契約を固定する
-  - command history compaction、shortcut help modal UI、action availability guard は混ぜない
-
-- [ ] Command palette feed landing failure projection 候補を別バッチで追加する
-  - `use-command-palette-handlers.ts` で `openFeedLanding(feedId)` が reject した時の close 済み状態、history 記録、error projection 方針を明示する
-  - feed landing query、toast copy、resource search result ranking は別バッチにする
-
-- [ ] Debug settings dev action disabled guard 候補を別バッチで追加する
-  - `use-debug-settings-view-props.ts` で devBuild=false 時の scenario action が disabled になり、呼び出し側が誤って onAction しても runtime scenario を起動しない方針を固定する
-  - Debug HUD visual、dev scenario registry、settings layout は混ぜない
-
 - [ ] Screen snapshot adoption latch 候補を別バッチで追加する
   - `use-screen-snapshot.ts` で `candidate=null` は未解決入力として扱い、いったん採用した snapshot と `hasAdoptedSnapshot` が dependency change で意図せず戻らない契約を固定する
   - first-screen readiness 全体、startup data loading、visual skeleton は別スコープに残す
-
-- [ ] Reading settings clear recent articles no-account guard 候補を別バッチで追加する
-  - `use-reading-settings-view-props.ts` で selected account が無い時、clear recent articles action が disabled になり confirm/mutation を起動しない契約を固定する
-  - recent history repository、settings copy、reader recent smart view 表示は混ぜない
-
-- [ ] Preferences load single-flight fallback 候補を別バッチで追加する
-  - `preferences-store.ts` で concurrent `loadPreferences()` が single-flight になり、失敗時も `loaded=true` と default language fallback が適用される契約を固定する
-  - preference schema migration、theme view transition、settings UI 表示は別バッチにする
 
 - [ ] Browser tracker redirect history replacement 候補を別バッチで追加する
   - `browser_webview.rs` の `BrowserWebviewTracker` で new/back/forward/reload 後に finish URL が redirect 済み URL へ置換される契約を Rust unit test で固定する
@@ -1110,14 +1090,6 @@
   - `connection.rs` と `database_commands.rs` で `vacuum()` 後の file connection reopen failure が panic ではなく `DomainError` / `AppError` として返る契約へ寄せる
   - migration restore、sync 中 guard、DB compaction UI は同じバッチに混ぜない
 
-- [ ] Dev intent cancellation before scenario run 候補を別バッチで追加する
-  - `use-dev-intent.ts` で runtime options load 中または timeout 前に unmount された場合、`runRuntimeDevScenario` が起動しない契約を fake timer test で固定する
-  - dev scenario registry、scenario error toast copy、production bundle leak guard は混ぜない
-
-- [ ] Story query client retry isolation contract 候補を別バッチで追加する
-  - `story-query-client-provider.tsx` で story ごとに retry=false の QueryClient が作られ、query cache が story render 間で漏れない契約を lightweight test で固定する
-  - Storybook decorator runtime provider parity、production query retry policy、visual specimen は混ぜない
-
 - [ ] Platform dev runtime positive integer parsing contract 候補を別バッチで追加する
   - `platform_commands.rs` の dev runtime options で window width/height env が positive integer の時だけ DTO に入り、空文字・0・負数・非数値を無視する契約を固定する
   - dev scenario window sizing failure surface、platform capabilities mock parity、Tauri capability JSON は混ぜない
@@ -1134,40 +1106,13 @@
   - `subscriptions-list-pane.tsx` で同名 folder が複数ある場合も `aria-controls`、panel id、`data-testid` が folderId ベースで衝突しない契約を固定する
   - folder rename、drag/drop 実装、購読整理 decision flow は別バッチに残す
 
-- [ ] Set preference shortcut key rejection contract 候補を別バッチで追加する
-  - `commands.ts` の `setPreferenceArgs` で unknown `shortcut_*` key が reject され、known shortcut key だけ `shortcutPreferenceValueSchema` で検証される契約を schema test で固定する
-  - shortcut recording UI、keyboard shortcut conflict resolver、Rust preference command は別バッチにする
-
-- [ ] Mute keyword invalid stored scope conversion contract 候補を別バッチで追加する
-  - `sqlite_mute_keyword.rs` で DB に unknown scope が入った場合、`find_all` が silent fallback せず conversion error として扱う契約を repository test で固定する
-  - command input validation、migration cleanup、UI error projection は別バッチにする
-
 - [ ] Command args registry coverage contract 候補を別バッチで追加する
   - `commands.ts` の `commandArgsSchemas` で argument schema を持つ exported command wrapper が registry に登録されていることを代表的な static test で固定する
   - response schema validation、Tauri mock argument coercion、command implementation 変更は混ぜない
 
-- [ ] Mute keyword auto-mark account enumeration contract 候補を別バッチで追加する
-  - `mute_keyword_commands.rs` の `maybe_mark_existing_muted_articles_as_read` で feeds から distinct account_id を列挙し、同一 account の複数 feed でも mark 処理が重複しない契約を helper test で固定する
-  - mute keyword create/update UI、article cache invalidation、provider sync flow は別バッチにする
-
 - [ ] Article sanitized text summary fallback contract 候補を別バッチで追加する
   - `sqlite_article.rs` の `article_body_text` / `update_sanitized` で sanitized HTML が空の時に summary fallback を使うかどうかの方針を contract test で明示する
   - sanitizer privacy hardening、content migration、search ranking は別バッチに残す
-
-- [ ] Tag rename duplicate case-insensitive contract 候補を別バッチで追加する
-  - `tag_commands.rs` / `sqlite_tag.rs` で既存 tag と大文字小文字だけ違う名前へ rename できるかを明示し、禁止するなら `COLLATE NOCASE` の重複判定を固定する
-  - tag color validation、tag chip visual、settings tag row UI、article tag assignment は同じバッチに混ぜない
-  - exact duplicate と case-only duplicate、self rename を別 fixture にする
-
-- [ ] Tag article counts muted-article inclusion contract 候補を別バッチで追加する
-  - `sqlite_tag.rs` の `find_articles_by_tag` は muted articles を除外する一方、`count_articles_per_tag` が muted articles を数える / 数えないどちらを正とするか固定する
-  - mute keyword SQL/Rust match parity、settings mute form、tag count cache invalidation、reader tag chip visual は混ぜない
-  - account filter あり / なしで muted tagged article の count が一貫するか repository test に分ける
-
-- [ ] Tag/mute delete missing-row command contract 候補を別バッチで追加する
-  - `delete_tag` / `delete_mute_keyword` に存在しない id を渡した時、成功 no-op にするか user-visible not found にするかを affected rows test で明示する
-  - cascade cleanup、article_tags orphan detection、delete confirmation UI、toast copy は同じバッチに混ぜない
-  - repository delete と command wrapper の error projection を別 assertion にする
 
 - [ ] Mute settings unchanged-scope no-op contract 候補を別バッチで追加する
   - `mute-settings.tsx` で saved mute rule の scope select に現在値と同じ値を選んだ時、`update_mute_keyword` を呼ばず toast も出さない契約を固定する
@@ -1199,16 +1144,6 @@
   - OPML duplicate import policy、outline text fallback、feed discovery title normalization は混ぜない
   - no-folder feeds と foldered feeds の混在 case を fixture に分ける
 
-- [ ] App action registry dispatch coverage contract 候補を別バッチで追加する
-  - `app-actions.ts` の `APP_ACTIONS` と `executeAction` の switch が drift しないよう、全 action が runtime guard と dispatch test の代表 case に乗る契約を固定する
-  - command palette ranking、shortcut preference registry、native menu label は同じバッチに混ぜない
-  - action 追加時に guard だけ通って dispatch が no-op になる漏れを検出する static / behavior test を分ける
-
-- [ ] Browser preview shortcut bridge registry contract 候補を別バッチで追加する
-  - `browser_webview.rs` の `BROWSER_PREVIEW_SHORTCUT_SPECS` で default binding、app_action、script bridge 対応が `AppAction` と shortcut prefs から drift しないことを固定する
-  - shortcut recording UI、native menu accelerator label、browser overlay shortcut ownership は混ぜない
-  - script bridge 対象外の Escape と対象内の article actions を別 case にする
-
 - [ ] Browser webview diagnostics emit gating contract 候補を別バッチで追加する
   - `browser_webview_commands.rs` の `log_browser_webview_bounds` が diagnostics disabled の時に event emit せず、enabled の時だけ requested/applied/native bounds を payload にする契約を固定する
   - Debug HUD visual、geometry calculation policy、native WebView bounds 実機確認は同じバッチに混ぜない
@@ -1223,13 +1158,3 @@
   - `use-command-palette-runtime.ts` で dev scenario load 中に unmount された場合、resolve/reject 後に state update しない契約を固定する
   - dev runtime invalid module cache、production bundle leak、debug settings dev action guard は混ぜない
   - success resolve と failure reject の cancelled branch を別 case にする
-
-- [ ] Command palette resource history before navigation contract 候補を別バッチで追加する
-  - `use-command-palette-handlers.ts` で feed/tag/article 選択時に history 追加、navigation/select、close の順序を固定する
-  - command history compaction、resource search ranking、feed landing failure projection は別バッチに残す
-  - feed landing promise reject 時に history が残るかどうかも contract として明示する
-
-- [ ] Pending browser close action overwrite contract 候補を別バッチで追加する
-  - `actions.ts` で browser close in-flight 中に `next-article` 後 `prev-feed` など複数 navigation が来た時、pending action を最新で上書きする契約を固定する
-  - browser overlay close guard、debug input trace visual、reader navigation selection は混ぜない
-  - flush 前の overwrite と flush 後の clear を別 assertion にする
