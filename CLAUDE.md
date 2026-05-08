@@ -28,6 +28,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Keep shadcn/Base UI wrappers in `src/components/ui/`; do not place app-specific feature UI there.
 - Co-locate large feature controller hooks under that feature's `hooks/` directory when they are not reused elsewhere.
 - Put cross-feature data hooks in `src/hooks/` and cross-feature pure helpers in `src/lib/`.
+- Reader-only pure helpers may stay under `src/components/reader/`; move them to `src/lib/` only when `lib`, `stores`, or another feature needs them.
 - Treat `mock/` as a historical or visual reference artifact, not a normal implementation target.
 - Keep external tool routing shims under `rules/tools/`; put day-to-day project rules in `.claude/rules/`.
 

@@ -28,3 +28,6 @@ The historical command text is kept as-is inside the dated records unless there 
 Some records mention feature names or paths that have since changed, such as older `Feed Cleanup` files under
 `src/components/feed-cleanup/`. Treat those as historical snapshots. Current subscription review UI lives under the
 subscriptions index workspace described in [../../README.md](../../README.md).
+
+When checking current placement or broken references, search current source and root guidance first. Include
+`docs/superpowers/specs/` or `docs/superpowers/plans/` only when intentionally reviewing historical decisions.
