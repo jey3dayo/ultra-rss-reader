@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
+import type { SmartViewItemViewModel, SmartViewKind } from "@/lib/sidebar-smart-views";
 import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
@@ -72,15 +73,7 @@ export type SidebarContentSectionsProps = {
 
 export type SidebarContentProps = SidebarContentSectionsProps;
 
-export type SmartViewKind = "unread" | "starred" | "recent";
-
-export type SmartViewItemViewModel = {
-  kind: SmartViewKind;
-  label: string;
-  count: number;
-  showCount: boolean;
-  isSelected: boolean;
-};
+export type { SmartViewItemViewModel, SmartViewKind } from "@/lib/sidebar-smart-views";
 
 export type SidebarSmartViewsProps = {
   title?: string;

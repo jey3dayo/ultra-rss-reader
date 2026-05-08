@@ -1,4 +1,12 @@
-import type { SmartViewItemViewModel, SmartViewKind } from "@/components/reader/sidebar.types";
+export type SmartViewKind = "unread" | "starred" | "recent";
+
+export type SmartViewItemViewModel = {
+  kind: SmartViewKind;
+  label: string;
+  count: number;
+  showCount: boolean;
+  isSelected: boolean;
+};
 
 export type BuildSidebarSmartViewsParams = {
   selectedSmartViewKind: SmartViewKind | null;
