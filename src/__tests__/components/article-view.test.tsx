@@ -2285,7 +2285,7 @@ describe("ArticleView", () => {
           return undefined;
       }
     });
-    useUiStore.setState({ articleNavigationDirection: 1 } as Partial<ReturnType<typeof useUiStore.getState>>);
+    useUiStore.setState({ articleNavigationDirection: 1 });
 
     render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
       wrapper: createWrapper(),
@@ -2307,7 +2307,7 @@ describe("ArticleView", () => {
           return undefined;
       }
     });
-    useUiStore.setState({ articleNavigationDirection: -1 } as Partial<ReturnType<typeof useUiStore.getState>>);
+    useUiStore.setState({ articleNavigationDirection: -1 });
 
     render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
       wrapper: createWrapper(),

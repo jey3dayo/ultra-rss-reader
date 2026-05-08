@@ -10,7 +10,6 @@ import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
-import * as articleHooks from "@/hooks/use-articles";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -154,9 +153,10 @@ vi.mock("@/hooks/use-articles", async () => {
         : result;
     },
     useAccountStarredCount: (_accountId: string | null) => {
+      const result = actual.useAccountStarredCount(_accountId);
       return sidebarSourceOverrides.starredCountEnabled
-        ? ({ data: sidebarSourceOverrides.starredCountData } as ReturnType<typeof actual.useAccountStarredCount>)
-        : ({ data: 0 } as ReturnType<typeof actual.useAccountStarredCount>);
+        ? { ...result, data: sidebarSourceOverrides.starredCountData }
+        : { ...result, data: 0 };
     },
   };
 });
@@ -456,7 +456,6 @@ describe("Sidebar", () => {
   it("shows the starred smart-view count from the dedicated starred source", async () => {
     sidebarSourceOverrides.starredCountEnabled = true;
     sidebarSourceOverrides.starredCountData = 1;
-    const starredCountSpy = vi.spyOn(articleHooks, "useAccountStarredCount");
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -485,7 +484,6 @@ describe("Sidebar", () => {
       prefs: { show_starred_count: "true" },
       loaded: true,
     });
-    starredCountSpy.mockReturnValue({ data: 1 } as ReturnType<typeof articleHooks.useAccountStarredCount>);
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
