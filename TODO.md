@@ -213,6 +213,70 @@
   - `e2e/app.spec.ts` に Storybook smoke と同様の `pageerror` guard を追加する
   - 表示 assertion だけでは見逃す runtime error を拾う smoke contract として扱い、E2E scenario 追加とは混ぜない
 
+- [ ] OPML import account / folder contract 候補を追加する
+  - `src-tauri/src/commands/opml_commands.rs` の `import_opml` で `account_id` 存在確認を先に行い、DB 制約エラーではなく user-visible error にする
+  - OPML import の folder cache が exact-name match のため、`create_folder` と同じ case-insensitive 契約に寄せて重複 folder を防ぐ
+  - feed save や OPML UI copy とは混ぜず、import command の入力・folder 解決 contract に限定する
+
+- [ ] OPML parser attribute error contract 候補を追加する
+  - `src-tauri/src/infra/opml.rs` の `parse_outline_attrs` が `flatten()` で malformed attribute を silent drop しないようにする
+  - 壊れた OPML attribute は明示的な parse error として返す fixture を追加する
+  - outline tree の仕様拡張や export 形式変更とは別に、parser error surface だけを扱う
+
+- [ ] feed discovery HTML attribute / dedupe 候補を追加する
+  - `src-tauri/src/infra/feed_discovery.rs` の `extract_attribute` が `href = "..."` のような `=` 前後 whitespace 付き attribute を拾える contract を追加する
+  - 同じ URL の `<link rel="alternate">` が複数ある場合は、入力順を保った URL dedupe を追加する
+  - network fetch や scoring 変更ではなく、HTML parse fixture の小粒改善に限定する
+
+- [ ] migration V16 drift contract 候補を追加する
+  - `src-tauri/migrations/V16__account_connection_verification.sql` と `src-tauri/src/infra/db/migration.rs` の inline migration が drift しない contract を追加する
+  - SQL 内容の再設計ではなく、file-based migration と inline 実行の同期検証だけを扱う
+
+- [ ] database command busy / restore contract 候補を追加する
+  - `src-tauri/src/commands/database_commands.rs` の `get_database_info` で busy / lock 時の command-level error contract を `vacuum_database_inner` と揃える
+  - `src-tauri/src/infra/db/connection.rs` の `restore_file_connections_after_vacuum` で VACUUM 失敗後も DB が read/write 可能なことを固定する
+  - DB metadata 表示や backup UI とは混ぜず、database command recovery の test に限定する
+
+- [ ] add feed async race / submit guard 候補を追加する
+  - `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts` と `src/components/reader/add-feed-dialog-state.ts` に feed discovery request token を追加する
+  - URL 変更後に古い discovery response が state を上書きしないことを固定する
+  - add feed submit に in-flight guard を追加し、click / Enter 連打で `addLocalFeed` が二重実行されない contract を追加する
+
+- [ ] add account URL validation / locale copy 候補を追加する
+  - `src/components/settings/add-account/account-config-form.tsx` と `src/lib/account/add-account-form.ts` で FreshRSS `serverUrl` を空文字だけでなく URL 形式まで validation する
+  - add account validation message の英語直書きを settings locale key 経由に寄せる
+  - provider login flow や credentials 保存方式は触らず、form validation / copy 境界に限定する
+
+- [ ] account detail edit validation 候補を追加する
+  - `src/components/settings/hooks/account-detail/use-account-detail-name-editor.ts` で Escape cancel 後の blur commit が draft を保存しない state transition を固定する
+  - `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts` で credentials 保存・接続テスト前に server URL 形式 validation を追加する
+  - account detail section layout や sync status 表示とは混ぜず、editor hook の contract に限定する
+
+- [ ] rename feed validation / nested escape 候補を追加する
+  - `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller.ts` で空 title submit 時に dialog を閉じず validation error を出す
+  - `src/components/subscriptions-index/subscriptions-index-page.tsx` で rename / delete nested dialog の Escape が workspace close listener に伝播しないことを固定する
+  - subscriptions decision flow とは分け、dialog state machine の小粒 contract として扱う
+
+- [ ] release workflow manual dispatch / preflight 候補を追加する
+  - `.github/workflows/release.yml` の `workflow_dispatch` が tag ref 以外で no-op にならないよう、manual run 条件を repo contract test で固定する
+  - release job が `tauri-action` 前に `mise run ci` 相当の preflight を通す contract を追加する
+  - release notes 生成や artifact naming 変更とは別に、workflow gate の drift 防止だけを扱う
+
+- [ ] updater stale pending / runtime unavailable 候補を追加する
+  - `src-tauri/src/commands/updater_commands.rs` の `check_for_update` 失敗時に cached `PendingUpdate` が残らないことを固定する
+  - `src/hooks/use-updater.ts` で Tauri updater unavailable な browser-only / dev preview 実行を silent skip できるようにする
+  - updater UI copy や release artifact 検証とは混ぜず、runtime state guard に限定する
+
+- [ ] release install / manual verification contract 候補を追加する
+  - `docs/release-manual-verification.md` に release asset digest、codesign、Gatekeeper 結果の記録欄を追加する
+  - `mise.toml` / `README.md` / package script contract で published release install と local `app:install` の違いを明示する
+  - local build の resign 手順を published artifact install と混同しないための docs / script contract に限定する
+
+- [ ] Tauri dev Vite check / port validation 候補を追加する
+  - `scripts/tauri-dev-vite-manager.ts` の `--check` が既存 Vite を停止せず成功確認だけ行う contract に分ける
+  - `TAURI_DEV_PORT` は blank / fractional / zero / negative を拒否し、Vite 起動ポートと既存プロセス確認が同じ値を見ることを固定する
+  - Tauri CLI dispatch や app E2E scenario とは混ぜず、dev server manager の static test に限定する
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
