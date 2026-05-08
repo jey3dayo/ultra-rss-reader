@@ -51,4 +51,51 @@ describe("useArticleStatusActions", () => {
     expect(removeRecentlyRead).toHaveBeenCalledWith("art-1");
     expect(addRecentlyRead).not.toHaveBeenCalled();
   });
+
+  it("does not mutate, retain, or toast when articleId is null", () => {
+    const addRecentlyRead = vi.fn();
+    const removeRecentlyRead = vi.fn();
+    const retainArticle = vi.fn();
+    const showToast = vi.fn();
+
+    const setRead: UseArticleStatusActionsParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+
+    const toggleStar: UseArticleStatusActionsParams["toggleStar"] = {
+      mutate: vi.fn(),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions({
+        articleId: null,
+        isRead: false,
+        isStarred: false,
+        viewMode: "unread",
+        retainOnUnstar: true,
+        showToast,
+        addRecentlyRead,
+        removeRecentlyRead,
+        retainArticle,
+        setRead,
+        toggleStar,
+        starredMessage: "starred",
+        unstarredMessage: "unstarred",
+      }),
+    );
+
+    act(() => {
+      result.current.setReadStatus(true);
+      result.current.setStarStatus(true, { showStatusToast: true });
+      result.current.handleToggleRead();
+      result.current.handleToggleStar();
+    });
+
+    expect(setRead.mutate).not.toHaveBeenCalled();
+    expect(toggleStar.mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
+    expect(addRecentlyRead).not.toHaveBeenCalled();
+    expect(removeRecentlyRead).not.toHaveBeenCalled();
+  });
 });

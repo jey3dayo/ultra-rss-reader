@@ -77,7 +77,19 @@ export function useBrowserOverlayFocusReturn({
           return;
         }
 
-        document.querySelector<HTMLElement>('[data-browser-overlay-return-focus="open-in-browser"]')?.focus();
+        const openInBrowserTarget = document.querySelector<HTMLElement>(
+          '[data-browser-overlay-return-focus="open-in-browser"]',
+        );
+        if (openInBrowserTarget && !openInBrowserTarget.hasAttribute("disabled")) {
+          openInBrowserTarget.focus();
+          return;
+        }
+
+        const fallbackTarget = document.querySelector<HTMLElement>("[data-article-list-root='true']");
+        if (fallbackTarget && !fallbackTarget.hasAttribute("disabled")) {
+          useUiStore.getState().setFocusedPane("list");
+          fallbackTarget.focus({ preventScroll: true });
+        }
       });
     }
 

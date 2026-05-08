@@ -59,4 +59,78 @@ describe("useArticleListSearch", () => {
     expect(result.current.searchResults).toBeUndefined();
     expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-2", "");
   });
+
+  it("opens search without changing the debounced query until the debounce delay", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("  urgent  ");
+    });
+
+    expect(result.current.showSearch).toBe(true);
+    expect(result.current.searchQuery).toBe("  urgent  ");
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
+
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS - 1);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("urgent");
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "urgent");
+  });
+
+  it("toggles search open and keeps it open on repeated toggle", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.handleToggleSearch();
+    });
+
+    expect(result.current.showSearch).toBe(true);
+
+    act(() => {
+      result.current.handleToggleSearch();
+    });
+
+    expect(result.current.showSearch).toBe(true);
+  });
+
+  it("closes search and clears the debounced query after the debounce delay", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("  urgent  ");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.showSearch).toBe(true);
+    expect(result.current.searchQuery).toBe("  urgent  ");
+    expect(result.current.trimmedDebouncedQuery).toBe("urgent");
+
+    act(() => {
+      result.current.handleCloseSearch();
+    });
+
+    expect(result.current.showSearch).toBe(false);
+    expect(result.current.searchQuery).toBe("");
+    expect(result.current.trimmedDebouncedQuery).toBe("urgent");
+
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
+  });
 });

@@ -209,7 +209,7 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
   });
 
-  it("shows a toast when restart fails", async () => {
+  it("keeps the prepared update pending when restart command fails", async () => {
     mockRestartApp.mockResolvedValue(Result.fail({ type: "UserVisible", message: "restart failed" }));
 
     const { showRestartToast } = await import("@/hooks/use-updater");
@@ -224,6 +224,92 @@ describe("performUpdateCheck", () => {
       ?.onClick();
     await flushAsyncWork();
 
-    expect(useUiStore.getState().toastMessage?.message).toBe("再起動に失敗しました");
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "再起動に失敗しました。更新の準備は完了しています。",
+      persistent: true,
+      variant: "update",
+    });
+    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
+      "もう一度再起動",
+      "後で",
+    ]);
+  });
+
+  it("keeps the prepared update pending when restart runtime is unavailable", async () => {
+    const runtimeError = {
+      type: "RuntimeUnavailable",
+      message: "restart command unavailable",
+    };
+    mockRestartApp.mockResolvedValue(Result.fail(runtimeError));
+
+    const { showRestartToast } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+    await flushAsyncWork();
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "再起動に失敗しました。更新の準備は完了しています。",
+      persistent: true,
+      variant: "update",
+    });
+    expect(useUiStore.getState().toastMessage?.progress).toBeUndefined();
+    expect(mockRestartApp).toHaveBeenCalledTimes(1);
+  });
+
+  it("normalizes download progress event percent before updating the toast", async () => {
+    const progressListeners: Array<(event: { payload: { percent: number | null } }) => void> = [];
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockListen.mockImplementation(
+      async (eventName: string, callback: (event: { payload: { percent: number | null } }) => void) => {
+        if (eventName === "update-download-progress") {
+          progressListeners.push(callback);
+        }
+        return () => {};
+      },
+    );
+
+    const { useUpdater } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    await flushAsyncWork();
+
+    progressListeners[0]?.({ payload: { percent: null } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中…",
+      progress: null,
+      variant: "update",
+    });
+
+    progressListeners[0]?.({ payload: { percent: 0 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
+    });
+
+    progressListeners[0]?.({ payload: { percent: 100 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 100%",
+      progress: 100,
+    });
+
+    progressListeners[0]?.({ payload: { percent: -12 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
+    });
+
+    progressListeners[0]?.({ payload: { percent: 120 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 100%",
+      progress: 100,
+    });
   });
 });

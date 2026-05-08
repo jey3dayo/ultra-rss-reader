@@ -37,8 +37,17 @@ const reasonTooltipLabels = {
   no_stars: "取得済みの記事にスターがありません",
 } satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
-function renderListPane(rows: SubscriptionListRow[], options?: { isGroupExpanded?: (groupKey: string) => boolean }) {
-  const groups: SubscriptionListGroup[] = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows }];
+function renderListPane(
+  rows: SubscriptionListRow[],
+  options?: {
+    groups?: SubscriptionListGroup[];
+    initialScrollTop?: number;
+    isGroupExpanded?: (groupKey: string) => boolean;
+  },
+) {
+  const groups: SubscriptionListGroup[] = options?.groups ?? [
+    { key: "__ungrouped__", label: "フォルダなし", folderId: null, rows },
+  ];
 
   return render(
     <SubscriptionsListPane
@@ -51,6 +60,7 @@ function renderListPane(rows: SubscriptionListRow[], options?: { isGroupExpanded
       formatUnreadCountLabel={(count) => `未読 ${count}件`}
       formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
+      initialScrollTop={options?.initialScrollTop}
       onSelectFeed={vi.fn()}
       onToggleGroup={vi.fn()}
     />,
@@ -147,5 +157,111 @@ describe("SubscriptionsListPane", () => {
     expect(folderButton).toHaveAttribute("aria-expanded", "false");
     expect(panel).toHaveAttribute("aria-hidden", "true");
     expect(panel).toHaveAttribute("inert");
+  });
+
+  it("restores the list scroll position only when the returned value changes", () => {
+    const scrollTopAssignments: number[] = [];
+    const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return scrollTopAssignments[scrollTopAssignments.length - 1] ?? 0;
+      },
+      set(value: number) {
+        scrollTopAssignments.push(value);
+      },
+    });
+
+    try {
+      const row = {
+        feed: buildFeed({ title: "Scroll Feed" }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      } satisfies SubscriptionListRow;
+
+      const { rerender } = renderListPane([row], { initialScrollTop: 42 });
+
+      rerender(
+        <SubscriptionsListPane
+          heading="全購読"
+          groups={[{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }]}
+          selectedFeedId={row.feed.id}
+          emptyLabel="一致する購読はありません。"
+          statusLabels={statusLabels}
+          reasonTooltipLabels={reasonTooltipLabels}
+          formatUnreadCountLabel={(count) => `未読 ${count}件`}
+          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          isGroupExpanded={() => true}
+          initialScrollTop={42}
+          onSelectFeed={vi.fn()}
+          onToggleGroup={vi.fn()}
+        />,
+      );
+
+      rerender(
+        <SubscriptionsListPane
+          heading="全購読"
+          groups={[{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }]}
+          selectedFeedId={row.feed.id}
+          emptyLabel="一致する購読はありません。"
+          statusLabels={statusLabels}
+          reasonTooltipLabels={reasonTooltipLabels}
+          formatUnreadCountLabel={(count) => `未読 ${count}件`}
+          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          isGroupExpanded={() => true}
+          initialScrollTop={84}
+          onSelectFeed={vi.fn()}
+          onToggleGroup={vi.fn()}
+        />,
+      );
+
+      expect(scrollTopAssignments).toEqual([42, 84]);
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(Element.prototype, "scrollTop", descriptor);
+      } else {
+        delete (Element.prototype as { scrollTop?: number }).scrollTop;
+      }
+    }
+  });
+
+  it("uses folder ids for duplicated folder label disclosure ids and test ids", () => {
+    const firstRow = {
+      feed: buildFeed({ id: "feed-1", title: "Alpha Feed", folder_id: "folder-a" }),
+      folderId: "folder-a",
+      folderName: "Same Folder",
+      latestArticleAt: null,
+      status: { tone: "neutral", labelKey: "normal" },
+      reasonTooltipKey: null,
+    } satisfies SubscriptionListRow;
+    const secondRow = {
+      feed: buildFeed({ id: "feed-2", title: "Beta Feed", folder_id: "folder-b" }),
+      folderId: "folder-b",
+      folderName: "Same Folder",
+      latestArticleAt: null,
+      status: { tone: "neutral", labelKey: "normal" },
+      reasonTooltipKey: null,
+    } satisfies SubscriptionListRow;
+
+    renderListPane([], {
+      groups: [
+        { key: "folder-a", label: "Same Folder", folderId: "folder-a", rows: [firstRow] },
+        { key: "folder-b", label: "Same Folder", folderId: "folder-b", rows: [secondRow] },
+      ],
+    });
+
+    const firstFolderButton = screen.getByTestId("subscriptions-folder-row-folder-a");
+    const secondFolderButton = screen.getByTestId("subscriptions-folder-row-folder-b");
+
+    expect(firstFolderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-folder-a");
+    expect(secondFolderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-folder-b");
+    expect(document.getElementById("subscriptions-group-panel-folder-a")).toBeInTheDocument();
+    expect(document.getElementById("subscriptions-group-panel-folder-b")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-a")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-b")).toBeInTheDocument();
   });
 });

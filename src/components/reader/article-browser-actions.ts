@@ -1,18 +1,19 @@
 import { Result } from "@praha/byethrow";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { addToReadingList, openInBrowser } from "@/api/tauri-commands";
+import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
-type ArticleBrowserToastOperation = () => ReturnType<typeof copyToClipboard>;
+type ArticleBrowserToastOperation<T> = () => Result.ResultAsync<T, { message: string }>;
 type OpenExternalBrowserParams = {
   background: boolean;
   showToast: ArticleStatusToast;
   errorLabel: string;
 };
 
-function runToastOperation(
-  operation: ArticleBrowserToastOperation,
+function runToastOperation<T>(
+  operation: ArticleBrowserToastOperation<T>,
   { showToast, successMessage }: ArticleToastActionParams,
   errorLabel: string,
 ) {
@@ -57,7 +58,7 @@ export function openUrlInExternalBrowser(
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  return runToastOperation(() => copyToClipboard(url), { showToast, successMessage }, "Copy failed");
+  return runToastOperation(() => copyTextToClipboard(url), { showToast, successMessage }, "Copy failed");
 }
 
 export function addArticleToReadingList(url: string, { showToast, successMessage }: ArticleToastActionParams) {

@@ -1,0 +1,128 @@
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useBrowserOverlayFocusReturn } from "@/components/reader/hooks/browser/use-browser-overlay-focus-return";
+import { useUiStore } from "@/stores/ui-store";
+
+describe("useBrowserOverlayFocusReturn", () => {
+  beforeEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callback(0);
+      return 0;
+    });
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("returns focus to the selected article row when the overlay closes", () => {
+    const articleButton = document.createElement("button");
+    articleButton.dataset.articleId = "article-1";
+    document.body.append(articleButton);
+
+    const { rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "article-1",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(articleButton);
+    expect(useUiStore.getState().focusedPane).toBe("list");
+  });
+
+  it("falls back to the previous return key when the selected article row is missing", () => {
+    const previousButton = document.createElement("button");
+    previousButton.dataset.browserOverlayReturnFocus = "toolbar-action";
+    document.body.append(previousButton);
+    previousButton.focus();
+
+    const { result, rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "missing-article",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    act(() => {
+      result.current.rememberOverlayFocusReturnTarget();
+    });
+    previousButton.remove();
+
+    const replacementButton = document.createElement("button");
+    replacementButton.dataset.browserOverlayReturnFocus = "toolbar-action";
+    document.body.append(replacementButton);
+
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(replacementButton);
+  });
+
+  it("falls back to the open-in-browser control when the remembered target disappeared", () => {
+    const previousButton = document.createElement("button");
+    previousButton.dataset.browserOverlayReturnFocus = "missing-action";
+    document.body.append(previousButton);
+    previousButton.focus();
+
+    const openInBrowserButton = document.createElement("button");
+    openInBrowserButton.dataset.browserOverlayReturnFocus = "open-in-browser";
+    document.body.append(openInBrowserButton);
+
+    const { result, rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "missing-article",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    act(() => {
+      result.current.rememberOverlayFocusReturnTarget();
+    });
+    previousButton.remove();
+
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(openInBrowserButton);
+  });
+
+  it("falls back to the article list root when all return targets disappeared", () => {
+    const previousButton = document.createElement("button");
+    previousButton.dataset.browserOverlayReturnFocus = "missing-action";
+    document.body.append(previousButton);
+    previousButton.focus();
+
+    const articleListRoot = document.createElement("div");
+    articleListRoot.dataset.articleListRoot = "true";
+    articleListRoot.tabIndex = -1;
+    document.body.append(articleListRoot);
+
+    const { result, rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "missing-article",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    act(() => {
+      result.current.rememberOverlayFocusReturnTarget();
+    });
+    previousButton.remove();
+
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(articleListRoot);
+    expect(useUiStore.getState().focusedPane).toBe("list");
+  });
+});

@@ -30,6 +30,7 @@ describe("useFeedTreeHandleClickSuppression", () => {
   it("restarts the reset timer when queueing suppression again", () => {
     vi.useFakeTimers();
 
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
     const { result } = renderHook(() => useFeedTreeHandleClickSuppression());
 
     act(() => {
@@ -38,12 +39,15 @@ describe("useFeedTreeHandleClickSuppression", () => {
     });
 
     expect(result.current.consumeSuppressedHandleClick()).toBe(true);
+    expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(1);
 
     act(() => {
       vi.advanceTimersByTime(0);
     });
 
     expect(result.current.consumeSuppressedHandleClick()).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("cleans up pending timers on unmount", () => {
@@ -59,5 +63,6 @@ describe("useFeedTreeHandleClickSuppression", () => {
     unmount();
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

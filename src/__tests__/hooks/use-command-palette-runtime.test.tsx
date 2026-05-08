@@ -9,6 +9,17 @@ vi.mock("@/dev/scenario-runtime", () => ({
 
 const loadRuntimeDevScenariosMock = vi.mocked(loadRuntimeDevScenarios);
 
+function createDeferred<T>() {
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 describe("useCommandPaletteRuntime", () => {
   beforeEach(() => {
     vi.stubEnv("DEV", true);
@@ -71,5 +82,49 @@ describe("useCommandPaletteRuntime", () => {
         keywords: ["add", "feed"],
       },
     ]);
+  });
+
+  it("ignores a successful dev scenario load after unmount", async () => {
+    const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenarios>>>();
+    loadRuntimeDevScenariosMock.mockReturnValueOnce(deferred.promise);
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { result, unmount } = renderHook(() => useCommandPaletteRuntime({ open: true }));
+
+    expect(result.current.devScenarios).toEqual([]);
+    unmount();
+
+    await act(async () => {
+      deferred.resolve([
+        {
+          id: "open-add-feed-dialog",
+          title: "Open add feed dialog",
+          keywords: ["add", "feed"],
+        },
+      ]);
+      await deferred.promise;
+    });
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("ignores a failed dev scenario load after unmount", async () => {
+    const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenarios>>>();
+    loadRuntimeDevScenariosMock.mockReturnValueOnce(deferred.promise);
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { result, unmount } = renderHook(() => useCommandPaletteRuntime({ open: true }));
+
+    expect(result.current.devScenarios).toEqual([]);
+    unmount();
+
+    await act(async () => {
+      deferred.reject(new Error("load failed"));
+      await expect(deferred.promise).rejects.toThrow("load failed");
+    });
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 });

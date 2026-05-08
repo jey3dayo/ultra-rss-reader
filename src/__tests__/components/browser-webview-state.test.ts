@@ -78,6 +78,31 @@ describe("browser-webview-state", () => {
     });
   });
 
+  it("keeps the current url for same-url reload loading updates", () => {
+    expect(
+      mergeBrowserState(
+        {
+          url: "https://example.com/article",
+          can_go_back: true,
+          can_go_forward: true,
+          is_loading: false,
+        },
+        {
+          url: "https://example.com/article",
+          can_go_back: true,
+          can_go_forward: true,
+          is_loading: true,
+        },
+        "https://example.com/article",
+      ),
+    ).toEqual({
+      url: "https://example.com/article",
+      can_go_back: true,
+      can_go_forward: true,
+      is_loading: true,
+    });
+  });
+
   it("keeps the intended url while loading updates briefly report a stale url", () => {
     expect(
       mergeBrowserState(
@@ -100,6 +125,31 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: true,
       is_loading: true,
+    });
+  });
+
+  it("accepts the redirected url once the native payload finishes loading", () => {
+    expect(
+      mergeBrowserState(
+        {
+          url: "https://example.com/requested",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        },
+        {
+          url: "https://example.com/redirected",
+          can_go_back: true,
+          can_go_forward: false,
+          is_loading: false,
+        },
+        "https://example.com/requested",
+      ),
+    ).toEqual({
+      url: "https://example.com/redirected",
+      can_go_back: true,
+      can_go_forward: false,
+      is_loading: false,
     });
   });
 

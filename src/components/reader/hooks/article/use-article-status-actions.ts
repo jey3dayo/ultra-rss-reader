@@ -7,7 +7,10 @@ type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, 
 
 type SetReadMutation = ArticleStatusMutation<{ id: string; read: boolean }>;
 
-type ToggleStarMutation = ArticleStatusMutation<{ id: string; starred: boolean }>;
+type ToggleStarMutation = ArticleStatusMutation<{
+  id: string;
+  starred: boolean;
+}>;
 
 export type UseArticleStatusActionsParams = {
   articleId: string | null;

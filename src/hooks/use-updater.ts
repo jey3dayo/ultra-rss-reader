@@ -76,6 +76,43 @@ function startDownload(): void {
   );
 }
 
+export function normalizeDownloadProgressPercent(percent: number | null): number | null {
+  if (percent === null) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(percent)));
+}
+
+function restartPreparedUpdate(): void {
+  const store = useUiStore.getState();
+  void restartApp().then((result) =>
+    Result.pipe(
+      result,
+      Result.inspectError((error) => {
+        console.error("App restart failed:", error);
+        store.showToast({
+          message: "再起動に失敗しました。更新の準備は完了しています。",
+          persistent: true,
+          variant: "update",
+          actions: [
+            {
+              label: "もう一度再起動",
+              onClick: restartPreparedUpdate,
+            },
+            {
+              label: "後で",
+              onClick: () => {
+                store.clearToast();
+              },
+            },
+          ],
+        });
+      }),
+    ),
+  );
+}
+
 export function showRestartToast(): void {
   const store = useUiStore.getState();
   store.showToast({
@@ -85,17 +122,7 @@ export function showRestartToast(): void {
     actions: [
       {
         label: "再起動",
-        onClick: () => {
-          void restartApp().then((result) =>
-            Result.pipe(
-              result,
-              Result.inspectError((error) => {
-                console.error("App restart failed:", error);
-                store.showToast("再起動に失敗しました");
-              }),
-            ),
-          );
-        },
+        onClick: restartPreparedUpdate,
       },
       {
         label: "後で",
@@ -174,7 +201,7 @@ export function useUpdater(): void {
       [
         listen<{ percent: number | null }>("update-download-progress", (event) => {
           const store = useUiStore.getState();
-          const percent = event.payload.percent;
+          const percent = normalizeDownloadProgressPercent(event.payload.percent);
           const message = percent != null ? `ダウンロード中… ${percent}%` : "ダウンロード中…";
           store.showToast({
             message,

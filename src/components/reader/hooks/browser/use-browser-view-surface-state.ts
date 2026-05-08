@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import {
   type BrowserSurfaceIssue,
@@ -52,6 +52,36 @@ export function useBrowserViewSurfaceState({
   blockedHint,
 }: UseBrowserViewSurfaceStateParams): UseBrowserViewSurfaceStateResult {
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
+  const currentBrowserUrl = browserStateRef.current?.url ?? null;
+  const currentBrowserIsLoading = browserStateRef.current?.is_loading ?? false;
+  const previousBrowserUrlRef = useRef<string | null>(currentBrowserUrl);
+  const previousBrowserIsLoadingRef = useRef(currentBrowserIsLoading);
+  const previousSurfaceIssueRef = useRef<BrowserSurfaceIssue | null>(surfaceIssue);
+
+  useEffect(() => {
+    const previousBrowserUrl = previousBrowserUrlRef.current;
+    const previousBrowserIsLoading = previousBrowserIsLoadingRef.current;
+    const previousSurfaceIssue = previousSurfaceIssueRef.current;
+    const browserClosed = previousBrowserUrl !== null && currentBrowserUrl === null;
+    const browserUrlChanged =
+      previousBrowserUrl !== null && currentBrowserUrl !== null && previousBrowserUrl !== currentBrowserUrl;
+    const retryFinished =
+      previousSurfaceIssue !== null &&
+      previousBrowserUrl === currentBrowserUrl &&
+      previousBrowserIsLoading &&
+      !currentBrowserIsLoading;
+
+    previousBrowserUrlRef.current = currentBrowserUrl;
+    previousBrowserIsLoadingRef.current = currentBrowserIsLoading;
+    previousSurfaceIssueRef.current = surfaceIssue;
+
+    if (!surfaceIssue || (!browserClosed && !browserUrlChanged && !retryFinished)) {
+      return;
+    }
+
+    fallbackInFlightRef.current = false;
+    setSurfaceIssue(null);
+  }, [currentBrowserIsLoading, currentBrowserUrl, fallbackInFlightRef, surfaceIssue]);
 
   const handleLostEmbeddedBrowserWebview = useCallback(
     (error: AppError) => {

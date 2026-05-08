@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addToHistory, clearHistory, getHistory } from "@/components/reader/hooks/command-palette/use-command-history";
+import {
+  addToHistory,
+  clearHistory,
+  compactCommandHistory,
+  getHistory,
+} from "@/components/reader/hooks/command-palette/use-command-history";
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
 
 describe("use-command-history", () => {
@@ -49,6 +54,34 @@ describe("use-command-history", () => {
     addToHistory("feed-1");
 
     expect(getHistory()).toEqual(["feed-1", "feed-2"]);
+  });
+
+  it("compacts stored history after invalid entries are discarded", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify(["feed:feed-1", null, "feed:feed-2", { id: "feed-3" }, "tag:tag-1"]),
+    );
+
+    addToHistory("feed:feed-2");
+
+    expect(getHistory()).toEqual(["feed:feed-2", "feed:feed-1", "tag:tag-1"]);
+  });
+
+  it("compacts raw history values by moving duplicates to the front and capping size", () => {
+    const entries = Array.from({ length: MAX_COMMAND_HISTORY + 2 }, (_, index) => `item-${index}`);
+
+    expect(compactCommandHistory(entries, "item-3")).toEqual([
+      "item-3",
+      "item-0",
+      "item-1",
+      "item-2",
+      "item-4",
+      "item-5",
+      "item-6",
+      "item-7",
+      "item-8",
+      "item-9",
+    ]);
   });
 
   it("caps history to the maximum size", () => {

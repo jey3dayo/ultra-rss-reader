@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/articles/article-list";
 import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window/window-events";
@@ -17,6 +17,12 @@ export function useSidebarFeedNavigation({
   setExpandedFolders,
   selectFeed,
 }: SidebarFeedNavigationParams) {
+  const latestExpandedFolderIdsRef = useRef(expandedFolderIds);
+
+  useEffect(() => {
+    latestExpandedFolderIdsRef.current = expandedFolderIds;
+  }, [expandedFolderIds]);
+
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
       const nextFeedId = getAdjacentItemId(orderedFeedIds, selectedFeedId, direction);
@@ -26,8 +32,11 @@ export function useSidebarFeedNavigation({
       const resolvedNextFeedId = Result.unwrap(nextFeedId);
 
       const nextFeedFolderId = getFeedFolderId(resolvedNextFeedId) ?? null;
-      if (nextFeedFolderId && !expandedFolderIds.has(nextFeedFolderId)) {
-        setExpandedFolders([...expandedFolderIds, nextFeedFolderId]);
+      const latestExpandedFolderIds = latestExpandedFolderIdsRef.current;
+      if (nextFeedFolderId && !latestExpandedFolderIds.has(nextFeedFolderId)) {
+        const nextExpandedFolderIds = new Set([...latestExpandedFolderIds, nextFeedFolderId]);
+        latestExpandedFolderIdsRef.current = nextExpandedFolderIds;
+        setExpandedFolders(nextExpandedFolderIds);
       }
 
       selectFeed(resolvedNextFeedId);
@@ -41,7 +50,7 @@ export function useSidebarFeedNavigation({
         nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
       });
     },
-    [expandedFolderIds, getFeedFolderId, orderedFeedIds, selectFeed, selectedFeedId, setExpandedFolders],
+    [getFeedFolderId, orderedFeedIds, selectFeed, selectedFeedId, setExpandedFolders],
   );
 
   useEffect(() => {

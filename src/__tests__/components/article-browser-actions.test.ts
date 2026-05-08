@@ -60,6 +60,40 @@ describe("article-browser-actions", () => {
     expect(showToast).toHaveBeenCalledWith("Clipboard unavailable");
   });
 
+  it("logs categorized clipboard runtime failures when copying fails", async () => {
+    const consoleError = vi.mocked(console.error);
+    setupTauriMocks((cmd) => {
+      if (cmd === "copy_to_clipboard") {
+        throw { type: "UserVisible", message: "Clipboard unavailable" };
+      }
+      return undefined;
+    });
+
+    await copyArticleLink("https://example.com/article", {
+      showToast,
+      successMessage: "Link copied",
+    });
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Copy failed:",
+      expect.objectContaining({
+        category: "runtime_unavailable",
+        message: "Clipboard unavailable",
+      }),
+    );
+    expect(showToast).toHaveBeenCalledWith("Clipboard unavailable");
+  });
+
+  it("projects invalid clipboard text without invoking Tauri", async () => {
+    await copyArticleLink("", {
+      showToast,
+      successMessage: "Link copied",
+    });
+
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
+  });
+
   it("shows a success toast after adding a link to the reading list", async () => {
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -126,7 +160,10 @@ describe("article-browser-actions", () => {
   });
 
   it("opens an article in the background when the background preference is enabled", async () => {
-    usePreferencesStore.setState({ prefs: { open_links_background: "true" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { open_links_background: "true" },
+      loaded: true,
+    });
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
