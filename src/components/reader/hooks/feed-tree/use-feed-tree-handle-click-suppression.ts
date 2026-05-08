@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
 
-export function useFeedTreeHandleClickSuppression() {
+type FeedTreeHandleClickSuppressionResult = {
+  consumeSuppressedHandleClick: () => boolean;
+  queueSuppressHandleClickReset: () => void;
+};
+
+export function useFeedTreeHandleClickSuppression(): FeedTreeHandleClickSuppressionResult {
   const suppressHandleClickRef = useRef(false);
   const suppressHandleClickTimeoutRef = useRef<number | null>(null);
 
@@ -31,5 +36,5 @@ export function useFeedTreeHandleClickSuppression() {
   return {
     consumeSuppressedHandleClick,
     queueSuppressHandleClickReset,
-  } as const;
+  };
 }

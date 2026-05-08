@@ -271,10 +271,20 @@ export type UseBrowserWebviewSyncParams = {
   showSurfaceFailure: (error: AppError) => void;
 };
 
+export type UseBrowserWebviewSyncResult = {
+  resetBrowserWebviewSyncState: () => void;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+};
+
 export type UseBrowserDebugGeometryEventsParams = {
   showDiagnostics: boolean;
   layoutDiagnostics: BrowserDebugGeometryLayoutDiagnostics | null;
   nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+};
+
+export type UseBrowserNativeDiagnosticsResult = {
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+  handleNativeDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
 };
 
 export type UseBrowserLayoutDiagnosticsParams = {
@@ -285,9 +295,19 @@ export type UseBrowserLayoutDiagnosticsParams = {
   hostRef: RefObject<HTMLDivElement | null>;
 };
 
+export type UseBrowserLayoutDiagnosticsResult = {
+  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
+  captureLayoutDiagnostics: () => void;
+};
+
 export type UseBrowserOverlayFocusReturnParams = {
   articleId: string;
   isBrowserOpen: boolean;
+};
+
+export type UseBrowserOverlayFocusReturnResult = {
+  focusSelectedArticleRow: () => void;
+  rememberOverlayFocusReturnTarget: () => void;
 };
 
 export type UseBrowserViewActionsParams = {

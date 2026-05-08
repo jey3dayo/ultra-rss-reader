@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import type { BrowserDebugGeometryLayoutDiagnostics } from "@/lib/browser-debug-geometry";
 import { toBrowserWebviewBounds } from "@/lib/browser-webview";
-import type { UseBrowserLayoutDiagnosticsParams } from "../../browser-view.types";
+import type {
+  BrowserViewLayoutDiagnostics,
+  UseBrowserLayoutDiagnosticsParams,
+  UseBrowserLayoutDiagnosticsResult,
+} from "../../browser-view.types";
 import { resolveBrowserOverlayClientRelativeRect } from "../../browser-webview-sync-helpers";
 
 export function useBrowserLayoutDiagnostics({
@@ -10,8 +13,8 @@ export function useBrowserLayoutDiagnostics({
   overlayRef,
   stageRef,
   hostRef,
-}: UseBrowserLayoutDiagnosticsParams) {
-  const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserDebugGeometryLayoutDiagnostics | null>(null);
+}: UseBrowserLayoutDiagnosticsParams): UseBrowserLayoutDiagnosticsResult {
+  const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
 
   const captureLayoutDiagnostics = useCallback(() => {
     if (!showDiagnostics) {
@@ -70,5 +73,5 @@ export function useBrowserLayoutDiagnostics({
   return {
     layoutDiagnostics,
     captureLayoutDiagnostics,
-  } as const;
+  };
 }

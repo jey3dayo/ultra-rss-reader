@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseBrowserOverlayFocusReturnParams } from "../../browser-view.types";
+import type {
+  UseBrowserOverlayFocusReturnParams,
+  UseBrowserOverlayFocusReturnResult,
+} from "../../browser-view.types";
 
-export function useBrowserOverlayFocusReturn({ articleId, isBrowserOpen }: UseBrowserOverlayFocusReturnParams) {
+export function useBrowserOverlayFocusReturn({
+  articleId,
+  isBrowserOpen,
+}: UseBrowserOverlayFocusReturnParams): UseBrowserOverlayFocusReturnResult {
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
   const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
@@ -75,5 +81,5 @@ export function useBrowserOverlayFocusReturn({ articleId, isBrowserOpen }: UseBr
   return {
     focusSelectedArticleRow,
     rememberOverlayFocusReturnTarget,
-  } as const;
+  };
 }

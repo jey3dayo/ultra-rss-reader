@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react";
 import { createOrUpdateBrowserWebview, focusBrowserWebview, setBrowserWebviewBounds } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseBrowserWebviewSyncParams } from "../../browser-view.types";
+import type { UseBrowserWebviewSyncParams, UseBrowserWebviewSyncResult } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
 import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "../../browser-webview-sync-helpers";
 
@@ -15,7 +15,7 @@ export function useBrowserWebviewSync({
   setBrowserState,
   onMissingEmbeddedBrowserWebview,
   showSurfaceFailure,
-}: UseBrowserWebviewSyncParams) {
+}: UseBrowserWebviewSyncParams): UseBrowserWebviewSyncResult {
   const webviewCreatedRef = useRef(false);
   const createInFlightRef = useRef(false);
   const pendingBoundsRef = useRef<BrowserWebviewBounds | null>(null);
@@ -130,5 +130,5 @@ export function useBrowserWebviewSync({
   return {
     resetBrowserWebviewSyncState,
     syncBrowserWebview,
-  } as const;
+  };
 }

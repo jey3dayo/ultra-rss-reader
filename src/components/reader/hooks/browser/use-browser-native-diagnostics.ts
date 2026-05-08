@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser-debug-geometry";
+import type {
+  BrowserWebviewDiagnosticsPayload,
+  UseBrowserNativeDiagnosticsResult,
+} from "../../browser-view.types";
 
-export function useBrowserNativeDiagnostics(showDiagnostics: boolean) {
-  const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserDebugGeometryNativeDiagnostics | null>(null);
+export function useBrowserNativeDiagnostics(showDiagnostics: boolean): UseBrowserNativeDiagnosticsResult {
+  const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
 
-  const handleNativeDiagnostics = useCallback((payload: BrowserDebugGeometryNativeDiagnostics) => {
+  const handleNativeDiagnostics = useCallback((payload: BrowserWebviewDiagnosticsPayload) => {
     setNativeDiagnostics(payload);
   }, []);
 
@@ -19,5 +22,5 @@ export function useBrowserNativeDiagnostics(showDiagnostics: boolean) {
   return {
     nativeDiagnostics,
     handleNativeDiagnostics,
-  } as const;
+  };
 }
