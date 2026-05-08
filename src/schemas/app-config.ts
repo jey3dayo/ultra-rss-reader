@@ -8,6 +8,11 @@ export const PackageJsonSchema = z.object({
 export type PackageJson = z.output<typeof PackageJsonSchema>;
 
 export const TauriUpdaterConfigSchema = z.object({
+  bundle: z
+    .object({
+      createUpdaterArtifacts: z.boolean(),
+    })
+    .optional(),
   plugins: z.object({
     updater: z.object({
       endpoints: z.array(z.string()),

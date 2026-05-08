@@ -644,11 +644,6 @@
   - dev mock state reset、production bundle leak guard、scenario UI / copy 変更とは混ぜない
   - scenario registry と runner test で型と runtime fallback を分けて確認する
 
-- [ ] locale interpolation placeholder parity 候補を別バッチで追加する
-  - `src/locales/en/*.json` と `ja/*.json` の同一 key で `{{count}}` / `{{message}}` / `{{title}}` などの placeholder 集合が一致することを固定する
-  - 文言改善、key rename、namespace drift 全般とは混ぜず、interpolation placeholder の contract test に限定する
-  - missing placeholder と extra placeholder の failure message を読みやすくする
-
 - [ ] frontend/native language resolver parity 候補を別バッチで追加する
   - `ui-language.ts` と `menu_i18n.rs` で `system`、`ja-JP`、`JA`、`fr-FR`、empty locale の解決結果が揃うことを固定する
   - native menu label 本文、shortcut 表示、menu action id とは混ぜず、language code normalization だけを見る
@@ -738,26 +733,6 @@
   - `settings-content-layout.tsx` と `global.css` の fade top / bottom が `aria-hidden`、`pointer-events-none`、named CSS variable に閉じていることを固定する
   - settings layout 寸法変更、scroll behavior 変更、copy 変更とは混ぜない
   - fade helper の DOM contract と CSS token usage を別 assertion にする
-
-- [ ] release artifact matrix contract 候補を別バッチで追加する
-  - `.github/workflows/release.yml` の release matrix が macOS aarch64 と Windows を維持し、`tauri-action` args が release config を含むことを static test で固定する
-  - signing secret preflight、version / tag 整合、実 artifact 生成確認とは混ぜない
-  - workflow YAML の matrix と action args だけを見る
-
-- [ ] updater artifact config split guard 候補を別バッチで追加する
-  - `tauri.conf.json` と `tauri.release.conf.json` で、通常 config は updater artifact 作成を無効、release overlay だけ有効にする契約を固定する
-  - updater endpoint / pubkey 変更、release workflow secret、pending update lifecycle とは混ぜない
-  - schema test で base / release overlay の役割を明示する
-
-- [ ] dev/release bundle identity separation 候補を別バッチで追加する
-  - `tauri.dev.conf.json`、`tauri.conf.json`、`tauri.release.conf.json` の productName / identifier / window title が dev と production で混線しないことを固定する
-  - data dir migration、seed dev DB、release version dry-run とは混ぜない
-  - dev-only identifier と production identifier の static contract に限定する
-
-- [ ] release updater endpoint HTTPS guard 候補を別バッチで追加する
-  - updater endpoint が HTTPS の GitHub Releases `latest/download/latest.json` だけを指し、空配列や http endpoint を許さないことを schema / test で固定する
-  - pubkey rotation、署名 secret、download / install lifecycle とは混ぜない
-  - endpoint single-source と protocol validation だけを見る
 
 - [ ] startup sync timestamp storage recovery 候補を別バッチで追加する
   - `App.tsx` と storage constants の `startupSyncLastTriggeredAt` を helper 化し、invalid / future timestamp / 旧 key 移行の扱いを固定する
