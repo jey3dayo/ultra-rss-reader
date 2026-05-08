@@ -25,7 +25,7 @@ Tech Stack: React 19, TypeScript, class-variance-authority, Vitest, Testing Libr
 
 ## Task 1: Replace HUD-Specific Buttons With A Shared Button Family
 
-### Files:
+### Files
 
 - Create: `src/components/debug/debug-hud-action-button.tsx`
 - Modify: `src/components/debug/focus-debug-hud-view.tsx`
@@ -183,7 +183,7 @@ git commit -m "refactor: align debug hud actions with shared buttons"
 
 ## Task 2: Align HUD Shell And Inner Surfaces With Product Overlay Language
 
-### Files:
+### Files
 
 - Modify: `src/components/debug/debug-hud-frame.tsx`
 - Modify: `src/components/debug/focus-debug-hud-view.tsx`
@@ -273,7 +273,7 @@ git commit -m "style: align debug hud shell surfaces"
 
 ## Task 3: Lightly Reorder Information For Faster Reading
 
-### Files:
+### Files
 
 - Modify: `src/components/debug/focus-debug-hud-view.tsx`
 - Modify: `src/__tests__/components/focus-debug-hud-view.test.tsx`
@@ -389,7 +389,7 @@ git commit -m "feat: refine debug hud information hierarchy"
 
 ## Task 4: Run The Quality Gate For The HUD Changes
 
-### Files:
+### Files
 
 - Verify: `src/components/debug/debug-hud-action-button.tsx`
 - Verify: `src/components/debug/debug-hud-frame.tsx`

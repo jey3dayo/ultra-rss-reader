@@ -12,7 +12,7 @@ Tech Stack: React 19, Zustand, React Query, Vitest, i18next
 
 ## Task 1: Add failing tests
 
-### Files:
+### Files
 
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
@@ -24,7 +24,7 @@ Tech Stack: React 19, Zustand, React Query, Vitest, i18next
 
 ## Task 2: Add preference and settings UI
 
-### Files:
+### Files
 
 - Modify: `src/stores/preferences-store.ts`
 - Modify: `src/components/settings/use-reading-settings-view-props.ts`
@@ -37,7 +37,7 @@ Tech Stack: React 19, Zustand, React Query, Vitest, i18next
 
 ## Task 3: Wire feed selection behavior
 
-### Files:
+### Files
 
 - Modify: `src/components/reader/use-sidebar-feed-tree-props.ts`
 - Modify: `src/components/reader/use-sidebar-feed-section-controller.ts`
@@ -51,7 +51,7 @@ Tech Stack: React 19, Zustand, React Query, Vitest, i18next
 
 ## Task 4: Verify
 
-### Files:
+### Files
 
 - Modify: `src/__tests__/components/article-list.test.tsx` if the new behavior needs expectation updates
 

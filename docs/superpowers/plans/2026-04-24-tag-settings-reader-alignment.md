@@ -25,7 +25,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook 10, Tailwin
 
 ## Task 1: Lock The Compact Tag Row Contract
 
-### Files:
+### Files
 
 - Modify: `src/__tests__/components/tags-settings-view.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
@@ -249,7 +249,7 @@ git commit -m "feat: align tag settings rows with reader tags"
 
 ## Task 2: Add A Stable Storybook Fixture For The New Settings Row
 
-### Files:
+### Files
 
 - Create: `src/components/settings/tags-settings-view.stories.tsx`
 - Create: `src/__tests__/components/tags-settings-view.stories.test.tsx`
@@ -381,7 +381,7 @@ git commit -m "test: add tags settings story coverage"
 
 ## Task 3: Run The Repository Quality Gate
 
-### Files:
+### Files
 
 - Modify: none expected
 - Verify: current branch state after Tasks 1-2
