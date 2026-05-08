@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { parseJsonWithSchema } from "@/schemas/parse";
 import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
 
@@ -10,12 +11,7 @@ function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
       return {};
     }
 
-    const parsed = StoredSidebarExpandedFoldersSchema.safeParse(JSON.parse(raw));
-    if (!parsed.success) {
-      return {};
-    }
-
-    return parsed.data;
+    return parseJsonWithSchema(raw, StoredSidebarExpandedFoldersSchema);
   } catch {
     return {};
   }
