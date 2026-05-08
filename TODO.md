@@ -258,6 +258,91 @@
   - `src-tauri/src/commands/article_commands.rs` の `validate_older_than_days` で zero / negative / 過大値の reject 条件を一貫して固定する
   - old unread submenu UI、mark-all-read confirmation、bulk mutation execution は別バッチにする
 
+- [ ] createQuery disabled id guard contract 候補を別バッチで追加する
+  - `src/hooks/create-query.ts` で `id=null` の generated query が `enabled=false` になり fetcher を呼ばない契約を固定する
+  - queryFn が id なしで直接呼ばれた時は `Query id is required` 系の error になることを、小さい wrapper test で確認する
+  - query key invalidation、React Query retry/staleTime、caller hook 固有の fallback は同じバッチに混ぜない
+
+- [ ] createMutation invalidation data contract 候補を別バッチで追加する
+  - `src/hooks/create-mutation.ts` で mutation success 時だけ `invalidate(queryClient,args,data)` が unwrapped data 付きで呼ばれる契約を固定する
+  - failure result や thrown error の時に invalidation が走らないことを、mocked Result と query client で確認する
+  - toast projection、optimistic update、mutation 別の query key 設計は別バッチにする
+
+- [ ] query invalidation option matrix contract 候補を別バッチで追加する
+  - `src/lib/query/query-invalidation.ts` の `invalidateFeedQueries` / `invalidateArticleQueries` が default と option override で期待 query key を invalidate する契約を固定する
+  - account / feed / article / tag / subscription の利用面へ広げる前に、pure helper として key matrix を小さく test 化する
+  - cache stale policy、React Query observer 挙動、個別 mutation hook の成功処理は混ぜない
+
+- [ ] copyable text field read-only focus selection contract 候補を別バッチで追加する
+  - `src/components/shared/copyable-text-field.tsx` で readOnly input は focus 時に text を select し、editable input は強制 select しない契約を固定する
+  - 渡された `onFocus` が readOnly / editable のどちらでも呼ばれることを component test に含める
+  - clipboard runtime、credential field 固有の mask、visual token 調整は同じバッチに混ぜない
+
+- [ ] copyable text field copy button disabled contract 候補を別バッチで追加する
+  - `src/components/shared/copyable-text-field.tsx` で `copyLabel` と `onCopy` が揃う時だけ copy button を表示する契約を固定する
+  - field disabled または value empty の時に copy button が disabled になることを component test で確認する
+  - tooltip 実装、clipboard error toast、readonly wrapper 側の layout は別バッチにする
+
+- [ ] copyValueToClipboard empty value no-op contract 候補を別バッチで追加する
+  - `src/lib/runtime/clipboard.ts` で empty value の時に `copyToClipboard` / success callback / error callback を呼ばず return する契約を固定する
+  - clipboard unavailable fallback は既存 runtime utility 候補に残し、ここでは no-op branch だけを pure helper として固定する
+  - article share menu、settings credentials copy、toast copy 文言は同じバッチに混ぜない
+
+- [ ] platform store single-flight retry contract 候補を別バッチで追加する
+  - `src/stores/platform-store.ts` で concurrent `loadPlatformInfo()` が同じ in-flight promise を共有する契約を固定する
+  - 初回 failure 後に `loaded=true` / `loadError=true` となり、次回呼び出しで retry できることを store test に追加する
+  - platform capability DTO parity、Tauri capability JSON、packaged app 実機確認は別スコープにする
+
+- [ ] UI store toast timer replacement contract 候補を別バッチで追加する
+  - `src/stores/ui-store.ts` で二つ目の non-persistent toast 表示時に前 toast timer を clear し、latest toast だけが auto dismiss される契約を固定する
+  - persistent toast は dismiss timer を予約しないことを fake timer で確認する
+  - app-toast-view の表示、toast copy、sync progress update は同じバッチに混ぜない
+
+- [ ] UI store close browser focus fallback contract 候補を別バッチで追加する
+  - `src/stores/ui-store.ts` の `closeBrowser()` が selected article ありなら reader/content、なしなら empty/list に `contentMode` と `focusedPane` を戻す契約を固定する
+  - navigation state と browser close in-flight flag が close 後に reset されることを store test で確認する
+  - DOM focus return、browser overlay close hook、native WebView cleanup は別バッチにする
+
+- [ ] window wrapper non-Error rejection normalization contract 候補を別バッチで追加する
+  - `src/lib/window/windows.ts` で dynamic import や Tauri API が non-Error を reject した時も `Error` として Result failure に正規化される契約を固定する
+  - always-on-top hook や fullscreen menu action からではなく、window wrapper helper の小さい unit test に限定する
+  - runtime permission、capability JSON、native window behavior の変更は混ぜない
+
+- [ ] form action buttons loading label contract 候補を別バッチで追加する
+  - `src/components/shared/form-action-buttons.tsx` で `loading=true` かつ `submittingLabel` ありの時だけ submit label が切り替わる契約を固定する
+  - submit/cancel button の default type が `button` で、明示 `submitType` / `cancelType` が尊重されることを component test に含める
+  - dialog 固有の submit state、DB save behavior、visual variant 調整は同じバッチに混ぜない
+
+- [ ] NavRowButton trailing motion number contract 候補を別バッチで追加する
+  - `src/components/shared/nav-row-button.tsx` で string / number trailing は `MotionNumber` 経由、ReactNode trailing はそのまま描画される契約を固定する
+  - default button type が `button` であることも shared nav row の regression test に含める
+  - sidebar row density、motion constants、feed unread count semantics は別バッチにする
+
+- [ ] Tauri listener group dispose idempotency contract 候補を別バッチで追加する
+  - `src/lib/runtime/tauri-event-listeners.ts` で `dispose()` を複数回呼んでも cleanup が一度だけ実行される契約を固定する
+  - 成功 subscription と失敗 subscription が混在しても `ready` が resolve することを unit test で確認する
+  - event payload の型整理、browser/webview event hook 側の購読整理は同じバッチに混ぜない
+
+- [ ] preferences store system theme listener cleanup contract 候補を別バッチで追加する
+  - `src/stores/preferences-store.ts` で theme を `system` から `light` / `dark` に切り替えた時に前の `matchMedia("change")` listener が remove される契約を固定する
+  - listener cleanup 後の system change で theme が再適用されないことを store test で確認する
+  - view transition の見た目、theme copy、localStorage bootstrap 方針は別バッチにする
+
+- [ ] ui-store confirm dialog stale callback cleanup contract 候補を別バッチで追加する
+  - `src/stores/ui-store.ts` で `showConfirm` の再表示時に message / actionLabel / variant / icon / onConfirm が置き換わる契約を固定する
+  - `closeConfirm` 後に `onConfirm` と icon が null に戻ることを store test で確認する
+  - dialog UI class、確認文言、destructive dialog component 側の pending 挙動は同じバッチに混ぜない
+
+- [ ] dev runtime option env parsing contract 候補を別バッチで追加する
+  - `src-tauri/src/commands/platform_commands.rs` で `VITE_DEV_INTENT` が空白なら alias へ fallback する契約を固定する
+  - width / height は trim 後の正整数だけ採用し、`0` / negative / non-numeric は `None` にする unit test を追加する
+  - dev scenario runtime、window geometry UI、dev mock data の分割は別バッチにする
+
+- [ ] Reading List URL scheme case-insensitive contract 候補を別バッチで追加する
+  - `src-tauri/src/commands/share_commands.rs` で `HTTP://` / `HTTPS://` のような uppercase scheme を Reading List URL として扱うか明示する
+  - 許可する場合は `is_reading_list_url` と `reading_list_script` の unit test で固定する
+  - Safari 実行確認、Reading List UI、共有アクション設定、AppleScript 実行エラー文言は同じバッチに混ぜない
+
 - [ ] bulk article mutation feed count dedupe contract 候補を別バッチで追加する
   - `src-tauri/src/commands/article_commands.rs` の bulk mark operations 後に、affected feed の unread count recalculation が重複しない契約を固定する
   - pending mutation queue、UI cache invalidation、provider sync は同じ変更に混ぜない
