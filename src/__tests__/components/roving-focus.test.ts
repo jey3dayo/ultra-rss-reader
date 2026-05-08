@@ -21,6 +21,29 @@ describe("roving-focus", () => {
     expect(focusSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves focus unchanged when normalized target is missing", () => {
+    const buttons = [document.createElement("button")];
+    const focusSpy = vi.spyOn(buttons[0], "focus");
+    const itemRefs = createRef<Array<HTMLButtonElement | null>>();
+    itemRefs.current = [buttons[0], null];
+
+    focusRovingButton(itemRefs, 2, 1);
+
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it("leaves focus unchanged without refs or items", () => {
+    const buttons = [document.createElement("button")];
+    const focusSpy = vi.spyOn(buttons[0], "focus");
+    const itemRefs = createRef<Array<HTMLButtonElement | null>>();
+
+    focusRovingButton(itemRefs, buttons.length, 0);
+    itemRefs.current = buttons;
+    focusRovingButton(itemRefs, 0, 0);
+
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
   it("resolves the active button index from roving refs", () => {
     const buttons = [document.createElement("button"), document.createElement("button")];
     const itemRefs = createRef<Array<HTMLButtonElement | null>>();

@@ -289,11 +289,6 @@
   - drag overlay motion や visual token は motion/browser 実機検証に残し、ここでは valid/invalid drop target と folder assignment result を固定する
   - touch/mobile drag は desktop pointer drag と前提が違うため、mobile recovery layout とは別の manual verification にする
 
-- [ ] roving focus / mouse navigation contract 候補を別バッチで追加する
-  - `roving-focus.ts`、`use-mouse-navigation.ts`、feed/account/tag row focus の keyboard/mouse ownership を、pane ごとに小さい test へ分ける
-  - focus ring visual や hover class は UI token batch に残し、ここでは active descendant / tab stop / selected row の契約に限定する
-  - browser overlay focus return と article list focus return は既存候補に残し、sidebar/feed tree 内の navigation を先に扱う
-
 - [ ] provider normalizer / account DTO contract 候補を別バッチで検証する
   - `src-tauri/src/infra/provider/normalizer.rs`、provider traits、account DTO schema の display name / icon URL / capability flags を対応表で確認する
   - FreshRSS / GReader / local provider は認証・検索対応・delta sync の前提が違うため、provider ごとに fixture を分ける

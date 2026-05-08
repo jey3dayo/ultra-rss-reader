@@ -74,4 +74,29 @@ describe("useMouseNavigation", () => {
 
     expect(executeActionMock).not.toHaveBeenCalled();
   });
+
+  it("ignores primary mouse buttons and already handled side buttons", () => {
+    render(<MouseNavigationHarness />);
+
+    fireEvent.mouseDown(window, { button: 0 });
+    fireEvent.mouseUp(window, { button: 0 });
+
+    const handledEvent = new MouseEvent("mouseup", { button: 3, bubbles: true, cancelable: true });
+    handledEvent.preventDefault();
+    window.dispatchEvent(handledEvent);
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
+  });
+
+  it("removes global mouse navigation listeners on unmount", () => {
+    const { unmount } = render(<MouseNavigationHarness />);
+    unmount();
+
+    fireEvent.mouseDown(window, { button: 3 });
+    fireEvent.mouseUp(window, { button: 3 });
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
+  });
 });
