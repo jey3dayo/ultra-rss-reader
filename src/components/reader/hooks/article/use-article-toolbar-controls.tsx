@@ -1,14 +1,22 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import type { ArticleActionKeyboardShortcuts } from "../../article-actions.types";
 import { ArticleShareMenu } from "../../article-share-menu";
-import type { UseArticleToolbarControlsParams } from "../../article-toolbar.types";
 import type { ArticleToolbarActionStripProps } from "../../article-toolbar-view";
+
+type UseArticleToolbarControlsParams = {
+  article: ArticleDto | null;
+  isBrowserOpen: boolean;
+  onToggleBrowserOverlay: () => void;
+  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
+};
 
 export function useArticleToolbarControls({
   article,

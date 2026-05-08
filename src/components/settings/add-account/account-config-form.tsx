@@ -22,7 +22,20 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { upsertCachedAccount } from "../account-detail/query-cache";
 import { findServiceDefinition } from "./services";
-import type { AccountConfigFormProps } from "./services.types";
+
+export type AccountConfigFormProps = {
+  kind: AddAccountProviderKind;
+  onBack: () => void;
+  debugState?: {
+    name?: string;
+    serverUrl?: string;
+    username?: string;
+    password?: string;
+    submitting?: boolean;
+    errorMessage?: string | null;
+    submitMessage?: string | null;
+  };
+};
 
 type AccountConfigUiState = {
   submitting: boolean;

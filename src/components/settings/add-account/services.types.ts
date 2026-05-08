@@ -38,21 +38,3 @@ export type ServiceCategory = {
   labelKey: ServiceCategoryLabelKey;
   services: ServiceDefinition[];
 };
-
-export type ServicePickerProps = {
-  onSelect: (kind: AddAccountProviderKind) => void;
-};
-
-export type AccountConfigFormProps = {
-  kind: AddAccountProviderKind;
-  onBack: () => void;
-  debugState?: {
-    name?: string;
-    serverUrl?: string;
-    username?: string;
-    password?: string;
-    submitting?: boolean;
-    errorMessage?: string | null;
-    submitMessage?: string | null;
-  };
-};

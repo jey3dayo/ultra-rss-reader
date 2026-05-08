@@ -2,9 +2,13 @@ import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
+import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./services";
-import type { ServicePickerProps } from "./services.types";
+
+type ServicePickerProps = {
+  onSelect: (kind: AddAccountProviderKind) => void;
+};
 
 export function ServicePicker({ onSelect }: ServicePickerProps) {
   const { t } = useTranslation("settings");
