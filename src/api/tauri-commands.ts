@@ -125,18 +125,23 @@ export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
 // --- safeInvoke infrastructure ---
 
+type InvokeArgsSchema = z.ZodType<Record<string, unknown>>;
+
 type InvokeSchemas<R extends z.ZodType = z.ZodType> = {
   response: R;
-  args?: z.ZodType;
+  args?: InvokeArgsSchema;
 };
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function hasParseMethod(v: unknown): v is Pick<z.ZodType, "parse"> {
+  return isRecord(v) && typeof v.parse === "function";
+}
+
 function isSchemas(v: unknown): v is InvokeSchemas {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    "response" in v &&
-    typeof ((v as Record<string, unknown>).response as Record<string, unknown>)?.parse === "function"
-  );
+  return isRecord(v) && hasParseMethod(v.response);
 }
 
 function toAppError(cmd: string, error: unknown): AppError {
@@ -172,7 +177,7 @@ function safeInvoke(
 
   return Result.try({
     try: async () => {
-      const validatedArgs = schemas?.args && args ? (schemas.args.parse(args) as Record<string, unknown>) : args;
+      const validatedArgs = schemas?.args && args ? schemas.args.parse(args) : args;
       const raw = await invoke(cmd, validatedArgs);
       return schemas?.response ? schemas.response.parse(raw) : raw;
     },
