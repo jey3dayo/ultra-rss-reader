@@ -27,6 +27,9 @@ describe("command-palette-history", () => {
   it("returns null for unsupported values", () => {
     expect(parseCommandPaletteHistoryEntry("unknown:value")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("action")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("feed:")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("tag:")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("article:")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("action:removed-action")).toBeNull();
   });
 

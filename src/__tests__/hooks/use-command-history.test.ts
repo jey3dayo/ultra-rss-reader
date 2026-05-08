@@ -27,6 +27,15 @@ describe("use-command-history", () => {
     expect(getHistory()).toEqual([]);
   });
 
+  it("discards non-string entries from stored history", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify(["feed:feed-1", null, { kind: "feed", id: "feed-2" }, 1, "action:open-settings"]),
+    );
+
+    expect(getHistory()).toEqual(["feed:feed-1", "action:open-settings"]);
+  });
+
   it("adds items to the front of history", () => {
     addToHistory("feed-1");
     addToHistory("feed-2");

@@ -34,6 +34,10 @@ export function parseCommandPaletteHistoryEntry(value: string): CommandPaletteHi
     }
 
     const id = value.slice(prefix.length);
+    if (id.length === 0) {
+      return null;
+    }
+
     if (kind === "action") {
       return isAppAction(id) ? { kind, id } : null;
     }

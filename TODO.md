@@ -199,11 +199,6 @@
   - `.env` や実 credential 値は扱わず、存在確認・失敗種別・fallback 表示の contract test と packaged manual verification に分ける
   - FreshRSS connection verification と keyring 保存はユーザー影響が違うため、provider login flow の refactor とは混ぜない
 
-- [ ] command palette search / history contract 候補を別バッチで追加する
-  - `use-command-search.ts`、`use-command-history.ts`、`command-palette-history.ts` の prefix parsing / recent action storage / invalid entry discard を pure test で固定する
-  - article search、tag search、dev scenario search は data source が違うため、同じ UI rendering test に詰め込まない
-  - recent history に dev scenario を保存しない挙動は既存 UI test と重なるため、history helper 側の契約を先に補強する
-
 - [ ] browser webview history / shortcut contract 候補を別バッチで見直す
   - `src/lib/browser/webview-history.ts` と `src-tauri/src/browser_webview.rs` の back/forward/reload/open external availability を、frontend helper と native webview state で分けて棚卸しする
   - browser overlay shortcut は article shortcut と衝突しやすいため、`use-browser-overlay-shortcuts.ts` の event ownership を別に確認する
