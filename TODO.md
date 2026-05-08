@@ -262,3 +262,33 @@
   - `src/schemas/preferences.ts`、`preferences-store.ts`、preferences migrations の default value と stored value migration を対応表で確認する
   - reader preview defaults、startup sync、shortcut prefs、icon/badge prefs は利用面が違うため、preference key group ごとに worker scope を分ける
   - UI 設定画面の copy や control layout 変更は含めず、schema parse と persisted value compatibility の test に限定する
+
+- [ ] platform abstraction contract 整理候補を別バッチで見直す
+  - `src-tauri/src/platform/mod.rs`、`src/stores/platform-store.ts`、`src/constants/platform.ts` の OS 判定と capability 表現を、native と frontend で分けて棚卸しする
+  - macOS / Windows / Linux の表示差は UI copy や shortcut label に波及するため、platform kind の source of truth を先に固定する
+  - Tauri capability JSON や packaged app の permission 変更は runtime utility batch に残し、ここでは platform DTO と store contract に限定する
+
+- [ ] logging / debug trace contract 候補を別バッチで追加する
+  - `src-tauri/src/commands/log_commands.rs`、`src/lib/debug-input-trace` 系、Debug HUD の trace 表示を、production log と dev-only trace で分ける
+  - key input trace / browser geometry diagnostics / sync error logs は用途が違うため、同じ debug UI に詰め込まず source ごとに contract を固定する
+  - file logging の保存先や rotation は packaged app 影響があるため、UI 表示整理とは別の manual verification にする
+
+- [ ] dialog / confirm flow contract 整理候補を別バッチで見直す
+  - `app-confirm-dialog.tsx`、`confirm-dialog-view.tsx`、destructive dialog、feed/tag delete dialogs の variant / copy / action result contract を棚卸しする
+  - shared dialog props と feature-specific submit state を混ぜず、confirm variant と destructive footer の contract test を先に補強する
+  - modal stacking や Debug HUD collision は overlay 実機検証に残し、ここでは close/cancel/confirm の state transition に限定する
+
+- [ ] screen snapshot / first-screen readiness 候補を別バッチで検証する
+  - `use-screen-snapshot.ts`、startup account/feed selection、SQLite first screen snapshot の復元条件を、startup read model と UI fallback で分けて確認する
+  - app launch 直後の loading skeleton、last selected account、recent article history は UX 影響が大きいため、fixture test と app smoke を分ける
+  - DB migration や sync-on-startup と同時に変えると原因が追いにくいため、first-screen readiness の契約だけを先に固定する
+
+- [ ] workspace pane / mobile recovery layout 候補を別バッチで見直す
+  - `workspace-pane-layout.ts`、`app-layout.tsx`、mobile pane recovery の pane sizing / focus target / back affordance を棚卸しする
+  - desktop 3-pane layout と mobile recovery は責務が違うため、responsive class 変更より先に layout state の contract test を追加する
+  - browser overlay geometry と Debug HUD overlay は別バッチに残し、ここでは reader pane と settings modal の shell boundary に限定する
+
+- [ ] schema parse / storage helper contract 候補を別バッチで追加する
+  - `src/schemas/parse.ts`、`src/schemas/storage.ts`、API schemas の parse failure handling を、typed result と fallback default の境界で整理する
+  - preferences schema、Tauri command schema、local storage schema は失敗時の recovery が違うため、schema group ごとに worker scope を分ける
+  - 表示 copy や toast 変更は含めず、parse error kind と caller fallback の契約 test に限定する
