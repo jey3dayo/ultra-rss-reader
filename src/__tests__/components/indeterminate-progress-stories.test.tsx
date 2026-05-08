@@ -2,11 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import settingsModalStories, { Loading } from "@/components/settings/settings-modal-view.stories";
-import { ToolbarPreview } from "@/components/shared/indeterminate-progress.stories";
+import indeterminateProgressStories, { ToolbarPreview } from "@/components/shared/indeterminate-progress.stories";
+import { renderStory } from "../../../tests/helpers/render-story";
 
 describe("IndeterminateProgress stories", () => {
   it("renders the toolbar preview story with the loading tone bar", () => {
-    render(ToolbarPreview.render?.({}, {} as never) ?? null);
+    renderStory(indeterminateProgressStories, ToolbarPreview);
 
     const loadingBar = document.querySelector(".bg-\\[var\\(--tone-loading\\)\\]");
     expect(loadingBar).not.toBeNull();

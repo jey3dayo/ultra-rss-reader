@@ -27,13 +27,14 @@ import workspaceHeaderMeta, {
   WindowsDesktop as WorkspaceHeaderWindowsDesktop,
 } from "@/components/shared/workspace-header.stories";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { renderStory as renderStoryHelper } from "../../../tests/helpers/render-story";
+import {
+  type StoryArgs,
+  type StoryLike,
+  type StoryMeta,
+  renderStory as renderStoryHelper,
+} from "../../../tests/helpers/render-story";
 
-function renderStory(
-  meta: Parameters<typeof renderStoryHelper>[0],
-  story: Parameters<typeof renderStoryHelper>[1],
-  useWrapper = false,
-) {
+function renderStory<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: StoryLike<TArgs>, useWrapper = false) {
   return renderStoryHelper(meta, story, useWrapper ? { wrapper: createWrapper() } : undefined);
 }
 
