@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction, BrowserViewScope } from "@/components/reader/browser-view.types";
@@ -657,11 +658,7 @@ describe("BrowserView", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 
     try {
-      Object.defineProperty(window, "__TAURI_INTERNALS__", {
-        configurable: true,
-        writable: true,
-        value: {},
-      });
+      setTauriRuntimePresent();
       mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
       usePlatformStore.setState({
         platform: {
@@ -916,11 +913,7 @@ describe("BrowserView", () => {
 
   it("shows a browser-mode fallback panel instead of a blank surface when no Tauri runtime is available", async () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
-    Object.defineProperty(window, "__TAURI_INTERNALS__", {
-      configurable: true,
-      writable: true,
-      value: undefined,
-    });
+    setTauriRuntimeMissing();
     window.__DEV_BROWSER_MOCKS__ = true;
 
     useUiStore.setState({

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
@@ -142,11 +143,7 @@ describe("AppShell", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 
     try {
-      Object.defineProperty(window, "__TAURI_INTERNALS__", {
-        configurable: true,
-        writable: true,
-        value: {},
-      });
+      setTauriRuntimePresent();
       usePlatformStore.setState({
         platform: {
           kind: "macos",
@@ -184,11 +181,7 @@ describe("AppShell", () => {
     const originalPlatform = window.navigator.platform;
 
     try {
-      Object.defineProperty(window, "__TAURI_INTERNALS__", {
-        configurable: true,
-        writable: true,
-        value: {},
-      });
+      setTauriRuntimePresent();
       Object.defineProperty(window.navigator, "platform", {
         configurable: true,
         value: "MacIntel",
