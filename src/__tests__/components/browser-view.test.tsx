@@ -82,17 +82,7 @@ function mockRootRect(nextRect: MockHostRect) {
 }
 
 function createDomRect(rect: MockHostRect): DOMRect {
-  return {
-    x: rect.left,
-    y: rect.top,
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
-    right: rect.left + rect.width,
-    bottom: rect.top + rect.height,
-    toJSON: () => rect,
-  } as DOMRect;
+  return new DOMRect(rect.left, rect.top, rect.width, rect.height);
 }
 
 function parsePixelValue(value: string | null | undefined): number | null {

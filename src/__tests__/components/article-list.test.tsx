@@ -32,6 +32,20 @@ const asHtmlDivElementOrNull = (element: Element | null, message: string): HTMLD
   return element;
 };
 
+function createDomRect({
+  left = 0,
+  top,
+  width = 0,
+  height,
+}: {
+  left?: number;
+  top: number;
+  width?: number;
+  height: number;
+}) {
+  return new DOMRect(left, top, width, height);
+}
+
 describe("ArticleList", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -1057,42 +1071,9 @@ describe("ArticleList", () => {
     Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 360 });
     Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: 1200 });
     viewport.scrollTop = 240;
-    viewport.getBoundingClientRect = () =>
-      ({
-        top: 100,
-        bottom: 460,
-        height: 360,
-        left: 0,
-        right: 0,
-        width: 0,
-        x: 0,
-        y: 100,
-        toJSON: () => ({}),
-      }) as DOMRect;
-    header.getBoundingClientRect = () =>
-      ({
-        top: 100,
-        bottom: 132,
-        height: 32,
-        left: 0,
-        right: 0,
-        width: 0,
-        x: 0,
-        y: 100,
-        toJSON: () => ({}),
-      }) as DOMRect;
-    firstArticle.getBoundingClientRect = () =>
-      ({
-        top: 220,
-        bottom: 292,
-        height: 72,
-        left: 0,
-        right: 0,
-        width: 0,
-        x: 0,
-        y: 220,
-        toJSON: () => ({}),
-      }) as DOMRect;
+    viewport.getBoundingClientRect = () => createDomRect({ top: 100, height: 360 });
+    header.getBoundingClientRect = () => createDomRect({ top: 100, height: 32 });
+    firstArticle.getBoundingClientRect = () => createDomRect({ top: 220, height: 72 });
 
     window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: -1 as const }));
 
