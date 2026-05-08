@@ -2,10 +2,11 @@ import { Toggle } from "@base-ui/react/toggle";
 import { List } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import type { ViewMode } from "@/lib/view-mode.types";
 import { StarIcon, UnreadIcon } from "./article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "./control-chip";
 
-export type ArticleFilterToggleMode = "all" | "unread" | "starred";
+export type ArticleFilterToggleMode = ViewMode;
 
 type ArticleFilterToggleButtonProps = Omit<ComponentProps<typeof Toggle>, "className"> & {
   className?: string;

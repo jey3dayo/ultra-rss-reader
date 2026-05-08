@@ -36,7 +36,10 @@ import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { ShortcutKeyButton } from "@/components/settings/shortcuts-settings-view";
 import { AppToastView } from "@/components/shared/app-toast-view";
-import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
+import {
+  ArticleFilterToggleButton,
+  type ArticleFilterToggleMode,
+} from "@/components/shared/article-filter-toggle-button";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
@@ -127,8 +130,6 @@ type FormRowsSpecimenProps = {
   livePreview: boolean;
   onLivePreviewChange: (next: boolean) => void;
 };
-
-type ReaderFilterMode = "unread" | "all" | "starred";
 
 const FILTER_ITEMS = [
   { value: "unread", label: "未読", icon: "unread" },
@@ -1381,7 +1382,7 @@ export function SemanticStateSurfaceSpecimen() {
 }
 
 export function ReaderFilterStripSpecimen() {
-  const [mode, setMode] = useState<ReaderFilterMode>("unread");
+  const [mode, setMode] = useState<ArticleFilterToggleMode>("unread");
 
   return (
     <SurfaceCard variant="section">
