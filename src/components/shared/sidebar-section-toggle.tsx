@@ -1,7 +1,16 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { SidebarSectionToggleProps } from "./sidebar-section.types";
+
+type SidebarSectionToggleProps = {
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  className?: string;
+  panelId?: string;
+  contextMenu?: ReactNode;
+};
 
 export function SidebarSectionToggle({
   label,
