@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
-
-type StoredSidebarExpandedFolders = Record<string, string[]>;
 
 function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
   try {
@@ -11,18 +10,12 @@ function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
       return {};
     }
 
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
+    const parsed = StoredSidebarExpandedFoldersSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
       return {};
     }
 
-    const entries = Object.entries(parsed).flatMap(
-      ([accountId, folderIds]): Array<[string, string[]]> =>
-        Array.isArray(folderIds) && folderIds.every((folderId) => typeof folderId === "string")
-          ? [[accountId, folderIds]]
-          : [],
-    );
-    return Object.fromEntries(entries);
+    return parsed.data;
   } catch {
     return {};
   }

@@ -1,4 +1,5 @@
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
+import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
 function readStorage(): Storage | null {
   if (typeof window === "undefined") {
@@ -20,12 +21,12 @@ export function getHistory(): string[] {
       return [];
     }
 
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
+    const parsed = CommandHistoryStorageSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
       return [];
     }
 
-    return parsed.filter((item): item is string => typeof item === "string");
+    return parsed.data;
   } catch {
     return [];
   }

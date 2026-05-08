@@ -1,37 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { type TauriConfig, TauriConfigSchema } from "@/schemas/app-config";
+import { parseJsonWithSchema } from "@/schemas/parse";
 
-function readConfig(path: string): {
-  productName?: string;
-  identifier?: string;
-  build?: {
-    beforeDevCommand?: string;
-    devUrl?: string;
-    beforeBuildCommand?: string;
-    frontendDist?: string;
-  };
-  app?: {
-    windows?: Array<{
-      title?: string;
-    }>;
-  };
-} {
-  return JSON.parse(readFileSync(resolve(process.cwd(), path), "utf8")) as {
-    productName?: string;
-    identifier?: string;
-    build?: {
-      beforeDevCommand?: string;
-      devUrl?: string;
-      beforeBuildCommand?: string;
-      frontendDist?: string;
-    };
-    app?: {
-      windows?: Array<{
-        title?: string;
-      }>;
-    };
-  };
+function readConfig(path: string): TauriConfig {
+  return parseJsonWithSchema(readFileSync(resolve(process.cwd(), path), "utf8"), TauriConfigSchema);
 }
 
 describe("Tauri bundle identifiers", () => {

@@ -1,18 +1,15 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
-
-const packageJsonSchema = z.object({
-  scripts: z.record(z.string(), z.string()).optional(),
-  devDependencies: z.record(z.string(), z.string()).optional(),
-});
-
-type PackageJson = z.infer<typeof packageJsonSchema>;
+import { type PackageJson, PackageJsonSchema } from "@/schemas/app-config";
+import { parseJsonWithSchema } from "@/schemas/parse";
 
 function parsePackageJson(value: string): PackageJson {
-  const parsed = packageJsonSchema.safeParse(JSON.parse(value));
-  return parsed.success ? parsed.data : {};
+  try {
+    return parseJsonWithSchema(value, PackageJsonSchema);
+  } catch {
+    return {};
+  }
 }
 
 function readPackageJson(): PackageJson {
