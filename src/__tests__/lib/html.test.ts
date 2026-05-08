@@ -49,6 +49,10 @@ describe("stripHtmlTags", () => {
   it("trims leading and trailing whitespace", () => {
     expect(stripHtmlTags("  <p> Hello </p>  ")).toBe("Hello");
   });
+
+  it("extracts text from malformed html without preserving script or style bodies", () => {
+    expect(stripHtmlTags("<p>Hello <strong>world</p><script>alert(1)</script><style>.x{}</style>")).toBe("Hello world");
+  });
 });
 
 describe("normalizeArticleBodyHtml", () => {
@@ -66,5 +70,10 @@ describe("normalizeArticleBodyHtml", () => {
 
   it("normalizes null body text to an empty string", () => {
     expect(normalizeArticleBodyHtml("<p> null </p>")).toBe("");
+  });
+
+  it("keeps empty and whitespace-only saved content renderable as an empty fallback", () => {
+    expect(normalizeArticleBodyHtml("   ")).toBe("   ");
+    expect(stripHtmlTags(normalizeArticleBodyHtml("   "))).toBe("");
   });
 });

@@ -12,6 +12,9 @@ type DataSettingsViewProps = {
   databaseSizeValue: string;
   databaseSizeLoadingLabel: string;
   databaseSizeErrorLabel: string;
+  safetyHeading: string;
+  safetyDescription: string;
+  safetyChecklist: readonly string[];
   optimizationHeading: string;
   vacuumDescription: string;
   vacuumLabel: string;
@@ -32,6 +35,9 @@ export function DataSettingsView({
   databaseSizeValue,
   databaseSizeLoadingLabel,
   databaseSizeErrorLabel,
+  safetyHeading,
+  safetyDescription,
+  safetyChecklist,
   optimizationHeading,
   vacuumDescription,
   vacuumLabel,
@@ -58,6 +64,14 @@ export function DataSettingsView({
             {databaseSizeDisplayValue}
           </span>
         </LabeledControlRow>
+      </SettingsSection>
+      <SettingsSection heading={safetyHeading} surface="flat" className="mb-6 sm:mb-7">
+        <p className="mb-3 font-serif text-sm text-foreground-soft">{safetyDescription}</p>
+        <ul className="list-disc space-y-1 pl-5 font-serif text-sm text-foreground-soft">
+          {safetyChecklist.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={vacuumLabel} description={vacuumDescription}>

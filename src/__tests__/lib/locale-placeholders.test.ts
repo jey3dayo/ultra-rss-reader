@@ -10,8 +10,12 @@ import jaSettings from "@/locales/ja/settings.json";
 import jaSidebar from "@/locales/ja/sidebar.json";
 import jaSubscriptions from "@/locales/ja/subscriptions.json";
 
-type LocaleValue = string | LocaleTree;
+type LocaleValue = string | readonly string[] | LocaleTree;
 type LocaleTree = { readonly [key: string]: LocaleValue };
+
+function isStringList(value: LocaleValue): value is readonly string[] {
+  return Array.isArray(value);
+}
 
 const namespaces: Record<string, { en: LocaleTree; ja: LocaleTree }> = {
   common: { en: enCommon, ja: jaCommon },
@@ -28,6 +32,10 @@ function flattenLocale(tree: LocaleTree, prefix = ""): Map<string, string> {
     const path = prefix ? `${prefix}.${key}` : key;
     if (typeof value === "string") {
       entries.set(path, value);
+    } else if (isStringList(value)) {
+      value.forEach((item, index) => {
+        entries.set(`${path}.${index}`, item);
+      });
     } else {
       for (const [childPath, childValue] of flattenLocale(value, path)) {
         entries.set(childPath, childValue);

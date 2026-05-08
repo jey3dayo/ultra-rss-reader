@@ -1,16 +1,25 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ArticleListLayoutMode } from "@/components/reader/article-list.types";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
-import { resolveArticleListHeaderControlAvailability } from "@/components/reader/hooks/article-list/use-article-list-header-controls";
+import {
+  resolveArticleListHeaderControlAvailability,
+  useArticleListHeaderControls,
+} from "@/components/reader/hooks/article-list/use-article-list-header-controls";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("ArticleListHeader", () => {
   beforeEach(() => {
     useUiStore.setState({ layoutMode: "wide" });
   });
+
+  type HeaderControlsHookProps = {
+    layoutMode: ArticleListLayoutMode;
+    sidebarOpen: boolean;
+  };
 
   it("resolves header control availability without binding it to mutations", () => {
     expect(
@@ -44,6 +53,110 @@ describe("ArticleListHeader", () => {
       showSearchToggle: true,
       showCloseSearch: false,
     });
+  });
+
+  it("keeps sidebar controls as toggle on wide and open-only on compact and mobile", () => {
+    const openSidebar = vi.fn();
+    const toggleSidebar = vi.fn();
+    const defaultParams = {
+      sidebarSubscriptionsLabel: "Subscriptions",
+      feedDisplayLabel: "Feed display",
+      showSidebarLabel: "Show sidebar",
+      hideSidebarLabel: "Hide sidebar",
+      resolvedFeedId: "feed-1",
+      selectedFeedDisplayPreset: "standard" as const,
+      displayPresetOptions: [{ value: "standard" as const, label: "Standard" }],
+      onSetDisplayMode: vi.fn(),
+      openSidebar,
+      toggleSidebar,
+    };
+    const initialProps: HeaderControlsHookProps = {
+      layoutMode: "wide",
+      sidebarOpen: true,
+    };
+
+    const { result, rerender } = renderHook(
+      ({ layoutMode, sidebarOpen }) =>
+        useArticleListHeaderControls({
+          ...defaultParams,
+          layoutMode,
+          sidebarOpen,
+        }),
+      {
+        initialProps,
+      },
+    );
+
+    expect(result.current.showSidebarButton).toBe(true);
+    expect(result.current.sidebarButtonLabel).toBe("Hide sidebar");
+    expect(result.current.sidebarButtonText).toBeUndefined();
+    expect(result.current.isSidebarVisible).toBe(true);
+
+    act(() => {
+      result.current.handleSidebarToggle();
+    });
+
+    expect(toggleSidebar).toHaveBeenCalledTimes(1);
+    expect(openSidebar).not.toHaveBeenCalled();
+
+    rerender({ layoutMode: "compact", sidebarOpen: false });
+
+    expect(result.current.showSidebarButton).toBe(true);
+    expect(result.current.sidebarButtonLabel).toBe("Show sidebar");
+    expect(result.current.sidebarButtonText).toBe("Subscriptions");
+    expect(result.current.isSidebarVisible).toBeUndefined();
+
+    act(() => {
+      result.current.handleSidebarToggle();
+    });
+
+    expect(toggleSidebar).toHaveBeenCalledTimes(1);
+    expect(openSidebar).toHaveBeenCalledTimes(1);
+
+    rerender({ layoutMode: "mobile", sidebarOpen: false });
+
+    expect(result.current.showSidebarButton).toBe(true);
+    expect(result.current.sidebarButtonLabel).toBe("Show sidebar");
+    expect(result.current.sidebarButtonText).toBeUndefined();
+    expect(result.current.isSidebarVisible).toBeUndefined();
+
+    act(() => {
+      result.current.handleSidebarToggle();
+    });
+
+    expect(toggleSidebar).toHaveBeenCalledTimes(1);
+    expect(openSidebar).toHaveBeenCalledTimes(2);
+  });
+
+  it("omits feed mode control when no concrete feed is selected", () => {
+    const { result, rerender } = renderHook(
+      ({ resolvedFeedId }) =>
+        useArticleListHeaderControls({
+          layoutMode: "wide",
+          sidebarOpen: true,
+          sidebarSubscriptionsLabel: "Subscriptions",
+          feedDisplayLabel: "Feed display",
+          showSidebarLabel: "Show sidebar",
+          hideSidebarLabel: "Hide sidebar",
+          resolvedFeedId,
+          selectedFeedDisplayPreset: "standard",
+          displayPresetOptions: [{ value: "standard", label: "Standard" }],
+          onSetDisplayMode: vi.fn(),
+          openSidebar: vi.fn(),
+          toggleSidebar: vi.fn(),
+        }),
+      {
+        initialProps: {
+          resolvedFeedId: null as string | null,
+        },
+      },
+    );
+
+    expect(result.current.feedModeControl).toBeNull();
+
+    rerender({ resolvedFeedId: "feed-1" });
+
+    expect(result.current.feedModeControl).not.toBeNull();
   });
 
   it("keeps the drag region separate from interactive controls", () => {

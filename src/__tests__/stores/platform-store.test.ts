@@ -90,7 +90,8 @@ describe("usePlatformStore", () => {
     const secondLoad = usePlatformStore.getState().loadPlatformInfo();
 
     expect(mockGetPlatformInfo).toHaveBeenCalledTimes(1);
-    expect(usePlatformStore.getState().inFlightLoad).not.toBeNull();
+    expect(firstLoad).toBe(secondLoad);
+    expect(usePlatformStore.getState().inFlightLoad).toBe(firstLoad);
 
     deferred.resolve(Result.succeed(windowsPlatformInfo));
     await Promise.all([firstLoad, secondLoad]);

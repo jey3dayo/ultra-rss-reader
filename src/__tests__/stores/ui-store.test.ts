@@ -1,9 +1,14 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
 import { useUiStore } from "../../stores/ui-store";
 
 describe("useUiStore", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("initial state defaults", () => {
@@ -196,6 +201,52 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
+  it("closeBrowser clears in-flight browser state and returns focus by article presence", () => {
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com",
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: "next-article",
+      focusedPane: "sidebar",
+    });
+
+    useUiStore.getState().closeBrowser();
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        contentMode: "reader",
+        browserUrl: null,
+        browserNavigationState: null,
+        browserCloseInFlight: false,
+        pendingBrowserCloseAction: null,
+        focusedPane: "content",
+      }),
+    );
+
+    useUiStore.setState({
+      selectedArticleId: null,
+      contentMode: "browser",
+      browserUrl: "https://example.com",
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: "next-article",
+      focusedPane: "content",
+    });
+
+    useUiStore.getState().closeBrowser();
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        contentMode: "empty",
+        browserUrl: null,
+        browserNavigationState: null,
+        browserCloseInFlight: false,
+        pendingBrowserCloseAction: null,
+        focusedPane: "list",
+      }),
+    );
+  });
+
   it("toggleFolder adds and removes", () => {
     useUiStore.getState().toggleFolder("f1");
     expect(useUiStore.getState().expandedFolderIds.has("f1")).toBe(true);
@@ -348,5 +399,35 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().settingsAccountId).toBeNull();
     expect(useUiStore.getState().settingsAddAccount).toBe(false);
     expect(useUiStore.getState().settingsAddAccountInitialKind).toBeNull();
+  });
+
+  it("replaces the previous toast dismiss timer when showing another transient toast", () => {
+    vi.useFakeTimers();
+
+    useUiStore.getState().showToast("First");
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS - 1);
+
+    useUiStore.getState().showToast("Second");
+    vi.advanceTimersByTime(1);
+
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Second" });
+
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS - 2);
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Second" });
+
+    vi.advanceTimersByTime(1);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("does not schedule dismiss timers for persistent toasts", () => {
+    vi.useFakeTimers();
+
+    useUiStore.getState().showToast({ message: "Downloading", persistent: true });
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS * 2);
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Downloading",
+      persistent: true,
+    });
   });
 });

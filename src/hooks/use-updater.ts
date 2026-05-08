@@ -9,6 +9,7 @@ type UpdateInfo = { version: string; body: string | null };
 
 /** Share a single in-flight update check across startup and manual triggers. */
 let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
+let downloadInFlight = false;
 
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
@@ -58,6 +59,11 @@ function showUpdateFailureToast(message: string): void {
 }
 
 function startDownload(): void {
+  if (downloadInFlight) {
+    return;
+  }
+
+  downloadInFlight = true;
   const store = useUiStore.getState();
   store.showToast({
     message: "ダウンロード中… 0%",
@@ -71,6 +77,7 @@ function startDownload(): void {
       result,
       Result.inspectError((e) => {
         showUpdateFailureToast(e.message);
+        downloadInFlight = false;
       }),
     ),
   );
@@ -211,6 +218,7 @@ export function useUpdater(): void {
           });
         }),
         listen("update-ready", () => {
+          downloadInFlight = false;
           showRestartToast();
         }),
       ],

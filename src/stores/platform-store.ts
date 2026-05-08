@@ -34,13 +34,13 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
   loadError: false,
   inFlightLoad: null,
 
-  loadPlatformInfo: async () => {
+  loadPlatformInfo: () => {
     // UI structure must still gate on runtime presence first. Browser preview can
     // legitimately resolve to `unknown` here, and components should not treat that
     // as a desktop platform by itself.
     const state = getState();
     if (state.loaded && !state.loadError) {
-      return;
+      return Promise.resolve();
     }
     if (state.inFlightLoad) {
       return state.inFlightLoad;

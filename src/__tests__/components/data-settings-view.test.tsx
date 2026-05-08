@@ -25,6 +25,9 @@ describe("DataSettingsView", () => {
         databaseSizeValue="1.50 MB"
         databaseSizeLoadingLabel="Loading..."
         databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -40,6 +43,8 @@ describe("DataSettingsView", () => {
 
     expect(screen.getByRole("heading", { name: "Data" })).toBeInTheDocument();
     expect(screen.getByText("1.50 MB")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("heading", { name: "Backup and Restore" })).toBeInTheDocument();
+    expect(screen.getByText("Use OPML export.")).toBeInTheDocument();
     expect(screen.getByText("Optimize the database.")).toHaveClass("font-serif", "text-foreground-soft");
     expect(screen.getByText("Open the log directory.")).toHaveClass("font-serif", "text-foreground-soft");
 
@@ -70,6 +75,9 @@ describe("DataSettingsView", () => {
         databaseSizeValue="..."
         databaseSizeLoadingLabel="Loading..."
         databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimizing..."
@@ -105,6 +113,9 @@ describe("DataSettingsView", () => {
         databaseSizeValue="1.50 MB"
         databaseSizeLoadingLabel="Loading..."
         databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -141,6 +152,9 @@ describe("DataSettingsView", () => {
       databaseSizeValue: "1.50 MB",
       databaseSizeLoadingLabel: "Loading database size",
       databaseSizeErrorLabel: "Database size unavailable",
+      safetyHeading: "Backup and Restore",
+      safetyDescription: "Confirm rollback before changing user data.",
+      safetyChecklist: ["Use OPML export.", "Quit before restoring backups."],
       optimizationHeading: "Optimization",
       vacuumDescription: "Optimize the database.",
       vacuumLabel: "Optimize now",

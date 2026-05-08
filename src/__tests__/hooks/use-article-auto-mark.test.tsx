@@ -162,6 +162,32 @@ describe("useArticleAutoMark", () => {
     expect(secondSetRead.mutate).not.toHaveBeenCalled();
   });
 
+  it("immediately marks unread articles and records success only after mutation success", () => {
+    const addRecentlyRead = vi.fn();
+    const mutate: AutoMarkMutate = (variables, options) => {
+      options?.onSuccess?.(undefined, variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          afterReading: "immediately",
+          setRead,
+          addRecentlyRead,
+        }),
+      );
+    });
+
+    expect(setRead.mutate).toHaveBeenCalledWith(
+      { id: "art-1", read: true },
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+    expect(addRecentlyRead).toHaveBeenCalledWith("art-1");
+  });
+
   it("allows the same article to retry after auto mark mutation fails", () => {
     const showToast = vi.fn();
     const mutate: AutoMarkMutate = (variables, options) => {

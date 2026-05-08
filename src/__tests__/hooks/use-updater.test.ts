@@ -158,6 +158,25 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
   });
 
+  it("ignores duplicate download clicks while one update download is pending", async () => {
+    const deferred = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    mockDownloadAndInstallUpdate.mockReturnValue(deferred.promise);
+
+    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    const startAction = useUiStore.getState().toastMessage?.actions?.find((action) => action.label === "今すぐ更新");
+
+    startAction?.onClick();
+    startAction?.onClick();
+
+    expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(1);
+
+    deferred.resolve(Result.succeed(null));
+  });
+
   it("keeps startup update check failures silent while manual failures show a toast", async () => {
     const error = { type: "UserVisible", message: "network down" };
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});

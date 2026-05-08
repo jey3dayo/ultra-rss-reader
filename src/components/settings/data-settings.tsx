@@ -22,6 +22,9 @@ export function DataSettings() {
       databaseSizeValue={controller.databaseSizeValue}
       databaseSizeLoadingLabel={t("data.database_size_loading")}
       databaseSizeErrorLabel={t("data.database_size_error")}
+      safetyHeading={t("data.safety")}
+      safetyDescription={t("data.safety_description")}
+      safetyChecklist={t("data.safety_checklist", { returnObjects: true })}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
       vacuumLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}

@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 
 describe("FeedFavicon", () => {
@@ -47,5 +48,37 @@ describe("FeedFavicon", () => {
     expect(screen.getByRole("button", { name: "Beta feed" })).toBeInTheDocument();
     expect(screen.getByText("A")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByRole("button", { name: "Beta feed" }).querySelector("img")).toHaveAttribute("alt", "");
+  });
+
+  it("falls back to the feed initial after favicon image load failure", () => {
+    const { container } = render(
+      <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).not.toBeNull();
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+
+    fireEvent.error(image as HTMLImageElement);
+
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("applies grayscale only to resolved favicon images", () => {
+    const { container } = render(
+      <FeedFavicon title="Delta" url="https://example.com/feed.xml" siteUrl="https://example.com" grayscale />,
+    );
+
+    expect(container.querySelector("img")).toHaveClass("grayscale");
+  });
+
+  it("keeps provider brand icons decorative and color-inheriting", () => {
+    render(<FreshRssLogoIcon data-testid="provider-icon" className="text-primary" />);
+
+    const icon = screen.getByTestId("provider-icon");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).toHaveAttribute("fill", "none");
+    expect(icon).toHaveClass("text-primary");
+    expect(icon.querySelectorAll('[stroke="currentColor"]').length).toBeGreaterThan(0);
   });
 });

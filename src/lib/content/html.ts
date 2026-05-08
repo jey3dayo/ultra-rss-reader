@@ -9,6 +9,9 @@ export function stripHtmlTags(html: string): string {
 
   if (typeof DOMParser !== "undefined") {
     const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelectorAll("script, style").forEach((node) => {
+      node.remove();
+    });
     const text = doc.body.textContent ?? "";
     // Normalize non-breaking spaces and collapse whitespace
     return text
@@ -19,6 +22,7 @@ export function stripHtmlTags(html: string): string {
 
   // Fallback: regex-based stripping
   return html
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
     .replace(/<[^>]*>/g, "")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")

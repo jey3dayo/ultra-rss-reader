@@ -1,5 +1,5 @@
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 
 describe("window-chrome", () => {
@@ -31,5 +31,23 @@ describe("window-chrome", () => {
         hasTauriRuntime: hasTauriRuntime(),
       }),
     ).toBe(true);
+  });
+
+  it("uses the macOS user agent fallback only when runtime is present and platform info is unknown", () => {
+    setTauriRuntimePresent();
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: "unknown",
+        hasTauriRuntime: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: "unknown",
+        hasTauriRuntime: false,
+      }),
+    ).toBe(false);
   });
 });

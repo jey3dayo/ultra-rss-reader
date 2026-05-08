@@ -293,6 +293,13 @@
     "database_size": "Database size",
     "database_size_loading": "Loading…",
     "database_size_error": "Unavailable",
+    "safety": "Backup and Restore",
+    "safety_description": "Before operations that change user data, confirm where the data lives and how to roll it back.",
+    "safety_checklist": [
+      "Use OPML export when you need a portable subscription list.",
+      "Restore database backups only after quitting the app.",
+      "Do not use dev seed or verification operations on production data."
+    ],
     "optimization": "Optimization",
     "vacuum": "Optimize",
     "vacuum_description": "Reclaim unused space by optimizing the database.",

@@ -293,6 +293,13 @@
     "database_size": "データベースサイズ",
     "database_size_loading": "読み込み中…",
     "database_size_error": "取得できません",
+    "safety": "バックアップと復元",
+    "safety_description": "ユーザーデータを変更する操作は、保存場所と戻し方を確認してから実行してください。",
+    "safety_checklist": [
+      "購読リストの持ち出しは OPML エクスポートを使います。",
+      "データベース復元はアプリを終了してからバックアップファイルを戻します。",
+      "開発用の seed や検証操作は本番データには使いません。"
+    ],
     "optimization": "最適化",
     "vacuum": "最適化",
     "vacuum_description": "データベースを最適化して未使用領域を回収します。",

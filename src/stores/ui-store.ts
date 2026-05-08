@@ -447,6 +447,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       browserNavigationState: null,
       focusedPane: s.selectedArticleId ? "content" : "list",
       browserCloseInFlight: false,
+      pendingBrowserCloseAction: null,
     })),
   setBrowserNavigationState: (state) => set({ browserNavigationState: state }),
   setBrowserCloseInFlight: (inFlight) => set({ browserCloseInFlight: inFlight }),

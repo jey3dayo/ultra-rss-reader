@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
+import { hasTauriRuntime } from "@/lib/window/window-chrome";
 import { setWindowAlwaysOnTop } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -10,6 +11,10 @@ export function useWindowAlwaysOnTop() {
   );
 
   useEffect(() => {
+    if (!hasTauriRuntime()) {
+      return;
+    }
+
     setWindowAlwaysOnTop(enabled).then((result) =>
       Result.pipe(
         result,

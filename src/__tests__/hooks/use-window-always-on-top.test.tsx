@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowAlwaysOnTop } from "@/hooks/use-window-always-on-top";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -20,6 +21,8 @@ function HookHarness() {
 
 describe("useWindowAlwaysOnTop", () => {
   beforeEach(() => {
+    resetTauriRuntimeFlags();
+    setTauriRuntimePresent();
     setAlwaysOnTopMock.mockReset();
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -40,6 +43,17 @@ describe("useWindowAlwaysOnTop", () => {
 
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+    });
+  });
+
+  it("does not call the native window command when the Tauri runtime is unavailable", async () => {
+    resetTauriRuntimeFlags();
+    usePreferencesStore.setState({ prefs: { window_always_on_top: "true" }, loaded: true });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).not.toHaveBeenCalled();
     });
   });
 });
