@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { sampleAccounts } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSwitcherMenu } from "@/components/reader/account-switcher-menu";
-import { sampleAccounts } from "@tests/helpers/tauri-mocks";
 
 describe("AccountSwitcherMenu", () => {
   it("renders the selected account with the emphasized sidebar pattern and delegates clicks", async () => {

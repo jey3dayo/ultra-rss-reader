@@ -1,12 +1,12 @@
 import { render, screen } from "@testing-library/react";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
 import { ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const defaultCapabilities = {
   supports_reading_list: false,

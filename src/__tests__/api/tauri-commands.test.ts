@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
@@ -31,7 +32,6 @@ import {
   updateMuteKeyword,
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
-import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("tauri-commands with mockIPC", () => {
   const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };

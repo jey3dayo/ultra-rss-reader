@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
 
 describe("ArticleListHeader", () => {
   beforeEach(() => {

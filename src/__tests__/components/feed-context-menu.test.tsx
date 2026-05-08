@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { type MockTauriCommandCall, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedContextMenuContent } from "@/components/reader/feed-context-menu";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { type MockTauriCommandCall, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 vi.mock("@/components/reader/feed-context-menu-view", () => ({
   FeedContextMenuView: ({ openSiteLabel, onOpenSite }: { openSiteLabel: string; onOpenSite: () => void }) => (

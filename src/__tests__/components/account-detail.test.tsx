@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDetail } from "@/components/settings/account-detail";
 import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const accountDetailViewSpy = vi.fn();
 

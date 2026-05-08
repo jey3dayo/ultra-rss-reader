@@ -1,12 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugSettings } from "@/components/settings/debug-settings";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const { runRuntimeDevScenarioMock } = vi.hoisted(() => ({
   runRuntimeDevScenarioMock: vi.fn(),

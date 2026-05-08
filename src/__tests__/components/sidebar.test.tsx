@@ -1,5 +1,13 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import {
+  type MockTauriCommandCall,
+  sampleAccounts,
+  sampleFeeds,
+  sampleTags,
+  setupTauriMocks,
+} from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AccountPane } from "@/components/reader/account-pane";
@@ -11,14 +19,6 @@ import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import {
-  type MockTauriCommandCall,
-  sampleAccounts,
-  sampleFeeds,
-  sampleTags,
-  setupTauriMocks,
-} from "@tests/helpers/tauri-mocks";
 
 const { devIntentState } = vi.hoisted(() => ({
   devIntentState: {

@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
@@ -22,7 +23,6 @@ import {
   selectVisibleArticles,
 } from "@/lib/article-list";
 import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader-query";
-import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 
 function buildTestSourcePlan(params: {
   sourceFilter: ReaderFilter;

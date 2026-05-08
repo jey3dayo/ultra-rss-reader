@@ -1,3 +1,4 @@
+import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addArticleToReadingList,
@@ -6,7 +7,6 @@ import {
   openUrlInExternalBrowser,
 } from "@/components/reader/article-browser-actions";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("article-browser-actions", () => {
   const showToast = vi.fn();

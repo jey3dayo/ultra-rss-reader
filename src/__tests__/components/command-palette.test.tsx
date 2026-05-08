@@ -12,14 +12,14 @@ vi.mock("@/lib/dev-scenario-runtime", () => ({
   runRuntimeDevScenario: runCommandPaletteDevScenarioMock,
 }));
 
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { CommandPalette } from "@/components/reader/command-palette";
 import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const devScenarioFixtures = [
   {

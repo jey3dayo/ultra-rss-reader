@@ -3,13 +3,13 @@ import { join } from "node:path";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 const servicePickerSource = readFileSync(join(process.cwd(), "src/components/settings/service-picker.tsx"), "utf8");
 const accountConfigFormSource = readFileSync(

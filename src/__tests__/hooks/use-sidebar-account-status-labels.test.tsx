@@ -1,4 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildSidebarAccountStatusLabels,
@@ -6,8 +8,6 @@ import {
 } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import i18n from "@/lib/i18n";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 describe("useSidebarAccountStatusLabels", () => {
   beforeEach(() => {

@@ -1,5 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import {
+  type MockTauriCommandCall,
+  sampleAccounts,
+  sampleArticles,
+  sampleFeeds,
+  setupTauriMocks,
+} from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
@@ -12,14 +20,6 @@ import type { TriStateDisplayMode } from "@/lib/article-display";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import {
-  type MockTauriCommandCall,
-  sampleAccounts,
-  sampleArticles,
-  sampleFeeds,
-  setupTauriMocks,
-} from "@tests/helpers/tauri-mocks";
 
 const asHtmlDivElementOrNull = (element: Element | null, message: string): HTMLDivElement | null => {
   if (element === null) {

@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 
 vi.mock("@/components/reader/add-feed-dialog-view", () => ({
   AddFeedDialogView: (props: {

@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import type { FolderDto } from "@/api/tauri-commands";
 import {
@@ -11,7 +12,6 @@ import {
   resolveArticleSummaryWebsiteLabel,
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/article-view";
-import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 
 describe("article-view utils", () => {
   it("resolves the selected article from feed articles", () => {

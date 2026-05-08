@@ -1,9 +1,4 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AppShell } from "@/components/app-shell";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-import { usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import {
   type MockTauriCommandCall,
@@ -12,6 +7,11 @@ import {
   sampleFeeds,
   setupTauriMocks,
 } from "@tests/helpers/tauri-mocks";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppShell } from "@/components/app-shell";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 function renderAppShell(calls: MockTauriCommandCall[]) {
   setupTauriMocks((cmd, args) => {

@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleAccounts, type sampleTags, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
@@ -10,8 +12,6 @@ import { SettingsModal } from "@/components/settings/settings-modal";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleAccounts, type sampleTags, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({

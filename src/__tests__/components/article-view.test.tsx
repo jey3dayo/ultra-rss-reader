@@ -1,13 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
-import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
-import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-import { usePlatformStore } from "@/stores/platform-store";
-import { usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import {
   type MockTauriCommandCall,
@@ -17,6 +9,14 @@ import {
   sampleTags,
   setupTauriMocks,
 } from "@tests/helpers/tauri-mocks";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
+import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
+import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { usePlatformStore } from "@/stores/platform-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("@/hooks/use-resolved-dev-intent", () => ({
   useResolvedDevIntent: () => ({

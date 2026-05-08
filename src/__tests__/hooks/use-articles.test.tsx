@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
@@ -11,7 +12,6 @@ import {
   useSearchArticles,
   useToggleStar,
 } from "@/hooks/use-articles";
-import { sampleArticles, sampleFeeds } from "@tests/helpers/tauri-mocks";
 
 describe("useToggleStar", () => {
   let queryClient: QueryClient;
