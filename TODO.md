@@ -463,3 +463,53 @@
   - `docs/incident-runbook.md`、`log_commands.rs`、release manual verification の failure investigation path を、keyring / DB / sync / WebView ごとに分ける
   - log file path や secret masking の扱いを明示し、実ログ収集手順と app UI debug action を混ぜない
   - docs link audit とは別に、incident response で必要な diagnostic source と escalation criteria に限定する
+
+- [ ] article auto mark retry contract 候補を別バッチで追加する
+  - `use-article-auto-mark.ts` の delayed mark / immediate mark / retry after error の状態遷移を fake timer 付き hook test で固定する
+  - article selection、pending mutation queue、toast 表示とは混ぜず、自動既読 hook の scheduling と onError fallback だけを見る
+  - retention policy や unread count projection は別バッチに残し、mark-read command 呼び出し条件に限定する
+
+- [ ] Web Preview transient override 候補を別バッチで検証する
+  - `use-article-browser-overlay-display.ts` の keyboard navigation 時の preview override と通常記事遷移時の reset 条件を棚卸しする
+  - WebView geometry、history、browser overlay UI とは混ぜず、記事切替と preview open state の contract test に限定する
+  - feed display mode precedence は既存 scope に残し、temporary override の lifetime だけを固定する
+
+- [ ] release workflow permission / secret preflight 候補を別バッチで追加する
+  - `.github/workflows/release.yml` と release workflow rule の permissions、tag trigger、Tauri signing secret requiredness を棚卸しする
+  - draft release 作成前に fail-fast できる preflight を検討し、artifact naming や updater signing 方式変更とは混ぜない
+  - GitHub Actions の workflow contract と local release docs の対応だけを扱う
+
+- [ ] release version consistency dry-run 候補を別バッチで追加する
+  - `package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`、release command の version / tag / changelog insertion を対応表で固定する
+  - 実 tag 作成、GitHub Release 作成、release note 本文生成とは混ぜず、dry-run validation と failure message に限定する
+  - manual verification checklist とは別に、release 前の機械的 version consistency gate として扱う
+
+- [ ] dev scenario production bundle leak guard 候補を別バッチで追加する
+  - `src/dev/scenario-runtime.ts`、`src/dev/scenarios/registry.ts`、`vite.config.ts` を見て、production bundle に dev scenario title / mock data が混入しないことを固定する
+  - scenario 追加、command palette UI、dev intent 挙動変更とは混ぜず、build output または focused test の guard に限定する
+  - dev-only runtime unavailable fallback は維持し、production import boundary だけを扱う
+
+- [ ] duplicate local feed add ID reload 候補を別バッチで検証する
+  - `add_local_feed` と `sqlite_feed.rs` の duplicate URL save path で、DB 上の既存 feed id を返却 DTO と初回 sync に使えるか確認する
+  - add feed dialog UX、folder assignment、feed discovery URL normalization とは混ぜず、command / repository 境界の実体 ID contract に限定する
+  - duplicate insert が no-op / upsert / existing row reuse のどれかを test で明示する
+
+- [ ] account sync settings IPC validation 候補を別バッチで追加する
+  - `account_commands.rs` と `src/api/schemas/commands.ts` の `sync_interval_secs` / `keep_read_items_days` を正の整数と許容範囲で揃える
+  - sync scheduler backoff、startup sync、settings layout とは混ぜず、Rust command input と TypeScript schema の contract test に限定する
+  - invalid value の error category と caller fallback を先に固定し、UI copy は別バッチに残す
+
+- [ ] feed rename / folder create validation 候補を別バッチで追加する
+  - `feed_commands.rs` と `sqlite_folder.rs` の title / folder name trim、empty、length、同一 account 内重複を command 境界で固定する
+  - remote folder sync、drag/drop folder move、rename dialog visual/copy とは混ぜず、validation と repository error projection だけを見る
+  - 既存データ migration は触らず、新規 update/create input の contract に限定する
+
+- [ ] account / feed list stable sort 候補を別バッチで追加する
+  - `sqlite_account.rs` と `sqlite_feed.rs` の `find_all` / `find_by_account` の ORDER BY を定義し、repository test で順序を固定する
+  - sidebar section visibility、unread priority、folder expansion とは混ぜず、DB query の deterministic order だけを扱う
+  - UI 側 sort 変更は含めず、backend DTO list の安定性に限定する
+
+- [ ] FreshRSS remote subscription stale detection 候補を別バッチで検証する
+  - `sync_providers.rs`、`repository/feed.rs`、`sqlite_feed.rs` の remote subscription 差分検出を棚卸しし、消えた購読を stale diagnostic として扱えるか確認する
+  - pending mutation queue、手動 unsubscribe UX、article retention とは混ぜず、remote subscription presence の検出と記録だけを見る
+  - いきなり削除せず、diagnostic DTO / log / test fixture から始める
