@@ -359,11 +359,6 @@
   - rename / unsubscribe / folder move は確認導線と rollback 条件が違うため、dialog view props 整理とは分ける
   - repository update や sync provider 反映は別バッチに残し、frontend submit contract と query invalidation を先に固定する
 
-- [ ] UI language helper contract 候補を別バッチで追加する
-  - `src/lib/ui/ui-language.ts` と locale tests の language detection / fallback / display language を、browser language と app preference で分ける
-  - i18next namespace 整理とは別に、runtime language selection と locale file key presence の責務を分ける
-  - copy 文言や翻訳改善は含めず、language code normalization と fallback contract の pure test に限定する
-
 - [ ] shared button / control surface governance 候補を別バッチで見直す
   - `button.tsx`、`control-chip-button.tsx`、`icon-toolbar-control.tsx`、`reader-inline-action-button.tsx` の role / size / disabled / tooltip 前提を棚卸しする
   - visual token や hover class の全面変更は避け、公開 wrapper API と feature-local button の境界を先に整理する
