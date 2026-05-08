@@ -10,7 +10,7 @@ import {
   resolveFeedDisplayPreset,
 } from "@/lib/articles/article-display";
 import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/articles/article-list";
-import { countUnreadFeedsInFolder } from "@/lib/sidebar";
+import { countUnreadFeedsInFolder } from "@/lib/sidebar/sidebar";
 import type { UseArticleListHeaderActionsParams, UseArticleListHeaderActionsResult } from "../../article-list.types";
 
 export function useArticleListHeaderActions({

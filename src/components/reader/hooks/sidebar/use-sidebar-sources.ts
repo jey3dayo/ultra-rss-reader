@@ -6,7 +6,7 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
-import { buildStarredCountByFeedId, sumUnreadCounts } from "@/lib/sidebar";
+import { buildStarredCountByFeedId, sumUnreadCounts } from "@/lib/sidebar/sidebar";
 import type { SidebarSourcesParams, SidebarSourcesResult } from "../../sidebar-sources.types";
 
 export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): SidebarSourcesResult {

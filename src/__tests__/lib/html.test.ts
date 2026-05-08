@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeArticleBodyHtml, stripHtmlTags } from "@/lib/html";
+import { normalizeArticleBodyHtml, stripHtmlTags } from "@/lib/content/html";
 
 describe("stripHtmlTags", () => {
   it("returns empty string for empty input", () => {

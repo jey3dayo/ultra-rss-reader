@@ -1,4 +1,4 @@
-import type { SmartViewKind } from "@/lib/smart-view.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 
 export type SmartViewItemViewModel = {
   kind: SmartViewKind;

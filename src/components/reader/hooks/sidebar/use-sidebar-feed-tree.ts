@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
+import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "../../sidebar-feed-tree.types";
 import {

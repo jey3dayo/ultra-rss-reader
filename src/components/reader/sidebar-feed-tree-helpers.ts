@@ -1,5 +1,5 @@
 import type { FeedDto } from "@/api/tauri-commands";
-import { sumUnreadCounts } from "@/lib/sidebar";
+import { sumUnreadCounts } from "@/lib/sidebar/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type {
   SidebarFeedTreeFolderBuildParams,

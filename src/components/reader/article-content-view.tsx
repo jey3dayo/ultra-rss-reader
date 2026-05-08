@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { normalizeArticleBodyHtml } from "@/lib/html";
+import { normalizeArticleBodyHtml } from "@/lib/content/html";
 import type { ArticleContentViewProps } from "./article-view.types";
 
 export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: ArticleContentViewProps) {

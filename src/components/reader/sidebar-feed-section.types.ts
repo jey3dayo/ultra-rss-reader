@@ -1,5 +1,5 @@
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
-import type { SmartViewKind } from "@/lib/smart-view.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";

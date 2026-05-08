@@ -1,8 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
-import type { ConfirmDialogVariant } from "@/lib/confirm-dialog";
 
 export type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
-export type { ConfirmDialogVariant } from "@/lib/confirm-dialog";
+export type ConfirmDialogVariant = "default" | "warning" | "destructive";
 
 export type ConfirmDialogViewProps = {
   open: boolean;

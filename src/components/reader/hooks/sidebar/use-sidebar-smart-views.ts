@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { buildSidebarSmartViews } from "@/lib/sidebar-smart-views";
+import { buildSidebarSmartViews } from "@/lib/sidebar/sidebar-smart-views";
 import type { SidebarSmartViewsParams, SidebarSmartViewsResult } from "../../sidebar.types";
 
 export function useSidebarSmartViews({

@@ -6,8 +6,8 @@ import {
   groupFeedsByFolder,
   sortFeedsByPreference,
   sumUnreadCounts,
-} from "@/lib/sidebar";
-import { buildSidebarSmartViews } from "@/lib/sidebar-smart-views";
+} from "@/lib/sidebar/sidebar";
+import { buildSidebarSmartViews } from "@/lib/sidebar/sidebar-smart-views";
 
 const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   account_id: "acc-1",

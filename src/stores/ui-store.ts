@@ -1,9 +1,9 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
+import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
-import type { ConfirmDialogVariant } from "@/lib/confirm-dialog";
-import type { SmartViewKind } from "@/lib/smart-view.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type {
   AccountSetupSession,
   ArticleNavigationDirection,
