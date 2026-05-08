@@ -1,5 +1,15 @@
-import type { ArticleMetaViewProps } from "./article-view.types";
+import type { MouseEventHandler } from "react";
 import { ReaderInlineActionButton } from "./reader-inline-action-button";
+
+type ArticleMetaViewProps = {
+  title: string;
+  author?: string | null;
+  feedName?: string | null;
+  publishedLabel: string;
+  onTitleClick?: MouseEventHandler<HTMLButtonElement>;
+  onTitleAuxClick?: MouseEventHandler<HTMLButtonElement>;
+  onFeedClick?: () => void;
+};
 
 export function ArticleMetaView({
   title,

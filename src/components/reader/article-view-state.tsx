@@ -1,11 +1,27 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  ArticleEmptyStateShellProps,
-  ArticleNotFoundStateViewProps,
-  BrowserOnlyStateViewProps,
-  BrowserOverlaySurfaceProps,
-} from "./article-view.types";
 import { BrowserView } from "./browser-view";
+import type { BrowserOverlayToolbarAction } from "./browser-view.types";
+
+type BrowserOverlaySurfaceProps = {
+  children?: ReactNode;
+  onCloseOverlay: () => void;
+  showBrowserView?: boolean;
+  toolbarActions?: BrowserOverlayToolbarAction[];
+};
+
+type ArticleEmptyStateShellProps = {
+  toolbar: ReactNode;
+  body: ReactNode;
+};
+
+type BrowserOnlyStateViewProps = {
+  onCloseOverlay: () => void;
+};
+
+type ArticleNotFoundStateViewProps = {
+  message: string;
+};
 
 export function BrowserOverlaySurface({
   children,

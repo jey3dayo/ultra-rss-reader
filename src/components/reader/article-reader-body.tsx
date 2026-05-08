@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   formatArticleDate,
@@ -12,7 +13,12 @@ import { openArticleInExternalBrowser } from "./article-browser-actions";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { ArticleTagChips } from "./article-tag-chips";
-import type { ArticleReaderBodyProps } from "./article-view.types";
+
+type ArticleReaderBodyProps = {
+  article: ArticleDto;
+  feedName?: string;
+  onOpenArticleTitleInWebPreview?: () => void;
+};
 
 function getArticleContentAnchors(contentContainer: HTMLElement): HTMLAnchorElement[] {
   return Array.from(contentContainer.querySelectorAll<HTMLAnchorElement>("a[href]"));

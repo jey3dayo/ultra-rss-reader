@@ -1,6 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ArticleEmptyStateViewProps } from "./article-view.types";
+
+export type ArticleEmptyStateViewProps = {
+  eyebrow?: string;
+  message: string;
+  description?: string;
+  hints?: string[];
+  containerClassName?: string;
+  cardClassName?: string;
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "outline" | "link";
+  }>;
+};
 
 const EMPTY_HINTS: string[] = [];
 const EMPTY_ACTIONS: NonNullable<ArticleEmptyStateViewProps["actions"]> = [];
