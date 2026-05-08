@@ -1,9 +1,42 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderStory } from "@tests/helpers/render-story";
 import { describe, expect, it, vi } from "vitest";
 import { BrowserSurfaceStateCard } from "@/components/reader/browser-surface-state-card";
+import browserSurfaceStateCardMeta, {
+  RetryableIssue,
+  RuntimeUnavailableIssue,
+} from "@/components/reader/browser-surface-state-card.stories";
 
 describe("BrowserSurfaceStateCard", () => {
+  it("renders the retryable issue story", () => {
+    renderStory(browserSurfaceStateCardMeta, RetryableIssue);
+
+    expect(screen.getByText("Web Preview could not load.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Navigation timed out while creating the embedded browser surface.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Retry Web Preview" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the runtime unavailable issue story without retry", () => {
+    renderStory(browserSurfaceStateCardMeta, RuntimeUnavailableIssue);
+
+    expect(
+      screen.getByText("Embedded Web Preview is unavailable in this runtime."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Retry Web Preview" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open in External Browser" }),
+    ).toBeInTheDocument();
+  });
+
   it("keeps the info surface contract and local sizing", () => {
     render(
       <BrowserSurfaceStateCard

@@ -3,6 +3,7 @@ import { createRef } from "react";
 import { fn } from "storybook/test";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
+import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import type {
   BrowserOverlayChromeController,
   BrowserOverlayStageController,
@@ -69,7 +70,26 @@ function createPresentation(): BrowserViewSurfacePresentation {
   };
 }
 
-function createChromeController(overrides?: Partial<BrowserOverlayChromeController>): BrowserOverlayChromeController {
+const retryableSurfaceIssue: BrowserSurfaceIssue = {
+  kind: "failed",
+  title: "Web Preview could not load.",
+  description: "Try again or open this page externally.",
+  detail: "Navigation timed out while creating the embedded browser surface.",
+  canRetry: true,
+};
+
+const runtimeUnavailableSurfaceIssue: BrowserSurfaceIssue = {
+  kind: "unsupported",
+  title: "Embedded Web Preview is unavailable in this runtime.",
+  description:
+    "Use the desktop app to inspect the embedded preview, or open the page externally.",
+  detail: null,
+  canRetry: false,
+};
+
+function createChromeController(
+  overrides?: Partial<BrowserOverlayChromeController>,
+): BrowserOverlayChromeController {
   return {
     browserState: {
       url: "https://example.com/article",
@@ -87,7 +107,9 @@ function createChromeController(overrides?: Partial<BrowserOverlayChromeControll
   };
 }
 
-function createStageController(overrides?: Partial<BrowserOverlayStageController>): BrowserOverlayStageController {
+function createStageController(
+  overrides?: Partial<BrowserOverlayStageController>,
+): BrowserOverlayStageController {
   return {
     stageRef: createRef<HTMLDivElement>(),
     hostRef: createRef<HTMLDivElement>(),
@@ -190,6 +212,37 @@ export const Loaded: Story = {
     }),
     stageController: createStageController({
       isLoading: false,
+    }),
+  },
+};
+
+export const RetryableIssue: Story = {
+  args: {
+    chromeController: createChromeController({
+      browserState: {
+        url: "https://example.com/article",
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: false,
+      },
+    }),
+    stageController: createStageController({
+      isLoading: false,
+      activeSurfaceIssue: retryableSurfaceIssue,
+      showDiagnostics: true,
+    }),
+  },
+};
+
+export const RuntimeUnavailableIssue: Story = {
+  args: {
+    chromeController: createChromeController({
+      browserState: null,
+    }),
+    stageController: createStageController({
+      isLoading: false,
+      activeSurfaceIssue: runtimeUnavailableSurfaceIssue,
+      showDiagnostics: false,
     }),
   },
 };
