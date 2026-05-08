@@ -19,6 +19,31 @@ async function selectService(user: ReturnType<typeof userEvent.setup>, serviceNa
   await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
 }
 
+function setupPendingAddAccount(onArgs?: (args: Record<string, unknown>) => void) {
+  let resolveAddAccount: ((value: unknown) => void) | undefined;
+
+  setupTauriMocks((cmd, args) => {
+    if (cmd !== "add_account") {
+      return null;
+    }
+
+    onArgs?.(args);
+    return new Promise<unknown>((resolve) => {
+      resolveAddAccount = resolve;
+    });
+  });
+
+  return {
+    resolve(value: unknown) {
+      if (!resolveAddAccount) {
+        throw new Error("add_account did not start");
+      }
+
+      resolveAddAccount(value);
+    },
+  };
+}
+
 describe("AddAccountForm", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
@@ -254,16 +279,7 @@ describe("AddAccountForm", () => {
   });
 
   it("shows 'Testing connection…' button text while submitting FreshRSS account", async () => {
-    let resolveAddAccount: ((value: unknown) => void) | null = null;
-
-    setupTauriMocks((cmd) => {
-      if (cmd === "add_account") {
-        return new Promise<unknown>((resolve) => {
-          resolveAddAccount = resolve;
-        });
-      }
-      return null;
-    });
+    const addAccount = setupPendingAddAccount();
 
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
@@ -276,13 +292,7 @@ describe("AddAccountForm", () => {
 
     expect(screen.getByRole("button", { name: "Testing connection…" })).toBeDisabled();
 
-    // Clean up
-    const resolve = resolveAddAccount as ((value: unknown) => void) | null;
-    if (!resolve) {
-      throw new Error("add_account did not start");
-    }
-
-    resolve({
+    addAccount.resolve({
       id: "acc-new",
       kind: "FreshRss",
       name: "FreshRSS",
@@ -299,18 +309,8 @@ describe("AddAccountForm", () => {
   });
 
   it("submits Local account and disables controls while the request is pending", async () => {
-    let resolveAddAccount: ((value: unknown) => void) | null = null;
     const addAccountCalls = vi.fn();
-
-    setupTauriMocks((cmd, args) => {
-      if (cmd === "add_account") {
-        addAccountCalls(args);
-        return new Promise<unknown>((resolve) => {
-          resolveAddAccount = resolve;
-        });
-      }
-      return null;
-    });
+    const addAccount = setupPendingAddAccount(addAccountCalls);
 
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
@@ -325,12 +325,7 @@ describe("AddAccountForm", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByLabelText("Name")).toBeDisabled();
 
-    const resolve = resolveAddAccount as ((value: unknown) => void) | null;
-    if (!resolve) {
-      throw new Error("add_account did not start");
-    }
-
-    resolve({
+    addAccount.resolve({
       id: "acc-new",
       kind: "Local",
       name: "Work RSS",
