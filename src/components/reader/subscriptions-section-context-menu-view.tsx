@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
 
-export type SubscriptionsSectionContextMenuViewProps = {
+type SubscriptionsSectionContextMenuViewProps = {
   expandAllFoldersLabel: string;
   collapseAllFoldersLabel: string;
   onExpandAllFolders: () => void;

@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
 
-export type TagSectionContextMenuViewProps = {
+type TagSectionContextMenuViewProps = {
   addTagLabel: string;
   manageTagsLabel: string;
   onAddTag: () => void;

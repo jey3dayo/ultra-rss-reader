@@ -33,12 +33,12 @@ export type ShortcutsSettingsViewProps = {
   onResetAll: () => void;
 };
 
-export type ShortcutKeyBadgeProps = {
+type ShortcutKeyBadgeProps = {
   item: ShortcutsSettingsItem;
   pressAKeyLabel: string;
 };
 
-export type ShortcutKeyButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type ShortcutKeyButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
   conflict?: boolean;
   recording?: boolean;

@@ -2,7 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";
 
-export type FolderContextMenuViewProps = {
+type FolderContextMenuViewProps = {
   markAllReadLabel: string;
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;

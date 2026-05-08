@@ -2,7 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
 import { contextMenuStyles } from "./context-menu-styles";
 
-export type TagContextMenuViewProps = {
+type TagContextMenuViewProps = {
   onRename: () => void;
   onDelete: () => void;
 };
