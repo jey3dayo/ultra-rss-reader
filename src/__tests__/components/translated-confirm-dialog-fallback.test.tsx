@@ -51,9 +51,7 @@ describe("translated destructive confirmation fallbacks", () => {
 
   it("renders the unsubscribe fallback copy without crashing", () => {
     expect(() =>
-      render(
-        <UnsubscribeDialog feed={feed} open={true} onOpenChange={vi.fn()} onConfirm={vi.fn()} />,
-      ),
+      render(<UnsubscribeDialog feed={feed} open={true} onOpenChange={vi.fn()} onConfirm={vi.fn()} />),
     ).not.toThrow();
 
     expect(screen.getByRole("dialog")).toHaveTextContent("Are you sure you want to unsubscribe from Tech News?");
