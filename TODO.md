@@ -308,3 +308,33 @@
   - `src/lib/datetime.ts`、`src/lib/ui/options.ts`、account sync status formatting の locale-independent helper を境界値で固定する
   - relative time / date formatting は locale copy と混ざりやすいため、まずは ISO timestamp、local date、invalid value fallback の pure test に限定する
   - select option label の文言変更は settings/view copy batch に残し、option value と disabled state の契約だけを見る
+
+- [ ] provider normalizer / account DTO contract 候補を別バッチで検証する
+  - `src-tauri/src/infra/provider/normalizer.rs`、provider traits、account DTO schema の display name / icon URL / capability flags を対応表で確認する
+  - FreshRSS / GReader / local provider は認証・検索対応・delta sync の前提が違うため、provider ごとに fixture を分ける
+  - account settings UI の表示 copy 変更は含めず、provider response normalization と frontend schema compatibility に限定する
+
+- [ ] reader toolbar / inline action semantics 候補を別バッチで見直す
+  - `article-toolbar-view.tsx`、`reader-inline-action-button.tsx`、article share menu の action role / disabled / aria label を棚卸しする
+  - icon visual や toolbar density の変更は UI polish に残し、ここでは action availability と shortcut hint の contract を固定する
+  - browser action と article status action は hook 境界が違うため、同じ props local 化バッチに混ぜない
+
+- [ ] sidebar startup folder expansion 候補を別バッチで検証する
+  - `use-sidebar-startup-folder-expansion.ts`、last selected account/feed/folder、folder selection feed filter の初期展開条件を整理する
+  - startup sync や first-screen snapshot と同時に変えると原因が追いにくいため、sidebar tree state の pure/helper test を先に追加する
+  - user-triggered folder toggle と startup restore は UX 意味が違うため、state transition を分けて固定する
+
+- [ ] browser surface issue / recovery state 候補を別バッチで追加する
+  - `browser-surface-issue.ts`、surface state card、webview load timeout の loading/error/retry/open external 状態を contract test で固定する
+  - native WebView 実機エラーと frontend unavailable fallback は再現方法が違うため、unit fixture と manual verification を分ける
+  - browser geometry や motion は既存候補に残し、ここでは recovery action と user-visible state の対応だけを見る
+
+- [ ] account setup lock / session contract 候補を別バッチで見直す
+  - `account-setup-session.types.ts`、add account controller、accounts nav の setup session lock を、wizard flow と settings navigation で分けて棚卸しする
+  - duplicate submit / navigation away / failed credential verification はデータ破損につながるため、UI copy より先に state machine の境界を固定する
+  - service picker の visual や provider icon 変更は含めず、setup session ownership と cancel/retry contract に限定する
+
+- [ ] i18next namespace / locale key contract 候補を別バッチで追加する
+  - `src/types/i18next.d.ts`、`src/lib/i18n.ts`、reader/settings/sidebar/subscriptions locale files の namespace と key presence を棚卸しする
+  - copy 文面の改善ではなく、missing key、namespace drift、test fixture の型補完を検出する contract test に限定する
+  - platform-specific shortcut label や native menu label は既存の menu/copy 候補に残し、web UI locale key の整合だけを見る
