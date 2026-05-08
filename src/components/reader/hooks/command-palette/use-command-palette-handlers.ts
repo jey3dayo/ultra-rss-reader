@@ -66,7 +66,10 @@ export function useCommandPaletteHandlers({
     addToHistory(
       createCommandPaletteHistoryValue({ kind: "feed", id: feedId }),
     );
-    void openFeedLanding(feedId);
+    void openFeedLanding(feedId).catch((error) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      showToast(`Failed to open feed "${feedId}": ${message}`);
+    });
     closePalette();
   }
 
