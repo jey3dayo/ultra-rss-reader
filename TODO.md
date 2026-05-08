@@ -6,9 +6,8 @@
 
 - [ ] デバッグ画面から本番相当データを Dev 環境へ安全に同期する導線を検討する
   - 本番アプリでは表示せず、Dev 起動時だけ利用できるようにする
-  - SQLite 接続中の DB を直接置き換えないよう、Dev 側 DB のバックアップ、アプリ終了、コピー、再起動まで含めた安全なフローにする
-  - Windows と macOS の app data パス差、`ultra-rss-reader.db` / `-wal` / `-shm` の扱い、OS Keyring と Dev file credentials の差を考慮する
-  - まずは `mise run app:dev:seed-from-prod` のような手動コマンドで安全性を固めてから、デバッグ画面ボタンへ接続する
+  - 既存の `mise run app:dev:seed-from-prod` を前提に、デバッグ画面から誤操作なく呼べる UX と確認導線を設計する
+  - Dev 側 DB のバックアップ場所、アプリ再起動、credentials はコピーされないことを UI 上で明示する
 
 ## UI/UX 監査の残り
 
@@ -23,17 +22,6 @@
   - Feed tree drag overlay はドラッグ中の高頻度更新と重なるため、入口だけにするか、drag preview には適用しない方針も含めて実機確認する
   - `article-list-item` の row hover / selected transition は連続キー移動で毎フレーム効くため、`motion-static-hover-surface` への置換は計測後に行う
   - どちらも適用前後でキーボード操作、ドラッグ、連続記事移動時の jank を確認する
-
-- [x] Text / number swap の追加適用候補を実データ更新頻度で分ける
-  - 現状: 件数バッジなどの短い数値は `MotionNumber` に寄せ、`UI Reference/View Specimens Canvas` に基準面を置く。追加適用は同期カウント・検索結果数のような短い表示に限定する
-  - 記事本文、長いタイトル、フィード名には適用しない。読む対象そのものが動いて見えると視線移動が増える
-
-- [x] `Debug HUD` の collision handling を見直す
-  - dev アプリ実機で、HUD を表示したまま `設定` モーダルを開くと HUD がモーダル上に残り、内容を隠しうる
-  - 2026-04-28 の実機レビューで、設定モーダル右下の操作領域と HUD が重なり、閉じるボタン周辺の可読性と操作性を下げることを再確認
-  - 現状: HUD は `Move debug HUD` で 4 隅を巡回でき、閉じる操作は設定の `Debug HUD` と同じ preference を `false` にする
-  - 少なくとも modal / dialog / toast などの高優先 overlay と重なったときは、自動で退避・縮小・片側ドック・一時非表示のいずれかが必要
-  - 対象: `src/components/debug/focus-debug-hud-view.tsx`, `src/components/app-shell.tsx`
 
 - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
@@ -70,11 +58,6 @@
   - feed tree visibility は、入力セットが小さい pure helper から優先する
   - UI snapshot、hover class 全量、motion class の見た目固定は避け、失敗時に仕様差分が分かる assertion に限定する
 
-- [ ] motion / browser 実機検証候補を別バッチで整理する
-  - Browser overlay motion は WebView bounds 同期と重なるため、open / close / resize / diagnostics toggle の実機計測を先に行う
-  - Article transition は title / meta / tag area / body のどこへ適用するかを、連続記事移動と読書中の視線移動で確認する
-  - Feed tree drag overlay は pointer move 中の高頻度更新と重なるため、drag preview 自体へ motion を入れない選択肢も含めて検証する
-
 - [ ] reader article action hook contract 整理候補を別バッチで見直す
   - `article-actions.types.ts` の status actions / shortcut / auto-mark params/results を、各 hook の近くへ分けられるか確認する
   - toast action params は article action と browser action の境界にまたがるため、移動する場合は `article-browser-actions.ts` の責務も同じバッチで見る
@@ -99,11 +82,6 @@
   - global keyboard handling に reader pane 固有の分岐が増えていないか、pane helper へ戻せるものを棚卸しする
   - focus return / selected sidebar target / selected article row の復帰処理は、reader focus helper と hook の責務境界を先に整理する
   - shortcut の表示ラベル変更や i18n copy 変更は、挙動整理と同じバッチに混ぜない
-
-- [ ] dev data seed command 候補を別バッチで設計する
-  - まずは debug UI ではなく `mise run app:dev:seed-from-prod` 相当の手動コマンドとして、対象 DB / wal / shm / backup / app stop 手順を固定する
-  - macOS / Windows の app data path と credential 差を明示し、production DB を直接書き換えない安全確認を入れる
-  - UI ボタン化はコマンド手順が安全に固まってから別バッチで扱う
 
 - [ ] store slice boundary 整理候補を別バッチで見直す
   - `ui-store.ts` の reader selection / layout state / settings modal / toast / sync progress / account setup session を、参照範囲ごとに slice 化できるか確認する
@@ -194,3 +172,33 @@
   - `.github/workflows/*` と issue templates の label / release-readiness / manual-verification 表現を、運用ラベルの source of truth に揃える
   - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
   - release workflow の artifact matrix と updater signing は、docs 更新だけでなく実 release dry-run の観点を残す
+
+- [ ] reader context menu action 整理候補を別バッチで見直す
+  - article item / article list background / feed / folder / smart view / account の context menu action を、action id と呼び出し hook の対応表として棚卸しする
+  - mark all read / old unread read / open in browser / copy link は scope 判定が違うため、UI props 整理とは混ぜず action contract test を優先する
+  - Base UI context menu の className や visual token 変更は別バッチにし、まずは既存 menu item の enabled/disabled 条件を固定する
+
+- [ ] reader focus navigation contract test 候補を別バッチで追加する
+  - sidebar -> list -> article pane -> browser overlay の focus return を、keyboard event と selected target の契約として小さい test に分ける
+  - `reader-focus` helper、article list keydown handler、sidebar controller の責務を混ぜず、復帰先ごとに fixture を作る
+  - scroll / requestAnimationFrame / setTimeout の実装詳細は直接固定せず、最終的な active element と selected state を assertion にする
+
+- [ ] dev scenario runtime error surface 整理候補を別バッチで見直す
+  - `src/dev/intent.ts` / `src/dev/scenario-runtime.ts` / scenario runner の error union と fallback message を、dev build 専用 contract として棚卸しする
+  - command palette から scenario を実行する flow は UI toast と recent history に影響するため、runtime loader の型整理とは別 worker にする
+  - dynamic import path や `import.meta.env.DEV` の分岐は bundler 依存があるため、unit test と dev app smoke を分ける
+
+- [ ] native menu checked state 同期候補を別バッチで検証する
+  - `src-tauri/src/menu.rs` の check menu item toggle と frontend preference state が、view filter / sort unread / group by feed でズレないか確認する
+  - menu action emit の contract test と、実 native menu の checked 表示確認を分ける
+  - i18n label や shortcut 表示変更は locale/copy batch に残し、ここでは state sync と event ordering だけを見る
+
+- [ ] Rust domain error mapping test 候補を別バッチで追加する
+  - `src-tauri/src/domain/error.rs` の reqwest / sqlite / provider error mapping を、ユーザー向け actionable message と internal kind の境界で固定する
+  - DNS / timeout / auth / rate limit / malformed response を provider sync flow と混ぜず、domain error の pure test として追加する
+  - copy の文面変更は locale/copy 扱いにし、ここでは error category と recovery guidance の有無を確認する
+
+- [ ] DB migration recovery runbook 候補を別バッチで整理する
+  - Windows file lock、backup/restore failure、WAL/SHM 残存時の migration recovery path を、手順と検証観点に分けて TODO 化する
+  - repository test と実 app data recovery はリスクが違うため、fixture DB test と manual verification を別々に扱う
+  - ユーザーデータに触れるため、実装に入る前に backup location / rollback condition / log collection の checklist を固定する
