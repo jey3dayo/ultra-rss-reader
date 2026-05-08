@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
-import type { FeedTreeEmptyStateProps } from "./feed-tree.types";
+import type { FeedTreeEmptyState as FeedTreeEmptyStateModel } from "./feed-tree.types";
+
+type FeedTreeEmptyStateProps = FeedTreeEmptyStateModel;
 
 export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
   if (props.kind === "hidden") {

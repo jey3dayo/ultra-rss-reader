@@ -40,8 +40,6 @@ export type FeedTreeEmptyState =
   | { kind: "loading"; label: string; text?: never; message?: never }
   | { kind: "action"; label: string; onAction: () => void; text?: never; message?: never };
 
-export type FeedTreeEmptyStateProps = FeedTreeEmptyState;
-
 export type FeedTreeViewProps = {
   isOpen: boolean;
   sidebarDensity?: SidebarDensity;
@@ -68,26 +66,6 @@ export type FeedTreeViewProps = {
   onDragEnd?: () => void;
 };
 
-export type FeedTreeFolderSectionProps = {
-  sidebarDensity?: SidebarDensity;
-  folder: FeedTreeFolderViewModel;
-  activeDropTarget: ActiveDropTarget;
-  draggedFeedId?: string | null;
-  onToggleFolder: (folderId: string) => void;
-  onSelectFolder?: (folderId: string) => void;
-  onSelectFeed: (feedId: string) => void;
-  onMarkFeedRead?: FeedTreeViewProps["onMarkFeedRead"];
-  onMarkFolderRead?: FeedTreeViewProps["onMarkFolderRead"];
-  displayFavicons: boolean;
-  renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
-  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
-  canDragFeeds?: boolean;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDropToFolder?: (folderId: string) => void;
-  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedHandleClick?: () => boolean;
-};
-
 export type FeedTreeRowProps = {
   sidebarDensity?: SidebarDensity;
   feed: FeedTreeFeedViewModel;
@@ -100,37 +78,6 @@ export type FeedTreeRowProps = {
   onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
   onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
   consumeSuppressedHandleClick?: () => boolean;
-};
-
-export type FeedTreeDragHandleProps = {
-  feedTitle: string;
-  sidebarDensity?: SidebarDensity;
-  canDragFeeds?: FeedTreeRowProps["canDragFeeds"];
-  isArmed?: FeedTreeRowProps["isDragged"];
-  onArm?: () => void;
-  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedClick?: FeedTreeRowProps["consumeSuppressedHandleClick"];
-};
-
-export type FeedTreeUnfolderedSectionProps = {
-  sidebarDensity?: SidebarDensity;
-  unfolderedFeeds: FeedTreeFeedViewModel[];
-  unfolderedLabel?: string;
-  onSelectFeed: FeedTreeRowProps["onSelectFeed"];
-  onMarkFeedRead?: FeedTreeRowProps["onMarkFeedRead"];
-  displayFavicons: FeedTreeRowProps["displayFavicons"];
-  renderFeedContextMenu?: FeedTreeRowProps["renderFeedContextMenu"];
-  canDragFeeds: NonNullable<FeedTreeRowProps["canDragFeeds"]>;
-  normalizedDraggedFeedId: string | null;
-  onDragStartFeed?: FeedTreeRowProps["onDragStartFeed"];
-  onPointerDownFeed: NonNullable<FeedTreeRowProps["onPointerDownFeed"]>;
-  consumeSuppressedHandleClick: NonNullable<FeedTreeRowProps["consumeSuppressedHandleClick"]>;
-};
-
-export type FeedTreeUnfolderedDropZoneProps = {
-  enabled: boolean;
-  active: boolean;
-  onDropToUnfoldered?: () => void;
 };
 
 export type UseFeedTreeDragParams = {

@@ -1,15 +1,35 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import type { FeedTreeFolderSectionProps } from "./feed-tree.types";
+import type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FeedTreeRow } from "./feed-tree-row";
-import { getSidebarDensityTokens } from "./sidebar-density";
+import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
+
+type FeedTreeFolderSectionProps = {
+  sidebarDensity?: SidebarDensity;
+  folder: FeedTreeFolderViewModel;
+  activeDropTarget: ActiveDropTarget;
+  draggedFeedId?: string | null;
+  onToggleFolder: (folderId: string) => void;
+  onSelectFolder?: (folderId: string) => void;
+  onSelectFeed: (feedId: string) => void;
+  onMarkFeedRead?: (feed: FeedTreeFeedViewModel) => void;
+  onMarkFolderRead?: (folder: FeedTreeFolderViewModel) => void;
+  displayFavicons: boolean;
+  renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
+  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
+  canDragFeeds?: boolean;
+  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
+  onDropToFolder?: (folderId: string) => void;
+  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  consumeSuppressedHandleClick?: () => boolean;
+};
 
 export function FeedTreeFolderSection({
   sidebarDensity = "normal",

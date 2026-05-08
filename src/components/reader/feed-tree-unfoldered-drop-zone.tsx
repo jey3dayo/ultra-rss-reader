@@ -1,8 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants/motion";
 import { cn } from "@/lib/utils";
-import type { FeedTreeUnfolderedDropZoneProps } from "./feed-tree.types";
 import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
+
+type FeedTreeUnfolderedDropZoneProps = {
+  enabled: boolean;
+  active: boolean;
+  onDropToUnfoldered?: () => void;
+};
 
 export function FeedTreeUnfolderedDropZone({ enabled, active, onDropToUnfoldered }: FeedTreeUnfolderedDropZoneProps) {
   const { t } = useTranslation("sidebar");

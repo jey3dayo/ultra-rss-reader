@@ -1,19 +1,29 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { GripVertical } from "lucide-react";
-import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import type { FeedTreeDragHandleProps, FeedTreeRowProps } from "./feed-tree.types";
+import type { FeedTreeRowProps } from "./feed-tree.types";
 import { FeedTreeSelectableRow } from "./feed-tree-selectable-row";
-import { getSidebarDensityTokens } from "./sidebar-density";
+import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
 
 type FeedTreeRowStyle = CSSProperties & Record<"--feed-tree-rail-offset", string>;
+
+type FeedTreeDragHandleProps = {
+  feedTitle: string;
+  sidebarDensity?: SidebarDensity;
+  canDragFeeds?: FeedTreeRowProps["canDragFeeds"];
+  isArmed?: FeedTreeRowProps["isDragged"];
+  onArm?: () => void;
+  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  consumeSuppressedClick?: FeedTreeRowProps["consumeSuppressedHandleClick"];
+};
 
 function DragHandle({
   feedTitle,

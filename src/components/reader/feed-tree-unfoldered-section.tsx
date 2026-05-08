@@ -1,7 +1,22 @@
 import { cn } from "@/lib/utils";
-import type { FeedTreeUnfolderedSectionProps } from "./feed-tree.types";
+import type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
 import { FeedTreeRow } from "./feed-tree-row";
-import { getSidebarDensityTokens } from "./sidebar-density";
+import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
+
+type FeedTreeUnfolderedSectionProps = {
+  sidebarDensity?: SidebarDensity;
+  unfolderedFeeds: FeedTreeFeedViewModel[];
+  unfolderedLabel?: string;
+  onSelectFeed: FeedTreeRowProps["onSelectFeed"];
+  onMarkFeedRead?: FeedTreeRowProps["onMarkFeedRead"];
+  displayFavicons: FeedTreeRowProps["displayFavicons"];
+  renderFeedContextMenu?: FeedTreeRowProps["renderFeedContextMenu"];
+  canDragFeeds: NonNullable<FeedTreeRowProps["canDragFeeds"]>;
+  normalizedDraggedFeedId: string | null;
+  onDragStartFeed?: FeedTreeRowProps["onDragStartFeed"];
+  onPointerDownFeed: NonNullable<FeedTreeRowProps["onPointerDownFeed"]>;
+  consumeSuppressedHandleClick: NonNullable<FeedTreeRowProps["consumeSuppressedHandleClick"]>;
+};
 
 export function FeedTreeUnfolderedSection({
   sidebarDensity = "normal",
