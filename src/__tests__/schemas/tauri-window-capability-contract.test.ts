@@ -8,7 +8,7 @@ import { parseJsonWithSchema } from "@/schemas/parse";
 function readDefaultCapability(): TauriCapability {
   const currentFile = fileURLToPath(import.meta.url);
   const currentDir = path.dirname(currentFile);
-  const capabilityPath = path.resolve(currentDir, "../../src-tauri/capabilities/default.json");
+  const capabilityPath = path.resolve(currentDir, "../../../src-tauri/capabilities/default.json");
   return parseJsonWithSchema(readFileSync(capabilityPath, "utf8"), TauriCapabilitySchema);
 }
 
