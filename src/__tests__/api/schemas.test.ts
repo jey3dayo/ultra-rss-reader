@@ -18,6 +18,7 @@ import {
   FeedArticleSummaryDtoSchema,
   FeedDtoSchema,
   FolderDtoSchema,
+  listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
   listFeedArticleSummariesArgs,
@@ -28,6 +29,8 @@ import {
   markArticleReadArgs,
   oldUnreadArticlesArgs,
   PlatformInfoSchema,
+  SyncResultSchema,
+  searchArticlesArgs,
   setMuteAutoMarkReadArgs,
   setPreferenceArgs,
   TagArticleCountsSchema,
@@ -81,6 +84,16 @@ function extractSafeInvokeCommandsWithArgs(source: string) {
     .filter((command): command is string => typeof command === "string");
 
   return [...new Set(commands)].sort();
+}
+
+function expectPaginationArgsSchema(schema: { parse: (value: unknown) => unknown }, base: Record<string, unknown>) {
+  expect(schema.parse({ ...base, offset: 0, limit: 1 })).toEqual({ ...base, offset: 0, limit: 1 });
+  expect(() => schema.parse({ ...base, offset: -1, limit: 1 })).toThrow();
+  expect(() => schema.parse({ ...base, offset: 0.5, limit: 1 })).toThrow();
+  expect(() => schema.parse({ ...base, offset: Number.NaN, limit: 1 })).toThrow();
+  expect(() => schema.parse({ ...base, offset: 0, limit: 0 })).toThrow();
+  expect(() => schema.parse({ ...base, offset: 0, limit: 1.5 })).toThrow();
+  expect(() => schema.parse({ ...base, offset: 0, limit: Number.POSITIVE_INFINITY })).toThrow();
 }
 
 describe("DTO schemas", () => {
@@ -358,7 +371,39 @@ describe("command args schemas", () => {
     });
   });
   it("parses addAccountArgs", () => {
-    expect(addAccountArgs.parse({ kind: "local", name: "Test" })).toEqual({ kind: "local", name: "Test" });
+    expect(addAccountArgs.parse({ kind: "Local", name: "Test" })).toEqual({ kind: "Local", name: "Test" });
+  });
+  it("keeps addAccount provider args discriminated by provider kind", () => {
+    expect(addAccountArgs.parse({ kind: "Local", name: "Test" })).toEqual({ kind: "Local", name: "Test" });
+    expect(
+      addAccountArgs.parse({
+        kind: "FreshRss",
+        name: "FreshRSS",
+        serverUrl: " https://rss.example.com ",
+        username: " alice ",
+        password: " secret ",
+      }),
+    ).toEqual({
+      kind: "FreshRss",
+      name: "FreshRSS",
+      serverUrl: "https://rss.example.com",
+      username: "alice",
+      password: "secret",
+    });
+    expect(() => addAccountArgs.parse({ kind: "FreshRss", name: "FreshRSS" })).toThrow();
+    expect(() =>
+      addAccountArgs.parse({ kind: "FreshRss", name: "FreshRSS", serverUrl: "", username: "alice", password: "pw" }),
+    ).toThrow();
+    expect(() =>
+      addAccountArgs.parse({
+        kind: "FreshRss",
+        name: "FreshRSS",
+        serverUrl: "https://rss.example.com",
+        username: "   ",
+        password: "pw",
+      }),
+    ).toThrow();
+    expect(() => addAccountArgs.parse({ kind: "Unknown", name: "Test" })).toThrow();
   });
   it("parses createMuteKeywordArgs", () => {
     expect(createMuteKeywordArgs.parse({ keyword: "Kindle Unlimited", scope: "title" })).toEqual({
@@ -389,6 +434,15 @@ describe("command args schemas", () => {
       mode: "starred",
       accountId: "acc-1",
     });
+  });
+  it("keeps API pagination args finite integer bounded", () => {
+    expectPaginationArgsSchema(listArticlesArgs, { feedId: "feed-1" });
+    expectPaginationArgsSchema(listAccountArticlesArgs, { accountId: "acc-1" });
+    expectPaginationArgsSchema(listFolderArticlesArgs, { folderId: "folder-1" });
+    expectPaginationArgsSchema(listStarredArticlesArgs, { accountId: "acc-1" });
+    expectPaginationArgsSchema(listRecentArticlesArgs, { accountId: "acc-1" });
+    expectPaginationArgsSchema(searchArticlesArgs, { accountId: "acc-1", query: "fresh" });
+    expectPaginationArgsSchema(listArticlesByTagArgs, { tagId: "tag-1" });
   });
   it("parses finite browser webview bounds and rejects invalid dimensions", () => {
     expect(browserWebviewBoundsArgs.parse({ x: 0.5, y: -12, width: 320, height: 240 })).toEqual({
@@ -431,6 +485,38 @@ describe("command args schemas", () => {
       key: "selected_account_id",
       value: "acc-1",
     });
+  });
+  it("keeps preference value max length aligned to the backend UTF-8 byte limit", () => {
+    expect(setPreferenceArgs.parse({ key: "debug_web_preview_url", value: "a".repeat(1024) })).toEqual({
+      key: "debug_web_preview_url",
+      value: "a".repeat(1024),
+    });
+    expect(() => setPreferenceArgs.parse({ key: "debug_web_preview_url", value: "a".repeat(1025) })).toThrow();
+    expect(() => setPreferenceArgs.parse({ key: "debug_web_preview_url", value: "あ".repeat(342) })).toThrow();
+  });
+  it("keeps sync result numeric fields nonnegative integers", () => {
+    const valid = {
+      synced: true,
+      total: 2,
+      succeeded: 1,
+      failed: [],
+      warnings: [
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "Retry later",
+          retry_in_seconds: 30,
+        },
+      ],
+    };
+
+    expect(SyncResultSchema.parse(valid)).toEqual(valid);
+    expect(() => SyncResultSchema.parse({ ...valid, total: -1 })).toThrow();
+    expect(() => SyncResultSchema.parse({ ...valid, total: 1.5 })).toThrow();
+    expect(() => SyncResultSchema.parse({ ...valid, succeeded: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() =>
+      SyncResultSchema.parse({ ...valid, warnings: [{ ...valid.warnings[0], retry_in_seconds: 0.5 }] }),
+    ).toThrow();
   });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();

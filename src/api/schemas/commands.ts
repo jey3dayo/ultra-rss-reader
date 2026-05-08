@@ -4,6 +4,10 @@ import { FeedDisplayModeSchema } from "./feed";
 import { MuteKeywordScopeSchema } from "./mute-keyword";
 
 export const articleListModeSchema = z.enum(["all", "unread", "starred"]);
+const paginationOffsetSchema = z.number().int().nonnegative();
+const paginationLimitSchema = z.number().int().positive();
+const preferenceValueMaxBytes = 1024;
+const textEncoder = new TextEncoder();
 
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: z.string() });
@@ -14,16 +18,16 @@ export const listArticlesArgs = z.object({
   feedId: z.string(),
   unreadOnly: z.boolean().optional(),
   starredOnly: z.boolean().optional(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
 });
 
 // --- listAccountArticles ---
 export const listAccountArticlesArgs = z.object({
   accountId: z.string(),
   unreadOnly: z.boolean().optional(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
 });
 
 // --- listFeedArticleSummaries ---
@@ -35,23 +39,23 @@ export const listFeedArticleSummariesArgs = z.object({
 export const listFolderArticlesArgs = z.object({
   folderId: z.string(),
   mode: articleListModeSchema.optional(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
 });
 
 // --- listStarredArticles ---
 export const listStarredArticlesArgs = z.object({
   accountId: z.string(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
 });
 
 // --- listRecentArticles ---
 export const listRecentArticlesArgs = z.object({
   accountId: z.string(),
   mode: articleListModeSchema.optional(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
 });
 
 // --- countAccountUnreadArticles ---
@@ -86,8 +90,8 @@ export const unstarAccountArticlesArgs = z.object({ accountId: z.string() });
 export const searchArticlesArgs = z.object({
   accountId: z.string(),
   query: z.string(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
 });
 
 // --- markArticleRead ---
@@ -124,8 +128,8 @@ export const markFeedReadArgs = z.object({ feedId: z.string() });
 export const markFolderReadArgs = z.object({ folderId: z.string() });
 
 // --- addAccount ---
-export const addAccountArgs = z.object({
-  kind: z.string(),
+const localAddAccountArgs = z.object({
+  kind: z.literal("Local"),
   name: z.string(),
   serverUrl: z.string().optional(),
   appId: z.string().optional(),
@@ -133,6 +137,16 @@ export const addAccountArgs = z.object({
   username: z.string().optional(),
   password: z.string().optional(),
 });
+const freshRssAddAccountArgs = z.object({
+  kind: z.literal("FreshRss"),
+  name: z.string(),
+  serverUrl: z.string().trim().min(1),
+  appId: z.string().optional(),
+  appKey: z.string().optional(),
+  username: z.string().trim().min(1),
+  password: z.string().trim().min(1),
+});
+export const addAccountArgs = z.discriminatedUnion("kind", [localAddAccountArgs, freshRssAddAccountArgs]);
 
 // --- updateAccountSync ---
 export const updateAccountSyncArgs = z.object({
@@ -247,7 +261,9 @@ export const exportOpmlArgs = z.object({ accountId: z.string() });
 export const setPreferenceArgs = z
   .object({
     key: z.string(),
-    value: z.string(),
+    value: z.string().refine((value) => textEncoder.encode(value).length <= preferenceValueMaxBytes, {
+      message: `Preference value must be ${preferenceValueMaxBytes} UTF-8 bytes or less`,
+    }),
   })
   .superRefine(({ key, value }, ctx) => {
     const schema = getPreferenceValueSchema(key);
@@ -320,8 +336,8 @@ export const getArticleTagsArgs = z.object({ articleId: z.string() });
 export const listArticlesByTagArgs = z.object({
   tagId: z.string(),
   mode: articleListModeSchema.optional(),
-  offset: z.number().optional(),
-  limit: z.number().optional(),
+  offset: paginationOffsetSchema.optional(),
+  limit: paginationLimitSchema.optional(),
   accountId: z.string().optional(),
 });
 

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const nonnegativeIntegerSchema = z.number().int().nonnegative().finite();
+
 export const AccountSyncErrorSchema = z.object({
   account_id: z.string(),
   account_name: z.string(),
@@ -12,13 +14,13 @@ export const AccountSyncWarningSchema = z.object({
   kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
   message: z.string(),
   retry_at: z.string().optional(),
-  retry_in_seconds: z.number().nonnegative().finite().optional(),
+  retry_in_seconds: nonnegativeIntegerSchema.optional(),
 });
 
 export const SyncResultSchema = z.object({
   synced: z.boolean(),
-  total: z.number(),
-  succeeded: z.number(),
+  total: nonnegativeIntegerSchema,
+  succeeded: nonnegativeIntegerSchema,
   failed: z.array(AccountSyncErrorSchema),
   warnings: z.array(AccountSyncWarningSchema),
 });

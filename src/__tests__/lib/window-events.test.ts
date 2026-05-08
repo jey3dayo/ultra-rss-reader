@@ -111,4 +111,35 @@ describe("window-events", () => {
 
     expect(removeSpy).toHaveBeenCalledWith("test-window-events-ping", onPing, options);
   });
+
+  it("adds and removes typed helper listeners with matching target, type, listener, and options", () => {
+    const target = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const keyboardOptions = { capture: true };
+    const pointerOptions = { passive: true };
+    const customOptions = false;
+    const keyboardListener = createKeyboardEventListener(vi.fn());
+    const pointerListener = createPointerEventListener(vi.fn());
+    const customListener = createCustomEventDetailListener(
+      (detail): detail is { action: string } => typeof detail === "object" && detail !== null && "action" in detail,
+      vi.fn(),
+    );
+    const bindings = [
+      { target, type: "keydown", listener: keyboardListener, options: keyboardOptions },
+      { target, type: "pointerdown", listener: pointerListener, options: pointerOptions },
+      { target, type: "app:event", listener: customListener, options: customOptions },
+    ] as const;
+
+    const cleanup = bindWindowEvents(bindings);
+    cleanup();
+
+    expect(target.addEventListener).toHaveBeenNthCalledWith(1, "keydown", keyboardListener, keyboardOptions);
+    expect(target.addEventListener).toHaveBeenNthCalledWith(2, "pointerdown", pointerListener, pointerOptions);
+    expect(target.addEventListener).toHaveBeenNthCalledWith(3, "app:event", customListener, customOptions);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(1, "keydown", keyboardListener, keyboardOptions);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(2, "pointerdown", pointerListener, pointerOptions);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(3, "app:event", customListener, customOptions);
+  });
 });

@@ -1,4 +1,5 @@
 export type WindowEventBinding = {
+  target?: Pick<Window, "addEventListener" | "removeEventListener">;
   type: string;
   listener: EventListenerOrEventListenerObject;
   options?: boolean | AddEventListenerOptions;
@@ -46,13 +47,13 @@ export function createCustomEventDetailListener<T>(
 }
 
 export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
-  for (const { type, listener, options } of bindings) {
-    window.addEventListener(type, listener, options);
+  for (const { target = window, type, listener, options } of bindings) {
+    target.addEventListener(type, listener, options);
   }
 
   return () => {
-    for (const { type, listener, options } of bindings) {
-      window.removeEventListener(type, listener, options);
+    for (const { target = window, type, listener, options } of bindings) {
+      target.removeEventListener(type, listener, options);
     }
   };
 }

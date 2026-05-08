@@ -9,9 +9,9 @@ const retryScheduledWarning = {
 };
 
 describe("AccountSyncWarningSchema", () => {
-  it("accepts missing and fractional retry seconds", () => {
+  it("accepts missing retry seconds and rejects fractional values", () => {
     expect(AccountSyncWarningSchema.safeParse(retryScheduledWarning).success).toBe(true);
-    expect(AccountSyncWarningSchema.safeParse({ ...retryScheduledWarning, retry_in_seconds: 1.5 }).success).toBe(true);
+    expect(AccountSyncWarningSchema.safeParse({ ...retryScheduledWarning, retry_in_seconds: 1.5 }).success).toBe(false);
   });
 
   it("rejects negative or non-finite retry seconds", () => {

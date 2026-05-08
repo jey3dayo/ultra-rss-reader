@@ -44,6 +44,12 @@ function extractPlaceholders(value: string): string[] {
     .sort();
 }
 
+const pluralSuffixPattern = /_(zero|one|two|few|many|other)$/;
+
+function collectPluralKeys(entries: Map<string, string>): string[] {
+  return [...entries.keys()].filter((key) => pluralSuffixPattern.test(key)).sort();
+}
+
 describe("locale interpolation placeholders", () => {
   it("keeps English and Japanese interpolation placeholders in sync", () => {
     const mismatches: string[] = [];
@@ -63,6 +69,21 @@ describe("locale interpolation placeholders", () => {
         if (enPlaceholders.join(",") !== jaPlaceholders.join(",")) {
           mismatches.push(`${namespace}.${key}: en=${enPlaceholders.join("|")} ja=${jaPlaceholders.join("|")}`);
         }
+      }
+    }
+
+    expect(mismatches).toEqual([]);
+  });
+
+  it("keeps English and Japanese plural form keys in sync", () => {
+    const mismatches: string[] = [];
+
+    for (const [namespace, { en, ja }] of Object.entries(namespaces)) {
+      const enPluralKeys = collectPluralKeys(flattenLocale(en));
+      const jaPluralKeys = collectPluralKeys(flattenLocale(ja));
+
+      if (enPluralKeys.join(",") !== jaPluralKeys.join(",")) {
+        mismatches.push(`${namespace}: en=${enPluralKeys.join("|")} ja=${jaPluralKeys.join("|")}`);
       }
     }
 

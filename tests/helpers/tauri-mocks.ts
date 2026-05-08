@@ -8,6 +8,17 @@ import { sampleAccounts, sampleArticles, sampleFeeds, sampleMuteKeywords, sample
 
 type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
 
+export const mockPlatformInfo = {
+  kind: "windows",
+  capabilities: {
+    supports_reading_list: false,
+    supports_background_browser_open: false,
+    supports_runtime_window_icon_replacement: true,
+    supports_native_browser_navigation: true,
+    uses_dev_file_credentials: false,
+  },
+};
+
 function isRecord(payload: unknown): payload is Record<string, unknown> {
   return typeof payload === "object" && payload !== null;
 }
@@ -198,16 +209,7 @@ function createDefaultHandler(): MockHandler {
       case "open_log_dir":
         return null;
       case "get_platform_info":
-        return {
-          kind: "windows",
-          capabilities: {
-            supports_reading_list: false,
-            supports_background_browser_open: false,
-            supports_runtime_window_icon_replacement: true,
-            supports_native_browser_navigation: true,
-            uses_dev_file_credentials: false,
-          },
-        };
+        return mockPlatformInfo;
       case "check_browser_embed_support":
         return true;
       case "create_or_update_browser_webview":

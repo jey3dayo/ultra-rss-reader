@@ -260,10 +260,10 @@ describe("tauri-commands with mockIPC", () => {
 
   describe("addAccount", () => {
     it("returns a new account DTO", async () => {
-      const value = Result.unwrap(await addAccount("local", "My Feed"));
+      const value = Result.unwrap(await addAccount("Local", "My Feed"));
       expect(value).toEqual({
         id: "acc-new",
-        kind: "local",
+        kind: "Local",
         name: "My Feed",
         server_url: null,
         username: null,
