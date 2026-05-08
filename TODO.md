@@ -783,3 +783,73 @@
   - updater endpoint が HTTPS の GitHub Releases `latest/download/latest.json` だけを指し、空配列や http endpoint を許さないことを schema / test で固定する
   - pubkey rotation、署名 secret、download / install lifecycle とは混ぜない
   - endpoint single-source と protocol validation だけを見る
+
+- [ ] preferences store load dedupe 候補を別バッチで追加する
+  - `preferences-store.ts` の `loadPreferences()` に in-flight guard を追加し、StrictMode や複数 mount で同時に `getPreferences()` が走らない契約を固定する
+  - preference schema 追加、settings UI、theme 表示変更とは混ぜない
+  - success / failure / retry の state 更新を store test で分ける
+
+- [ ] startup sync timestamp storage recovery 候補を別バッチで追加する
+  - `App.tsx` と storage constants の `startupSyncLastTriggeredAt` を helper 化し、invalid / future timestamp / 旧 key 移行の扱いを固定する
+  - sync-completed invalidation、sync scheduler、本体 sync flow とは混ぜない
+  - localStorage 破損時の fallback と cleanup を app-root test で見る
+
+- [ ] sync-on-wake in-flight guard 候補を別バッチで追加する
+  - `visibilitychange` 復帰時の `listAccounts()` と `syncAccount()` が二重起動しない guard と失敗ログ契約を固定する
+  - account sync status UI、retry / backoff、provider error copy とは混ぜない
+  - wake event 連打と sync failure の挙動を app-root test に分ける
+
+- [ ] fullscreen toggle failure contract 候補を別バッチで追加する
+  - `actions.ts` と `windows.ts` で `isFullscreen()` 成功後に `setFullscreen()` が失敗した場合も未処理にならないことを Result contract で固定する
+  - window always-on-top、native menu checked state、shortcut label / i18n とは混ぜない
+  - read failure と write failure の error category を分ける
+
+- [ ] provider HTTP client policy 候補を別バッチで追加する
+  - `local.rs`、`greader.rs`、`feed_discovery.rs` の timeout / redirect limit / User-Agent の差を provider HTTP contract として fixture test で固定する
+  - retry / backoff、scheduler、UI toast 文言とは混ぜない
+  - provider ごとの意図的な差分と共通 policy を対応表にする
+
+- [ ] GReader pagination guard 候補を別バッチで追加する
+  - `greader.rs` と `sync_providers.rs` で同一 continuation の再返却や空 page 連続時に無限 loop しないことを固定する
+  - FreshRSS stale detection、pending mutation、unread reconcile とは混ぜない
+  - max page / duplicate continuation / empty continuation の fixture を分ける
+
+- [ ] local provider JSON Feed body parsing 候補を別バッチで追加する
+  - `normalizer.rs` と `local.rs` で、取得済み `application/feed+json` body が `RemoteEntry` に落ちる contract を fixture test で固定する
+  - feed discovery rel / JSON Feed detection、add feed dialog、URL normalization とは混ぜない
+  - discovery ではなく fetched body parsing に限定する
+
+- [ ] GReader folder label normalization 候補を別バッチで追加する
+  - `greader.rs` で `user/-/label/...` id 文字列、`label` field、URL encoded label の扱いを provider parsing test で固定する
+  - provider normalizer DTO、folder drag/drop、folder rename UI とは混ぜない
+  - folder id と display label の normalization を別 assertion にする
+
+- [ ] local create_subscription HTTP error contract 候補を別バッチで追加する
+  - `local.rs` と `feed_commands.rs` で 404 / 500 / HTML response を feed parser へ流す前に network / parse のどちらで返すかを固定する
+  - feed discovery failure UX、duplicate local feed add、toast copy とは混ぜない
+  - mockito fixture で status error と content-type mismatch を分ける
+
+- [ ] account switcher empty-state aria contract 候補を別バッチで追加する
+  - `account-switcher-view.tsx` で accounts empty / selected account missing 時に title fallback、aria-haspopup / expanded / controls 非付与、click no-op を固定する
+  - account selection restore、mobile sidebar persistence、sync status 表示とは混ぜない
+  - empty state と missing selected account を別 component test にする
+
+- [ ] sidebar roving hidden target skip 候補を別バッチで追加する
+  - `sidebar.tsx` で collapsed folder 配下や disabled row を ArrowUp / Down の移動対象から外す contract を追加する
+  - visibility / density preference、focus return 全体設計、account pane navigation とは混ぜない
+  - hidden row と disabled row の skip を別 test にする
+
+- [ ] feed tree folder disclosure aria pairing 候補を別バッチで追加する
+  - `feed-tree-folder-section.tsx` で toggle の `aria-controls` と panel id、open / closed の `aria-expanded` / `aria-hidden` 対応を固定する
+  - drag/drop、motion 見た目、folder selection priority とは混ぜない
+  - folder empty / has children の両方で aria pairing を見る
+
+- [ ] article context menu no-url contract 候補を別バッチで追加する
+  - `article-context-menu.tsx` / view で URL なし記事では open-in-browser item を描画せず、read / star action だけ残ることを固定する
+  - open browser error handling、command palette unavailable action、copy/link share menu とは混ぜない
+  - URL なし / invalid URL / normal URL の表示差分を狭く見る
+
+- [ ] old unread submenu day-preset contract 候補を別バッチで追加する
+  - `old-unread-context-menu-items.tsx` で 7 / 30 / 90 day preset の表示と `onSelect(days)` だけを固定する
+  - mark-all-read confirmation、pending / error 状態、feed / folder / smart-view mutation 実行とは混ぜない
+  - narrow component test で menu item text と callback value を確認する
