@@ -8,6 +8,13 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 
+function getRequiredHTMLElement(element: Element | null, description: string) {
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`Expected ${description} to be an HTML element`);
+  }
+  return element;
+}
+
 describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("ja");
@@ -58,8 +65,18 @@ describe("SubscriptionsIndexPage", () => {
           ];
         case "list_folders":
           return [
-            { id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 },
-            { id: "folder-2", account_id: args.accountId, name: "Work", sort_order: 1 },
+            {
+              id: "folder-1",
+              account_id: args.accountId,
+              name: "Work",
+              sort_order: 0,
+            },
+            {
+              id: "folder-2",
+              account_id: args.accountId,
+              name: "Work",
+              sort_order: 1,
+            },
           ];
         case "list_account_articles":
           return [
@@ -105,9 +122,21 @@ describe("SubscriptionsIndexPage", () => {
           ];
         case "list_feed_article_summaries":
           return [
-            { feed_id: "feed-1", latest_article_at: "2024-01-01T10:00:00Z", starred_count: 0 },
-            { feed_id: "feed-2", latest_article_at: "2026-04-01T10:00:00Z", starred_count: 1 },
-            { feed_id: "feed-3", latest_article_at: "2026-03-15T10:00:00Z", starred_count: 0 },
+            {
+              feed_id: "feed-1",
+              latest_article_at: "2024-01-01T10:00:00Z",
+              starred_count: 0,
+            },
+            {
+              feed_id: "feed-2",
+              latest_article_at: "2026-04-01T10:00:00Z",
+              starred_count: 1,
+            },
+            {
+              feed_id: "feed-3",
+              latest_article_at: "2026-03-15T10:00:00Z",
+              starred_count: 0,
+            },
           ];
         case "get_feed_integrity_report":
           return {
@@ -166,7 +195,9 @@ describe("SubscriptionsIndexPage", () => {
   it("renders lightweight feed rows and only highlights the selected feed", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const selectedFeed = await screen.findByRole("button", { name: /Example Feed/ });
+    const selectedFeed = await screen.findByRole("button", {
+      name: /Example Feed/,
+    });
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
@@ -182,11 +213,12 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveClass("shadow-[var(--subscriptions-list-row-selected-shadow)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(selectedFeed.className).toMatch(/rounded-(md|lg|xl)/);
-    const selectedFaviconSurface = selectedFeed.querySelector("span.rounded-md");
-    expect((selectedFaviconSurface as HTMLElement).style.backgroundColor).toBe(
-      "var(--subscriptions-list-favicon-surface)",
+    const selectedFaviconSurface = getRequiredHTMLElement(
+      selectedFeed.querySelector("span.rounded-md"),
+      "selected favicon surface",
     );
-    expect((selectedFaviconSurface as HTMLElement).style.borderColor).toBe("var(--subscriptions-list-divider)");
+    expect(selectedFaviconSurface.style.backgroundColor).toBe("var(--subscriptions-list-favicon-surface)");
+    expect(selectedFaviconSurface.style.borderColor).toBe("var(--subscriptions-list-divider)");
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toHaveClass(
       "h-5",
       "w-5",
@@ -195,22 +227,27 @@ describe("SubscriptionsIndexPage", () => {
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
     expect(secondaryFeed).toHaveAttribute("aria-pressed", "false");
     expect(secondaryFeed).not.toHaveClass("bg-card/75");
-    const secondaryFaviconSurface = secondaryFeed.querySelector("span.rounded-md");
-    expect((secondaryFaviconSurface as HTMLElement).style.backgroundColor).toBe(
-      "var(--subscriptions-list-favicon-surface-muted)",
+    const secondaryFaviconSurface = getRequiredHTMLElement(
+      secondaryFeed.querySelector("span.rounded-md"),
+      "secondary favicon surface",
     );
-    expect((secondaryFaviconSurface as HTMLElement).style.borderColor).toBe("var(--subscriptions-list-divider)");
+    expect(secondaryFaviconSurface.style.backgroundColor).toBe("var(--subscriptions-list-favicon-surface-muted)");
+    expect(secondaryFaviconSurface.style.borderColor).toBe("var(--subscriptions-list-divider)");
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
   it("treats summary cards as in-place filters instead of workspace navigation", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const totalSubscriptionsLabel = await screen.findByRole("button", { name: /総購読数/ });
+    const totalSubscriptionsLabel = await screen.findByRole("button", {
+      name: /総購読数/,
+    });
     const summarySection = totalSubscriptionsLabel.closest("section");
     expect(summarySection).not.toBeNull();
     expect(summarySection).toHaveClass("rounded-md", "border-border/55");
-    expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
+    expect(summarySection).toHaveStyle({
+      backgroundColor: "var(--subscriptions-summary-surface)",
+    });
     expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
@@ -229,7 +266,9 @@ describe("SubscriptionsIndexPage", () => {
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {
-    const { container } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    const { container } = render(<SubscriptionsIndexPage />, {
+      wrapper: createWrapper(),
+    });
 
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
@@ -326,7 +365,9 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    expect(detailPane).toHaveStyle({ backgroundColor: "var(--subscriptions-detail-surface)" });
+    expect(detailPane).toHaveStyle({
+      backgroundColor: "var(--subscriptions-detail-surface)",
+    });
     expect(within(detailPane).getByRole("heading", { name: "購読の詳細" })).toHaveClass("text-foreground-soft");
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",
@@ -338,7 +379,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByText("既定の表示")).toBeInTheDocument();
     expect(detailPane.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
     expect(detailPane.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toHaveClass("h-6", "w-6");
-    const articleLink = within(detailPane).getByRole("link", { name: "Old article" });
+    const articleLink = within(detailPane).getByRole("link", {
+      name: "Old article",
+    });
     expect(articleLink).toHaveAttribute("href", "https://example.com/old/1");
     expect(articleLink).toHaveClass("cursor-pointer");
     expect(within(detailPane).queryByRole("button", { name: "購読の整理" })).toBeNull();
@@ -407,7 +450,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
     expect(within(detailPane).getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
     await user.click(within(detailPane).getByRole("button", { name: "編集" }));
-    const editDialog = await screen.findByRole("dialog", { name: "フィードを編集" });
+    const editDialog = await screen.findByRole("dialog", {
+      name: "フィードを編集",
+    });
     expect(within(editDialog).getByDisplayValue("Fresh Feed")).toBeInTheDocument();
     await user.click(within(editDialog).getByRole("button", { name: "キャンセル" }));
     expect(within(detailPane).getByRole("button", { name: "削除" })).toBeInTheDocument();
@@ -530,8 +575,18 @@ describe("SubscriptionsIndexPage", () => {
           return [];
         case "list_folders":
           return [
-            { id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 },
-            { id: "folder-2", account_id: args.accountId, name: "Work", sort_order: 1 },
+            {
+              id: "folder-1",
+              account_id: args.accountId,
+              name: "Work",
+              sort_order: 0,
+            },
+            {
+              id: "folder-2",
+              account_id: args.accountId,
+              name: "Work",
+              sort_order: 1,
+            },
           ];
         case "list_account_articles":
           return [];
@@ -569,8 +624,18 @@ describe("SubscriptionsIndexPage", () => {
           return [];
         case "list_folders":
           return [
-            { id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 },
-            { id: "folder-2", account_id: args.accountId, name: "Work", sort_order: 1 },
+            {
+              id: "folder-1",
+              account_id: args.accountId,
+              name: "Work",
+              sort_order: 0,
+            },
+            {
+              id: "folder-2",
+              account_id: args.accountId,
+              name: "Work",
+              sort_order: 1,
+            },
           ];
         case "list_account_articles":
           return [];
@@ -592,7 +657,9 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const inventoryHeading = await screen.findByRole("heading", { name: "全購読" });
+    const inventoryHeading = await screen.findByRole("heading", {
+      name: "全購読",
+    });
     const listPane = inventoryHeading.closest("section");
 
     if (!listPane) {

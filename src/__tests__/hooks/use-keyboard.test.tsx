@@ -66,6 +66,14 @@ function renderAppShell(calls: MockTauriCommandCall[]) {
   return render(<AppShell />, { wrapper: createWrapper() });
 }
 
+function getRequiredButton(selector: string) {
+  const element = document.querySelector(selector);
+  if (!(element instanceof HTMLButtonElement)) {
+    throw new Error(`Expected ${selector} to be a button element`);
+  }
+  return element;
+}
+
 describe("useKeyboard", () => {
   beforeEach(() => {
     vi.stubGlobal(
@@ -139,9 +147,15 @@ describe("useKeyboard", () => {
       selectedAccountId: "acc-2",
     });
 
-    const accountPane = await screen.findByRole("navigation", { name: "Accounts" });
-    const localAccount = await within(accountPane).findByRole("button", { name: /Local/ });
-    const freshRssAccount = await within(accountPane).findByRole("button", { name: /FreshRSS/ });
+    const accountPane = await screen.findByRole("navigation", {
+      name: "Accounts",
+    });
+    const localAccount = await within(accountPane).findByRole("button", {
+      name: /Local/,
+    });
+    const freshRssAccount = await within(accountPane).findByRole("button", {
+      name: /FreshRSS/,
+    });
 
     await waitFor(() => {
       expect(freshRssAccount).toHaveFocus();
@@ -436,11 +450,7 @@ describe("useKeyboard", () => {
 
     const openBrowserSpy = vi.fn();
     window.addEventListener(keyboardEvents.openInAppBrowser, openBrowserSpy);
-    const selectedFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
-    expect(selectedFeed).not.toBeNull();
-    if (!selectedFeed) {
-      throw new Error("Expected feed button for feed-1");
-    }
+    const selectedFeed = getRequiredButton('[data-feed-id="feed-1"]');
     selectedFeed.focus();
 
     fireEvent.keyDown(selectedFeed, { key: "ArrowRight" });
@@ -553,7 +563,9 @@ describe("useKeyboard", () => {
     await screen.findByRole("heading", { level: 1, name: "First Article" });
 
     fireEvent.click(await screen.findByRole("button", { name: "Add tag" }));
-    const listbox = await screen.findByRole("listbox", { name: "Available tags" });
+    const listbox = await screen.findByRole("listbox", {
+      name: "Available tags",
+    });
 
     fireEvent.keyDown(listbox, { key: "Escape" });
 

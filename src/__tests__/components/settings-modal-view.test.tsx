@@ -55,6 +55,16 @@ function getScrollViewport(scrollArea: HTMLElement) {
   return viewport;
 }
 
+function getFirstElementChild(element: HTMLElement) {
+  const child = element.firstElementChild;
+
+  if (!(child instanceof HTMLElement)) {
+    throw new Error("Expected first child to be an HTML element");
+  }
+
+  return child;
+}
+
 function notifyResizeObservers() {
   act(() => {
     for (const callback of resizeObserverCallbacks) {
@@ -353,7 +363,7 @@ describe("SettingsModalView", () => {
     );
 
     const surface = screen.getByTestId("settings-modal-surface");
-    const navPane = surface.firstElementChild as HTMLElement;
+    const navPane = getFirstElementChild(surface);
     expect(surface).toHaveClass("flex-col");
     expect(surface).toHaveClass("sm:flex-row");
     expect(navPane).toHaveClass("w-full");
@@ -438,9 +448,7 @@ describe("SettingsModalView", () => {
       />,
     );
 
-    const initialContentViewport = screen
-      .getByTestId("settings-content-scroll-area")
-      .querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+    const initialContentViewport = getScrollViewport(screen.getByTestId("settings-content-scroll-area"));
     const accountsScrollArea = screen.getByTestId("settings-accounts-scroll-area");
     const accountsViewport = getScrollViewport(accountsScrollArea);
 
@@ -462,9 +470,7 @@ describe("SettingsModalView", () => {
       />,
     );
 
-    const nextContentViewport = screen
-      .getByTestId("settings-content-scroll-area")
-      .querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+    const nextContentViewport = getScrollViewport(screen.getByTestId("settings-content-scroll-area"));
 
     expect(nextContentViewport.scrollTop).toBe(0);
     expect(accountsViewport.scrollTop).toBe(90);

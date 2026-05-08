@@ -3,6 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 
+function getRequiredHTMLElement(element: Element | null, description: string) {
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`Expected ${description} to be an HTML element`);
+  }
+  return element;
+}
+
 describe("SubscriptionsOverviewSummary", () => {
   it("uses semantic soft foreground text and neutral action chips", () => {
     render(
@@ -30,7 +37,9 @@ describe("SubscriptionsOverviewSummary", () => {
     const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
     expect(summarySection).not.toBeNull();
     expect(summarySection).toHaveClass("rounded-md", "border-border/55");
-    expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
+    expect(summarySection).toHaveStyle({
+      backgroundColor: "var(--subscriptions-summary-surface)",
+    });
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "grid-cols-1",
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
@@ -190,7 +199,9 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const activeCard = screen.getByRole("button", { name: /Total subscriptions/ });
+    const activeCard = screen.getByRole("button", {
+      name: /Total subscriptions/,
+    });
     expect(within(activeCard).getByText("表示中")).toBeInTheDocument();
     expect(within(activeCard).getByText("全件表示")).toBeInTheDocument();
     expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
@@ -236,11 +247,14 @@ describe("SubscriptionsOverviewSummary", () => {
 
     expect(screen.queryByRole("button", { name: /Sync state/ })).toBeNull();
 
-    const staticCard = screen.getByText("Sync state").closest("[data-subscriptions-summary-static-card]");
+    const staticCard = getRequiredHTMLElement(
+      screen.getByText("Sync state").closest("[data-subscriptions-summary-static-card]"),
+      "static summary card",
+    );
     expect(staticCard).not.toBeNull();
     expect(staticCard).toHaveClass("rounded-md", "shadow-none");
     expect(staticCard).not.toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-neutral)]");
-    expect(within(staticCard as HTMLElement).getByText("参照")).toBeInTheDocument();
-    expect(within(staticCard as HTMLElement).getByText("Ready")).toHaveClass("text-foreground-soft");
+    expect(within(staticCard).getByText("参照")).toBeInTheDocument();
+    expect(within(staticCard).getByText("Ready")).toHaveClass("text-foreground-soft");
   });
 });
