@@ -28,7 +28,6 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 export type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 export type { ArticleNavigationDirection, ContentMode } from "@/lib/layout/layout-state.types";
-export type { ReaderSelection as UiSelection } from "@/lib/reader/reader-selection.types";
 export type { SettingsCategory } from "@/lib/settings/settings-category.types";
 export type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
 export type { ToastData } from "@/lib/ui/toast.types";
