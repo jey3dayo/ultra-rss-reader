@@ -301,3 +301,8 @@ export type UseBrowserViewActionsParams = {
   initialBrowserState: (url: string) => BrowserWebviewState;
   fallbackInFlightRef: MutableRefObject<boolean>;
 };
+
+export type UseBrowserViewActionsResult = Pick<
+  BrowserViewController,
+  "handleGoBack" | "handleGoForward" | "handleRetry" | "handleReload" | "handleOpenExternal"
+>;

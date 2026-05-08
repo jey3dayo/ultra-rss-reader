@@ -11,7 +11,7 @@ import {
 import { resolvePreferenceValue } from "@/lib/preferences-schema";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { openUrlInExternalBrowser } from "../../article-browser-actions";
-import type { UseBrowserViewActionsParams } from "../../browser-view.types";
+import type { UseBrowserViewActionsParams, UseBrowserViewActionsResult } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
 
 type BrowserWebviewCommand = () => Promise<Result.Result<BrowserWebviewState, AppError>>;
@@ -26,7 +26,7 @@ export function useBrowserViewActions({
   syncBrowserWebview,
   initialBrowserState,
   fallbackInFlightRef,
-}: UseBrowserViewActionsParams) {
+}: UseBrowserViewActionsParams): UseBrowserViewActionsResult {
   const keepWebPreviewFocus = usePreferencesStore(
     (state) => resolvePreferenceValue(state.prefs, "web_preview_keep_focus") === "true",
   );
@@ -150,5 +150,5 @@ export function useBrowserViewActions({
     handleRetry,
     handleReload,
     handleOpenExternal,
-  } as const;
+  };
 }

@@ -150,5 +150,5 @@ export function useBrowserViewController({
     hostRef,
     overlayRef,
     stageRef,
-  } as const;
+  };
 }
