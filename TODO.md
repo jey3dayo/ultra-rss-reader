@@ -629,11 +629,6 @@
   - subscriptions-index 表示、Data settings UI 導線、feed cleanup candidate 判定ロジックとは混ぜない
   - cleanup 対象と dry-run / execution の境界を先に command contract として固定する
 
-- [ ] contenteditable global shortcut guard 候補を別バッチで追加する
-  - `use-keyboard.ts` と `keyboard-shortcuts.ts` で `contenteditable` / `role="textbox"` 内の `m` / `s` / `j` / `k` が global shortcut として発火しないことを固定する
-  - focus return、shortcut 表示 / i18n、pane navigation redesign とは混ぜず、target filtering だけを見る
-  - input / textarea / contenteditable / role textbox の境界を hook test で揃える
-
 - [ ] command palette pseudo-action boundary 候補を別バッチで追加する
   - `open-shortcuts-help` だけが `executeAction` を通らない例外で、history 保存や close order が通常 `AppAction` と混ざらないことを固定する
   - command palette unavailable action guard、search ranking、shortcut help UI visual とは混ぜない
@@ -653,16 +648,6 @@
   - `<Trans>` の rich text key が missing / mock fallback でも destructive dialog の accessible name と本文が壊れないことを固定する
   - destructive dialog tone / variant、確認文言の全面変更とは混ぜず、fallback render contract だけを見る
   - delete tag / unsubscribe feed の代表ケースに限定する
-
-- [ ] decorative fallback icon accessibility guard 候補を別バッチで追加する
-  - `feed-favicon.tsx` で favicon 画像 `alt=""` と fallback glyph が feed row の accessible name に混入しないことを固定する
-  - favicon URL provider、provider icon visual fallback、grayscale preference とは混ぜない
-  - image load success / fallback icon の両方を component test で見る
-
-- [ ] browser surface action label contract 候補を別バッチで追加する
-  - `browser-surface-state-card.tsx` の retryable / non-retryable issue で、button accessible name が label props 由来で technical detail label と混線しないことを固定する
-  - browser load timeout state、WebView fallback lifecycle、エラー文言改善とは混ぜない
-  - retry action の有無と detail disclosure の label を別 assertion にする
 
 - [ ] release capability MCP permission guard 候補を別バッチで追加する
   - `src-tauri/capabilities/default.json` と `lib.rs` を確認し、debug build だけ `mcp-bridge` plugin / permission を許す設定検証を追加する
@@ -723,16 +708,6 @@
   - `reader-passive-card.tsx`、article empty state、article list screen の empty / search empty / selection summary が shared passive surface を通ることを固定する
   - welcome card の装飾変更、radius 変更、copy 変更とは混ぜない
   - shared class または shared component の利用だけを contract test にする
-
-- [ ] shared radius scale usage guard 候補を別バッチで追加する
-  - shared primitives が `rounded-md` / `rounded-full` など scale utility を使い、px radius literal を持たないことを固定する
-  - feature-local radius 棚卸し、全面 radius 統一、visual token 調整とは混ぜない
-  - `surface-card` / `button` / form control 系の小さい static test に限定する
-
-- [ ] settings content fade helper contract 候補を別バッチで追加する
-  - `settings-content-layout.tsx` と `global.css` の fade top / bottom が `aria-hidden`、`pointer-events-none`、named CSS variable に閉じていることを固定する
-  - settings layout 寸法変更、scroll behavior 変更、copy 変更とは混ぜない
-  - fade helper の DOM contract と CSS token usage を別 assertion にする
 
 - [ ] startup sync timestamp storage recovery 候補を別バッチで追加する
   - `App.tsx` と storage constants の `startupSyncLastTriggeredAt` を helper 化し、invalid / future timestamp / 旧 key 移行の扱いを固定する

@@ -27,8 +27,12 @@ describe("BrowserSurfaceStateCard", () => {
     );
 
     const card = screen.getByTestId("browser-surface-state");
-    const title = screen.getByText("browser mode では埋め込み Webプレビューを表示できません。");
-    const openButton = screen.getByRole("button", { name: "Open in External Browser" });
+    const title = screen.getByText(
+      "browser mode では埋め込み Webプレビューを表示できません。",
+    );
+    const openButton = screen.getByRole("button", {
+      name: "Open in External Browser",
+    });
 
     expect(card).toHaveAttribute("data-surface-card", "info");
     expect(card).toHaveClass("w-full");
@@ -41,7 +45,9 @@ describe("BrowserSurfaceStateCard", () => {
       ),
     ).toHaveClass("text-foreground-soft");
     expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Retry Web Preview" }),
+    ).not.toBeInTheDocument();
     expect(openButton).toBeEnabled();
   });
 
@@ -67,11 +73,21 @@ describe("BrowserSurfaceStateCard", () => {
       />,
     );
 
-    const detail = screen.getByText("The embedded browser could not be created for this feed.");
+    const detail = screen.getByText(
+      "The embedded browser could not be created for this feed.",
+    );
+    const retryButton = screen.getByRole("button", {
+      name: "Retry Web Preview",
+    });
+    const externalButton = screen.getByRole("button", {
+      name: "Open in External Browser",
+    });
 
     expect(detail).toHaveClass("rounded-md");
     expect(detail).toHaveClass("border-browser-overlay-state-detail-border");
     expect(detail).toHaveClass("bg-browser-overlay-state-detail-surface");
+    expect(retryButton).not.toHaveAccessibleName(/Technical detail/);
+    expect(externalButton).not.toHaveAccessibleName(/The embedded browser/);
   });
 
   it("routes retry and external recovery actions from retryable issues", async () => {
@@ -100,7 +116,9 @@ describe("BrowserSurfaceStateCard", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Retry Web Preview" }));
-    await user.click(screen.getByRole("button", { name: "Open in External Browser" }));
+    await user.click(
+      screen.getByRole("button", { name: "Open in External Browser" }),
+    );
 
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(onOpenExternal).toHaveBeenCalledTimes(1);

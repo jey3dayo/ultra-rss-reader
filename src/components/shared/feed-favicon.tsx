@@ -37,7 +37,13 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   },
 };
 
-export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
+export function FeedFavicon({
+  title,
+  url,
+  siteUrl,
+  grayscale = false,
+  size = "sm",
+}: FeedFaviconProps) {
   const [failed, setFailed] = useState(false);
   let host: string | null = null;
   Result.pipe(
@@ -52,6 +58,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
   if (!host || failed) {
     return (
       <span
+        aria-hidden="true"
         className={cn(
           "flex shrink-0 items-center justify-center rounded bg-surface-1/72 font-bold text-foreground-soft",
           sizeClassName.fallback,
@@ -66,7 +73,11 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
     <img
       src={`https://www.google.com/s2/favicons?domain=${host}&sz=${sizeClassName.requestSize}`}
       alt=""
-      className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
+      className={cn(
+        sizeClassName.image,
+        "shrink-0 rounded",
+        grayscale && "grayscale",
+      )}
       onError={() => setFailed(true)}
     />
   );

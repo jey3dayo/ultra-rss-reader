@@ -23,7 +23,10 @@ export type KeyboardAction =
   | { type: "open-command-palette" }
   | { type: "open-shortcuts-help" }
   | { type: "restart-app" }
-  | { type: "emit"; eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents] }
+  | {
+      type: "emit";
+      eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents];
+    }
   | { type: "set-view-mode"; mode: ViewMode }
   | { type: "toggle-sidebar" }
   | { type: "close-browser" }
@@ -34,7 +37,10 @@ export type KeyboardAction =
   | { type: "reload-webview" }
   | { type: "noop" };
 
-export type KeyboardActionSkipReason = "ignored_input" | "missing_selected_article" | "no_action";
+export type KeyboardActionSkipReason =
+  | "ignored_input"
+  | "missing_selected_article"
+  | "no_action";
 
 /** All customizable shortcut action identifiers. */
 export type ShortcutActionId =
@@ -137,8 +143,18 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     categoryKey: "shortcuts.category_navigation",
     defaultKey: "⌘+\\",
   },
-  { id: "toggle_read", labelKey: "shortcuts.toggle_read", categoryKey: "shortcuts.category_actions", defaultKey: "m" },
-  { id: "toggle_star", labelKey: "shortcuts.toggle_star", categoryKey: "shortcuts.category_actions", defaultKey: "s" },
+  {
+    id: "toggle_read",
+    labelKey: "shortcuts.toggle_read",
+    categoryKey: "shortcuts.category_actions",
+    defaultKey: "m",
+  },
+  {
+    id: "toggle_star",
+    labelKey: "shortcuts.toggle_star",
+    categoryKey: "shortcuts.category_actions",
+    defaultKey: "s",
+  },
   {
     id: "open_in_app_browser",
     labelKey: "shortcuts.view_in_browser",
@@ -182,7 +198,12 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     categoryKey: "shortcuts.category_actions",
     defaultKey: "f",
   },
-  { id: "search", labelKey: "shortcuts.search", categoryKey: "shortcuts.category_global", defaultKey: "/" },
+  {
+    id: "search",
+    labelKey: "shortcuts.search",
+    categoryKey: "shortcuts.category_global",
+    defaultKey: "/",
+  },
   {
     id: "open_command_palette",
     labelKey: "shortcuts.open_command_palette",
@@ -204,11 +225,15 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 ];
 
 /** Preference key prefix for shortcut overrides. */
-export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}`;
+export const shortcutPrefKey = (id: ShortcutActionId): string =>
+  `shortcut_${id}`;
 
 export type KeyboardShortcutPrefs = Record<string, string>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
-function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
+function getShortcutKey(
+  id: ShortcutActionId,
+  prefs: KeyboardShortcutPrefs,
+): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
@@ -219,7 +244,9 @@ export const shortcutDefaults: KeyboardShortcutPrefs = Object.fromEntries(
 );
 
 /** Build a reverse mapping: key string -> ShortcutActionId. */
-export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
+export function buildKeyToActionMap(
+  prefs: KeyboardShortcutPrefs,
+): KeyToActionMap {
   const map: KeyToActionMap = new Map();
   for (const def of shortcutDefinitions) {
     const key = getShortcutKey(def.id, prefs);
@@ -229,7 +256,12 @@ export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMa
 }
 
 /** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
-function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): string {
+function normalizeKeyFromEvent(e: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+}): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
@@ -238,10 +270,14 @@ function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: bool
 }
 
 /** Display-friendly format: "Shift+R" -> "Shift + R", "⌘," -> "⌘ ," */
-export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kind"]): string {
+export function formatKeyForDisplay(
+  key: string,
+  platformKind: PlatformInfo["kind"],
+): string {
   const modifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
   const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
-  const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
+  const modifierPattern =
+    platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
   return normalized.replace(modifierPattern, `${modifier} `);
 }
 
@@ -259,6 +295,7 @@ type KeyboardContext = {
   ctrlKey: boolean;
   shiftKey: boolean;
   targetTag?: string | null;
+  targetIsTextEditing?: boolean;
   selectedArticleId: string | null;
   contentMode: ContentMode;
   viewMode: ViewMode;
@@ -272,8 +309,13 @@ function nextViewMode(current: ViewMode): ViewMode {
   return modes[(currentIndex + 1) % modes.length];
 }
 
-function isTextInputTarget(targetTag?: string | null): boolean {
-  return targetTag === "INPUT" || targetTag === "TEXTAREA";
+function isTextInputTarget(
+  targetTag?: string | null,
+  targetIsTextEditing = false,
+): boolean {
+  return (
+    targetIsTextEditing || targetTag === "INPUT" || targetTag === "TEXTAREA"
+  );
 }
 
 function resolveActionForId(
@@ -300,14 +342,23 @@ function resolveActionForId(
         : Result.fail("missing_selected_article");
     case "open_in_app_browser":
       return context.selectedArticleId
-        ? Result.succeed({ type: "emit", eventName: keyboardEvents.openInAppBrowser })
+        ? Result.succeed({
+            type: "emit",
+            eventName: keyboardEvents.openInAppBrowser,
+          })
         : Result.fail("missing_selected_article");
     case "open_external_browser":
       return context.selectedArticleId
-        ? Result.succeed({ type: "emit", eventName: keyboardEvents.openExternalBrowser })
+        ? Result.succeed({
+            type: "emit",
+            eventName: keyboardEvents.openExternalBrowser,
+          })
         : Result.fail("missing_selected_article");
     case "cycle_filter":
-      return Result.succeed({ type: "set-view-mode", mode: nextViewMode(context.viewMode) });
+      return Result.succeed({
+        type: "set-view-mode",
+        mode: nextViewMode(context.viewMode),
+      });
     case "show_unread":
       return Result.succeed({ type: "set-view-mode", mode: "unread" });
     case "show_all":
@@ -315,15 +366,23 @@ function resolveActionForId(
     case "show_starred":
       return Result.succeed({ type: "set-view-mode", mode: "starred" });
     case "mark_all_read":
-      return Result.succeed({ type: "emit", eventName: keyboardEvents.markAllRead });
+      return Result.succeed({
+        type: "emit",
+        eventName: keyboardEvents.markAllRead,
+      });
     case "search":
-      return Result.succeed({ type: "emit", eventName: keyboardEvents.focusSearch });
+      return Result.succeed({
+        type: "emit",
+        eventName: keyboardEvents.focusSearch,
+      });
     case "close_or_clear":
       if (context.subscriptionsWorkspaceOpen) {
         return Result.fail("no_action");
       }
-      if (context.contentMode === "browser") return Result.succeed({ type: "close-browser" });
-      if (context.selectedArticleId) return Result.succeed({ type: "clear-article" });
+      if (context.contentMode === "browser")
+        return Result.succeed({ type: "close-browser" });
+      if (context.selectedArticleId)
+        return Result.succeed({ type: "clear-article" });
       return Result.fail("no_action");
     case "focus_sidebar":
       return Result.succeed({ type: "focus-sidebar" });
@@ -338,7 +397,9 @@ function resolveActionForId(
     case "prev_feed":
       return Result.succeed({ type: "navigate-feed", direction: -1 });
     case "reload_webview":
-      return context.contentMode === "browser" ? Result.succeed({ type: "reload-webview" }) : Result.fail("no_action");
+      return context.contentMode === "browser"
+        ? Result.succeed({ type: "reload-webview" })
+        : Result.fail("no_action");
   }
 }
 
@@ -351,6 +412,7 @@ export function resolveKeyboardAction(
     ctrlKey,
     shiftKey,
     targetTag,
+    targetIsTextEditing,
     selectedArticleId,
     contentMode,
     viewMode,
@@ -373,7 +435,7 @@ export function resolveKeyboardAction(
     return Result.succeed({ type: "open-settings" });
   }
 
-  if (isTextInputTarget(targetTag)) {
+  if (isTextInputTarget(targetTag, targetIsTextEditing)) {
     return Result.fail("ignored_input");
   }
 
@@ -382,9 +444,17 @@ export function resolveKeyboardAction(
   }
 
   // Modifier shortcuts should not fall back to plain single-key bindings.
-  const actionId = metaKey || ctrlKey ? map.get(normalized) : (map.get(normalized) ?? map.get(key));
+  const actionId =
+    metaKey || ctrlKey
+      ? map.get(normalized)
+      : (map.get(normalized) ?? map.get(key));
   if (actionId && actionId !== "open_settings") {
-    return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode, subscriptionsWorkspaceOpen });
+    return resolveActionForId(actionId, {
+      selectedArticleId,
+      contentMode,
+      viewMode,
+      subscriptionsWorkspaceOpen,
+    });
   }
 
   return Result.fail("no_action");
