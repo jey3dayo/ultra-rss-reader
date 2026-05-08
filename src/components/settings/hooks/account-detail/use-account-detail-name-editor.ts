@@ -1,9 +1,28 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent, useReducer, useRef } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
+import { type KeyboardEvent, type RefObject, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
-import type { UseAccountDetailNameEditorParams, UseAccountDetailNameEditorResult } from "../../account-detail/types";
+import type { AccountDetailAccount } from "../../account-detail/types";
+
+export type AccountDetailNameEditorParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+};
+
+export type AccountDetailNameEditorResult = {
+  editingName: boolean;
+  savingName: boolean;
+  nameDraft: string;
+  setNameDraft: (value: string) => void;
+  nameInputRef: RefObject<HTMLInputElement | null>;
+  startEditingName: () => void;
+  commitRename: () => Promise<void>;
+  handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+};
 
 type AccountDetailNameEditorState = {
   editingName: boolean;
@@ -48,7 +67,7 @@ export function useAccountDetailNameEditor({
   account,
   queryClient,
   t,
-}: UseAccountDetailNameEditorParams): UseAccountDetailNameEditorResult {
+}: AccountDetailNameEditorParams): AccountDetailNameEditorResult {
   const [state, dispatch] = useReducer(accountDetailNameEditorReducer, initialAccountDetailNameEditorState);
   const { editingName, savingName, nameDraft } = state;
   const nameInputRef = useRef<HTMLInputElement>(null);

@@ -1,7 +1,6 @@
-import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
-import type { AccountDto, AccountSyncStatusDto } from "@/api/tauri-commands";
+import type { AccountDto } from "@/api/tauri-commands";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 
 export type AccountSelectOption = {
@@ -105,14 +104,16 @@ export type AccountDetailViewProps = {
 
 export type AccountDetailAccount = AccountDto;
 
+export type AccountDetailSyncProgress = {
+  total: number;
+  completed: number;
+  currentAccountName: string | null;
+};
+
 export type AccountDetailContentProps = {
   account: AccountDetailAccount;
   isSyncing: boolean;
-  syncProgress?: {
-    total: number;
-    completed: number;
-    currentAccountName: string | null;
-  };
+  syncProgress?: AccountDetailSyncProgress;
   accountSetupState: AccountSetupSessionState | null;
   accountSetupErrorMessage?: string | null;
 };
@@ -121,94 +122,9 @@ export type AccountSelectRowProps = {
   control: AccountSelectControl;
 };
 
-export type UseAccountDetailControllerParams = {
-  account: AccountDetailAccount;
-  t: TFunction<"settings">;
-  onAccountDeleted: () => void;
-  onSyncStatusChanged?: () => void;
-  accountSetupState?: AccountSetupSessionState | null;
-};
-
-export type UseAccountDetailNameEditorParams = {
-  account: AccountDetailAccount;
-  queryClient: QueryClient;
-  t: TFunction<"settings">;
-};
-
-export type UseAccountDetailNameEditorResult = {
-  editingName: boolean;
-  savingName: boolean;
-  nameDraft: string;
-  setNameDraft: (value: string) => void;
-  nameInputRef: RefObject<HTMLInputElement | null>;
-  startEditingName: () => void;
-  commitRename: () => Promise<void>;
-  handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-};
-
-export type UseAccountDetailCredentialsEditorParams = {
-  account: AccountDetailAccount;
-  queryClient: QueryClient;
-  t: TFunction<"settings">;
-};
-
-export type UseAccountDetailCredentialsEditorResult = {
-  credServerUrl: string | null;
-  credUsername: string | null;
-  credPassword: string | null;
-  passwordDisplayValue: string;
-  testingConnection: boolean;
-  serverUrlInputRef: RefObject<HTMLInputElement | null>;
-  usernameInputRef: RefObject<HTMLInputElement | null>;
-  setCredServerUrl: (value: string | null) => void;
-  setCredUsername: (value: string | null) => void;
-  setCredPassword: (value: string | null) => void;
-  commitCredentials: () => Promise<boolean>;
-  handleTestConnection: () => Promise<void>;
-  handleCopyServerUrl: () => Promise<void>;
-  onPasswordFocus: () => void;
-  focusCredentialsEditor: () => void;
-};
-
-export type UseAccountDetailSyncControlsParams = {
-  account: AccountDetailAccount;
-  queryClient: QueryClient;
-  t: TFunction<"settings">;
-  onSyncStatusChanged?: () => void;
-  accountSetupState?: AccountSetupSessionState | null;
-};
-
-export type UseAccountDetailSyncControlsResult = {
-  handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
-  handleSyncNow: () => Promise<void>;
-  handleSetupRetry: () => Promise<void>;
-  syncIntervalOptions: AccountSelectOption[];
-  keepReadItemsOptions: AccountSelectOption[];
-};
-
-export type UseAccountDetailDangerZoneParams = {
-  account: AccountDetailAccount;
-  queryClient: QueryClient;
-  t: TFunction<"settings">;
-  onAccountDeleted: () => void;
-};
-
-export type UseAccountDetailDangerZoneResult = {
-  handleExportOpml: () => Promise<void>;
-  handleRequestDelete: () => void;
-};
-
 export type AccountDetailSyncStatusTranslator =
   | TFunction<"settings">
   | ((key: string, options?: { count?: number }) => string);
-
-export type UseAccountDetailSyncStatusRowsParams = {
-  syncStatus: AccountSyncStatusDto | undefined;
-  language: string;
-  t: AccountDetailSyncStatusTranslator;
-};
-
-export type UseAccountDetailSyncStatusRowsResult = AccountSyncStatusRow[];
 
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
@@ -216,30 +132,3 @@ export type UpdateAccountSyncParams = {
   syncOnWake?: boolean;
   keepReadItemsDays?: number;
 };
-
-export type UseAccountDetailControllerResult = {} & UseAccountDetailNameEditorResult &
-  UseAccountDetailCredentialsEditorResult &
-  UseAccountDetailSyncControlsResult &
-  UseAccountDetailDangerZoneResult;
-
-export type UseAccountDetailViewPropsParams = {
-  account: AccountDetailAccount;
-  controller: UseAccountDetailControllerResult;
-  isSyncing: boolean;
-  syncProgress?: {
-    total: number;
-    completed: number;
-    currentAccountName: string | null;
-  };
-  syncStatus: AccountSyncStatusDto | undefined;
-  syncStatusRows: AccountSyncStatusRow[];
-  language: string;
-  t: TFunction<"settings">;
-  accountSetupState?: AccountSetupSessionState | null;
-  accountSetupErrorMessage?: string | null;
-};
-
-export type UseAccountDetailViewPropsResult = Pick<
-  AccountDetailViewProps,
-  "title" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
->;

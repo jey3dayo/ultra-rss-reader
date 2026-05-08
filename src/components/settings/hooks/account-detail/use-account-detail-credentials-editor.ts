@@ -1,13 +1,36 @@
 import { Result } from "@praha/byethrow";
-import { useReducer, useRef } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
+import { type RefObject, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
-import type {
-  UseAccountDetailCredentialsEditorParams,
-  UseAccountDetailCredentialsEditorResult,
-} from "../../account-detail/types";
+import type { AccountDetailAccount } from "../../account-detail/types";
+
+export type AccountDetailCredentialsEditorParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+};
+
+export type AccountDetailCredentialsEditorResult = {
+  credServerUrl: string | null;
+  credUsername: string | null;
+  credPassword: string | null;
+  passwordDisplayValue: string;
+  testingConnection: boolean;
+  serverUrlInputRef: RefObject<HTMLInputElement | null>;
+  usernameInputRef: RefObject<HTMLInputElement | null>;
+  setCredServerUrl: (value: string | null) => void;
+  setCredUsername: (value: string | null) => void;
+  setCredPassword: (value: string | null) => void;
+  commitCredentials: () => Promise<boolean>;
+  handleTestConnection: () => Promise<void>;
+  handleCopyServerUrl: () => Promise<void>;
+  onPasswordFocus: () => void;
+  focusCredentialsEditor: () => void;
+};
 
 const MASKED_PASSWORD_VALUE = "••••••••";
 
@@ -28,7 +51,7 @@ type AccountDetailCredentialsEditorAction =
   | { type: "clear-password-input" };
 
 function createInitialAccountDetailCredentialsEditorState(
-  account: UseAccountDetailCredentialsEditorParams["account"],
+  account: AccountDetailCredentialsEditorParams["account"],
 ): AccountDetailCredentialsEditorState {
   return {
     credServerUrl: null,
@@ -71,7 +94,7 @@ export function useAccountDetailCredentialsEditor({
   account,
   queryClient,
   t,
-}: UseAccountDetailCredentialsEditorParams): UseAccountDetailCredentialsEditorResult {
+}: AccountDetailCredentialsEditorParams): AccountDetailCredentialsEditorResult {
   const [state, dispatch] = useReducer(
     accountDetailCredentialsEditorReducer,
     account,

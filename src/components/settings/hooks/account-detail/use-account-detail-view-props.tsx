@@ -1,7 +1,34 @@
+import type { TFunction } from "i18next";
+import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
+import type {
+  AccountDetailAccount,
+  AccountDetailSyncProgress,
+  AccountDetailViewProps,
+  AccountSyncStatusRow,
+} from "@/components/settings/account-detail/types";
+import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
-import type { UseAccountDetailViewPropsParams, UseAccountDetailViewPropsResult } from "../../account-detail/types";
+import type { AccountDetailControllerResult } from "./use-account-detail-controller";
+
+type AccountDetailViewPropsParams = {
+  account: AccountDetailAccount;
+  controller: AccountDetailControllerResult;
+  isSyncing: boolean;
+  syncProgress?: AccountDetailSyncProgress;
+  syncStatus: AccountSyncStatusDto | undefined;
+  syncStatusRows: AccountSyncStatusRow[];
+  language: string;
+  t: TFunction<"settings">;
+  accountSetupState?: AccountSetupSessionState | null;
+  accountSetupErrorMessage?: string | null;
+};
+
+type AccountDetailViewPropsResult = Pick<
+  AccountDetailViewProps,
+  "title" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
+>;
 
 export function useAccountDetailViewProps({
   account,
@@ -14,7 +41,7 @@ export function useAccountDetailViewProps({
   t,
   accountSetupState,
   accountSetupErrorMessage,
-}: UseAccountDetailViewPropsParams): UseAccountDetailViewPropsResult {
+}: AccountDetailViewPropsParams): AccountDetailViewPropsResult {
   const isSetupSyncing = accountSetupState === "syncing";
   const isSetupFailed = accountSetupState === "failed";
   const isSetupActive = isSetupSyncing || isSetupFailed;

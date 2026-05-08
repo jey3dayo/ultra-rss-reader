@@ -1,16 +1,30 @@
 import { Result } from "@praha/byethrow";
+import type { QueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
-import type { UseAccountDetailDangerZoneParams, UseAccountDetailDangerZoneResult } from "../../account-detail/types";
+import type { AccountDetailAccount } from "../../account-detail/types";
+
+export type AccountDetailDangerZoneParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+  onAccountDeleted: () => void;
+};
+
+export type AccountDetailDangerZoneResult = {
+  handleExportOpml: () => Promise<void>;
+  handleRequestDelete: () => void;
+};
 
 export function useAccountDetailDangerZone({
   account,
   queryClient,
   t,
   onAccountDeleted,
-}: UseAccountDetailDangerZoneParams): UseAccountDetailDangerZoneResult {
+}: AccountDetailDangerZoneParams): AccountDetailDangerZoneResult {
   const { t: tc } = useTranslation("common");
   const showConfirm = useUiStore((state) => state.showConfirm);
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");

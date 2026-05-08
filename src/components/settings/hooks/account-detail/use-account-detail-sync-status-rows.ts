@@ -1,21 +1,27 @@
 import { useMemo } from "react";
+import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
-import type {
-  UseAccountDetailSyncStatusRowsParams,
-  UseAccountDetailSyncStatusRowsResult,
-} from "../../account-detail/types";
+import type { AccountDetailSyncStatusTranslator, AccountSyncStatusRow } from "../../account-detail/types";
+
+type AccountDetailSyncStatusRowsParams = {
+  syncStatus: AccountSyncStatusDto | undefined;
+  language: string;
+  t: AccountDetailSyncStatusTranslator;
+};
+
+type AccountDetailSyncStatusRowsResult = AccountSyncStatusRow[];
 
 export function useAccountDetailSyncStatusRows({
   syncStatus,
   language,
   t,
-}: UseAccountDetailSyncStatusRowsParams): UseAccountDetailSyncStatusRowsResult {
+}: AccountDetailSyncStatusRowsParams): AccountDetailSyncStatusRowsResult {
   return useMemo(() => {
     if (!syncStatus) {
       return [];
     }
 
-    const rows: UseAccountDetailSyncStatusRowsResult = [];
+    const rows: AccountDetailSyncStatusRowsResult = [];
 
     if (syncStatus.next_retry_at) {
       const formattedRetryAt = formatAccountSyncRetryDateTime(syncStatus.next_retry_at, language);

@@ -2,16 +2,29 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
+import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
-import type {
-  UpdateAccountSyncParams,
-  UseAccountDetailSyncControlsParams,
-  UseAccountDetailSyncControlsResult,
-} from "../../account-detail/types";
+import type { AccountDetailAccount, AccountSelectOption, UpdateAccountSyncParams } from "../../account-detail/types";
+
+export type AccountDetailSyncControlsParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+  onSyncStatusChanged?: () => void;
+  accountSetupState?: AccountSetupSessionState | null;
+};
+
+export type AccountDetailSyncControlsResult = {
+  handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
+  handleSyncNow: () => Promise<void>;
+  handleSetupRetry: () => Promise<void>;
+  syncIntervalOptions: AccountSelectOption[];
+  keepReadItemsOptions: AccountSelectOption[];
+};
 
 type RunAccountSetupSyncParams = {
   accountId: string;
@@ -76,7 +89,7 @@ export function useAccountDetailSyncControls({
   t,
   onSyncStatusChanged,
   accountSetupState,
-}: UseAccountDetailSyncControlsParams): UseAccountDetailSyncControlsResult {
+}: AccountDetailSyncControlsParams): AccountDetailSyncControlsResult {
   const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed");
 

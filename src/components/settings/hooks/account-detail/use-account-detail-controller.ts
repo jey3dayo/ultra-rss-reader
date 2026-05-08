@@ -1,9 +1,27 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { UseAccountDetailControllerParams, UseAccountDetailControllerResult } from "../../account-detail/types";
-import { useAccountDetailCredentialsEditor } from "./use-account-detail-credentials-editor";
-import { useAccountDetailDangerZone } from "./use-account-detail-danger-zone";
-import { useAccountDetailNameEditor } from "./use-account-detail-name-editor";
-import { useAccountDetailSyncControls } from "./use-account-detail-sync-controls";
+import type { TFunction } from "i18next";
+import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
+import type { AccountDetailAccount } from "../../account-detail/types";
+import {
+  type AccountDetailCredentialsEditorResult,
+  useAccountDetailCredentialsEditor,
+} from "./use-account-detail-credentials-editor";
+import { type AccountDetailDangerZoneResult, useAccountDetailDangerZone } from "./use-account-detail-danger-zone";
+import { type AccountDetailNameEditorResult, useAccountDetailNameEditor } from "./use-account-detail-name-editor";
+import { type AccountDetailSyncControlsResult, useAccountDetailSyncControls } from "./use-account-detail-sync-controls";
+
+export type AccountDetailControllerParams = {
+  account: AccountDetailAccount;
+  t: TFunction<"settings">;
+  onAccountDeleted: () => void;
+  onSyncStatusChanged?: () => void;
+  accountSetupState?: AccountSetupSessionState | null;
+};
+
+export type AccountDetailControllerResult = AccountDetailNameEditorResult &
+  AccountDetailCredentialsEditorResult &
+  AccountDetailSyncControlsResult &
+  AccountDetailDangerZoneResult;
 
 export function useAccountDetailController({
   account,
@@ -11,7 +29,7 @@ export function useAccountDetailController({
   onAccountDeleted,
   onSyncStatusChanged,
   accountSetupState,
-}: UseAccountDetailControllerParams): UseAccountDetailControllerResult {
+}: AccountDetailControllerParams): AccountDetailControllerResult {
   const qc = useQueryClient();
   const nameEditor = useAccountDetailNameEditor({
     account,
