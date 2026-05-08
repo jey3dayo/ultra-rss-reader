@@ -1550,3 +1550,53 @@
   - `actions.ts` で browser close in-flight 中に `next-article` 後 `prev-feed` など複数 navigation が来た時、pending action を最新で上書きする契約を固定する
   - browser overlay close guard、debug input trace visual、reader navigation selection は混ぜない
   - flush 前の overwrite と flush 後の clear を別 assertion にする
+
+- [ ] Window event listener type guard contract 候補を別バッチで追加する
+  - `window-events.ts` の keyboard / mouse / pointer listener factory が別種 Event を handler へ渡さない契約を pure test で固定する
+  - add/remove options parity、global shortcut guard、DOM event behavior 変更は混ぜない
+  - KeyboardEvent / MouseEvent / PointerEvent と plain Event の case を別 assertion にする
+
+- [ ] Menu event payload type guard contract 候補を別バッチで追加する
+  - `use-menu-events.ts` で Tauri menu event payload が string 以外または unknown action の時に `executeAction` を呼ばない契約を hook test で固定する
+  - native menu i18n、checked state sync、shortcut preference validation は同じバッチに混ぜない
+  - invalid payload と unknown string action を別 case にする
+
+- [ ] Mouse navigation capture preventDefault contract 候補を別バッチで追加する
+  - `use-mouse-navigation.ts` で mouse button 3/4 の mousedown/up が capture phase で preventDefault / stopPropagation される契約を固定する
+  - editable target guard、browser history availability、OS-level mouse gesture 設定は混ぜない
+  - mousedown は action dispatch せず、mouseup だけ action dispatch することを分けて確認する
+
+- [ ] Screen snapshot initial adopt contract 候補を別バッチで追加する
+  - `use-screen-snapshot.ts` で initial render 時に `canAdopt=true` かつ candidate ありの場合だけ snapshot と `hasAdoptedSnapshot` が立つ契約を固定する
+  - first-screen readiness、startup data loading、visual skeleton は同じバッチに混ぜない
+  - initial candidate null、canAdopt false、後続 candidate resolve を別 assertion にする
+
+- [ ] Browser state navigation store sync contract 候補を別バッチで追加する
+  - `browser-webview-state.ts` の `setBrowserStateWithRef` / `updateBrowserStateWithRef` が ref、React state、`ui-store.browserNavigationState` を同じ値で同期する契約を固定する
+  - native WebView history、requested-url merge、browser overlay UI は混ぜない
+  - nextState null の navigation state clear と、loading state update を別 case にする
+
+- [ ] Browser surface fallback loading clear contract 候補を別バッチで追加する
+  - `use-browser-view-surface-state.ts` で fallback / failure issue 表示時に current browser state の `is_loading` が false へ落ちる契約を fixed hook test で固定する
+  - browser issue reset、external fallback command、surface card visual は同じバッチに混ぜない
+  - fallbackInFlight で duplicate failure を無視する branch も別 assertion にする
+
+- [ ] Browser webview state changed fallback clear contract 候補を別バッチで追加する
+  - `use-browser-webview-state-changed.ts` で state changed payload 受信時に surface issue を clear し、fallback in-flight flag を false に戻す契約を固定する
+  - browser requested-url merge、native event payload schema、WebView bounds は別バッチに残す
+  - loading payload と finished payload のどちらでも recovery marker が clear されるか確認する
+
+- [ ] Browser webview schema URL validation contract 候補を別バッチで追加する
+  - `BrowserWebviewStateSchema` で url を単なる string にするか URL 形式へ寄せるかを schema contract として明示する
+  - backend browser state tracker、frontend requested-url merge、browser overlay error copy は混ぜない
+  - 空文字 / relative URL / http URL の扱いを schema test に分ける
+
+- [ ] Sync result warning retry numeric contract 候補を別バッチで追加する
+  - `sync-result.ts` で `retry_in_seconds` を nonnegative finite number として扱うか、現状の any number を許容するか contract を固定する
+  - sync scheduler backoff、manual sync toast、provider warning DTO 追加は混ぜない
+  - retry kind ありで retry value missing / negative / fractional の扱いを分ける
+
+- [ ] Database info nonnegative schema contract 候補を別バッチで追加する
+  - `database-info.ts` で db / wal / total size を nonnegative integer として検証し、`total >= db + wal` まで見るかを schema contract として明示する
+  - database command implementation、VACUUM busy error、data settings loading/error は別バッチに残す
+  - negative / fractional / inconsistent total を別 fixture にする
