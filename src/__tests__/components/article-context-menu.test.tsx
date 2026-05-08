@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { type MockTauriCommandCall, sampleArticles, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleArticles } from "@tests/helpers/fixtures";
+import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ArticleContextMenu } from "@/components/reader/article-context-menu";
 import i18n from "@/lib/i18n";

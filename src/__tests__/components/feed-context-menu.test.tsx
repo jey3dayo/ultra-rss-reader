@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { type MockTauriCommandCall, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleFeeds } from "@tests/helpers/fixtures";
+import { type MockTauriCommandCall, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedContextMenuContent } from "@/components/reader/feed-context-menu";
 import { usePreferencesStore } from "@/stores/preferences-store";

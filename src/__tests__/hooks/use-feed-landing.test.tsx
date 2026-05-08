@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";

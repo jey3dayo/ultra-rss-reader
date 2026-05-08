@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleFeeds } from "@tests/helpers/fixtures";
+import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";

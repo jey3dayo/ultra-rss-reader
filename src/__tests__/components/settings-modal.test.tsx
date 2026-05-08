@@ -1,7 +1,8 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleAccounts, type sampleTags, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleAccounts, type sampleTags } from "@tests/helpers/fixtures";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ActionsSettings } from "@/components/settings/actions-settings";

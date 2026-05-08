@@ -13,7 +13,8 @@ vi.mock("@/lib/dev-scenario-runtime", () => ({
 }));
 
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { CommandPalette } from "@/components/reader/command-palette";
 import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";

@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
