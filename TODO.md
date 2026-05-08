@@ -878,3 +878,53 @@
   - `scheduler`、`account:greader:all`、`account:greader:remote-state-full`、`feed:{remote_id}`、`local_feed:{url}` を typed helper に寄せる
   - sync_state schema migration、backoff 計算、remote-state cooldown の挙動変更とは混ぜない
   - scope collision と accidental typo を pure test で固定する
+
+- [ ] article toolbar action resolver contract 候補を別バッチで追加する
+  - `article-toolbar-view.tsx` と `use-article-toolbar-controls.tsx` で `hasArticle` / `url` / `action_copy_link` / `hideBrowserOverlayActions` / `layoutMode` から action 表示状態を解く resolver を検討する
+  - visual token、icon、toast、article action 本体、context menu action id 整理とは混ぜない
+  - 表示 / disabled / desktop-mobile 配置順だけを小さい contract test に寄せる
+
+- [ ] article list header control availability contract 候補を別バッチで追加する
+  - `article-list-header-actions.tsx` と header hooks で `mark all read`、search、sidebar toggle、feed display select がどの scope で出る / 押せる / no-op になるかを固定する
+  - mark-all-read 件数 resolver、confirm dialog copy、reader query scope matrix、feed display setting 保存処理とは混ぜない
+  - UI contract として availability だけを test し、実 mutation は別に残す
+
+- [ ] article row presentation helper contract 候補を別バッチで追加する
+  - `article-list-item.tsx` で title / feed / summary / viewed_at / starred / unread / recently-read から aria label、meta label、summary、thumbnail 表示を組む判定を helper 化できるか確認する
+  - row selection styling、keyboard navigation、scroll、grouping、article content sanitizer とは混ぜない
+  - 境界値 test は missing title / missing feed / summary empty / thumbnail empty を分ける
+
+- [ ] article list context trigger ownership contract 候補を別バッチで追加する
+  - `article-list-body.tsx`、`article-list-screen-view.tsx`、`article-context-menu.tsx` で list background menu trigger と article row menu trigger が listbox / option role とクリック選択を壊さないことを固定する
+  - menu item enabled/disabled、action id 対応表、mark all read scope、Base UI visual token とは混ぜない
+  - trigger ownership と selection side effect だけを focused component test にする
+
+- [ ] sidebar footer utility action contract 候補を別バッチで追加する
+  - `sidebar-footer-actions.tsx` で subscriptions index / theme toggle / settings の footer utility action を label、tooltip、icon、click handler、theme light/dark 切替の contract として固定する
+  - settings page navigation、subscriptions index UI、preferences schema migration、theme token / design 変更とは混ぜない
+  - footer action surface の narrow display は Storybook 候補へ残す
+
+- [ ] API pagination args finite integer guard 候補を別バッチで追加する
+  - `commands.ts` と `schemas.test.ts` で `offset` / `limit` を使う list/search 系 args だけを finite integer / nonnegative / positive として固定する
+  - backend pagination order、FTS search、同一 timestamp pagination stability、UI empty state とは混ぜない
+  - validation failure の typed result だけを見て、UI copy は触らない
+
+- [ ] addAccount provider args discriminated validation 候補を別バッチで追加する
+  - `commands.ts` と `account_commands.rs` で `Local` と `FreshRss` の `kind` / `serverUrl` / `username` / `password` 必須条件を揃える
+  - provider login UX、keyring rollback、connection test 連打抑止、account setup lock とは混ぜない
+  - TS schema と Rust command 境界の invalid args fixture を対応させる
+
+- [ ] preference value max-length parity guard 候補を別バッチで追加する
+  - `commands.ts` と `preference_commands.rs` で backend の `value.len() > 1024` 制限を frontend `setPreferenceArgs` でも事前 validation するか、差分を contract test で明示する
+  - preference default / migration、settings UI option parity、shortcut preference registry、表示 copy とは混ぜない
+  - max-length と UTF-8 byte / char count の扱いを先に固定する
+
+- [ ] i18n test helper resource parity guard 候補を別バッチで追加する
+  - `i18n.ts`、`tests/helpers/i18n-setup.ts`、`i18next.d.ts` で app 本体 resources / ns と test helper namespace 構成が drift しないことを static test にする
+  - locale 文言改善、placeholder parity、native menu language resolver、missing key 全般とは混ぜない
+  - test helper にだけ存在する namespace と app にだけ存在する namespace を別 assertion にする
+
+- [ ] sync result numeric schema guard 候補を別バッチで追加する
+  - `sync-result.ts` と `schemas.test.ts` で `total` / `succeeded` / `retry_in_seconds` を nonnegative integer として固定する
+  - provider warning DTO 追加、manual sync toast、scheduler backoff、sync result feedback copy とは混ぜない
+  - `succeeded <= total` を同時に固定するかは別判断として残す
