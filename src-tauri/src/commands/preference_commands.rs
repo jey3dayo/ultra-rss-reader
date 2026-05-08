@@ -53,7 +53,6 @@ const ALLOWED_KEYS: &[&str] = &[
     "recent_articles_history_enabled",
     "debug_browser_hud",
     "debug_web_preview_url",
-    "mute_auto_mark_read",
     "selected_account_id",
 ];
 

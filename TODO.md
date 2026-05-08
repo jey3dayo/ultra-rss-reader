@@ -504,11 +504,6 @@
   - pending mutation queue、手動 unsubscribe UX、article retention とは混ぜず、remote subscription presence の検出と記録だけを見る
   - いきなり削除せず、diagnostic DTO / log / test fixture から始める
 
-- [ ] preference key registry parity 候補を別バッチで追加する
-  - `src/api/schemas/preferences.ts`、`preference_commands.rs`、preferences schema contract test の frontend/backend key registry を双方向に照合する
-  - frontend key が backend で許可されるだけでなく、backend-only key と重複 key も検出できる contract test にする
-  - preference value validation、settings UI、migration は混ぜず、key registry parity だけを扱う
-
 - [ ] shortcut preference validation 候補を別バッチで追加する
   - `keyboard-shortcuts.ts`、preferences schema、`preference_commands.rs` の `shortcut_` 動的 key を既知 shortcut id と保存値形式で検証する
   - prefix 全許可を続けるか、known shortcut registry へ寄せるかを test で固定する

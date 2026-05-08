@@ -22,6 +22,22 @@ function extractBackendAllowedKeys(source: string): string[] {
   return [...block.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
 }
 
+function collectDuplicates(keys: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const key of keys) {
+    if (seen.has(key)) {
+      duplicates.add(key);
+    }
+    seen.add(key);
+  }
+
+  return [...duplicates].sort();
+}
+
+const backendOnlyPreferenceKeys = ["selected_account_id"];
+
 describe("preference contract", () => {
   it("keeps every frontend preference key allowed by the Tauri backend", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
@@ -30,6 +46,16 @@ describe("preference contract", () => {
     const missingInBackend = frontendKeys.filter((key) => !backendAllowedKeys.includes(key));
 
     expect(missingInBackend).toEqual([]);
+  });
+
+  it("keeps backend preference keys unique and limited to frontend or backend-only keys", () => {
+    const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
+    const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
+    const allowedBackendKeys = new Set([...frontendKeys, ...backendOnlyPreferenceKeys]);
+    const unexpectedBackendKeys = backendAllowedKeys.filter((key) => !allowedBackendKeys.has(key));
+
+    expect(collectDuplicates(backendAllowedKeys)).toEqual([]);
+    expect(unexpectedBackendKeys).toEqual([]);
   });
 
   it("does not expose removed Inoreader preference keys", () => {
