@@ -10,7 +10,7 @@ import {
   parseDateInput,
 } from "@/lib/datetime";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
-import type { SmartViewKind } from "@/lib/sidebar-smart-views";
+import type { SmartViewKind } from "@/lib/smart-view.types";
 import type { ViewMode } from "@/lib/view-mode.types";
 
 export type SelectVisibleArticlesParams = {

@@ -1,4 +1,4 @@
-export type SmartViewKind = "unread" | "starred" | "recent";
+import type { SmartViewKind } from "@/lib/smart-view.types";
 
 export type SmartViewItemViewModel = {
   kind: SmartViewKind;

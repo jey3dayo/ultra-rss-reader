@@ -1,7 +1,8 @@
 import type { TFunction } from "i18next";
 import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
 import type { SortSubscriptions } from "@/lib/preferences-schema";
-import type { SmartViewItemViewModel, SmartViewKind } from "@/lib/sidebar-smart-views";
+import type { SmartViewItemViewModel } from "@/lib/sidebar-smart-views";
+import type { SmartViewKind } from "@/lib/smart-view.types";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
@@ -73,7 +74,8 @@ export type SidebarContentSectionsProps = {
 
 export type SidebarContentProps = SidebarContentSectionsProps;
 
-export type { SmartViewItemViewModel, SmartViewKind } from "@/lib/sidebar-smart-views";
+export type { SmartViewItemViewModel } from "@/lib/sidebar-smart-views";
+export type { SmartViewKind } from "@/lib/smart-view.types";
 
 export type SidebarSmartViewsProps = {
   title?: string;

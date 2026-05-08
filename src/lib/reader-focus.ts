@@ -1,4 +1,4 @@
-import type { SmartViewKind } from "@/lib/sidebar-smart-views";
+import type { SmartViewKind } from "@/lib/smart-view.types";
 
 export const SIDEBAR_SELECTED_TARGET_ATTRIBUTE = "data-sidebar-selected-target";
 export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";

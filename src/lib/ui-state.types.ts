@@ -1,4 +1,4 @@
-import type { SmartViewKind } from "@/lib/sidebar-smart-views";
+import type { SmartViewKind } from "@/lib/smart-view.types";
 
 export type ToastAction = {
   label: string;

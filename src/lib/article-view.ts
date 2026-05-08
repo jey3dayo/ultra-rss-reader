@@ -4,7 +4,7 @@ import { countUnreadArticles } from "@/lib/article-list";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
 import { countFeedsInFolder } from "@/lib/sidebar";
-import type { SmartViewKind } from "@/lib/sidebar-smart-views";
+import type { SmartViewKind } from "@/lib/smart-view.types";
 
 export type FindSelectedArticleParams = {
   selectedArticleId: string | null;
