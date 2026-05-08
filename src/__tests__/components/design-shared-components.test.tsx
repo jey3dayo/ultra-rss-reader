@@ -148,6 +148,21 @@ describe("Design-themed shared components", () => {
     );
   });
 
+  it("preserves label chip semantic tone when callers override compact shape", () => {
+    render(
+      <LabelChip tone="warning" size="compact" className="rounded-md px-2">
+        Warning override
+      </LabelChip>,
+    );
+
+    expect(screen.getByText("Warning override")).toHaveAttribute("data-label-chip", "warning");
+    expect(screen.getByText("Warning override")).toHaveClass(
+      "border-state-warning-border",
+      "bg-state-warning-surface",
+      "text-state-warning-foreground",
+    );
+  });
+
   it("keeps base switch transitions explicit", () => {
     render(<Switch aria-label="Base switch" />);
 
