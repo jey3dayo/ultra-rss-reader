@@ -1,8 +1,25 @@
 import { Copy } from "lucide-react";
-import type { CopyableTextFieldProps } from "@/components/shared/copyable-field.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppTooltip } from "@/components/ui/tooltip";
+
+type CopyableTextFieldType = "text" | "url" | "password";
+
+type CopyableTextFieldProps = {
+  label: string;
+  name: string;
+  value: string;
+  copyLabel?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  placeholder?: string;
+  className?: string;
+  type?: CopyableTextFieldType;
+  onCopy?: () => void;
+  onChange?: (value: string) => void;
+  onBlur?: () => void;
+  onFocus?: () => void;
+};
 
 export function CopyableTextField({
   label,

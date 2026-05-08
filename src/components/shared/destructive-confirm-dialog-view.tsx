@@ -1,6 +1,17 @@
+import type { ReactNode } from "react";
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
-import type { DestructiveConfirmDialogViewProps } from "@/components/shared/dialog.types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+type DestructiveConfirmDialogViewProps = {
+  open: boolean;
+  title: string;
+  description: ReactNode;
+  cancelLabel: string;
+  confirmLabel: string;
+  pending?: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+};
 
 export function DestructiveConfirmDialogView({
   open,

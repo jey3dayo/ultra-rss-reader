@@ -1,9 +1,24 @@
 import { AlertTriangle, CheckCheck, Trash2 } from "lucide-react";
-import type { ComponentProps } from "react";
-import type { ConfirmDialogIcon, ConfirmDialogVariant, ConfirmDialogViewProps } from "@/components/shared/dialog.types";
+import type { ComponentProps, ComponentType } from "react";
+import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
+
+type ConfirmDialogViewProps = {
+  open: boolean;
+  title: string;
+  message: string;
+  actionLabel: string;
+  cancelLabel: string;
+  variant?: ConfirmDialogVariant;
+  icon?: ConfirmDialogIcon;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
 
 type ConfirmDialogVariantStyle = {
   iconContainerClassName: string;
