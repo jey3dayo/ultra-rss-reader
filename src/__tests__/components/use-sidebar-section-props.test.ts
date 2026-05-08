@@ -5,7 +5,7 @@ import { useSidebarContentSectionsProps } from "@/components/reader/hooks/sideba
 import { useSidebarSmartViewsProps } from "@/components/reader/hooks/sidebar/use-sidebar-smart-views-props";
 import type { SmartViewItemViewModel } from "@/components/reader/sidebar.types";
 import i18n from "@/lib/i18n";
-import type { UiSelection } from "@/lib/ui-state.types";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 
 const t = i18n.getFixedT("en", "sidebar");
 
@@ -117,7 +117,7 @@ describe("sidebar section props builders", () => {
       onSelectFeed: vi.fn(),
       displayFavicons: true,
     };
-    const selection: UiSelection = { type: "all" };
+    const selection: ReaderSelection = { type: "all" };
 
     const props = useSidebarContentSectionsProps({
       t,

@@ -51,9 +51,8 @@
   - account detail / add account の view components 本体まで feature folder 化する場合は、Storybook と test の参照範囲が広いため別バッチにする
 
 - [ ] 参照範囲が広い root-level type を別バッチで分割する
-  - `src/lib/ui-state.types.ts` の layout / selection / subscriptions workspace は store / subscriptions / reader にまたがるため単独バッチにする
-  - layout / content / focus は `src/lib/layout/layout-state.types.ts` が候補だが、`use-layout` / keyboard shortcuts / article list type contract の確認を含める
-  - subscriptions workspace は `src/lib/subscriptions/subscriptions-workspace.types.ts` が候補だが、subscriptions index return-state と store action の境界を先に確認する
+  - reader selection は `src/lib/reader/reader-selection.types.ts` を source of truth にする。新しい `UiSelection` alias は増やさない
+  - さらに state type を分割する場合は、`src/stores/ui-store.ts` 自体を slice 化できる段階で実施する。store action / selector / dev scenario への参照が広いため別バッチにする
 
 - [ ] 小粒 cleanup 候補を別バッチで見直す
   - UI class variant のテスト固定は、見た目を過剰に固定しない範囲に限定する

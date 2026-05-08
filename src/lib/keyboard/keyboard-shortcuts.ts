@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 import type { PlatformInfo } from "@/api/schemas";
 import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import type { ContentMode } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { ContentMode } from "@/lib/ui-state.types";
 
 export const keyboardEvents = {
   toggleRead: "ultra-rss:toggle-read",

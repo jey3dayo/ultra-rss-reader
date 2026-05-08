@@ -3,12 +3,14 @@ import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard/keyboard-shortcuts";
+import type { ArticleNavigationDirection, FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { ArticleNavigationDirection, FocusedPane, LayoutMode, UiSelection } from "@/lib/ui-state.types";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
 export type ArticleListLayoutMode = LayoutMode;
+export type ArticleListSelection = ReaderSelection;
 export type ArticleListViewMode = ViewMode;
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
@@ -140,7 +142,7 @@ export type UseArticleListInteractionsResult = {
 };
 
 export type UseArticleListViewStateParams = {
-  selection: UiSelection;
+  selection: ArticleListSelection;
   t: TFunction<"reader">;
   selectedAccountId: string | null;
   feedId: string | null;
@@ -173,7 +175,7 @@ export type UseArticleListViewStateResult = {
 };
 
 export type UseArticleListEffectsParams = {
-  selection: UiSelection;
+  selection: ArticleListSelection;
   scrollToTopOnChange: string;
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
@@ -287,7 +289,7 @@ export type UseArticleListPresentationParams = {
 };
 
 export type UseArticleListHeaderActionsParams = {
-  selection: UiSelection;
+  selection: ArticleListSelection;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
@@ -302,7 +304,7 @@ export type UseArticleListHeaderActionsResult = {
 };
 
 export type UseArticleListHeaderControllerParams = {
-  selection: UiSelection;
+  selection: ArticleListSelection;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
@@ -386,7 +388,7 @@ export type UseArticleListSearchResult = {
 };
 
 export type UseArticleListSourcesParams = {
-  selection: UiSelection;
+  selection: ArticleListSelection;
   selectedAccountId: string | null;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;

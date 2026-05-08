@@ -3,7 +3,7 @@ import {
   MOBILE_LAYOUT_BREAKPOINT_PX,
   SIDEBAR_PANE_WIDTH_PX,
 } from "@/constants/ui-layout";
-import type { FocusedPane, LayoutMode } from "@/lib/ui-state.types";
+import type { FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 
 export type Pane = FocusedPane;
 export type ResponsiveLayoutMode = LayoutMode;

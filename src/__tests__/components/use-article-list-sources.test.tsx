@@ -4,8 +4,8 @@ import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { UiSelection } from "@/lib/ui-state.types";
 
 const {
   useFeedsMock,
@@ -260,7 +260,7 @@ describe("useArticleListSources", () => {
 
     const cases: Array<{
       name: string;
-      selection: UiSelection;
+      selection: ReaderSelection;
       viewMode: MatrixMode;
       expectedCount: number;
       expectedHook: ReturnType<typeof vi.fn>;

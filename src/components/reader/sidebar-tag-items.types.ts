@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { TagDto } from "@/api/tauri-commands";
-import type { UiSelection } from "@/lib/ui-state.types";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { SidebarDensity } from "./sidebar-density";
 
 export type SidebarTagItem = {
@@ -14,7 +14,7 @@ export type SidebarTagItem = {
 export type SidebarTagItemsParams = {
   tags: TagDto[] | undefined;
   tagArticleCounts: Record<string, number> | undefined;
-  selection: UiSelection;
+  selection: ReaderSelection;
 };
 
 export type SidebarTagItemsResult = SidebarTagItem[];

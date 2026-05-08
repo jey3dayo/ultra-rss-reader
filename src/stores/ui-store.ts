@@ -4,11 +4,6 @@ import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { AccountSetupSession } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
-import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { SettingsCategory } from "@/lib/settings/settings-category.types";
-import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
-import type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
-import type { ToastData } from "@/lib/ui/toast.types";
 import type {
   ArticleNavigationDirection,
   BrowserNavigationState,
@@ -16,19 +11,27 @@ import type {
   FocusedPane,
   LayoutMode,
   PendingBrowserCloseAction,
+} from "@/lib/layout/layout-state.types";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
+import type {
   SubscriptionsWorkspace,
   SubscriptionsWorkspaceReturnState,
-  UiSelection,
-} from "@/lib/ui-state.types";
+} from "@/lib/subscriptions/subscriptions-workspace.types";
+import type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 export type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
+export type { ArticleNavigationDirection, ContentMode } from "@/lib/layout/layout-state.types";
+export type { ReaderSelection as UiSelection } from "@/lib/reader/reader-selection.types";
 export type { SettingsCategory } from "@/lib/settings/settings-category.types";
 export type { SyncProgressEvent, SyncProgressState } from "@/lib/sync/sync-progress.types";
 export type { ToastData } from "@/lib/ui/toast.types";
-export type { ArticleNavigationDirection, ContentMode, UiSelection } from "@/lib/ui-state.types";
 
 function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
   return state.contentMode === "empty" ? "list" : "content";
@@ -40,7 +43,7 @@ function getContextAwareScopeViewMode(state: Pick<UiState, "selection" | "viewMo
     : "unread";
 }
 
-function getSmartViewMode(kind: Extract<UiSelection, { type: "smart" }>["kind"]): UiState["viewMode"] {
+function getSmartViewMode(kind: Extract<ReaderSelection, { type: "smart" }>["kind"]): UiState["viewMode"] {
   if (kind === "starred") {
     return "starred";
   }
@@ -75,7 +78,7 @@ interface UiState {
   accountPaneOpen: boolean;
   contentMode: ContentMode;
   selectedAccountId: string | null;
-  selection: UiSelection;
+  selection: ReaderSelection;
   selectedArticleId: string | null;
   viewMode: ViewMode;
   searchQuery: string;
