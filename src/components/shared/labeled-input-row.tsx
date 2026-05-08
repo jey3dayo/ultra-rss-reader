@@ -1,10 +1,42 @@
-import { useId } from "react";
+import { type KeyboardEventHandler, type ReactNode, type RefObject, useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { LabeledInputRowProps } from "./form-row.types";
+
+type LabeledInputRowProps = {
+  label: string;
+  name?: string;
+  type?: string;
+  value: string;
+  placeholder?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  title?: string;
+  ariaDescribedBy?: string;
+  ariaErrorMessage?: string;
+  ariaInvalid?: boolean;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  onFocus?: () => void;
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+  rowClassName?: string;
+  labelClassName?: string;
+  controlClassName?: string;
+  inputClassName?: string;
+  actionLabel?: string;
+  actionAriaLabel?: string;
+  actionTooltipLabel?: string;
+  actionIcon?: ReactNode;
+  actionPlacement?: "inline" | "inside";
+  actionVariant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
+  actionSize?: "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
+  actionClassName?: string;
+  onAction?: () => void;
+  actionDisabled?: boolean;
+};
 
 export function LabeledInputRow({
   label,

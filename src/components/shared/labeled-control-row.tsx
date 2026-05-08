@@ -1,6 +1,16 @@
+import type { ReactNode } from "react";
 import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
-import type { LabeledControlRowProps } from "./form-row.types";
+
+type LabeledControlRowProps = {
+  label: string;
+  description?: string;
+  children?: ReactNode;
+  htmlFor?: string;
+  labelId?: string;
+  className?: string;
+  labelClassName?: string;
+};
 
 export function LabeledControlRow({
   label,

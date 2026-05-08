@@ -3,7 +3,23 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
 import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { LabeledSelectRowProps } from "./form-row.types";
+
+type LabeledSelectOption = {
+  value: string;
+  label: string;
+};
+
+type LabeledSelectRowProps = {
+  label: string;
+  name: string;
+  value: string;
+  options: LabeledSelectOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  open?: boolean;
+  rowClassName?: string;
+  triggerClassName?: string;
+};
 
 export function LabeledSelectRow({
   label,
