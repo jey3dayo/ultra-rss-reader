@@ -44,6 +44,12 @@ export type BrowserDebugGeometryRow = {
   value: string;
 };
 
+export function createBrowserDebugGeometrySnapshot(
+  snapshot: BrowserDebugGeometrySnapshot,
+): BrowserDebugGeometrySnapshot {
+  return snapshot;
+}
+
 function formatRatio(value: number, total: number) {
   if (total <= 0) {
     return "n/a";

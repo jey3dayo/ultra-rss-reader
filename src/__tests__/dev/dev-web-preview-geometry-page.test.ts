@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { createDevWebPreviewGeometryFixture } from "@/dev/web-preview-geometry";
 
 function readGeometryPageHtml(): string {
   const currentFile = fileURLToPath(import.meta.url);
@@ -12,11 +13,17 @@ function readGeometryPageHtml(): string {
 describe("dev web preview geometry page", () => {
   it("keeps the left and right edge rails visible for fullscreen width checks", () => {
     const html = readGeometryPageHtml();
+    const fixture = createDevWebPreviewGeometryFixture();
 
-    expect(html).toMatch(/--edge-left:\s*#2563eb;/);
-    expect(html).toMatch(/--edge-right:\s*#f43f5e;/);
-    expect(html).toContain("native webview should touch both colored rails");
-    expect(html).toContain("left edge");
-    expect(html).toContain("right edge");
+    expect(html).toContain(`${fixture.rails.left.cssVariable}: ${fixture.rails.left.color};`);
+    expect(html).toContain(`${fixture.rails.right.cssVariable}: ${fixture.rails.right.color};`);
+    expect(html).toContain(fixture.summary.title);
+    expect(html).toContain(fixture.summary.description);
+    expect(html).toContain(fixture.rails.left.label);
+    expect(html).toContain(fixture.rails.right.label);
+    for (const check of fixture.checks) {
+      expect(html).toContain(check.title);
+      expect(html).toContain(check.description);
+    }
   });
 });

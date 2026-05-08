@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
+import { createBrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
 
 const layoutDiagnostics = {
   viewport: { width: 1200, height: 800 },
@@ -18,6 +18,13 @@ const nativeDiagnostics = {
 };
 
 describe("browser-debug-geometry", () => {
+  it("creates a diagnostics snapshot separately from row rendering", () => {
+    expect(createBrowserDebugGeometrySnapshot({ layoutDiagnostics, nativeDiagnostics })).toEqual({
+      layoutDiagnostics,
+      nativeDiagnostics,
+    });
+  });
+
   it("formats layout diagnostics rows", () => {
     expect(getBrowserGeometryRows({ layoutDiagnostics, nativeDiagnostics: null })).toEqual([
       { label: "viewport", value: "1200 x 800" },

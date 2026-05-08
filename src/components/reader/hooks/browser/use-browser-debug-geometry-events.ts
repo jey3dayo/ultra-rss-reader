@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
+import { createBrowserDebugGeometrySnapshot } from "@/lib/browser/browser-debug-geometry";
 import type { BrowserViewLayoutDiagnostics, BrowserWebviewDiagnosticsPayload } from "../../browser-view.types";
 
 type UseBrowserDebugGeometryEventsParams = {
@@ -21,10 +22,10 @@ export function useBrowserDebugGeometryEvents({
 
     window.dispatchEvent(
       new CustomEvent(APP_EVENTS.browserDebugGeometry, {
-        detail: {
+        detail: createBrowserDebugGeometrySnapshot({
           layoutDiagnostics,
           nativeDiagnostics,
-        },
+        }),
       }),
     );
 

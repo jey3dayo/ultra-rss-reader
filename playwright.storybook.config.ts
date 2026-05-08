@@ -12,7 +12,10 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:6006",
     headless: true,
     screenshot: "only-on-failure",
+    trace: "retain-on-failure",
   },
+  outputDir: "test-results/storybook",
+  reporter: [["list"], ["html", { outputFolder: "playwright-report/storybook", open: "never" }]],
   webServer: {
     command: storybookCommand,
     url: "http://127.0.0.1:6006",

@@ -7,7 +7,10 @@ export default defineConfig({
     baseURL: "http://localhost:1420",
     headless: true,
     screenshot: "only-on-failure",
+    trace: "retain-on-failure",
   },
+  outputDir: "test-results/e2e",
+  reporter: [["list"], ["html", { outputFolder: "playwright-report/e2e", open: "never" }]],
   webServer: {
     command: "pnpm dev",
     url: "http://localhost:1420",
