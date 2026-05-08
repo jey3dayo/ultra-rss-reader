@@ -1,21 +1,30 @@
 import { AlertTriangle, CheckCheck, Trash2 } from "lucide-react";
-import type { ConfirmDialogViewProps } from "@/components/shared/dialog.types";
+import type { ComponentProps } from "react";
+import type { ConfirmDialogIcon, ConfirmDialogVariant, ConfirmDialogViewProps } from "@/components/shared/dialog.types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+type ConfirmDialogVariantStyle = {
+  iconContainerClassName: string;
+  iconClassName: string;
+  actionButtonVariant: NonNullable<ComponentProps<typeof Button>["variant"]>;
+  actionButtonClassName: string;
+  fallbackIcon: NonNullable<ConfirmDialogIcon>;
+};
 
 const confirmDialogVariantStyles = {
   default: {
     iconContainerClassName: "bg-surface-1/72",
     iconClassName: "text-primary",
-    actionButtonVariant: "default" as const,
+    actionButtonVariant: "default",
     actionButtonClassName: "",
     fallbackIcon: CheckCheck,
   },
   warning: {
     iconContainerClassName: "bg-state-warning-surface",
     iconClassName: "text-state-warning-foreground",
-    actionButtonVariant: "outline" as const,
+    actionButtonVariant: "outline",
     actionButtonClassName:
       "border-state-warning-border bg-state-warning-surface text-state-warning-foreground shadow-none hover:border-state-warning-border hover:bg-state-warning-surface hover:text-state-warning-foreground focus-visible:border-state-warning-border",
     fallbackIcon: AlertTriangle,
@@ -23,11 +32,11 @@ const confirmDialogVariantStyles = {
   destructive: {
     iconContainerClassName: "bg-state-danger-surface",
     iconClassName: "text-state-danger-foreground",
-    actionButtonVariant: "destructive" as const,
+    actionButtonVariant: "destructive",
     actionButtonClassName: "hover:text-state-danger-foreground",
     fallbackIcon: Trash2,
   },
-} as const;
+} satisfies Record<ConfirmDialogVariant, ConfirmDialogVariantStyle>;
 
 export function ConfirmDialogView({
   open,
