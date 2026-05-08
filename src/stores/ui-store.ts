@@ -19,6 +19,7 @@ import type {
   ToastData,
   UiSelection,
 } from "@/lib/ui-state.types";
+import type { ViewMode } from "@/lib/view-mode.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -81,7 +82,7 @@ interface UiState {
   selectedAccountId: string | null;
   selection: UiSelection;
   selectedArticleId: string | null;
-  viewMode: "all" | "unread" | "starred";
+  viewMode: ViewMode;
   searchQuery: string;
   browserUrl: string | null;
   browserNavigationState: BrowserNavigationState | null;
@@ -141,7 +142,7 @@ interface UiActions {
   setBrowserNavigationState: (state: BrowserNavigationState | null) => void;
   setBrowserCloseInFlight: (inFlight: boolean) => void;
   setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
-  setViewMode: (mode: "all" | "unread" | "starred") => void;
+  setViewMode: (mode: ViewMode) => void;
   setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
   setExpandedFolders: (folderIds: Iterable<string>) => void;

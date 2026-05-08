@@ -10,8 +10,7 @@ import {
   parseDateInput,
 } from "@/lib/datetime";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
-
-type ViewMode = "all" | "unread" | "starred";
+import type { ViewMode } from "@/lib/view-mode.types";
 
 export type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;

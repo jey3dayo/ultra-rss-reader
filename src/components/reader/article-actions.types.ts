@@ -1,8 +1,9 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { AfterReadingPreference } from "@/lib/preferences-schema";
+import type { ViewMode } from "@/lib/view-mode.types";
 
-export type ArticleStatusViewMode = "all" | "unread" | "starred";
+export type ArticleStatusViewMode = ViewMode;
 
 export type ArticleStatusToast = (message: string) => void;
 

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { ViewMode } from "@/lib/view-mode.types";
 import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "../../article-list.types";
 
 export function useArticleListViewState({
@@ -39,7 +40,7 @@ export function useArticleListViewState({
     };
   }, [selection, t]);
 
-  const footerModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
+  const footerModes = useMemo<ReadonlyArray<ViewMode>>(() => {
     if (selection.type !== "smart") {
       return ["unread", "all", "starred"];
     }
@@ -55,7 +56,7 @@ export function useArticleListViewState({
     return ["unread", "all"];
   }, [selection]);
 
-  const footerDisabledModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
+  const footerDisabledModes = useMemo<ReadonlyArray<ViewMode>>(() => {
     if (selection.type === "smart" && selection.kind === "unread") {
       return ["unread"];
     }

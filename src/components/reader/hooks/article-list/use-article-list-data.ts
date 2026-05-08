@@ -6,6 +6,7 @@ import {
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/article-list";
+import type { ViewMode } from "@/lib/view-mode.types";
 import type { UseArticleListDataParams, UseArticleListDataResult } from "../../article-list.types";
 
 export function useArticleListData({
@@ -26,7 +27,7 @@ export function useArticleListData({
   sortUnread,
   groupBy,
 }: UseArticleListDataParams): UseArticleListDataResult {
-  const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
+  const effectiveViewMode = useMemo<ViewMode>(() => {
     return sourcePlan.effectiveViewMode;
   }, [sourcePlan.effectiveViewMode]);
 

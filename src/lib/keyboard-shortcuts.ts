@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { PlatformInfo } from "@/api/schemas";
 import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import type { ViewMode } from "@/lib/view-mode.types";
 
 export const keyboardEvents = {
   toggleRead: "ultra-rss:toggle-read",
@@ -15,7 +16,8 @@ export const keyboardEvents = {
 } as const;
 
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-export type ViewMode = "all" | "unread" | "starred";
+
+export type { ViewMode } from "@/lib/view-mode.types";
 
 export type KeyboardAction =
   | { type: "open-settings" }

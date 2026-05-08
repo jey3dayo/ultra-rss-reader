@@ -5,10 +5,11 @@ import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard-shortcuts";
 import type { ReaderSourcePlan } from "@/lib/reader-query";
 import type { ArticleNavigationDirection, UiSelection } from "@/lib/ui-state.types";
+import type { ViewMode } from "@/lib/view-mode.types";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
-export type ArticleListViewMode = "all" | "unread" | "starred";
+export type ArticleListViewMode = ViewMode;
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
 
@@ -163,8 +164,8 @@ export type UseArticleListViewStateResult = {
     secondaryLabel: string | null;
     tone: "unread" | "starred" | null;
   };
-  footerModes: ReadonlyArray<"all" | "unread" | "starred">;
-  footerDisabledModes: ReadonlyArray<"all" | "unread" | "starred">;
+  footerModes: ReadonlyArray<ArticleListViewMode>;
+  footerDisabledModes: ReadonlyArray<ArticleListViewMode>;
   isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;

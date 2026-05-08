@@ -1,4 +1,6 @@
-type ArticleRetentionViewMode = "all" | "unread" | "starred";
+import type { ViewMode } from "@/lib/view-mode.types";
+
+type ArticleRetentionViewMode = ViewMode;
 
 export type RetainedArticleSelectionParams = {
   articleId: string;

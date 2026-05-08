@@ -1,11 +1,12 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { SortSubscriptions } from "@/lib/preferences-schema";
 import type { UiSelection } from "@/lib/ui-state.types";
+import type { ViewMode } from "@/lib/view-mode.types";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 
 export type SidebarSelection = UiSelection;
 
-export type SidebarFeedTreeViewMode = "all" | "unread" | "starred";
+export type SidebarFeedTreeViewMode = ViewMode;
 
 export type SidebarSortFeeds = (candidateFeeds: FeedDto[]) => FeedDto[];
 

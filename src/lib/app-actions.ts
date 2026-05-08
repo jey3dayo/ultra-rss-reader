@@ -1,4 +1,4 @@
-import type { ViewMode } from "@/lib/keyboard-shortcuts";
+import type { ViewMode } from "@/lib/view-mode.types";
 
 /** All valid action identifiers dispatched via executeAction. */
 export type AppAction =

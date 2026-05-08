@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
 import type { UiSelection } from "@/lib/ui-state.types";
+import type { ViewMode } from "@/lib/view-mode.types";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
 
@@ -43,7 +44,7 @@ vi.mock("@/hooks/use-tags", () => ({
   useArticlesByTag: (...args: unknown[]) => useArticlesByTagMock(...args),
 }));
 
-type MatrixMode = "all" | "unread" | "starred";
+type MatrixMode = ViewMode;
 
 function matrixArticle(id: string, feedId: string, isRead: boolean, isStarred: boolean): ArticleDto {
   return {
@@ -76,7 +77,7 @@ function filterMatrixMode(articles: ArticleDto[], mode: MatrixMode): ArticleDto[
 describe("useArticleListSources", () => {
   beforeEach(() => {
     useFeedsMock.mockReturnValue({ data: sampleFeeds });
-    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: "all" | "unread" | "starred" }) => ({
+    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
       data:
         options?.mode === "unread"
           ? sampleArticles.filter((article) => !article.is_read)
@@ -85,19 +86,17 @@ describe("useArticleListSources", () => {
             : sampleArticles,
       isLoading: false,
     }));
-    useAccountArticlesMock.mockImplementation(
-      (_accountId: string | null, options?: { mode?: "all" | "unread" | "starred" }) => ({
-        data:
-          options?.mode === "unread"
-            ? sampleArticles.filter((article) => !article.is_read)
-            : options?.mode === "starred"
-              ? sampleArticles.filter((article) => article.is_starred)
-              : sampleArticles,
-        isLoading: false,
-      }),
-    );
+    useAccountArticlesMock.mockImplementation((_accountId: string | null, options?: { mode?: ViewMode }) => ({
+      data:
+        options?.mode === "unread"
+          ? sampleArticles.filter((article) => !article.is_read)
+          : options?.mode === "starred"
+            ? sampleArticles.filter((article) => article.is_starred)
+            : sampleArticles,
+      isLoading: false,
+    }));
     useArticlesByTagMock.mockImplementation(
-      (_tagId: string | null, _accountId: string | null, options?: { mode?: "all" | "unread" | "starred" }) => ({
+      (_tagId: string | null, _accountId: string | null, options?: { mode?: ViewMode }) => ({
         data:
           options?.mode === "unread"
             ? sampleArticles.filter((article) => !article.is_read)
@@ -374,7 +373,7 @@ describe("useArticleListSources", () => {
 
   it("keeps a retained selected article in the feed source after unread refetch removes it", () => {
     let currentArticles = [sampleArticles[0]];
-    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: "all" | "unread" | "starred" }) => ({
+    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
       data: options?.mode === "unread" ? currentArticles : [sampleArticles[0]],
       isLoading: false,
     }));
@@ -401,7 +400,7 @@ describe("useArticleListSources", () => {
 
   it("keeps previously retained feed articles when another retained article remains selected", () => {
     let currentArticles = [sampleArticles[0], { ...sampleArticles[1], id: "art-3", is_read: false, is_starred: false }];
-    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: "all" | "unread" | "starred" }) => ({
+    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
       data:
         options?.mode === "unread"
           ? currentArticles
@@ -431,17 +430,15 @@ describe("useArticleListSources", () => {
 
   it("keeps a retained selected article in the smart starred source after unstar refetch removes it", () => {
     let currentStarredArticles = [sampleArticles[1]];
-    useAccountArticlesMock.mockImplementation(
-      (_accountId: string | null, options?: { mode?: "all" | "unread" | "starred" }) => ({
-        data:
-          options?.mode === "starred"
-            ? currentStarredArticles
-            : options?.mode === "unread"
-              ? sampleArticles.filter((article) => !article.is_read)
-              : sampleArticles,
-        isLoading: false,
-      }),
-    );
+    useAccountArticlesMock.mockImplementation((_accountId: string | null, options?: { mode?: ViewMode }) => ({
+      data:
+        options?.mode === "starred"
+          ? currentStarredArticles
+          : options?.mode === "unread"
+            ? sampleArticles.filter((article) => !article.is_read)
+            : sampleArticles,
+      isLoading: false,
+    }));
 
     const props: Parameters<typeof useArticleListSources>[0] = {
       selection: { type: "smart", kind: "starred" },

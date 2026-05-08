@@ -1,4 +1,6 @@
-export type ReaderFilter = "all" | "unread" | "starred";
+import type { ViewMode } from "@/lib/view-mode.types";
+
+export type ReaderFilter = ViewMode;
 
 export type ReaderQuerySelection =
   | { type: "all" }
