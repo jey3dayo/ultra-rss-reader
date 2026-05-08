@@ -353,6 +353,31 @@ describe("AddAccountForm", () => {
     });
   });
 
+  it("does not submit Local account twice while the first submit is pending", async () => {
+    const addAccountCalls = vi.fn();
+    const addAccount = setupPendingAddAccount(addAccountCalls);
+
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "Local Feeds");
+    await user.type(screen.getByLabelText("Name"), "Work RSS");
+    await user.dblClick(screen.getByRole("button", { name: "Add" }));
+    await user.keyboard("{Enter}");
+
+    expect(addAccountCalls).toHaveBeenCalledTimes(1);
+
+    addAccount.resolve({
+      id: "acc-new",
+      kind: "Local",
+      name: "Work RSS",
+      server_url: null,
+      sync_interval_secs: 3600,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    });
+  });
+
   it("starts an account setup session after successful registration", async () => {
     const user = userEvent.setup();
     let releaseSync = () => {};

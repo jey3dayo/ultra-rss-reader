@@ -14,6 +14,7 @@ type UseDataSettingsControllerResult = {
   databaseSizeStatus: DatabaseSizeStatus;
   databaseSizeValue: string;
   vacuuming: boolean;
+  openingLogDir: boolean;
   handleVacuum: () => Promise<void>;
   handleOpenLogDir: () => Promise<void>;
 };
@@ -24,17 +25,20 @@ type DataSettingsControllerState = {
   databaseSizeStatus: DatabaseSizeStatus;
   totalSize: number | null;
   vacuuming: boolean;
+  openingLogDir: boolean;
 };
 
 type DataSettingsControllerAction =
   | { type: "set-database-size-ready"; value: number }
   | { type: "set-database-size-error" }
-  | { type: "set-vacuuming"; value: boolean };
+  | { type: "set-vacuuming"; value: boolean }
+  | { type: "set-opening-log-dir"; value: boolean };
 
 const initialDataSettingsControllerState: DataSettingsControllerState = {
   databaseSizeStatus: "loading",
   totalSize: null,
   vacuuming: false,
+  openingLogDir: false,
 };
 
 function dataSettingsControllerReducer(
@@ -48,6 +52,8 @@ function dataSettingsControllerReducer(
       return { ...state, databaseSizeStatus: "error", totalSize: null };
     case "set-vacuuming":
       return { ...state, vacuuming: action.value };
+    case "set-opening-log-dir":
+      return { ...state, openingLogDir: action.value };
     default:
       return state;
   }
@@ -69,12 +75,17 @@ export function useDataSettingsController({
   setSettingsLoading,
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
   const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
-  const { databaseSizeStatus, totalSize, vacuuming } = state;
+  const { databaseSizeStatus, totalSize, vacuuming, openingLogDir } = state;
 
   const fetchDbInfo = useCallback(async () => {
     Result.pipe(
       await getDatabaseInfo(),
-      Result.inspect((info) => dispatch({ type: "set-database-size-ready", value: info.total_size_bytes })),
+      Result.inspect((info) =>
+        dispatch({
+          type: "set-database-size-ready",
+          value: info.total_size_bytes,
+        }),
+      ),
       Result.inspectError((error) => {
         console.error("Failed to get database info:", error);
         dispatch({ type: "set-database-size-error" });
@@ -87,7 +98,7 @@ export function useDataSettingsController({
   }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
-    if (vacuuming) {
+    if (vacuuming || openingLogDir) {
       return;
     }
 
@@ -98,7 +109,10 @@ export function useDataSettingsController({
       Result.pipe(
         await vacuumDatabase(),
         Result.inspect((info) => {
-          dispatch({ type: "set-database-size-ready", value: info.total_size_bytes });
+          dispatch({
+            type: "set-database-size-ready",
+            value: info.total_size_bytes,
+          });
           const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
           showToast(
             t("data.vacuum_success", {
@@ -118,19 +132,31 @@ export function useDataSettingsController({
   };
 
   const handleOpenLogDir = async () => {
-    Result.pipe(
-      await openLogDir(),
-      Result.inspectError((error) => {
-        console.error("Failed to open log directory:", error);
-        showToast(t("data.open_log_dir_failed", { message: error.message }));
-      }),
-    );
+    if (openingLogDir || vacuuming) {
+      return;
+    }
+
+    dispatch({ type: "set-opening-log-dir", value: true });
+    setSettingsLoading(true);
+    try {
+      Result.pipe(
+        await openLogDir(),
+        Result.inspectError((error) => {
+          console.error("Failed to open log directory:", error);
+          showToast(t("data.open_log_dir_failed", { message: error.message }));
+        }),
+      );
+    } finally {
+      dispatch({ type: "set-opening-log-dir", value: false });
+      setSettingsLoading(false);
+    }
   };
 
   return {
     databaseSizeStatus,
     databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "",
     vacuuming,
+    openingLogDir,
     handleVacuum,
     handleOpenLogDir,
   };

@@ -10,8 +10,8 @@ import {
 } from "@/lib/articles/article-display";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
-import type { ReadingSettingsViewProps } from "./reading-settings-view";
-import type { SettingsPageSwitchControl, SettingsPreferenceViewPropsParams } from "./settings-page.types";
+import type { ReadingSettingsViewProps } from "../reading-settings-view";
+import type { SettingsPageSwitchControl, SettingsPreferenceViewPropsParams } from "../settings-page.types";
 
 type UseReadingSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devIntent: DevIntent;

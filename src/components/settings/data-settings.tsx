@@ -28,7 +28,8 @@ export function DataSettings() {
       vacuuming={controller.vacuuming}
       logsHeading={t("data.logs")}
       openLogDirDescription={t("data.open_log_dir_description")}
-      openLogDirLabel={t("data.open_log_dir")}
+      openLogDirLabel={controller.openingLogDir ? t("data.opening_log_dir") : t("data.open_log_dir")}
+      openingLogDir={controller.openingLogDir}
       onVacuum={() => void controller.handleVacuum()}
       onOpenLogDir={() => void controller.handleOpenLogDir()}
     />

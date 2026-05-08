@@ -1,20 +1,34 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getDatabaseInfo, openLogDir } from "@/api/tauri-commands";
+import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import { formatBytes, useDataSettingsController } from "@/components/settings/hooks/use-data-settings-controller";
 
 vi.mock("@/api/tauri-commands", () => ({
   getDatabaseInfo: vi.fn(async () =>
-    Result.succeed({ db_size_bytes: 1024, wal_size_bytes: 0, total_size_bytes: 1024 }),
+    Result.succeed({
+      db_size_bytes: 1024,
+      wal_size_bytes: 0,
+      total_size_bytes: 1024,
+    }),
   ),
   openLogDir: vi.fn(async () => Result.succeed(null)),
-  vacuumDatabase: vi.fn(async () => Result.succeed({ db_size_bytes: 512, wal_size_bytes: 0, total_size_bytes: 512 })),
+  vacuumDatabase: vi.fn(async () =>
+    Result.succeed({
+      db_size_bytes: 512,
+      wal_size_bytes: 0,
+      total_size_bytes: 512,
+    }),
+  ),
 }));
 
 beforeEach(() => {
   vi.mocked(getDatabaseInfo).mockResolvedValue(
-    Result.succeed({ db_size_bytes: 1024, wal_size_bytes: 0, total_size_bytes: 1024 }),
+    Result.succeed({
+      db_size_bytes: 1024,
+      wal_size_bytes: 0,
+      total_size_bytes: 1024,
+    }),
   );
 });
 
@@ -81,5 +95,41 @@ describe("useDataSettingsController", () => {
 
     expect(openLogDir).toHaveBeenCalledTimes(1);
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("tracks log directory pending state and suppresses duplicate data actions", async () => {
+    let resolveOpenLogDir: (() => void) | undefined;
+    vi.mocked(openLogDir).mockReturnValue(
+      new Promise((resolve) => {
+        resolveOpenLogDir = () => resolve(Result.succeed(null));
+      }),
+    );
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string) => key) as never,
+        showToast: vi.fn(),
+        setSettingsLoading: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      void result.current.handleOpenLogDir();
+    });
+
+    expect(result.current.openingLogDir).toBe(true);
+
+    await act(async () => {
+      void result.current.handleOpenLogDir();
+      void result.current.handleVacuum();
+    });
+
+    expect(openLogDir).toHaveBeenCalledTimes(1);
+    expect(vacuumDatabase).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveOpenLogDir?.();
+    });
+
+    expect(result.current.openingLogDir).toBe(false);
   });
 });

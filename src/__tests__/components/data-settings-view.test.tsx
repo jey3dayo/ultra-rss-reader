@@ -32,6 +32,7 @@ describe("DataSettingsView", () => {
         logsHeading="Logs"
         openLogDirDescription="Open the log directory."
         openLogDirLabel="Open log directory"
+        openingLogDir={false}
         onVacuum={onVacuum}
         onOpenLogDir={onOpenLogDir}
       />,
@@ -43,7 +44,9 @@ describe("DataSettingsView", () => {
     expect(screen.getByText("Open the log directory.")).toHaveClass("font-serif", "text-foreground-soft");
 
     const optimizeButton = screen.getByRole("button", { name: "Optimize now" });
-    const openLogDirectoryButton = screen.getByRole("button", { name: "Open log directory" });
+    const openLogDirectoryButton = screen.getByRole("button", {
+      name: "Open log directory",
+    });
     expectStandardSettingsActionButton(optimizeButton);
     expectStandardSettingsActionButton(openLogDirectoryButton);
 
@@ -74,6 +77,7 @@ describe("DataSettingsView", () => {
         logsHeading="Logs"
         openLogDirDescription="Open the log directory."
         openLogDirLabel="Open log directory"
+        openingLogDir={false}
         onVacuum={onVacuum}
         onOpenLogDir={vi.fn()}
       />,
@@ -84,6 +88,48 @@ describe("DataSettingsView", () => {
 
     await user.click(vacuumButton);
 
+    expect(onVacuum).not.toHaveBeenCalled();
+  });
+
+  it("shows pending state for log directory opening and disables shared data actions", async () => {
+    const user = userEvent.setup();
+    const onOpenLogDir = vi.fn();
+    const onVacuum = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Opening..."
+        openingLogDir={true}
+        onVacuum={onVacuum}
+        onOpenLogDir={onOpenLogDir}
+      />,
+    );
+
+    const openLogDirectoryButton = screen.getByRole("button", {
+      name: "Opening...",
+    });
+    const optimizeButton = screen.getByRole("button", { name: "Optimize now" });
+
+    expect(openLogDirectoryButton).toBeDisabled();
+    expect(optimizeButton).toBeDisabled();
+
+    await user.click(openLogDirectoryButton);
+    await user.click(optimizeButton);
+
+    expect(onOpenLogDir).not.toHaveBeenCalled();
     expect(onVacuum).not.toHaveBeenCalled();
   });
 
@@ -102,6 +148,7 @@ describe("DataSettingsView", () => {
       logsHeading: "Logs",
       openLogDirDescription: "Open the log directory.",
       openLogDirLabel: "Open log directory",
+      openingLogDir: false,
       onVacuum: vi.fn(),
       onOpenLogDir: vi.fn(),
     };

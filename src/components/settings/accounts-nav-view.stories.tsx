@@ -38,3 +38,26 @@ export const AddAccountActive: Story = {
     isAddAccountActive: true,
   },
 };
+
+export const LongAccountLabels: Story = {
+  args: {
+    accounts: [
+      {
+        id: "acc-long-1",
+        name: "Editorial operations FreshRSS workspace with a very long name",
+        kind: "freshrss",
+        username: "long.username.for.reader.operations@example.com",
+        serverUrl: "https://reader-operations-with-a-very-long-hostname.example.com/accounts/main",
+        isActive: true,
+      },
+      {
+        id: "acc-long-2",
+        name: "reader-operations-with-a-very-long-hostname.example.com",
+        kind: "greader",
+        username: "service-account-with-a-long-readable-name",
+        serverUrl: "https://reader-operations-with-a-very-long-hostname.example.com",
+        isActive: false,
+      },
+    ],
+  },
+};

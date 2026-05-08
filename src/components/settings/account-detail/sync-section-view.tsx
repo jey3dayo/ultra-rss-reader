@@ -16,6 +16,9 @@ export function AccountSyncSectionView({
   syncOnWake,
   keepReadItems,
   statusRows,
+  progressLabel,
+  progressValue,
+  progressCurrentLabel,
   syncNowLabel,
   syncingLabel,
   onSyncNow,
@@ -39,6 +42,36 @@ export function AccountSyncSectionView({
         disabled={syncOnWake.disabled}
       />
       <AccountSelectRow control={keepReadItems} />
+      {progressLabel ? (
+        <div
+          className={cn(
+            CONTROL_RAIL_CLASS,
+            "mt-4 space-y-2 rounded-lg border border-border/70 bg-surface-1/72 px-4 py-3",
+          )}
+        >
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-medium text-foreground">{progressLabel}</span>
+            {progressCurrentLabel ? <span className="text-foreground-soft">{progressCurrentLabel}</span> : null}
+          </div>
+          <div
+            role="progressbar"
+            aria-label={progressLabel}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={typeof progressValue === "number" ? Math.round(progressValue) : undefined}
+            className="h-1.5 overflow-hidden rounded-full bg-surface-3"
+          >
+            {typeof progressValue === "number" ? (
+              <div
+                className="h-full rounded-full bg-accent"
+                style={{ width: `${Math.min(Math.max(progressValue, 0), 100)}%` }}
+              />
+            ) : (
+              <div className="h-full w-1/3 rounded-full bg-accent/70" />
+            )}
+          </div>
+        </div>
+      ) : null}
       {statusRows && statusRows.length > 0 ? (
         <div
           className={cn(

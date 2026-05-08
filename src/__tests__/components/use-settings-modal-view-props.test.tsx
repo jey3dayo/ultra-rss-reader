@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { useSettingsModalViewProps } from "@/components/settings/use-settings-modal-view-props";
+import { useSettingsModalViewProps } from "@/components/settings/hooks/use-settings-modal-view-props";
 
 describe("useSettingsModalViewProps", () => {
   const labels: Record<string, string> = {

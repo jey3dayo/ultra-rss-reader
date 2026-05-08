@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useReducer } from "react";
+import { useMemo, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
@@ -81,11 +81,16 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     errorMessage: debugState?.errorMessage ?? initialAccountConfigUiState.errorMessage,
   });
   const { submitting, errorMessage } = uiState;
+  const submittingRef = useRef(submitting);
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const serviceDef = findServiceDefinition(kind);
 
   const handleSubmit = async () => {
+    if (submittingRef.current) {
+      return;
+    }
+
     dispatchUi({ type: "set-error-message", value: null });
     const payloadResult = buildAddAccountPayload(form);
 
@@ -102,41 +107,44 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     }
 
     const payload = Result.unwrap(payloadResult);
+    submittingRef.current = true;
     dispatchUi({ type: "set-submitting", value: true });
-
-    Result.pipe(
-      await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
-      Result.inspectError((e) => {
-        let message: string;
-        if (e.type === "Retryable") {
-          message = t("account.error_network");
-        } else if (e.message.toLowerCase().includes("auth")) {
-          message = t("account.error_auth");
-          if (kind === "FreshRss") {
-            message += `\n${t("account.error_auth_hint_freshrss")}`;
+    try {
+      Result.pipe(
+        await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
+        Result.inspectError((e) => {
+          let message: string;
+          if (e.type === "Retryable") {
+            message = t("account.error_network");
+          } else if (e.message.toLowerCase().includes("auth")) {
+            message = t("account.error_auth");
+            if (kind === "FreshRss") {
+              message += `\n${t("account.error_auth_hint_freshrss")}`;
+            }
+          } else {
+            message = t("account.failed_to_add", { message: e.message });
           }
-        } else {
-          message = t("account.failed_to_add", { message: e.message });
-        }
-        dispatchUi({ type: "set-error-message", value: message });
-        useUiStore.getState().showToast(message);
-      }),
-      Result.inspect((account) => {
-        upsertCachedAccount(qc, account);
-        qc.invalidateQueries({ queryKey: ["accounts"] });
-        qc.invalidateQueries({ queryKey: ["feeds"] });
-        const { selectAccount } = useUiStore.getState();
-        selectAccount(account.id);
-        setSettingsAccountId(account.id);
-        void runAccountSetupSync({
-          accountId: account.id,
-          queryClient: qc,
-          t,
-        });
-      }),
-    );
-
-    dispatchUi({ type: "set-submitting", value: false });
+          dispatchUi({ type: "set-error-message", value: message });
+          useUiStore.getState().showToast(message);
+        }),
+        Result.inspect((account) => {
+          upsertCachedAccount(qc, account);
+          qc.invalidateQueries({ queryKey: ["accounts"] });
+          qc.invalidateQueries({ queryKey: ["feeds"] });
+          const { selectAccount } = useUiStore.getState();
+          selectAccount(account.id);
+          setSettingsAccountId(account.id);
+          void runAccountSetupSync({
+            accountId: account.id,
+            queryClient: qc,
+            t,
+          });
+        }),
+      );
+    } finally {
+      submittingRef.current = false;
+      dispatchUi({ type: "set-submitting", value: false });
+    }
   };
 
   return (

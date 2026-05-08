@@ -111,6 +111,7 @@ export function useAccountDetailCredentialsEditor({
   const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection } = state;
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const pendingCredentialSaveRevisionRef = useRef<number | null>(null);
+  const pendingConnectionTestRef = useRef(false);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
@@ -164,6 +165,11 @@ export function useAccountDetailCredentialsEditor({
   };
 
   const handleTestConnection = async () => {
+    if (pendingConnectionTestRef.current) {
+      return;
+    }
+
+    pendingConnectionTestRef.current = true;
     dispatch({ type: "set-testing-connection", value: true });
     try {
       const credentialsSaved = await commitCredentials();
@@ -182,6 +188,7 @@ export function useAccountDetailCredentialsEditor({
       updateCachedAccount(queryClient, updated);
       useUiStore.getState().showToast(t("account.connection_success"));
     } finally {
+      pendingConnectionTestRef.current = false;
       dispatch({ type: "set-testing-connection", value: false });
     }
   };

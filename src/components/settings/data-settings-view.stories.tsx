@@ -21,6 +21,7 @@ const meta = {
     logsHeading: "Logs",
     openLogDirDescription: "Open the folder that contains application logs.",
     openLogDirLabel: "Open log folder",
+    openingLogDir: false,
     onVacuum: fn(),
     onOpenLogDir: fn(),
   },

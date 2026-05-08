@@ -113,13 +113,96 @@ describe("AccountSyncSectionView", () => {
     expect(onKeepReadItemsChange).toHaveBeenCalledWith("90");
   });
 
-  it("shows only the local loading button while syncing", () => {
+  it("renders determinate sync progress text while syncing", () => {
     render(
       <AccountSyncSectionView
         heading="Syncing"
         progressLabel="1 of 3 completed"
         progressValue={33}
         progressCurrentLabel="Syncing: FreshRSS"
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+        syncNowLabel="Sync Now"
+        syncingLabel="Syncing..."
+        onSyncNow={() => {}}
+        isSyncing={true}
+      />,
+    );
+
+    expect(screen.getByRole("progressbar", { name: "1 of 3 completed" })).toHaveAttribute("aria-valuenow", "33");
+    expect(screen.getByText("1 of 3 completed")).toBeInTheDocument();
+    expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
+  });
+
+  it("renders indeterminate sync progress without a numeric value", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Syncing"
+        progressLabel="Starting sync"
+        progressValue={null}
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+        syncNowLabel="Sync Now"
+        syncingLabel="Syncing..."
+        onSyncNow={() => {}}
+        isSyncing={true}
+      />,
+    );
+
+    const progress = screen.getByRole("progressbar", { name: "Starting sync" });
+
+    expect(progress).not.toHaveAttribute("aria-valuenow");
+    expect(screen.getByText("Starting sync")).toBeInTheDocument();
+  });
+
+  it("does not render sync progress when no progress label is provided", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Syncing"
         syncInterval={{
           name: "sync-interval",
           label: "Sync",
@@ -158,8 +241,6 @@ describe("AccountSyncSectionView", () => {
     expect(button).toHaveClass("border", "border-border/65", "bg-surface-2/82", "text-foreground");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(screen.queryByText("1 of 3 completed")).not.toBeInTheDocument();
-    expect(screen.queryByText("Syncing: FreshRSS")).not.toBeInTheDocument();
   });
 
   it("uses softened support surfaces for scheduler status rows", () => {

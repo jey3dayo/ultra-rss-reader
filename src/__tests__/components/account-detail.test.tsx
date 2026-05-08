@@ -333,6 +333,59 @@ describe("AccountDetail", () => {
     });
   });
 
+  it("does not start duplicate manual syncs while one is pending", async () => {
+    const user = userEvent.setup();
+    const syncCalls = vi.fn();
+    let resolveSync: ((value: unknown) => void) | undefined;
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Local",
+              name: "Local",
+              username: null,
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "get_account_sync_status":
+          return {
+            last_success_at: null,
+            last_error: null,
+            error_count: 0,
+            next_retry_at: null,
+          };
+        case "trigger_sync_account":
+          syncCalls();
+          return new Promise((resolve) => {
+            resolveSync = resolve;
+          });
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.dblClick(await screen.findByRole("button", { name: "Sync Now" }));
+
+    expect(syncCalls).toHaveBeenCalledTimes(1);
+
+    resolveSync?.({
+      synced: true,
+      total: 1,
+      succeeded: 1,
+      failed: [],
+      warnings: [],
+    });
+  });
+
   it("shows scheduler retry details in the sync section when the account is in backoff", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") {
@@ -960,6 +1013,56 @@ describe("AccountDetail", () => {
     });
     expect(useUiStore.getState().toastMessage?.message).toContain("Connection failed");
     expect(useUiStore.getState().toastMessage?.message).not.toBe("Connection successful");
+  });
+
+  it("does not start duplicate connection tests while one is pending", async () => {
+    const user = userEvent.setup();
+    const connectionTestCalls = vi.fn();
+    let resolveConnectionTest: ((value: unknown) => void) | undefined;
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "test_account_connection":
+          connectionTestCalls();
+          return new Promise((resolve) => {
+            resolveConnectionTest = resolve;
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.dblClick(await screen.findByRole("button", { name: "Test Connection" }));
+
+    expect(connectionTestCalls).toHaveBeenCalledTimes(1);
+
+    resolveConnectionTest?.({
+      id: "acc-1",
+      kind: "FreshRss",
+      name: "FreshRSS",
+      username: "user",
+      server_url: "https://freshrss.example.com",
+      sync_interval_secs: 3600,
+      sync_on_startup: true,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    });
   });
 
   it("copies the server URL from account credentials", async () => {

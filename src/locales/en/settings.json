@@ -301,6 +301,7 @@
     "vacuum_failed": "Optimization failed: {{message}}",
     "logs": "Logs",
     "open_log_dir": "Open Log Directory",
+    "opening_log_dir": "Opening...",
     "open_log_dir_description": "View application log files for troubleshooting.",
     "open_log_dir_failed": "Failed to open log directory: {{message}}"
   },

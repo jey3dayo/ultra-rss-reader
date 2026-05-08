@@ -111,3 +111,29 @@ export const ConfirmingDelete: Story = {
     },
   },
 };
+
+export const WarningSummary: Story = {
+  args: {
+    headerSummary: (
+      <AccountConnectionSummary
+        statusLabel="Retry scheduled"
+        statusTone="warning"
+        detail="Network timeout while contacting FreshRSS"
+      />
+    ),
+  },
+};
+
+export const DangerSummary: Story = {
+  args: {
+    headerSummary: (
+      <AccountConnectionSummary statusLabel="Connection failed" statusTone="danger" detail="Credentials rejected" />
+    ),
+  },
+};
+
+export const SummaryWithoutDetail: Story = {
+  args: {
+    headerSummary: <AccountConnectionSummary statusLabel="Verified" statusTone="success" />,
+  },
+};

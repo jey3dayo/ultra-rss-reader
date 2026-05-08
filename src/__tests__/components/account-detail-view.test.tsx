@@ -1,6 +1,64 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { AccountDetailViewProps } from "@/components/settings/account-detail/types";
 import { AccountDetailView } from "@/components/settings/account-detail/view";
+
+function renderAccountDetailView(syncSectionOverrides: Partial<AccountDetailViewProps["syncSection"]> = {}) {
+  render(
+    <AccountDetailView
+      title="FreshRSS"
+      generalSection={{
+        heading: "General",
+        nameLabel: "Description",
+        nameValue: "FreshRSS",
+        editNameTitle: "Click to edit",
+        isEditingName: false,
+        nameDraft: "FreshRSS",
+        infoRows: [{ label: "Type", value: "FreshRSS" }],
+        onStartEditingName: vi.fn(),
+        onNameDraftChange: vi.fn(),
+        onCommitName: vi.fn(),
+        onNameKeyDown: vi.fn(),
+      }}
+      syncSection={{
+        heading: "Syncing",
+        syncInterval: {
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: vi.fn(),
+        },
+        syncOnWake: {
+          label: "Sync on wake",
+          checked: false,
+          onChange: vi.fn(),
+        },
+        syncOnStartup: {
+          label: "Sync on startup",
+          checked: true,
+          onChange: vi.fn(),
+        },
+        keepReadItems: {
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: vi.fn(),
+        },
+        ...syncSectionOverrides,
+      }}
+      dangerZone={{
+        dataHeading: "Data",
+        dangerHeading: "Danger Zone",
+        exportLabel: "Export OPML",
+        deleteLabel: "Delete account",
+        onExport: vi.fn(),
+        onRequestDelete: vi.fn(),
+      }}
+    />,
+  );
+}
 
 describe("AccountDetailView", () => {
   it("composes the account detail sections from view props", () => {
@@ -17,7 +75,11 @@ describe("AccountDetailView", () => {
           nameDraft: "Personal FreshRSS",
           infoRows: [
             { label: "Type", value: "FreshRSS" },
-            { label: "Server", value: "https://freshrss.example.com", truncate: true },
+            {
+              label: "Server",
+              value: "https://freshrss.example.com",
+              truncate: true,
+            },
           ],
           onStartEditingName: vi.fn(),
           onNameDraftChange: vi.fn(),
@@ -268,9 +330,42 @@ describe("AccountDetailView", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { level: 3, name: "Initial setup in progress" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Initial setup in progress",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Finish the first sync before closing this screen.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry setup" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit credentials" })).toBeInTheDocument();
+  });
+
+  it("renders determinate sync progress with the current account label", () => {
+    renderAccountDetailView({
+      progressLabel: "1 of 2 completed",
+      progressValue: 50,
+      progressCurrentLabel: "Syncing: FreshRSS",
+    });
+
+    expect(screen.getByText("1 of 2 completed")).toBeInTheDocument();
+    expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "1 of 2 completed" })).toHaveAttribute("aria-valuenow", "50");
+  });
+
+  it("renders indeterminate sync progress without a numeric value", () => {
+    renderAccountDetailView({
+      progressLabel: "Starting sync",
+      progressValue: null,
+    });
+
+    expect(screen.getByText("Starting sync")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Starting sync" })).not.toHaveAttribute("aria-valuenow");
+  });
+
+  it("omits sync progress when no progress label is provided", () => {
+    renderAccountDetailView();
+
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 });

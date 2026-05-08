@@ -3,7 +3,7 @@ import { ReadingSettingsView } from "@/components/settings/reading-settings-view
 import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { useReadingSettingsViewProps } from "./use-reading-settings-view-props";
+import { useReadingSettingsViewProps } from "./hooks/use-reading-settings-view-props";
 
 export function ReadingSettings() {
   const { t } = useTranslation("settings");

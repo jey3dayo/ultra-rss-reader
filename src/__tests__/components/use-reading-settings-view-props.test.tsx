@@ -1,9 +1,9 @@
 import { renderHook } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useReadingSettingsViewProps } from "@/components/settings/hooks/use-reading-settings-view-props";
 import type { ReadingSettingsViewProps } from "@/components/settings/reading-settings-view";
 import type { SettingsPageActionControl, SettingsPageControl } from "@/components/settings/settings-page.types";
-import { useReadingSettingsViewProps } from "@/components/settings/use-reading-settings-view-props";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";

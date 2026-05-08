@@ -301,6 +301,7 @@
     "vacuum_failed": "最適化に失敗しました: {{message}}",
     "logs": "ログ",
     "open_log_dir": "ログフォルダを開く",
+    "opening_log_dir": "開いています...",
     "open_log_dir_description": "トラブルシューティング用のログを確認します。",
     "open_log_dir_failed": "ログフォルダを開けませんでした: {{message}}"
   },
