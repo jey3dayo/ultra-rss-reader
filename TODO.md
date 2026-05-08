@@ -1600,3 +1600,53 @@
   - `database-info.ts` で db / wal / total size を nonnegative integer として検証し、`total >= db + wal` まで見るかを schema contract として明示する
   - database command implementation、VACUUM busy error、data settings loading/error は別バッチに残す
   - negative / fractional / inconsistent total を別 fixture にする
+
+- [ ] Keyboard shortcut modifier fallback contract 候補を別バッチで追加する
+  - `keyboard-shortcuts.ts` の `resolveKeyboardAction` で Meta/Ctrl 付き入力が plain single-key binding へ fallback しない契約を pure test で固定する
+  - shortcut recording UI、platform display label、browser preview shortcut bridge は混ぜない
+  - `⌘+j` が plain `j` の next article を発火しない case と、mapped modifier shortcut が発火する case を分ける
+
+- [ ] Keyboard close_or_clear subscriptions noop contract 候補を別バッチで追加する
+  - `resolveKeyboardAction` で subscriptions workspace open 中の Escape / close_or_clear が article clear や browser close を実行しない契約を固定する
+  - subscriptions selected row fallback、shortcut help modal、global keyboard routing は別バッチに残す
+  - browser mode / selected article あり / subscriptions open の組み合わせを別 assertion にする
+
+- [ ] Keyboard action missing article skip contract 候補を別バッチで追加する
+  - `toggle_read` / `toggle_star` / `open_in_app_browser` / `open_external_browser` が selected article なしでは `missing_selected_article` になる契約をまとめて固定する
+  - article toolbar availability、context menu actions、toast copy は同じバッチに混ぜない
+  - action id ごとの eventName assertion と missing article skip を表で見る
+
+- [ ] Manual sync cooldown failure starts contract 候補を別バッチで追加する
+  - `manual-sync.ts` の `triggerManualSyncWithCooldownResult` が triggerSync failure でも cooldown を開始する現行 contract を明示する
+  - sync result feedback、scheduler backoff、manual sync toast 文言は混ぜない
+  - success failure の両方で cooldownUntil が進むか、失敗時は進めない方針へ変えるかを test で固定する
+
+- [ ] Manual sync cooldown listener unsubscribe contract 候補を別バッチで追加する
+  - `subscribeManualSyncCooldown` の unsubscribe 後に cooldown change listener が呼ばれない契約を pure test で固定する
+  - React hook 化、sidebar sync button visual、manual sync command 実行は別バッチにする
+  - resetManualSyncCooldownForTests による cleanup 後の listener state も確認する
+
+- [ ] Sync feedback distinct account names contract 候補を別バッチで追加する
+  - `sync-result-feedback.ts` で duplicate account warning / failure が account name を一度だけ表示する契約を固定する
+  - provider warning DTO 追加、locale copy、toast placement は混ぜない
+  - failure list と warnings list の dedupe を別 assertion にする
+
+- [ ] Sync feedback retry scheduled earliest contract 候補を別バッチで追加する
+  - `summarizeSyncWarnings` で複数 retry_scheduled warning がある時、最小 `retry_in_seconds` を採用する契約を固定する
+  - scheduler backoff 計算、sync result schema numeric guard、manual sync feedback UI は別バッチに残す
+  - retry_in_seconds missing の warning が最後扱いになる case も追加する
+
+- [ ] App toast progress clamp contract 候補を別バッチで追加する
+  - `app-toast-view.tsx` の progress bar width が negative / 100 超過を受けた時にどう扱うかを component contract として明示する
+  - updater progress normalization、toast store timer、visual token は混ぜない
+  - null progress の indeterminate 表示と numeric progress の width 表示を別 case にする
+
+- [ ] Confirm dialog variant fallback icon contract 候補を別バッチで追加する
+  - `confirm-dialog-view.tsx` で icon 未指定時に variant ごとの fallback icon と action button variant が選ばれる契約を component test で固定する
+  - destructive dialog footer、confirm store stale callback cleanup、copy 文言は別バッチに残す
+  - default / warning / destructive を同じ fixture で比較する
+
+- [ ] Tag color picker duplicate option contract 候補を別バッチで追加する
+  - `tag-color-picker.tsx` で duplicate color option が渡された時の key collision 方針を明示し、必要なら caller 側で dedupe する contract を追加する
+  - tag command color validation、tag chip visual token、settings tag row UI は混ぜない
+  - duplicate option と selected null option の aria-pressed を別 assertion にする
