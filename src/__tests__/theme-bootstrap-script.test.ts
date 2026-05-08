@@ -16,7 +16,7 @@ function runThemeBootstrapScript(): void {
 }
 
 function createMatchMedia(matches: boolean): typeof window.matchMedia {
-  return vi.fn().mockImplementation((query: string) => ({
+  return vi.fn<typeof window.matchMedia>((query) => ({
     matches,
     media: query,
     onchange: null,
@@ -24,8 +24,8 @@ function createMatchMedia(matches: boolean): typeof window.matchMedia {
     removeEventListener: vi.fn(),
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as typeof window.matchMedia;
+    dispatchEvent: vi.fn(() => false),
+  }));
 }
 
 describe("index.html theme bootstrap script", () => {

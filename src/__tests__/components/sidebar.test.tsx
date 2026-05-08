@@ -85,33 +85,28 @@ let syncWarningListener:
 const renderedFeedContextMenuFeeds: Array<{ id: string; folder_id: string | null }> = [];
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(
-    async (
-      eventName: string,
-      callback: typeof syncCompletedListener | typeof syncProgressListener | typeof syncWarningListener,
-    ) => {
+  listen: vi.fn(async (eventName: string, callback: (event?: unknown) => void) => {
+    if (eventName === "sync-completed") {
+      syncCompletedListener = () => callback();
+    }
+    if (eventName === "sync-progress") {
+      syncProgressListener = (event) => callback(event);
+    }
+    if (eventName === "sync-warning") {
+      syncWarningListener = (event) => callback(event);
+    }
+    return () => {
       if (eventName === "sync-completed") {
-        syncCompletedListener = callback as typeof syncCompletedListener;
+        syncCompletedListener = null;
       }
       if (eventName === "sync-progress") {
-        syncProgressListener = callback as typeof syncProgressListener;
+        syncProgressListener = null;
       }
       if (eventName === "sync-warning") {
-        syncWarningListener = callback as typeof syncWarningListener;
+        syncWarningListener = null;
       }
-      return () => {
-        if (eventName === "sync-completed") {
-          syncCompletedListener = null;
-        }
-        if (eventName === "sync-progress") {
-          syncProgressListener = null;
-        }
-        if (eventName === "sync-warning") {
-          syncWarningListener = null;
-        }
-      };
-    },
-  ),
+    };
+  }),
 }));
 
 vi.mock("@/hooks/use-feeds", async () => {
