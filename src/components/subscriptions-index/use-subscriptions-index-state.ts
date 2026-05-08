@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
 import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions-index";
-import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions-index.types";
+import type { SubscriptionListRow } from "@/lib/subscriptions-index.types";
 
 function findSelectedSubscriptionRow(
   rows: SubscriptionListRow[],

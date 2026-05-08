@@ -9,6 +9,7 @@ import {
   hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscription-review-candidates";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscription-summary-filter.types";
 import type {
   SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
@@ -17,7 +18,6 @@ import type {
   SubscriptionListRow,
   SubscriptionRowStatus,
   SubscriptionSummaryCard,
-  SubscriptionSummaryFilterKey,
 } from "@/lib/subscriptions-index.types";
 
 export { countStarredArticles } from "@/lib/article-list";
