@@ -35,14 +35,13 @@ function ensureWorkingStorage() {
     return;
   }
 
-  const LocalStorageCtor = MemoryStorage as unknown as typeof Storage;
-  const localStorage = new LocalStorageCtor();
-  const sessionStorage = new LocalStorageCtor();
+  const localStorage = new MemoryStorage();
+  const sessionStorage = new MemoryStorage();
 
   Object.defineProperty(globalThis, "Storage", {
     configurable: true,
     writable: true,
-    value: LocalStorageCtor,
+    value: MemoryStorage,
   });
   Object.defineProperty(window, "localStorage", {
     configurable: true,

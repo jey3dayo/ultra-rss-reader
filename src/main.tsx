@@ -8,7 +8,12 @@ import "./styles/global.css";
 // Inject mock IPC when running in browser (not inside Tauri)
 setupDevMocks();
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Root element #root was not found.");
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
