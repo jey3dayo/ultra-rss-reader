@@ -232,3 +232,33 @@
   - `src-tauri/src/infra/sanitizer.rs`、`sanitizer_version`、`article_content_text` migration の関係を、保存済み記事と新規同期記事で分けて確認する
   - privacy hardening とは別に、既存記事の再 sanitize 条件、検索用 text extraction、malformed HTML の fallback を test で固定する
   - CSP や remote image policy は privacy batch に残し、ここでは content normalization と migration compatibility に限定する
+
+- [ ] query / mutation wrapper contract 整理候補を別バッチで見直す
+  - `src/hooks/create-query.ts` / `src/hooks/create-mutation.ts` / `src/lib/query/query-invalidation.ts` の Result unwrap、toast、cache invalidation の責務を棚卸しする
+  - account/feed/article/tag/subscription の hook 利用面にまたがるため、実装変更前に query key と invalidation target の対応表を作る
+  - React Query の retry/staleTime 変更は挙動影響が大きいため、型整理や helper test とは別バッチにする
+
+- [ ] feed discovery / add feed pipeline 候補を別バッチで検証する
+  - `src-tauri/src/infra/feed_discovery.rs`、`opml_commands.rs`、add feed dialog actions の URL normalization / discovered feed option / folder assignment を分けて確認する
+  - discovery failure と submit failure は表示 copy と retry 導線が違うため、dialog view props 整理とは混ぜない
+  - 実 network が必要な確認は manual verification に回し、parser/DTO/command response は fixture test で固定する
+
+- [ ] reader query / article scope matrix 整理候補を別バッチで見直す
+  - `src/lib/reader/reader-query.ts` と `docs/reader-article-scope-matrix.md` の feed/folder/tag/recent/starred/unread scope が実装とズレていないか棚卸しする
+  - article list sources / search / grouping / footer mode control は参照範囲が広いため、scope resolver の pure helper test を先に追加する
+  - viewMode の clamp や recently viewed history 更新は UX 挙動に直結するため、UI props local 化とは混ぜない
+
+- [ ] Storybook fixture runtime 整理候補を別バッチで見直す
+  - `src/components/storybook/story-tauri-runtime.ts`、`story-query-client-provider.tsx`、UI reference canvas の mock runtime を、component isolation と app-like scenario で分ける
+  - story title / canvas taxonomy は既存 tests が見ているため、rename ではなく fixture provider の責務整理に限定する
+  - Tauri runtime mock と dev scenario mock data は用途が違うため、同じ worker に混ぜない
+
+- [ ] manual sync feedback contract 候補を別バッチで追加する
+  - `src/lib/sync/manual-sync.ts`、`sync-result-feedback.ts`、sidebar sync feedback の success/partial/error 表示を command result contract として固定する
+  - account sync status rows と global sync progress は参照範囲が違うため、settings account detail の整理とは別に扱う
+  - provider error copy は locale/copy batch に残し、ここでは sync result category と toast/sidebar state の対応だけを見る
+
+- [ ] preferences migration / default value contract 候補を別バッチで検証する
+  - `src/schemas/preferences.ts`、`preferences-store.ts`、preferences migrations の default value と stored value migration を対応表で確認する
+  - reader preview defaults、startup sync、shortcut prefs、icon/badge prefs は利用面が違うため、preference key group ごとに worker scope を分ける
+  - UI 設定画面の copy や control layout 変更は含めず、schema parse と persisted value compatibility の test に限定する
