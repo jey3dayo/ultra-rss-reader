@@ -144,12 +144,12 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
-function hasParseMethod(v: unknown): v is Pick<z.ZodType, "parse"> {
-  return isRecord(v) && typeof v.parse === "function";
+function hasSafeParseMethod(v: unknown): v is Pick<z.ZodType, "safeParse"> {
+  return isRecord(v) && typeof v.safeParse === "function";
 }
 
 function isSchemas(v: unknown): v is InvokeSchemas {
-  return isRecord(v) && hasParseMethod(v.response);
+  return isRecord(v) && hasSafeParseMethod(v.response);
 }
 
 function toAppError(cmd: string, error: unknown): AppError {
