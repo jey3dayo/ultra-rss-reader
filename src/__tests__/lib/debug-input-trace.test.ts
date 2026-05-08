@@ -7,6 +7,10 @@ import {
   formatRawPointerTrace,
 } from "@/lib/debug-input-trace";
 
+function expectCustomEvent(value: unknown): asserts value is CustomEvent<string> {
+  expect(value).toBeInstanceOf(CustomEvent);
+}
+
 describe("debug-input-trace", () => {
   it("formats raw keyboard, pointer, and click traces", () => {
     expect(formatRawKeyboardTrace("Enter", "button | label=Open")).toMatch(
@@ -32,7 +36,7 @@ describe("debug-input-trace", () => {
     window.removeEventListener(APP_EVENTS.debugInputTrace, listener);
     expect(listener).toHaveBeenCalledOnce();
     const event = listener.mock.calls[0]?.[0];
-    expect(event).toBeInstanceOf(CustomEvent);
-    expect((event as CustomEvent<string>).detail).toMatch(/^\d{2}:\d{2}:\d{2}\.\d{3} queue next-article$/);
+    expectCustomEvent(event);
+    expect(event.detail).toMatch(/^\d{2}:\d{2}:\d{2}\.\d{3} queue next-article$/);
   });
 });

@@ -7,11 +7,11 @@ import { SettingsModalView } from "@/components/settings/settings-modal-view";
 const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
   const callbacks = new Set<() => void>();
 
-  class ResizeObserverMock {
+  class ResizeObserverMock implements ResizeObserver {
     private readonly callback: () => void;
 
     constructor(callback: ResizeObserverCallback) {
-      this.callback = () => callback([], this as unknown as ResizeObserver);
+      this.callback = () => callback([], this);
       callbacks.add(this.callback);
     }
 

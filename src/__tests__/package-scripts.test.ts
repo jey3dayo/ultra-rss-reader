@@ -7,8 +7,29 @@ type PackageJson = {
   devDependencies?: Record<string, string>;
 };
 
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.values(value).every((candidate) => typeof candidate === "string")
+  );
+}
+
+function parsePackageJson(value: string): PackageJson {
+  const parsed: unknown = JSON.parse(value);
+  if (typeof parsed !== "object" || parsed === null) {
+    return {};
+  }
+
+  return {
+    scripts: "scripts" in parsed && isStringRecord(parsed.scripts) ? parsed.scripts : undefined,
+    devDependencies:
+      "devDependencies" in parsed && isStringRecord(parsed.devDependencies) ? parsed.devDependencies : undefined,
+  };
+}
+
 function readPackageJson(): PackageJson {
-  return JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as PackageJson;
+  return parsePackageJson(readFileSync(resolve(process.cwd(), "package.json"), "utf8"));
 }
 
 describe("package scripts", () => {
