@@ -64,8 +64,7 @@
   - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
   - pure helper の追加テストは、境界値・source selection・query plan など挙動の契約として価値があるものだけ残す
   - view-level props の `export type` は hook / Storybook / tests の contract として使うものだけ残す。外部 import がない helper props は触るファイルごとに local type へ戻す
-  - reader の article view / feed tree / article tag picker の component-local props は local 化済み。残りは controller / hook / public view contract の単位で見直す
-  - reader の article toolbar / command palette groups / browser overlay parts / feed dialog views の component-local props は local 化済み。残りは sidebar / article-list / browser geometry など参照範囲が広い単位で見直す
+  - reader の残りは sidebar / article-list / browser geometry / command palette / feed dialog flow など参照範囲が広い単位で見直す
   - `src/components/ui/` の primitive wrapper props は shadcn/Base UI wrapper API として扱う。外部 import がなくても、公開 wrapper contract の方針を決めるまでは一括 local 化しない
   - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`dialog.types.ts` の `ConfirmDialogVariant` のように store / view にまたがるものは、呼び出し境界が変わる時に見直す
   - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
