@@ -82,6 +82,67 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
   });
 
+  it("keeps modal open, category selection, and account navigation transitions stable", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-2" },
+      loaded: true,
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState()).toEqual(
+        expect.objectContaining({
+          settingsOpen: true,
+          settingsCategory: "accounts",
+          settingsAccountId: "acc-2",
+          settingsAddAccount: false,
+          settingsAddAccountInitialKind: null,
+        }),
+      );
+    });
+
+    expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^(Reading|nav\.reading)$/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState()).toEqual(
+        expect.objectContaining({
+          settingsOpen: true,
+          settingsCategory: "reading",
+          settingsAccountId: null,
+          settingsAddAccount: false,
+          settingsAddAccountInitialKind: null,
+        }),
+      );
+    });
+
+    expect(screen.queryByTestId("account-detail-layout")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /FreshRSS/i }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState()).toEqual(
+        expect.objectContaining({
+          settingsOpen: true,
+          settingsCategory: "accounts",
+          settingsAccountId: "acc-2",
+          settingsAddAccount: false,
+          settingsAddAccountInitialKind: null,
+        }),
+      );
+    });
+
+    expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+  });
+
   it("clears account navigation state when switching from account detail to a settings category", async () => {
     const user = userEvent.setup();
 
