@@ -14,7 +14,9 @@ describe("ArticleFilterToggleButton contracts", () => {
     expect(className).toContain("text-[13px]");
     expect(className).toContain("data-[pressed]:bg-surface-4");
     expect(className).toContain("data-[pressed]:text-foreground");
-    expect(className).toContain("data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]");
+    expect(className).toContain(
+      "data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]",
+    );
     expect(className).not.toContain("semantic-tone-unread");
     expect(className).not.toContain("semantic-tone-starred");
   });
@@ -29,18 +31,32 @@ describe("ArticleFilterToggleButton contracts", () => {
       size: "filter",
     });
 
-    expect(unreadClassName).toContain("data-[pressed]:bg-[var(--semantic-tone-unread-surface)]");
-    expect(unreadClassName).toContain("data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]");
+    expect(unreadClassName).toContain(
+      "data-[pressed]:bg-[var(--semantic-tone-unread-surface)]",
+    );
+    expect(unreadClassName).toContain(
+      "data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]",
+    );
     expect(unreadClassName).not.toContain("semantic-tone-starred");
 
-    expect(starredClassName).toContain("data-[pressed]:bg-[var(--semantic-tone-starred-surface)]");
-    expect(starredClassName).toContain("data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]");
+    expect(starredClassName).toContain(
+      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+    );
+    expect(starredClassName).toContain(
+      "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+    );
     expect(starredClassName).not.toContain("semantic-tone-unread");
   });
 
   it("keeps the article filter size contract on supported shared chip sizes", () => {
-    expect(articleFilterToggleButtonClassName({ mode: "all", size: "compact" })).toContain("text-xs");
-    expect(articleFilterToggleButtonClassName({ mode: "all", size: "filter" })).toContain("text-[13px]");
-    expect(articleFilterToggleButtonClassName({ mode: "all", size: "comfortable" })).toContain("text-sm");
+    expect(
+      articleFilterToggleButtonClassName({ mode: "all", size: "compact" }),
+    ).toContain("text-xs");
+    expect(
+      articleFilterToggleButtonClassName({ mode: "all", size: "filter" }),
+    ).toContain("text-[13px]");
+    expect(
+      articleFilterToggleButtonClassName({ mode: "all", size: "comfortable" }),
+    ).toContain("text-sm");
   });
 });
