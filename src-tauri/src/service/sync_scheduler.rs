@@ -76,18 +76,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 continue;
             }
 
-            let accounts_result = {
-                let db_guard = match state.db.lock() {
-                    Ok(db_guard) => db_guard,
-                    Err(error) => {
-                        tracing::warn!("Skipping scheduled sync: failed to lock database: {error}");
-                        continue;
-                    }
-                };
-                let repo = SqliteAccountRepository::new(db_guard.reader());
-                repo.find_all()
-            };
-            let accounts: Vec<Account> = match accounts_result {
+            let accounts: Vec<Account> = match load_scheduler_accounts(&state.db) {
                 Ok(accounts) => accounts,
                 Err(error) => {
                     tracing::warn!("Skipping scheduled sync: failed to load accounts: {error}");
@@ -290,6 +279,14 @@ fn prune_deleted_account_schedules(
     schedules.retain(|id, _| account_ids.contains(id.as_str()));
 }
 
+fn load_scheduler_accounts(db: &Mutex<DbManager>) -> DomainResult<Vec<Account>> {
+    let db_guard = db
+        .lock()
+        .map_err(|error| DomainError::Persistence(format!("Lock error: {error}")))?;
+    let repo = SqliteAccountRepository::new(db_guard.reader());
+    repo.find_all()
+}
+
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
     let base = account_interval(account);
     let error_count = clamped_backoff_error_count(error_count);
@@ -448,6 +445,19 @@ mod tests {
             .unwrap();
     }
 
+    fn insert_sync_state_error_count(db: &DbManager, account_id: &AccountId, error_count: i32) {
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, error_count) VALUES (?1, ?2, ?3)",
+                params![
+                    account_id.0,
+                    SyncStateScopeKey::scheduler().as_string(),
+                    error_count
+                ],
+            )
+            .unwrap();
+    }
+
     #[tokio::test]
     async fn wait_for_automatic_sync_enabled_returns_immediately_when_already_enabled() {
         let automatic_sync_enabled = AtomicBool::new(true);
@@ -535,6 +545,39 @@ mod tests {
     }
 
     #[test]
+    fn load_scheduler_accounts_surfaces_database_lock_errors() {
+        let db = std::sync::Mutex::new(test_db());
+        let poison_result = std::panic::catch_unwind(|| {
+            let _guard = db.lock().unwrap();
+            panic!("poison scheduler db lock");
+        });
+        assert!(poison_result.is_err());
+
+        let error = load_scheduler_accounts(&db).expect_err("poisoned lock should be returned");
+
+        assert!(matches!(error, DomainError::Persistence(_)));
+    }
+
+    #[test]
+    fn load_scheduler_accounts_surfaces_account_load_errors() {
+        let db = std::sync::Mutex::new(test_db());
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                    params!["account-with-invalid-kind", "InvalidProvider", "Invalid"],
+                )
+                .unwrap();
+        }
+
+        let error = load_scheduler_accounts(&db).expect_err("account load failure should return");
+
+        assert!(matches!(error, DomainError::Persistence(_)));
+    }
+
+    #[test]
     fn calculate_backoff_increases_exponentially() {
         let account = test_account(60);
         assert_eq!(calculate_backoff(&account, 0), Duration::from_secs(60));
@@ -549,6 +592,29 @@ mod tests {
 
         assert_eq!(calculate_backoff(&account, -1), Duration::from_secs(60));
         assert_eq!(calculate_backoff_secs(-1), BACKOFF_BASE_SECS);
+    }
+
+    #[test]
+    fn increment_error_count_clamps_negative_stored_error_count_to_first_retry() {
+        let db = std::sync::Mutex::new(test_db());
+        let account_id = AccountId::new();
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account_id);
+            insert_sync_state_error_count(&db_guard, &account_id, -5);
+        }
+
+        let backoff_state = increment_error_count(
+            &db,
+            &account_id,
+            &AppError::UserVisible {
+                message: "sync failed".to_string(),
+            },
+        )
+        .expect("negative stored error count should be clamped before increment");
+
+        assert_eq!(backoff_state.error_count, 1);
+        assert_eq!(backoff_state.retry_in_seconds, calculate_backoff_secs(1));
     }
 
     #[test]
