@@ -40,20 +40,10 @@
   - embedded webview bridge が native command を invoke する経路は capability / window label / webview label の前提が壊れると packaged app だけで失敗しやすい
   - main webview と child webview の permission 差を整理し、close bridge / back-forward mouse bridge の invoke 可否を manual verification に残す
 
-- [ ] P2 browser diagnostics preference 即時反映 contract を固定する
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/preference_commands.rs`
-  - native browser diagnostics flag が startup preference だけを読む場合、settings で Debug HUD を切り替えても native emit が即時追従しない可能性がある
-  - preference update event / app restart required / frontend-only HUD のどれを正にするか決め、debug diagnostics の manual verification に残す
-
 - [ ] P1 Tauri unstable feature を release build で許可する条件を棚卸しする
   - 対象: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/browser_webview.rs`
   - `tauri` に `unstable` feature が入っているため、release artifact で使ってよい API 面積と将来の breaking risk が明文化されていない
   - unstable API の使用箇所、必要理由、代替可能性、release smoke で見るべき挙動を一覧化し、不要なら feature を外す
-
-- [ ] P2 Tauri CSP の external img/frame 許可面積を feed content / browser webview 境界で整理する
-  - 対象: `src-tauri/tauri.conf.json`, `docs/feed-content-privacy.md`, `src/components/reader/article-content-view.tsx`
-  - CSP で `img-src` / `frame-src` が `http:` / `https:` を広く許可している場合、feed content と browser webview の責務境界が security config 上で見えにくい
-  - reader thumbnail、sanitized article body、Web Preview、child webview の許可面積を threat model と manual verification に分ける
 
 - [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
   - 対象: `docs/feed-content-privacy.md`, `TODO.md`
@@ -79,11 +69,6 @@
   - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/api/schemas/article.ts`, `src/components/reader/article-toolbar-view.tsx`
   - feed item の article URL は open/copy/browser preview に流れるため、`https://user:pass@host`、fragment token、control char をどこで落とすか未固定だと privacy と UI 表示が揺れる
   - normalizer、ArticleDtoSchema、open/copy action のどこで sanitize するか決め、credential-in-URL と invalid URL の fixture を追加する
-
-- [ ] P3 browser overlay close 後の focus return 優先順位を固定する
-  - 対象: `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`
-  - 元の toolbar button 等を記憶していても、選択 article row があれば先にそこへ focus するため、キーボード操作では「閉じたら元の操作ボタンへ戻る」期待とズレやすい
-  - open-in-browser button から overlay open/close した時の focus return test を追加し、article row 優先か previous target 優先かを明文化する
 
 - [ ] P2 article view history cleanup / retention policy を決める
   - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
@@ -135,20 +120,10 @@
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
 
-- [ ] P1 browser webview bounds sync の resize storm と stale native command backlog を抑える
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src-tauri/src/commands/browser_webview_commands.rs`
-  - ResizeObserver と window resize が毎回 async sync を投げるため、連続 resize で古い `resize` command が後から届き、WebView bounds が過去の矩形へ戻る可能性がある
-  - request generation、latest-only resize、throttle/debounce、native side idempotence を hook/native test と実機計測に分ける
-
 - [ ] P1 startup/update/manual sync の foreground 復帰時 concurrency を system test 化する
   - 対象: `src/App.tsx`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src-tauri/src/service/sync_scheduler.rs`
   - foreground 復帰時に wake sync、startup throttle、manual sync、updater install gate が近いタイミングで動くため、UI では idle に見えて native 側だけ busy になりやすい
   - app wake、manual sync click、update-ready、scheduler tick を組み合わせた integration test / manual verification checklist を作る
-
-- [ ] P2 Tauri dev server manager が他 repo の Vite process を止める条件を厳格化する
-  - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
-  - port owner 判定が command line の Vite 文字列中心なので、同じ port を使う別 repo の Vite を停止してしまう可能性がある
-  - cwd/project root/package name を判定に含めるか user confirmation に逃がし、same repo / other repo / unknown command line の test を追加する
 
 - [ ] P1 local feed 追加の duplicate URL race と rollback cleanup を固定する
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`
@@ -164,11 +139,6 @@
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/tag_commands.rs`, `src-tauri/src/commands/account_commands.rs`
   - `delete_feed` は missing を error にする一方、`delete_tag` は missing no-op になっており、confirm 後の stale target を成功扱いにするかが操作ごとにズレる
   - delete feed/tag/account/mute keyword の missing target、already deleted、cross-account target の policy を command/component test で統一する
-
-- [ ] P2 GReader remote folder removal が local folder assignment を残す条件を固定する
-  - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`
-  - remote subscription から folder が消えた時に existing local folder を保持する helper があり、remote 側の folder removal を反映するのか local override とみなすのか曖昧
-  - remote folder present/missing/empty、local manual move 後 sync、remote deleted folder の conflict policy を provider sync test にする
 
 - [ ] P2 update_feed_display_settings の `inherit` / default preference 解決を account/feed context で固定する
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
@@ -190,40 +160,6 @@
   - startup DB error は database path を出す一方、log dir command は generic message に閉じており、support/debug のためにどこまで local path を出すかが境界ごとに揺れている
   - user-visible path、diagnostics-only path、privacy-sensitive username redaction の基準を CLAUDE/rules か contract test にする
 
-- [ ] P1 GReader push mutation の partial remote success を idempotent にする
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
-  - remote mutation を順番に POST するため、途中 failure の retry で既に成功した read/star/unstar が再送され、local pending state と remote state の対応が曖昧になりやすい
-  - per-mutation ack、remote idempotency、retry dedupe、partial failure diagnostics の policy を決め、2件目 failure と retry の Rust test を追加する
-
-- [ ] P2 GReader stream id pull の cardinality / memory cap を決める
-  - 対象: `src-tauri/src/infra/provider/greader.rs`
-  - read/starred stream id は 1 page 10000 件を最大 100 page 集め得るため、大規模 account で memory と sync duration が跳ねやすい
-  - page cap、total id cap、dedupe timing、partial sync warning、timeout の Rust test を追加する
-
-- [ ] P2 GReader quickadd 後 subscription matching を remote id substring 依存から外す
-  - 対象: `src-tauri/src/infra/provider/greader.rs`
-  - quickadd 後の subscription 探索が `url` 等価または `remote_id.contains(url)` に依存しており、URL normalization 差や substring collision で別 feed を選ぶ可能性がある
-  - quickadd response id、canonical URL、feed URL list、ambiguous match error のどれを正にするか決め、collision fixture を追加する
-
-- [ ] P2 GReader label remote id の percent decode / path separator contract を固定する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src/lib/folders`, `src/api/schemas/commands.ts`
-  - remote label id を percent decode して folder name / remote id へ戻すため、invalid UTF-8、slash、blank label、case collision の扱いが曖昧だと folder sync が壊れやすい
-  - invalid percent encoding、`/` を含む label、duplicate label、system label ignore の Rust test を追加する
-
-- [ ] P2 generic sync_flow の remote subscription 保存が duplicate FeedId を作らないようにする
-  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`
-  - generic provider sync は remote subscription ごとに `FeedId::new()` で保存するため、同じ remote feed が再取得された場合の upsert key が provider 実装に依存しやすい
-  - provider_account_id + remote_id unique、feed_url fallback、legacy duplicate merge、deleted/recreated feed の Rust test を追加する
-
-- [ ] P2 provider normalizer の site_url / icon_url scheme policy を frontend opener と揃える
-  - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/components/reader/article-browser-actions.ts`, `src/api/schemas/commands.ts`
-  - feed metadata 由来の site_url / icon_url が unsupported scheme、userinfo、private host、very long URL を含む場合の保存・表示・open policy が provider 側だけでは見えにくい
-  - scheme allowlist、private host display、credential redaction、max length、open failure の backend/frontend test を追加する
-
-- [ ] P3 provider HTTP defaults を source of truth 化する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/http.rs`
-  - timeout、user-agent、redirect policy、max body size が discovery/local provider で個別定義されると、新しい provider 追加時に security boundary が揺れやすい
-  - shared config、per-provider override、test fixture default、dev override の方針を決め、HTTP client construction test を追加する
 
 - [ ] P1 sync-on-wake の rejected promise を app boundary で必ず捕捉する
   - 対象: `src/App.tsx`, `src/api/tauri-commands.ts`, `src/lib/sync/manual-sync.ts`
@@ -250,20 +186,6 @@
   - 複数 account を並列 sync する時、1 account の throw/reject が他 account の結果待ちや warning 集約を壊すと、どの account が成功/失敗したか見えにくい
   - `Promise.allSettled`、per-account warning、partial success invalidation、sync_on_wake off account skip の component test を追加する
 
-- [ ] P2 Tauri dev Vite manager が SIGTERM で止まらない process を扱えるようにする
-  - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
-  - stale Vite を SIGTERM した後は port が空くまで待つだけなので、process が signal を無視すると dev server 起動が timeout し、次の対処が手動 kill になりやすい
-  - graceful timeout、SIGKILL fallback opt-in、foreign process には絶対 kill しない guard、timeout message の test を追加する
-
-- [ ] P2 Tauri dev Vite manager の port owner 判定を package cwd / command args まで見る
-  - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
-  - command line が `pnpm exec vite` なら同 repo の dev server とみなすため、別 repo の同名 command や wrapper 経由 Vite を誤停止しない保証が弱い
-  - cwd extraction、script path、configured port、package root marker、unknown owner の safe failure test を追加する
-
-- [ ] P2 tauri-cli-dispatch の forwarded env を spawn spec と child env で一致させる
-  - 対象: `scripts/tauri-cli-dispatch.ts`, `scripts/lib/windows-dispatch.ts`, `src/__tests__/scripts/tauri-cli-dispatch.test.ts`
-  - WSL 経由の spawn spec は env override を作る一方、local spawn では `process.env` をそのまま渡すため、Windows interop と local 実行で secret filtering / path conversion の境界がズレやすい
-  - forwarded env allowlist、secret-like value redaction、local vs WSL parity、spawn error diagnostics の script test を追加する
 
 - [ ] P3 matchMedia listener fallback の duplicate registration / cleanup drift を fixture 化する
   - 対象: `src/lib/runtime/match-media-listener.ts`, `src/stores/preferences-store.ts`, `src/hooks/use-app-icon-theme.ts`
