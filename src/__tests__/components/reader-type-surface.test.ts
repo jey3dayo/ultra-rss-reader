@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { createTypeSurfaceHelper, type TypeSurfaceContract } from "@tests/helpers/type-surface";
 import { describe, expect, it } from "vitest";
 
 const repoRoot = process.cwd();
@@ -54,104 +55,15 @@ const typeSurfaceSearchDirectories = [
   "src/__tests__/hooks",
 ] as const;
 
-type TypeSurfaceContract = {
-  readonly label: string;
-  readonly typeFileList: readonly string[];
-};
-
-type TypeSurfaceHelper = {
-  readonly assertTypeFileList: (contract: TypeSurfaceContract) => void;
-  readonly collectPublicContractDiagnostics: (contract: TypeSurfaceContract) => string[];
-};
-
-function collectTypeScriptFiles(directoryPath: string): string[] {
-  if (!existsSync(directoryPath)) {
-    return [];
-  }
-
-  const entries = readdirSync(directoryPath, { withFileTypes: true });
-
-  return entries.flatMap((entry) => {
-    const entryPath = join(directoryPath, entry.name);
-
-    if (entry.isDirectory()) {
-      return collectTypeScriptFiles(entryPath);
-    }
-
-    if (!entry.name.endsWith(".ts") && !entry.name.endsWith(".tsx")) {
-      return [];
-    }
-
-    return [relative(repoRoot, entryPath)];
-  });
-}
-
 function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
-function extractExportedTypeNames(source: string) {
-  return [...source.matchAll(/^export type\s+([A-Z]\w*)/gm)].map((match) => match[1]);
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function createTypeSurfaceHelper(): TypeSurfaceHelper {
-  const typeSurfaceSearchFiles = typeSurfaceSearchDirectories.flatMap((directoryPath) =>
-    collectTypeScriptFiles(join(repoRoot, directoryPath)),
-  );
-  const sourceByPath = new Map<string, string>();
-
-  function readCachedRepoFile(path: string) {
-    const cachedSource = sourceByPath.get(path);
-
-    if (cachedSource !== undefined) {
-      return cachedSource;
-    }
-
-    const source = readRepoFile(path);
-
-    sourceByPath.set(path, source);
-
-    return source;
-  }
-
-  return {
-    assertTypeFileList({ typeFileList }: TypeSurfaceContract) {
-      expect(typeFileList.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-      expect(typeFileList).toEqual([...typeFileList].sort());
-    },
-    collectPublicContractDiagnostics({ label, typeFileList }: TypeSurfaceContract) {
-      const diagnostics = typeFileList.flatMap((surfaceFile) => {
-        const exportedTypeNames = extractExportedTypeNames(readCachedRepoFile(surfaceFile));
-
-        return exportedTypeNames.flatMap((typeName) => {
-          const typeNamePattern = new RegExp(`\\b${escapeRegExp(typeName)}\\b`);
-
-          const hasExternalReference = typeSurfaceSearchFiles.some((candidateFile) => {
-            if (candidateFile === surfaceFile) {
-              return false;
-            }
-
-            return typeNamePattern.test(readCachedRepoFile(candidateFile));
-          });
-
-          if (hasExternalReference) {
-            return [];
-          }
-
-          return [`${surfaceFile}:${typeName} should stay in ${label} or move out of the public type surface`];
-        });
-      });
-
-      return diagnostics.sort();
-    },
-  };
-}
-
-const typeSurfaceHelper = createTypeSurfaceHelper();
+const typeSurfaceHelper = createTypeSurfaceHelper({
+  expect,
+  repoRoot,
+  searchDirectories: typeSurfaceSearchDirectories,
+});
 
 const publicContractAllowlist = {
   reader: {

@@ -222,26 +222,68 @@ function titleFromUrl(feedUrl: string): string {
 function recalcUnread(feedId: string) {
   const feed = mockFeeds.find((f) => f.id === feedId);
   if (feed) {
-    feed.unread_count = mockArticles.filter((a) => a.feed_id === feedId && !a.is_read).length;
+    let unreadCount = 0;
+    for (const article of mockArticles) {
+      if (article.feed_id === feedId && !article.is_read) {
+        unreadCount += 1;
+      }
+    }
+    feed.unread_count = unreadCount;
   }
 }
 
+function collectFeedIdsByAccount(accountId: string): Set<string> {
+  const feedIds = new Set<string>();
+
+  for (const feed of mockFeeds) {
+    if (feed.account_id === accountId) {
+      feedIds.add(feed.id);
+    }
+  }
+
+  return feedIds;
+}
+
+function collectFeedIdsByFolder(folderId: string): Set<string> {
+  const feedIds = new Set<string>();
+
+  for (const feed of mockFeeds) {
+    if (feed.folder_id === folderId) {
+      feedIds.add(feed.id);
+    }
+  }
+
+  return feedIds;
+}
+
 function countUnreadByAccount(accountId: string) {
-  const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
-  return mockArticles.filter((article) => feedIds.has(article.feed_id) && !article.is_read).length;
+  const feedIds = collectFeedIdsByAccount(accountId);
+  let unreadCount = 0;
+  for (const article of mockArticles) {
+    if (feedIds.has(article.feed_id) && !article.is_read) {
+      unreadCount += 1;
+    }
+  }
+  return unreadCount;
 }
 
 function countStarredByAccount(accountId: string) {
-  const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
-  return mockArticles.filter((article) => feedIds.has(article.feed_id) && article.is_starred).length;
+  const feedIds = collectFeedIdsByAccount(accountId);
+  let starredCount = 0;
+  for (const article of mockArticles) {
+    if (feedIds.has(article.feed_id) && article.is_starred) {
+      starredCount += 1;
+    }
+  }
+  return starredCount;
 }
 
 function resolveOldUnreadFeedIds(scopeKind: "account" | "feed" | "folder", targetId: string) {
   if (scopeKind === "account") {
-    return mockFeeds.filter((feed) => feed.account_id === targetId).map((feed) => feed.id);
+    return [...collectFeedIdsByAccount(targetId)];
   }
   if (scopeKind === "folder") {
-    return mockFeeds.filter((feed) => feed.folder_id === targetId).map((feed) => feed.id);
+    return [...collectFeedIdsByFolder(targetId)];
   }
   return [targetId];
 }
@@ -511,7 +553,7 @@ export function setupDevMocks(): RestoreDevMocks {
           offset = 0,
           limit = 50,
         } = parseBrowserMockArgs("list_account_articles", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         const articles = mockArticles.filter((a) => feedIds.has(a.feed_id) && (!unreadOnly || !a.is_read));
         return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
@@ -541,7 +583,7 @@ export function setupDevMocks(): RestoreDevMocks {
           offset = 0,
           limit = 50,
         } = parseBrowserMockArgs("list_folder_articles", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
+        const feedIds = collectFeedIdsByFolder(folderId);
         const articles = mockArticles.filter((article) => {
           if (!feedIds.has(article.feed_id)) {
             return false;
@@ -569,7 +611,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "mark_account_read": {
         const { accountId } = parseBrowserMockArgs("mark_account_read", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         for (const article of mockArticles) {
           if (feedIds.has(article.feed_id)) {
             article.is_read = true;
@@ -581,7 +623,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "mark_account_starred_read": {
         const { accountId } = parseBrowserMockArgs("mark_account_starred_read", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         const affectedFeedIds = new Set<string>();
         for (const article of mockArticles) {
           if (feedIds.has(article.feed_id) && article.is_starred) {
@@ -622,7 +664,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "list_starred_articles": {
         const { accountId } = parseBrowserMockArgs("list_starred_articles", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         return cloneMockResponse(
           applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.has(a.feed_id) && a.is_starred)),
         );
@@ -635,7 +677,7 @@ export function setupDevMocks(): RestoreDevMocks {
           offset = 0,
           limit = 20,
         } = parseBrowserMockArgs("list_recent_articles", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         const articleById = new Map(mockArticles.map((article) => [article.id, article]));
         const articles = mockArticleViewHistory
           .filter((item) => item.accountId === accountId)
@@ -673,7 +715,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "search_articles": {
         const { accountId, query, offset = 0, limit = 50 } = parseBrowserMockArgs("search_articles", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         const normalizedQuery = query.toLowerCase();
         const articles = mockArticles.filter(
           (article) => feedIds.has(article.feed_id) && article.title.toLowerCase().includes(normalizedQuery),
@@ -747,7 +789,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "record_article_view": {
         const { accountId, articleId } = parseBrowserMockArgs("record_article_view", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const feedIds = collectFeedIdsByAccount(accountId);
         const article = mockArticles.find((candidate) => candidate.id === articleId);
         if (!article || !feedIds.has(article.feed_id)) {
           return null;
@@ -933,7 +975,7 @@ export function setupDevMocks(): RestoreDevMocks {
         const articleIds = new Set(mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id));
         let filtered = mockArticles.filter((a) => articleIds.has(a.id));
         if (accountId) {
-          const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
+          const feedIds = collectFeedIdsByAccount(accountId);
           filtered = filtered.filter((a) => feedIds.has(a.feed_id));
         }
         if (mode === "unread") {

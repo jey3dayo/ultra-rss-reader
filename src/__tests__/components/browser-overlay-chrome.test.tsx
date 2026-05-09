@@ -101,6 +101,19 @@ function render(ui: ReactElement) {
   return renderTestingLibrary(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>);
 }
 
+function getToolbarButtonLabels(): string[] {
+  const labels: string[] = [];
+
+  for (const button of within(screen.getByTestId("browser-overlay-actions")).getAllByRole("button")) {
+    const label = button.getAttribute("aria-label");
+    if (label !== null) {
+      labels.push(label);
+    }
+  }
+
+  return labels;
+}
+
 describe("BrowserOverlayChrome", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -333,12 +346,7 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    const toolbarButtons = within(screen.getByTestId("browser-overlay-actions"))
-      .getAllByRole("button")
-      .map((button) => button.getAttribute("aria-label"))
-      .filter((label): label is string => label !== null);
-
-    expect(toolbarButtons).toEqual(["Reload page", "Open in External Browser", "Share"]);
+    expect(getToolbarButtonLabels()).toEqual(["Reload page", "Open in External Browser", "Share"]);
   });
 
   it("keeps trailing chrome tooltips out of the native webview area", async () => {

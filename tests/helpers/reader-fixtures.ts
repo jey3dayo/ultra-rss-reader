@@ -123,3 +123,48 @@ export function createSampleArticles(): MutableTestFixture<ArticleFixture> {
 export function createSampleArticleTags(): MutableTestFixture<ArticleTagFixture> {
   return cloneFixtureSeed(sampleArticleTagSeeds);
 }
+
+export function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId: string | undefined): Set<string> {
+  const feedIds = new Set<string>();
+
+  for (const feed of feeds) {
+    if (feed.account_id === accountId) {
+      feedIds.add(feed.id);
+    }
+  }
+
+  return feedIds;
+}
+
+export function listArticlesByFeedId(articles: readonly ArticleFixture[], feedId: string | undefined): ArticleFixture[] {
+  const selectedArticles: ArticleFixture[] = [];
+
+  for (const article of articles) {
+    if (article.feed_id === feedId) {
+      selectedArticles.push(article);
+    }
+  }
+
+  return selectedArticles;
+}
+
+export function listArticlesByAccountId({
+  articles,
+  feeds,
+  accountId,
+}: {
+  articles: readonly ArticleFixture[];
+  feeds: readonly FeedFixture[];
+  accountId: string | undefined;
+}): ArticleFixture[] {
+  const feedIds = collectFeedIdsByAccount(feeds, accountId);
+  const selectedArticles: ArticleFixture[] = [];
+
+  for (const article of articles) {
+    if (feedIds.has(article.feed_id)) {
+      selectedArticles.push(article);
+    }
+  }
+
+  return selectedArticles;
+}

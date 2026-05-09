@@ -702,8 +702,16 @@ export const mockDataSeeds: DevMockSeedState = {
 };
 
 function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
+  const unreadCountByFeedId = new Map<string, number>();
+
+  for (const article of articles) {
+    if (!article.is_read) {
+      unreadCountByFeedId.set(article.feed_id, (unreadCountByFeedId.get(article.feed_id) ?? 0) + 1);
+    }
+  }
+
   for (const feed of feeds) {
-    feed.unread_count = articles.filter((article) => article.feed_id === feed.id && !article.is_read).length;
+    feed.unread_count = unreadCountByFeedId.get(feed.id) ?? 0;
   }
 }
 

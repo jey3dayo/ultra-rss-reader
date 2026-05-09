@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
+import { listArticlesByAccountId, listArticlesByFeedId } from "@tests/helpers/reader-fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -187,13 +188,11 @@ function listSampleFeedsByAccountId(accountId: string | undefined) {
 }
 
 function listSampleArticlesByFeedId(feedId: string | undefined) {
-  return sampleArticles.filter((article) => article.feed_id === feedId);
+  return listArticlesByFeedId(sampleArticles, feedId);
 }
 
 function listSampleArticlesByAccountId(accountId: string | undefined) {
-  const feedIds = new Set(sampleFeeds.flatMap((feed) => (feed.account_id === accountId ? [feed.id] : [])));
-
-  return sampleArticles.filter((article) => feedIds.has(article.feed_id));
+  return listArticlesByAccountId({ articles: sampleArticles, feeds: sampleFeeds, accountId });
 }
 
 function listAccountFeedsInFolder(accountId: string, folderId: string) {

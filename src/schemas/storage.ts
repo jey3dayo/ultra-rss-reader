@@ -17,42 +17,71 @@ function normalizeCommandHistoryEntry(value: string): string {
   return normalizeStoredIdentity(value).slice(0, MAX_COMMAND_HISTORY_ENTRY_LENGTH);
 }
 
-function uniqueEntries(values: string[]): string[] {
-  return [...new Set(values)];
+function collectNormalizedUniqueStrings(
+  values: readonly unknown[],
+  normalize: (value: string) => string,
+  maxEntries: number,
+): string[] {
+  const seen = new Set<string>();
+  const entries: string[] = [];
+
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const normalizedValue = normalize(value);
+    if (!normalizedValue || seen.has(normalizedValue)) {
+      continue;
+    }
+
+    seen.add(normalizedValue);
+    entries.push(normalizedValue);
+
+    if (entries.length >= maxEntries) {
+      break;
+    }
+  }
+
+  return entries;
 }
 
-export const CommandHistoryStorageSchema = z.array(z.unknown()).transform((items) =>
-  uniqueEntries(
-    items
-      .filter((item): item is string => typeof item === "string")
-      .map(normalizeCommandHistoryEntry)
-      .filter((item) => item.length > 0),
-  ).slice(0, MAX_COMMAND_HISTORY),
-);
+export const CommandHistoryStorageSchema = z
+  .array(z.unknown())
+  .transform((items) => collectNormalizedUniqueStrings(items, normalizeCommandHistoryEntry, MAX_COMMAND_HISTORY));
 
 export type CommandHistoryStorage = z.output<typeof CommandHistoryStorageSchema>;
 
 export const StoredSidebarExpandedFoldersSchema = z.record(z.string(), z.unknown()).transform(
-  (parsed): Record<string, string[]> =>
-    Object.fromEntries(
-      Object.entries(parsed)
-        .flatMap(([accountId, folderIds]): Array<[string, string[]]> => {
-          const normalizedAccountId = normalizeStoredIdentity(accountId);
-          if (!normalizedAccountId || !Array.isArray(folderIds)) {
-            return [];
-          }
+  (parsed): Record<string, string[]> => {
+    const expandedFolders: Record<string, string[]> = {};
+    let accountCount = 0;
 
-          const normalizedFolderIds = uniqueEntries(
-            folderIds
-              .filter((folderId): folderId is string => typeof folderId === "string")
-              .map(normalizeStoredIdentity)
-              .filter((folderId) => folderId.length > 0),
-          ).slice(0, MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
+    for (const [accountId, folderIds] of Object.entries(parsed)) {
+      const normalizedAccountId = normalizeStoredIdentity(accountId);
+      if (!normalizedAccountId || !Array.isArray(folderIds)) {
+        continue;
+      }
 
-          return normalizedFolderIds.length > 0 ? [[normalizedAccountId, normalizedFolderIds]] : [];
-        })
-        .slice(0, MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS),
-    ),
+      const normalizedFolderIds = collectNormalizedUniqueStrings(
+        folderIds,
+        normalizeStoredIdentity,
+        MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+      );
+      if (normalizedFolderIds.length === 0) {
+        continue;
+      }
+
+      expandedFolders[normalizedAccountId] = normalizedFolderIds;
+      accountCount += 1;
+
+      if (accountCount >= MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS) {
+        break;
+      }
+    }
+
+    return expandedFolders;
+  },
 );
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
