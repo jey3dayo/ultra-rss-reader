@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P2 Rust app startup filesystem failure diagnostics を補強する
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/build.rs`
-  - app data dir 作成 / DB init / log cleanup で `expect` / `panic` / silent remove failure が混在しており、packaged startup failure の user-facing message が揺れやすい
-  - app data permission denied、DB open failure、log cleanup permission denied の message と recovery guidance を native test / manual verification に分ける
-
 - [ ] P1 child webview command invoke 権限を検証する
   - 対象: `src-tauri/capabilities/default.json`, `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
   - embedded webview bridge が native command を invoke する経路は capability / window label / webview label の前提が壊れると packaged app だけで失敗しやすい
@@ -49,11 +44,6 @@
   - 対象: `docs/feed-content-privacy.md`, `TODO.md`
   - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
   - `docs/feed-content-privacy.md` の checklist と TODO の実行単位を対応させ、manual verification を reader thumbnail / sanitized body / Web Preview に分割する
-
-- [ ] P1 manual full sync の並列設計と single DB mutex の噛み合わせを検証する
-  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/commands/mod.rs`
-  - account sync は `join_all` で並列化される一方、DB は `Mutex<DbManager>` で直列化されるため、長い write 中に他 account や UI read が詰まりやすい
-  - 複数 account sync 中に list/count command が返る時間を測り、並列度制限、DB operation queue、read path の busy/error policy を固定する
 
 - [ ] P1 sanitizer で許可した media/source/link attribute の privacy policy を固定する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
@@ -75,25 +65,10 @@
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
   - retention days、max rows、account/feed delete cascade、clear history command の count contract を Rust test にする
 
-- [ ] P1 feed folder drag/drop の optimistic rollback を latest-only にする
-  - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
-  - feed を folder A -> B -> C と連続移動した時、古い mutation failure が後から来ると `previousFeedsQueries` で最新の folder state を巻き戻し得る
-  - deferred promise で逆順 settle する hook test を追加し、feedId ごとの mutation generation または現在値比較 rollback にする
-
 - [ ] P1 debug input trace が typed key や target text を記録しすぎないようにする
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug-input-trace.ts`, `src/components/settings/debug-settings.tsx`
   - Debug HUD の raw keyboard/pointer trace は入力欄や URL/credential field の target description を扱うため、debug log 上に sensitive interaction が残る可能性がある
   - password/server URL/input/textarea/contenteditable では key value を redact し、trace retention と copy/export 可否を test にする
-
-- [ ] P1 log directory を開く導線の privacy checklist を追加する
-  - 対象: `src-tauri/src/commands/log_commands.rs`, `src-tauri/src/lib.rs`, `docs/feed-content-privacy.md`
-  - log dir はユーザーが直接開けるため、sync error、browser diagnostics、debug trace に URL query や account data が残ると support 共有時に漏えいしやすい
-  - log redaction 対象、retention、manual support 手順を checklist 化し、代表ログに secret-like string が出ない test を追加する
-
-- [ ] P2 app root visibilitychange sync trigger の throttle / cleanup を固定する
-  - 対象: `src/App.tsx`, `src/lib/sync/startup-sync-storage.ts`, `src-tauri/src/service/sync_scheduler.rs`
-  - visibilitychange や wake/startup sync が重なると、foreground 復帰時に manual sync、automatic sync、startup sync の開始条件が競合しやすい
-  - hidden -> visible 連打、sleep wake、startup throttle metadata corruption の sync trigger contract を frontend/store/Rust service で固定する
 
 - [ ] P3 manual sync cooldown listener error aggregation を diagnostics に接続する
   - 対象: `src/lib/sync/manual-sync.ts`
@@ -115,45 +90,15 @@
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
 
-- [ ] P1 startup/update/manual sync の foreground 復帰時 concurrency を system test 化する
-  - 対象: `src/App.tsx`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src-tauri/src/service/sync_scheduler.rs`
-  - foreground 復帰時に wake sync、startup throttle、manual sync、updater install gate が近いタイミングで動くため、UI では idle に見えて native 側だけ busy になりやすい
-  - app wake、manual sync click、update-ready、scheduler tick を組み合わせた integration test / manual verification checklist を作る
-
-- [ ] P1 local feed 追加の duplicate URL race と rollback cleanup を固定する
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`
-  - `add_local_feed` は fetch 後に DB 保存するため、同じ URL の並行追加や初期 sync 失敗 rollback で duplicate feed / orphan article / UI selected feed が残りやすい
-  - duplicate URL concurrent add、sync failure rollback、unread count recalculation failure、rollback failure warning を Rust command と dialog test で固定する
-
 - [ ] P1 purge_old_articles が開いている記事・tag・history を破壊しない contract を作る
   - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/components/reader/article-view.tsx`
   - background sync 後の purge が read article を削除するため、現在開いている read article、tag assignment、recent history、browser preview の参照が消えるタイミングが曖昧
   - selected article が purge 対象、starred/tagged/read history 付き article、account keep_read_items_days 変更直後の behavior を Rust/frontend test にする
 
-- [ ] P1 destructive command の missing target policy を delete/feed/tag/account で揃える
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/tag_commands.rs`, `src-tauri/src/commands/account_commands.rs`
-  - `delete_feed` は missing を error にする一方、`delete_tag` は missing no-op になっており、confirm 後の stale target を成功扱いにするかが操作ごとにズレる
-  - delete feed/tag/account/mute keyword の missing target、already deleted、cross-account target の policy を command/component test で統一する
-
-- [ ] P2 update_feed_display_settings の `inherit` / default preference 解決を account/feed context で固定する
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
-  - feed の reader/web preview mode と account/default preference が別経路で解決されるため、`inherit` 表示と実際の article/browser behavior がズレやすい
-  - default変更後、feed override解除、folder/context menu からの変更、cache invalidation の contract test を追加する
-
 - [ ] P2 dev mocks の mutation side effect と real DB cascade の差分を検出する
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
-
-- [ ] P3 backup/log file path を user-facing diagnostics に出す時の redaction policy を統一する
-  - 対象: `src-tauri/src/infra/db/backup.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/commands/log_commands.rs`
-  - startup DB error は database path を出す一方、log dir command は generic message に閉じており、support/debug のためにどこまで local path を出すかが境界ごとに揺れている
-  - user-visible path、diagnostics-only path、privacy-sensitive username redaction の基準を CLAUDE/rules か contract test にする
-
-- [ ] P1 sync-on-wake の rejected promise を app boundary で必ず捕捉する
-  - 対象: `src/App.tsx`, `src/api/tauri-commands.ts`, `src/lib/sync/manual-sync.ts`
-  - visibilitychange から `void runSyncOnWakeRef.current()` を呼ぶため、`listAccounts` や `syncAccount` が throw/reject した場合に unhandled rejection になり、UI には何も出ず wake sync が失敗する可能性がある
-  - listAccounts throw、1 account reject、Promise.all fail-fast、success+failure mixed、次回 wake retry の component test を追加する
 
 - [ ] P1 article search の FTS/LIKE 全件 materialize を bounded pagination にする
   - 対象: `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
@@ -164,11 +109,6 @@
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/article-browser-actions.ts`
   - background open は `open -g` を spawn してすぐ成功扱いにするため、`open` command の終了失敗や LaunchServices error が toast/diagnostics に残らない
   - spawn failure、non-zero exit、stderr redaction、foreground fallback、unsupported platform の Rust command test / manual verification を追加する
-
-- [ ] P2 sync-on-wake の per-account failure を Promise.all fail-fast から集約 diagnostics にする
-  - 対象: `src/App.tsx`, `src/hooks/use-feeds.ts`, `src/lib/query/query-invalidation.ts`
-  - 複数 account を並列 sync する時、1 account の throw/reject が他 account の結果待ちや warning 集約を壊すと、どの account が成功/失敗したか見えにくい
-  - `Promise.allSettled`、per-account warning、partial success invalidation、sync_on_wake off account skip の component test を追加する
 
 - [ ] P3 matchMedia listener fallback の duplicate registration / cleanup drift を fixture 化する
   - 対象: `src/lib/runtime/match-media-listener.ts`, `src/stores/preferences-store.ts`, `src/hooks/use-app-icon-theme.ts`
@@ -495,25 +435,10 @@
   - `await new Promise((resolve) => setTimeout(resolve, 0))` が複数 test にあり、fake timer / real timer の混在で flake の原因になりやすい
   - `flushTimers` / `flushMicrotasks` / `flushRaf` helper を分け、real timer 前提の test を明示する
 
-- [ ] P1 Rust DB mutex poison を user-visible recovery と diagnostics に分類する
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/commands/*`, `src-tauri/src/infra/db/*`
-  - DB access は `Mutex<DbManager>` 経由が多く、panic 後の poisoned mutex がそのまま command failure / panic のどちらで表面化するかが見えにくい
-  - lock failure message、restart guidance、safe read-only fallback、panic-injected test、user-facing error redaction を固定する
-
-- [ ] P1 app startup の `expect` / `panic` surface を migration failure と通常 IO failure で分ける
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/migration.rs`
-  - app data dir 作成、DB 初期化、window titlebar 設定などで `expect` / `panic` が混在しており、migration recovery と通常 IO failure の案内がずれやすい
-  - migration failure、permission denied、disk full、titlebar unsupported、app data dir missing の startup diagnostics を追加する
-
 - [ ] P2 startup main webview focus restore の async spawn を lifecycle-aware にする
   - 対象: `src-tauri/src/lib.rs`, `src/components/app-shell.tsx`, `src/hooks/use-screen-snapshot.ts`
   - startup focus restore は `tauri::async_runtime::spawn` + sleep 後に main window/webview を探すため、window close や slow startup で stale focus warning が出やすい
   - app handle drop、main window missing、webview missing、permission denied、retry不要条件の Rust test / manual verification を追加する
-
-- [ ] P2 native menu emit failure を frontend action diagnostics と同じ分類にする
-  - 対象: `src-tauri/src/menu.rs`, `src/hooks/use-menu-events.ts`, `src/lib/actions.ts`
-  - menu action emit failure は Rust 側 tracing に閉じるため、frontend action registry 側の unknown/no-op diagnostics と集約されない
-  - emit failure、unknown menu id、window missing、listener missing、frontend handler throw の parity test を追加する
 
 - [ ] P2 live FreshRSS tests の env prerequisite を ignored/manual test contract に分ける
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `CLAUDE.md`
