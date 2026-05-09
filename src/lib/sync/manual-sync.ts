@@ -91,11 +91,11 @@ export async function triggerManualSyncWithCooldownResult(
   }
 
   onRequestStart?.();
-  try {
-    return await triggerSync();
-  } finally {
+  const result = await triggerSync();
+  if (Result.isSuccess(result) || Result.unwrapError(result).type === "Retryable") {
     setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
   }
+  return result;
 }
 
 export async function triggerManualSyncWithCooldown({

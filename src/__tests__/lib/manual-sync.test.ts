@@ -239,8 +239,20 @@ describe("manual-sync", () => {
     expect(onCooldown).not.toHaveBeenCalled();
   });
 
-  it("starts cooldown after triggerSync failure", async () => {
+  it("does not start cooldown after user-visible triggerSync failure", async () => {
     const appError = { type: "UserVisible", message: "sync failed" };
+    triggerSyncMock.mockResolvedValue(Result.fail(appError));
+
+    const result = await triggerManualSyncWithCooldownResult();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual(appError);
+    expect(isManualSyncCoolingDown()).toBe(false);
+    expect(getManualSyncCooldownUntil()).toBe(0);
+  });
+
+  it("starts cooldown after retryable triggerSync failure", async () => {
+    const appError = { type: "Retryable", message: "sync failed" };
     triggerSyncMock.mockResolvedValue(Result.fail(appError));
 
     const result = await triggerManualSyncWithCooldownResult();
@@ -251,17 +263,17 @@ describe("manual-sync", () => {
     expect(getManualSyncCooldownUntil()).toBe(Date.now() + 15_000);
   });
 
-  it("starts cooldown after triggerSync rejects", async () => {
+  it("does not start cooldown after triggerSync rejects", async () => {
     const syncError = new Error("sync command rejected");
     triggerSyncMock.mockRejectedValue(syncError);
 
     await expect(triggerManualSyncWithCooldownResult()).rejects.toThrow(syncError);
 
-    expect(isManualSyncCoolingDown()).toBe(true);
-    expect(getManualSyncCooldownUntil()).toBe(Date.now() + 15_000);
+    expect(isManualSyncCoolingDown()).toBe(false);
+    expect(getManualSyncCooldownUntil()).toBe(0);
   });
 
-  it("uses the same cooldown deadline after triggerSync success and failure", async () => {
+  it("uses the same cooldown deadline after triggerSync success and retryable failure", async () => {
     const syncStartedAt = Date.now();
     const successResult = await triggerManualSyncWithCooldownResult();
 
@@ -271,7 +283,7 @@ describe("manual-sync", () => {
     resetManualSyncCooldownForTests();
     const failureStartedAt = syncStartedAt + 30_000;
     vi.setSystemTime(failureStartedAt);
-    const appError = { type: "UserVisible", message: "sync failed" };
+    const appError = { type: "Retryable", message: "sync failed" };
     triggerSyncMock.mockResolvedValue(Result.fail(appError));
 
     const failureResult = await triggerManualSyncWithCooldownResult();
