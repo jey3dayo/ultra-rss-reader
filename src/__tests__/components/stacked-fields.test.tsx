@@ -44,8 +44,8 @@ describe("stacked shared fields", () => {
     expect(onChange).toHaveBeenCalledWith("reader");
   });
 
-  it("keeps generated stacked select label references stable", () => {
-    render(
+  it("keeps generated stacked select label references stable across rerenders", () => {
+    const { rerender } = render(
       <StackedSelectField
         label="Display mode"
         name="display-mode"
@@ -60,13 +60,30 @@ describe("stacked shared fields", () => {
     );
 
     const label = screen.getByText("Display mode");
+    const labelId = label.id;
 
     expect(label).toHaveAttribute("id");
-    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveAttribute("aria-labelledby", label.id);
+    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveAttribute("aria-labelledby", labelId);
+
+    rerender(
+      <StackedSelectField
+        label="Display mode"
+        name="display-mode"
+        value="default"
+        options={[
+          { value: "default", label: "Default" },
+          { value: "preview", label: "Web Preview" },
+        ]}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Display mode")).toHaveAttribute("id", labelId);
+    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveAttribute("aria-labelledby", labelId);
   });
 
-  it("keeps explicit stacked select label references stable", () => {
-    render(
+  it("keeps explicit stacked select label references stable across rerenders", () => {
+    const { rerender } = render(
       <StackedSelectField
         labelId="display-mode-label"
         label="Display mode"
@@ -79,6 +96,26 @@ describe("stacked shared fields", () => {
         onChange={vi.fn()}
       />,
       { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByText("Display mode")).toHaveAttribute("id", "display-mode-label");
+    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveAttribute(
+      "aria-labelledby",
+      "display-mode-label",
+    );
+
+    rerender(
+      <StackedSelectField
+        labelId="display-mode-label"
+        label="Display mode"
+        name="display-mode"
+        value="default"
+        options={[
+          { value: "default", label: "Default" },
+          { value: "preview", label: "Web Preview" },
+        ]}
+        onChange={vi.fn()}
+      />,
     );
 
     expect(screen.getByText("Display mode")).toHaveAttribute("id", "display-mode-label");

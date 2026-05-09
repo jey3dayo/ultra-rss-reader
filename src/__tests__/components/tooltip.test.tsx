@@ -1,7 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
+
+const tooltipPrimitiveCalls = vi.hoisted(() => ({
+  positionerProps: [] as Array<{
+    align?: "start" | "center" | "end";
+    side?: "top" | "right" | "bottom" | "left";
+    sideOffset?: number;
+  }>,
+  triggerRenderProps: [] as ReactElement[],
+}));
 
 vi.mock("@base-ui/react/tooltip", () => {
   type PrimitiveProps = {
@@ -27,13 +36,19 @@ vi.mock("@base-ui/react/tooltip", () => {
     Tooltip: {
       Provider: ({ children }: PrimitiveProps) => <div data-base-ui-tooltip-provider>{children}</div>,
       Root: ({ children }: PrimitiveProps) => <div data-base-ui-tooltip-root>{children}</div>,
-      Trigger: ({ render: trigger }: TriggerProps) => trigger,
+      Trigger: ({ render: trigger }: TriggerProps) => {
+        tooltipPrimitiveCalls.triggerRenderProps.push(trigger);
+        return trigger;
+      },
       Portal: ({ children }: PrimitiveProps) => <div data-base-ui-tooltip-portal>{children}</div>,
-      Positioner: ({ children, side, align, sideOffset }: PositionerProps) => (
-        <div data-base-ui-tooltip-positioner data-align={align} data-side={side} data-side-offset={sideOffset}>
-          {children}
-        </div>
-      ),
+      Positioner: ({ children, side, align, sideOffset }: PositionerProps) => {
+        tooltipPrimitiveCalls.positionerProps.push({ align, side, sideOffset });
+        return (
+          <div data-base-ui-tooltip-positioner data-align={align} data-side={side} data-side-offset={sideOffset}>
+            {children}
+          </div>
+        );
+      },
       Popup: ({ children, className, "data-app-tooltip-side": appTooltipSide }: PopupProps) => (
         <div className={className} data-app-tooltip-side={appTooltipSide}>
           {children}
@@ -46,16 +61,25 @@ vi.mock("@base-ui/react/tooltip", () => {
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 
 describe("AppTooltip", () => {
-  it("renders the trigger element as the Base UI render prop and applies default popup placement", () => {
+  beforeEach(() => {
+    tooltipPrimitiveCalls.positionerProps = [];
+    tooltipPrimitiveCalls.triggerRenderProps = [];
+  });
+
+  it("renders the trigger element as the Base UI render prop and passes default placement to Base UI", () => {
+    const triggerElement = (
+      <button className="trigger-class" data-trigger-contract type="button">
+        Subscriptions
+      </button>
+    );
+
     render(
       <TooltipProvider>
-        <AppTooltip label="Open subscriptions">
-          <button className="trigger-class" data-trigger-contract type="button">
-            Subscriptions
-          </button>
-        </AppTooltip>
+        <AppTooltip label="Open subscriptions">{triggerElement}</AppTooltip>
       </TooltipProvider>,
     );
+
+    expect(tooltipPrimitiveCalls.triggerRenderProps).toEqual([triggerElement]);
 
     const trigger = screen.getByRole("button", { name: "Subscriptions" });
     expect(trigger).toHaveAttribute("data-trigger-contract");
@@ -63,6 +87,7 @@ describe("AppTooltip", () => {
 
     expect(screen.getByText("Open subscriptions")).toHaveAttribute("data-app-tooltip-side", "bottom");
     expect(screen.getByText("Open subscriptions")).toHaveClass(MOTION_POPUP_SURFACE_CLASS_NAME);
+    expect(tooltipPrimitiveCalls.positionerProps).toEqual([{ align: "center", side: "bottom", sideOffset: 8 }]);
     expect(screen.getByText("Open subscriptions").parentElement).toHaveAttribute("data-side", "bottom");
     expect(screen.getByText("Open subscriptions").parentElement).toHaveAttribute("data-align", "center");
     expect(screen.getByText("Open subscriptions").parentElement).toHaveAttribute("data-side-offset", "8");
@@ -78,6 +103,7 @@ describe("AppTooltip", () => {
     );
 
     expect(screen.getByText("Open externally")).toHaveAttribute("data-app-tooltip-side", "left");
+    expect(tooltipPrimitiveCalls.positionerProps).toEqual([{ align: "start", side: "left", sideOffset: 12 }]);
     expect(screen.getByText("Open externally").parentElement).toHaveAttribute("data-side", "left");
     expect(screen.getByText("Open externally").parentElement).toHaveAttribute("data-align", "start");
     expect(screen.getByText("Open externally").parentElement).toHaveAttribute("data-side-offset", "12");

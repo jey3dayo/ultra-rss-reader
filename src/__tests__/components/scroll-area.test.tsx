@@ -3,13 +3,27 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-function renderScrollBar(orientation?: "horizontal" | "vertical") {
+function renderScrollBar({
+  className,
+  orientation,
+  thumbClassName,
+}: {
+  className?: string;
+  orientation?: "horizontal" | "vertical";
+  thumbClassName?: string;
+} = {}) {
   render(
     <ScrollAreaPrimitive.Root>
       <ScrollAreaPrimitive.Viewport>
         <div>Scrollable content</div>
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar data-testid="scrollbar" keepMounted orientation={orientation} />
+      <ScrollBar
+        className={className}
+        data-testid="scrollbar"
+        keepMounted
+        orientation={orientation}
+        thumbClassName={thumbClassName}
+      />
     </ScrollAreaPrimitive.Root>,
   );
 }
@@ -26,9 +40,9 @@ describe("ScrollArea", () => {
     expect(screen.getByTestId("scroll-area")).toHaveClass("flex-1");
   });
 
-  it("uses a neutral focus treatment on the viewport", () => {
+  it("uses a neutral focus treatment on the viewport without dropping scrollbar overrides", () => {
     render(
-      <ScrollArea data-testid="scroll-area">
+      <ScrollArea data-testid="scroll-area" scrollbarClassName="custom-scrollbar" thumbClassName="custom-thumb">
         <div>Scrollable content</div>
       </ScrollArea>,
     );
@@ -54,12 +68,20 @@ describe("ScrollArea", () => {
     const thumb = document.querySelector('[data-slot="scroll-area-thumb"]');
 
     expect(scrollbar).toHaveClass("custom-scrollbar");
+    expect(scrollbar).toHaveClass("h-full");
+    expect(scrollbar).toHaveClass("w-2.5");
     expect(thumb).toHaveClass("custom-thumb");
+    expect(thumb).toHaveClass("bg-border");
   });
 
-  it("can render a shared scroll content lane wrapper", () => {
+  it("can render a shared scroll content lane wrapper with slot class overrides", () => {
     render(
-      <ScrollArea data-testid="scroll-area" contentClassName="pb-4 pr-3">
+      <ScrollArea
+        data-testid="scroll-area"
+        contentClassName="pb-4 pr-3"
+        scrollbarClassName="custom-scrollbar"
+        thumbClassName="custom-thumb"
+      >
         <div>Scrollable content</div>
       </ScrollArea>,
     );
@@ -71,24 +93,28 @@ describe("ScrollArea", () => {
   });
 
   it("keeps vertical scrollbar orientation attributes and classes by default", () => {
-    renderScrollBar();
+    renderScrollBar({ className: "custom-scrollbar", thumbClassName: "custom-thumb" });
 
     expect(screen.getByTestId("scrollbar")).toHaveAttribute("data-orientation", "vertical");
     expect(screen.getByTestId("scrollbar")).toHaveClass("h-full");
     expect(screen.getByTestId("scrollbar")).toHaveClass("w-2.5");
     expect(screen.getByTestId("scrollbar")).toHaveClass("border-l");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("custom-scrollbar");
+    expect(document.querySelector('[data-slot="scroll-area-thumb"]')).toHaveClass("custom-thumb");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("h-2.5");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("flex-col");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("border-t");
   });
 
   it("switches horizontal scrollbar orientation attributes and classes", () => {
-    renderScrollBar("horizontal");
+    renderScrollBar({ className: "custom-scrollbar", orientation: "horizontal", thumbClassName: "custom-thumb" });
 
     expect(screen.getByTestId("scrollbar")).toHaveAttribute("data-orientation", "horizontal");
     expect(screen.getByTestId("scrollbar")).toHaveClass("h-2.5");
     expect(screen.getByTestId("scrollbar")).toHaveClass("flex-col");
     expect(screen.getByTestId("scrollbar")).toHaveClass("border-t");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("custom-scrollbar");
+    expect(document.querySelector('[data-slot="scroll-area-thumb"]')).toHaveClass("custom-thumb");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("h-full");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("w-2.5");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("border-l");
