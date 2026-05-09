@@ -289,7 +289,7 @@ describe("useDataSettingsController", () => {
     consoleError.mockRestore();
   });
 
-  it("does not reset settings loading after vacuum resolves post-unmount", async () => {
+  it("clears settings loading when vacuum is still pending during unmount", async () => {
     let resolveVacuum: (() => void) | undefined;
     vi.mocked(vacuumDatabase).mockReturnValue(
       new Promise((resolve) => {
@@ -315,14 +315,16 @@ describe("useDataSettingsController", () => {
 
     unmount();
 
+    expect(setSettingsLoading).toHaveBeenCalledWith(false);
+
     await act(async () => {
       resolveVacuum?.();
     });
 
-    expect(setSettingsLoading).not.toHaveBeenCalledWith(false);
+    expect(setSettingsLoading).toHaveBeenCalledTimes(2);
   });
 
-  it("does not reset settings loading or report errors after open log directory rejects post-unmount", async () => {
+  it("clears settings loading and suppresses errors when open log directory rejects post-unmount", async () => {
     let rejectOpenLogDir: ((error: Error) => void) | undefined;
     vi.mocked(openLogDir).mockReturnValue(
       new Promise((_, reject) => {
@@ -344,11 +346,13 @@ describe("useDataSettingsController", () => {
 
     unmount();
 
+    expect(setSettingsLoading).toHaveBeenCalledWith(false);
+
     await act(async () => {
       rejectOpenLogDir?.(new Error("open log failed"));
     });
 
-    expect(setSettingsLoading).not.toHaveBeenCalledWith(false);
+    expect(setSettingsLoading).toHaveBeenCalledTimes(2);
     expect(showToast).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();

@@ -87,6 +87,11 @@ export function useDataSettingsController({
   const openingLogDirRef = useRef(false);
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
+  const setSettingsLoadingRef = useRef(setSettingsLoading);
+
+  useEffect(() => {
+    setSettingsLoadingRef.current = setSettingsLoading;
+  }, [setSettingsLoading]);
 
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
     return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
@@ -128,10 +133,14 @@ export function useDataSettingsController({
     mountedRef.current = true;
     void fetchDbInfo();
     return () => {
+      const shouldClearSettingsLoading = vacuumingRef.current || openingLogDirRef.current;
       mountedRef.current = false;
       databaseSizeRequestRevisionRef.current += 1;
       vacuumingRef.current = false;
       openingLogDirRef.current = false;
+      if (shouldClearSettingsLoading) {
+        setSettingsLoadingRef.current(false);
+      }
     };
   }, [fetchDbInfo]);
 

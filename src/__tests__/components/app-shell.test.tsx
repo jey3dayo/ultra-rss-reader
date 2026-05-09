@@ -5,7 +5,7 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AppShell } from "@/components/app-shell";
+import { AppShell, preloadSettingsModalModuleForDev } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -109,6 +109,19 @@ describe("AppShell", () => {
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(false);
     });
+  });
+
+  it("surfaces settings modal preload rejection without rethrowing", async () => {
+    const error = new Error("settings modal preload failed");
+    const loadModule = vi.fn().mockRejectedValue(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    preloadSettingsModalModuleForDev(loadModule);
+    await Promise.resolve();
+
+    expect(loadModule).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
+    consoleError.mockRestore();
   });
 
   it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {

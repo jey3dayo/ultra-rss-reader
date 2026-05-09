@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
+import { refetchAccountSyncStatusWithErrorSurface } from "@/components/settings/account-detail/sync-status-refetch";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { AddAccountForm } from "@/components/settings/add-account-form";
@@ -41,7 +42,7 @@ function SnapshotBackedAccountDetail({
     t,
     onAccountDeleted: () => onAccountDeleted(account.id),
     onSyncStatusChanged: () => {
-      void syncStatusQuery.refetch();
+      refetchAccountSyncStatusWithErrorSurface(syncStatusQuery.refetch);
     },
   });
   const syncStatusRows = useAccountDetailSyncStatusRows({

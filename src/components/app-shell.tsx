@@ -57,9 +57,17 @@ async function loadSettingsModalModule() {
   return import("./settings/settings-modal");
 }
 
-if (import.meta.env.DEV) {
-  void loadSettingsModalModule();
+export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalModule) {
+  if (!import.meta.env.DEV) {
+    return;
+  }
+
+  void loadModule().catch((error: unknown) => {
+    console.error("Failed to preload settings modal.", error);
+  });
 }
+
+preloadSettingsModalModuleForDev();
 
 const LazySettingsModal = lazy(async () => {
   const mod = await loadSettingsModalModule();
