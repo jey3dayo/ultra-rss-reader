@@ -2,12 +2,12 @@ import { Plus, Rss } from "lucide-react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./add-account/services";
-import type { AccountsNavViewProps } from "./settings-nav.types";
+import type { AccountsNavViewProps } from "./accounts-nav.types";
 
 export type {
   AccountNavItem,
   AccountsNavViewProps,
-} from "./settings-nav.types";
+} from "./accounts-nav.types";
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),

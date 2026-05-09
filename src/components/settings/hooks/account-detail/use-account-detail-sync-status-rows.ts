@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
-import type { AccountDetailSyncStatusTranslator, AccountSyncStatusRow } from "../../account-detail/types";
+import type { AccountDetailSyncStatusTranslator, AccountSyncStatusRow } from "../../account-detail/sync.types";
 
 type AccountDetailSyncStatusRowsParams = {
   syncStatus: AccountSyncStatusDto | undefined;

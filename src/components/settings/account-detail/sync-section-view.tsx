@@ -4,7 +4,7 @@ import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { cn } from "@/lib/utils";
-import type { AccountSelectOption, AccountSyncStatusRow } from "./types";
+import type { AccountSelectOption, AccountSyncStatusRow } from "./sync.types";
 
 const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
 

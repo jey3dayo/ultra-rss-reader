@@ -4,7 +4,8 @@ import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AccountDetailAccount, UpdateAccountSyncParams } from "@/components/settings/account-detail/types";
+import type { UpdateAccountSyncParams } from "@/components/settings/account-detail/sync.types";
+import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import {
   runAccountSetupSync,
   useAccountDetailSyncControls,

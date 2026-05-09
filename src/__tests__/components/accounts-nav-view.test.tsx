@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AccountsNavView, resolveAccountDescription } from "@/components/settings/accounts-nav-view";
-import type { AccountNavItem } from "@/components/settings/settings-nav.types";
+import type { AccountNavItem } from "@/components/settings/accounts-nav.types";
 
 describe("AccountsNavView", () => {
   it("resolves account descriptions for multiple accounts", () => {

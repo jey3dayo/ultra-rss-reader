@@ -2,7 +2,7 @@ import { Copy } from "lucide-react";
 import type { KnownPreferenceKey } from "@/schemas/preferences";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { ActionsSettingsViewProps } from "../actions-settings-view";
-import type { SettingsPreferenceViewPropsParams } from "../settings-page.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
 
 type ActionsSettingsServiceEntry = {
   id: string;

@@ -2,11 +2,8 @@ import type { TFunction } from "i18next";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
-import type {
-  AccountDetailAccount,
-  AccountDetailSyncProgress,
-  AccountSyncStatusRow,
-} from "@/components/settings/account-detail/types";
+import type { AccountDetailSyncProgress, AccountSyncStatusRow } from "@/components/settings/account-detail/sync.types";
+import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";

@@ -1,26 +1,7 @@
 import type { ReactNode } from "react";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
-type AccountNavSelectHandler = (accountId: string) => void;
 type SettingsNavSelectHandler<TItemId extends string = SettingsNavItemId> = (categoryId: TItemId) => void;
-
-export type AccountNavItem = {
-  id: string;
-  name: string;
-  kind: string;
-  username?: string | null;
-  serverUrl?: string | null;
-  isActive: boolean;
-};
-
-export type AccountsNavViewProps = {
-  accounts: AccountNavItem[];
-  addAccountLabel: string;
-  isAddAccountActive: boolean;
-  onSelectAccount: AccountNavSelectHandler;
-  onAddAccount: () => void;
-  disabled?: boolean;
-};
 
 export type SettingsNavItemId = Exclude<SettingsCategory, "accounts">;
 

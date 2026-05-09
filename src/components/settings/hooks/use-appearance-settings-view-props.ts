@@ -1,6 +1,6 @@
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { AppearanceSettingsViewProps } from "../appearance-settings-view";
-import type { SettingsPreferenceViewPropsParams } from "../settings-page.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
 
 export function useAppearanceSettingsViewProps({
   t,

@@ -1,7 +1,7 @@
 import { supportedLanguages } from "@/lib/i18n";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { GeneralSettingsViewProps } from "../general-settings-view";
-import type { SettingsPreferenceViewPropsParams } from "../settings-page.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
 
 const languageSelfLabels: Partial<Record<(typeof supportedLanguages)[number], string>> = {
   en: "English",

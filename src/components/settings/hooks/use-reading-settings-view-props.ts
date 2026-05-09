@@ -11,7 +11,8 @@ import {
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "../reading-settings-view";
-import type { SettingsPageSwitchControl, SettingsPreferenceViewPropsParams } from "../settings-page.types";
+import type { SettingsPageSwitchControl } from "../settings-page.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
 
 type UseReadingSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devIntent: DevIntent;
