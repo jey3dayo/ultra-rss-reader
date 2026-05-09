@@ -1188,6 +1188,51 @@
   - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
   - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
 
+- [ ] react-doctor shortcuts settings iteration cleanup 候補を追加する
+  - `src/components/settings/hooks/use-shortcuts-settings-view-props.ts` の category ごとの `.filter().map()` を single-pass helper へ寄せる
+  - shortcuts settings focused test で category order / shortcut labels / disabled state が変わらないことを固定する
+  - shortcut taxonomy 変更とは分け、settings shortcuts view props の iteration cleanup だけを扱う
+
+- [ ] react-doctor article tag chips iteration cleanup 候補を追加する
+  - `src/components/reader/article-tag-chips.tsx` の assigned / available tag list 生成を single-pass 化できるか確認する
+  - article tag chips focused test で chip order / selected state / empty state が変わらないことを固定する
+  - article tag picker controller contract とは分け、tag chips view 内の iteration cleanup だけを扱う
+
+- [ ] react-doctor sidebar feed tree helper iteration cleanup 候補を追加する
+  - `src/components/reader/sidebar-feed-tree-helpers.ts` の folder model 生成で `.map().filter()` している箇所を、空 folder hide 条件込みの single-pass helper へ寄せる
+  - sidebar feed tree helper test で folder order / unfiled feeds / empty folder visibility が変わらないことを固定する
+  - feed tree drag/drop behavior とは分け、view model helper の iteration cleanup だけを扱う
+
+- [ ] react-doctor sidebar startup folder expansion iteration cleanup 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の unread folder 抽出を single-pass 化する
+  - startup expansion hook test で unread folder / manual collapsed folder / account switch 時の expansion が変わらないことを固定する
+  - sidebar lifecycle false-positive review とは分け、startup folder expansion の list extraction だけを扱う
+
+- [ ] react-doctor app sync-on-wake account extraction 候補を追加する
+  - `src/App.tsx` の sync-on-wake 対象 account 抽出で `.filter().map()` している箇所を single-pass 化する
+  - app root focused test で hidden duration / active account / disabled account の sync 対象が変わらないことを固定する
+  - App visibility handler ref 候補とは分け、wake sync 対象抽出の iteration cleanup だけを扱う
+
+- [ ] knip plugin-opener dependency boundary 候補を追加する
+  - `@tauri-apps/plugin-opener` の npm dependency が TS 側で未使用扱いになる理由を確認し、Cargo plugin / `safeInvoke("plugin:opener|open_url")` との責務境界を整理する
+  - 削除できる場合は package lock と browser action tests を更新し、残す場合は knip ignore / contract comment で意図を固定する
+  - Tauri command schema dead export cleanup とは分け、opener plugin dependency のみ扱う
+
+- [ ] knip markdownlint-cli2 false-positive contract 候補を追加する
+  - `markdownlint-cli2` が `mise.toml` の markdown lint/format task から使われていることを knip が認識できる形にするか、明示 ignore へ寄せる
+  - `mise run lint:md` と package scripts contract test で markdown task の実行経路が変わらないことを固定する
+  - docs lint 方針変更とは分け、knip dependency surface の false-positive 解消だけを扱う
+
+- [ ] react-doctor tauri dispatch Info.plist marker helper 候補を追加する
+  - `scripts/tauri-cli-dispatch.ts` の stale macOS dev bundle 判定で使う Info.plist marker 文字列を helper / constants へ寄せる
+  - tauri-cli-dispatch test で bundle identifier marker の有無と削除可否判定が変わらないことを固定する
+  - tauri dispatch lookup set / script async waterfall とは分け、Info.plist marker 判定の読みやすさだけを扱う
+
+- [ ] react-doctor tauri command contract extraction cleanup 候補を追加する
+  - `src/__tests__/api/schemas.test.ts` と `tests/helpers/tauri-mocks.test.ts` の command extraction helper を single-pass / Set based に整理する
+  - schema/command contract test で抽出順、重複排除、failure message が変わらないことを確認する
+  - repo contract lookup cleanup とは分け、Tauri command contract test helper だけを扱う
+
 - [ ] react-doctor sync result min/max cleanup 候補を追加する
   - `src/lib/sync/sync-result-feedback.ts` の `array.sort()[0]` による min/max 取得を `Math.min` / `Math.max` 相当へ寄せる
   - sync result feedback test で複数 timestamp / 空配列 / 同値の出力 copy が変わらないことを固定する
