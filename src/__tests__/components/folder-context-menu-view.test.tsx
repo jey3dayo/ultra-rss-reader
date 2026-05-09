@@ -40,6 +40,10 @@ describe("FolderContextMenuView", () => {
       "data-action-id",
       "folder-mark-all-read",
     );
+    expect(screen.getByRole("menuitem", { name: "Mark old unread as read" })).toHaveAttribute(
+      "data-action-id",
+      "folder-mark-old-unread-read",
+    );
     expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute(
       "data-action-id",
       "folder-set-display-preset",
@@ -81,6 +85,11 @@ describe("FolderContextMenuView", () => {
 
     fireEvent.click(screen.getByRole("menuitem", { name: "30 days" }));
 
+    expect(screen.getByRole("menuitem", { name: "30 days" })).toHaveAttribute(
+      "data-action-id",
+      "folder-mark-old-unread-read-days",
+    );
+    expect(screen.getByRole("menuitem", { name: "30 days" })).toHaveAttribute("data-action-value", "30");
     expect(onMarkOldUnreadRead).toHaveBeenCalledWith(30);
   });
 

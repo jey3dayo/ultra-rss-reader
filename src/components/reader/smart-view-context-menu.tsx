@@ -73,6 +73,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
               {t("mark_all_as_read")}
             </ContextMenu.Item>
             <OldUnreadContextMenuItems
+              actionId="smart-unread-mark-old-unread-read"
               label={t("mark_old_unread_read")}
               dayLabel={(days) => t("old_unread_older_than_days", { count: days })}
               onSelect={(days) => {

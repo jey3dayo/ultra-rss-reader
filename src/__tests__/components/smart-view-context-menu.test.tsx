@@ -63,6 +63,10 @@ describe("SmartViewContextMenuContent", () => {
       "data-action-id",
       "smart-unread-mark-all-read",
     );
+    expect(screen.getByRole("menuitem", { name: "Mark old unread as read" })).toHaveAttribute(
+      "data-action-id",
+      "smart-unread-mark-old-unread-read",
+    );
   });
 
   it("maps starred smart view actions to starred action ids", () => {

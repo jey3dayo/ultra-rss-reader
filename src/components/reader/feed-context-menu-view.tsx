@@ -59,6 +59,7 @@ export function FeedContextMenuView({
             </ContextMenu.Item>
           )}
           <OldUnreadContextMenuItems
+            actionId="feed-mark-old-unread-read"
             label={markOldUnreadReadLabel}
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}

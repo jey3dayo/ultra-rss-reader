@@ -41,6 +41,7 @@ export function FolderContextMenuView({
             </ContextMenu.Item>
           )}
           <OldUnreadContextMenuItems
+            actionId="folder-mark-old-unread-read"
             label={markOldUnreadReadLabel}
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}

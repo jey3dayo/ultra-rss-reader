@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FeedContextMenuView } from "@/components/reader/feed-context-menu-view";
 
@@ -64,6 +65,10 @@ describe("FeedContextMenuView", () => {
       "data-action-id",
       "feed-mark-all-read",
     );
+    expect(screen.getByRole("menuitem", { name: "Mark old unread as read" })).toHaveAttribute(
+      "data-action-id",
+      "feed-mark-old-unread-read",
+    );
     expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute(
       "data-action-id",
       "feed-set-display-preset",
@@ -79,6 +84,47 @@ describe("FeedContextMenuView", () => {
     expect(onSetDisplayPreset).toHaveBeenCalledWith("preview");
     expect(onUnsubscribe).toHaveBeenCalledTimes(1);
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps old unread preset actions to feed action ids and values", async () => {
+    const user = userEvent.setup();
+    const onMarkOldUnreadRead = vi.fn();
+
+    render(
+      <ContextMenu.Root open>
+        <FeedContextMenuView
+          openSiteLabel="Open site"
+          markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
+          displayModeLabel="Display mode"
+          displayPresetOptions={[
+            { value: "default", label: "Default" },
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
+          ]}
+          selectedDisplayPreset="default"
+          unsubscribeLabel="Unsubscribe…"
+          editLabel="Edit…"
+          onOpenSite={vi.fn()}
+          onMarkAllRead={vi.fn()}
+          onMarkOldUnreadRead={onMarkOldUnreadRead}
+          onSetDisplayPreset={vi.fn()}
+          onUnsubscribe={vi.fn()}
+          onEdit={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    await user.hover(screen.getByRole("menuitem", { name: "Mark old unread as read" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "30 days" }));
+
+    expect(screen.getByRole("menuitem", { name: "30 days" })).toHaveAttribute(
+      "data-action-id",
+      "feed-mark-old-unread-read-days",
+    );
+    expect(screen.getByRole("menuitem", { name: "30 days" })).toHaveAttribute("data-action-value", "30");
+    expect(onMarkOldUnreadRead).toHaveBeenCalledWith(30);
   });
 
   it("places edit first and keeps unsubscribe as the last destructive action", () => {
