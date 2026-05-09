@@ -205,16 +205,6 @@
   - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
   - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
 
-- [ ] settings preference key type boundary 候補を追加する
-  - `src/stores/preferences-store.types.ts` の `setPref: (key: string, value: string)` を known preference key / shortcut key の contract に寄せる
-  - `src/__tests__/stores/preferences-store.test.ts` または dedicated type contract で unknown key が型で止まることを `expectTypeOf` / `@ts-expect-error` で固定する
-  - preference schema 再設計とは分け、settings store action key typing だけを扱う
-
-- [ ] reading display preset paired preference 候補を追加する
-  - `src/components/settings/hooks/use-reading-settings-view-props.ts` の display preset が `reader_mode_default` と `web_preview_mode_default` を別々に保存する failure contract を固定する
-  - 片方だけ失敗した場合の state / backend 整合性を hook test と store test で確認する
-  - preference persist rollback 全体とは分け、reading display preset の paired update だけを扱う
-
 - [ ] article toolbar layout prop boundary 候補を追加する
   - `src/components/reader/article-toolbar-view.tsx` の `ArticleToolbarActionStrip` が `useUiStore(layoutMode)` を直接読む構造を props 境界へ寄せる
   - `src/__tests__/components/article-toolbar-view.test.tsx` で store の layoutMode と prop が食い違っても prop 側で mobile / desktop action が決まることを固定する
@@ -254,11 +244,6 @@
   - `src-tauri/src/infra/opml.rs` の `generate_opml` で head title が二重 escape されないことを固定する
   - Rust test で `Test & Title` が `<title>Test &amp; Title</title>` になり、`&amp;amp;` を含まないことを確認する
   - OPML nested folder / import transaction とは分け、head title serialization だけを扱う
-
-- [ ] E2E runtime error guard shared helper 候補を追加する
-  - `e2e/app.spec.ts` と `e2e/storybook/ui-reference-canvas-smoke.spec.ts` に散っている runtime error guard を shared helper に寄せる
-  - `pageerror` だけでなく `console.error` も拾う contract を最小 Playwright spec で固定する
-  - E2E scenario 追加とは分け、runtime error detection helper だけを扱う
 
 - [ ] tag repository blank name invariant 候補を追加する
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
