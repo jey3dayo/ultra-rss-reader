@@ -13,9 +13,14 @@ export function createInitialAddFeedDialogState(): AddFeedDialogState {
     successMessage: null,
     loading: false,
     discovering: false,
+    discoveryRequestId: null,
     discoveredFeeds: [],
     selectedFeedUrl: null,
   };
+}
+
+function isStaleDiscoveryAction(state: AddFeedDialogState, requestId: number | undefined): boolean {
+  return requestId !== undefined && state.discoveryRequestId !== requestId;
 }
 
 export function addFeedDialogReducer(state: AddFeedDialogState, action: AddFeedDialogAction): AddFeedDialogState {
@@ -26,6 +31,8 @@ export function addFeedDialogReducer(state: AddFeedDialogState, action: AddFeedD
       return {
         ...state,
         url: action.url,
+        discovering: false,
+        discoveryRequestId: null,
         discoveredFeeds: [],
         selectedFeedUrl: null,
       };
@@ -33,38 +40,59 @@ export function addFeedDialogReducer(state: AddFeedDialogState, action: AddFeedD
       return {
         ...state,
         discovering: true,
+        discoveryRequestId: action.requestId ?? null,
         error: null,
         successMessage: null,
         discoveredFeeds: [],
         selectedFeedUrl: null,
       };
     case "discover-empty":
+      if (isStaleDiscoveryAction(state, action.requestId)) {
+        return state;
+      }
+
       return {
         ...state,
         discovering: false,
+        discoveryRequestId: null,
         discoveredFeeds: [],
         selectedFeedUrl: null,
         successMessage: "feed_url_ready",
       };
     case "discover-single":
+      if (isStaleDiscoveryAction(state, action.requestId)) {
+        return state;
+      }
+
       return {
         ...state,
         discovering: false,
+        discoveryRequestId: null,
         discoveredFeeds: action.feeds[0] && hasDiscoveredFeedTitle(action.feeds[0]) ? action.feeds : [],
         selectedFeedUrl: action.feeds[0]?.url ?? null,
         successMessage: "feed_detected",
       };
     case "discover-multiple":
+      if (isStaleDiscoveryAction(state, action.requestId)) {
+        return state;
+      }
+
       return {
         ...state,
         discovering: false,
+        discoveryRequestId: null,
         discoveredFeeds: action.feeds,
         selectedFeedUrl: action.feeds[0]?.url ?? null,
       };
     case "discover-error":
+      if (isStaleDiscoveryAction(state, action.requestId)) {
+        return state;
+      }
+
       return {
         ...state,
         discovering: false,
+        discoveryRequestId: null,
         error: action.error,
       };
     case "set-selected-feed-url":

@@ -46,6 +46,7 @@ describe("useAddFeedDialogActions", () => {
           successMessage: null,
           loading: false,
           discovering: false,
+          discoveryRequestId: null,
           discoveredFeeds: [],
           selectedFeedUrl: null,
         },
@@ -77,10 +78,12 @@ describe("useAddFeedDialogActions", () => {
     });
 
     expect(discoverFeeds).toHaveBeenCalledWith("https://example.com");
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "discover-single",
-      feeds: [{ url: "https://example.com/feed.xml", title: "Example Feed" }],
-    });
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "discover-single",
+        feeds: [{ url: "https://example.com/feed.xml", title: "Example Feed" }],
+      }),
+    );
   });
 
   it("ignores stale discovery responses after a newer URL discovery starts", async () => {
@@ -97,6 +100,7 @@ describe("useAddFeedDialogActions", () => {
         successMessage: null,
         loading: false,
         discovering: false,
+        discoveryRequestId: null,
         discoveredFeeds: [],
         selectedFeedUrl: null,
       },
@@ -149,14 +153,87 @@ describe("useAddFeedDialogActions", () => {
 
     expect(discoverFeeds).toHaveBeenNthCalledWith(1, "https://old.example.com");
     expect(discoverFeeds).toHaveBeenNthCalledWith(2, "https://new.example.com");
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "discover-single",
-      feeds: [{ url: "https://new.example.com/feed.xml", title: "New Feed" }],
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "discover-single",
+        feeds: [{ url: "https://new.example.com/feed.xml", title: "New Feed" }],
+      }),
+    );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "discover-single",
+        feeds: [{ url: "https://old.example.com/feed.xml", title: "Old Feed" }],
+      }),
+    );
+  });
+
+  it("ignores a discovery response after the URL changes before another discovery starts", async () => {
+    const discovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    vi.mocked(discoverFeeds).mockReturnValue(discovery.promise);
+
+    const dispatch = vi.fn();
+    const createProps = (url: string, trimmedUrl: string) => ({
+      accountId: "account-1",
+      state: {
+        url,
+        error: null,
+        successMessage: null,
+        loading: false,
+        discovering: false,
+        discoveryRequestId: null,
+        discoveredFeeds: [],
+        selectedFeedUrl: null,
+      },
+      dispatch,
+      derived: {
+        hasManualUrl: true,
+        isManualUrlValid: true,
+        urlHint: null,
+        urlHintTone: "muted" as const,
+        isSubmitDisabled: false,
+        isDiscoverDisabled: false,
+        discoveredFeedOptions: [],
+      },
+      trimmedUrl,
+      folderSelection: {
+        selectedFolderId: null,
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
+      queryClient: new QueryClient(),
+      onOpenChange: vi.fn(),
+      showToast: vi.fn(),
+      t,
     });
-    expect(dispatch).not.toHaveBeenCalledWith({
-      type: "discover-single",
-      feeds: [{ url: "https://old.example.com/feed.xml", title: "Old Feed" }],
+    const { result, rerender } = renderHook(
+      ({ url, trimmedUrl }) => useAddFeedDialogActions(createProps(url, trimmedUrl)),
+      {
+        initialProps: {
+          url: "https://old.example.com",
+          trimmedUrl: "https://old.example.com",
+        },
+      },
+    );
+
+    const request = result.current.handleDiscover();
+    rerender({
+      url: "https://new.example.com",
+      trimmedUrl: "https://new.example.com",
     });
+
+    await act(async () => {
+      discovery.resolve(Result.succeed([{ url: "https://old.example.com/feed.xml", title: "Old Feed" }]));
+      await request;
+    });
+
+    expect(discoverFeeds).toHaveBeenCalledWith("https://old.example.com");
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "start-discover" }));
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "discover-single",
+        feeds: [{ url: "https://old.example.com/feed.xml", title: "Old Feed" }],
+      }),
+    );
   });
 
   it("adds the selected discovered feed and assigns the selected folder", async () => {
@@ -189,6 +266,7 @@ describe("useAddFeedDialogActions", () => {
           successMessage: null,
           loading: false,
           discovering: false,
+          discoveryRequestId: null,
           discoveredFeeds: [
             { url: "https://example.com/rss.xml", title: "RSS" },
             { url: "https://example.com/atom.xml", title: "Atom" },
@@ -245,6 +323,7 @@ describe("useAddFeedDialogActions", () => {
           successMessage: null,
           loading: false,
           discovering: false,
+          discoveryRequestId: null,
           discoveredFeeds: [],
           selectedFeedUrl: null,
         },
@@ -298,8 +377,14 @@ describe("useAddFeedDialogActions", () => {
     });
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
-    expect(dispatch).toHaveBeenCalledWith({ type: "set-loading", loading: true });
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "set-loading", loading: false });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "set-loading",
+      loading: true,
+    });
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: "set-loading",
+      loading: false,
+    });
   });
 
   it("clears loading and keeps the submit error when adding a feed fails", async () => {
@@ -324,6 +409,7 @@ describe("useAddFeedDialogActions", () => {
           successMessage: null,
           loading: false,
           discovering: false,
+          discoveryRequestId: null,
           discoveredFeeds: [],
           selectedFeedUrl: null,
         },
@@ -354,12 +440,18 @@ describe("useAddFeedDialogActions", () => {
       await result.current.handleSubmit();
     });
 
-    expect(dispatch).toHaveBeenNthCalledWith(1, { type: "set-loading", loading: true });
+    expect(dispatch).toHaveBeenNthCalledWith(1, {
+      type: "set-loading",
+      loading: true,
+    });
     expect(dispatch).toHaveBeenCalledWith({
       type: "set-submit-error",
       error: t("failed_to_add_feed", { message: "network down" }),
     });
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "set-loading", loading: false });
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: "set-loading",
+      loading: false,
+    });
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
   });

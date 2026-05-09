@@ -44,7 +44,9 @@ export function useAddFeedDialogActions({
   t,
 }: UseAddFeedDialogActionsParams): UseAddFeedDialogActionsResult {
   const discoveryRequestIdRef = useRef(0);
+  const latestDiscoveryUrlRef = useRef(trimmedUrl);
   const submitInFlightRef = useRef(false);
+  latestDiscoveryUrlRef.current = trimmedUrl;
 
   const handleDiscover = useCallback(async () => {
     if (!derived.hasManualUrl || !derived.isManualUrlValid) {
@@ -54,31 +56,33 @@ export function useAddFeedDialogActions({
 
     const requestId = discoveryRequestIdRef.current + 1;
     discoveryRequestIdRef.current = requestId;
-    dispatch({ type: "start-discover" });
+    const requestUrl = trimmedUrl;
+    dispatch({ type: "start-discover", requestId });
 
     Result.pipe(
-      await discoverFeeds(trimmedUrl),
+      await discoverFeeds(requestUrl),
       Result.inspect((feeds) => {
-        if (discoveryRequestIdRef.current !== requestId) {
+        if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
           return;
         }
 
         if (feeds.length === 0) {
-          dispatch({ type: "discover-empty" });
+          dispatch({ type: "discover-empty", requestId });
         } else if (feeds.length === 1) {
-          dispatch({ type: "discover-single", feeds });
+          dispatch({ type: "discover-single", feeds, requestId });
         } else {
-          dispatch({ type: "discover-multiple", feeds });
+          dispatch({ type: "discover-multiple", feeds, requestId });
         }
       }),
       Result.inspectError((error) => {
-        if (discoveryRequestIdRef.current !== requestId) {
+        if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
           return;
         }
 
         dispatch({
           type: "discover-error",
           error: t("discovery_failed", { message: error.message }),
+          requestId,
         });
       }),
     );
@@ -111,7 +115,9 @@ export function useAddFeedDialogActions({
       });
       if (Result.isFailure(folderResult)) {
         const error = Result.unwrapError(folderResult);
-        const message = t("failed_to_create_folder", { message: error.message });
+        const message = t("failed_to_create_folder", {
+          message: error.message,
+        });
         dispatch({ type: "set-submit-error", error: message });
         showToast(message);
         return;

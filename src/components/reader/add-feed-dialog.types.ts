@@ -10,6 +10,7 @@ export type AddFeedDialogState = {
   successMessage: AddFeedDialogSuccessMessage | null;
   loading: boolean;
   discovering: boolean;
+  discoveryRequestId: number | null;
   discoveredFeeds: DiscoveredFeedDto[];
   selectedFeedUrl: string | null;
 };
@@ -17,11 +18,15 @@ export type AddFeedDialogState = {
 export type AddFeedDialogAction =
   | { type: "reset" }
   | { type: "set-url"; url: string }
-  | { type: "start-discover" }
-  | { type: "discover-empty" }
-  | { type: "discover-single"; feeds: DiscoveredFeedDto[] }
-  | { type: "discover-multiple"; feeds: DiscoveredFeedDto[] }
-  | { type: "discover-error"; error: string }
+  | { type: "start-discover"; requestId?: number }
+  | { type: "discover-empty"; requestId?: number }
+  | { type: "discover-single"; feeds: DiscoveredFeedDto[]; requestId?: number }
+  | {
+      type: "discover-multiple";
+      feeds: DiscoveredFeedDto[];
+      requestId?: number;
+    }
+  | { type: "discover-error"; error: string; requestId?: number }
   | { type: "set-selected-feed-url"; url: string | null }
   | { type: "set-invalid-url-error"; error: string }
   | { type: "set-loading"; loading: boolean }

@@ -12,6 +12,8 @@ describe("addFeedDialogReducer", () => {
       {
         ...createInitialAddFeedDialogState(),
         url: "https://before.example.com/feed.xml",
+        discovering: true,
+        discoveryRequestId: 1,
         discoveredFeeds: [{ url: "https://before.example.com/feed.xml", title: "Before" }],
         selectedFeedUrl: "https://before.example.com/feed.xml",
       },
@@ -19,8 +21,25 @@ describe("addFeedDialogReducer", () => {
     );
 
     expect(next.url).toBe("https://after.example.com/feed.xml");
+    expect(next.discovering).toBe(false);
+    expect(next.discoveryRequestId).toBeNull();
     expect(next.discoveredFeeds).toEqual([]);
     expect(next.selectedFeedUrl).toBeNull();
+  });
+
+  it("ignores stale discovery actions after the active request changes", () => {
+    const state = addFeedDialogReducer(createInitialAddFeedDialogState(), {
+      type: "start-discover",
+      requestId: 2,
+    });
+
+    const next = addFeedDialogReducer(state, {
+      type: "discover-single",
+      requestId: 1,
+      feeds: [{ url: "https://old.example.com/feed.xml", title: "Old Feed" }],
+    });
+
+    expect(next).toBe(state);
   });
 
   it("keeps only titled feeds for discover-single success message", () => {
@@ -116,9 +135,21 @@ describe("resolveAddFeedDialogDerived", () => {
     });
 
     expect(derived.discoveredFeedOptions).toEqual([
-      { value: "https://example.com/feed.xml", label: "Updates", description: "example.com/feed.xml" },
-      { value: "https://example.com/atom.xml", label: "Updates", description: "example.com/atom.xml" },
-      { value: "https://example.com/releases.xml", label: "Release Notes", description: undefined },
+      {
+        value: "https://example.com/feed.xml",
+        label: "Updates",
+        description: "example.com/feed.xml",
+      },
+      {
+        value: "https://example.com/atom.xml",
+        label: "Updates",
+        description: "example.com/atom.xml",
+      },
+      {
+        value: "https://example.com/releases.xml",
+        label: "Release Notes",
+        description: undefined,
+      },
     ]);
   });
 
