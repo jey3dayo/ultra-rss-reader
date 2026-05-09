@@ -41,6 +41,19 @@ const commandPaletteMessages = {
 
 type CommandPaletteMessageKey = keyof (typeof commandPaletteMessages)["en"];
 
+export function translateCommandPaletteFallbackMessage(
+  key: CommandPaletteMessageKey,
+  language: string,
+  values?: Record<string, string>,
+) {
+  const fallbackLanguage = language === "ja" ? "ja" : "en";
+  const template = commandPaletteMessages[fallbackLanguage][key];
+  return Object.entries(values ?? {}).reduce(
+    (message, [name, value]) => message.replaceAll(`{{${name}}}`, value),
+    template,
+  );
+}
+
 function translateCommandPaletteMessage(key: CommandPaletteMessageKey, values?: Record<string, string>) {
   const i18nKey = `command_palette.${key}`;
   const translated = i18n.t(i18nKey, i18nKey, { ns: "reader", ...values });
@@ -48,12 +61,7 @@ function translateCommandPaletteMessage(key: CommandPaletteMessageKey, values?: 
     return translated;
   }
 
-  const language = i18n.language === "ja" ? "ja" : "en";
-  const template = commandPaletteMessages[language][key];
-  return Object.entries(values ?? {}).reduce(
-    (message, [name, value]) => message.replaceAll(`{{${name}}}`, value),
-    template,
-  );
+  return translateCommandPaletteFallbackMessage(key, i18n.language, values);
 }
 
 function getFeedLandingFailureMessage(error: FeedLandingFailure) {

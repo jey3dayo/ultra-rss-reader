@@ -1,6 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
+import {
+  translateCommandPaletteFallbackMessage,
+  useCommandPaletteHandlers,
+} from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import i18n from "@/lib/i18n";
 import enReader from "@/locales/en/reader.json";
 
@@ -48,6 +51,21 @@ function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHa
 }
 
 describe("useCommandPaletteHandlers", () => {
+  it("resolves bundled command palette fallback copy with interpolation and language fallback", () => {
+    expect(
+      translateCommandPaletteFallbackMessage("feed_landing_failed", "ja", {
+        feedId: "feed-1",
+        message: "boom",
+      }),
+    ).toBe('フィード "feed-1" を開けませんでした: boom');
+    expect(
+      translateCommandPaletteFallbackMessage("feed_landing_failed", "fr", {
+        feedId: "feed-1",
+        message: "boom",
+      }),
+    ).toBe('Failed to open feed "feed-1": boom');
+  });
+
   it("opens shortcuts help without dispatching or writing command history", () => {
     const closePalette = vi.fn();
     const openShortcutsHelp = vi.fn();
