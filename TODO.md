@@ -305,16 +305,6 @@
   - sync progress は `total` / `completed` / `stage` を store にそのまま取り込み、view 側で一部 clamp しているため、negative count や completed > total の source-of-truth が曖昧
   - malformed native event、completed overflow、account_finished without account_id の store normalization と UI 表示を contract test で固定する
 
-- [ ] P2 storage schema blank identity cleanup を補強する
-  - 対象: `src/schemas/storage.ts`, `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`
-  - stored sidebar expanded folders は account id / folder id の blank string を除外しておらず、localStorage 破損時に無意味な key が残り得る
-  - blank account id、blank folder id、duplicate folder ids、oversized stored record の cleanup contract を schema test にする
-
-- [ ] P2 JSON parse helper error category を整理する
-  - 対象: `src/schemas/parse.ts`, localStorage / dev runtime JSON parse callers
-  - `parseJsonWithSchemaOrNull()` は malformed JSON と schema invalid を同じ null に畳むため、fallback は簡単だが data migration failure の原因が見えづらい
-  - caller ごとに silent fallback / warn once / migration cleanup のどれが必要か分類し、storage boundary policy と合わせて TODO を分割する
-
 - [ ] P2 dev mock article time arithmetic boundary を補強する
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`
   - dev mock は `Date.parse()` と day threshold 計算に依存しており、invalid published_at / negative days / timezone drift の時に mock と real backend の挙動がズレやすい
@@ -325,30 +315,15 @@
   - retained article snapshot は Map で id 重複を後勝ち merge するため、same id with stale read/star state が source 間で競合した時の表示が未固定
   - retained snapshot stale、current source duplicate、search/tag/source切替の merge order を pure helper test にする
 
-- [ ] P2 subscription list sort invalid numeric/date contract を補強する
-  - 対象: `src/lib/subscriptions/subscriptions-index.ts`, `src/lib/subscriptions/subscription-review-candidates.ts`
-  - subscription row sort は unread_count / latestArticleAt を比較に使うが、negative count や invalid date の正規化位置が summary と list で分かれている
-  - invalid latest date、negative unread_count、duplicate title の stable sort と summary count normalization を pure helper test にする
-
 - [ ] P2 preferences unknown passthrough typo detection を追加する
   - 対象: `src/schemas/preferences.ts`, `src/stores/preferences-store.ts`, Rust preferences command boundary
   - unknown preference key は passthrough として残せるが、typo や retired key が silent fallback になり、settings UI と backend state の不一致を見逃しやすい
   - known retired key allowlist / dev warning / backend passthrough の分類を作り、schema-derived preference defaults と合わせて test する
 
-- [ ] P2 command history storage normalization size limit を補強する
-  - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`, `src/schemas/storage.ts`, `src/constants/storage.ts`
-  - command history は配列長は切るが、entry 長や Unicode/control character の扱いが shortcut schema と別で、localStorage 肥大化や表示崩れの原因になり得る
-  - oversized entry、control character、duplicate after trim の normalization contract を storage schema test に追加する
-
 - [ ] P2 Rust app startup filesystem failure diagnostics を補強する
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/build.rs`
   - app data dir 作成 / DB init / log cleanup で `expect` / `panic` / silent remove failure が混在しており、packaged startup failure の user-facing message が揺れやすい
   - app data permission denied、DB open failure、log cleanup permission denied の message と recovery guidance を native test / manual verification に分ける
-
-- [ ] P2 OPML export writer error assumption を検証する
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
-  - OPML export は in-memory writer なので `expect("write ...")` 前提だが、future writer 変更や malformed text handling で panic surface が残る
-  - XML escaping、invalid control character、large OPML export の panic-free contract を fixture test で固定する
 
 - [ ] P1 dev scenario query cache seeding compatibility を整理する
   - 対象: `src/dev/scenarios/helpers.ts`, `src/dev/scenarios/types.ts`, `src/lib/query/query-invalidation.ts`
@@ -651,11 +626,6 @@
   - `src-tauri/src/commands/share_commands.rs`、`src/lib/runtime/clipboard.ts`、article share menu の copy/open action を、native command と frontend fallback で分けて棚卸しする
   - clipboard unavailable / permission denied / invalid URL はユーザー表示が違うため、toast copy 変更ではなく action result category の test を先に固定する
   - native share menu の表示や shortcut 変更は menu/copy batch に残し、ここでは copy link / open external / readonly field copy の実行契約に限定する
-
-- [ ] P2 article retention / cleanup candidate 候補を別バッチで追加する
-  - `src/lib/articles/article-retention.ts` と subscription review candidates の stale/no unread/no stars 判定を、retention policy と cleanup recommendation で分ける
-  - feed cleanup page の decision flow は subscriptions index と重なるため、まずは pure helper の boundary test に限定する
-  - 実データ削除や bulk action は destructive flow に関わるため、confirm dialog batch と同時に変更しない
 
 - [ ] P1 feed tree drag/drop interaction contract 候補を別バッチで見直す
   - `feed-tree-drag-session.ts`、drop target、hover target、folder flow の drag outcome を、pointer session と repository update action で分けて棚卸しする
