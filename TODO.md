@@ -330,11 +330,6 @@
   - 必要なら安全に保存できる属性だけを追加し、広い sanitizer 再設計はしない
   - feed discovery parser ではなく、記事本文 sanitizer の media preserve contract として扱う
 
-- [ ] add feed command schema URL trim 候補を追加する
-  - `src/api/schemas/commands.ts` の `discoverFeedsArgs` / `addLocalFeedArgs` で blank / whitespace-only URL を弾く
-  - `trim().min(1)` 相当の schema contract を `src/__tests__/api/schemas.test.ts` に追加する
-  - add feed async race や backend count contract とは分け、frontend IPC schema の入力境界だけを扱う
-
 - [ ] dev intent scenario id coverage 候補を追加する
   - `src/__tests__/dev/intent.test.ts` の `parseDevIntent` 既知 ID test を手書き列挙から `DEV_SCENARIO_IDS` loop に寄せる
   - `DEV_SCENARIO_ID.syncAllSmoke` など新規 ID が個別 assertion から漏れない contract にする
@@ -379,16 +374,6 @@
   - `src-tauri/src/commands/account_commands.rs` の add / rename account 重複判定を case-insensitive に揃える
   - `Work` と `work` のような視認上近い重複を拒否する command contract を追加する
   - account detail editor validation とは分け、account command の name uniqueness だけを扱う
-
-- [ ] test setup storage getter fallback 候補を追加する
-  - `tests/setup.ts` の `ensureWorkingStorage()` で `window.localStorage` / `sessionStorage` getter 自体が投げるケースを扱う
-  - SecurityError などの getter failure 時に `MemoryStorage` を注入する小テストを追加する
-  - Tauri mock strictness とは分け、test setup の Storage polyfill resilience だけを扱う
-
-- [ ] test i18n ja bundle registration 候補を追加する
-  - `tests/helpers/i18n-setup.ts` に `ja: i18nResources.ja` を登録する
-  - `src/__tests__/lib/i18n-setup.test.ts` で test i18n helper が `ja` bundle へ切り替えられることを固定する
-  - locale source-of-truth / leaf sanity とは分け、test helper の登録 locale 不足だけを扱う
 
 - [ ] preferences store load failure font fallback 候補を追加する
   - `src/stores/preferences-store.ts` の `loadPreferences` 失敗 branch でも default font style / size class を適用する
@@ -564,11 +549,6 @@
   - `tests/helpers/i18n-setup.ts` に test ごとの language reset contract を追加する
   - `i18n.changeLanguage("ja")` 後の後続 test に言語状態が漏れないことを helper test で確認する
   - locale key registration とは分け、test helper の isolation だけを扱う
-
-- [ ] external URL command schema trim 候補を追加する
-  - `src/api/schemas/commands.ts` の `openExternalUrlArgs` / `addToReadingListArgs` で URL の leading / trailing space を trim または reject する方針を固定する
-  - command schema test で blank / whitespace-wrapped URL の境界を確認する
-  - share action URL target contract とは分け、Tauri command args schema の URL boundary だけを扱う
 
 - [ ] article list search reopen debounce 候補を追加する
   - `src/components/reader/hooks/article-list/use-article-list-search.ts` で検索 close 直後の古い debounce timer が stale query を復活させない契約を追加する
@@ -1056,25 +1036,10 @@
   - `pageerror` だけでなく `console.error` も拾う contract を最小 Playwright spec で固定する
   - E2E scenario 追加とは分け、runtime error detection helper だけを扱う
 
-- [ ] updater toast locale boundary 候補を追加する
-  - `src/hooks/use-updater.ts` の manual update check toast 日本語直書きを locale key 経由に寄せる
-  - `src/__tests__/hooks/use-updater.test.ts` で update check 失敗時 / no-update 時の toast が `ja` / `en` の言語設定に従うことを固定する
-  - updater startup unmount guard や progress payload schema とは分け、manual updater toast copy だけを扱う
-
-- [ ] command palette message translation fallback 候補を追加する
-  - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` の `enReader` / `jaReader` 直接 import fallback を pure helper へ切り出す
-  - missing resource fallback、`{{feedId}}` / `{{message}}` 補間、`ja` 以外は `en` へ落ちることを focused test で固定する
-  - command palette resource ranking とは分け、message translation fallback だけを扱う
-
 - [ ] shared dialog close label locale 候補を追加する
   - `src/components/ui/dialog.tsx` の `Close` 直書きを props または common locale key 経由に寄せる
   - dialog wrapper test で `showCloseButton` の accessible name が props 由来になり、未指定時 fallback が locale と一致することを確認する
   - feature dialog copy 変更とは分け、shared dialog primitive の close label だけを扱う
-
-- [ ] sidebar landmark locale 候補を追加する
-  - `src/components/reader/sidebar.tsx` の `aria-label="Sidebar"` 直書きを reader/sidebar locale key へ寄せる
-  - sidebar rendering test で `en` は `Sidebar`、`ja` は日本語 landmark 名になることを固定する
-  - sidebar header runtime prop boundary とは分け、navigation landmark copy だけを扱う
 
 - [ ] local subscription site URL preference 候補を追加する
   - `src-tauri/src/infra/provider/local.rs` の `create_subscription` で Atom self feed link より alternate HTML site link を優先する
@@ -1105,11 +1070,6 @@
   - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の expanded folder 永続化で `setItem` 失敗を捕捉する
   - `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.ts` で storage quota / unavailable 時も UI state 更新は維持されることを固定する
   - sidebar navigation frame cleanup とは分け、expanded folder persistence failure だけを扱う
-
-- [ ] preferences load normalization 候補を追加する
-  - `src/stores/preferences-store.ts` の `loadPreferences()` で backend から返る schema 外 preference 値を store state に入れる前に default へ正規化する
-  - `src/__tests__/stores/preferences-store.test.ts` で `layout: "narrow"` や `unread_badge: "bad"` が schema default へ戻ることを確認する
-  - settings preference key type boundary とは分け、loaded preference value normalization だけを扱う
 
 - [ ] account repository provider kind decode 候補を追加する
   - `src-tauri/src/infra/db/sqlite_account.rs` で DB 上の未知 `kind` を `ProviderKind::Local` に丸めず decode error にする
@@ -1160,11 +1120,6 @@
   - `src/api/schemas/commands.ts` の `listArticlesArgs` で `unreadOnly: true` と `starredOnly: true` の同時指定を拒否する
   - `src/__tests__/api/schemas.test.ts` で片方だけ true は通し、両方 true は parse error になることを固定する
   - article scope matrix 再設計とは分け、list articles filter exclusivity だけを扱う
-
-- [ ] open in browser schema URL boundary 候補を追加する
-  - `src/api/schemas/commands.ts` の `openInBrowserArgs` を `openExternalUrlArgs` / `addToReadingListArgs` と同等の URL validation に寄せる
-  - `src/__tests__/api/tauri-commands.test.ts` で blank / newline / `mailto:` / `file:` が invoke 前に失敗し、valid URL は trim 済みで渡ることを固定する
-  - browser webview focus policy とは分け、open-in-browser IPC validation だけを扱う
 
 - [ ] mute keyword IPC schema trim 候補を追加する
   - `src/api/schemas/commands.ts` の `createMuteKeywordArgs.keyword` を backend invariant と同じく trim / blank reject にする
