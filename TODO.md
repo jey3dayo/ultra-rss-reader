@@ -89,11 +89,6 @@
   - `src/__tests__/lib/account-setup-session.test.ts` で whitespace-only id は no-op、trim 後 id は既存 owner を維持することを確認する
   - add account verification lock や account detail sync retry flow とは分け、account setup session state の id boundary だけを扱う
 
-- [ ] sync feedback blank account name projection 候補を追加する
-  - `src/lib/sync/sync-result-feedback.ts` の `getDistinctAccountNames()` が blank / whitespace-only `account_name` を toast 用 accounts 文字列に含めるか確認する
-  - `src/__tests__/lib/sync-result-feedback.test.ts` で blank name を除外するか account id fallback にするかを固定し、重複 name dedupe の既存挙動を保つ
-  - sync result DTO schema message invariant とは分け、UI feedback helper の account label projection だけを扱う
-
 - [ ] breakpoint layout preference normalization 候補を追加する
   - `src/hooks/use-breakpoint.ts` の `resolvePreferredLayoutMode()` が `" compact "` や uppercase 値を invalid として wide 扱いするため、preferences schema default と同じ正規化方針に寄せるか確認する
   - `src/__tests__/hooks/use-breakpoint.test.ts` で whitespace / uppercase / unknown layout preference の期待値を固定する
