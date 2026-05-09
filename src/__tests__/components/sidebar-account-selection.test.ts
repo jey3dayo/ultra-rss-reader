@@ -116,6 +116,38 @@ describe("resolveSidebarAccountSelectionAction", () => {
         activeDevIntent: null,
       }),
     ).toEqual({ type: "noop" });
+
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: true,
+        selectedAccountId: " acc-missing ",
+        savedAccountId: "acc-2",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({
+      type: "restore",
+      accountId: "acc-2",
+      focusedPane: "list",
+      persistPreference: false,
+    });
+
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: true,
+        selectedAccountId: " acc-missing ",
+        savedAccountId: "acc-unknown",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({
+      type: "restore",
+      accountId: "acc-1",
+      focusedPane: "list",
+      persistPreference: true,
+    });
   });
 
   it("treats whitespace-only selected account ids as missing and restores the saved account", () => {
