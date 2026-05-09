@@ -17,7 +17,9 @@ import type {
   RenameFeedDialogControllerParams,
 } from "../../rename-feed-dialog.types";
 
-type RenameFeedDialogState = FeedEditorState;
+type RenameFeedDialogState = FeedEditorState<{
+  feedSnapshot: FeedDto;
+}>;
 
 type RenameFeedDialogAction =
   | { type: "reset"; feed: FeedDto }
@@ -30,6 +32,7 @@ function createInitialRenameFeedDialogState(feed: FeedDto): RenameFeedDialogStat
     title: feed.title,
     displayPreset: resolveFeedDisplayPreset(feed),
     loading: false,
+    feedSnapshot: feed,
   };
 }
 
@@ -55,7 +58,7 @@ export function useRenameFeedDialogController({
 }: RenameFeedDialogControllerParams): RenameFeedDialogController {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(renameFeedDialogReducer, feed, createInitialRenameFeedDialogState);
-  const { title, displayPreset, loading } = state;
+  const { title, displayPreset, loading, feedSnapshot } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     selectedFolderId,
@@ -70,7 +73,7 @@ export function useRenameFeedDialogController({
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
-  const { data: folders } = useFolders(feed.account_id);
+  const { data: folders } = useFolders(feedSnapshot.account_id);
   const updateFeedFolderMutation = useUpdateFeedFolder();
 
   useEffect(() => {
@@ -112,7 +115,7 @@ export function useRenameFeedDialogController({
     dispatch({ type: "set-loading", value: true });
     try {
       const saved = await submitFeedEdits({
-        feed,
+        feed: feedSnapshot,
         title,
         displayPreset,
         folderSelection,

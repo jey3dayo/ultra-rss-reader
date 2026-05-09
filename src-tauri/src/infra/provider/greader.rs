@@ -141,7 +141,15 @@ pub struct GReaderProvider {
 }
 
 fn freshrss_api_base(server_url: &str) -> String {
-    let base = server_url.trim().trim_end_matches('/');
+    let normalized_url = match reqwest::Url::parse(server_url.trim()) {
+        Ok(mut url) if url.scheme() == "http" || url.scheme() == "https" => {
+            let _ = url.set_username("");
+            let _ = url.set_password(None);
+            url.to_string()
+        }
+        _ => server_url.trim().to_string(),
+    };
+    let base = normalized_url.trim_end_matches('/');
     if base.ends_with("/api/greader.php") {
         base.to_string()
     } else {
@@ -874,6 +882,28 @@ mod tests {
     fn for_freshrss_trims_surrounding_whitespace() {
         let provider =
             GReaderProvider::for_freshrss("  https://freshrss.example.com/api/greader.php  ");
+
+        assert_eq!(
+            provider.api_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+        assert_eq!(
+            provider.auth_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+    }
+
+    #[test]
+    fn for_freshrss_preserves_loopback_http_base_url() {
+        let provider = GReaderProvider::for_freshrss("http://localhost:8080/");
+
+        assert_eq!(provider.api_base, "http://localhost:8080/api/greader.php");
+        assert_eq!(provider.auth_base, "http://localhost:8080/api/greader.php");
+    }
+
+    #[test]
+    fn for_freshrss_strips_url_credentials_before_building_auth_base() {
+        let provider = GReaderProvider::for_freshrss("https://alice:secret@freshrss.example.com/");
 
         assert_eq!(
             provider.api_base,

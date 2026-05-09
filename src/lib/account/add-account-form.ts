@@ -13,6 +13,8 @@ export type AddAccountPayload = {
 export type AddAccountValidationError =
   | "missing_server_url"
   | "invalid_server_url"
+  | "insecure_server_url"
+  | "server_url_credentials"
   | "missing_username"
   | "missing_password";
 
@@ -91,6 +93,9 @@ export function formatAddAccountValidationError(
       return "account.error_server_url_required";
     case "invalid_server_url":
       return "account.error_server_url_invalid";
+    case "insecure_server_url":
+    case "server_url_credentials":
+      return "account.error_server_url_invalid";
     case "missing_username":
       return "account.error_username_required";
     case "missing_password":
@@ -98,12 +103,32 @@ export function formatAddAccountValidationError(
   }
 }
 
-function isValidServerUrl(value: string): boolean {
+type ServerUrlValidationResult = { ok: true; value: string } | { ok: false; error: AddAccountValidationError };
+
+function isLoopbackFreshRssHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1" || normalized === "[::1]";
+}
+
+function validateFreshRssServerUrl(value: string): ServerUrlValidationResult {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { ok: false, error: "invalid_server_url" };
+    }
+
+    if (url.username || url.password) {
+      return { ok: false, error: "server_url_credentials" };
+    }
+
+    if (url.protocol === "http:" && !isLoopbackFreshRssHost(url.hostname)) {
+      return { ok: false, error: "insecure_server_url" };
+    }
+
+    return { ok: true, value: value.trim().replace(/\/+$/, "") };
   } catch {
-    return false;
+    return { ok: false, error: "invalid_server_url" };
   }
 }
 
@@ -134,8 +159,9 @@ export function buildAddAccountPayload(
     if (!serverUrl) {
       return Result.fail("missing_server_url");
     }
-    if (!isValidServerUrl(serverUrl)) {
-      return Result.fail("invalid_server_url");
+    const serverUrlResult = validateFreshRssServerUrl(serverUrl);
+    if (!serverUrlResult.ok) {
+      return Result.fail(serverUrlResult.error);
     }
 
     return Result.pipe(
@@ -143,7 +169,7 @@ export function buildAddAccountPayload(
       Result.map((creds) => ({
         kind: input.kind,
         name,
-        serverUrl,
+        serverUrl: serverUrlResult.value,
         ...creds,
       })),
     );

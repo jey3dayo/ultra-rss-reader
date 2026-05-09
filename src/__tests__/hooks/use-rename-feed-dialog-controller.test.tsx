@@ -10,6 +10,19 @@ import { useUiStore } from "@/stores/ui-store";
 const { copyTextToClipboardMock } = vi.hoisted(() => ({
   copyTextToClipboardMock: vi.fn(),
 }));
+const { createFolderMock, renameFeedMock } = vi.hoisted(() => ({
+  createFolderMock: vi.fn(),
+  renameFeedMock: vi.fn(),
+}));
+
+vi.mock("@/api/tauri-commands", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/tauri-commands")>();
+  return {
+    ...actual,
+    createFolder: createFolderMock,
+    renameFeed: renameFeedMock,
+  };
+});
 
 vi.mock("@/lib/runtime/clipboard", () => ({
   copyTextToClipboard: copyTextToClipboardMock,
@@ -32,6 +45,10 @@ describe("useRenameFeedDialogController copy action", () => {
 
   beforeEach(() => {
     copyTextToClipboardMock.mockReset();
+    createFolderMock.mockReset();
+    renameFeedMock.mockReset();
+    createFolderMock.mockResolvedValue(Result.succeed({ id: "folder-new" }));
+    renameFeedMock.mockResolvedValue(Result.succeed(null));
     showToast = vi.fn();
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({ showToast });
@@ -90,5 +107,31 @@ describe("useRenameFeedDialogController copy action", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith("Copied");
+  });
+
+  it("submits rename edits against the feed snapshot captured by the dialog state", async () => {
+    const { wrapper } = createQueryWrapper();
+    const onOpenChange = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useRenameFeedDialogController({
+          feed: sampleFeeds[0],
+          open: true,
+          onOpenChange,
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.setTitle("Snapshot title");
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(renameFeedMock).toHaveBeenCalledWith(sampleFeeds[0].id, "Snapshot title");
+    expect(renameFeedMock).not.toHaveBeenCalledWith(sampleFeeds[1].id, "Snapshot title");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
