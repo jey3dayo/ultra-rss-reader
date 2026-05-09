@@ -512,6 +512,76 @@
   - dev 実行に必要な allowlist か `*_KEY` / `*_TOKEN` / `*_PASSWORD` 除外 contract を追加する
   - release workflow preflight とは分け、ローカル Windows dispatch の secret exposure 防止だけを扱う
 
+- [ ] article tag picker existing tag assign failure 候補を追加する
+  - `src/components/reader/article-tag-picker-popover.tsx` の既存タグ選択で mutation 成否前に picker を閉じない
+  - `src/components/reader/article-tag-chips.tsx` 側で assign 成功時だけ close し、失敗時は picker 維持と toast を追加する
+  - 既読・スター error feedback とは分け、tag assignment mutation の failure surface だけを扱う
+
+- [ ] article tag picker create-then-assign failure 候補を追加する
+  - `src/components/reader/article-tag-chips.tsx` で tag 作成後の article assign 成功を待ってから draft clear / close する
+  - create 成功後の assign に `onSuccess` / `onError` を付け、assign 失敗時は toast と draft 維持を固定する
+  - settings tag input submit とは分け、reader article tag picker の post-create assign contract だけを扱う
+
+- [ ] article tag picker close draft reset 候補を追加する
+  - `src/components/reader/hooks/article/use-article-tag-picker-popover.ts` の `showPicker: false` 遷移で `newTagName` を clear する
+  - outside click / Escape / 既存タグ選択後の再オープンで古い draft が残らない reducer contract を追加する
+  - settings の tag / mute 入力行とは分け、reader tag picker draft state に限定する
+
+- [ ] article toolbar action resolver drift 候補を追加する
+  - `src/components/reader/article-toolbar-view.tsx` の `showExternalBrowserInMoreMenu` resolver field が描画判定と drift しないようにする
+  - 未使用 field を削除するか、More menu 表示判定を resolver 経由に統一して既存 toolbar test を更新する
+  - mobile discoverability ではなく、toolbar action resolver contract の一点整理として扱う
+
+- [ ] browser history reload empty src contract 候補を追加する
+  - `src/lib/browser/webview-history.ts` の fallback iframe reload で empty `src` を成功扱いにしない
+  - typed failure にするか no-op 成功を明示名に分け、`webview-history.test.ts` の契約を更新する
+  - browser bounds / listener / timeout surface とは分け、history helper の入力契約だけを扱う
+
+- [ ] SQLite article row datetime parse contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_article.rs` と `src-tauri/src/infra/db/sqlite_tag.rs` の datetime parse 失敗を epoch fallback にしない
+  - `parse_datetime` を `rusqlite::Result<DateTime<Utc>>` に寄せ、malformed date fixture で row decode error を固定する
+  - article sanitizer や pagination とは分け、SQLite row decode の日時エラー境界だけを扱う
+
+- [ ] SQLite feed upsert folder conflict contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_feed.rs` の `ON CONFLICT(account_id, url)` update で `folder_id` をどう扱うか固定する
+  - duplicate URL upsert 時に `folder_id = excluded.folder_id` を含めるか、現仕様維持なら test 名で明示する
+  - OPML folder cache や frontend add-feed race とは分け、feed repository save の conflict 更新列だけを扱う
+
+- [ ] SQLite folder delete transaction 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_folder.rs` の folder delete と sort_order 詰め直しを同一 transaction にする
+  - account lookup / delete / remaining folders fetch / renumber を `unchecked_transaction()` に包む
+  - feed tree drag/drop ではなく、repository delete の原子性だけを扱う
+
+- [ ] SQLite sync state upsert contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_sync_state.rs` の `INSERT OR REPLACE` を `ON CONFLICT(account_id, scope_key) DO UPDATE` に寄せる
+  - 同一 key 更新で cursor / retry metadata が上書きされる repository test を追加する
+  - cursor round-trip ではなく、sync state upsert 実装方式の副作用固定として扱う
+
+- [ ] test i18n ja bundle registration 候補を追加する
+  - `tests/helpers/i18n-setup.ts` に `ja: i18nResources.ja` を登録する
+  - `src/__tests__/lib/i18n-setup.test.ts` で test i18n helper が `ja` bundle へ切り替えられることを固定する
+  - locale source-of-truth / leaf sanity とは分け、test helper の登録 locale 不足だけを扱う
+
+- [ ] preferences store load failure font fallback 候補を追加する
+  - `src/stores/preferences-store.ts` の `loadPreferences` 失敗 branch でも default font style / size class を適用する
+  - `preferences-store.test.ts` で失敗時の `font-sans` / `text-base` contract を追加する
+  - Rust startup preference warning や theme listener cleanup とは分け、frontend store の font fallback に限定する
+
+- [ ] dev mock recent mute pagination order 候補を追加する
+  - `src/dev/mocks.ts` の `list_recent_articles` で pagination 前に mute filter を適用する
+  - mute 対象が先頭にある時も `limit` 件数が欠けない contract を `dev-mocks.test.ts` に追加する
+  - dev mock fixture boundary ではなく、recent + mute + pagination の順序バグだけを扱う
+
+- [ ] dev mock search account pagination 候補を追加する
+  - `src/dev/mocks.ts` の `search_articles` で `accountId` / `offset` / `limit` を schema と同じ意味で反映する
+  - browser-only dev mock で別アカウント記事が混ざらない test を追加する
+  - Rust article command pagination guard とは分け、dev mock の返却 semantics だけを扱う
+
+- [ ] dev mock platform capability parity 候補を追加する
+  - `src/dev/mocks.ts` の browser-only platform info が `kind: "unknown"` なのに runtime icon / native navigation を true にしている意味を固定する
+  - `DEFAULT_PLATFORM_INFO` 相当に寄せるか、dev browser 専用 capability として test で明示する
+  - platform abstraction 全体ではなく、dev mock の unknown capability parity だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
