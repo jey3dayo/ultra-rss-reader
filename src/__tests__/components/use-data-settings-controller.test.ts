@@ -121,9 +121,7 @@ describe("useDataSettingsController", () => {
       await result.current.handleOpenLogDir();
     });
 
-    expect(showToast).toHaveBeenCalledWith(
-      "Failed to open log directory: Check OS permissions and try again.",
-    );
+    expect(showToast).toHaveBeenCalledWith("Failed to open log directory: Check OS permissions and try again.");
     expect(showToast.mock.calls[0]?.[0].match(/Failed to open log directory/g)).toHaveLength(1);
   });
 

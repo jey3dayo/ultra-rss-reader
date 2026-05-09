@@ -44,11 +44,11 @@ describe("CreateTagDialogView", () => {
   });
 
   it("cleans up the pending autofocus frame when the dialog closes", () => {
-    let scheduledFrame: FrameRequestCallback | null = null;
+    const scheduledFrames: FrameRequestCallback[] = [];
     vi.stubGlobal(
       "requestAnimationFrame",
       vi.fn((callback: FrameRequestCallback) => {
-        scheduledFrame = callback;
+        scheduledFrames.push(callback);
         return 5;
       }),
     );
@@ -81,7 +81,8 @@ describe("CreateTagDialogView", () => {
     );
 
     expect(cancelAnimationFrame).toHaveBeenCalledWith(5);
-    if (scheduledFrame === null) {
+    const scheduledFrame = scheduledFrames[0];
+    if (!scheduledFrame) {
       throw new Error("expected requestAnimationFrame callback to be scheduled");
     }
     scheduledFrame(0);
