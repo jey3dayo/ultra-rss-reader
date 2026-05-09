@@ -328,7 +328,13 @@ export function countStarredArticles(articles: ArticleDto[]): number {
 }
 
 export function getUnreadArticleIds(articles: ArticleDto[]): string[] {
-  return articles.filter((article) => !article.is_read).map((article) => article.id);
+  const unreadArticleIds: string[] = [];
+  for (const article of articles) {
+    if (!article.is_read) {
+      unreadArticleIds.push(article.id);
+    }
+  }
+  return unreadArticleIds;
 }
 
 export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllReadCountParams): number {

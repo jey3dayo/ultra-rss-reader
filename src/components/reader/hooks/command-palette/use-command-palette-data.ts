@@ -157,9 +157,13 @@ export function useCommandPaletteData({
     const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
     const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
     const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
-    const entries = getHistory()
-      .map(parseCommandPaletteHistoryEntry)
-      .filter((entry): entry is CommandPaletteHistoryEntry => entry != null);
+    const entries: CommandPaletteHistoryEntry[] = [];
+    for (const historyEntry of getHistory()) {
+      const entry = parseCommandPaletteHistoryEntry(historyEntry);
+      if (entry !== null) {
+        entries.push(entry);
+      }
+    }
 
     const recentActions: PaletteAction[] = [];
     const recentFeeds: FeedDto[] = [];

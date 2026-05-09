@@ -542,9 +542,13 @@ export function buildSubscriptionDetailMetrics({
       }
     }
 
-    const insertIndex = previewArticles.findIndex((previewArticle) =>
-      shouldPlaceSubscriptionPreviewArticleBefore(article, previewArticle),
-    );
+    let insertIndex = -1;
+    for (let index = 0; index < previewArticles.length; index += 1) {
+      if (shouldPlaceSubscriptionPreviewArticleBefore(article, previewArticles[index])) {
+        insertIndex = index;
+        break;
+      }
+    }
     if (insertIndex === -1) {
       if (previewArticles.length < 2) {
         previewArticles.push(article);
