@@ -81,6 +81,7 @@ import {
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
 } from "@/api/schemas";
+import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
 
@@ -139,9 +140,9 @@ function extractRustTauriCommandNames(source: string) {
 }
 
 function extractRustUsizeConst(source: string, constName: string) {
-  const match = source.match(new RegExp(`const ${constName}: usize = (\\d+);`));
+  const match = source.match(new RegExp(`(?:pub\\(crate\\)\\s+)?const ${constName}: usize = ([\\d_]+);`));
   expect(match, `${constName} should exist`).not.toBeNull();
-  return Number(match?.[1]);
+  return Number(match?.[1].replaceAll("_", ""));
 }
 
 function extractRustU32Const(source: string, constName: string) {
@@ -168,7 +169,13 @@ function expectPaginationArgsSchema(schema: { parse: (value: unknown) => unknown
     offset: 0,
     limit: MAX_IPC_PAGINATION_LIMIT,
   });
+  expect(schema.parse({ ...base, offset: MAX_IPC_PAGINATION_OFFSET, limit: 1 })).toEqual({
+    ...base,
+    offset: MAX_IPC_PAGINATION_OFFSET,
+    limit: 1,
+  });
   expect(() => schema.parse({ ...base, offset: -1, limit: 1 })).toThrow();
+  expect(() => schema.parse({ ...base, offset: MAX_IPC_PAGINATION_OFFSET + 1, limit: 1 })).toThrow();
   expect(() => schema.parse({ ...base, offset: 0.5, limit: 1 })).toThrow();
   expect(() => schema.parse({ ...base, offset: Number.NaN, limit: 1 })).toThrow();
   expect(() => schema.parse({ ...base, offset: 0, limit: 0 })).toThrow();
@@ -1898,12 +1905,15 @@ describe("command args schemas", () => {
     expect(() => searchArticlesArgs.parse({ accountId: "acc-1", query: "" })).toThrow();
     expect(() => searchArticlesArgs.parse({ accountId: "acc-1", query: "   " })).toThrow();
   });
-  it("keeps IPC pagination limit schemas aligned with Rust command limits", () => {
+  it("keeps IPC pagination schemas aligned with Rust command boundaries", () => {
     expect(extractRustUsizeConst(readRustArticleCommandSource(), "MAX_ARTICLE_COMMAND_LIST_LIMIT")).toBe(
       MAX_IPC_PAGINATION_LIMIT,
     );
-    expect(extractRustUsizeConst(readRustTagCommandSource(), "MAX_TAG_ARTICLE_LIST_LIMIT")).toBe(
-      MAX_IPC_PAGINATION_LIMIT,
+    expect(readRustTagCommandSource()).toContain(
+      "article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)",
+    );
+    expect(extractRustUsizeConst(readRustArticleCommandSource(), "MAX_ARTICLE_COMMAND_LIST_OFFSET")).toBe(
+      MAX_IPC_PAGINATION_OFFSET,
     );
   });
   it("parses finite browser webview bounds and rejects invalid dimensions", () => {

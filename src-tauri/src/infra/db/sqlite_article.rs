@@ -1512,6 +1512,17 @@ mod tests {
             )
             .unwrap();
         assert_eq!(page3.len(), 1);
+
+        let beyond_end = repo
+            .find_by_feed(
+                &feed_id,
+                &Pagination {
+                    offset: 10_000,
+                    limit: 2,
+                },
+            )
+            .unwrap();
+        assert!(beyond_end.is_empty());
     }
 
     #[test]

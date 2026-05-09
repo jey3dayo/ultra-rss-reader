@@ -570,6 +570,19 @@ mod tests {
             .unwrap();
         assert_eq!(articles.len(), 1);
         assert_eq!(articles[0].title, "Test Article");
+
+        let beyond_end = repo
+            .find_articles_by_tag(
+                &tag.id,
+                &Pagination {
+                    offset: 10_000,
+                    limit: 50,
+                },
+                None,
+                ArticleListMode::All,
+            )
+            .unwrap();
+        assert!(beyond_end.is_empty());
     }
 
     #[test]

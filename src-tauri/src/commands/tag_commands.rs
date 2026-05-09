@@ -2,16 +2,14 @@ use std::collections::HashMap;
 
 use tauri::State;
 
+use crate::commands::article_commands::{article_command_pagination, DEFAULT_ARTICLE_LIST_LIMIT};
 use crate::commands::dto::{AppError, ArticleDto, TagDto};
 use crate::commands::AppState;
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, TagId};
 use crate::infra::db::sqlite_tag::SqliteTagRepository;
-use crate::repository::article::{ArticleListMode, Pagination};
+use crate::repository::article::ArticleListMode;
 use crate::repository::tag::TagRepository;
-
-const DEFAULT_TAG_ARTICLE_LIST_LIMIT: usize = 50;
-const MAX_TAG_ARTICLE_LIST_LIMIT: usize = 200;
 
 fn lock_db(
     db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
@@ -63,16 +61,6 @@ fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
 
 fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
     ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
-}
-
-fn normalize_tag_article_list_limit(limit: Option<usize>) -> Result<usize, AppError> {
-    let limit = limit.unwrap_or(DEFAULT_TAG_ARTICLE_LIST_LIMIT);
-    if limit > MAX_TAG_ARTICLE_LIST_LIMIT {
-        return Err(AppError::UserVisible {
-            message: format!("Tag article list limit must be {MAX_TAG_ARTICLE_LIST_LIMIT} or less"),
-        });
-    }
-    Ok(limit)
 }
 
 #[tauri::command]
@@ -250,11 +238,7 @@ fn list_articles_by_tag_impl(
     let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.reader());
     let mode = parse_article_list_mode(mode.as_deref())?;
-    let limit = normalize_tag_article_list_limit(limit)?;
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit,
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let aid = account_id.map(AccountId);
     let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref(), mode)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
@@ -387,7 +371,7 @@ mod tests {
             "tag-1".to_string(),
             None,
             None,
-            Some(MAX_TAG_ARTICLE_LIST_LIMIT),
+            Some(crate::commands::article_commands::MAX_ARTICLE_COMMAND_LIST_LIMIT),
             None,
         )
         .expect("max tag article list limit should be accepted");
@@ -404,7 +388,7 @@ mod tests {
             "tag-1".to_string(),
             None,
             None,
-            Some(MAX_TAG_ARTICLE_LIST_LIMIT + 1),
+            Some(crate::commands::article_commands::MAX_ARTICLE_COMMAND_LIST_LIMIT + 1),
             None,
         )
         .expect_err("tag article list limit over max should be rejected");
@@ -412,7 +396,28 @@ mod tests {
         assert!(matches!(
             error,
             AppError::UserVisible { message }
-                if message == "Tag article list limit must be 200 or less"
+                if message == "Article list limit must be 200 or less"
+        ));
+    }
+
+    #[test]
+    fn list_articles_by_tag_rejects_offset_over_boundary() {
+        let db = test_db();
+
+        let error = list_articles_by_tag_impl(
+            &db,
+            "tag-1".to_string(),
+            None,
+            Some(crate::commands::article_commands::MAX_ARTICLE_COMMAND_LIST_OFFSET + 1),
+            Some(1),
+            None,
+        )
+        .expect_err("tag article list offset over max should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Article list offset must be 10000 or less"
         ));
     }
 

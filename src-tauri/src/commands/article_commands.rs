@@ -19,9 +19,12 @@ use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination}
 use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
 
-const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
-const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;
-const MAX_ARTICLE_COMMAND_LIST_LIMIT: usize = 200;
+pub(crate) const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
+pub(crate) const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;
+pub(crate) const MAX_ARTICLE_COMMAND_LIST_LIMIT: usize = 200;
+// Offset pagination is a best-effort UI contract: page boundaries may shift if
+// articles are inserted, deleted, or reclassified between page requests.
+pub(crate) const MAX_ARTICLE_COMMAND_LIST_OFFSET: usize = 10_000;
 
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
@@ -57,11 +60,20 @@ fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -
         && feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
 }
 
-fn article_command_pagination(
+pub(crate) fn article_command_pagination(
     offset: Option<usize>,
     limit: Option<usize>,
     default_limit: usize,
 ) -> Result<Pagination, AppError> {
+    let offset = offset.unwrap_or(0);
+    if offset > MAX_ARTICLE_COMMAND_LIST_OFFSET {
+        return Err(AppError::UserVisible {
+            message: format!(
+                "Article list offset must be {MAX_ARTICLE_COMMAND_LIST_OFFSET} or less"
+            ),
+        });
+    }
+
     let limit = limit.unwrap_or(default_limit);
     if limit > MAX_ARTICLE_COMMAND_LIST_LIMIT {
         return Err(AppError::UserVisible {
@@ -69,10 +81,7 @@ fn article_command_pagination(
         });
     }
 
-    Ok(Pagination {
-        offset: offset.unwrap_or(0),
-        limit,
-    })
+    Ok(Pagination { offset, limit })
 }
 
 fn has_blocking_x_frame_options(headers: &HeaderMap) -> bool {
@@ -1086,7 +1095,7 @@ mod tests {
         supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
         validate_older_than_days, BulkArticleMutationRow, OldUnreadScope,
         DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -1283,6 +1292,36 @@ mod tests {
 
         assert_eq!(pagination.offset, 3);
         assert_eq!(pagination.limit, 200);
+    }
+
+    #[test]
+    fn article_command_pagination_accepts_boundary_offset() {
+        let pagination = article_command_pagination(
+            Some(MAX_ARTICLE_COMMAND_LIST_OFFSET),
+            Some(1),
+            DEFAULT_ARTICLE_LIST_LIMIT,
+        )
+        .expect("max article command list offset should be accepted");
+
+        assert_eq!(pagination.offset, MAX_ARTICLE_COMMAND_LIST_OFFSET);
+        assert_eq!(pagination.limit, 1);
+    }
+
+    #[test]
+    fn article_command_pagination_rejects_offset_over_boundary() {
+        let result = article_command_pagination(
+            Some(MAX_ARTICLE_COMMAND_LIST_OFFSET + 1),
+            Some(1),
+            DEFAULT_ARTICLE_LIST_LIMIT,
+        );
+        let Err(error) = result else {
+            panic!("article command list offset over max should be rejected");
+        };
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Article list offset must be 10000 or less"
+        ));
     }
 
     #[test]
