@@ -4,8 +4,9 @@ import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
-import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
+import type { FeedDialogSelectOption } from "./feed-dialog-form.types";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
+import type { RenameFeedDialogUrlField } from "./rename-feed-dialog.types";
 
 type RenameFeedDialogViewLabels = {
   title: string;
@@ -16,15 +17,13 @@ type RenameFeedDialogViewLabels = {
   saving: string;
 };
 
-type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
-
 type RenameFeedDialogViewProps = {
   open: boolean;
   title: string;
   loading: boolean;
   displayMode: string;
   displayModeOptions: FeedDialogSelectOption[];
-  urlFields: RenameFeedDialogViewUrlField[];
+  urlFields: RenameFeedDialogUrlField[];
   onOpenChange: (open: boolean) => void;
   onTitleChange: (value: string) => void;
   onDisplayModeChange: (value: string) => void;

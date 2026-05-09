@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } from "../hooks/use-layout";
@@ -8,6 +9,120 @@ import { AccountPane } from "./reader/account-pane";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
 import { Sidebar } from "./reader/sidebar";
+
+const HIDDEN_PANE_FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "area[href]",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "summary",
+  "iframe",
+  "object",
+  "embed",
+  "audio[controls]",
+  "video[controls]",
+  "[contenteditable]",
+  "[tabindex]",
+].join(",");
+
+const PREVIOUS_TAB_INDEX_ATTRIBUTE = "data-app-layout-previous-tabindex";
+
+function disableHiddenPaneFocus(root: HTMLElement) {
+  const focusableElements = root.querySelectorAll<HTMLElement>(HIDDEN_PANE_FOCUSABLE_SELECTOR);
+
+  for (const element of focusableElements) {
+    if (!element.hasAttribute(PREVIOUS_TAB_INDEX_ATTRIBUTE)) {
+      element.setAttribute(PREVIOUS_TAB_INDEX_ATTRIBUTE, element.getAttribute("tabindex") ?? "");
+    }
+    element.setAttribute("tabindex", "-1");
+  }
+
+  if (document.activeElement instanceof HTMLElement && root.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+}
+
+function restoreHiddenPaneFocus(root: HTMLElement) {
+  const managedElements = root.querySelectorAll<HTMLElement>(`[${PREVIOUS_TAB_INDEX_ATTRIBUTE}]`);
+
+  for (const element of managedElements) {
+    const previousTabIndex = element.getAttribute(PREVIOUS_TAB_INDEX_ATTRIBUTE);
+    element.removeAttribute(PREVIOUS_TAB_INDEX_ATTRIBUTE);
+
+    if (previousTabIndex === "") {
+      element.removeAttribute("tabindex");
+      continue;
+    }
+
+    if (previousTabIndex !== null) {
+      element.setAttribute("tabindex", previousTabIndex);
+    }
+  }
+}
+
+function HiddenPaneBoundary({
+  hidden,
+  children,
+  className,
+  style,
+  testId,
+}: {
+  hidden: boolean;
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  testId?: string;
+}) {
+  const paneRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const pane = paneRef.current;
+    if (!pane) {
+      return;
+    }
+
+    if (hidden) {
+      disableHiddenPaneFocus(pane);
+      return;
+    }
+
+    restoreHiddenPaneFocus(pane);
+  }, [hidden]);
+
+  useLayoutEffect(() => {
+    const pane = paneRef.current;
+    if (!pane || !hidden) {
+      return;
+    }
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!(event.target instanceof HTMLElement)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.target.blur();
+    };
+
+    pane.addEventListener("focusin", handleFocusIn);
+    return () => pane.removeEventListener("focusin", handleFocusIn);
+  }, [hidden]);
+
+  return (
+    <div
+      ref={paneRef}
+      data-testid={testId}
+      className={className}
+      style={style}
+      aria-hidden={hidden}
+      {...(hidden ? { inert: true } : {})}
+    >
+      {children}
+    </div>
+  );
+}
 
 function SlidingPaneLayout({
   layoutMode,
@@ -38,8 +153,8 @@ function SlidingPaneLayout({
   return (
     <div className="h-full overflow-hidden bg-background text-foreground">
       <div className="flex h-full overflow-hidden">
-        <div
-          data-testid="compact-account-pane-shell"
+        <HiddenPaneBoundary
+          testId="compact-account-pane-shell"
           className={cn(
             MOTION_RESIZE_SURFACE_CLASS_NAME,
             "h-full shrink-0 overflow-hidden border-r border-border bg-background",
@@ -48,11 +163,10 @@ function SlidingPaneLayout({
           style={{
             width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px",
           }}
-          aria-hidden={!shouldShowAccountPane}
-          {...(!shouldShowAccountPane ? { inert: true } : {})}
+          hidden={!shouldShowAccountPane}
         >
           <AccountPane />
-        </div>
+        </HiddenPaneBoundary>
         <div className="min-w-0 flex-1 overflow-clip">
           <div
             data-testid="sliding-pane-tray"
@@ -62,29 +176,26 @@ function SlidingPaneLayout({
               transform: `translateX(${translateX})`,
             }}
           >
-            <div
+            <HiddenPaneBoundary
               className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
-              aria-hidden={!isPaneVisible(layoutMode, activePane, "sidebar")}
-              {...(!isPaneVisible(layoutMode, activePane, "sidebar") ? { inert: true } : {})}
+              hidden={!isPaneVisible(layoutMode, activePane, "sidebar")}
             >
               <Sidebar />
-            </div>
-            <div
+            </HiddenPaneBoundary>
+            <HiddenPaneBoundary
               className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
-              aria-hidden={!isPaneVisible(layoutMode, activePane, "list")}
-              {...(!isPaneVisible(layoutMode, activePane, "list") ? { inert: true } : {})}
+              hidden={!isPaneVisible(layoutMode, activePane, "list")}
             >
               <ArticleList />
-            </div>
-            <div
+            </HiddenPaneBoundary>
+            <HiddenPaneBoundary
               className={cn(isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
-              aria-hidden={!isPaneVisible(layoutMode, activePane, "content")}
-              {...(!isPaneVisible(layoutMode, activePane, "content") ? { inert: true } : {})}
+              hidden={!isPaneVisible(layoutMode, activePane, "content")}
             >
               <ArticleView />
-            </div>
+            </HiddenPaneBoundary>
           </div>
         </div>
       </div>
@@ -161,15 +272,14 @@ function WideLayout({
               width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px",
             }}
           >
-            <div
-              data-testid="wide-account-pane-content"
+            <HiddenPaneBoundary
+              testId="wide-account-pane-content"
               className={cn("h-full", !shouldShowAccountPane && "pointer-events-none")}
               style={{ width: `${ACCOUNT_PANE_WIDTH_PX}px` }}
-              aria-hidden={!shouldShowAccountPane}
-              {...(!shouldShowAccountPane ? { inert: true } : {})}
+              hidden={!shouldShowAccountPane}
             >
               <AccountPane />
-            </div>
+            </HiddenPaneBoundary>
           </div>
           <div
             data-testid="wide-sidebar-shell"
@@ -184,15 +294,14 @@ function WideLayout({
               width: shouldShowSidebar ? `${SIDEBAR_PANE_WIDTH_PX}px` : "0px",
             }}
           >
-            <div
-              data-testid="wide-sidebar-content"
+            <HiddenPaneBoundary
+              testId="wide-sidebar-content"
               className={cn("h-full", !shouldShowSidebar && "pointer-events-none")}
               style={{ width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
-              aria-hidden={!shouldShowSidebar}
-              {...(!shouldShowSidebar ? { inert: true } : {})}
+              hidden={!shouldShowSidebar}
             >
               <Sidebar />
-            </div>
+            </HiddenPaneBoundary>
           </div>
         </>
       )}

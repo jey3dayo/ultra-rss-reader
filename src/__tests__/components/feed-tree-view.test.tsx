@@ -346,7 +346,7 @@ describe("FeedTreeView", () => {
     expect(feedButton).not.toBeNull();
     expect(feedButton).not.toHaveClass("pl-7");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
-    expect(folderTarget).toHaveClass("absolute", "inset-0", "z-10", "rounded-md");
+    expect(folderTarget).toHaveClass("absolute", "inset-y-0", "right-0", "left-8", "z-10", "rounded-r-md");
     expect(folderTarget).not.toHaveClass("motion-contextual-surface");
     fireEvent.click(handle);
     fireEvent.click(folderTarget);

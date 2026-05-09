@@ -5,9 +5,11 @@ import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/article
 import type {
   FeedDialogControllerFolderSelectProps,
   FeedDialogFolderSelectionParams,
+  FeedDialogReadonlyFieldProps,
 } from "./feed-dialog-form.types";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
+export type RenameFeedDialogUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
 
 type FeedEditErrorLike = {
   message: string;
