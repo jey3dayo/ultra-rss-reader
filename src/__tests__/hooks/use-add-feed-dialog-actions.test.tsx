@@ -86,6 +86,59 @@ describe("useAddFeedDialogActions", () => {
     );
   });
 
+  it.each([
+    "not-a-url",
+    "//example.com/feed.xml",
+    "https://[malformed",
+  ])("keeps malformed manual URL failures on the invalid URL copy without discovering: %s", async (url) => {
+    const dispatch = vi.fn();
+    const { result } = renderHook(() =>
+      useAddFeedDialogActions({
+        accountId: "account-1",
+        state: {
+          url,
+          error: null,
+          successMessage: null,
+          loading: false,
+          discovering: false,
+          discoveryRequestId: null,
+          discoveredFeeds: [],
+          selectedFeedUrl: null,
+        },
+        dispatch,
+        derived: {
+          hasManualUrl: true,
+          isManualUrlValid: false,
+          urlHint: t("invalid_feed_url"),
+          urlHintTone: "error",
+          isSubmitDisabled: true,
+          isDiscoverDisabled: true,
+          discoveredFeedOptions: [],
+        },
+        trimmedUrl: url,
+        folderSelection: {
+          selectedFolderId: null,
+          isCreatingFolder: false,
+          newFolderName: "",
+        },
+        queryClient: new QueryClient(),
+        onOpenChange: vi.fn(),
+        showToast: vi.fn(),
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleDiscover();
+    });
+
+    expect(discoverFeeds).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "set-invalid-url-error",
+      error: t("invalid_feed_url"),
+    });
+  });
+
   it("ignores stale discovery responses after a newer URL discovery starts", async () => {
     const firstDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
     const secondDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();

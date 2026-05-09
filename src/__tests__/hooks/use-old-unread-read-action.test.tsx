@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { countOldUnreadArticles } from "@/api/tauri-commands";
 import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
@@ -93,6 +93,29 @@ describe("useOldUnreadReadAction", () => {
       }),
     );
     expect(showToast).toHaveBeenCalledWith("Failed to mark old unread");
+  });
+
+  it("rechecks old unread count after confirm and skips a stale zero-count mutation", async () => {
+    const showToast = vi.fn();
+    countOldUnreadArticlesMock.mockResolvedValueOnce(Result.succeed(3)).mockResolvedValueOnce(Result.succeed(0));
+    useUiStore.setState({
+      showConfirm: (_message, onConfirm) => {
+        onConfirm();
+      },
+      showToast,
+    });
+
+    const { result } = renderHook(() => useOldUnreadReadAction("feed", "feed-1"));
+
+    await act(async () => {
+      await result.current(30);
+    });
+
+    await waitFor(() => {
+      expect(countOldUnreadArticlesMock).toHaveBeenCalledTimes(2);
+    });
+    expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("No old unread articles");
   });
 
   it("shows a toast and does not mutate when old unread count returns Result.fail", async () => {

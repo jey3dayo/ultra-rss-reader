@@ -1,6 +1,7 @@
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as tauriCommands from "@/api/tauri-commands";
 import {
   type ArticleActionError,
   addArticleToReadingList,
@@ -147,6 +148,28 @@ describe("article-browser-actions", () => {
     expect(showToast).toHaveBeenCalledWith("Reading list unavailable");
   });
 
+  it("logs and surfaces rejected reading-list commands for fire-and-forget callers", async () => {
+    const consoleError = vi.mocked(console.error);
+    const addToReadingListSpy = vi
+      .spyOn(tauriCommands, "addToReadingList")
+      .mockRejectedValue(new Error("Reading list command rejected"));
+
+    await addArticleToReadingList("https://example.com/article", {
+      showToast,
+      successMessage: "Added to reading list",
+    });
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Add to reading list failed:",
+      expect.objectContaining({
+        category: "unknown",
+        message: "Reading list command rejected",
+      }),
+    );
+    expect(showToast).toHaveBeenCalledWith("Reading list command rejected");
+    addToReadingListSpy.mockRestore();
+  });
+
   it("opens a URL in the external browser with the requested background mode", async () => {
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -212,6 +235,29 @@ describe("article-browser-actions", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+  });
+
+  it("logs and surfaces rejected external-browser commands for fire-and-forget callers", async () => {
+    const consoleError = vi.mocked(console.error);
+    const openInBrowserSpy = vi
+      .spyOn(tauriCommands, "openInBrowser")
+      .mockRejectedValue(new Error("Browser command rejected"));
+
+    await openUrlInExternalBrowser("https://example.com/article", {
+      background: true,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to open in browser:",
+      expect.objectContaining({
+        category: "unknown",
+        message: "Browser command rejected",
+      }),
+    );
+    expect(showToast).toHaveBeenCalledWith("Browser command rejected");
+    openInBrowserSpy.mockRestore();
   });
 
   it("classifies invalid URL errors without changing the external-browser toast message", async () => {

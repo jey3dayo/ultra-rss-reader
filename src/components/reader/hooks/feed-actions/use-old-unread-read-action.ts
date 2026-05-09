@@ -16,41 +16,63 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
 
   return useCallback(
     async (olderThanDays: OldUnreadDayPreset) => {
-      const countResult = await countOldUnreadArticles(scopeKind, targetId, olderThanDays).catch((error: unknown) => {
-        showToast(getErrorMessage(error));
-        return null;
-      });
-      if (countResult === null) {
+      const countOldUnread = async () => {
+        const countResult = await countOldUnreadArticles(scopeKind, targetId, olderThanDays).catch((error: unknown) => {
+          showToast(getErrorMessage(error));
+          return null;
+        });
+        if (countResult === null) {
+          return null;
+        }
+
+        if (Result.isFailure(countResult)) {
+          showToast(Result.unwrapError(countResult).message);
+          return null;
+        }
+
+        return Result.unwrap(countResult);
+      };
+
+      const count = await countOldUnread();
+      if (count === null) {
         return;
       }
 
-      if (Result.isFailure(countResult)) {
-        showToast(Result.unwrapError(countResult).message);
-        return;
-      }
-
-      const count = Result.unwrap(countResult);
       if (count === 0) {
         showToast(t("no_old_unread_to_mark"));
         return;
       }
 
-      showConfirm(
-        t("confirm_mark_old_unread_read", { count }),
-        () =>
-          markOldUnreadRead.mutate(
-            { scopeKind, targetId, olderThanDays },
-            {
-              onError: (error) => {
-                showToast(error.message);
+      const confirmMarkOldUnreadRead = () => {
+        void countOldUnread()
+          .then((latestCount) => {
+            if (latestCount === null) {
+              return;
+            }
+
+            if (latestCount === 0) {
+              showToast(t("no_old_unread_to_mark"));
+              return;
+            }
+
+            markOldUnreadRead.mutate(
+              { scopeKind, targetId, olderThanDays },
+              {
+                onError: (error) => {
+                  showToast(error.message);
+                },
               },
-            },
-          ),
-        {
-          actionLabel: tc("mark_as_read_action"),
-          variant: "warning",
-        },
-      );
+            );
+          })
+          .catch((error: unknown) => {
+            showToast(getErrorMessage(error));
+          });
+      };
+
+      showConfirm(t("confirm_mark_old_unread_read", { count }), confirmMarkOldUnreadRead, {
+        actionLabel: tc("mark_as_read_action"),
+        variant: "warning",
+      });
     },
     [markOldUnreadRead, scopeKind, showConfirm, showToast, t, targetId, tc],
   );

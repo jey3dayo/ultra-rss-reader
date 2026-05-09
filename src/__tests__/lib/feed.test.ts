@@ -38,6 +38,20 @@ describe("extractSiteHost", () => {
     expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "not-a-url" });
   });
 
+  it("keeps protocol-relative feed urls as invalid host-label fallback copy", () => {
+    const result = extractSiteHost("", "//example.com/feed.xml");
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "//example.com/feed.xml" });
+    expect(resolveSiteHostLabel("", "//example.com/feed.xml")).toBe("//example.com/feed.xml");
+  });
+
+  it("keeps malformed URL constructor failures as invalid host-label fallback copy", () => {
+    const result = extractSiteHost("", "https://[malformed");
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "https://[malformed" });
+    expect(resolveSiteHostLabel("", "https://[malformed")).toBe("https://[malformed");
+  });
+
   it("prefers site_url over feed url", () => {
     const result = extractSiteHost("https://site.example.com", "https://feed.example.com/rss");
     expect(Result.unwrap(result)).toBe("site.example.com");
