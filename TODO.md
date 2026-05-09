@@ -2,13 +2,6 @@
 
 完了済みの項目は `CHANGELOG.md` を参照し、このファイルには未完了タスクだけを残す。
 
-## 開発データ運用
-
-- [ ] P1 デバッグ画面から本番相当データを Dev 環境へ安全に同期する導線を検討する
-  - 本番アプリでは表示せず、Dev 起動時だけ利用できるようにする
-  - 既存の `mise run app:dev:seed-from-prod` を前提に、デバッグ画面から誤操作なく呼べる UX と確認導線を設計する
-  - Dev 側 DB のバックアップ場所、アプリ再起動、credentials はコピーされないことを UI 上で明示する
-
 ## UI/UX 監査の残り
 
 - [ ] P3 Browser overlay 周辺への共通 motion 適用を検証する
@@ -34,11 +27,6 @@
   - 対象: `e2e/app.spec.ts`, `src/__tests__/dev/scenario-runtime.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
   - React Doctor の `server-sequential-independent-await` が e2e と hook test に出ており、独立 setup を直列実行していると Playwright / Vitest の待ち時間が増える
   - browser state 共有、fixture isolation、user event ordering、screenshot timing に依存しない await だけ並列化する
-
-- [ ] P3 overlay / drag / inert の CSS token を scattered z-index から semantic layer へ寄せる
-  - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
-  - z-index や pointer-events の数値が component 内に分散しており、overlay 追加のたびにどの layer が上に来るべきか review で判断する必要がある
-  - semantic layer constants、CSS custom property、component snapshot、DESIGN/CLAUDE rule 化のどれで固定するか決める
 
 ## 次の並列バッチ候補
 
