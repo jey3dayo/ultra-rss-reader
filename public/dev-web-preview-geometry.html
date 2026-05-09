@@ -90,7 +90,7 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 20px;
         padding: 24px 28px 40px;
       }
@@ -177,6 +177,10 @@
       <section class="card">
         <h2>Overlay Check</h2>
         <p>The top rail should feel intentional but almost invisible, with the page still reading as immersive.</p>
+      </section>
+      <section class="card">
+        <h2>Motion Boundary Check</h2>
+        <p>Only the overlay shell may use transform motion; the stage, chrome, and native webview bounds must stay position-synced.</p>
       </section>
     </main>
 
