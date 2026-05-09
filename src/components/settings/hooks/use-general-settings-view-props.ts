@@ -1,6 +1,12 @@
+import { supportedLanguages } from "@/lib/i18n";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { GeneralSettingsViewProps } from "../general-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "../settings-page.types";
+
+const languageSelfLabels: Partial<Record<(typeof supportedLanguages)[number], string>> = {
+  en: "English",
+  ja: "日本語",
+};
 
 export function useGeneralSettingsViewProps({
   t,
@@ -22,8 +28,10 @@ export function useGeneralSettingsViewProps({
             value: resolvePreferenceValue(prefs, "language"),
             options: [
               { value: "system", label: t("general.system_default") },
-              { value: "en", label: "English" },
-              { value: "ja", label: "日本語" },
+              ...supportedLanguages.map((language) => ({
+                value: language,
+                label: languageSelfLabels[language] ?? language,
+              })),
             ],
             onChange: (value) => setPref("language", value),
           },
