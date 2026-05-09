@@ -50,6 +50,11 @@
   - hook skeleton だけの類似なら共通化せず、timeout / request / shortcut / mouse navigation の責務差分を保つ判断を TODO コメントか test で固定する
   - browser visibility lifecycle helper とは分け、small lifecycle hook の共通化可否判断だけを扱う
 
+- [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
+  - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
+  - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
+  - updater hook state effects とは分け、lifecycle boilerplate の共通化可否判断だけを扱う
+
 - [ ] command palette feed landing failure 候補を小粒で直す
   - `src/hooks/use-feed-landing.ts` の feed 未選択・feed 不在・landing fetch 失敗を、呼び出し元で扱える result として返せるか確認する
   - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` の feed / dev scenario 失敗 toast を i18n key 化する
@@ -1278,6 +1283,11 @@
   - 共通化する場合は public hook return names を保ち、article view と command palette の focused hook test で state transition が変わらないことを固定する
   - command palette controller contract とは分け、UI boolean state hook の重複だけを扱う
 
+- [ ] similarity account detail editor state review 候補を追加する
+  - `useArticleListViewState` と `use-account-detail-name-editor` が 90% 類似なので、draft / saving / error state の reducer pattern を共通化できるか確認する
+  - 共通化する場合は generic edit-state reducer だけに限定し、article list presentation state と account name validation / submit flow は混ぜない
+  - account detail section contract とは分け、editor/view state skeleton の similarity 判定だけを扱う
+
 - [ ] similarity article list navigation false-positive review 候補を追加する
   - `useArticleListNavigation` / `useAddFeedDialogActions` / `buildSubscriptionReviewCandidates` が 91-93% 類似として出ているため、実際に共通化可能な navigation math か hook boilerplate かを確認する
   - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
@@ -1642,6 +1652,16 @@
   - `UseArticleActionShortcutsParams` と `TestShortcutsProps` が 91% 類似なので、hook test props が production hook params を再定義していないか確認する
   - test wrapper の追加 props だけを local type に残し、hook params は production type import に寄せられるか判断する
   - article action shortcut behavior 変更とは分け、test props type duplication だけを扱う
+
+- [ ] similarity browser view harness props reuse 候補を追加する
+  - `UseBrowserViewControllerParams` と `BrowserViewHarnessProps` が 96% 類似なので、browser view test harness が controller params を再定義していないか確認する
+  - test-only override props だけを local type に残し、controller input contract は production type import または helper builder へ寄せる
+  - browser controller behavior 変更とは分け、test harness props duplication だけを扱う
+
+- [ ] similarity not-found error display type review 候補を追加する
+  - `ArticleNotFoundStateViewProps` と `AccountDetailError` が 94.8% 類似なので、message/title/action を持つ not-found/error display shape を共有すべきか確認する
+  - 共通化する場合は shared display state type に留め、article not-found copy と account detail toast/error copy は各 feature に残す
+  - AppError DTO invariant とは分け、view/display error shape の type duplication だけを扱う
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
