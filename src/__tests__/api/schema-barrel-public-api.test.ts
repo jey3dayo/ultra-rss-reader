@@ -25,6 +25,7 @@ import type {
   UpdateInfoDto,
 } from "@/api/schemas";
 import * as apiSchemas from "@/api/schemas";
+import { NonnegativeIntegerSchema } from "@/api/schemas/common";
 
 const publicSchemaRuntimeExports = [
   "AccountDtoListSchema",
@@ -175,6 +176,15 @@ describe("schema barrel public API", () => {
 
   it("keeps Tauri command schema boundary exports intentionally public", () => {
     expect(publicTauriCommandSchemaBoundaryExports.every((exportName) => exportName in apiSchemas)).toBe(true);
+  });
+
+  it("keeps shared nonnegative integer schema internal while preserving public response schemas", () => {
+    expect("NonnegativeIntegerSchema" in apiSchemas).toBe(false);
+    expect(apiSchemas.CountResponseSchema.parse(0)).toBe(0);
+    expect(apiSchemas.NonnegativeIntResponseSchema.parse(0)).toBe(0);
+    expect(NonnegativeIntegerSchema.parse(0)).toBe(0);
+    expect(apiSchemas.CountResponseSchema).not.toBe(apiSchemas.NonnegativeIntResponseSchema);
+    expect(apiSchemas.CountResponseSchema).not.toBe(NonnegativeIntegerSchema);
   });
 
   it("keeps DTO and command helper type exports intentionally public through the schema barrel", () => {

@@ -10,6 +10,10 @@ import {
   STORYBOOK_EXPLORER_UI_REFERENCE_TITLES,
   storybookExplorerTitle,
 } from "../../constants/storybook-explorer";
+import {
+  setAppLikeScenarioStoryRuntime,
+  setComponentIsolationStoryRuntime,
+} from "../../components/storybook/story-tauri-runtime";
 
 type StoryMetaModule = {
   default?: {
@@ -156,6 +160,11 @@ describe("Storybook Explorer organization", () => {
     expect(titlesUnder(STORYBOOK_EXPLORER_GROUPS.primitives)).toEqual([
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.primitives, "Button"),
     ]);
+  });
+
+  it("keeps story runtime scenario helpers available through the public Storybook helper path", () => {
+    expect(typeof setComponentIsolationStoryRuntime).toBe("function");
+    expect(typeof setAppLikeScenarioStoryRuntime).toBe("function");
   });
 
   it("nests settings stories by role", () => {

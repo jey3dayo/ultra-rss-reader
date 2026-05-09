@@ -29,28 +29,31 @@ function restoreStoryRuntimeSnapshot(snapshot: StoryRuntimeSnapshot) {
   restoreWindowDescriptor("__ULTRA_RSS_BROWSER_MOCKS__", snapshot.ultraRssBrowserMocksDescriptor);
 }
 
-export function setStoryTauriRuntimePresent() {
+function setStoryRuntimeTauriInternals(tauriInternals: object | undefined) {
   const snapshot = captureStoryRuntimeSnapshot();
 
-  Object.defineProperty(window, "__TAURI_INTERNALS__", {
-    configurable: true,
-    writable: true,
-    value: {},
-  });
+  if (tauriInternals === undefined) {
+    delete window.__TAURI_INTERNALS__;
+  } else {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      writable: true,
+      value: tauriInternals,
+    });
+  }
+
   window.__DEV_BROWSER_MOCKS__ = false;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
 
   return () => restoreStoryRuntimeSnapshot(snapshot);
 }
 
+export function setStoryTauriRuntimePresent() {
+  return setStoryRuntimeTauriInternals({});
+}
+
 export function setStoryTauriRuntimeMissing() {
-  const snapshot = captureStoryRuntimeSnapshot();
-
-  delete window.__TAURI_INTERNALS__;
-  window.__DEV_BROWSER_MOCKS__ = false;
-  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
-
-  return () => restoreStoryRuntimeSnapshot(snapshot);
+  return setStoryRuntimeTauriInternals(undefined);
 }
 
 export function setComponentIsolationStoryRuntime() {
