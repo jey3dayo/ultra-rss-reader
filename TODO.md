@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P0 manual sync cooldown failure contract を固定する
-  - 対象: `src/lib/sync/manual-sync.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`
-  - `triggerManualSyncWithCooldownResult()` は `triggerSync()` の `Result.fail` 後にも cooldown を進めるため、失敗直後の再試行をブロックしてよいか確認する
-  - rejected promise / `Result.fail` / already in progress / cooldown の user feedback を分け、manual sync hook test で固定する
-
 - [ ] P0 feed folder optimistic rollback と post-success invalidation を固定する
   - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`
   - feed drag/drop は optimistic に `folder_id` を更新するが、success 後の invalidation failure や concurrent drop の rollback 順序が未固定
@@ -49,16 +44,6 @@
   - 対象: `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts`
   - account create success 後の setup sync と account detail retry が並ぶと、setup session owner と selected account が stale になり得る
   - duplicate submit / navigation away / retry while syncing / sync reject を state machine として fixed test にする
-
-- [ ] P1 settings sync status refetch rejection surface を追加する
-  - 対象: `src/components/settings/account-detail/account-detail.tsx`, `src/components/settings/settings-modal.tsx`
-  - `onSyncStatusChanged` と settings open 時の `syncStatusQuery.refetch()` が `void` で呼ばれており、refetch rejection の扱いが揃っていない
-  - refetch failure は log-only か sync status row の warning にするか決め、account detail / settings modal の focused test で固定する
-
-- [ ] P1 settings modal lazy preload rejection を補強する
-  - 対象: `src/components/app-shell.tsx`
-  - DEV 時の `void loadSettingsModalModule()` は preload failure を catch せず、lazy load の failure は boundary に任せる構造との差がある
-  - preload reject は dev warning、actual render reject は boundary で modal close、という役割分担を test で固定する
 
 - [ ] P1 browser webview event malformed payload rate limit を検討する
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`
@@ -80,25 +65,10 @@
   - theme wipe の timeout と system theme listener が重なる時、rapid theme changes / unmount / missing matchMedia listener で stale animation state が残らないか未固定
   - rapid light -> dark -> system change と unmount cleanup を component test で固定する
 
-- [ ] P1 data settings global loading cleanup を固定する
-  - 対象: `src/components/settings/hooks/use-data-settings-controller.ts`
-  - VACUUM / open log dir 中に settings modal を閉じると `setSettingsLoading(false)` を呼ばない設計になっており、global loading state の owner が曖昧
-  - unmount 中の native command settle 後に loading が残らないか、または modal unmount 側が必ず cleanup する契約を test で固定する
-
 - [ ] P1 startup sync storage warning policy を整理する
   - 対象: `src/lib/sync/startup-sync-storage.ts`, `src/App.tsx`
   - localStorage unavailable / write failure を warn するようになっているが、startup path で毎起動 noisy にならないかと throttle bypass の影響が未整理
   - unavailable storage 時の sync frequency、future timestamp cleanup failure、legacy key migration failure を contract test で固定する
-
-- [ ] P1 article search focus runtime boundary を補強する
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-search.ts`
-  - `requestAnimationFrame` と `window.setTimeout` を直接使う focus retry があり、browser preview / test runtime で API が欠ける時の fallback が未固定
-  - missing `requestAnimationFrame` / unmounted input / account switch 中 focus の contract を focused test にする
-
-- [ ] P1 browser overlay viewport resize fallback を補強する
-  - 対象: `src/components/reader/hooks/browser/use-browser-overlay-viewport-width.ts`
-  - initial width fallback はあるが、resize event binding failure や mobile recovery layout で viewport width が stale になるケースが未固定
-  - window unavailable / resize dispatch / cleanup failure の test を追加し、fallback width の意味を明示する
 
 - [ ] P2 app shell debug HUD portal target contract を固定する
   - 対象: `src/components/app-shell.tsx`
@@ -109,11 +79,6 @@
   - 対象: `src/lib/reader-focus.ts`, reader list/sidebar/account pane components
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
-
-- [ ] P2 old unread read action stale count contract を補強する
-  - 対象: `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`, feed/folder/smart context menus
-  - old unread count fetch と confirm action の間で unread count が変わった時、confirm message と実行結果のズレが起き得る
-  - count fetch failure / count becomes zero / action reject の user feedback を focused test で固定する
 
 - [ ] P2 account detail export object URL cleanup を固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
@@ -129,21 +94,6 @@
   - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
   - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
-
-- [ ] P0 feed display preset fire-and-forget failure を修正する
-  - 対象: `src/components/reader/feed-context-menu.tsx`, `src/components/reader/folder-context-menu.tsx`
-  - feed/folder display preset update が fire-and-forget で、persist failure 時に選択 UI と backend preference がズレる
-  - single feed と folder bulk update で、partial failure / rejected promise / optimistic UI 維持の方針を分けて test する
-
-- [ ] P0 old unread read context action failure surface を固定する
-  - 対象: `src/components/reader/feed-context-menu.tsx`, `src/components/reader/folder-context-menu.tsx`, `src/components/reader/smart-view-context-menu.tsx`
-  - `void markOldUnreadRead(days)` が複数入口にあり、count fetch と mark action の failure が context menu 呼び出し元から見えにくい
-  - account/feed/folder scope ごとに failure toast、cooldown、post-success invalidation を固定し、context menu 側は同じ helper policy に寄せる
-
-- [ ] P1 feed open site native command rejection を修正する
-  - 対象: `src/components/reader/feed-context-menu.tsx`
-  - `openInBrowser(url, bg).then(...)` に catch がなく、native command wrapper が reject した場合の toast/log が抜ける
-  - invalid URL / `Result.fail` / rejected promise を分け、article open external action と同じ error category に寄せる
 
 - [ ] P1 command palette history noisy storage warning を調整する
   - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`
@@ -164,11 +114,6 @@
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`
   - manual sync cooldown 表示が `window.setInterval` 前提で、runtime unavailable / timer drift / rapid cooldown reset の契約が未固定
   - missing window、cooldown extended、component unmount の interval cleanup を hook test で固定する
-
-- [ ] P1 browser webview load timeout fallback を補強する
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-load-timeout.ts`
-  - load timeout が `window.setTimeout` 前提で、browser URL change と loading flag の組み合わせによる stale failure surface が未固定
-  - URL A loading -> URL B selected -> A timeout settle の順序で B に error を出さないことを focused test にする
 
 - [ ] P1 browser overlay focus return RAF fallback を補強する
   - 対象: `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`
@@ -507,11 +452,6 @@
   - CSP や sanitizer を一括で締めず、provider compatibility と Web Preview 影響を分けて検証する
   - privacy mode や tracking pixel 対策を入れる場合は、settings UI と Rust sanitizer の境界を別々に扱う
 
-- [ ] P1 runtime utility contract 整理候補を別バッチで見直す
-  - clipboard / window events / badge / always-on-top / window chrome の runtime wrapper を、Tauri runtime あり/なしの fallback contract として棚卸しする
-  - dev/browser tests で固定できる fallback と packaged app manual verification が必要な挙動を分ける
-  - capability JSON の permission 変更は runtime wrapper 整理とは別コミットにする
-
 - [ ] P2 GitHub workflow / issue template 整理候補を別バッチで見直す
   - `.github/workflows/*` と issue templates の label / release-readiness / manual-verification 表現を、運用ラベルの source of truth に揃える
   - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
@@ -562,11 +502,6 @@
   - discovery failure と submit failure は表示 copy と retry 導線が違うため、dialog view props 整理とは混ぜない
   - 実 network が必要な確認は manual verification に回し、parser/DTO/command response は fixture test で固定する
 
-- [ ] P1 reader query / article scope matrix 整理候補を別バッチで見直す
-  - `src/lib/reader/reader-query.ts` と `docs/reader-article-scope-matrix.md` の feed/folder/tag/recent/starred/unread scope が実装とズレていないか棚卸しする
-  - article list sources / search / grouping / footer mode control は参照範囲が広いため、scope resolver の pure helper test を先に追加する
-  - viewMode の clamp や recently viewed history 更新は UX 挙動に直結するため、UI props local 化とは混ぜない
-
 - [ ] P3 Storybook fixture runtime 整理候補を別バッチで見直す
   - `src/components/storybook/story-tauri-runtime.ts`、`story-query-client-provider.tsx`、UI reference canvas の mock runtime を、component isolation と app-like scenario で分ける
   - story title / canvas taxonomy は既存 tests が見ているため、rename ではなく fixture provider の責務整理に限定する
@@ -582,11 +517,6 @@
   - key input trace / browser geometry diagnostics / sync error logs は用途が違うため、同じ debug UI に詰め込まず source ごとに contract を固定する
   - file logging の保存先や rotation は packaged app 影響があるため、UI 表示整理とは別の manual verification にする
 
-- [ ] P1 dialog / confirm flow contract 整理候補を別バッチで見直す
-  - `app-confirm-dialog.tsx`、`confirm-dialog-view.tsx`、destructive dialog、feed/tag delete dialogs の variant / copy / action result contract を棚卸しする
-  - shared dialog props と feature-specific submit state を混ぜず、confirm variant と destructive footer の contract test を先に補強する
-  - modal stacking や Debug HUD collision は overlay 実機検証に残し、ここでは close/cancel/confirm の state transition に限定する
-
 - [ ] P1 screen snapshot / first-screen readiness 候補を別バッチで検証する
   - `use-screen-snapshot.ts`、startup account/feed selection、SQLite first screen snapshot の復元条件を、startup read model と UI fallback で分けて確認する
   - app launch 直後の loading skeleton、last selected account、recent article history は UX 影響が大きいため、fixture test と app smoke を分ける
@@ -596,11 +526,6 @@
   - `workspace-pane-layout.ts`、`app-layout.tsx`、mobile pane recovery の pane sizing / focus target / back affordance を棚卸しする
   - desktop 3-pane layout と mobile recovery は責務が違うため、responsive class 変更より先に layout state の contract test を追加する
   - browser overlay geometry と Debug HUD overlay は別バッチに残し、ここでは reader pane と settings modal の shell boundary に限定する
-
-- [ ] P1 share / clipboard action contract 候補を別バッチで見直す
-  - `src-tauri/src/commands/share_commands.rs`、`src/lib/runtime/clipboard.ts`、article share menu の copy/open action を、native command と frontend fallback で分けて棚卸しする
-  - clipboard unavailable / permission denied / invalid URL はユーザー表示が違うため、toast copy 変更ではなく action result category の test を先に固定する
-  - native share menu の表示や shortcut 変更は menu/copy batch に残し、ここでは copy link / open external / readonly field copy の実行契約に限定する
 
 - [ ] P1 feed tree drag/drop interaction contract 候補を別バッチで見直す
   - `feed-tree-drag-session.ts`、drop target、hover target、folder flow の drag outcome を、pointer session と repository update action で分けて棚卸しする
