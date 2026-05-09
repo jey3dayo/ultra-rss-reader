@@ -63,6 +63,7 @@ function mockObservers() {
 
 describe("useScrollOverflowState", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -102,6 +103,67 @@ describe("useScrollOverflowState", () => {
     unmount();
 
     expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(1);
+  });
+
+  it("falls back to timeout measurement when requestAnimationFrame is unavailable", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("ResizeObserver", undefined);
+    vi.stubGlobal("MutationObserver", undefined);
+    vi.stubGlobal("requestAnimationFrame", undefined);
+    vi.stubGlobal("cancelAnimationFrame", undefined);
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    const viewport = document.createElement("div");
+    setScrollMetrics(viewport, 100, 100);
+
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+
+    act(() => {
+      result.current.viewportRef(viewport);
+    });
+
+    expect(result.current.hasOverflow).toBe(false);
+
+    setScrollMetrics(viewport, 100, 140);
+
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(result.current.hasOverflow).toBe(true);
+
+    unmount();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+  });
+
+  it("cancels pending animation frame and ignores late callbacks after unmount", () => {
+    let animationFrameCallback: FrameRequestCallback | null = null;
+    vi.stubGlobal("ResizeObserver", undefined);
+    vi.stubGlobal("MutationObserver", undefined);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      animationFrameCallback = callback;
+      return 7;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const viewport = document.createElement("div");
+    setScrollMetrics(viewport, 100, 100);
+
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+
+    act(() => {
+      result.current.viewportRef(viewport);
+    });
+
+    setScrollMetrics(viewport, 100, 140);
+    unmount();
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(7);
+
+    expect(() => {
+      act(() => {
+        animationFrameCallback?.(0);
+      });
+    }).not.toThrow();
   });
 
   it("disconnects observers when the dependency changes", () => {

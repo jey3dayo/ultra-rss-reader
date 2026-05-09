@@ -15,6 +15,30 @@ const initialScrollOverflowState: ScrollOverflowState = {
   hasOverflow: false,
 };
 
+type OverflowMeasurementFrame = {
+  cancel: () => void;
+};
+
+function scheduleOverflowMeasurement(callback: () => void): OverflowMeasurementFrame {
+  if (typeof window.requestAnimationFrame === "function") {
+    const animationFrame = window.requestAnimationFrame(callback);
+    return {
+      cancel: () => {
+        if (typeof window.cancelAnimationFrame === "function") {
+          window.cancelAnimationFrame(animationFrame);
+        }
+      },
+    };
+  }
+
+  const timeout = window.setTimeout(callback, 0);
+  return {
+    cancel: () => {
+      window.clearTimeout(timeout);
+    },
+  };
+}
+
 function scrollOverflowReducer(state: ScrollOverflowState, action: ScrollOverflowAction): ScrollOverflowState {
   switch (action.type) {
     case "set-viewport-element":
@@ -45,7 +69,12 @@ export function useScrollOverflowState(dependency: unknown) {
       return;
     }
 
+    let isActive = true;
     const updateOverflow = () => {
+      if (!isActive) {
+        return;
+      }
+
       dispatch({
         type: "set-has-overflow",
         value: viewport.scrollHeight > viewport.clientHeight + 1,
@@ -53,14 +82,15 @@ export function useScrollOverflowState(dependency: unknown) {
     };
 
     updateOverflow();
-    const animationFrame = window.requestAnimationFrame(() => {
+    const measurementFrame = scheduleOverflowMeasurement(() => {
       updateOverflow();
     });
     const removeWindowEvents = bindWindowEvents([{ type: "resize", listener: updateOverflow }]);
 
     if (typeof ResizeObserver === "undefined") {
       return () => {
-        window.cancelAnimationFrame(animationFrame);
+        isActive = false;
+        measurementFrame.cancel();
         removeWindowEvents();
       };
     }
@@ -100,7 +130,8 @@ export function useScrollOverflowState(dependency: unknown) {
     });
 
     return () => {
-      window.cancelAnimationFrame(animationFrame);
+      isActive = false;
+      measurementFrame.cancel();
       removeWindowEvents();
       mutationObserver?.disconnect();
       resizeObserver.disconnect();
