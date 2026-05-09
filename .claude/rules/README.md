@@ -52,6 +52,7 @@
 
 - [rust-async-mutex.md](./rust-async-mutex.md): `std::sync::Mutex` と `async` を安全に併用する指針
 - [rust-keyring.md](./rust-keyring.md): OS Keyring を使った認証情報管理の方針
+- [rust-test-unwrap-policy.md](./rust-test-unwrap-policy.md): Rust tests の `unwrap` / `expect` を fixture boundary と production behavior boundary に分類する方針
 
 ## Release / Operations
 
