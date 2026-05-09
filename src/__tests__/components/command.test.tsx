@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 describe("Command primitives", () => {
   beforeEach(() => {
@@ -48,5 +48,17 @@ describe("Command primitives", () => {
     await waitFor(() => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
+  });
+
+  it("exposes CommandDialog title and description through the dialog role", () => {
+    render(
+      <CommandDialog open={true} onOpenChange={vi.fn()} title="Run command" description="Choose an action.">
+        <CommandInput placeholder="Search commands" />
+      </CommandDialog>,
+    );
+
+    expect(screen.getByRole("dialog", { name: "Run command", description: "Choose an action." })).toContainElement(
+      screen.getByPlaceholderText("Search commands"),
+    );
   });
 });

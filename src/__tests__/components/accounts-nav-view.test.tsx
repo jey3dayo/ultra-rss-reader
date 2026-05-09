@@ -196,9 +196,12 @@ describe("AccountsNavView", () => {
     expect(debugButton).toHaveClass("shrink-0");
     expect(addAccountButton).toHaveClass("rounded-md");
     expect(addAccountButton).toHaveClass("shrink-0");
-    expect(localButton).toHaveAttribute("aria-pressed", "true");
-    expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
-    expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
+    expect(localButton).toHaveAttribute("aria-current", "page");
+    expect(localButton).not.toHaveAttribute("aria-pressed");
+    expect(freshRssButton).not.toHaveAttribute("aria-current");
+    expect(freshRssButton).not.toHaveAttribute("aria-pressed");
+    expect(addAccountButton).not.toHaveAttribute("aria-current");
+    expect(addAccountButton).not.toHaveAttribute("aria-pressed");
     expect(localButton.querySelector("span")?.className).toContain("size-7");
     expect(freshRssButton.querySelector("span")?.className).toContain("size-7");
     expect(debugButton.querySelector("span")?.className).toContain("bg-surface-1/72");

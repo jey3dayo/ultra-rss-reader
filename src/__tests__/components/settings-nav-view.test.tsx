@@ -55,13 +55,15 @@ describe("SettingsNavView", () => {
     expect(generalButton).toHaveClass("shrink-0");
     expect(generalButton).toHaveClass("text-[13px]");
     expect(generalButton).toHaveClass("focus-visible:ring-0");
-    expect(generalButton).toHaveAttribute("aria-pressed", "true");
+    expect(generalButton).toHaveAttribute("aria-current", "page");
+    expect(generalButton).not.toHaveAttribute("aria-pressed");
     expect(appearanceButton).not.toHaveClass("bg-surface-selected");
     expect(appearanceButton).toHaveClass("rounded-md");
     expect(appearanceButton).toHaveClass("shrink-0");
     expect(screen.getByText("A").parentElement).toHaveClass("size-5");
     expect(screen.getByText("A").parentElement).toHaveClass("text-sidebar-foreground/44");
-    expect(appearanceButton).toHaveAttribute("aria-pressed", "false");
+    expect(appearanceButton).not.toHaveAttribute("aria-current");
+    expect(appearanceButton).not.toHaveAttribute("aria-pressed");
     expect(appearanceButton).toHaveClass("w-auto");
     expect(screen.getByRole("navigation")).toHaveClass("flex");
     expect(screen.getByRole("navigation")).toHaveClass("flex-wrap");

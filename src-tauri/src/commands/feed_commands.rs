@@ -35,7 +35,7 @@ pub(super) fn lock_db(
     })
 }
 
-fn validate_feed_title(title: &str) -> Result<String, AppError> {
+pub(super) fn validate_feed_title(title: &str) -> Result<String, AppError> {
     let title = title.trim();
     if title.is_empty() {
         return Err(AppError::UserVisible {
@@ -50,7 +50,7 @@ fn validate_feed_title(title: &str) -> Result<String, AppError> {
     Ok(title.to_string())
 }
 
-fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String, AppError> {
+pub(super) fn normalize_folder_name(name: &str) -> Result<String, AppError> {
     let name = name.trim();
     if name.is_empty() {
         return Err(AppError::UserVisible {
@@ -62,9 +62,14 @@ fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String,
             message: format!("Folder name must be {FOLDER_NAME_MAX_CHARS} characters or less"),
         });
     }
+    Ok(name.to_string())
+}
+
+fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String, AppError> {
+    let name = normalize_folder_name(name)?;
     if existing_names
         .iter()
-        .any(|existing| existing.eq_ignore_ascii_case(name))
+        .any(|existing| existing.eq_ignore_ascii_case(&name))
     {
         return Err(AppError::UserVisible {
             message: format!("Folder name \"{name}\" is already in use"),

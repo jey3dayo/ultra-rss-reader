@@ -82,7 +82,6 @@ export function AccountsNavView({
             key={account.id}
             tone="sidebar"
             selected={account.isActive}
-            aria-pressed={account.isActive}
             disabled={disabled}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
@@ -115,7 +114,6 @@ export function AccountsNavView({
       <NavRowButton
         tone="sidebar"
         selected={isAddAccountActive}
-        aria-pressed={isAddAccountActive}
         disabled={disabled}
         onClick={onAddAccount}
         className={cn(

@@ -1,6 +1,7 @@
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto};
+use crate::commands::feed_commands::{normalize_folder_name, validate_feed_title};
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
@@ -126,7 +127,29 @@ fn import_opml_in_db(
 }
 
 fn parse_import_opml(opml_content: &str) -> Result<Vec<OpmlFeed>, AppError> {
-    opml::parse_opml(opml_content).map_err(|message| AppError::UserVisible { message })
+    let feeds =
+        opml::parse_opml(opml_content).map_err(|message| AppError::UserVisible { message })?;
+    normalize_import_opml_feeds(feeds)
+}
+
+fn normalize_import_opml_feeds(feeds: Vec<OpmlFeed>) -> Result<Vec<OpmlFeed>, AppError> {
+    feeds
+        .into_iter()
+        .map(|feed| {
+            let title = validate_feed_title(&feed.title)?;
+            let folder = feed
+                .folder
+                .as_deref()
+                .map(normalize_folder_name)
+                .transpose()?;
+            Ok(OpmlFeed {
+                title,
+                xml_url: feed.xml_url,
+                html_url: feed.html_url,
+                folder,
+            })
+        })
+        .collect()
 }
 
 #[tauri::command]
@@ -325,6 +348,51 @@ mod tests {
                 ("Top Feed", "https://example.com/top.xml", None, None),
             ],
         );
+    }
+
+    #[test]
+    fn import_parser_normalizes_feed_title_and_folder_like_regular_validation() {
+        let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="  Engineering  ">
+      <outline text="  Rust Blog  " type="rss" xmlUrl="https://blog.rust-lang.org/feed.xml"/>
+    </outline>
+  </body>
+</opml>"#;
+
+        let feeds = parse_import_opml(opml).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "Rust Blog");
+        assert_eq!(feeds[0].folder, Some("Engineering".to_string()));
+    }
+
+    #[test]
+    fn import_parser_rejects_invalid_feed_title_and_folder_like_regular_validation() {
+        let blank_title = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="   " type="rss" xmlUrl="https://example.com/blank.xml"/>
+  </body>
+</opml>"#;
+        let blank_folder = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="   ">
+      <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml"/>
+    </outline>
+  </body>
+</opml>"#;
+
+        assert!(matches!(
+            parse_import_opml(blank_title),
+            Err(AppError::UserVisible { message }) if message == "Feed title cannot be empty"
+        ));
+        assert!(matches!(
+            parse_import_opml(blank_folder),
+            Err(AppError::UserVisible { message }) if message == "Folder name cannot be empty"
+        ));
     }
 
     #[test]
@@ -534,5 +602,23 @@ mod tests {
                 ("Zulu", "https://example.com/top-z.xml", None),
             ],
         );
+    }
+
+    #[test]
+    fn export_build_output_round_trips_through_opml_xml_parser() {
+        let folder_news = folder("folder-news", "News & Research", 0);
+        let feeds = vec![
+            Feed {
+                site_url: "https://example.com/alpha?x=1&y=2".to_string(),
+                ..feed("folder-alpha", Some(&folder_news.id), "Alpha & Friends")
+            },
+            feed("top-beta", None, "Beta <Top>"),
+        ];
+
+        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+        let xml = opml::generate_opml("Primary & Local", &opml_feeds);
+        let parsed = opml::parse_opml(&xml).unwrap();
+
+        assert_eq!(parsed, opml_feeds);
     }
 }

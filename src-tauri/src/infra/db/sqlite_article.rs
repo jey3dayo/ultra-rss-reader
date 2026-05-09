@@ -2037,6 +2037,90 @@ mod tests {
     }
 
     #[test]
+    fn mark_muted_unread_as_read_rolls_back_all_changes_on_mid_batch_failure() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        db.writer()
+            .execute(
+                "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                [],
+            )
+            .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let repo = SqliteArticleRepository::new(db.writer());
+        let first = make_article(&feed_id, "Kindle Unlimited first");
+        let failing = make_article(&feed_id, "Kindle Unlimited failure");
+        repo.upsert(&[first.clone(), failing.clone()]).unwrap();
+
+        db.writer()
+            .execute(
+                "CREATE TEMP TRIGGER fail_muted_mark_read
+                 BEFORE UPDATE OF is_read ON articles
+                 WHEN NEW.title = 'Kindle Unlimited failure'
+                 BEGIN
+                   SELECT RAISE(ABORT, 'forced muted mark read failure');
+                 END",
+                [],
+            )
+            .unwrap();
+
+        let error = repo
+            .mark_muted_unread_as_read(&account_id, None)
+            .expect_err("mid-batch failure should abort the transaction");
+
+        assert!(error.to_string().contains("forced muted mark read failure"));
+        for article in [&first, &failing] {
+            let is_read: bool = db
+                .reader()
+                .query_row(
+                    "SELECT is_read FROM articles WHERE id = ?1",
+                    params![article.id.0],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(!is_read);
+        }
+    }
+
+    #[test]
+    fn mark_muted_unread_as_read_handles_large_match_set_in_one_transaction() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        db.writer()
+            .execute(
+                "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                [],
+            )
+            .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = crate::infra::db::sqlite_feed::SqliteFeedRepository::new(db.writer());
+        let articles = (0..250)
+            .map(|index| make_article(&feed_id, &format!("Kindle Unlimited batch {index}")))
+            .collect::<Vec<_>>();
+        repo.upsert(&articles).unwrap();
+        feed_repo.recalculate_unread_count(&feed_id).unwrap();
+
+        let changed = repo.mark_muted_unread_as_read(&account_id, None).unwrap();
+
+        assert_eq!(changed, articles.len());
+        let unread_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(unread_count, 0);
+        assert_eq!(feed_repo.recalculate_unread_count(&feed_id).unwrap(), 0);
+    }
+
+    #[test]
     fn find_and_count_starred_by_account_ignore_unstarred_and_other_accounts() {
         let db = test_db();
         let account_a = insert_test_account(&db);

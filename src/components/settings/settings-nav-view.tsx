@@ -20,7 +20,6 @@ export function SettingsNavView<TItemId extends string = SettingsNavItemId>({
           key={item.id}
           tone="sidebar"
           selected={item.isActive}
-          aria-pressed={item.isActive}
           disabled={disabled}
           onClick={() => onSelectCategory(item.id)}
           className={cn(
