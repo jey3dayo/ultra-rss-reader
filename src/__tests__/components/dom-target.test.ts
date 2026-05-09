@@ -13,6 +13,42 @@ describe("dom-target", () => {
     expect(isOutsideElement(root, root)).toBe(false);
   });
 
+  it("treats composed shadow-boundary paths inside the element as inside", () => {
+    const root = document.createElement("div");
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+    const button = document.createElement("button");
+    shadow.append(button);
+    root.append(host);
+    document.body.append(root);
+
+    let isOutside = true;
+    document.addEventListener(
+      "click",
+      (event) => {
+        isOutside = isOutsideElement(root, event);
+      },
+      { once: true },
+    );
+
+    button.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true }));
+
+    expect(isOutside).toBe(false);
+    expect(isOutsideElement(root, button)).toBe(false);
+
+    root.remove();
+  });
+
+  it("keeps host and detached node containment explicit", () => {
+    const root = document.createElement("div");
+    const host = document.createElement("div");
+    const detached = document.createElement("button");
+    root.append(host);
+
+    expect(isOutsideElement(root, host)).toBe(false);
+    expect(isOutsideElement(root, detached)).toBe(true);
+  });
+
   it("ignores missing elements and non-node targets", () => {
     const root = document.createElement("div");
     const nonNodeTarget: EventTarget = new EventTarget();
