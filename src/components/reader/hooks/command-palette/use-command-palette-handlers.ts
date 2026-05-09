@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { FeedLandingFailure, FeedLandingResult } from "@/hooks/use-feed-landing";
@@ -89,11 +89,10 @@ export function useCommandPaletteHandlers({
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);
   const selectedAccountIdRef = useRef(selectedAccountId);
-  selectedAccountIdRef.current = selectedAccountId;
-
-  useEffect(() => {
+  if (selectedAccountIdRef.current !== selectedAccountId) {
+    selectedAccountIdRef.current = selectedAccountId;
     feedLandingRequestIdRef.current += 1;
-  }, [selectedAccountId]);
+  }
 
   function handleActionSelect(action: PaletteAction["id"]) {
     if (action === "open-shortcuts-help") {
