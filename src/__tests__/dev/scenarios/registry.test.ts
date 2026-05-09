@@ -1,21 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { getDevScenario, listDevScenarios } from "@/dev/scenarios/registry";
+import { createDevScenarioRegistryIndex, getDevScenario, listDevScenarios } from "@/dev/scenarios/registry";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS } from "@/dev/scenarios/types";
-
-function findDuplicates(values: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  for (const value of values) {
-    if (seen.has(value)) {
-      duplicates.add(value);
-    }
-    seen.add(value);
-  }
-
-  return [...duplicates].sort();
-}
 
 function createScenarioContext(): DevScenarioContext {
   return {
@@ -60,22 +46,26 @@ describe("dev scenario registry", () => {
   });
 
   it("keeps scenario ids and titles unique", () => {
-    const scenarios = listDevScenarios();
+    const registryIndex = createDevScenarioRegistryIndex(listDevScenarios());
 
-    expect(findDuplicates(DEV_SCENARIO_IDS)).toEqual([]);
-    expect(findDuplicates(scenarios.map((scenario) => scenario.id))).toEqual([]);
-    expect(findDuplicates(scenarios.map((scenario) => scenario.title))).toEqual([]);
+    expect(registryIndex.duplicateIds).toEqual([]);
+    expect(registryIndex.duplicateTitles).toEqual([]);
   });
 
   it("keeps keywords unique within each scenario", () => {
-    const scenariosWithDuplicateKeywords = listDevScenarios()
-      .map((scenario) => ({
-        id: scenario.id,
-        duplicates: findDuplicates(scenario.keywords),
-      }))
-      .filter(({ duplicates }) => duplicates.length > 0);
+    expect(createDevScenarioRegistryIndex(listDevScenarios()).duplicateKeywordsByScenarioId).toEqual([]);
+  });
 
-    expect(scenariosWithDuplicateKeywords).toEqual([]);
+  it("builds a stable scenario id index for registry lookups and diagnostics", () => {
+    const scenarios = listDevScenarios();
+    const registryIndex = createDevScenarioRegistryIndex(scenarios);
+
+    expect([...registryIndex.ids]).toEqual(DEV_SCENARIO_IDS);
+    expect(registryIndex.scenarios.map((scenario) => scenario.id)).toEqual(DEV_SCENARIO_IDS);
+    expect(registryIndex.scenarioById.get(DEV_SCENARIO_ID.openCommandPalette)).toMatchObject({
+      id: DEV_SCENARIO_ID.openCommandPalette,
+      title: "Open command palette",
+    });
   });
 
   it("returns a registered scenario for a known id", () => {

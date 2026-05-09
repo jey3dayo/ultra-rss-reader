@@ -7,6 +7,7 @@ import {
   listFeeds,
   listTags,
 } from "@/api/tauri-commands";
+import { cancelOpenWebPreviewUrlScenarioReplay } from "@/dev/scenarios/helpers";
 import { getDevScenario } from "@/dev/scenarios/registry";
 import type { DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
 import { executeAction } from "@/lib/actions";
@@ -48,5 +49,6 @@ export async function runDevScenario(id: DevScenarioId, options?: RunDevScenario
     return;
   }
 
+  cancelOpenWebPreviewUrlScenarioReplay();
   await scenario.run(context);
 }

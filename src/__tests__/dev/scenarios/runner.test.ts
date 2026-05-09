@@ -264,6 +264,41 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
+  it("clears delayed web preview replays before running another scenario", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-web-preview-url", { context });
+    await runDevScenario("sync-all-smoke", { context });
+    await vi.runAllTimersAsync();
+
+    expect(context.ui.openBrowser).toHaveBeenCalledTimes(1);
+    expect(context.ui.openBrowser).toHaveBeenCalledWith("https://example.com/debug-preview");
+    expect(context.actions.executeAction).toHaveBeenCalledWith("sync-all");
+  });
+
+  it("keeps delayed web preview replay latest-only across repeated runs", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/first-preview");
+    const context = createContext();
+
+    await runDevScenario("open-web-preview-url", { context });
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/current-preview");
+    await runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+
+    expect(context.ui.openBrowser).toHaveBeenCalledTimes(4);
+    expect(context.ui.openBrowser).toHaveBeenNthCalledWith(1, "https://example.com/first-preview");
+    expect(context.ui.openBrowser).toHaveBeenNthCalledWith(2, "https://example.com/current-preview");
+    expect(context.ui.openBrowser).toHaveBeenNthCalledWith(3, "https://example.com/current-preview");
+    expect(context.ui.openBrowser).toHaveBeenNthCalledWith(4, "https://example.com/current-preview");
+  });
+
   it("applies a dev window size before opening the requested web preview url", async () => {
     vi.stubEnv("DEV", true);
     vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");

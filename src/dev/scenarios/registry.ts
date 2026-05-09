@@ -9,6 +9,18 @@ import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId
 import { resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
 import type { AppAction } from "@/lib/app-actions";
 
+export type DevScenarioRegistryIndex = {
+  scenarios: DevScenario[];
+  scenarioById: Map<DevScenarioId, DevScenario>;
+  ids: Set<DevScenarioId>;
+  duplicateIds: DevScenarioId[];
+  duplicateTitles: string[];
+  duplicateKeywordsByScenarioId: Array<{
+    id: DevScenarioId;
+    duplicates: string[];
+  }>;
+};
+
 function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
   return async ({ actions }: DevScenarioContext) => {
     await Promise.resolve(actions.executeAction(actionId));
@@ -145,12 +157,45 @@ const DEV_SCENARIOS: DevScenario[] = DEV_SCENARIO_IDS.map((id) => ({
   ...DEV_SCENARIO_DETAILS[id],
 }));
 
-const DEV_SCENARIO_MAP = new Map<DevScenarioId, DevScenario>(DEV_SCENARIOS.map((scenario) => [scenario.id, scenario]));
+function findDuplicateRegistryValues<TValue extends string>(values: Iterable<TValue>): TValue[] {
+  const seen = new Set<TValue>();
+  const duplicates = new Set<TValue>();
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value);
+      continue;
+    }
+
+    seen.add(value);
+  }
+
+  return [...duplicates].sort();
+}
+
+export function createDevScenarioRegistryIndex(scenarios: readonly DevScenario[]): DevScenarioRegistryIndex {
+  const stableScenarios = [...scenarios];
+  return {
+    scenarios: stableScenarios,
+    scenarioById: new Map(stableScenarios.map((scenario) => [scenario.id, scenario])),
+    ids: new Set(stableScenarios.map((scenario) => scenario.id)),
+    duplicateIds: findDuplicateRegistryValues(stableScenarios.map((scenario) => scenario.id)),
+    duplicateTitles: findDuplicateRegistryValues(stableScenarios.map((scenario) => scenario.title)),
+    duplicateKeywordsByScenarioId: stableScenarios
+      .map((scenario) => ({
+        id: scenario.id,
+        duplicates: findDuplicateRegistryValues(scenario.keywords),
+      }))
+      .filter(({ duplicates }) => duplicates.length > 0),
+  };
+}
+
+const DEV_SCENARIO_REGISTRY_INDEX = createDevScenarioRegistryIndex(DEV_SCENARIOS);
 
 export function listDevScenarios(): DevScenario[] {
-  return [...DEV_SCENARIOS];
+  return [...DEV_SCENARIO_REGISTRY_INDEX.scenarios];
 }
 
 export function getDevScenario(id: string): DevScenario | null {
-  return isDevScenarioId(id) ? (DEV_SCENARIO_MAP.get(id) ?? null) : null;
+  return isDevScenarioId(id) ? (DEV_SCENARIO_REGISTRY_INDEX.scenarioById.get(id) ?? null) : null;
 }

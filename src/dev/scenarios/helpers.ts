@@ -32,11 +32,26 @@ type TagScenarioSelection = {
 };
 
 const DEFAULT_DEV_FEED_HINTS = ["マガポケ", "ジャンプ+", "comic", "manga", "少年ジャンプ", "ゴリミー"];
+const OPEN_WEB_PREVIEW_URL_REPLAY_DELAYS_MS = [
+  OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS,
+  OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
+] as const;
+
+let openWebPreviewUrlReplayGeneration = 0;
+let openWebPreviewUrlReplayTimerIds: number[] = [];
 
 export function createUnsupportedDevScenarioRunner(id: DevScenarioId): DevScenario["run"] {
   return ({ ui }) => {
     ui.showToast(`Dev scenario "${id}" is not implemented yet.`);
   };
+}
+
+export function cancelOpenWebPreviewUrlScenarioReplay(): void {
+  openWebPreviewUrlReplayGeneration += 1;
+  for (const timerId of openWebPreviewUrlReplayTimerIds) {
+    window.clearTimeout(timerId);
+  }
+  openWebPreviewUrlReplayTimerIds = [];
 }
 
 async function cacheAccounts(ctx: DevScenarioContext): Promise<AccountDto[]> {
@@ -185,15 +200,22 @@ export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Pro
   }
 
   await applyDevWindowSize(ctx.ui.showToast);
+  cancelOpenWebPreviewUrlScenarioReplay();
+  const replayGeneration = openWebPreviewUrlReplayGeneration;
 
   const applyPreviewState = () => {
+    if (replayGeneration !== openWebPreviewUrlReplayGeneration) {
+      return;
+    }
+
     void applyDevWindowSize(ctx.ui.showToast);
     ctx.ui.openBrowser(webUrl);
   };
 
   applyPreviewState();
-  window.setTimeout(applyPreviewState, OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS);
-  window.setTimeout(applyPreviewState, OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS);
+  openWebPreviewUrlReplayTimerIds = OPEN_WEB_PREVIEW_URL_REPLAY_DELAYS_MS.map((delayMs) =>
+    window.setTimeout(applyPreviewState, delayMs),
+  );
 }
 
 type WindowSizeLike = {
