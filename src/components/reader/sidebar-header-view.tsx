@@ -30,7 +30,6 @@ type SidebarHeaderActionAvailability = {
 };
 
 const ACCEPTED_SYNC_SPIN_MS = 1_000;
-const COOLDOWN_SYNC_SPIN_MS = 450;
 
 type SidebarHeaderState = {
   isFeedbackSpinning: boolean;
