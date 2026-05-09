@@ -1,6 +1,7 @@
 import { act, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import i18n from "@tests/helpers/i18n-setup";
 import { createRef, useRef, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
@@ -11,7 +12,6 @@ import {
 import { useArticleListViewProps } from "@/components/reader/hooks/article-list/use-article-list-view-props";
 import type { LayoutMode } from "@/lib/layout/layout-state.types";
 import { useUiStore } from "@/stores/ui-store";
-import i18n from "@tests/helpers/i18n-setup";
 
 const articleListHeaderLabels = {
   markAllReadLabel: "Mark all as read",
@@ -251,24 +251,15 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(
-      screen.getByRole("textbox", { name: "Search articles" }),
-    ).toHaveAttribute("placeholder", "Search articles…");
-    expect(
-      screen.getByRole("textbox", { name: "Search articles" }),
-    ).toHaveClass(
+    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute("placeholder", "Search articles…");
+    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveClass(
       "focus:ring-2",
       "focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
       "focus-visible:ring-2",
       "focus-visible:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
     );
-    expect(screen.getByTestId("article-list-search-motion")).toHaveClass(
-      "motion-content-swap",
-    );
-    expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute(
-      "data-motion-phase",
-      "entering",
-    );
+    expect(screen.getByTestId("article-list-search-motion")).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute("data-motion-phase", "entering");
   });
 
   it("uses action and search labels from view props", () => {
@@ -296,18 +287,13 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(
-      screen.getByRole("button", { name: "Props mark all" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Props search" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Props close search" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("textbox", { name: "Props search" }),
-    ).toHaveAttribute("placeholder", "Props search placeholder");
+    expect(screen.getByRole("button", { name: "Props mark all" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Props search" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Props close search" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Props search" })).toHaveAttribute(
+      "placeholder",
+      "Props search placeholder",
+    );
   });
 
   it("maps translated header labels through the article list view props boundary", () => {
@@ -378,9 +364,7 @@ describe("ArticleListHeader", () => {
     });
     expect(result.current.headerProps.sidebarButtonLabel).toBe("Hide sidebar");
     expect(result.current.headerProps.onMarkAllRead).toBe(handleMarkAllRead);
-    expect(result.current.headerProps.onToggleSidebar).toBe(
-      handleSidebarToggle,
-    );
+    expect(result.current.headerProps.onToggleSidebar).toBe(handleSidebarToggle);
     expect(result.current.headerProps.onToggleSearch).toBe(handleToggleSearch);
     expect(result.current.headerProps.onCloseSearch).toBe(handleCloseSearch);
     expect(result.current.headerProps.onSearchQueryChange).toBe(setSearchQuery);
@@ -513,9 +497,7 @@ describe("ArticleListHeader", () => {
     );
 
     const header = container.firstElementChild;
-    expect(header?.firstElementChild).toContainElement(
-      screen.getByRole("button", { name: "Hide sidebar" }),
-    );
+    expect(header?.firstElementChild).toContainElement(screen.getByRole("button", { name: "Hide sidebar" }));
   });
 
   it("can show a compact sidebar affordance label next to the icon", () => {
@@ -563,24 +545,11 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(
-      screen.getByRole("button", { name: "Mark all as read" }),
-    ).not.toHaveTextContent("Read");
-    expect(
-      screen.getByRole("button", { name: "Mark all as read" }),
-    ).toHaveClass("size-11", "rounded-md");
-    expect(
-      screen.getByRole("button", { name: "Mark all as read" }),
-    ).toHaveClass("text-foreground-soft");
-    expect(
-      screen.getByRole("button", { name: "Search articles" }),
-    ).not.toHaveTextContent("Search");
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass(
-      "size-11",
-      "rounded-md",
-    );
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass(
-      "text-foreground-soft",
-    );
+    expect(screen.getByRole("button", { name: "Mark all as read" })).not.toHaveTextContent("Read");
+    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("size-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("button", { name: "Search articles" })).not.toHaveTextContent("Search");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("size-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-foreground-soft");
   });
 });

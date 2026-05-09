@@ -3,7 +3,7 @@ import i18n from "i18next";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { preferenceDefaults, type PreferenceWritableKey, resolvePreferenceValue } from "@/schemas/preferences";
+import { type PreferenceWritableKey, preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
 import type { PreferencesActions } from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 

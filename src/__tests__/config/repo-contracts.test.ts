@@ -880,7 +880,11 @@ describe("repository static contracts", () => {
   });
 
   it("keeps app E2E tests covered by the runtime error guard", () => {
-    const runtimeGuardImports = ["disposeRuntimeErrorGuard", "expectNoPageErrors", "installRuntimeErrorGuard"] as const;
+    const runtimeGuardImports = [
+      "disposeRuntimeErrorGuard",
+      "expectNoRuntimeErrors",
+      "installRuntimeErrorGuard",
+    ] as const;
 
     for (const importedName of runtimeGuardImports) {
       expect(appE2eSpec).toContain(importedName);
@@ -890,7 +894,7 @@ describe("repository static contracts", () => {
     expect(appE2eSpec).toContain("test.beforeEach(async ({ page }) => {");
     expect(appE2eSpec).toContain("installRuntimeErrorGuard(page);");
     expect(appE2eSpec).toContain("test.afterEach(async ({ page }) => {");
-    expect(appE2eSpec).toContain("expectNoPageErrors(page);");
+    expect(appE2eSpec).toContain("expectNoRuntimeErrors(page);");
     expect(appE2eSpec).toContain("disposeRuntimeErrorGuard(page);");
     expect(runtimeErrorGuardHelper).toContain('page.on("pageerror", pageErrorHandler)');
     expect(runtimeErrorGuardHelper).toContain('page.off("pageerror", pageErrorHandler)');
