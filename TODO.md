@@ -235,6 +235,31 @@
   - `aria-invalid` / disabled / checked state の semantic token class を、shared design primitive test から Switch 専用 test へ切り出せるか確認する
   - gradient switch や settings toggle behavior とは分け、Base UI Switch wrapper の primitive contract だけを扱う
 
+- [ ] Tauri browser preview accelerator preference failure 候補を追加する
+  - `src-tauri/src/browser_webview.rs` の Windows `browser_preview_action_for_virtual_key` が DB lock / preference read failure を `.ok()?` で握りつぶし、shortcut action を無効化する点を確認する
+  - 起動継続と no-crash 方針は維持しつつ、warn diagnostics / default shortcut fallback / preference read retry のどれを contract にするか決める
+  - native accelerator collision や browser shortcut mapping 再設計とは分け、preference read failure 時の observable behavior だけを扱う
+
+- [ ] Tauri browser webview reload fallback URL validation 候補を追加する
+  - `src-tauri/src/commands/browser_webview_commands.rs` の `validate_browser_webview_fallback_url` が blank だけを拒否しているため、newline / non-http scheme / malformed URL の扱いを固定する
+  - `parse_browser_http_url` と揃えるか、current URL reuse 専用の緩い contract として残すかを Rust unit test で明示する
+  - embed support command の URL validation や open external browser validation とは分け、reload fallback source の validation だけを扱う
+
+- [ ] Tauri browser webview physical bounds rounding contract 候補を追加する
+  - `BrowserWebviewBounds::validated` は `width > 0` / `height > 0` を通すが、`unit: physical` では `round() as u32` 後に 0px へ丸められる小数値があり得る
+  - 1px 未満を reject するか clamp するかを決め、physical bounds の small positive width/height を focused Rust test で固定する
+  - WebView geometry 数値 tuning や titlebar inset 調整とは分け、physical unit の丸め境界だけを扱う
+
+- [ ] Tauri debug browser HUD preference boolean contract 候補を追加する
+  - `src-tauri/src/commands/preference_commands.rs` の `set_preference` が `debug_browser_hud` を `value == "true"` だけで diagnostics flag に反映し、未知値を保存できる点を確認する
+  - debug boolean preference は write 時に reject / normalize するか、read 側で fallback するかを focused command test で固定する
+  - Debug HUD visual layout や diagnostics payload 追加とは分け、preference boolean semantics だけを扱う
+
+- [ ] Tauri dev runtime window dimension max parity 候補を追加する
+  - `src/dev/intent.ts` は dev window size を `MAX_DEV_WINDOW_DIMENSION_PX = 10_000` で切る一方、`src-tauri/src/commands/platform_commands.rs` は正の `u32` なら返すため境界が揺れている
+  - Rust command 側に同じ上限を持たせるか、TS fallback policy として明示するかを schema / command test で固定する
+  - dev scenario window resize verification や runtime options failed-cache retry とは分け、dev runtime option DTO の size boundary だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
