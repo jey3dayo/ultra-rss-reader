@@ -623,6 +623,29 @@ describe("article-list utils", () => {
     expect(retained.map((article) => article.id)).toEqual(["art-1", "retained-copy"]);
   });
 
+  it("uses the later retained source identity when sources contain duplicate article ids", () => {
+    const staleRetainedArticle = {
+      ...sampleArticles[0],
+      id: "retained-duplicate",
+      title: "Stale retained row",
+      is_read: true,
+      is_starred: false,
+    };
+    const currentRetainedArticle = {
+      ...staleRetainedArticle,
+      title: "Current retained row",
+      is_read: false,
+      is_starred: true,
+    };
+
+    const retained = collectRetainedArticlesFromSources({
+      retainedArticleIds: new Set(["retained-duplicate"]),
+      sources: [[staleRetainedArticle], [currentRetainedArticle]],
+    });
+
+    expect(retained).toEqual([currentRetainedArticle]);
+  });
+
   it("merges retained article snapshots and preserves equivalent references", () => {
     const previous = {
       contextKey: "account:acc-1",
@@ -645,6 +668,55 @@ describe("article-list utils", () => {
         currentRetainedArticles: [],
       }),
     ).toBeNull();
+  });
+
+  it("replaces stale retained snapshot row identity with current source rows for the same context", () => {
+    const staleRetainedArticle = {
+      ...sampleArticles[0],
+      id: "retained-duplicate",
+      title: "Stale retained row",
+      is_read: true,
+      is_starred: false,
+    };
+    const currentRetainedArticle = {
+      ...staleRetainedArticle,
+      title: "Current retained row",
+      is_read: false,
+      is_starred: true,
+    };
+
+    const next = mergeRetainedArticlesSnapshot({
+      previous: {
+        contextKey: "feed:feed-1:unread",
+        articles: [staleRetainedArticle],
+      },
+      contextKey: "feed:feed-1:unread",
+      retainedArticleIds: new Set(["retained-duplicate"]),
+      currentRetainedArticles: [currentRetainedArticle],
+    });
+
+    expect(next?.articles).toEqual([currentRetainedArticle]);
+  });
+
+  it("drops stale retained snapshot rows when the article list context changes", () => {
+    const currentRetainedArticle = {
+      ...sampleArticles[1],
+      id: "retained-current-context",
+      title: "Current context retained row",
+    };
+
+    const next = mergeRetainedArticlesSnapshot({
+      previous: {
+        contextKey: "feed:feed-1:unread",
+        articles: [{ ...sampleArticles[0], id: "retained-previous-context" }],
+      },
+      contextKey: "tag:tag-1:unread",
+      retainedArticleIds: new Set(["retained-previous-context", "retained-current-context"]),
+      currentRetainedArticles: [currentRetainedArticle],
+    });
+
+    expect(next?.contextKey).toBe("tag:tag-1:unread");
+    expect(next?.articles).toEqual([currentRetainedArticle]);
   });
 
   it("prepends retained articles missing from the current primary source", () => {
