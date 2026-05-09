@@ -330,6 +330,23 @@ describe("article tag mutations", () => {
     });
   });
 
+  it("keeps tag assignment successful when post-success invalidation fails", async () => {
+    const invalidationError = new Error("tag assignment cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    vi.spyOn(tauriCommands, "tagArticle").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useTagArticle(), { wrapper });
+
+    await expect(result.current.mutateAsync({ articleId: "art-1", tagId: "tag-1" })).resolves.toBeNull();
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["articleTags"],
+        error: invalidationError,
+      });
+    });
+  });
+
   it("marks article and tag assignment caches stale after assigning a tag", async () => {
     vi.spyOn(tauriCommands, "tagArticle").mockResolvedValue(Result.succeed(null));
     queryClient.setQueryData(["articleTags", "art-1"], [{ id: "tag-1", name: "Review", color: null }]);
@@ -368,6 +385,23 @@ describe("article tag mutations", () => {
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: ["tags"],
+    });
+  });
+
+  it("keeps tag unassignment successful when post-success invalidation fails", async () => {
+    const invalidationError = new Error("tag unassignment cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    vi.spyOn(tauriCommands, "untagArticle").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useUntagArticle(), { wrapper });
+
+    await expect(result.current.mutateAsync({ articleId: "art-1", tagId: "tag-1" })).resolves.toBeNull();
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["articleTags"],
+        error: invalidationError,
+      });
     });
   });
 

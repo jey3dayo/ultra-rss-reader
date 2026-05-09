@@ -160,11 +160,6 @@
   - mute keyword 作成・更新時に全 account の muted unread を mark read するため、対象記事が多い時の long transaction、途中失敗、UI feedback の境界が曖昧になりやすい
   - preference enabled 時の対象 account snapshot、partial failure、large article set の処理方針を Rust test / manual verification に分けて固定する
 
-- [ ] P2 tag article/untag missing target の no-op policy を固定する
-  - 対象: `src-tauri/src/infra/db/sqlite_tag.rs`, `src-tauri/src/commands/tag_commands.rs`, `src/components/reader/hooks/article/use-article-tag-picker-popover.ts`
-  - `INSERT OR IGNORE` / `DELETE` の affected row を user-visible にしない場合、missing article/tag や concurrent delete が成功扱いになり、UI cache と DB がズレたまま見える可能性がある
-  - missing article、missing tag、already tagged、already untagged の no-op / error 方針を決め、tag picker の optimistic update contract と合わせて test する
-
 - [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
   - 対象: `docs/feed-content-privacy.md`, `TODO.md`
   - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
