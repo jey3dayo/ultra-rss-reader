@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import i18n from "@/lib/i18n";
 
@@ -25,6 +25,10 @@ function renderDialogFooter(props: Partial<React.ComponentProps<typeof DialogFoo
 }
 
 describe("DialogContent", () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
   it("uses the provided close label as the accessible name", () => {
     renderDialogContent({ closeLabel: "Close custom dialog" });
 
