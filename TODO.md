@@ -298,11 +298,6 @@
   - DOM event や Observer callback を `as unknown as` で作っており、必要プロパティ不足でも test が型上通ってしまう
   - keyboard event factory、ResizeObserver factory、MutationObserver factory、hook result fixture を作り、cast 箇所を集約する
 
-- [ ] P2 test の `window.__TAURI_INTERNALS__` 注入を story/runtime helper に一本化する
-  - 対象: `tests/helpers/tauri-runtime.ts`, `src/components/storybook/story-tauri-runtime.ts`, `src/__tests__/components/*runtime*.test.tsx`, `src/__tests__/dev/dev-mocks.test.ts`
-  - Tauri internals の Object.defineProperty が test/story/dev mock に分散しており、descriptor restore や mock shape がずれると runtime 判定だけが壊れやすい
-  - install/restore helper、readonly descriptor、missing invoke、partial internals、Storybook decorator parity の test を追加する
-
 - [ ] P2 sidebar startup folder expansion localStorage schema を account/folder identity contract にする
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.tsx`, `src/constants/storage.ts`
   - expanded folders は localStorage JSON に account -> folder ids を保存するため、account削除、folder削除、巨大JSON、invalid shape、storage write failure で stale expansion が残りやすい
@@ -441,16 +436,6 @@
   - 対象: `src/components/settings/account-detail/query-cache.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/hooks/use-updater.ts`
   - small cache updater が large hook と高類似判定されており、低トークン関数では AST shape だけの false positive が混ざる
   - similarity report を読む時の min-lines/min-tokens 閾値、cache helper は単独管理、large hook だけ調査対象にする rule を TODO/CLAUDE へ反映する
-
-- [ ] P3 similarity 100%: deferred promise test helper を共通化する
-  - 対象: `src/__tests__/hooks/use-account-detail-credentials-editor.test.tsx`, `src/__tests__/hooks/use-account-detail-name-editor.test.tsx`, `tests/helpers`
-  - `createDeferred` return type literal が完全一致しており、async hook test が増えるたびに同じ helper が各 test file に増殖しやすい
-  - `tests/helpers/deferred.ts` のような test-only helper に寄せ、resolve/reject typing、cleanup、unhandled rejection prevention の helper test を追加する
-
-- [ ] P3 similarity 98.95%: dev scenario runner test の mock invocation order helper を共通化する
-  - 対象: `src/__tests__/dev/scenarios/runner.test.ts`
-  - mock invocation order parameter type がほぼ同一で、dev scenario runner の順序検証が増えると inline type literal が散りやすい
-  - invocation order assertion helper を作り、first/next invocation、parallel scenario、failed scenario の readable test API にする
 
 - [ ] P3 similarity scan baseline を TODO / report command として定期更新できるようにする
   - 対象: `package.json`, `mise.toml`, `TODO.md`
