@@ -530,6 +530,31 @@
   - unknown `""` / `"   "` / `null` と empty option の有無を `options.test.ts` で固定し、必要なら trim 後 fallback に寄せる
   - language option self-label や settings preference handling とは分け、generic option label helper の fallback contract だけを扱う
 
+- [ ] dev intent test state builder 候補を追加する
+  - `tests/helpers/dev-intent.ts` が `DevIntentState` type だけを公開しており、`app-root.test.tsx` / `sidebar.test.tsx` 側で mutable `{ intent: null }` を手書きしている
+  - `createDevIntentState()` / `resetDevIntentState()` のような test helper を用意し、null 初期値と test 内 mutation の契約を helper test で固定する
+  - dev scenario runtime や runtime option cache とは分け、test-only dev intent state fixture だけを扱う
+
+- [ ] app error test helper schema parity 候補を追加する
+  - `tests/helpers/app-error.ts` の `testUserVisibleAppError(message)` が blank message も作れるため、`AppErrorSchema` と同じ nonblank invariant を test helper 側で保証する
+  - blank / whitespace-only message を reject するか explicit fallback message にするかを `app-error` helper test で固定する
+  - AppError DTO invariant や updater copy とは分け、test-only error fixture factory の schema parity だけを扱う
+
+- [ ] tauri mock platform info clone isolation 候補を追加する
+  - `tests/helpers/tauri-mocks.ts` の `get_platform_info` default response が shared `mockPlatformInfo` object を返すため、呼び出し側 mutation が次回 mock response に漏れないか確認する
+  - `getPlatformInfo()` の戻り値を mutate しても次回呼び出しと exported `mockPlatformInfo` が汚染されないことを `tauri-mocks.test.ts` で固定する
+  - account/feed fixture clone や dev mock data parity とは分け、platform info default mock の clone isolation だけを扱う
+
+- [ ] tauri mock custom handler pass-through contract 候補を追加する
+  - `setupTauriMocks(handler)` は custom handler が `undefined` を返した時だけ default handler へ fallback するため、`null` / `false` / `0` が handled response として扱われる契約を明示する
+  - `tauri-mocks.test.ts` で null response command と false/zero response command の fallback しない挙動を固定し、handler author が迷わないようにする
+  - unhandled command policy や call recorder type boundary とは分け、custom handler return sentinel のみを扱う
+
+- [ ] renderStory decorator order contract 候補を追加する
+  - `tests/helpers/render-story.tsx` の decorators composition が meta decorators と story decorators の順序をどう扱うか、Storybook 相当の期待として明示する
+  - 複数 decorator が同じ context を受け取り、outer/inner order と args override が変わらないことを `fixtures.test.ts` または dedicated helper test で固定する
+  - render helper assertion cleanup や individual story fixture 変更とは分け、decorator composition order だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
