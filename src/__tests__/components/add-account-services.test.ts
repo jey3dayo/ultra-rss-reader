@@ -24,6 +24,6 @@ describe("add-account-services", () => {
       category.services.filter((service) => service.disabled).map((service) => service.kind),
     );
 
-    expect(disabledKinds).toEqual(["Fever", "Feedly"]);
+    expect(disabledKinds).toEqual(["Fever", "Inoreader", "Feedly", "NewsBlur", "Feedbin"]);
   });
 });
