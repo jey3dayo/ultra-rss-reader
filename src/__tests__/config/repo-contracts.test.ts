@@ -159,6 +159,29 @@ function extractMiseToolVersion(source: string, toolName: string) {
   return source.match(new RegExp(`^(?:"${escapedToolName}"|${escapedToolName})\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
 }
 
+function extractMiseEnvValue(source: string, envName: string) {
+  const escapedEnvName = envName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`^${escapedEnvName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
+}
+
+function extractMiseTaskSection(source: string, taskName: string) {
+  const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return (
+    source.match(
+      new RegExp(
+        `^\\[tasks(?:\\."${escapedTaskName}"|\\.${escapedTaskName})\\]\\n([\\s\\S]*?)(?=^\\[|(?![\\s\\S]))`,
+        "m",
+      ),
+    )?.[1] ?? ""
+  );
+}
+
+function extractMiseTaskCommand(source: string, taskName: string, commandName: "run" | "run_windows" = "run") {
+  return (
+    extractMiseTaskSection(source, taskName).match(new RegExp(`^${commandName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null
+  );
+}
+
 function extractPackageManagerVersion(packageManager: string, managerName: string) {
   return packageManager.match(new RegExp(`^${managerName}@(.+)$`))?.[1] ?? null;
 }
@@ -790,6 +813,35 @@ describe("repository static contracts", () => {
     expect(misePnpmVersion).toBe(packageManagerVersion);
   });
 
+  it("keeps markdown format and lint tasks on the same glob inventory", () => {
+    const miseSource = readRepoFile("mise.toml");
+    const markdownArguments = [
+      "$MD_GLOB",
+      "$MD_EXCLUDE_NODE_MODULES",
+      "$MD_EXCLUDE_WORKTREES",
+      "$MD_EXCLUDE_TARGET",
+    ].join(" ");
+    const markdownWindowsArguments = [
+      "%MD_GLOB%",
+      "%MD_EXCLUDE_NODE_MODULES%",
+      "%MD_EXCLUDE_WORKTREES%",
+      "%MD_EXCLUDE_TARGET%",
+    ].join(" ");
+
+    expect(extractMiseEnvValue(miseSource, "MD_GLOB")).toBe("**/*.md");
+    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_NODE_MODULES")).toBe("#**/node_modules/**");
+    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
+    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
+    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`pnpm markdownlint-cli2 ${markdownArguments} --fix`);
+    expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
+      `markdownlint-cli2.CMD ${markdownWindowsArguments} --fix`,
+    );
+    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(`pnpm markdownlint-cli2 ${markdownArguments}`);
+    expect(extractMiseTaskCommand(miseSource, "lint:md", "run_windows")).toBe(
+      `markdownlint-cli2.CMD ${markdownWindowsArguments}`,
+    );
+  });
+
   it("keeps app E2E Playwright and package dev scripts aligned with the Vite port", () => {
     const playwrightConfig = readRepoFile("playwright.config.ts");
     const viteConfig = readRepoFile("vite.config.ts");
@@ -1101,6 +1153,51 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("platform: windows-latest");
     expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json --ci");
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
+  });
+
+  it("keeps manual release dispatch pinned to explicit version tags", () => {
+    const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
+    const checkoutReleaseRefExpression =
+      "$" +
+      "{{ github.event_name == 'workflow_dispatch' &&\n            format('refs/tags/{0}', inputs.release_tag) || github.ref }}";
+    const workflowDispatchReleaseNameExpression =
+      "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
+
+    expect(releaseWorkflow).toContain("workflow_dispatch:");
+    expect(releaseWorkflow).toContain("release_tag:");
+    expect(releaseWorkflow).toContain('description: "Release tag to publish. Must start with v."');
+    expect(releaseWorkflow).toContain("required: true");
+    expect(releaseWorkflow).toContain("type: string");
+    expect(releaseWorkflow).toContain(
+      "(github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v'))",
+    );
+    expect(releaseWorkflow).toContain(`ref: >-\n            ${checkoutReleaseRefExpression}`);
+    expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
+    expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
+    expect(releaseWorkflow).not.toContain("github.event_name == 'workflow_dispatch' && github.ref");
+    expect(releaseWorkflow).not.toContain("github.event_name == 'workflow_dispatch' && github.ref_name");
+  });
+
+  it("keeps release install verification separate from local app install helpers", () => {
+    const releaseManualVerification = readRepoFile("docs/release-manual-verification.md");
+    const readme = readRepoFile("README.md");
+    const miseSource = readRepoFile("mise.toml");
+    const appInstallTask = extractMiseTaskSection(miseSource, "app:install");
+
+    expect(releaseManualVerification).toContain(
+      "Install the published release artifact downloaded from GitHub Releases",
+    );
+    expect(releaseManualVerification).toContain("Do not use `mise run app:install` for this step");
+    expect(releaseManualVerification).toContain("Release asset digest");
+    expect(releaseManualVerification).toContain("codesign --verify --deep --strict --verbose=2");
+    expect(releaseManualVerification).toContain("spctl --assess --type execute --verbose");
+    expect(releaseManualVerification).toContain("Published release artifact name and release URL");
+    expect(releaseManualVerification).toContain("Gatekeeper assessment result");
+    expect(readme).toContain("Published release install verification must use the artifact from GitHub Releases");
+    expect(readme).toContain("`mise run app:install` rebuilds from the current checkout");
+    expect(appInstallTask).toContain("Build, locally re-sign, and install the current checkout");
+    expect(appInstallTask).toContain("src-tauri/target/release/bundle/macos");
+    expect(appInstallTask).toContain("src-tauri\\\\target\\\\release\\\\bundle");
   });
 
   it("keeps top-level workflow permissions on a least-privilege inventory", () => {
