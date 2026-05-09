@@ -1,5 +1,6 @@
 import type { FeedDto } from "@/api/tauri-commands";
-import { sumUnreadCounts } from "@/lib/sidebar/sidebar";
+import { sortFeedsByPreference, sumUnreadCounts } from "@/lib/sidebar/sidebar";
+import type { SortSubscriptions } from "@/schemas/preferences";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type {
   SidebarFeedTreeFolderBuildParams,
@@ -13,6 +14,18 @@ import type {
 } from "./sidebar-feed-tree.types";
 
 const EMPTY_STARRED_COUNT_BY_FEED_ID = new Map<string, number>();
+
+export function sortSidebarSubscriptionFeeds(feeds: FeedDto[], sortSubscriptions: SortSubscriptions): FeedDto[] {
+  if (sortSubscriptions === "newest_first") {
+    return [...feeds];
+  }
+
+  if (sortSubscriptions === "oldest_first") {
+    return [...feeds].reverse();
+  }
+
+  return sortFeedsByPreference(feeds, "alphabetical");
+}
 
 function buildVisibleSidebarFeedTreeFolder(
   folder: SidebarFeedTreeFolderBuildParams["sortedFolderList"][number],

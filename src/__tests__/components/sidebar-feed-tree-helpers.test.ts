@@ -6,6 +6,7 @@ import {
   getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
+  sortSidebarSubscriptionFeeds,
 } from "@/components/reader/sidebar-feed-tree-helpers";
 
 const folders: FolderDto[] = [
@@ -55,6 +56,18 @@ const feeds: FeedDto[] = [
 const feedsByFolder = new Map<string, FeedDto[]>([["folder-1", feeds.filter((feed) => feed.folder_id === "folder-1")]]);
 
 describe("getVisibleSidebarFeedTreeData", () => {
+  it("preserves incoming sidebar feed order for newest-first subscription sorting", () => {
+    expect(sortSidebarSubscriptionFeeds([feeds[1], feeds[0], feeds[2]], "newest_first").map((feed) => feed.id)).toEqual(
+      ["feed-b", "feed-a", "feed-c"],
+    );
+  });
+
+  it("sorts sidebar feeds by title for alphabetical subscription sorting", () => {
+    expect(sortSidebarSubscriptionFeeds([feeds[2], feeds[1], feeds[0]], "alphabetical").map((feed) => feed.id)).toEqual(
+      ["feed-a", "feed-b", "feed-c"],
+    );
+  });
+
   it("sorts feeds before applying the unread filter", () => {
     expect(
       getVisibleSidebarFeeds(feeds, "unread", (candidateFeeds) => [...candidateFeeds].reverse()).map((feed) => feed.id),

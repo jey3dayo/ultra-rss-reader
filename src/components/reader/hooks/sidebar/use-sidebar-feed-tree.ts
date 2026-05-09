@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar/sidebar";
+import { groupFeedsByFolder } from "@/lib/sidebar/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "../../sidebar-feed-tree.types";
 import {
@@ -8,6 +8,7 @@ import {
   getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
+  sortSidebarSubscriptionFeeds,
 } from "../../sidebar-feed-tree-helpers";
 
 const EMPTY_STARRED_COUNT_BY_FEED_ID = new Map<string, number>();
@@ -18,7 +19,7 @@ export function useSidebarFeedTree({
   selection,
   viewMode,
   expandedFolderIds,
-  sortSubscriptions: _sortSubscriptions,
+  sortSubscriptions,
   grayscaleFavicons,
   draggedFeedId,
   starredCountByFeedId = EMPTY_STARRED_COUNT_BY_FEED_ID,
@@ -37,7 +38,10 @@ export function useSidebarFeedTree({
     return [...folderList].sort((a, b) => a.name.localeCompare(b.name));
   }, [folderList]);
 
-  const sortFeeds = useCallback((candidateFeeds: FeedDto[]): FeedDto[] => sortFeedsByPreference(candidateFeeds), []);
+  const sortFeeds = useCallback(
+    (candidateFeeds: FeedDto[]): FeedDto[] => sortSidebarSubscriptionFeeds(candidateFeeds, sortSubscriptions),
+    [sortSubscriptions],
+  );
 
   const unfolderedFeeds = useMemo(() => sortFeeds(rawUnfolderedFeeds), [rawUnfolderedFeeds, sortFeeds]);
 

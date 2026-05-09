@@ -84,7 +84,7 @@ const feeds: FeedDto[] = [
 ];
 
 describe("useSidebarFeedTree", () => {
-  it("keeps folders and feeds alphabetical regardless of the subscription sort preference", () => {
+  it("keeps folders alphabetical while preserving backend feed order for newest-first subscriptions", () => {
     const { result } = renderHook(() =>
       useSidebarFeedTree({
         feeds,
@@ -100,6 +100,25 @@ describe("useSidebarFeedTree", () => {
 
     expect(result.current.sortedFolderList.map((folder) => folder.id)).toEqual(["folder-a", "folder-z"]);
     expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a", "folder-z"]);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-2", "feed-a-1"]);
+    expect(result.current.feedTreeFolders[1]?.feeds.map((feed) => feed.id)).toEqual(["feed-z-2", "feed-z-1"]);
+    expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2", "feed-u-1"]);
+  });
+
+  it("sorts sidebar subscription feeds by title when alphabetical is selected", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds,
+        folders,
+        selection: { type: "all" },
+        viewMode: "all",
+        expandedFolderIds: new Set(["folder-a", "folder-z"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+      }),
+    );
+
     expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-1", "feed-a-2"]);
     expect(result.current.feedTreeFolders[1]?.feeds.map((feed) => feed.id)).toEqual(["feed-z-1", "feed-z-2"]);
     expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2", "feed-u-1"]);
