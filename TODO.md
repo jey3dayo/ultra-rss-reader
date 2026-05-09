@@ -305,11 +305,6 @@
   - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
   - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
 
-- [ ] P1 OPML import の duplicate URL merge / skip / overwrite policy を固定する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/opml.rs`, `src/dev/mocks.ts`
-  - OPML に同一 URL、同一 title 別 URL、同一 URL 別 folder が含まれる時に、既存 feed とどう merge するかが曖昧だと import 後の unread/folder 整合性が崩れやすい
-  - duplicate within file、existing feed collision、folder move を import summary にどう出すか決め、Rust command test と dev mock parity test を追加する
-
 - [ ] P1 app root missing / lazy chunk failure の user-visible fallback を固定する
   - 対象: `src/main.tsx`, `src/components/app-shell.tsx`
   - `#root` 不在や lazy chunk import failure が throw のままだと、packaging / asset path / webview cache 事故で白画面になり、復旧導線がない
@@ -465,11 +460,6 @@
   - `DEV_` / `VITE_` / `TAURI_` / `RUST_` prefix を広く転送し、suffix で secret を落としているため、suffix に当たらない token-like env が Windows 側へ漏れる可能性がある
   - explicit allowlist、masked diagnostics、secret-like value detection、`DEV_CREDENTIALS` 例外の扱いを script test にする
 
-- [ ] P2 OPML generate の XML writer `expect` を production boundary として棚卸しする
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
-  - in-memory XML writer の `expect` は通常落ちない前提だが、export command の user-facing boundary で panic になる箇所が増えると support 時の原因が残りにくい
-  - writer failure を Result に変える必要があるか評価し、panic acceptable なら理由を contract test/comment に残す
-
 - [ ] P3 UI store toast timer を store lifecycle / test isolation として整理する
   - 対象: `src/stores/ui-store.ts`, `src/__tests__/stores/ui-store.test.ts`
   - module-level `toastTimer` は store reset や test isolation と別 lifecycle なので、テスト間や HMR 中に古い timer が新しい toast を消す可能性がある
@@ -524,11 +514,6 @@
   - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/tag_commands.rs`
   - TS 側は `MAX_IPC_PAGINATION_LIMIT`、Rust 側は `MAX_TAG_ARTICLE_LIST_LIMIT` を別定義しており、片方だけ変わると tag view だけ挙動がズレる
   - tag article limit の TS/Rust fixture、boundary 200、over-limit error message を schema contract test にする
-
-- [ ] P2 OPML import の folder sort_order を max+1 にするか len 基準を明記する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - OPML import は existing folder count から sort_order を始めるため、既存 sort_order に gap/large value/duplicate がある DB では並び順が衝突しやすい
-  - existing sort_order gaps、duplicate sort_order、deleted folder gap、multi-folder import の expected order を Rust test で固定する
 
 - [ ] P2 GReader remote folder removal が local folder assignment を残す条件を固定する
   - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`
