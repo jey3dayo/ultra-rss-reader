@@ -48,6 +48,7 @@ export function useDeleteFeed() {
       invalidateArticleQueries(queryClient, {
         includeAccountUnreadCount: false,
         includeFeeds: false,
+        includeTagArticleCounts: true,
       });
       invalidateQueryKeysLogOnly(queryClient, [queryKeys.feedArticleSummaries.subscriptionsIndex(variables.accountId)]);
       showToast(t("unsubscribed_from", { title: getDeletedFeedTitle(variables) }));
