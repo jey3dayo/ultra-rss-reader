@@ -6,6 +6,8 @@ use tracing::{info, warn};
 
 use crate::domain::error::{DomainError, DomainResult};
 
+const SQLITE_AUXILIARY_SUFFIXES: [&str; 2] = ["wal", "shm"];
+
 /// Return the `backups/` subdirectory next to the DB file.
 fn backups_dir(db_path: &Path) -> DomainResult<PathBuf> {
     let parent = db_path
@@ -33,6 +35,37 @@ pub fn backup_path(db_path: &Path, schema_version: i32) -> PathBuf {
     dir.join(timestamped_backup_name(db_path, schema_version))
 }
 
+fn backup_path_with_collision_suffix(base_path: &Path, collision_index: usize) -> PathBuf {
+    if collision_index == 0 {
+        return base_path.to_path_buf();
+    }
+
+    let stem = base_path
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or("db");
+    let extension = base_path.extension().and_then(|name| name.to_str());
+    let file_name = match extension {
+        Some(extension) => format!("{stem}_{collision_index}.{extension}"),
+        None => format!("{stem}_{collision_index}"),
+    };
+
+    base_path.with_file_name(file_name)
+}
+
+fn available_backup_path(db_path: &Path, schema_version: i32) -> PathBuf {
+    let base_path = backup_path(db_path, schema_version);
+    (0..)
+        .map(|collision_index| backup_path_with_collision_suffix(&base_path, collision_index))
+        .find(|candidate| {
+            !candidate.exists()
+                && SQLITE_AUXILIARY_SUFFIXES
+                    .iter()
+                    .all(|suffix| !auxiliary_backup_path(candidate, suffix).exists())
+        })
+        .unwrap_or(base_path)
+}
+
 /// Generate WAL/SHM backup path by appending suffix inside `backups/`.
 fn auxiliary_backup_path(base_backup: &Path, suffix: &str) -> PathBuf {
     let mut name = base_backup.as_os_str().to_owned();
@@ -43,6 +76,12 @@ fn auxiliary_backup_path(base_backup: &Path, suffix: &str) -> PathBuf {
 fn temp_backup_path(final_path: &Path) -> PathBuf {
     let mut name = final_path.as_os_str().to_owned();
     name.push(".tmp");
+    PathBuf::from(name)
+}
+
+fn restore_old_path(final_path: &Path) -> PathBuf {
+    let mut name = final_path.as_os_str().to_owned();
+    name.push(".restore-old");
     PathBuf::from(name)
 }
 
@@ -79,7 +118,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
         ))
     })?;
 
-    let dest = backup_path(db_path, schema_version);
+    let dest = available_backup_path(db_path, schema_version);
 
     info!(
         "Creating DB backup: {} -> {}",
@@ -90,7 +129,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
     copy_backup_file_atomic(db_path, &dest)?;
 
     // Copy WAL and SHM if they exist (SQLite WAL mode)
-    for suffix in &["wal", "shm"] {
+    for suffix in SQLITE_AUXILIARY_SUFFIXES {
         let mut src_name = db_path.as_os_str().to_owned();
         src_name.push(format!("-{suffix}"));
         let src = PathBuf::from(src_name);
@@ -111,27 +150,94 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
         db_path.display()
     );
 
-    fs::copy(backup, db_path).map_err(|e| {
-        DomainError::Migration(format!(
-            "Failed to restore database from {}: {e}",
-            backup.display()
-        ))
-    })?;
+    let mut restore_set = vec![(backup.to_path_buf(), db_path.to_path_buf())];
+    let mut remove_if_missing = Vec::new();
 
-    // Restore or remove WAL/SHM
-    for suffix in &["wal", "shm"] {
+    for suffix in SQLITE_AUXILIARY_SUFFIXES {
         let mut aux_name = db_path.as_os_str().to_owned();
         aux_name.push(format!("-{suffix}"));
         let aux_current = PathBuf::from(aux_name);
         let aux_backup = auxiliary_backup_path(backup, suffix);
         if aux_backup.exists() {
-            fs::copy(&aux_backup, &aux_current).map_err(|e| {
-                DomainError::Migration(format!("Failed to restore {}: {e}", aux_current.display()))
-            })?;
+            restore_set.push((aux_backup, aux_current));
         } else {
-            // Remove stale WAL/SHM that doesn't match the backup
-            let _ = fs::remove_file(&aux_current);
+            remove_if_missing.push(aux_current);
         }
+    }
+
+    let mut staged_paths = Vec::new();
+    for (src, dest) in &restore_set {
+        let temp_dest = temp_backup_path(dest);
+        if temp_dest.exists() {
+            fs::remove_file(&temp_dest).map_err(|e| {
+                DomainError::Migration(format!(
+                    "Failed to remove stale temporary restore {}: {e}",
+                    temp_dest.display()
+                ))
+            })?;
+        }
+        fs::copy(src, &temp_dest).map_err(|e| {
+            for staged_path in &staged_paths {
+                let _ = fs::remove_file(staged_path);
+            }
+            DomainError::Migration(format!("Failed to stage restore {}: {e}", src.display()))
+        })?;
+        staged_paths.push(temp_dest);
+    }
+
+    let mut restore_targets: Vec<PathBuf> = restore_set
+        .iter()
+        .map(|(_, dest)| dest.to_path_buf())
+        .collect();
+    restore_targets.extend(remove_if_missing);
+
+    let mut old_paths = Vec::new();
+    for dest in restore_targets {
+        let old_path = restore_old_path(&dest);
+        if old_path.exists() {
+            fs::remove_file(&old_path).map_err(|e| {
+                DomainError::Migration(format!(
+                    "Failed to remove stale restore rollback file {}: {e}",
+                    old_path.display()
+                ))
+            })?;
+        }
+        if dest.exists() {
+            fs::rename(&dest, &old_path).map_err(|e| {
+                for staged_path in &staged_paths {
+                    let _ = fs::remove_file(staged_path);
+                }
+                for (rollback_dest, rollback_old_path) in old_paths.iter().rev() {
+                    let _ = fs::rename(rollback_old_path, rollback_dest);
+                }
+                DomainError::Migration(format!("Failed to prepare restore {}: {e}", dest.display()))
+            })?;
+            old_paths.push((dest, old_path));
+        }
+    }
+
+    let finalize_result = restore_set.iter().try_for_each(|(_, dest)| {
+        fs::rename(temp_backup_path(dest), dest).map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to finalize restore {}: {e}",
+                dest.display()
+            ))
+        })
+    });
+
+    if let Err(error) = finalize_result {
+        for (dest, old_path) in old_paths.iter().rev() {
+            let _ = fs::remove_file(dest);
+            let _ = fs::rename(old_path, dest);
+        }
+        for staged_path in &staged_paths {
+            let _ = fs::remove_file(staged_path);
+        }
+        return Err(error);
+    }
+
+    for (_, old_path) in old_paths {
+        let _ = fs::remove_file(old_path);
     }
 
     Ok(())
@@ -181,7 +287,7 @@ pub fn cleanup_old_backups(db_path: &Path, keep: usize) -> DomainResult<()> {
             warn!("Failed to remove old backup {}: {e}", bp.display());
         }
         // Also remove WAL/SHM backups
-        for aux_suffix in &["wal", "shm"] {
+        for aux_suffix in SQLITE_AUXILIARY_SUFFIXES {
             let _ = fs::remove_file(auxiliary_backup_path(&bp, aux_suffix));
         }
     }
@@ -277,6 +383,21 @@ mod tests {
     }
 
     #[test]
+    fn create_backup_uses_unique_name_when_timestamp_collides() {
+        let (_dir, db_path) = setup_temp_db();
+        let first = create_backup(&db_path, 1).unwrap();
+        fs::write(&db_path, b"second database content").unwrap();
+
+        let second = create_backup(&db_path, 1).unwrap();
+
+        assert_ne!(first, second);
+        assert!(first.exists());
+        assert!(second.exists());
+        assert_eq!(fs::read(first).unwrap(), b"test database content");
+        assert_eq!(fs::read(second).unwrap(), b"second database content");
+    }
+
+    #[test]
     fn create_backup_fails_if_db_missing() {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("nonexistent.db");
@@ -292,6 +413,33 @@ mod tests {
         fs::write(&db_path, b"corrupted").unwrap();
         restore_backup(&db_path, &bp).unwrap();
         assert_eq!(fs::read(&db_path).unwrap(), b"test database content");
+    }
+
+    #[test]
+    fn restore_backup_replaces_db_wal_and_shm_as_one_set() {
+        let (_dir, db_path) = setup_temp_db();
+        let wal_path = PathBuf::from(format!("{}-wal", db_path.display()));
+        let shm_path = PathBuf::from(format!("{}-shm", db_path.display()));
+        fs::write(&wal_path, b"backup wal").unwrap();
+        fs::write(&shm_path, b"backup shm").unwrap();
+
+        let bp = create_backup(&db_path, 1).unwrap();
+
+        fs::write(&db_path, b"current database content").unwrap();
+        fs::write(&wal_path, b"current wal").unwrap();
+        fs::write(&shm_path, b"current shm").unwrap();
+
+        restore_backup(&db_path, &bp).unwrap();
+
+        assert_eq!(fs::read(&db_path).unwrap(), b"test database content");
+        assert_eq!(fs::read(&wal_path).unwrap(), b"backup wal");
+        assert_eq!(fs::read(&shm_path).unwrap(), b"backup shm");
+        assert!(!temp_backup_path(&db_path).exists());
+        assert!(!restore_old_path(&db_path).exists());
+        assert!(!temp_backup_path(&wal_path).exists());
+        assert!(!restore_old_path(&wal_path).exists());
+        assert!(!temp_backup_path(&shm_path).exists());
+        assert!(!restore_old_path(&shm_path).exists());
     }
 
     #[test]
@@ -329,5 +477,37 @@ mod tests {
         assert!(!backup_dir.join("test_v2_20240101T000002.db").exists());
         assert!(backup_dir.join("test_v3_20240101T000003.db").exists());
         assert!(backup_dir.join("test_v4_20240101T000004.db").exists());
+    }
+
+    #[test]
+    fn cleanup_removes_wal_and_shm_with_their_main_backup_generation() {
+        let (_dir, db_path) = setup_temp_db();
+        let backup_dir = backups_dir(&db_path).unwrap();
+        fs::create_dir_all(&backup_dir).unwrap();
+        let backups = [
+            "test_v1_20240101T000001.db",
+            "test_v2_20240101T000002.db",
+            "test_v3_20240101T000003.db",
+        ];
+        for backup in backups {
+            let path = backup_dir.join(backup);
+            fs::write(&path, backup).unwrap();
+            fs::write(auxiliary_backup_path(&path, "wal"), format!("{backup}-wal")).unwrap();
+            fs::write(auxiliary_backup_path(&path, "shm"), format!("{backup}-shm")).unwrap();
+        }
+
+        cleanup_old_backups(&db_path, 1).unwrap();
+
+        for removed in &["test_v1_20240101T000001.db", "test_v2_20240101T000002.db"] {
+            let path = backup_dir.join(removed);
+            assert!(!path.exists());
+            assert!(!auxiliary_backup_path(&path, "wal").exists());
+            assert!(!auxiliary_backup_path(&path, "shm").exists());
+        }
+
+        let kept = backup_dir.join("test_v3_20240101T000003.db");
+        assert!(kept.exists());
+        assert!(auxiliary_backup_path(&kept, "wal").exists());
+        assert!(auxiliary_backup_path(&kept, "shm").exists());
     }
 }
