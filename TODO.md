@@ -555,6 +555,31 @@
   - 複数 decorator が同じ context を受け取り、outer/inner order と args override が変わらないことを `fixtures.test.ts` または dedicated helper test で固定する
   - render helper assertion cleanup や individual story fixture 変更とは分け、decorator composition order だけを扱う
 
+- [ ] window chrome platform fallback contract 候補を追加する
+  - `src/lib/window/window-chrome.ts` の `looksLikeMacPlatform` が `navigator.userAgentData.platform` を `navigator.platform` より優先する挙動を contract 化する
+  - `src/__tests__/lib/window-chrome.test.ts` で `platformKind: "unknown"` かつ Tauri runtime present の時、userAgentData が Mac / Windows / 空文字の各ケースで overlay titlebar 判定が揺れないことを固定する
+  - platform store DTO や native titlebar layout 変更とは分け、first render の macOS fallback 判定だけを扱う
+
+- [ ] window wrapper structured error message 候補を追加する
+  - `src/lib/window/windows.ts` の `toError` が `{ message: "denied" }` を `"[object Object]"` にしているため、structured error の message を保持するか確認する
+  - `src/__tests__/lib/windows.test.ts` で non-Error object / symbol / throwing message getter の正規化を固定し、Tauri window wrapper から読みにくい error が漏れないようにする
+  - always-on-top preference application や user-facing toast copy とは分け、window wrapper の error normalization だけを扱う
+
+- [ ] UI error blank message fallback 候補を追加する
+  - `src/lib/ui/errors.ts` の `getErrorMessage(new Error(""))` や whitespace-only `message` が空 toast にならない fallback policy を決める
+  - `src/__tests__/lib/ui-errors.test.ts` で empty / whitespace / throwing getter / non-string message を `Unknown error` 相当に正規化する contract を追加する
+  - AppError schema validation とは分け、unknown error を UI 表示へ投影する boundary だけを扱う
+
+- [ ] UI error toast action label guard 候補を追加する
+  - `projectUiErrorToast` が handler 付き whitespace label を actions に載せられるため、blank `retryLabel` / `dismissLabel` を無効化するか trim する方針を固定する
+  - `src/__tests__/lib/ui-errors.test.ts` で label と handler が両方有効な時だけ action が出ること、空白 label は inert 扱いになることを確認する
+  - toast action shape の型整理とは分け、runtime projection の blank label guard だけを扱う
+
+- [ ] settings scroll overflow dynamic content observer 候補を追加する
+  - `src/components/settings/hooks/use-scroll-overflow-state.ts` は初回の `firstElementChild` だけを `ResizeObserver` に登録するため、後から content node が差し替わった時の監視方針を固定する
+  - `src/__tests__/hooks/use-scroll-overflow-state.test.tsx` で content child 追加・置換後の resize / mutation でも `hasOverflow` が更新されることを確認する
+  - observer cleanup contract とは分け、settings content の動的差し替え時の overflow 判定だけを扱う
+
 - [ ] i18n resource file inventory contract 候補を追加する
   - `src/lib/i18n-resources.ts` の `i18nResourceNamespaces` / `i18nResources` と `src/locales/{en,ja}/*.json` のファイル実体が drift しない contract を追加する
   - `src/__tests__/lib/i18next-locale-contract.test.ts` で namespace 名、resource map key、locale JSON file basename が完全一致することを固定する
