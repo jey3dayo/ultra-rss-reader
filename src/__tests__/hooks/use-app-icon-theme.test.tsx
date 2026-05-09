@@ -426,6 +426,51 @@ describe("useAppIconTheme", () => {
     });
   });
 
+  it("continues with the latest queued icon request after an OS command failure", async () => {
+    const firstIconRequest = createDeferred<void>();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => createMatchMedia(false)),
+    );
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    });
+
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      firstIconRequest.reject(new Error("OS icon update failed"));
+    });
+    await Promise.allSettled([firstIconRequest.promise]);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledTimes(2);
+      expect(setIconMock).toHaveBeenLastCalledWith("/icons/app-icon-light.png");
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to apply dark app icon theme",
+      new Error("OS icon update failed"),
+    );
+
+    consoleError.mockRestore();
+  });
+
   it("does not replay a stale intermediate system theme request when the latest request matches the in-flight icon", async () => {
     const firstIconRequest = createDeferred<void>();
     const mql = createMatchMedia(true);

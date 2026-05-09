@@ -393,6 +393,95 @@ describe("useBadge", () => {
     });
   });
 
+  it("attempts a final clear when badge support is unavailable before the preference is disabled", async () => {
+    const unavailableWindowReady = createDeferred<BadgeWindowMock>();
+    getCurrentWindowMock.mockReturnValueOnce(unavailableWindowReady.promise).mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getCurrentWindowMock).toHaveBeenCalled();
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+    });
+
+    unavailableWindowReady.resolve({});
+    await act(async () => {
+      await unavailableWindowReady.promise;
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+    });
+  });
+
+  it("attempts a final clear after unavailable support, command rejection, rapid count changes, and preference off", async () => {
+    const unavailableWindowReady = createDeferred<BadgeWindowMock>();
+    const unavailableWindow: BadgeWindowMock = {};
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "count_account_unread_articles") {
+        return args.accountId === "acc-2" ? 9 : 1;
+      }
+
+      return undefined;
+    });
+    getCurrentWindowMock.mockReturnValueOnce(unavailableWindowReady.promise).mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
+    setBadgeCountMock.mockRejectedValueOnce(new Error("badge command rejected")).mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getCurrentWindowMock).toHaveBeenCalled();
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(1);
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(9);
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+    });
+    const clearAttemptsBeforeUnavailableSettles = setBadgeCountMock.mock.calls.filter(
+      ([count]) => count === undefined,
+    ).length;
+
+    unavailableWindowReady.resolve(unavailableWindow);
+    await act(async () => {
+      await unavailableWindowReady.promise;
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock.mock.calls.filter(([count]) => count === undefined)).toHaveLength(
+        clearAttemptsBeforeUnavailableSettles + 1,
+      );
+    });
+    expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+  });
+
   it("skips a deferred native badge write after the hook unmounts", async () => {
     const deferredWindow = {
       setBadgeCount: vi.fn(),

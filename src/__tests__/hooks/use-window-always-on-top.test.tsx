@@ -96,6 +96,22 @@ describe("useWindowAlwaysOnTop", () => {
     });
   });
 
+  it("keeps the optimistic preference when the native always-on-top command fails", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
+    setAlwaysOnTopMock.mockRejectedValue(new Error("permission denied"));
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to update window always-on-top state:", "permission denied");
+    });
+    expect(usePreferencesStore.getState().prefs.window_always_on_top).toBe("true");
+  });
+
   it("treats unsupported platform failures as a no-op", async () => {
     usePreferencesStore.setState({
       prefs: { window_always_on_top: "true" },
