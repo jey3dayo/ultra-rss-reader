@@ -215,11 +215,6 @@
   - 片方だけ失敗した場合の state / backend 整合性を hook test と store test で確認する
   - preference persist rollback 全体とは分け、reading display preset の paired update だけを扱う
 
-- [ ] data settings stale size response guard 候補を追加する
-  - `src/components/settings/hooks/use-data-settings-controller.ts` で初回 `getDatabaseInfo()` の遅延 response が `vacuumDatabase()` 後の size を上書きしないようにする
-  - `src/__tests__/components/use-data-settings-controller.test.ts` で deferred info request と vacuum success の順序逆転を固定する
-  - database command busy / restore contract とは分け、settings controller state race だけを扱う
-
 - [ ] article toolbar layout prop boundary 候補を追加する
   - `src/components/reader/article-toolbar-view.tsx` の `ArticleToolbarActionStrip` が `useUiStore(layoutMode)` を直接読む構造を props 境界へ寄せる
   - `src/__tests__/components/article-toolbar-view.test.tsx` で store の layoutMode と prop が食い違っても prop 側で mobile / desktop action が決まることを固定する
