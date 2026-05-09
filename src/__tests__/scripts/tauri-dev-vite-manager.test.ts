@@ -61,6 +61,13 @@ describe("resolveTauriDevPort", () => {
   it("accepts positive integer TAURI_DEV_PORT values", () => {
     expect(resolveTauriDevPort({ TAURI_DEV_PORT: "1432" })).toBe(1432);
   });
+
+  it("keeps the static Vite startup port in sync with TAURI_DEV_PORT", () => {
+    const port = resolveTauriDevPort({ TAURI_DEV_PORT: "1432" });
+    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts", port);
+
+    expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1432", "--strictPort"]);
+  });
 });
 
 describe("runTauriDevViteManager", () => {
