@@ -94,11 +94,6 @@
   - startup focus restore は `tauri::async_runtime::spawn` + sleep 後に main window/webview を探すため、window close や slow startup で stale focus warning が出やすい
   - app handle drop、main window missing、webview missing、permission denied、retry不要条件の Rust test / manual verification を追加する
 
-- [ ] P3 Rust test unwrap policy を production boundary と fixture boundary に分ける
-  - 対象: `src-tauri/src/**/*.rs`, `src-tauri/tests/**/*.rs`, `CLAUDE.md`
-  - Rust tests には `unwrap` / `expect` が多く、fixture setup と production behavior assertion が混ざると panic message が調査しづらい
-  - fixture-only unwrap 許容、production boundary は error assertion、panic message naming、helper `expect_ok` の採用可否を決める
-
 - [ ] P2 AppLayout の inert / aria-hidden fallback を WebView support matrix で検証する
   - 対象: `src/components/app-layout.tsx`, `src/__tests__/app.test.tsx`, `e2e/app.spec.ts`
   - hidden pane は `inert` と `aria-hidden` に依存するため、WebView 互換や test environment 差で focusable descendant が残ると keyboard navigation が背後 paneへ入る
