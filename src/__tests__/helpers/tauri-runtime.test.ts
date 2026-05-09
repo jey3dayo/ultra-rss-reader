@@ -1,4 +1,4 @@
-import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { describe, expect, it } from "vitest";
 
 describe("tauri runtime test helper", () => {
@@ -29,5 +29,28 @@ describe("tauri runtime test helper", () => {
     expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
     expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
     expect("__TAURI_INTERNALS__" in window).toBe(false);
+  });
+
+  it("clears browser mock flags when setting runtime present", () => {
+    window.__DEV_BROWSER_MOCKS__ = true;
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+
+    setTauriRuntimePresent();
+
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
+    expect(window.__TAURI_INTERNALS__).toEqual({});
+  });
+
+  it("clears browser mock flags when setting runtime missing", () => {
+    setTauriRuntimePresent();
+    window.__DEV_BROWSER_MOCKS__ = true;
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+
+    setTauriRuntimeMissing();
+
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
+    expect(Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__")).toBeUndefined();
   });
 });
