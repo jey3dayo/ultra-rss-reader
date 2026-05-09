@@ -94,16 +94,6 @@
   - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
   - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
 
-- [ ] preferences language navigator fallback 候補を追加する
-  - `src/stores/preferences-store.ts` の `applyLanguage()` が `navigator.language` を直接参照するため、特殊 WebView / test runtime で `navigator` または `language` が取れない時の fallback を固定する
-  - `src/__tests__/stores/preferences-store.test.ts` と `src/__tests__/lib/ui-language.test.ts` で `undefined` locale は `en` fallback、`ja-*` locale は `ja` の既存 contract を維持する
-  - language option label や i18n reset cleanup とは分け、preferences store から `resolveUiLanguage` へ渡す locale boundary だけを扱う
-
-- [ ] preferences DTO record boundary 候補を追加する
-  - `src/api/schemas/preferences.ts` の `PreferencesDtoSchema` が任意 key/value string をそのまま通すため、blank key / whitespace key / non-string value を frontend response DTO としてどう扱うか固定する
-  - `src/__tests__/api/schemas.test.ts` または dedicated preferences schema test で known key、shortcut key、unknown passthrough key、blank key の期待値を分けて確認する
-  - SQLite preference repository key invariant や settings preference key type boundary とは分け、frontend API response schema の record boundary だけを扱う
-
 - [ ] datetime formatter invalid locale guard 候補を追加する
   - `src/lib/datetime.ts` の `formatHourMinute` / `formatShortDate` / `formatShortDateTime` / `formatLongDate` / `formatMediumDate` が malformed locale を受けた時の挙動を固定する
   - `src/__tests__/lib/datetime.test.ts` で invalid locale tag は throw せず fallback locale へ落とすか、呼び出し側 validation 必須として現仕様を明示する
@@ -300,33 +290,14 @@
   - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` の feed / dev scenario 失敗 toast を i18n key 化する
   - command palette の resource selection 成功経路とは混ぜず、失敗 feedback の契約に限定する
 
-- [ ] locale source-of-truth / leaf sanity 候補を追加する
-  - `src/lib/i18n.ts` の `supportedLanguages` と `src/lib/ui/ui-language.ts` の `UiLanguagePreference` が drift しない contract を追加する
-  - `src/__tests__/lib/locale-placeholders.test.ts` に、空文字・空配列・未展開 key 文字列の混入を拾う locale leaf sanity test を追加する
-  - settings copy polish は同じ検証基盤が入った後の別バッチにする
-
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
   - updater hook state effects とは分け、lifecycle boilerplate の共通化可否判断だけを扱う
 
-- [ ] API numeric schema contract 候補を追加する
-  - `src/api/schemas/account.ts` の `sync_interval_secs` / `keep_read_items_days` を、command args 側と同じく整数・範囲 contract に寄せる
-  - `src/api/schemas/folder.ts` の `sort_order` を folder DTO の順序値として整数 contract にする
-  - Rust DTO 変更ではなく frontend runtime schema の境界値 test に限定する
-
-- [ ] API bulk / count response schema 候補を追加する
-  - `src/api/schemas/common.ts` の `IntResponseSchema` から、count 系と `clearArticleViewHistory` 向けの nonnegative int response を分けられるか確認する
-  - `src/api/schemas/commands.ts` の `markArticlesReadArgs.articleIds` が空配列を許すため、frontend API 境界で no-op bulk mutation を弾く contract を追加する
-  - backend command validation や UI confirm flow とは別に、schema parser の契約だけを扱う
-
 - [ ] account sync status query key drift 候補を追加する
   - `src/hooks/use-account-sync-statuses.ts` の query key を `accountSyncStatusQueryKey` と共有し、status invalidation と drift しないようにする
   - account detail sync section の row 表示や sidebar feedback copy とは混ぜない
-
-- [ ] article search whitespace query 候補を追加する
-  - `src/hooks/use-articles.ts` の `useSearchArticles` が whitespace-only query でも有効になるため、trim 後 empty を disable する query contract を追加する
-  - search input UI の copy や debouncing 変更は別バッチにする
 
 - [ ] updater progress runtime guard 候補を追加する
   - `src/hooks/use-updater.ts` の `update-download-progress` payload を型注釈だけで信頼せず、schema / guard で malformed progress を無視する
@@ -345,11 +316,6 @@
   - `tests/helpers/render-story.tsx` で `parameters` / `globals` を Storybook decorator context に渡す contract を追加する
   - `tests/helpers/fixtures.test.ts` で `sampleMuteKeywords` も `MuteKeywordDtoSchema` parse 対象にし、他 DTO fixture と同じ schema parity に揃える
   - fixture 表示 copy や mock response の追加は別バッチにする
-
-- [ ] repo docs / labeler contract 候補を追加する
-  - `src/__tests__/config/repo-contracts.test.ts` に、`CLAUDE.md` と `.claude/rules/README.md` 配下の相対リンクも markdown link contract 対象として追加する
-  - `.github/labeler.yml` で `scripts/**` と `mise.toml` 変更に `ci` か maintenance 系ラベルが付く contract を追加する
-  - workflow 実行条件や issue template 文面の変更とは別に、repo metadata の drift 防止だけを扱う
 
 - [ ] sync scheduler abnormal state contract 候補を追加する
   - `src-tauri/src/service/sync_scheduler.rs` の `error_count` が負値・異常値になった時の backoff clamp を固定する
@@ -381,16 +347,6 @@
 - [ ] tag section empty/open state 候補を追加する
   - `src/components/reader/tag-list-view.tsx` で tag 0 件でも section open state と empty state の意味が混ざらないようにする
   - tag settings / article tag picker mutation とは別に、reader sidebar tag section の UI contract だけを扱う
-
-- [ ] package manager / E2E port drift 候補を追加する
-  - `package.json` の `packageManager` と `mise.toml` の `npm:pnpm` version が drift しない静的 contract を追加する
-  - `playwright.config.ts` の `webServer.command` / `baseURL` / Vite port を package script と合わせて固定する
-  - Storybook E2E port contract とは別に、app E2E の起動 contract として扱う
-
-- [ ] CI quality gate / labeler test coverage 候補を追加する
-  - `.github/workflows/ci.yml` の `quality-gate.needs` が全チェック job を含むことを repo contract test で固定する
-  - `.github/labeler.yml` で `tests/**` / `e2e/**` / `playwright*.config.ts` に test 系ラベルが付く contract を追加する
-  - workflow job 追加や label taxonomy 変更とは分け、drift 防止に限定する
 
 - [ ] seed dev DB cleanup contract 候補を追加する
   - `scripts/seed-dev-db-from-prod.ts` で staging copy 後の途中失敗時に `.staging` が残らない cleanup contract を追加する

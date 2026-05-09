@@ -220,18 +220,25 @@ function extractCargoPackageVersion(source: string) {
 }
 
 function markdownFilesUnderDocs() {
-  return [
+  const topLevelDocs = [
     "AGENTS.md",
     "README.md",
     "CLAUDE.md",
     ".claude/rules/README.md",
     "docs/README.md",
-    ...readdirSync(join(repoRoot, "docs")).flatMap((entry) => {
-      const path = join("docs", entry);
-      const fullPath = join(repoRoot, path);
-      return statSync(fullPath).isFile() && path.endsWith(".md") ? [path] : [];
-    }),
   ];
+  const docsFiles = readdirSync(join(repoRoot, "docs")).flatMap((entry) => {
+    const path = join("docs", entry);
+    const fullPath = join(repoRoot, path);
+    return statSync(fullPath).isFile() && path.endsWith(".md") ? [path] : [];
+  });
+  const ruleFiles = readdirSync(join(repoRoot, ".claude/rules")).flatMap((entry) => {
+    const path = join(".claude/rules", entry);
+    const fullPath = join(repoRoot, path);
+    return statSync(fullPath).isFile() && path.endsWith(".md") ? [path] : [];
+  });
+
+  return [...new Set([...topLevelDocs, ...docsFiles, ...ruleFiles])].sort();
 }
 
 function storyFilesUnderSrc() {
@@ -968,6 +975,13 @@ describe("repository static contracts", () => {
   });
 
   it("keeps repository-relative documentation links pointing at existing files", () => {
+    const ruleMarkdownFiles = readdirSync(join(repoRoot, ".claude/rules"))
+      .filter((entry) => entry.endsWith(".md"))
+      .map((entry) => normalize(join(".claude/rules", entry)))
+      .sort();
+
+    expect(markdownFilesUnderDocs()).toEqual(expect.arrayContaining(ruleMarkdownFiles));
+
     const brokenLinks = markdownFilesUnderDocs().flatMap((filePath) => {
       const source = readRepoFile(filePath);
       return extractMarkdownLinks(source)
