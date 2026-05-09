@@ -116,6 +116,15 @@ pub struct BrowserWebviewFallbackPayload {
     pub error_message: Option<String>,
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+struct BrowserPreviewBridgeMessage {
+    action: String,
+    url: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -565,6 +574,31 @@ fn browser_preview_script_bindings(
         .collect()
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn is_supported_browser_preview_script_action(action: &str) -> bool {
+    BROWSER_PREVIEW_SHORTCUT_SPECS
+        .iter()
+        .any(|shortcut| shortcut.supports_script_bridge && shortcut.app_action == action)
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn should_accept_browser_preview_bridge_message(
+    message: &BrowserPreviewBridgeMessage,
+    snapshot: Option<&BrowserWebviewState>,
+) -> bool {
+    is_supported_browser_preview_script_action(&message.action)
+        && snapshot.is_some_and(|state| state.url == message.url)
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn browser_preview_bridge_message_action(
+    raw_message: &str,
+    snapshot: Option<&BrowserWebviewState>,
+) -> Option<String> {
+    let message: BrowserPreviewBridgeMessage = serde_json::from_str(raw_message).ok()?;
+    should_accept_browser_preview_bridge_message(&message, snapshot).then_some(message.action)
+}
+
 #[cfg(any(test, not(windows)))]
 pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
     let close_binding = BROWSER_PREVIEW_SHORTCUT_SPECS
@@ -720,7 +754,7 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     ))
 }
 
-#[cfg(windows)]
+#[cfg(any(test, windows))]
 fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
     let bindings = browser_preview_script_bindings(prefs);
     if bindings.is_empty() {
@@ -777,6 +811,9 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
     scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
   }};
+  const postBridgeAction = (action) => {{
+    window.chrome?.webview?.postMessage(JSON.stringify({{ action, url: window.location.href }}));
+  }};
   window.addEventListener('keydown', (event) => {{
     if (event.defaultPrevented || isEditableTarget(event.target)) {{
       return;
@@ -798,7 +835,7 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     }}
     event.preventDefault();
     event.stopPropagation();
-    window.chrome?.webview?.postMessage(action);
+    postBridgeAction(action);
   }}, true);
   window.addEventListener('mousedown', (event) => {{
     if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
@@ -816,7 +853,7 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     const action = event.button === 3 ? 'mouse-back' : 'mouse-forward';
     event.preventDefault();
     event.stopPropagation();
-    window.chrome?.webview?.postMessage(action);
+    postBridgeAction(action);
   }}, true);
 }})();
 "#
@@ -954,14 +991,26 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 
                         let mut message = PWSTR::null();
                         args.TryGetWebMessageAsString(&mut message)?;
-                        let action = take_windows_pwstr(message);
+                        let raw_message = take_windows_pwstr(message);
+                        let snapshot = app_handle
+                            .try_state::<crate::commands::AppState>()
+                            .and_then(|app_state| {
+                                app_state
+                                    .browser_webview
+                                    .lock()
+                                    .ok()
+                                    .and_then(|tracker| tracker.snapshot())
+                            });
+                        let action =
+                            browser_preview_bridge_message_action(&raw_message, snapshot.as_ref());
                         emit_browser_webview_debug_input(
                             &app_handle,
-                            format!("native-script action={action}"),
+                            format!(
+                                "native-script raw_message={raw_message} action={}",
+                                action.as_deref().unwrap_or("ignored")
+                            ),
                         );
-                        if BROWSER_PREVIEW_SHORTCUT_SPECS.iter().any(|shortcut| {
-                            shortcut.supports_script_bridge && shortcut.app_action == action
-                        }) {
+                        if let Some(action) = action {
                             let _ = app_handle.emit(MENU_ACTION_EVENT, action);
                         }
                         Ok(())
@@ -1282,8 +1331,8 @@ mod tests {
     use super::{
         browser_preview_action_for_shortcut,
         browser_preview_action_for_virtual_key_from_prefs_result,
-        browser_preview_close_bridge_source, browser_preview_focus_override_source,
-        browser_preview_initialization_script,
+        browser_preview_bridge_message_action, browser_preview_close_bridge_source,
+        browser_preview_focus_override_source, browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
         browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
@@ -1879,6 +1928,62 @@ mod tests {
     }
 
     #[test]
+    fn browser_preview_script_bridge_message_ignores_stale_url_payloads() {
+        let current_state = BrowserWebviewState {
+            url: "https://example.com/current".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+            load_generation: 2,
+        };
+        let current_payload = r#"{"action":"toggle-read","url":"https://example.com/current"}"#;
+        let stale_payload = r#"{"action":"toggle-read","url":"https://example.com/stale"}"#;
+
+        assert_eq!(
+            browser_preview_bridge_message_action(current_payload, Some(&current_state)),
+            Some("toggle-read".to_string())
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(stale_payload, Some(&current_state)),
+            None
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(current_payload, None),
+            None
+        );
+    }
+
+    #[test]
+    fn browser_preview_script_bridge_message_rejects_unknown_or_malformed_payloads() {
+        let current_state = BrowserWebviewState {
+            url: "https://example.com/current".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+            load_generation: 2,
+        };
+
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"close-browser","url":"https://example.com/current"}"#,
+                Some(&current_state)
+            ),
+            None
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"toggle-read","url":"https://example.com/current","extra":true}"#,
+                Some(&current_state)
+            ),
+            None
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action("toggle-read", Some(&current_state)),
+            None
+        );
+    }
+
+    #[test]
     fn browser_preview_close_bridge_uses_default_escape_binding() {
         let prefs = HashMap::new();
 
@@ -1939,6 +2044,43 @@ mod tests {
         assert!(script.contains("typeof listener === 'object'"));
         assert!(script.contains("visibilitychange"));
         assert!(script.contains("blur"));
+    }
+
+    #[test]
+    fn browser_preview_focus_override_keeps_event_target_patch_idempotent_and_symmetric() {
+        let prefs = HashMap::from([("web_preview_keep_focus".to_string(), "true".to_string())]);
+
+        let script = browser_preview_focus_override_source(&prefs)
+            .expect("focus override script should exist when preference is enabled");
+
+        assert!(script.contains("if (window.__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__) return;"));
+        assert!(script
+            .contains("const originalAddEventListener = EventTarget.prototype.addEventListener;"));
+        assert!(script.contains(
+            "const originalRemoveEventListener = EventTarget.prototype.removeEventListener;"
+        ));
+        assert!(
+            script.contains("return originalAddEventListener.call(this, type, listener, options);")
+        );
+        assert!(script
+            .contains("return originalRemoveEventListener.call(this, type, listener, options);"));
+        assert!(script.contains("listeners.add(listener);"));
+        assert!(script.contains("listeners?.has(listener)"));
+    }
+
+    #[test]
+    fn browser_preview_script_bridge_source_snapshot_keeps_minimal_command_contract() {
+        let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
+
+        let script = super::browser_preview_script_bridge_source(&prefs)
+            .expect("script bridge should exist when supported shortcuts exist");
+
+        assert!(script.contains("__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__"));
+        assert!(script.contains("\"x\":\"toggle-read\""));
+        assert!(script.contains("postBridgeAction(action);"));
+        assert!(script.contains("JSON.stringify({ action, url: window.location.href })"));
+        assert!(script.contains("window.addEventListener('keydown'"));
+        assert!(script.contains("window.addEventListener('mouseup'"));
     }
 
     #[test]
