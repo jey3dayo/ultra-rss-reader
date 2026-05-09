@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { useDebugSettingsViewProps as buildDebugSettingsViewProps } from "@/components/settings/hooks/use-debug-settings-view-props";
 import i18n from "@/lib/i18n";
 
-const t = i18n.getFixedT("en", "settings");
+const enT = i18n.getFixedT("en", "settings");
+const jaT = i18n.getFixedT("ja", "settings");
 
 function createProps(overrides: Partial<Parameters<typeof buildDebugSettingsViewProps>[0]> = {}) {
   return buildDebugSettingsViewProps({
-    t,
+    t: enT,
     prefs: {},
     setPref: vi.fn(),
     devBuild: false,
@@ -101,19 +102,53 @@ describe("useDebugSettingsViewProps", () => {
         id: "debug-web-preview-geometry-check",
         type: "action",
         actionLabel: "Open",
+        actionAriaLabel: "Open geometry check",
         label: "Web preview geometry check",
       }),
       expect.objectContaining({
         id: "debug-web-preview-toast-check",
         type: "action",
         actionLabel: "Open",
+        actionAriaLabel: "Open toast check",
         label: "Web preview toast check",
       }),
       expect.objectContaining({
         id: "debug-reading-display-mode",
         type: "action",
         actionLabel: "Open",
+        actionAriaLabel: "Open reading display mode check",
         label: "Reading display mode settings",
+      }),
+    ]);
+  });
+
+  it("maps ja debug scenario action accessible names from locale keys", () => {
+    const props = createProps({ t: jaT, devBuild: true });
+
+    const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
+    const scenarioControls = scenariosSection?.controls ?? [];
+
+    expect(scenarioControls).toEqual([
+      expect.objectContaining({
+        id: "debug-web-preview-geometry-check",
+        type: "action",
+        actionLabel: "開く",
+        actionAriaLabel: "配置チェックを開く",
+        label: "Webプレビューの配置チェック",
+      }),
+      expect.objectContaining({
+        id: "debug-web-preview-toast-check",
+        type: "action",
+        actionLabel: "開く",
+        actionAriaLabel: "通知表示チェックを開く",
+        label: "Webプレビューの通知表示チェック",
+      }),
+      expect.objectContaining({
+        id: "debug-reading-display-mode",
+        type: "action",
+        actionLabel: "開く",
+        actionAriaLabel: "閲覧表示モードのチェックを開く",
+        label: "閲覧設定の表示モード",
       }),
     ]);
   });

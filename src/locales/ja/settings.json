@@ -346,9 +346,12 @@
     "scenarios": "画面再現",
     "scenarios_note": "env を触らずに、よく使う開発用の画面状態をここから開けます。",
     "web_preview_geometry_check": "Webプレビューの配置チェック",
+    "open_web_preview_geometry_check_aria_label": "配置チェックを開く",
     "web_preview_toast_check": "Webプレビューの通知表示チェック",
+    "open_web_preview_toast_check_aria_label": "通知表示チェックを開く",
     "web_preview_toast_check_toast": "リンクをコピーしました",
     "reading_display_mode": "閲覧設定の表示モード",
+    "open_reading_display_mode_aria_label": "閲覧表示モードのチェックを開く",
     "open_short": "開く",
     "open_now": "今すぐ開く",
     "scenario_failed": "デバッグ画面を開けませんでした: {{message}}"

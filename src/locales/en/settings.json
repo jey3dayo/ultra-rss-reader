@@ -346,9 +346,12 @@
     "scenarios": "Screen States",
     "scenarios_note": "Open common debug states from here without changing env vars.",
     "web_preview_geometry_check": "Web preview geometry check",
+    "open_web_preview_geometry_check_aria_label": "Open geometry check",
     "web_preview_toast_check": "Web preview toast check",
+    "open_web_preview_toast_check_aria_label": "Open toast check",
     "web_preview_toast_check_toast": "Link copied",
     "reading_display_mode": "Reading display mode settings",
+    "open_reading_display_mode_aria_label": "Open reading display mode check",
     "open_short": "Open",
     "open_now": "Open now",
     "scenario_failed": "Couldn't open the debug screen: {{message}}"
