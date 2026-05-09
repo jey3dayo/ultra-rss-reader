@@ -225,11 +225,6 @@
   - update endpoint が `latest.json` 固定のため、prerelease、downgrade、same version、platform mismatch の扱いが曖昧だと release 運用で誤配信に気づきにくい
   - fake update manifest で newer/same/older/prerelease/platform mismatch を固定し、UI 表示と install 可否を schema test にする
 
-- [ ] P1 app badge count が unavailable platform で stale badge を残さない contract を作る
-  - 対象: `src/hooks/use-badge.ts`, `src-tauri/capabilities/default.json`
-  - badge command が unsupported/unavailable の時に best-effort で終わるため、preference off、account switch、sync count 0 の時に stale badge が残らない保証が薄い
-  - unsupported platform、command reject、rapid count change、preference off の sequence test を追加し、最後に clear badge が試行されることを固定する
-
 - [ ] P1 browser webview event payload の schema validation を Rust/TS で揃える
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`, `src-tauri/src/browser_webview.rs`
   - native event payload は frontend schema と Rust emit shape がズレると malformed event warning で止まり、browser overlay の state だけ stale になり得る
