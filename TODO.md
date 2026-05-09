@@ -405,21 +405,6 @@
   - React Doctor の `js-combine-iterations` が article view/list test に出ており、article fixture から group/item を抽出する処理が散っている可能性がある
   - selected article、empty group、read/unread/starred、tag filtered list の helper を共有し、test readability と assertion diagnostics を維持する
 
-- [ ] P2 add-account-services test の option extraction を service helper と揃える
-  - 対象: `src/__tests__/components/add-account-services.test.ts`, `src/components/settings/add-account/services.ts`, `src/components/settings/add-account/services.types.ts`
-  - React Doctor の `js-combine-iterations` が add-account service test に出ており、service option の filter/map が実装と test で重複している可能性がある
-  - supported service、disabled service、provider label、config schema availability の test helper を service source of truth から組み立てる
-
-- [ ] P2 constants の unused export を design token / runtime token / dead token に分ける
-  - 対象: `src/constants/storage.ts`, `src/constants/browser.ts`, `src/constants/events.ts`, `src/constants/motion.ts`, `src/constants/ui-layout.ts`
-  - React Doctor / Knip が constants に unused type/export を複数検出しており、将来用 token と削除忘れ token が混ざると import 移動時に判断が遅くなる
-  - runtime public token、test/storybook token、private literal、dead token に分類し、残すものは contract test か Storybook usage へ明示する
-
-- [ ] P2 keyboard shortcut contract の sort / index / unused export を一括整理する
-  - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/__tests__/lib/keyboard-shortcuts.test.ts`, `src/hooks/use-keyboard.ts`
-  - React Doctor / Knip が keyboard shortcut module に unused export と `js-index-maps` を検出しており、shortcut 数が増えると lookup と public API が膨らみやすい
-  - shortcut id Map、scope Set、display order sort helper、native menu parity、duplicate shortcut diagnostics を整理する
-
 - [ ] P2 reader-focus / article-view helper の unused export を focus contract から棚卸しする
   - 対象: `src/lib/reader-focus.ts`, `src/lib/articles/article-view.ts`, `src/components/reader/article-content-view.tsx`, `src/components/reader/article-list-view.tsx`
   - React Doctor / Knip が reader focus と article view helper の unused export を検出しており、focus restore と article display helper の境界が曖昧になっている
@@ -464,11 +449,6 @@
   - 対象: `src/__tests__/components/use-article-list-sources.test.tsx`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
   - React Doctor の `js-combine-iterations` が article list source test に出ており、feed/folder/account source の抽出 assertion が重複走査になっている可能性がある
   - account filtered sources、folder grouping、unread count、empty source、sort order の fixture helper を作り、assertion message を読みやすく保つ
-
-- [ ] P2 tauri-mocks helper の command filtering を command index へ寄せる
-  - 対象: `tests/helpers/tauri-mocks.ts`, `tests/helpers/tauri-command-contract.ts`, `src/__tests__/api/tauri-commands.test.ts`
-  - React Doctor の `js-combine-iterations` が mock command helper に複数出ており、invoke mock の setup / assertion が command 数に比例して重くなる
-  - command name index、call history index、per-command reset、unknown command diagnostics、async reject path を崩さず整理する
 
 - [ ] P2 sidebar test の async loop を user-event ordering と fixture setup に分離する
   - 対象: `src/__tests__/components/sidebar.test.tsx`, `src/components/reader/sidebar-view.tsx`
@@ -620,11 +600,6 @@
   - React Doctor の `design-no-redundant-size-axes` は小さいが、production component と Storybook story が混在しているため、UI cleanup と story cleanup を分けた方が差分が読みやすい
   - production は visual regression 優先、Storybook は specimen consistency 優先で `w-N h-N` から `size-N` へ寄せる
 
-- [ ] P2 keyboard async test の sequential await を shortcut ordering contract と fixture setup に分ける
-  - 対象: `src/__tests__/hooks/use-keyboard.test.tsx`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/hooks/use-keyboard.ts`
-  - React Doctor の `server-sequential-independent-await` が keyboard test に出ており、shortcut event ordering と独立 setup が同じ await 列に見える
-  - user event sequence は逐次維持し、独立 mock setup / preference setup は並列化できるか確認する
-
 - [ ] P2 browser-webview-events diff warning を current-diff blocker として再掲しない運用にする
   - 対象: `src/__tests__/hooks/use-browser-webview-events.test.tsx`, `TODO.md`, `mise.toml`
   - React Doctor diff scan は毎回 `use-browser-webview-events.test.tsx:315` の 1 件だけを返しており、TODO 追加のたびに同じ P1 が再発見されている
@@ -669,11 +644,6 @@
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.tsx`, `src/constants/storage.ts`
   - expanded folders は localStorage JSON に account -> folder ids を保存するため、account削除、folder削除、巨大JSON、invalid shape、storage write failure で stale expansion が残りやすい
   - missing account pruning、missing folder pruning、oversized payload cleanup、write failure UI維持、migration version の test を追加する
-
-- [ ] P2 account detail OPML export URL lifecycle を timer cleanup / revoke ordering で固定する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/components/settings/account-detail/*`
-  - OPML export は object URL を作って timer で revoke するため、account switch、modal close、二重 export、download cancel で stale URL や premature revoke が起きやすい
-  - previous URL revoke、unmount revoke、rapid export、filename sanitize、download click failure の hook test を追加する
 
 - [ ] P3 requestAnimationFrame / setTimeout flush helper を UI tests で共通化する
   - 対象: `src/__tests__/components/article-view.test.tsx`, `src/__tests__/components/sidebar.test.tsx`, `src/__tests__/hooks/use-updater.test.ts`, `src/__tests__/hooks/use-app-icon-theme.test.tsx`
@@ -779,11 +749,6 @@
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug/debug-input-trace.ts`, `src/components/reader/focus-debug-hud-view.tsx`
   - HUD は focus/pointer/key trace と browser geometry をまとめてコピーできるため、長時間 session の巨大 text や sensitive selector/URL 断片を support 共有に載せやすい
   - max trace rows、copy redaction、password/server URL target、geometry only copy、clipboard failure の component test を追加する
-
-- [ ] P3 contenteditable / ARIA textbox 判定を global shortcut 系 helper で共有する
-  - 対象: `src/hooks/use-mouse-navigation.ts`, `src/hooks/use-keyboard.ts`, `src/components/reader/hooks/article/use-article-action-shortcuts.ts`
-  - editable target 判定が hook ごとに増えると、`contenteditable=false`、nested role textbox、searchbox、CodeMirror 的 DOM の扱いが drift しやすい
-  - shared helper 化し、input/textarea/select/contenteditable/plaintext-only/role textbox/searchbox/disabled input の unit test を追加する
 
 - [ ] P3 overlay / drag / inert の CSS token を scattered z-index から semantic layer へ寄せる
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
