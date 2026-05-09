@@ -299,7 +299,7 @@ describe("useAccountDetailCredentialsEditor", () => {
 
   it("ignores a stale connection failure after switching accounts", async () => {
     const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
-    const secondAccount = { ...sampleAccounts[2], id: "acc-2", name: "Local Account" };
+    const secondAccount = { ...sampleAccounts[0], id: "acc-2", name: "Local Account" };
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     const staleConnection = createDeferred<ReturnType<typeof testAccountConnectionMock>>();
@@ -332,6 +332,96 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(useUiStore.getState().toastMessage).toBeNull();
     expect(invalidateSpy).not.toHaveBeenCalled();
     expect(result.current.testingConnection).toBe(false);
+  });
+
+  it("does not apply a stale credential save when the draft changes before the save returns", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], [account]);
+    const staleSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
+    updateAccountCredentialsMock.mockReturnValue(staleSave.promise);
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.setCredUsername("stale-user");
+    });
+    const saveCredentials = result.current.commitCredentials();
+
+    act(() => {
+      result.current.setCredUsername("current-draft");
+    });
+
+    await act(async () => {
+      staleSave.resolve(Result.succeed({ ...account, username: "stale-user" }));
+      await saveCredentials;
+    });
+
+    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(result.current.credUsername).toBe("current-draft");
+  });
+
+  it("does not test a stale account after credential persistence finishes on a previous account", async () => {
+    const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
+    const secondAccount = { ...sampleAccounts[1], id: "acc-2", name: "FreshRSS Personal" };
+    const staleSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
+    updateAccountCredentialsMock.mockReturnValue(staleSave.promise);
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailCredentialsEditor({
+          account,
+          queryClient: createTestQueryClient(),
+          t,
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+    const testConnection = result.current.handleTestConnection();
+
+    rerender({ account: secondAccount });
+
+    await act(async () => {
+      staleSave.resolve(Result.succeed({ ...firstAccount, username: "alice" }));
+      await testConnection;
+    });
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
+      firstAccount.id,
+      firstAccount.server_url,
+      "alice",
+      undefined,
+    );
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("does not show the masked password for a FreshRSS account with failed credential verification", () => {
+    const account = {
+      ...sampleAccounts[1],
+      connection_verification_status: "error" as const,
+      connection_verification_error: "Keyring password not found",
+    };
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    expect(result.current.passwordDisplayValue).toBe("");
   });
 });
 
