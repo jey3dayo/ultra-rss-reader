@@ -3,6 +3,7 @@ use chrono::DateTime;
 use reqwest::header::HeaderValue;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
+use std::fmt;
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
@@ -138,6 +139,21 @@ pub struct GReaderProvider {
     auth_base: String,
     http_client: reqwest::Client,
     auth_token: Option<String>,
+}
+
+impl fmt::Debug for GReaderProvider {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GReaderProvider")
+            .field("kind", &self.kind)
+            .field("api_base", &self.api_base)
+            .field("auth_base", &self.auth_base)
+            .field(
+                "auth_token",
+                &self.auth_token.as_ref().map(|_| "[redacted]"),
+            )
+            .finish_non_exhaustive()
+    }
 }
 
 fn freshrss_api_base(server_url: &str) -> String {
@@ -819,6 +835,7 @@ fn normalize_item_id(id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::dto::AppError;
 
     #[test]
     fn for_freshrss_appends_greader_endpoint_to_base_url() {
@@ -985,6 +1002,71 @@ mod tests {
             assert_eq!(error.to_string(), expected_message);
             auth_mock.assert_async().await;
         }
+    }
+
+    #[tokio::test]
+    async fn redaction_authenticate_auth_failure_does_not_surface_credentials() {
+        let mut server = mockito::Server::new_async().await;
+        let auth_mock = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .match_header("Content-Type", "application/x-www-form-urlencoded")
+            .with_status(401)
+            .create_async()
+            .await;
+        let username = "secret-user@example.com";
+        let password = "secret-password";
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        let error = provider
+            .authenticate(&Credentials {
+                password: Some(password.into()),
+                token: Some(username.into()),
+            })
+            .await
+            .expect_err("auth failure should return a domain error");
+        let domain_message = error.to_string();
+
+        assert_eq!(domain_message, "Auth error: HTTP 401 Unauthorized");
+        assert!(!domain_message.contains(username));
+        assert!(!domain_message.contains(password));
+
+        match AppError::from(error) {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, "Auth error: HTTP 401 Unauthorized");
+                assert!(!message.contains(username));
+                assert!(!message.contains(password));
+            }
+            AppError::Retryable { message } => {
+                panic!("auth failures should remain user visible: {message}");
+            }
+        }
+        auth_mock.assert_async().await;
+    }
+
+    #[test]
+    fn redaction_debug_output_redacts_greader_auth_token() {
+        let mut provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
+        provider.auth_token = Some("secret-auth-token".into());
+
+        let debug_output = format!("{provider:?}");
+
+        assert!(debug_output.contains("[redacted]"));
+        assert!(!debug_output.contains("secret-auth-token"));
+    }
+
+    #[test]
+    fn redaction_auth_header_error_does_not_surface_greader_auth_token() {
+        let mut provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
+        provider.auth_token = Some("secret-auth-token\ninvalid".into());
+
+        let error = provider
+            .auth_header()
+            .expect_err("invalid header token should fail");
+        let message = error.to_string();
+
+        assert!(matches!(error, DomainError::Auth(_)));
+        assert!(!message.contains("secret-auth-token"));
+        assert!(!message.contains("invalid"));
     }
 
     #[tokio::test]
@@ -2110,7 +2192,7 @@ mod tests {
         };
         provider.authenticate(&creds).await.unwrap();
         assert!(provider.auth_token.is_some());
-        println!("Auth token: {:?}", provider.auth_token);
+        println!("Auth token: [redacted]");
     }
 
     #[tokio::test]

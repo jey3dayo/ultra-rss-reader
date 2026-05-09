@@ -80,19 +80,6 @@ fn is_loopback_connectivity_timeout(error: &reqwest::Error) -> bool {
     !any_loopback_socket_accepts_connection(socket_addrs)
 }
 
-fn has_resolution_failed(error: &reqwest::Error) -> bool {
-    error.url().is_some_and(|url| {
-        let Some(host) = url.host_str() else {
-            return false;
-        };
-        let Some(port) = url.port_or_known_default() else {
-            return false;
-        };
-
-        (host, port).to_socket_addrs().is_err()
-    })
-}
-
 fn contains_dns_error_marker(normalized_message: &str) -> bool {
     DNS_RESOLUTION_ERROR_MARKERS
         .iter()
@@ -135,7 +122,7 @@ fn classify_reqwest_network_error(error: &reqwest::Error) -> String {
 
     classify_network_error(NetworkErrorClassificationInput {
         message: &message,
-        has_resolution_failed: has_resolution_failed(error),
+        has_resolution_failed: false,
         has_dns_error_marker: contains_dns_error_marker(&normalized),
         is_loopback_connectivity_timeout: is_loopback_connectivity_timeout(error),
         is_timeout: error.is_timeout(),
@@ -165,10 +152,15 @@ fn redact_sensitive_url_token(token: &str) -> String {
         return token.to_string();
     }
 
-    if url.query().is_none() && url.fragment().is_none() {
+    let has_userinfo = !url.username().is_empty() || url.password().is_some();
+    if !has_userinfo && url.query().is_none() && url.fragment().is_none() {
         return token.to_string();
     }
 
+    if has_userinfo {
+        let _ = url.set_username("");
+        let _ = url.set_password(None);
+    }
     url.set_query(url.query().map(|_| "redacted"));
     if url.fragment().is_some() {
         url.set_fragment(Some("redacted"));
@@ -513,5 +505,31 @@ mod tests {
             "retryable error (https://example.com/path?redacted), next retry soon"
         );
         assert!(!message.contains("hunter2"));
+    }
+
+    #[test]
+    fn network_error_message_redacts_url_userinfo_credentials() {
+        let message = redact_sensitive_network_error_message(
+            "request failed for https://alice:hunter2@example.com/feed",
+        );
+
+        assert_eq!(message, "request failed for https://example.com/feed");
+        assert!(!message.contains("alice"));
+        assert!(!message.contains("hunter2"));
+    }
+
+    #[test]
+    fn network_error_message_redacts_userinfo_with_query_and_fragment() {
+        let message = redact_sensitive_network_error_message(
+            "request failed for https://alice:hunter2@example.com/feed?token=secret#frag",
+        );
+
+        assert_eq!(
+            message,
+            "request failed for https://example.com/feed?redacted#redacted"
+        );
+        assert!(!message.contains("alice"));
+        assert!(!message.contains("hunter2"));
+        assert!(!message.contains("secret"));
     }
 }
