@@ -13,6 +13,10 @@ export {
   ArticleDtoSchema,
 } from "./article";
 export {
+  type BrowserWebviewDiagnosticsPayload,
+  BrowserWebviewDiagnosticsPayloadSchema,
+  type BrowserWebviewFallbackPayload,
+  BrowserWebviewFallbackPayloadSchema,
   type BrowserWebviewState,
   BrowserWebviewStateSchema,
 } from "./browser-webview";

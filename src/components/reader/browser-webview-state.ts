@@ -1,14 +1,12 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { BrowserWebviewFallbackPayload } from "@/api/schemas";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 
-export type BrowserWebviewFallbackPayload = {
-  url: string;
-  opened_external: boolean;
-  error_message: string | null;
-};
+export type { BrowserWebviewFallbackPayload };
 
-const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR = "Embedded browser webview is not open";
+const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR =
+  "Embedded browser webview is not open";
 
 function toBrowserNavigationState(nextState: BrowserWebviewState | null) {
   if (!nextState) {
@@ -27,6 +25,7 @@ export function initialBrowserState(url: string): BrowserWebviewState {
     can_go_back: false,
     can_go_forward: false,
     is_loading: true,
+    load_generation: 0,
   };
 }
 
@@ -34,7 +33,9 @@ export function resolveBrowserStateForRequestedUrl(
   previousState: BrowserWebviewState | null,
   requestedUrl: string,
 ): BrowserWebviewState {
-  return previousState?.url === requestedUrl ? previousState : initialBrowserState(requestedUrl);
+  return previousState?.url === requestedUrl
+    ? previousState
+    : initialBrowserState(requestedUrl);
 }
 
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
@@ -50,7 +51,24 @@ export function mergeBrowserState(
     return nextState;
   }
 
-  if (!previousState.is_loading && nextState.is_loading && previousState.url !== nextState.url) {
+  if (
+    !previousState.is_loading &&
+    nextState.is_loading &&
+    previousState.url !== nextState.url
+  ) {
+    return {
+      ...previousState,
+      can_go_back: nextState.can_go_back,
+      can_go_forward: nextState.can_go_forward,
+    };
+  }
+
+  if (
+    previousState.is_loading &&
+    nextState.is_loading &&
+    previousState.url === intendedUrl &&
+    nextState.url !== intendedUrl
+  ) {
     return {
       ...previousState,
       can_go_back: nextState.can_go_back,
@@ -61,7 +79,8 @@ export function mergeBrowserState(
   if (
     previousState.is_loading &&
     previousState.url === intendedUrl &&
-    nextState.url !== intendedUrl
+    nextState.url !== intendedUrl &&
+    nextState.load_generation <= previousState.load_generation
   ) {
     return {
       ...previousState,
@@ -79,17 +98,23 @@ export function setBrowserStateWithRef(
   nextState: BrowserWebviewState | null,
 ) {
   browserStateRef.current = nextState;
-  useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
+  useUiStore
+    .getState()
+    .setBrowserNavigationState(toBrowserNavigationState(nextState));
   setBrowserState(nextState);
 }
 
 export function updateBrowserStateWithRef(
   browserStateRef: MutableRefObject<BrowserWebviewState | null>,
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>,
-  update: (currentState: BrowserWebviewState | null) => BrowserWebviewState | null,
+  update: (
+    currentState: BrowserWebviewState | null,
+  ) => BrowserWebviewState | null,
 ) {
   const nextState = update(browserStateRef.current);
   browserStateRef.current = nextState;
-  useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
+  useUiStore
+    .getState()
+    .setBrowserNavigationState(toBrowserNavigationState(nextState));
   setBrowserState(nextState);
 }

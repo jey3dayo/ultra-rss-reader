@@ -43,6 +43,8 @@ const publicSchemaRuntimeExports = [
   "ArticleDtoListSchema",
   "ArticleDtoSchema",
   "BooleanResponseSchema",
+  "BrowserWebviewDiagnosticsPayloadSchema",
+  "BrowserWebviewFallbackPayloadSchema",
   "BrowserWebviewStateSchema",
   "CountResponseSchema",
   "DatabaseInfoDtoSchema",
@@ -179,11 +181,17 @@ type PublicSchemaTypeContracts = readonly [
 
 describe("schema barrel public API", () => {
   it("keeps runtime exports intentionally public through the schema barrel", () => {
-    expect(Object.keys(apiSchemas).sort()).toEqual([...publicSchemaRuntimeExports].sort());
+    expect(Object.keys(apiSchemas).sort()).toEqual(
+      [...publicSchemaRuntimeExports].sort(),
+    );
   });
 
   it("keeps Tauri command schema boundary exports intentionally public", () => {
-    expect(publicTauriCommandSchemaBoundaryExports.every((exportName) => exportName in apiSchemas)).toBe(true);
+    expect(
+      publicTauriCommandSchemaBoundaryExports.every(
+        (exportName) => exportName in apiSchemas,
+      ),
+    ).toBe(true);
   });
 
   it("keeps shared nonnegative integer schema internal while preserving public response schemas", () => {
@@ -191,14 +199,18 @@ describe("schema barrel public API", () => {
     expect(apiSchemas.CountResponseSchema.parse(0)).toBe(0);
     expect(apiSchemas.NonnegativeIntResponseSchema.parse(0)).toBe(0);
     expect(NonnegativeIntegerSchema.parse(0)).toBe(0);
-    expect(apiSchemas.CountResponseSchema).not.toBe(apiSchemas.NonnegativeIntResponseSchema);
+    expect(apiSchemas.CountResponseSchema).not.toBe(
+      apiSchemas.NonnegativeIntResponseSchema,
+    );
     expect(apiSchemas.CountResponseSchema).not.toBe(NonnegativeIntegerSchema);
   });
 
   it("keeps response schema names available through both public schema import paths", () => {
     expect(apiSchemas.NullResponseSchema).toBe(NullResponseSchema);
     expect(apiSchemas.IntResponseSchema).toBe(IntResponseSchema);
-    expect(apiSchemas.NonnegativeIntResponseSchema).toBe(NonnegativeIntResponseSchema);
+    expect(apiSchemas.NonnegativeIntResponseSchema).toBe(
+      NonnegativeIntResponseSchema,
+    );
     expect(apiSchemas.CountResponseSchema).toBe(CountResponseSchema);
     expect(apiSchemas.StringResponseSchema).toBe(StringResponseSchema);
     expect(apiSchemas.BooleanResponseSchema).toBe(BooleanResponseSchema);

@@ -9,7 +9,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, Runtime, Webview};
 
 #[cfg(windows)]
@@ -98,25 +98,27 @@ const BROWSER_PREVIEW_SHORTCUT_SPECS: &[BrowserPreviewShortcutSpec] = &[
     },
 ];
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct BrowserWebviewState {
     pub url: String,
     pub can_go_back: bool,
     pub can_go_forward: bool,
     pub is_loading: bool,
-    #[serde(skip)]
     pub load_generation: u64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct BrowserWebviewFallbackPayload {
     pub url: String,
     pub opened_external: bool,
     pub error_message: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct BrowserWebviewDiagnosticsPayload {
     pub action: String,
     pub requested_logical: BrowserWebviewLogicalRect,
@@ -125,8 +127,9 @@ pub struct BrowserWebviewDiagnosticsPayload {
     pub native_webview_bounds: Option<BrowserWebviewLogicalRect>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct BrowserWebviewLogicalRect {
     pub x: f64,
     pub y: f64,
@@ -1285,6 +1288,7 @@ mod tests {
         browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
         should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
         BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
         BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
@@ -1600,6 +1604,124 @@ mod tests {
         assert!(warning.contains(BROWSER_WEBVIEW_DIAGNOSTICS_EVENT));
         assert!(warning.contains("continuing without frontend notification"));
         assert!(warning.contains("listener unavailable"));
+    }
+
+    #[test]
+    fn browser_webview_state_event_payload_rejects_unknown_or_malformed_fields() {
+        let valid = serde_json::json!({
+            "url": "https://example.com/article",
+            "can_go_back": false,
+            "can_go_forward": true,
+            "is_loading": false,
+            "load_generation": 1
+        });
+
+        let state: BrowserWebviewState =
+            serde_json::from_value(valid).expect("valid state event payload should parse");
+        assert_eq!(state.url, "https://example.com/article");
+        assert_eq!(state.load_generation, 1);
+
+        let wrong_boolean_type = serde_json::json!({
+            "url": "https://example.com/article",
+            "can_go_back": "false",
+            "can_go_forward": true,
+            "is_loading": false,
+            "load_generation": 1
+        });
+        assert!(serde_json::from_value::<BrowserWebviewState>(wrong_boolean_type).is_err());
+
+        let missing_generation = serde_json::json!({
+            "url": "https://example.com/article",
+            "can_go_back": false,
+            "can_go_forward": true,
+            "is_loading": false
+        });
+        assert!(serde_json::from_value::<BrowserWebviewState>(missing_generation).is_err());
+    }
+
+    #[test]
+    fn browser_webview_fallback_event_payload_rejects_unknown_or_malformed_fields() {
+        let valid = serde_json::json!({
+            "url": "https://example.com/fallback",
+            "opened_external": false,
+            "error_message": null
+        });
+
+        let payload: BrowserWebviewFallbackPayload =
+            serde_json::from_value(valid).expect("valid fallback event payload should parse");
+        assert_eq!(payload.url, "https://example.com/fallback");
+        assert!(!payload.opened_external);
+        assert_eq!(payload.error_message, None);
+
+        let unknown_field = serde_json::json!({
+            "url": "https://example.com/fallback",
+            "opened_external": false,
+            "error_message": null,
+            "extra": true
+        });
+        assert!(serde_json::from_value::<BrowserWebviewFallbackPayload>(unknown_field).is_err());
+
+        let wrong_opened_external_type = serde_json::json!({
+            "url": "https://example.com/fallback",
+            "opened_external": "false",
+            "error_message": null
+        });
+        assert!(serde_json::from_value::<BrowserWebviewFallbackPayload>(
+            wrong_opened_external_type
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn browser_webview_diagnostics_event_payload_rejects_unknown_or_malformed_fields() {
+        let valid = serde_json::json!({
+            "action": "resize",
+            "requestedLogical": { "x": 1.0, "y": 2.0, "width": 300.0, "height": 200.0 },
+            "appliedLogical": { "x": 1.0, "y": 2.0, "width": 300.0, "height": 200.0 },
+            "scaleFactor": 2.0,
+            "nativeWebviewBounds": null
+        });
+
+        let payload: BrowserWebviewDiagnosticsPayload =
+            serde_json::from_value(valid).expect("valid diagnostics event payload should parse");
+        assert_eq!(payload.action, "resize");
+        assert_eq!(
+            payload.requested_logical,
+            BrowserWebviewLogicalRect {
+                x: 1.0,
+                y: 2.0,
+                width: 300.0,
+                height: 200.0
+            }
+        );
+
+        let unknown_rect_field = serde_json::json!({
+            "action": "resize",
+            "requestedLogical": {
+                "x": 1.0,
+                "y": 2.0,
+                "width": 300.0,
+                "height": 200.0,
+                "right": 301.0
+            },
+            "appliedLogical": { "x": 1.0, "y": 2.0, "width": 300.0, "height": 200.0 },
+            "scaleFactor": 2.0,
+            "nativeWebviewBounds": null
+        });
+        assert!(
+            serde_json::from_value::<BrowserWebviewDiagnosticsPayload>(unknown_rect_field).is_err()
+        );
+
+        let wrong_scale_type = serde_json::json!({
+            "action": "resize",
+            "requestedLogical": { "x": 1.0, "y": 2.0, "width": 300.0, "height": 200.0 },
+            "appliedLogical": { "x": 1.0, "y": 2.0, "width": 300.0, "height": 200.0 },
+            "scaleFactor": "2",
+            "nativeWebviewBounds": null
+        });
+        assert!(
+            serde_json::from_value::<BrowserWebviewDiagnosticsPayload>(wrong_scale_type).is_err()
+        );
     }
 
     #[test]

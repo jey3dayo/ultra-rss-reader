@@ -161,6 +161,7 @@ describe("useBrowserWebviewEvents", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: 1,
     };
     const fallbackPayload: BrowserWebviewFallbackPayload = {
       url: "https://example.com/fallback",
