@@ -5,6 +5,7 @@ import {
   formatKeyForDisplay,
   keyboardEvents,
   resolveKeyboardAction,
+  shortcutDefinitions,
 } from "@/lib/keyboard/keyboard-shortcuts";
 
 describe("keyboard shortcut resolver", () => {
@@ -448,10 +449,52 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "navigate-feed", direction: 1 });
   });
 
-  it("lets the native menu own Cmd+R even when Web Preview reload is remapped to it", () => {
+  it("keeps native menu item shortcut hints aligned with fixed frontend defaults", () => {
+    const contracts = [
+      ["prev_article", "K"],
+      ["next_article", "J"],
+      ["open_in_app_browser", "V"],
+      ["open_external_browser", "B"],
+      ["toggle_star", "S"],
+      ["toggle_read", "M"],
+      ["mark_all_read", "A"],
+    ] as const;
+
+    for (const [actionId, nativeMenuHint] of contracts) {
+      const definition = shortcutDefinitions.find((item) => item.id === actionId);
+
+      expect(definition?.defaultKey.toUpperCase()).toBe(nativeMenuHint);
+    }
+  });
+
+  it.each([
+    { modifier: "Cmd", metaKey: true, ctrlKey: false },
+    { modifier: "Ctrl", metaKey: false, ctrlKey: true },
+  ])(
+    "lets the native menu own $modifier+R even when Web Preview reload is remapped to it",
+    ({ metaKey, ctrlKey }) => {
+      const result = resolveKeyboardAction({
+        key: "r",
+        metaKey,
+        ctrlKey,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        viewMode: "all",
+        keyToAction: buildKeyToActionMap({
+          shortcut_reload_webview: "⌘+r",
+        }),
+      });
+
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
+
+  it("lets Web Preview reload use a non-native custom shortcut", () => {
     const result = resolveKeyboardAction({
-      key: "r",
-      metaKey: true,
+      key: "e",
+      metaKey: false,
       ctrlKey: false,
       shiftKey: false,
       targetTag: "DIV",
@@ -459,11 +502,11 @@ describe("keyboard shortcut resolver", () => {
       contentMode: "browser",
       viewMode: "all",
       keyToAction: buildKeyToActionMap({
-        shortcut_reload_webview: "⌘+r",
+        shortcut_reload_webview: "e",
       }),
     });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
+    expect(Result.unwrap(result)).toEqual({ type: "reload-webview" });
   });
 
   it.each([

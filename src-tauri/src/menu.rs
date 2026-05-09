@@ -438,7 +438,7 @@ mod tests {
     }
 
     #[test]
-    fn item_menu_shortcut_hints_match_fixed_frontend_shortcuts() {
+    fn item_menu_shortcut_hints_are_fixed_display_contracts_for_frontend_shortcuts() {
         let contracts = [
             ("item-prev", "prev-article", "K"),
             ("item-next", "next-article", "J"),
@@ -463,6 +463,8 @@ mod tests {
             );
         }
 
+        // Native menu labels intentionally show fixed default hints; customizable
+        // frontend shortcut preferences do not flow into Rust menu construction.
         assert_eq!(item_menu_shortcut_hint("view-unread"), None);
         assert_eq!(item_menu_label("Menu label", "view-unread"), "Menu label");
     }
