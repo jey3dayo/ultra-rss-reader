@@ -33,6 +33,30 @@ describe("browser webview history helpers", () => {
     expect(forward).toHaveBeenCalledTimes(1);
   });
 
+  it("prefers the embedded browser webview iframe before preview and generic iframe fallbacks", async () => {
+    const genericIframe = document.createElement("iframe");
+    const previewIframe = document.createElement("iframe");
+    const browserIframe = document.createElement("iframe");
+    previewIframe.setAttribute("data-browser-preview-iframe", "");
+    browserIframe.setAttribute("data-browser-webview-iframe", "");
+    document.body.append(genericIframe, previewIframe, browserIframe);
+    const genericBack = vi
+      .spyOn(genericIframe.contentWindow?.history ?? window.history, "back")
+      .mockImplementation(() => undefined);
+    const previewBack = vi
+      .spyOn(previewIframe.contentWindow?.history ?? window.history, "back")
+      .mockImplementation(() => undefined);
+    const browserBack = vi
+      .spyOn(browserIframe.contentWindow?.history ?? window.history, "back")
+      .mockImplementation(() => undefined);
+
+    expect(Result.isSuccess(await webviewHistory.goBackInWebview())).toBe(true);
+
+    expect(browserBack).toHaveBeenCalledTimes(1);
+    expect(previewBack).not.toHaveBeenCalled();
+    expect(genericBack).not.toHaveBeenCalled();
+  });
+
   it("reloads the iframe by resetting the current src instead of owning external-open availability", async () => {
     const iframe = document.createElement("iframe");
     iframe.src = "https://example.com/article";
