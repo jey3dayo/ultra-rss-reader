@@ -6,7 +6,6 @@ import {
   type ArticleDto,
   clearArticleViewHistory,
   countAccountStarredArticles,
-  getFeedIntegrityReport,
   listAccountArticles,
   listArticles,
   listFeedStarredArticles,
@@ -373,10 +372,6 @@ export function useArticles(feedId: string | null, options?: ArticleQueryOptions
   });
 }
 
-export function useFeedStarredArticles(feedId: string | null) {
-  return useArticles(feedId, { mode: "starred" });
-}
-
 export function useAccountArticles(accountId: string | null, options?: ArticleQueryOptions) {
   const mode = resolveArticleQueryMode(options);
   const normalizedAccountId = normalizeManualArticleQueryId(accountId);
@@ -420,13 +415,6 @@ export function useRecentArticles(accountId: string | null, options?: { mode?: R
         Result.unwrap(),
       ),
     enabled: !!normalizedAccountId,
-  });
-}
-
-export function useFeedIntegrityReport() {
-  return useQuery({
-    queryKey: queryKeys.feedIntegrityReport.root,
-    queryFn: () => getFeedIntegrityReport().then(Result.unwrap()),
   });
 }
 
