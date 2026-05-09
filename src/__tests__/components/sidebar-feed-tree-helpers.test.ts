@@ -272,6 +272,30 @@ describe("getVisibleSidebarFeedTreeData", () => {
     expect(visibleTreeData.orderedFeedIds).toEqual(["feed-a", "feed-c"]);
   });
 
+  it("hides empty unselected folders while keeping the selected empty folder visible", () => {
+    const visibleFolderFeedsById = new Map<string, FeedDto[]>([
+      ["folder-1", []],
+      ["folder-2", []],
+    ]);
+
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: folders,
+      feedsByFolder,
+      visibleFolderFeedsById,
+      expandedFolderIds: new Set(),
+      selectedFolderId: "folder-2",
+      selectedFeedId: null,
+      grayscaleFavicons: false,
+      viewMode: "unread",
+      starredCountByFeedId: new Map(),
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels.map((folder) => ({ id: folder.id, feedIds: folder.feeds.map((feed) => feed.id) }))).toEqual([
+      { id: "folder-2", feedIds: [] },
+    ]);
+  });
+
   it("uses visible feed count as folder badge in starred mode", () => {
     const folderModels = buildSidebarFeedTreeFolders({
       sortedFolderList: folders,
