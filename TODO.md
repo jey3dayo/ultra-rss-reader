@@ -39,25 +39,10 @@
   - `src/__tests__/hooks/use-sidebar-account-status-labels.test.tsx` で duplicate account id、blank account id、status map にだけ存在する id を追加し、scheduled retry label の projection contract を明示する
   - account DTO schema や `useAccountSyncStatuses()` の query construction とは分け、sidebar label map helper の projection 境界だけを扱う
 
-- [ ] folder selection option blank/duplicate id contract 候補を追加する
-  - `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts` の `buildFolderOptions()` が `folders` の `id` / `name` をそのまま select option に渡すため、blank id が empty option と衝突する場合や duplicate folder id の表示方針を固定する
-  - `src/__tests__/components/use-folder-selection.test.ts` で blank folder id、whitespace name、duplicate id を追加し、filter / fallback label / caller invariant のどれにするか決める
-  - folder selection focus frame cleanup や create folder schema blank name とは分け、folder select option projection だけを扱う
-
-- [ ] reading clear recent selected account blank guard 候補を追加する
-  - `src/components/settings/hooks/use-reading-settings-view-props.ts` の `handleClearRecentArticles()` が `selectedAccountId` の truthy 判定だけを使うため、whitespace-only id で confirm と mutation が走るか確認する
-  - `src/__tests__/components/use-reading-settings-view-props.test.tsx` で `selectedAccountId: "   "` / `"\n"` の disabled state と `clearHistory.mutate` 呼び出し有無を固定する
-  - reader query selected account blank guard や recent articles query invalidation とは分け、settings history action の account id boundary だけを扱う
-
 - [ ] settings modal content reset key delimiter contract 候補を追加する
   - `src/components/settings/hooks/use-settings-modal-view-props.tsx` の `contentResetKey` が `category:accountId:add:*` の文字列結合なので、account id や initial kind に delimiter 文字が入る場合の remount key 衝突を固定する
   - `src/__tests__/components/use-settings-modal-view-props.test.tsx` で account id に `:` / `add:` を含むケースを追加し、structured key helper へ切り出すか backend id invariant として明示する
   - settings nav id narrowing や deleted account snapshot contract とは分け、settings modal content remount key の生成境界だけを扱う
-
-- [ ] sidebar starred count blank feed id projection 候補を追加する
-  - `src/lib/sidebar/sidebar.ts` の `buildStarredCountByFeedId()` が starred article の `feed_id` をそのまま Map key にするため、blank / whitespace feed id を count するか除外するか固定する
-  - `src/__tests__/lib/sidebar.test.ts` で blank feed id、whitespace feed id、duplicate normal feed id の starred count を追加し、Article DTO schema 前提か helper guard かを決める
-  - nullable starred count schema や article DTO blank URL normalization とは分け、sidebar starred badge projection の feed id boundary だけを扱う
 
 ## UI/UX 監査の残り
 
