@@ -325,11 +325,6 @@
   - background sync 後の purge が read article を削除するため、現在開いている read article、tag assignment、recent history、browser preview の参照が消えるタイミングが曖昧
   - selected article が purge 対象、starred/tagged/read history 付き article、account keep_read_items_days 変更直後の behavior を Rust/frontend test にする
 
-- [ ] P1 command args の blank id を frontend schema で止める
-  - 対象: `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`
-  - 多くの command args が `z.string()` のままなので、blank/whitespace id が Rust まで届き、missing resource と invalid input の区別が崩れやすい
-  - accountId/feedId/folderId/articleId/tagId/muteKeywordId を nonblank trimmed id schema に寄せ、blank id の user-facing error と test を追加する
-
 - [ ] P1 destructive command の missing target policy を delete/feed/tag/account で揃える
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/tag_commands.rs`, `src-tauri/src/commands/account_commands.rs`
   - `delete_feed` は missing を error にする一方、`delete_tag` は missing no-op になっており、confirm 後の stale target を成功扱いにするかが操作ごとにズレる
@@ -1284,11 +1279,6 @@
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
   - z-index や pointer-events の数値が component 内に分散しており、overlay 追加のたびにどの layer が上に来るべきか review で判断する必要がある
   - semantic layer constants、CSS custom property、component snapshot、DESIGN/CLAUDE rule 化のどれで固定するか決める
-
-- [ ] P1 command args schema の id fields を non-blank trimmed contract に寄せる
-  - 対象: `src/api/schemas/commands.ts`, `src/hooks/create-query.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`
-  - 多くの command args が `z.string()` のままなので、空白だけの account/feed/article/tag id が frontend schema を通り、Rust 側の missing target policy へ遅れて到達しやすい
-  - accountId/feedId/articleId/tagId/folderId の shared schema、trim/no-trim 方針、legacy id 互換、blank id error category の schema test を追加する
 
 - [ ] P2 query key object segment の stable serialization contract を固定する
   - 対象: `src/lib/query/query-invalidation.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`
