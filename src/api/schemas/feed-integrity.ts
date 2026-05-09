@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const FeedIntegrityIssueDtoSchema = z.object({
+const FeedIntegrityIssueDtoSchema = z.object({
   missing_feed_id: z.string(),
   article_count: z.number().int().nonnegative(),
   latest_article_title: z.string().nullable(),
@@ -18,6 +18,5 @@ export const FeedIntegrityCleanupDtoSchema = z.object({
   deleted_article_count: z.number().int().nonnegative(),
 });
 
-export type FeedIntegrityIssueDto = z.infer<typeof FeedIntegrityIssueDtoSchema>;
-export type FeedIntegrityReportDto = z.infer<typeof FeedIntegrityReportDtoSchema>;
-export type FeedIntegrityCleanupDto = z.infer<typeof FeedIntegrityCleanupDtoSchema>;
+export type FeedIntegrityReportDto = z.output<typeof FeedIntegrityReportDtoSchema>;
+export type FeedIntegrityCleanupDto = z.output<typeof FeedIntegrityCleanupDtoSchema>;

@@ -1,8 +1,18 @@
 import { z } from "zod";
 
 export const PackageJsonSchema = z.object({
+  version: z.string().optional(),
+  packageManager: z.string().optional(),
+  private: z.boolean().optional(),
+  type: z.string().optional(),
+  engines: z.record(z.string(), z.string()).optional(),
   scripts: z.record(z.string(), z.string()).optional(),
   devDependencies: z.record(z.string(), z.string()).optional(),
+  knip: z
+    .object({
+      ignoreDependencies: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 export type PackageJson = z.output<typeof PackageJsonSchema>;
@@ -21,6 +31,8 @@ export const TauriUpdaterConfigSchema = z.object({
   }),
 });
 
+export type TauriUpdaterConfig = z.output<typeof TauriUpdaterConfigSchema>;
+
 export const TauriReleaseConfigSchema = z.object({
   identifier: z.string(),
   bundle: z.object({
@@ -28,7 +40,10 @@ export const TauriReleaseConfigSchema = z.object({
   }),
 });
 
+export type TauriReleaseConfig = z.output<typeof TauriReleaseConfigSchema>;
+
 export const TauriConfigSchema = z.object({
+  $schema: z.string().optional(),
   productName: z.string().optional(),
   identifier: z.string().optional(),
   build: z

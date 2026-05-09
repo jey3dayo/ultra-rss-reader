@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { TauriReleaseConfigSchema, TauriUpdaterConfigSchema } from "@/schemas/app-config";
+import {
+  type TauriReleaseConfig,
+  TauriReleaseConfigSchema,
+  type TauriUpdaterConfig,
+  TauriUpdaterConfigSchema,
+} from "@/schemas/app-config";
 import { parseJsonWithSchema } from "@/schemas/parse";
 import releaseWorkflowSource from "../../../.github/workflows/release.yml?raw";
 import tauriConfigSource from "../../../src-tauri/tauri.conf.json?raw";
@@ -7,6 +12,14 @@ import tauriReleaseConfigSource from "../../../src-tauri/tauri.release.conf.json
 
 const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const productionIdentifier = "com.jey3dayo.ultra-rss-reader";
+
+function readTauriUpdaterConfig(): TauriUpdaterConfig {
+  return parseJsonWithSchema(tauriConfigSource, TauriUpdaterConfigSchema);
+}
+
+function readTauriReleaseConfig(): TauriReleaseConfig {
+  return parseJsonWithSchema(tauriReleaseConfigSource, TauriReleaseConfigSchema);
+}
 
 function extractStepBlock(workflow: string, marker: string): string {
   const lines = workflow.split("\n");
@@ -31,7 +44,7 @@ function extractStepBlock(workflow: string, marker: string): string {
 }
 
 test("updater config points to GitHub Releases latest.json and has a pubkey", async () => {
-  const config = parseJsonWithSchema(tauriConfigSource, TauriUpdaterConfigSchema);
+  const config = readTauriUpdaterConfig();
   const { endpoints, pubkey } = config.plugins.updater;
 
   expect(endpoints).toHaveLength(1);
@@ -42,13 +55,13 @@ test("updater config points to GitHub Releases latest.json and has a pubkey", as
 });
 
 test("base config keeps updater artifacts disabled outside release builds", async () => {
-  const config = parseJsonWithSchema(tauriConfigSource, TauriUpdaterConfigSchema);
+  const config = readTauriUpdaterConfig();
 
   expect(config.bundle?.createUpdaterArtifacts).toBe(false);
 });
 
 test("release config overrides identifier and enables updater artifacts", async () => {
-  const config = parseJsonWithSchema(tauriReleaseConfigSource, TauriReleaseConfigSchema);
+  const config = readTauriReleaseConfig();
 
   expect(config.identifier).toBe(productionIdentifier);
   expect(config.bundle.createUpdaterArtifacts).toBe(true);

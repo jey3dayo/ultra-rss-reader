@@ -3,24 +3,59 @@ import { getPreferenceValueSchema } from "@/schemas/preferences";
 import { FeedDisplayModeSchema } from "./feed";
 import { MuteKeywordScopeSchema } from "./mute-keyword";
 
-export const articleListModeSchema = z.enum(["all", "unread", "starred"]);
+const articleListModeSchema = z.enum(["all", "unread", "starred"]);
+export type ArticleListMode = z.output<typeof articleListModeSchema>;
+export const MAX_IPC_PAGINATION_LIMIT = 200;
 const paginationOffsetSchema = z.number().int().nonnegative();
-const paginationLimitSchema = z.number().int().positive();
+const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION_LIMIT);
 const preferenceValueMaxBytes = 1024;
 const textEncoder = new TextEncoder();
+const nonBlankTrimmedStringSchema = z.string().trim().min(1);
+const optionalNonBlankTrimmedStringSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z.string().min(1).optional(),
+);
+const optionalBlankStringToUndefinedSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}, z.string().optional());
+const nullableBlankStringToNullSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}, z.string().nullable());
+const httpUrlSchema = z
+  .string()
+  .trim()
+  .refine((url) => url.startsWith("http://") || url.startsWith("https://"), {
+    message: "Only http:// and https:// URLs are supported",
+  })
+  .refine((url) => !url.includes("\n") && !url.includes("\r"), {
+    message: "HTTP URLs must not contain newlines",
+  });
 
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: z.string() });
 export const listFeedsArgs = z.object({ accountId: z.string() });
 
 // --- listArticles ---
-export const listArticlesArgs = z.object({
-  feedId: z.string(),
-  unreadOnly: z.boolean().optional(),
-  starredOnly: z.boolean().optional(),
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
-});
+export const listArticlesArgs = z
+  .object({
+    feedId: z.string(),
+    unreadOnly: z.boolean().optional(),
+    starredOnly: z.boolean().optional(),
+    offset: paginationOffsetSchema.optional(),
+    limit: paginationLimitSchema.optional(),
+  })
+  .refine((args) => !(args.unreadOnly === true && args.starredOnly === true), {
+    message: "Article list filters are mutually exclusive",
+    path: ["starredOnly"],
+  });
 
 // --- listAccountArticles ---
 export const listAccountArticlesArgs = z.object({
@@ -68,8 +103,8 @@ export const countAccountStarredArticlesArgs = z.object({
   accountId: z.string(),
 });
 
-export const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
-export const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
+const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
+const oldUnreadDaysSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
 export type OldUnreadScopeKind = z.infer<typeof oldUnreadScopeKindSchema>;
 export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
@@ -90,7 +125,7 @@ export const cleanupFeedIntegrityOrphansArgs = z.object({ dryRun: z.boolean() })
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({
   accountId: z.string(),
-  query: z.string(),
+  query: nonBlankTrimmedStringSchema,
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
 });
@@ -113,7 +148,7 @@ export const clearArticleViewHistoryArgs = z.object({
 
 // --- markArticlesRead ---
 export const markArticlesReadArgs = z.object({
-  articleIds: z.array(z.string()),
+  articleIds: z.array(z.string()).nonempty(),
 });
 
 // --- toggleArticleStar ---
@@ -164,8 +199,8 @@ export const updateAccountSyncArgs = z.object({
 // --- updateAccountCredentials ---
 export const updateAccountCredentialsArgs = z.object({
   accountId: z.string(),
-  serverUrl: z.string().optional(),
-  username: z.string().optional(),
+  serverUrl: optionalNonBlankTrimmedStringSchema,
+  username: optionalNonBlankTrimmedStringSchema,
   password: z.string().optional(),
 });
 
@@ -184,7 +219,7 @@ export const syncFeedArgs = z.object({ feedId: z.string() });
 
 // --- startup sync ---
 export const startupSyncArgs = z.object({
-  preferredAccountId: z.string().optional(),
+  preferredAccountId: optionalBlankStringToUndefinedSchema,
 });
 
 // --- testAccountConnection ---
@@ -194,18 +229,18 @@ export const testAccountConnectionArgs = z.object({ accountId: z.string() });
 export const deleteAccountArgs = z.object({ accountId: z.string() });
 
 // --- discoverFeeds ---
-export const discoverFeedsArgs = z.object({ url: z.string() });
+export const discoverFeedsArgs = z.object({ url: nonBlankTrimmedStringSchema });
 
 // --- addLocalFeed ---
 export const addLocalFeedArgs = z.object({
   accountId: z.string(),
-  url: z.string(),
+  url: nonBlankTrimmedStringSchema,
 });
 
 // --- createFolder ---
 export const createFolderArgs = z.object({
   accountId: z.string(),
-  name: z.string(),
+  name: nonBlankTrimmedStringSchema,
 });
 
 // --- deleteFeed ---
@@ -220,7 +255,7 @@ export const renameFeedArgs = z.object({
 // --- updateFeedFolder ---
 export const updateFeedFolderArgs = z.object({
   feedId: z.string(),
-  folderId: z.string().nullable(),
+  folderId: nullableBlankStringToNullSchema,
 });
 
 // --- updateFeedDisplaySettings ---
@@ -230,14 +265,19 @@ export const updateFeedDisplaySettingsArgs = z.object({
   webPreviewMode: FeedDisplayModeSchema,
 });
 
-// --- openInBrowser ---
-export const openInBrowserArgs = z.object({
-  url: z.string(),
-  background: z.boolean().optional(),
-});
+const externalUrlSchema = z
+  .string()
+  .trim()
+  .refine((url) => url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:"), {
+    message: "Only http://, https://, and mailto: URLs are supported",
+  })
+  .refine((url) => !url.includes("\n") && !url.includes("\r"), {
+    message: "External URLs must not contain newlines",
+  });
+export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 
 // --- checkBrowserEmbedSupport ---
-export const checkBrowserEmbedSupportArgs = z.object({ url: z.string() });
+export const checkBrowserEmbedSupportArgs = z.object({ url: httpUrlSchema });
 
 // --- browser webview ---
 const finiteNumberSchema = z.number().finite();
@@ -251,7 +291,7 @@ export const browserWebviewBoundsArgs = z.object({
   unit: z.enum(["logical", "physical"]).optional(),
 });
 export const createOrUpdateBrowserWebviewArgs = z.object({
-  url: z.string(),
+  url: httpUrlSchema,
   bounds: browserWebviewBoundsArgs,
 });
 export const setBrowserWebviewBoundsArgs = z.object({
@@ -292,17 +332,21 @@ export const setPreferenceArgs = z
   });
 
 // --- copyToClipboard ---
-export const copyToClipboardArgs = z.object({ text: z.string() });
+export const copyToClipboardArgs = z.object({
+  text: z.string().refine((value) => value.trim().length > 0, {
+    message: "Clipboard text must not be blank",
+  }),
+});
+
+const readingListUrlSchema = httpUrlSchema;
+
+// --- openInBrowser ---
+export const openInBrowserArgs = z.object({
+  url: readingListUrlSchema,
+  background: z.boolean().optional(),
+});
 
 // --- addToReadingList ---
-const readingListUrlSchema = z
-  .string()
-  .refine((url) => url.startsWith("http://") || url.startsWith("https://"), {
-    message: "Only http:// and https:// URLs are supported",
-  })
-  .refine((url) => !url.includes("\n") && !url.includes("\r"), {
-    message: "Reading List URLs must not contain newlines",
-  });
 export const addToReadingListArgs = z.object({ url: readingListUrlSchema });
 
 // --- createTag ---
@@ -352,7 +396,7 @@ export const getTagArticleCountsArgs = z.object({
 
 // --- mute keywords ---
 export const createMuteKeywordArgs = z.object({
-  keyword: z.string(),
+  keyword: nonBlankTrimmedStringSchema,
   scope: MuteKeywordScopeSchema,
 });
 
@@ -369,8 +413,10 @@ export const setMuteAutoMarkReadArgs = z.object({
   enabled: z.boolean(),
 });
 
+type CommandArgsSchema = z.ZodType<Record<string, unknown>>;
+
 // Registry: command names (snake_case) -> schema (only commands with args)
-export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown>>> = {
+export const commandArgsSchemas = {
   list_folders: listFoldersArgs,
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,
@@ -413,6 +459,7 @@ export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown
   update_feed_folder: updateFeedFolderArgs,
   update_feed_display_settings: updateFeedDisplaySettingsArgs,
   open_in_browser: openInBrowserArgs,
+  "plugin:opener|open_url": openExternalUrlArgs,
   check_browser_embed_support: checkBrowserEmbedSupportArgs,
   create_or_update_browser_webview: createOrUpdateBrowserWebviewArgs,
   set_browser_webview_bounds: setBrowserWebviewBoundsArgs,
@@ -432,4 +479,24 @@ export const commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown
   update_mute_keyword: updateMuteKeywordArgs,
   delete_mute_keyword: deleteMuteKeywordArgs,
   set_mute_auto_mark_read: setMuteAutoMarkReadArgs,
-};
+} as const satisfies Record<string, CommandArgsSchema>;
+
+export type CommandArgsSchemaRegistry = typeof commandArgsSchemas;
+export type CommandWithArgs = keyof CommandArgsSchemaRegistry;
+
+export function isCommandWithArgs(commandName: string): commandName is CommandWithArgs {
+  // biome-ignore lint: Object.hasOwn is outside the current TypeScript lib target.
+  return Object.prototype.hasOwnProperty.call(commandArgsSchemas, commandName);
+}
+
+export function getCommandArgsSchema<TCommand extends CommandWithArgs>(
+  commandName: TCommand,
+): CommandArgsSchemaRegistry[TCommand];
+export function getCommandArgsSchema(commandName: string): CommandArgsSchema | undefined;
+export function getCommandArgsSchema(commandName: string): CommandArgsSchema | undefined {
+  if (isCommandWithArgs(commandName)) {
+    return commandArgsSchemas[commandName];
+  }
+
+  return undefined;
+}

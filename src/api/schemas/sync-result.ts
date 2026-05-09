@@ -1,18 +1,19 @@
 import { z } from "zod";
 
 const nonnegativeIntegerSchema = z.number().int().nonnegative().finite();
+const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 
-export const AccountSyncErrorSchema = z.object({
+const AccountSyncErrorSchema = z.object({
   account_id: z.string(),
-  account_name: z.string(),
-  message: z.string(),
+  account_name: nonBlankTrimmedStringSchema,
+  message: nonBlankTrimmedStringSchema,
 });
 
 export const AccountSyncWarningSchema = z.object({
   account_id: z.string(),
-  account_name: z.string(),
+  account_name: nonBlankTrimmedStringSchema,
   kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
-  message: z.string(),
+  message: nonBlankTrimmedStringSchema,
   retry_at: z.string().optional(),
   retry_in_seconds: nonnegativeIntegerSchema.optional(),
 });
@@ -25,6 +26,6 @@ export const SyncResultSchema = z.object({
   warnings: z.array(AccountSyncWarningSchema),
 });
 
-export type AccountSyncError = z.infer<typeof AccountSyncErrorSchema>;
-export type AccountSyncWarning = z.infer<typeof AccountSyncWarningSchema>;
-export type SyncResultDto = z.infer<typeof SyncResultSchema>;
+export type AccountSyncError = z.output<typeof AccountSyncErrorSchema>;
+export type AccountSyncWarning = z.output<typeof AccountSyncWarningSchema>;
+export type SyncResultDto = z.output<typeof SyncResultSchema>;

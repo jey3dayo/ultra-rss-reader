@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AccountSyncWarningSchema } from "@/api/schemas/sync-result";
+import { AccountSyncWarningSchema, SyncResultSchema } from "@/api/schemas/sync-result";
 
 const retryScheduledWarning = {
   account_id: "acc-1",
@@ -19,6 +19,46 @@ describe("AccountSyncWarningSchema", () => {
     expect(
       AccountSyncWarningSchema.safeParse({ ...retryScheduledWarning, retry_in_seconds: Number.POSITIVE_INFINITY })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe("SyncResultSchema", () => {
+  const syncResult = {
+    synced: false,
+    total: 2,
+    succeeded: 0,
+    failed: [
+      {
+        account_id: "acc-1",
+        account_name: "FreshRSS",
+        message: "Network error",
+      },
+    ],
+    warnings: [
+      {
+        account_id: "acc-2",
+        account_name: "Local",
+        message: "Retry scheduled",
+      },
+    ],
+  };
+
+  it.each([
+    ["failed", "message", ""],
+    ["failed", "message", "   "],
+    ["warnings", "message", ""],
+    ["warnings", "message", "   "],
+    ["failed", "account_name", ""],
+    ["failed", "account_name", "   "],
+    ["warnings", "account_name", ""],
+    ["warnings", "account_name", "   "],
+  ] as const)("rejects blank %s account %s before display", (collection, field, value) => {
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        [collection]: [{ ...syncResult[collection][0], [field]: value }],
+      }).success,
     ).toBe(false);
   });
 });

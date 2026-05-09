@@ -7,4 +7,4 @@ export const BrowserWebviewStateSchema = z.object({
   is_loading: z.boolean(),
 });
 
-export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
+export type BrowserWebviewState = z.output<typeof BrowserWebviewStateSchema>;

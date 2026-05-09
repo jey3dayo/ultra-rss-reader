@@ -12,6 +12,7 @@ import {
   AppErrorSchema,
   type ArticleDto,
   ArticleDtoListSchema,
+  type ArticleListMode,
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
@@ -79,6 +80,7 @@ import {
   type OldUnreadDays,
   type OldUnreadScopeKind,
   oldUnreadArticlesArgs,
+  openExternalUrlArgs,
   openInBrowserArgs,
   type PlatformInfo,
   PlatformInfoSchema,
@@ -140,24 +142,19 @@ export type {
 
 // --- safeInvoke infrastructure ---
 
-type InvokeArgsSchema = z.ZodType<Record<string, unknown>>;
+type InvokeArgsRecord = Record<string, unknown>;
 
-type InvokeSchemas<R extends z.ZodType = z.ZodType> = {
-  response: R;
+type InvokeArgsSchema = z.ZodType<InvokeArgsRecord>;
+
+type InvokeArgsOptions = {
   args?: InvokeArgsSchema;
 };
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
+type SchemaBackedInvokeOptions<R extends z.ZodType> = InvokeArgsOptions & {
+  response: R;
+};
 
-function hasSafeParseMethod(v: unknown): v is Pick<z.ZodType, "safeParse"> {
-  return isRecord(v) && typeof v.safeParse === "function";
-}
-
-function isSchemas(v: unknown): v is InvokeSchemas {
-  return isRecord(v) && hasSafeParseMethod(v.response);
-}
+type GenericInvokeOptions = InvokeArgsOptions;
 
 function toAppError(cmd: string, error: unknown): AppError {
   if (error instanceof z.ZodError) {
@@ -173,30 +170,57 @@ function toAppError(cmd: string, error: unknown): AppError {
   return result.success ? result.data : { type: "UserVisible", message: String(error) };
 }
 
-// Overload: with schemas (recommended)
+function validateInvokeArgs(options: InvokeArgsOptions, args?: InvokeArgsRecord): InvokeArgsRecord | undefined {
+  return options.args && args ? parseWithSchema(options.args, args) : args;
+}
+
+function hasResponseSchema<R extends z.ZodType>(
+  options: GenericInvokeOptions | SchemaBackedInvokeOptions<R>,
+): options is SchemaBackedInvokeOptions<R> {
+  return "response" in options;
+}
+
+async function invokeWithResponseSchema<R extends z.ZodType>(
+  cmd: string,
+  options: SchemaBackedInvokeOptions<R>,
+  args?: InvokeArgsRecord,
+): Promise<z.output<R>> {
+  const validatedArgs = validateInvokeArgs(options, args);
+  const raw = await invoke<unknown>(cmd, validatedArgs);
+  return parseWithSchema(options.response, raw);
+}
+
+async function invokeWithoutResponseSchema<T>(
+  cmd: string,
+  options: GenericInvokeOptions,
+  args?: InvokeArgsRecord,
+): Promise<T> {
+  const validatedArgs = validateInvokeArgs(options, args);
+  return invoke<T>(cmd, validatedArgs);
+}
+
 function safeInvoke<R extends z.ZodType>(
   cmd: string,
-  schemas: InvokeSchemas<R>,
-  args?: Record<string, unknown>,
+  options: SchemaBackedInvokeOptions<R>,
+  args?: InvokeArgsRecord,
 ): Result.ResultAsync<z.output<R>, AppError>;
 
-// Overload: without schemas (backward compat)
-function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Result.ResultAsync<T, AppError>;
-
-// Implementation
-function safeInvoke(
+function safeInvoke<T = unknown>(
   cmd: string,
-  schemasOrArgs?: InvokeSchemas | Record<string, unknown>,
-  maybeArgs?: Record<string, unknown>,
-): Result.ResultAsync<unknown, AppError> {
-  const schemas = isSchemas(schemasOrArgs) ? schemasOrArgs : undefined;
-  const args = isSchemas(schemasOrArgs) ? maybeArgs : schemasOrArgs;
+  options?: GenericInvokeOptions,
+  args?: InvokeArgsRecord,
+): Result.ResultAsync<T, AppError>;
 
+function safeInvoke<R extends z.ZodType, T = unknown>(
+  cmd: string,
+  options: GenericInvokeOptions | SchemaBackedInvokeOptions<R> = {},
+  args?: InvokeArgsRecord,
+): Result.ResultAsync<unknown, AppError> {
   return Result.try({
     try: async () => {
-      const validatedArgs = schemas?.args && args ? parseWithSchema(schemas.args, args) : args;
-      const raw = await invoke(cmd, validatedArgs);
-      return schemas?.response ? parseWithSchema(schemas.response, raw) : raw;
+      return hasResponseSchema(options)
+        ? invokeWithResponseSchema(cmd, options, args)
+        : invokeWithoutResponseSchema<T>(cmd, options, args);
     },
     catch: (error) => toAppError(cmd, error),
   });
@@ -263,12 +287,7 @@ export const listFeedArticleSummaries = (accountId: string) =>
     { accountId },
   );
 
-export const listFolderArticles = (
-  folderId: string,
-  mode: "all" | "unread" | "starred" = "all",
-  offset?: number,
-  limit?: number,
-) =>
+export const listFolderArticles = (folderId: string, mode: ArticleListMode = "all", offset?: number, limit?: number) =>
   safeInvoke(
     "list_folder_articles",
     { response: ArticleDtoListSchema, args: listFolderArticlesArgs },
@@ -282,12 +301,7 @@ export const listStarredArticles = (accountId: string, offset?: number, limit?: 
     { accountId, offset, limit },
   );
 
-export const listRecentArticles = (
-  accountId: string,
-  offset?: number,
-  limit?: number,
-  mode?: "all" | "unread" | "starred",
-) =>
+export const listRecentArticles = (accountId: string, offset?: number, limit?: number, mode?: ArticleListMode) =>
   safeInvoke(
     "list_recent_articles",
     { response: ArticleDtoListSchema, args: listRecentArticlesArgs },
@@ -492,6 +506,10 @@ export const updateFeedDisplaySettings = (feedId: string, readerMode: string, we
 export const openInBrowser = (url: string, background?: boolean) =>
   safeInvoke("open_in_browser", { response: NullResponseSchema, args: openInBrowserArgs }, { url, background });
 
+// Runtime is owned by the Rust tauri-plugin-opener registration; TS only needs the invoke command contract.
+export const openExternalUrl = (url: string) =>
+  safeInvoke("plugin:opener|open_url", { response: NullResponseSchema, args: openExternalUrlArgs }, { url });
+
 export const checkBrowserEmbedSupport = (url: string) =>
   safeInvoke(
     "check_browser_embed_support",
@@ -579,7 +597,7 @@ export const listArticlesByTag = (
   offset?: number,
   limit?: number,
   accountId?: string,
-  mode?: "all" | "unread" | "starred",
+  mode?: ArticleListMode,
 ) =>
   safeInvoke(
     "list_articles_by_tag",

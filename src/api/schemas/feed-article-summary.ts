@@ -9,4 +9,4 @@ export const FeedArticleSummaryDtoSchema = z.object({
 
 export const FeedArticleSummaryDtoListSchema = z.array(FeedArticleSummaryDtoSchema);
 
-export type FeedArticleSummaryDto = z.infer<typeof FeedArticleSummaryDtoSchema>;
+export type FeedArticleSummaryDto = z.output<typeof FeedArticleSummaryDtoSchema>;

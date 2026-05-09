@@ -17,6 +17,7 @@ export {
   BrowserWebviewStateSchema,
 } from "./browser-webview";
 export {
+  type ArticleListMode,
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
@@ -24,7 +25,9 @@ export {
   checkBrowserEmbedSupportArgs,
   cleanupFeedIntegrityOrphansArgs,
   clearArticleViewHistoryArgs,
+  type CommandArgsSchemaRegistry,
   commandArgsSchemas,
+  type CommandWithArgs,
   copyToClipboardArgs,
   countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
@@ -40,7 +43,9 @@ export {
   exportOpmlArgs,
   getAccountSyncStatusArgs,
   getArticleTagsArgs,
+  getCommandArgsSchema,
   getTagArticleCountsArgs,
+  isCommandWithArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
@@ -50,6 +55,7 @@ export {
   listFoldersArgs,
   listRecentArticlesArgs,
   listStarredArticlesArgs,
+  MAX_IPC_PAGINATION_LIMIT,
   markAccountReadArgs,
   markArticleReadArgs,
   markArticlesReadArgs,
@@ -58,8 +64,7 @@ export {
   type OldUnreadDays,
   type OldUnreadScopeKind,
   oldUnreadArticlesArgs,
-  oldUnreadDaysSchema,
-  oldUnreadScopeKindSchema,
+  openExternalUrlArgs,
   openInBrowserArgs,
   recordArticleViewArgs,
   renameAccountArgs,
@@ -85,7 +90,9 @@ export {
 } from "./commands";
 export {
   BooleanResponseSchema,
+  CountResponseSchema,
   IntResponseSchema,
+  NonnegativeIntResponseSchema,
   NullResponseSchema,
   StringResponseSchema,
 } from "./common";
@@ -97,7 +104,6 @@ export {
 } from "./discovered-feed";
 export { type AppError, AppErrorSchema } from "./error";
 export {
-  FeedDisplayModeSchema,
   type FeedDto,
   FeedDtoListSchema,
   FeedDtoSchema,
@@ -124,12 +130,10 @@ export {
 export {
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,
-  type PlatformCapabilities,
-  PlatformCapabilitiesSchema,
   type PlatformInfo,
   PlatformInfoSchema,
 } from "./platform-info";
-export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
+export { PreferencesDtoSchema } from "./preferences";
 export {
   NullableStarredArticlesSchema,
   NullableStarredCountSchema,

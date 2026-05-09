@@ -26,6 +26,92 @@ function extractMiseTaskNames(miseToml: string): Set<string> {
   );
 }
 
+function extractMiseTaskDepends(miseToml: string, taskName: string): string[] {
+  const lines = miseToml.split("\n");
+  const sectionStart = lines.indexOf(`[tasks."${taskName}"]`);
+  if (sectionStart === -1) {
+    return [];
+  }
+
+  const sectionLines = lines.slice(sectionStart + 1);
+  const sectionEnd = sectionLines.findIndex((line) => line.startsWith("[tasks."));
+  const taskSection = sectionLines.slice(0, sectionEnd === -1 ? undefined : sectionEnd).join("\n");
+  const dependsLine = taskSection.match(/^depends = \[(.*)\]$/m)?.[1] ?? "";
+
+  return [...dependsLine.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "");
+}
+
+function extractMiseToolVersion(miseToml: string, toolName: string): string | null {
+  const escapedToolName = toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return miseToml.match(new RegExp(`^(?:"${escapedToolName}"|${escapedToolName})\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
+}
+
+function extractMiseEnvValues(miseToml: string, prefix: string): string[] {
+  return [...miseToml.matchAll(new RegExp(`^${prefix}[A-Z0-9_]*\\s*=\\s*"([^"]+)"`, "gm"))].map(
+    (match) => match[1] ?? "",
+  );
+}
+
+function extractMiseEnvMap(miseToml: string, prefix: string): Map<string, string> {
+  return new Map(
+    [...miseToml.matchAll(new RegExp(`^(${prefix}[A-Z0-9_]*)\\s*=\\s*"([^"]+)"`, "gm"))].map((match) => [
+      match[1] ?? "",
+      match[2] ?? "",
+    ]),
+  );
+}
+
+function extractMiseTaskCommand(miseToml: string, taskName: string, commandName: "run" | "run_windows"): string {
+  const taskHeader = `[tasks."${taskName}"]`;
+  const sectionStart = miseToml.indexOf(taskHeader);
+  if (sectionStart === -1) {
+    return "";
+  }
+
+  const nextTaskStart = miseToml.indexOf("\n[tasks.", sectionStart + taskHeader.length);
+  const taskSection = miseToml.slice(sectionStart, nextTaskStart === -1 ? undefined : nextTaskStart);
+  return taskSection.match(new RegExp(`^${commandName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? "";
+}
+
+function extractMarkdownlintTargets(command: string): string[] {
+  const args = command.split(/\s+/);
+  const markdownlintIndex = args.findIndex((arg) => arg.includes("markdownlint-cli2"));
+  if (markdownlintIndex === -1) {
+    return [];
+  }
+
+  return args.slice(markdownlintIndex + 1).filter((arg) => arg !== "--fix");
+}
+
+function extractMarkdownlintInvocation(command: string): string[] {
+  const args = command.split(/\s+/);
+  const markdownlintIndex = args.findIndex((arg) => arg.includes("markdownlint-cli2"));
+
+  return markdownlintIndex === -1 ? [] : args.slice(0, markdownlintIndex + 1);
+}
+
+function resolveMiseEnvReferences(args: string[], env: Map<string, string>): string[] {
+  return args.map((arg) => {
+    const posixEnvName = arg.match(/^\$([A-Z0-9_]+)$/)?.[1];
+    const windowsEnvName = arg.match(/^%([A-Z0-9_]+)%$/)?.[1];
+    const envName = posixEnvName ?? windowsEnvName;
+
+    return envName === undefined ? arg : (env.get(envName) ?? arg);
+  });
+}
+
+function extractMarkdownTaskTargets(
+  miseToml: string,
+  taskName: "format:md" | "lint:md",
+  commandName: "run" | "run_windows",
+): string[] {
+  return extractMarkdownlintTargets(extractMiseTaskCommand(miseToml, taskName, commandName));
+}
+
+function extractPackageManagerVersion(packageManager: string | undefined, managerName: string): string | null {
+  return packageManager?.match(new RegExp(`^${managerName}@(.+)$`))?.[1] ?? null;
+}
+
 function extractReadmeMiseCommands(readme: string): string[] {
   return [...new Set([...readme.matchAll(/mise run ([a-z0-9:_-]+)/g)].map((match) => match[1] ?? ""))]
     .filter(Boolean)
@@ -33,6 +119,81 @@ function extractReadmeMiseCommands(readme: string): string[] {
 }
 
 describe("package scripts", () => {
+  it("parses static package contract fields without mixing engine parity checks", () => {
+    const packageJson = readPackageJson();
+
+    expect(packageJson.version).toBe("0.31.1");
+    expect(packageJson.packageManager).toBe("pnpm@10.33.4");
+    expect(packageJson.private).toBe(true);
+    expect(packageJson.type).toBe("module");
+
+    expect(
+      PackageJsonSchema.parse({
+        engines: {
+          node: ">=20",
+          pnpm: ">=10",
+        },
+      }).engines,
+    ).toEqual({
+      node: ">=20",
+      pnpm: ">=10",
+    });
+  });
+
+  it("keeps package engines aligned with mise tools and packageManager", () => {
+    const packageJson = readPackageJson();
+    const miseToml = readWorkspaceFile("mise.toml");
+    const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
+
+    expect(packageJson.engines?.node).toBe(extractMiseToolVersion(miseToml, "node"));
+    expect(packageJson.engines?.pnpm).toBe(extractMiseToolVersion(miseToml, "npm:pnpm"));
+    expect(packageJson.engines?.pnpm).toBe(packageManagerVersion);
+  });
+
+  it("keeps markdown format and lint task globs aligned with env definitions", () => {
+    const miseToml = readWorkspaceFile("mise.toml");
+    const markdownEnv = extractMiseEnvMap(miseToml, "MD_");
+    const markdownTargets = extractMiseEnvValues(miseToml, "MD_");
+    const markdownEnvNames = [...markdownEnv.keys()];
+    const markdownTaskCommands = [
+      { commandName: "run", expectedRefs: markdownEnvNames.map((key) => `$${key}`), taskName: "format:md" },
+      { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `%${key}%`), taskName: "format:md" },
+      { commandName: "run", expectedRefs: markdownEnvNames.map((key) => `$${key}`), taskName: "lint:md" },
+      { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `%${key}%`), taskName: "lint:md" },
+    ] as const;
+
+    expect(markdownTargets).toEqual(["**/*.md", "#**/node_modules/**", "#**/.worktrees/**", "#**/target/**"]);
+    for (const { commandName, expectedRefs, taskName } of markdownTaskCommands) {
+      const targets = extractMarkdownTaskTargets(miseToml, taskName, commandName);
+
+      expect(targets).toEqual(expectedRefs);
+      expect(resolveMiseEnvReferences(targets, markdownEnv)).toEqual(markdownTargets);
+    }
+  });
+
+  it("keeps markdownlint-cli2 routed through mise tasks for the knip dependency contract", () => {
+    const packageJson = readPackageJson();
+    const miseToml = readWorkspaceFile("mise.toml");
+
+    expect(packageJson.devDependencies?.["markdownlint-cli2"]).toBeDefined();
+    expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2"]);
+
+    expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run"))).toEqual([
+      "pnpm",
+      "markdownlint-cli2",
+    ]);
+    expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "lint:md", "run"))).toEqual([
+      "pnpm",
+      "markdownlint-cli2",
+    ]);
+    expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run_windows"))).toEqual([
+      "markdownlint-cli2.CMD",
+    ]);
+    expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "lint:md", "run_windows"))).toEqual([
+      "markdownlint-cli2.CMD",
+    ]);
+  });
+
   it("keeps fixed-port development scripts unchanged", () => {
     const scripts = readPackageJson().scripts;
 
@@ -75,6 +236,17 @@ describe("package scripts", () => {
     expect(miseToml).toContain("pnpm run build-storybook");
   });
 
+  it("keeps mise test:all semantics aligned with Storybook E2E", () => {
+    const miseToml = readWorkspaceFile("mise.toml");
+
+    expect(extractMiseTaskDepends(miseToml, "test:all")).toEqual([
+      "test:rust",
+      "test:unit",
+      "test:e2e",
+      "test:storybook:e2e",
+    ]);
+  });
+
   it("exposes Tauri Vite manager check mode through mise", () => {
     const miseToml = readWorkspaceFile("mise.toml");
     const miseTasks = extractMiseTaskNames(miseToml);
@@ -89,5 +261,25 @@ describe("package scripts", () => {
     const miseTasks = extractMiseTaskNames(readWorkspaceFile("mise.toml"));
 
     expect(readmeCommands.filter((command) => !miseTasks.has(command))).toEqual([]);
+  });
+
+  it("keeps local app install docs separate from published release verification", () => {
+    const readme = readWorkspaceFile("README.md");
+    const miseToml = readWorkspaceFile("mise.toml");
+    const releaseManual = readWorkspaceFile("docs/release-manual-verification.md");
+
+    expect(miseToml).toContain(
+      'description = "Build, locally re-sign, and install the current checkout; not a published release artifact verification"',
+    );
+    expect(readme).toContain(
+      "mise run app:install  # Build, locally re-sign, and install the current checkout; not published release verification",
+    );
+    expect(readme).toContain("Published release install verification must use the artifact from GitHub Releases");
+    expect(releaseManual).toContain("### 2. Published Release Install Verification");
+    expect(releaseManual).toContain("Release asset digest");
+    expect(releaseManual).toContain("Codesign result");
+    expect(releaseManual).toContain("Gatekeeper result");
+    expect(releaseManual).toContain("Do not use `mise run app:install` for this step.");
+    expect(releaseManual).toContain("not evidence that the published release artifact");
   });
 });

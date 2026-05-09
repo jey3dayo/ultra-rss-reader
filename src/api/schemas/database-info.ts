@@ -10,4 +10,4 @@ export const DatabaseInfoDtoSchema = z
     path: ["total_size_bytes"],
   });
 
-export type DatabaseInfoDto = z.infer<typeof DatabaseInfoDtoSchema>;
+export type DatabaseInfoDto = z.output<typeof DatabaseInfoDtoSchema>;

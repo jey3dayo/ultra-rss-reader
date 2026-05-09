@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { APP_ACTIONS } from "@/lib/app-actions";
-import { shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
+import { isShortcutPreferenceKey, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
 import backendSource from "../../../src-tauri/src/browser_webview.rs?raw";
 
 type BrowserPreviewShortcutSpec = {
@@ -58,6 +58,11 @@ describe("browser preview shortcut bridge contract", () => {
     ]);
 
     for (const spec of specs) {
+      expect(isShortcutPreferenceKey(spec.prefKey)).toBe(true);
+      if (!isShortcutPreferenceKey(spec.prefKey)) {
+        throw new Error(`Unexpected browser preview shortcut key: ${spec.prefKey}`);
+      }
+
       const definition = definitionsByPrefKey.get(spec.prefKey);
 
       expect(definition?.defaultKey).toBe(spec.defaultBinding);
