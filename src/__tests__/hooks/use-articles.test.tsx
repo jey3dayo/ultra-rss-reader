@@ -40,6 +40,7 @@ describe("article mutation cache contract", () => {
       queryKeys.tagArticleCounts.root,
       queryKeys.search.root,
       queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
     ]);
   });
 });

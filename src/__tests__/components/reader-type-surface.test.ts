@@ -148,7 +148,9 @@ describe("reader type surface", () => {
     for (const contractTestFile of contractTestFiles) {
       const source = readRepoFile(contractTestFile);
 
-      expect(source, `${contractTestFile} should avoid snapshot-based visual coverage`).not.toContain("toMatchSnapshot");
+      expect(source, `${contractTestFile} should avoid snapshot-based visual coverage`).not.toContain(
+        "toMatchSnapshot",
+      );
       expect(source, `${contractTestFile} should stay focused on contract assertions`).toMatch(
         /toHaveAttribute|toHaveClass|expectTypeOf|toEqual|toContain|toBe|toHaveBeenCalledWith/,
       );

@@ -25,6 +25,7 @@ const articleCacheInvalidationKeys = [
   ["tagArticleCounts"],
   ["search"],
   ["recentArticles"],
+  ["feedArticleSummaries"],
 ];
 
 function expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy: ReturnType<typeof vi.fn>) {

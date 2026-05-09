@@ -179,6 +179,7 @@ describe("mute settings contracts", () => {
       ["tagArticleCounts"],
       ["search"],
       ["recentArticles"],
+      ["feedArticleSummaries"],
     ]);
   });
 

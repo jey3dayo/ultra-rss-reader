@@ -19,9 +19,9 @@ import type {
   UiStoreSettingsModalState,
   UiStoreSettingsState,
   UiStoreShellState,
+  UiStoreState,
   UiStoreSyncProgressActions,
   UiStoreSyncProgressState,
-  UiStoreState,
   UiStoreToastActions,
   UiStoreToastState,
 } from "../../stores/ui-store";
