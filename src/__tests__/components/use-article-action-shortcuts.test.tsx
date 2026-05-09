@@ -12,6 +12,7 @@ import { useUiStore } from "@/stores/ui-store";
 type TestShortcutsProps = Partial<UseArticleActionShortcutsParams>;
 
 function TestShortcuts({
+  keyboardShortcuts,
   selectedArticleUrl = "https://example.com/article",
   onToggleRead = vi.fn(),
   onToggleStar = vi.fn(),
@@ -21,6 +22,7 @@ function TestShortcuts({
 }: TestShortcutsProps) {
   useKeyboard();
   useArticleActionShortcuts({
+    keyboardShortcuts,
     selectedArticleUrl,
     onToggleRead,
     onToggleStar,
