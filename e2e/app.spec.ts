@@ -216,6 +216,15 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   });
 
   test("keeps hidden AppLayout panes out of keyboard focus across the WebView support matrix", async ({ page }) => {
+    await page.route("**/*", async (route) => {
+      if (route.request().resourceType() === "image") {
+        await route.fulfill({ status: 204, body: "" });
+        return;
+      }
+
+      await route.continue();
+    });
+
     const layoutCases = [
       { name: "wide", width: 1280, expectedHiddenPaneCount: 1 },
       { name: "compact", width: 900, expectedHiddenPaneCount: 2 },
@@ -225,15 +234,21 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     for (const layoutCase of layoutCases) {
       await test.step(layoutCase.name, async () => {
         await page.setViewportSize({ width: layoutCase.width, height: 900 });
-        await page.goto("/");
+        await page.goto("/", { waitUntil: "load" });
         await expectHiddenAppLayoutPanesBlockFocus(page, layoutCase.expectedHiddenPaneCount);
       });
     }
 
     await test.step("subscriptions workspace", async () => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto("/", { waitUntil: "load" });
+      const wideSidebar = page.getByTestId("wide-sidebar-content");
+      await expect(wideSidebar).toBeVisible();
+      await wideSidebar.getByRole("button", { name: /Manage Subscriptions|購読を管理/i }).click();
+      await expect(
+        page.getByTestId("workspace-header-title-group").getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
+      ).toBeVisible();
       await page.setViewportSize({ width: 390, height: 900 });
-      await page.goto("/");
-      await openSubscriptionsIndex(page);
 
       await Promise.all([
         expect(page.getByTestId("sliding-pane-tray")).toHaveCount(0),
