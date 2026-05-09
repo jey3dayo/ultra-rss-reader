@@ -65,11 +65,6 @@
   - background open は `open -g` を spawn してすぐ成功扱いにするため、`open` command の終了失敗や LaunchServices error が toast/diagnostics に残らない
   - spawn failure、non-zero exit、stderr redaction、foreground fallback、unsupported platform の Rust command test / manual verification を追加する
 
-- [ ] P3 native menu action id と frontend action registry の drift を snapshot で検出する
-  - 対象: `src-tauri/src/menu.rs`, `src/lib/actions.ts`, `src/hooks/use-menu-events.ts`
-  - menu id、action id、keyboard shortcut hint が Rust と TS に分散しており、片側だけ追加されると native menu 経由だけ no-op になりやすい
-  - action id list snapshot、unknown menu action diagnostics、shortcut hint parity、locale label existence の test を追加する
-
 - [ ] P1 React Doctor の mutation invalidation warning を実バグ / false positive に分類する
   - 対象: `src/hooks/use-articles.ts`, `src/hooks/use-delete-feed.ts`, `src/hooks/use-tags.ts`, `src/hooks/create-mutation.ts`
   - `useMutation` の cache update warning が 6 件あり、local patch だけで足りる mutation と query invalidation が必要な mutationが混在している
