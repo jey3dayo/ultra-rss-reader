@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P2 reader focus DOM selector drift を検出する
-  - 対象: `src/lib/reader-focus.ts`, reader list/sidebar/account pane components
-  - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
-  - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
-
 - [ ] P2 article list retained snapshot duplicate identity contract を固定する
   - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`
   - retained article snapshot は Map で id 重複を後勝ち merge するため、same id with stale read/star state が source 間で競合した時の表示が未固定
@@ -74,11 +69,6 @@
   - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/commands/mod.rs`
   - account sync は `join_all` で並列化される一方、DB は `Mutex<DbManager>` で直列化されるため、長い write 中に他 account や UI read が詰まりやすい
   - 複数 account sync 中に list/count command が返る時間を測り、並列度制限、DB operation queue、read path の busy/error policy を固定する
-
-- [ ] P1 vacuum と sync 開始の race を database maintenance guard で整理する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`
-  - `vacuum_database` は開始時に `syncing` を読むだけで自分では sync guard を取らないため、直後に sync が始まると DB lock 待ちと UI 進捗が不自然になり得る
-  - vacuum lock 中に sync 開始を競合させる test を追加し、vacuum 用 guard か sync 側の maintenance 検出を入れる
 
 - [ ] P1 sanitizer で許可した media/source/link attribute の privacy policy を固定する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
@@ -134,11 +124,6 @@
   - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
   - retention days、max rows、account/feed delete cascade、clear history command の count contract を Rust test にする
-
-- [ ] P2 cleanup_feed_integrity_orphans の dry-run / destructive 実行 policy を固定する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/api/schemas/feed-integrity.ts`
-  - orphan cleanup は destructive なので、dry-run と実削除の count 差、concurrent feed delete、sync 中実行の扱いが曖昧だと DB repair 操作で事故りやすい
-  - dry-run直後の状態変化、sync中拒否、deleted count と orphan count の一致を Rust/TS schema test で固定する
 
 - [ ] P2 account unread count と feed unread count の reconciliation policy を作る
   - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-account-unread-count.ts`
@@ -220,16 +205,6 @@
   - frontend/dev mock は title includes に近い挙動だが、backend FTS は quote、operator、絵文字、全角空白、長大 query で挙動が変わりやすい
   - blank、quoted phrase、`OR`/`NEAR` 風文字列、combining mark、長大 query の normalize/escape/max length を schema/Rust/dev mock で揃える
 
-- [ ] P2 dev mock command response を production schema と同期する
-  - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src/api/schemas`
-  - dev mock は command args schema を通す一方、response は手書き fixture が多く、DTO schema 変更時に Storybook/dev runtime だけ古い shape を返しやすい
-  - 主要 command response を schema parse する helper を追加するか、fixture boundary test を拡張して dev mock と production DTO の drift を検出する
-
-- [ ] P2 Storybook stories の fixture DTO strictness を上げる
-  - 対象: `src/**/*.stories.tsx`, `src/dev/mock-data.ts`, `src/__tests__/components/storybook-explorer-organization.test.ts`
-  - stories が hand-written DTO や partial props を直接渡すと、schema/contract 変更時に dev canvas だけ壊れても `mise run check` で見逃されやすい
-  - story fixtures を schema-derived fixture helper に寄せるか、story render smoke で DTO parse を通す方針を決める
-
 - [ ] P2 command palette action が account switch 後 stale resource を実行しないようにする
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/hooks/command-palette`, `src/stores/ui-store.ts`
   - palette を開いたまま selected account/feed が変わると、表示中 resource action が古い account scope の article/feed に対して実行される可能性がある
@@ -264,11 +239,6 @@
   - 対象: `CLAUDE.md`, `TODO.md`
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
-
-- [ ] P3 dev mock unknown command failure を diagnostics と story canvas に出す
-  - 対象: `src/dev/mocks.ts`, `src/dev/scenario-runtime.ts`, `src/components/debug`
-  - unknown command は throw するだけなので、Storybook/dev preview 上では白画面や console only になり、mock coverage drift の発見が遅れやすい
-  - unknown command を diagnostics panel に集約するか test failure 専用に留めるか決め、dev runtime test を追加する
 
 - [ ] P1 account delete 後の reader selection / article cache cleanup を account scope で固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/stores/ui-store.ts`, `src/hooks/use-articles.ts`
@@ -445,11 +415,6 @@
   - feed select 後に palette を閉じて非同期 `openFeedLanding` の失敗 toast を出すため、直後に account switch や別 feed selection があると古い feedId のエラーが現在文脈へ出る
   - palette session id、selected account snapshot、feedId revalidation のどれを採るか決め、delayed failure と account switch の test を追加する
 
-- [ ] P2 account pane navigation の DOM query selector contract を reader focus policy と揃える
-  - 対象: `src/lib/account/account-pane-navigation.ts`, `src/components/settings/account-detail`, `src/lib/reader-focus.ts`
-  - account pane は data attribute と `document.activeElement` に依存して移動対象を決めるため、settings/account-detail の view 分割で attribute が外れると keyboard navigation だけ silent regression になりやすい
-  - required data attribute、empty pane fallback、disabled button skip、focus restore の contract test を追加する
-
 - [ ] P2 article share menu の email client opener と external opener の scheme policy を照合する
   - 対象: `src/components/reader/article-share-menu.tsx`, `src/api/schemas/commands.ts`, `src/components/reader/article-browser-actions.ts`
   - share menu の email action は `mailto:` を OS opener へ流す一方、toolbar/body/browser actions の allowed scheme と別経路なので、URL encode、subject/body length、invalid article URL の扱いが drift しやすい
@@ -489,16 +454,6 @@
   - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/api/schemas/commands.ts`
   - Rust command は `Result` を返さず即 `app.restart()` するため、frontend の schema/Result 境界では restart failure・no-op・dev runtime fallback の扱いが見えにくい
   - restart unavailable、dev mode reload、packaged restart success の expected behavior を command schema / hook test / manual verification に分ける
-
-- [ ] P2 database size 表示の WAL/SHM/total 定義を UI と schema で揃える
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src/api/schemas/database-info.ts`, `src/components/settings/hooks/use-data-settings-controller.ts`
-  - DTO は db/wal/total を返すが SHM は total から除外され、UI は total だけ表示するため、実ファイルサイズ・Finder 表示・vacuum saved 表示の差が説明しづらい
-  - SHM を含む/含まない定義、vacuum前後の saved 計算、negative saved の表示を schema/component/Rust test で固定する
-
-- [ ] P2 data settings の vacuum / open log dir loading owner を settings 全体 loading と分離する
-  - 対象: `src/components/settings/hooks/use-data-settings-controller.ts`, `src/components/settings/settings-modal-view.tsx`
-  - data settings controller が `setSettingsLoading(false)` を直接呼ぶため、別 settings pane の save/setup sync と重なると、先に終わった操作が全体 loading を解除し得る
-  - loading owner token、operation counter、pane-local disabled state のどれを採るか決め、vacuum中 account save / open log中 setup sync の test を追加する
 
 - [ ] P2 subscriptions index の review candidate 日付基準を長時間表示で更新する
   - 対象: `src/components/subscriptions-index/subscriptions-index-page.tsx`, `src/lib/subscriptions/subscription-review-candidates.ts`
@@ -629,11 +584,6 @@
   - 対象: `src/lib/sync/startup-sync-storage.ts`, `src/App.tsx`, `src/constants/ui-runtime.ts`
   - startup sync throttle は localStorage の単一 timestamp で全 account を抑制するため、account switch、時計戻り、future timestamp tamper、storage migration failure 時の再実行範囲が分かりにくい
   - account-scoped key、future timestamp cleanup、legacy key migration、private mode storage unavailable の unit/component test を追加する
-
-- [ ] P2 reader focus retry timer を generation / unmount cleanup で stale focus しないようにする
-  - 対象: `src/lib/reader-focus.ts`, `src/components/reader/hooks/article-list`, `src/components/reader/hooks/sidebar`
-  - focus helper は `window.setTimeout` で最大 12 回 retry するが、pane/source/account が変わった後も古い selected id の focus retry が残る可能性がある
-  - generation token、cancel handle、source/account snapshot、unmount cleanup、rapid selection change の component test を追加する
 
 - [ ] P2 sync-on-wake の per-account failure を Promise.all fail-fast から集約 diagnostics にする
   - 対象: `src/App.tsx`, `src/hooks/use-feeds.ts`, `src/lib/query/query-invalidation.ts`
