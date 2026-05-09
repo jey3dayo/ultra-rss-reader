@@ -252,11 +252,6 @@
   - `preferences-store.ts` は schema と永続化 contract があるため、UI store 分割とは同じバッチに混ぜない
   - store selector の import 先が多いため、まずは type alias / action group の棚卸しだけ行い、挙動変更は避ける
 
-- [ ] P1 Rust DB repository test 候補を別バッチで追加する
-  - sqlite account / feed / folder / article / tag / sync state repository の境界値を、migration 適用済み DB fixture で固定する
-  - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
-  - 既存 integration test が広い場合は、repository ごとの小さい fixture helper を先に作る
-
 - [ ] P0 provider / sync flow boundary 整理候補を別バッチで見直す
   - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
   - pending mutation / sync state / account sync status はデータ整合性に関わるため、UI sync feedback の型整理とは混ぜない
