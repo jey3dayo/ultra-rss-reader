@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P3 manual sync cooldown listener error aggregation を diagnostics に接続する
-  - 対象: `src/lib/sync/manual-sync.ts`
-  - cooldown listener が throw しても console error に集約されるだけなので、UI 更新が止まった時にどの subscriber が壊れたか分かりにくい
-  - listener id を持つか diagnostics-only に留めるか決め、複数 listener failure の report format を unit test にする
-
 - [ ] P3 TODO priority taxonomy を CLAUDE.md / TODO.md で同期する
   - 対象: `CLAUDE.md`, `TODO.md`
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
@@ -128,11 +123,6 @@
   - 対象: `src/constants/browser.ts`, `src/constants/storage.ts`, `src/constants/events.ts`, `src/lib/runtime/*`
   - React Doctor / Knip が runtime constants の unused type/export を検出しており、browser event name、storage key、Tauri event key の source of truth が散りやすい
   - public runtime event、private storage key、test fixture key、deprecated alias を分類し、残す constants は contract test へ明示する
-- [ ] P2 motion constants unused export を transition token contract と照合する
-  - 対象: `src/constants/motion.ts`, `src/components/reader/*`, `src/components/settings/*`, `src/__tests__/components/design-ui-primitives.test.tsx`
-  - React Doctor / Knip が motion constants に unused export を検出しており、過去の transition token が残ると motion rule の判断がぶれる
-  - production usage、Storybook specimen、test-only selector、dead token を分類し、使わない motion token は削除する
-
 - [ ] P2 reader-query helper の unused type を query key / query option contract に分ける
   - 対象: `src/lib/reader/reader-query.ts`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list/*`
   - React Doctor / Knip が reader query helper の unused type を検出しており、query key factory、query option builder、view model helper の境界が曖昧になっている
