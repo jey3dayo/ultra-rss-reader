@@ -1,5 +1,4 @@
 import type { Preview } from "@storybook/react-vite";
-import { STORYBOOK_EXPLORER_ORDER } from "../src/constants/storybook-explorer";
 import "../src/lib/i18n";
 import "../src/styles/global.css";
 
@@ -12,7 +11,10 @@ type StorybookPreviewBackground = {
 
 export const STORYBOOK_PREVIEW_BACKGROUND_TOKEN = "--theme-canvas";
 
-export const STORYBOOK_PREVIEW_BACKGROUND_VALUES: Record<StorybookPreviewBackgroundName, string> = {
+export const STORYBOOK_PREVIEW_BACKGROUND_VALUES: Record<
+  StorybookPreviewBackgroundName,
+  string
+> = {
   dark: "#1c1915",
   light: "#f2f1ed",
 };
@@ -37,7 +39,37 @@ const preview: Preview = {
     options: {
       storySort: {
         method: "alphabetical",
-        order: STORYBOOK_EXPLORER_ORDER,
+        order: [
+          "UI Reference",
+          [
+            "Foundations Canvas",
+            "Input Controls Canvas",
+            "Button Controls Canvas",
+            "Shell & Overlay Canvas",
+            "Settings Workspace Canvas",
+            "Navigation & Collections Canvas",
+            "View Specimens Canvas",
+          ],
+          "Shared",
+          [
+            "Layout",
+            "Fields",
+            "Rows",
+            "Controls",
+            "Dialogs",
+            "Navigation",
+            "Feedback",
+          ],
+          "Primitives",
+          "Settings",
+          ["Page", "Section", "Nav"],
+          "Reader",
+          ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
+          "Subscriptions",
+          ["Summary", "List", "Detail"],
+          "Internal",
+          ["Debug", "Review"],
+        ],
       },
     },
   },

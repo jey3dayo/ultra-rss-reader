@@ -12,8 +12,11 @@ describe("Storybook story export registry", () => {
   });
 
   it("keeps non-story helper exports limited to UI Reference canvases", () => {
-    const allowedNonStoryExports = storybookStoryExportRegistry.flatMap((entry) =>
-      entry.allowedNonStoryExportNames.map((exportName) => `${entry.filePath}#${exportName}`),
+    const allowedNonStoryExports = storybookStoryExportRegistry.flatMap(
+      (entry) =>
+        entry.allowedNonStoryExportNames.map(
+          (exportName) => `${entry.filePath}#${exportName}`,
+        ),
     );
 
     expect(allowedNonStoryExports).toEqual(
@@ -28,27 +31,47 @@ describe("Storybook story export registry", () => {
       ]),
     );
     expect(allowedNonStoryExports).toEqual(
-      allowedNonStoryExports.filter((exportId) => exportId.startsWith("/src/components/storybook/ui-reference-")),
+      allowedNonStoryExports.filter((exportId) =>
+        exportId.startsWith("/src/components/storybook/ui-reference-"),
+      ),
     );
   });
 
   it("reports invalid module shapes with focused reasons", () => {
     const { registry, issues } = collectStorybookStoryExportRegistry({
       "/src/components/bad-array.stories.tsx": [],
-      "/src/components/bad-default.stories.tsx": { default: { title: "Missing component" }, Default: {} },
-      "/src/components/bad-story-export.stories.tsx": { default: { component: "div" }, Broken: "not a story" },
+      "/src/components/bad-default.stories.tsx": {
+        default: { title: "Missing component" },
+        Default: {},
+      },
+      "/src/components/bad-undefined-component.stories.tsx": {
+        default: { component: undefined },
+        Default: {},
+      },
+      "/src/components/bad-story-export.stories.tsx": {
+        default: { component: "div" },
+        Broken: "not a story",
+      },
+      "/src/components/bad-array-story-export.stories.tsx": {
+        default: { component: "div" },
+        Broken: [],
+      },
       "/src/components/no-story.stories.tsx": { default: { component: "div" } },
     });
 
     expect(registry.map((entry) => entry.filePath)).toEqual([
+      "/src/components/bad-array-story-export.stories.tsx",
       "/src/components/bad-story-export.stories.tsx",
       "/src/components/no-story.stories.tsx",
     ]);
     expect(issues).toEqual([
+      '/src/components/bad-array-story-export.stories.tsx: named export "Broken" must be a story object or an allowlisted helper',
+      "/src/components/bad-array-story-export.stories.tsx: expected at least one named story object export",
       "/src/components/bad-array.stories.tsx: module must be an object (array)",
-      "/src/components/bad-default.stories.tsx: default export must be a Storybook meta object with component (missing component)",
+      "/src/components/bad-default.stories.tsx: default export must be a Storybook meta-like object with component (missing component)",
       '/src/components/bad-story-export.stories.tsx: named export "Broken" must be a story object or an allowlisted helper',
       "/src/components/bad-story-export.stories.tsx: expected at least one named story object export",
+      "/src/components/bad-undefined-component.stories.tsx: default export must be a Storybook meta-like object with component (missing component)",
       "/src/components/no-story.stories.tsx: expected at least one named story object export",
     ]);
   });
