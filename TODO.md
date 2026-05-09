@@ -50,11 +50,6 @@
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
   - updater hook state effects とは分け、lifecycle boilerplate の共通化可否判断だけを扱う
 
-- [ ] react-doctor Tailwind size shorthand 候補を追加する
-  - `react-doctor/design-no-redundant-size-axes` の `w-N h-N` を view scope ごとに `size-N` へ置き換える
-  - まず `article-empty-state-view` / `article-tag-picker` / `feed-tree-row` / `settings` small icons を小さな worker scope に分ける
-  - Storybook specimen と test fixture は別バッチにし、UI 表示差分が出ないことを focused component test で確認する
-
 - [ ] react-doctor browser-view state effects 候補を追加する
   - `src/components/reader/browser-view.tsx` の cascading setState / state-only handler / trivial `useMemo` を整理する
   - reducer 化する state と `useRef` 化する render 非依存 state を分け、browser surface state test を追加する
@@ -155,26 +150,6 @@
   - app root focused test で hidden duration / active account / disabled account の sync 対象が変わらないことを固定する
   - App visibility handler ref 候補とは分け、wake sync 対象抽出の iteration cleanup だけを扱う
 
-- [ ] knip plugin-opener dependency boundary 候補を追加する
-  - `@tauri-apps/plugin-opener` の npm dependency が TS 側で未使用扱いになる理由を確認し、Cargo plugin / `safeInvoke("plugin:opener|open_url")` との責務境界を整理する
-  - 削除できる場合は package lock と browser action tests を更新し、残す場合は knip ignore / contract comment で意図を固定する
-  - Tauri command schema dead export cleanup とは分け、opener plugin dependency のみ扱う
-
-- [ ] react-doctor tauri dispatch Info.plist marker helper 候補を追加する
-  - `scripts/tauri-cli-dispatch.ts` の stale macOS dev bundle 判定で使う Info.plist marker 文字列を helper / constants へ寄せる
-  - tauri-cli-dispatch test で bundle identifier marker の有無と削除可否判定が変わらないことを固定する
-  - tauri dispatch lookup set / script async waterfall とは分け、Info.plist marker 判定の読みやすさだけを扱う
-
-- [ ] react-doctor tauri command contract extraction cleanup 候補を追加する
-  - `src/__tests__/api/schemas.test.ts` と `tests/helpers/tauri-mocks.test.ts` の command extraction helper を single-pass / Set based に整理する
-  - schema/command contract test で抽出順、重複排除、failure message が変わらないことを確認する
-  - repo contract lookup cleanup とは分け、Tauri command contract test helper だけを扱う
-
-- [ ] react-doctor tauri dispatch lookup set 候補を追加する
-  - `scripts/tauri-cli-dispatch.ts` の repeated membership check を `Set` 化する
-  - Windows / non-Windows dispatch test で許可 command と拒否 command の判定が変わらないことを固定する
-  - script async waterfall とは分け、CLI dispatch lookup performance だけを扱う
-
 - [ ] similarity reader UI state hook factory 候補を追加する
   - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
   - 共通化する場合は public hook return names を保ち、article view と command palette の focused hook test で state transition が変わらないことを固定する
@@ -189,11 +164,6 @@
   - `useArticleListNavigation` / `useAddFeedDialogActions` / `buildSubscriptionReviewCandidates` が 91-93% 類似として出ているため、実際に共通化可能な navigation math か hook boilerplate かを確認する
   - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
   - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
-
-- [ ] tag repository blank name invariant 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
-  - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
-  - tag settings UI validation とは分け、repository/domain invariant だけを扱う
 
 - [ ] similarity browser view harness props reuse 候補を追加する
   - `UseBrowserViewControllerParams` と `BrowserViewHarnessProps` が 96% 類似なので、browser view test harness が controller params を再定義していないか確認する
