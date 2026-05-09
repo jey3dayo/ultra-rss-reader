@@ -113,4 +113,30 @@ describe("ConfirmDialogView", () => {
     expect(onConfirm).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
   });
+
+  it("delegates cancel separately from dialog close and confirm actions", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Confirm action"
+        message="Run this action?"
+        actionLabel="Run"
+        cancelLabel="Cancel"
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });

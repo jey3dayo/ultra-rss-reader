@@ -66,6 +66,30 @@ describe("AppConfirmDialog", () => {
     expect(useUiStore.getState().confirmDialog.open).toBe(false);
   });
 
+  it("keeps the latest confirm action as the only action result contract", async () => {
+    const user = userEvent.setup();
+    const staleConfirm = vi.fn();
+    const latestConfirm = vi.fn();
+
+    useUiStore.getState().showConfirm("Run stale action?", staleConfirm, { actionLabel: "Stale" });
+    useUiStore.getState().showConfirm("Run latest action?", latestConfirm, { actionLabel: "Latest" });
+
+    render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Latest" }));
+
+    expect(staleConfirm).not.toHaveBeenCalled();
+    expect(latestConfirm).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().confirmDialog).toEqual({
+      open: false,
+      message: "",
+      actionLabel: null,
+      variant: "default",
+      icon: null,
+      onConfirm: null,
+    });
+  });
+
   it("switches warning and destructive tones through the shared dialog variant", () => {
     act(() => {
       useUiStore.getState().showConfirm("Mark all selected articles as read?", vi.fn(), {

@@ -86,4 +86,28 @@ describe("DestructiveConfirmDialogView", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+
+  it("delegates dialog close separately from destructive confirm", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Delete item"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await user.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });
