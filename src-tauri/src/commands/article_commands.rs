@@ -12,7 +12,6 @@ use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::{
@@ -234,6 +233,36 @@ fn collect_account_starred_unread_rows(
     )
 }
 
+fn collect_feed_unread_rows(
+    conn: &rusqlite::Connection,
+    feed_id: &FeedId,
+) -> Result<Vec<BulkArticleMutationRow>, AppError> {
+    collect_article_mutation_rows(
+        conn,
+        "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         JOIN accounts acc ON f.account_id = acc.id
+         WHERE a.feed_id = ?1 AND a.is_read = 0",
+        &[&feed_id.0],
+    )
+}
+
+fn collect_folder_unread_rows(
+    conn: &rusqlite::Connection,
+    folder_id: &FolderId,
+) -> Result<Vec<BulkArticleMutationRow>, AppError> {
+    collect_article_mutation_rows(
+        conn,
+        "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         JOIN accounts acc ON f.account_id = acc.id
+         WHERE f.folder_id = ?1 AND a.is_read = 0",
+        &[&folder_id.0],
+    )
+}
+
 fn collect_old_unread_rows(
     conn: &rusqlite::Connection,
     scope: OldUnreadScope,
@@ -277,17 +306,19 @@ fn queue_bulk_pending_mutations(
     rows: &[BulkArticleMutationRow],
     mutation_type: PendingMutationType,
 ) -> Result<(), AppError> {
-    let pending_repo = SqlitePendingMutationRepository::new(conn);
     for row in rows {
         if let Some(remote_entry_id) = &row.remote_entry_id {
             if supports_remote_mutations(&row.account_kind, row.feed_remote_id.as_deref()) {
-                pending_repo.save(&PendingMutation {
-                    id: None,
-                    account_id: AccountId(row.account_id.clone()),
-                    mutation_type,
-                    remote_entry_id: remote_entry_id.clone(),
-                    created_at: Utc::now().to_rfc3339(),
-                })?;
+                save_pending_mutation(
+                    conn,
+                    &PendingMutation {
+                        id: None,
+                        account_id: AccountId(row.account_id.clone()),
+                        mutation_type,
+                        remote_entry_id: remote_entry_id.clone(),
+                        created_at: Utc::now().to_rfc3339(),
+                    },
+                )?;
             }
         }
     }
@@ -298,6 +329,13 @@ fn save_pending_mutation(
     conn: &rusqlite::Connection,
     mutation: &PendingMutation,
 ) -> Result<(), AppError> {
+    if mutation.remote_entry_id.trim().is_empty() {
+        return Err(DomainError::Validation(
+            "pending mutation remote_entry_id cannot be blank".to_string(),
+        )
+        .into());
+    }
+
     let replacement_types = mutation.mutation_type.replacement_type_values();
     let placeholders = std::iter::repeat_n("?", replacement_types.len())
         .collect::<Vec<_>>()
@@ -366,9 +404,11 @@ fn bulk_mark_account_read(
     conn: &rusqlite::Connection,
     account_id: &AccountId,
 ) -> Result<u64, AppError> {
-    let rows = collect_account_unread_rows(conn, account_id)?;
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let rows = collect_account_unread_rows(&tx, account_id)?;
     let count = rows.len() as u64;
-    mark_rows_read(conn, &rows)?;
+    mark_rows_read(&tx, &rows)?;
+    tx.commit().map_err(DomainError::from)?;
     Ok(count)
 }
 
@@ -376,9 +416,11 @@ fn bulk_mark_account_starred_read(
     conn: &rusqlite::Connection,
     account_id: &AccountId,
 ) -> Result<u64, AppError> {
-    let rows = collect_account_starred_unread_rows(conn, account_id)?;
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let rows = collect_account_starred_unread_rows(&tx, account_id)?;
     let count = rows.len() as u64;
-    mark_rows_read(conn, &rows)?;
+    mark_rows_read(&tx, &rows)?;
+    tx.commit().map_err(DomainError::from)?;
     Ok(count)
 }
 
@@ -388,9 +430,11 @@ fn bulk_mark_old_unread_read(
     target_id: &str,
     before: DateTime<Utc>,
 ) -> Result<u64, AppError> {
-    let rows = collect_old_unread_rows(conn, scope, target_id, before)?;
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let rows = collect_old_unread_rows(&tx, scope, target_id, before)?;
     let count = rows.len() as u64;
-    mark_rows_read(conn, &rows)?;
+    mark_rows_read(&tx, &rows)?;
+    tx.commit().map_err(DomainError::from)?;
     Ok(count)
 }
 
@@ -398,16 +442,18 @@ fn bulk_unstar_account_articles(
     conn: &rusqlite::Connection,
     account_id: &AccountId,
 ) -> Result<u64, AppError> {
-    let rows = collect_account_starred_rows(conn, account_id)?;
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let rows = collect_account_starred_rows(&tx, account_id)?;
     let count = rows.len() as u64;
     for row in &rows {
-        conn.execute(
+        tx.execute(
             "UPDATE articles SET is_starred = 0 WHERE id = ?1",
             rusqlite::params![row.article_id],
         )
         .map_err(DomainError::from)?;
     }
-    queue_bulk_pending_mutations(conn, &rows, PendingMutationType::Unstar)?;
+    queue_bulk_pending_mutations(&tx, &rows, PendingMutationType::Unstar)?;
+    tx.commit().map_err(DomainError::from)?;
     Ok(count)
 }
 
@@ -497,7 +543,8 @@ fn toggle_article_star_with_conn(
     article_id: ArticleId,
     starred: bool,
 ) -> Result<(), AppError> {
-    let repo = SqliteArticleRepository::new(conn);
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let repo = SqliteArticleRepository::new(&tx);
     repo.mark_as_starred(&article_id, starred)?;
 
     let mutation_type = if starred {
@@ -505,8 +552,28 @@ fn toggle_article_star_with_conn(
     } else {
         PendingMutationType::Unstar
     };
-    maybe_queue_mutation(conn, &article_id, mutation_type)?;
+    maybe_queue_mutation_in_current_transaction(&tx, &article_id, mutation_type)?;
 
+    tx.commit().map_err(DomainError::from)?;
+    Ok(())
+}
+
+fn mark_feed_read_with_conn(conn: &rusqlite::Connection, feed_id: FeedId) -> Result<(), AppError> {
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let rows = collect_feed_unread_rows(&tx, &feed_id)?;
+    mark_rows_read(&tx, &rows)?;
+    tx.commit().map_err(DomainError::from)?;
+    Ok(())
+}
+
+fn mark_folder_read_with_conn(
+    conn: &rusqlite::Connection,
+    folder_id: FolderId,
+) -> Result<(), AppError> {
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let rows = collect_folder_unread_rows(&tx, &folder_id)?;
+    mark_rows_read(&tx, &rows)?;
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
@@ -866,40 +933,7 @@ pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(),
         message: format!("Lock error: {e}"),
     })?;
     let feed_id = FeedId(feed_id);
-
-    // Collect unread article IDs *before* marking them read
-    let newly_read_ids: Vec<String> = db
-        .writer()
-        .prepare(
-            "SELECT a.id FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             JOIN accounts acc ON f.account_id = acc.id
-             WHERE a.feed_id = ?1 AND a.is_read = 0 AND a.remote_id IS NOT NULL
-             AND acc.kind = 'FreshRss'",
-        )
-        .and_then(|mut stmt| {
-            stmt.query_map(rusqlite::params![feed_id.0], |row| row.get::<_, String>(0))
-                .and_then(|rows| rows.collect())
-        })
-        .map_err(DomainError::from)?;
-
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_feed_as_read(&feed_id)?;
-
-    // Recalculate unread count for the feed
-    let feed_repo = SqliteFeedRepository::new(db.writer());
-    feed_repo.recalculate_unread_count(&feed_id)?;
-
-    // Queue pending mutations only for newly-marked articles
-    for article_id in &newly_read_ids {
-        maybe_queue_mutation(
-            db.writer(),
-            &ArticleId(article_id.clone()),
-            PendingMutationType::MarkRead,
-        )?;
-    }
-
-    Ok(())
+    mark_feed_read_with_conn(db.writer(), feed_id)
 }
 
 #[tauri::command]
@@ -908,55 +942,7 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
         message: format!("Lock error: {e}"),
     })?;
     let folder_id = FolderId(folder_id);
-
-    // Collect unread article IDs *before* marking them read
-    let newly_read_ids: Vec<String> = db
-        .writer()
-        .prepare(
-            "SELECT a.id FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             JOIN accounts acc ON f.account_id = acc.id
-             WHERE f.folder_id = ?1 AND a.is_read = 0 AND a.remote_id IS NOT NULL
-             AND acc.kind = 'FreshRss'",
-        )
-        .and_then(|mut stmt| {
-            stmt.query_map(rusqlite::params![folder_id.0], |row| {
-                row.get::<_, String>(0)
-            })
-            .and_then(|rows| rows.collect())
-        })
-        .map_err(DomainError::from)?;
-
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_folder_as_read(&folder_id)?;
-
-    // Recalculate unread counts for all feeds in the folder
-    let mut stmt = db
-        .writer()
-        .prepare("SELECT id FROM feeds WHERE folder_id = ?1")
-        .map_err(DomainError::from)?;
-    let folder_feed_ids: Vec<String> = stmt
-        .query_map(rusqlite::params![folder_id.0], |row| {
-            row.get::<_, String>(0)
-        })
-        .map_err(DomainError::from)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(DomainError::from)?;
-    let feed_repo = SqliteFeedRepository::new(db.writer());
-    for fid in folder_feed_ids {
-        feed_repo.recalculate_unread_count(&FeedId(fid))?;
-    }
-
-    // Queue pending mutations only for newly-marked articles
-    for article_id in &newly_read_ids {
-        maybe_queue_mutation(
-            db.writer(),
-            &ArticleId(article_id.clone()),
-            PendingMutationType::MarkRead,
-        )?;
-    }
-
-    Ok(())
+    mark_folder_read_with_conn(db.writer(), folder_id)
 }
 
 #[tauri::command]
@@ -973,6 +959,7 @@ pub fn toggle_article_star(
 }
 
 /// If the article belongs to a FreshRSS account and has a remote_id, insert a pending_mutation.
+#[cfg(test)]
 fn maybe_queue_mutation(
     conn: &rusqlite::Connection,
     article_id: &ArticleId,
@@ -1001,14 +988,16 @@ fn maybe_queue_mutation(
 
     if let Some((remote_entry_id, account_kind, account_id, feed_remote_id)) = row {
         if supports_remote_mutations(&account_kind, feed_remote_id.as_deref()) {
-            let pending_repo = SqlitePendingMutationRepository::new(conn);
-            pending_repo.save(&PendingMutation {
-                id: None,
-                account_id: AccountId(account_id),
-                mutation_type,
-                remote_entry_id,
-                created_at: chrono::Utc::now().to_rfc3339(),
-            })?;
+            save_pending_mutation(
+                conn,
+                &PendingMutation {
+                    id: None,
+                    account_id: AccountId(account_id),
+                    mutation_type,
+                    remote_entry_id,
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                },
+            )?;
         }
     }
 
@@ -1079,9 +1068,10 @@ pub fn search_articles(
 mod tests {
     use super::check_browser_embed_support;
     use super::{
-        article_command_pagination, bulk_mark_account_read, bulk_mark_old_unread_read,
-        bulk_unstar_account_articles, has_blocking_frame_ancestors, has_blocking_x_frame_options,
-        mark_article_read_with_conn, mark_articles_read_with_conn, maybe_queue_mutation,
+        article_command_pagination, bulk_mark_account_read, bulk_mark_account_starred_read,
+        bulk_mark_old_unread_read, bulk_unstar_account_articles, has_blocking_frame_ancestors,
+        has_blocking_x_frame_options, mark_article_read_with_conn, mark_articles_read_with_conn,
+        mark_feed_read_with_conn, mark_folder_read_with_conn, maybe_queue_mutation,
         parse_article_list_mode, recalculate_bulk_feed_unread_counts,
         record_article_view_with_conn, should_use_background_browser_open,
         supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
@@ -1090,7 +1080,7 @@ mod tests {
         MAX_ARTICLE_COMMAND_LIST_LIMIT,
     };
     use crate::commands::dto::AppError;
-    use crate::domain::types::{AccountId, ArticleId, FeedId};
+    use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::platform::{platform_info_for_kind, PlatformKind};
@@ -1495,6 +1485,16 @@ mod tests {
             .expect("article read state query should succeed")
     }
 
+    fn article_is_starred(db: &DbManager, article_id: &str) -> bool {
+        db.reader()
+            .query_row(
+                "SELECT is_starred FROM articles WHERE id = ?1",
+                rusqlite::params![article_id],
+                |row| row.get(0),
+            )
+            .expect("article starred state query should succeed")
+    }
+
     fn install_pending_mutation_insert_failure_trigger(db: &DbManager) {
         db.writer()
             .execute_batch(
@@ -1584,6 +1584,163 @@ mod tests {
         assert!(!article_is_read(&db, "article-a"));
         assert!(!article_is_read(&db, "article-b"));
         assert_eq!(feed_unread_count(&db, "feed-a"), 2);
+    }
+
+    #[test]
+    fn mark_feed_read_rolls_back_local_state_when_pending_mutation_queue_fails() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a'", [])
+            .expect("feed unread count setup should succeed");
+        install_pending_mutation_insert_failure_trigger(&db);
+
+        let error = mark_feed_read_with_conn(db.writer(), FeedId("feed-a".to_string()))
+            .expect_err("pending mutation queue failure should reject feed mark read");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message.contains("pending mutation insert failed")
+        ));
+        assert!(!article_is_read(&db, "article-a"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+    }
+
+    #[test]
+    fn mark_folder_read_rolls_back_local_state_when_pending_mutation_queue_fails() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES ('folder-a', 'acc-a', 'Folder', 0)",
+                [],
+            )
+            .expect("folder insert should succeed");
+        insert_bulk_feed(&db, "feed-a", "acc-a", Some("folder-a"), Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a'", [])
+            .expect("feed unread count setup should succeed");
+        install_pending_mutation_insert_failure_trigger(&db);
+
+        let error = mark_folder_read_with_conn(db.writer(), FolderId("folder-a".to_string()))
+            .expect_err("pending mutation queue failure should reject folder mark read");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message.contains("pending mutation insert failed")
+        ));
+        assert!(!article_is_read(&db, "article-a"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+    }
+
+    #[test]
+    fn bulk_account_and_old_unread_operations_roll_back_when_pending_mutation_queue_fails() {
+        let cases: [(&str, Box<dyn Fn(&DbManager) -> Result<u64, AppError>>); 4] = [
+            (
+                "account read",
+                Box::new(|db| bulk_mark_account_read(db.writer(), &AccountId("acc-a".to_string()))),
+            ),
+            (
+                "account starred read",
+                Box::new(|db| {
+                    bulk_mark_account_starred_read(db.writer(), &AccountId("acc-a".to_string()))
+                }),
+            ),
+            (
+                "old unread",
+                Box::new(|db| {
+                    let before = chrono::DateTime::parse_from_rfc3339("2026-04-02T00:00:00Z")
+                        .expect("timestamp should parse")
+                        .with_timezone(&chrono::Utc);
+                    bulk_mark_old_unread_read(db.writer(), OldUnreadScope::Account, "acc-a", before)
+                }),
+            ),
+            (
+                "account unstar",
+                Box::new(|db| {
+                    bulk_unstar_account_articles(db.writer(), &AccountId("acc-a".to_string()))
+                }),
+            ),
+        ];
+
+        for (name, run) in cases {
+            let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+            insert_bulk_account(&db, "acc-a", "FreshRss");
+            insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+            insert_bulk_article(
+                &db,
+                "article-a",
+                "feed-a",
+                Some("remote-a"),
+                "2026-04-01T00:00:00Z",
+                false,
+                true,
+            );
+            db.writer()
+                .execute("UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a'", [])
+                .expect("feed unread count setup should succeed");
+            install_pending_mutation_insert_failure_trigger(&db);
+
+            let error = run(&db).expect_err("bulk operation should reject queue failure");
+
+            assert!(matches!(
+                error,
+                AppError::UserVisible { ref message }
+                    if message.contains("pending mutation insert failed")
+            ));
+            assert!(!article_is_read(&db, "article-a"), "{name}");
+            assert!(article_is_starred(&db, "article-a"), "{name}");
+            assert_eq!(feed_unread_count(&db, "feed-a"), 1, "{name}");
+        }
+    }
+
+    #[test]
+    fn toggle_article_star_rolls_back_local_state_when_pending_mutation_queue_fails() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            true,
+            false,
+        );
+        install_pending_mutation_insert_failure_trigger(&db);
+
+        let error =
+            toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+                .expect_err("pending mutation queue failure should reject star toggle");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message.contains("pending mutation insert failed")
+        ));
+        assert!(!article_is_starred(&db, "article-a"));
     }
 
     #[test]
