@@ -1560,11 +1560,6 @@
   - z-index や pointer-events の数値が component 内に分散しており、overlay 追加のたびにどの layer が上に来るべきか review で判断する必要がある
   - semantic layer constants、CSS custom property、component snapshot、DESIGN/CLAUDE rule 化のどれで固定するか決める
 
-- [ ] P1 `safeInvoke` response validation error の detail 量と redaction を固定する
-  - 対象: `src/api/tauri-commands.ts`, `src/schemas/parse.ts`, `src/api/schemas/error.ts`
-  - Zod response parse failure 時に issue path/message を連結して user-visible message と console に出すため、巨大 payload や URL/token を含む malformed response で log/toast が過剰になりやすい
-  - issue count cap、message length cap、URL/userinfo/query redaction、console-only detail、user-facing generic message の lib test を追加する
-
 - [ ] P1 command args schema の id fields を non-blank trimmed contract に寄せる
   - 対象: `src/api/schemas/commands.ts`, `src/hooks/create-query.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`
   - 多くの command args が `z.string()` のままなので、空白だけの account/feed/article/tag id が frontend schema を通り、Rust 側の missing target policy へ遅れて到達しやすい
@@ -1589,16 +1584,6 @@
   - 対象: `src/api/schemas/index.ts`, `src/__tests__/api/schema-barrel-public-api.test.ts`
   - public export list を test 側にも手で持っているため、schema 追加時に barrel だけ/テストだけ更新されると公開 contract の意図が review で分かりにくい
   - source file inventory、runtime export snapshot、type-only export policy、intentional private schema allowlist の test へ整理する
-
-- [ ] P2 PreferencesDto の unknown key passthrough を size / prefix / retirement policy で固定する
-  - 対象: `src/api/schemas/preferences.ts`, `src/schemas/preferences.ts`, `src/stores/preferences-store.ts`
-  - backend から来た unknown preference を passthrough として保持できるため、typo、retired key、巨大 key/value、extension-like prefix が UI store に残り続ける可能性がある
-  - max entries、key/value byte cap、known prefix allowlist、retired key cleanup、typo warning once の schema/store test を追加する
-
-- [ ] P2 preference defaults と settings locale label の coverage を key 単位で照合する
-  - 対象: `src/schemas/preferences.ts`, `src/locales/*/settings.json`, `src/components/settings/**`
-  - preference key は schema/default/UI/locale にまたがるため、新しい key 追加時に label/help text/reset default のどれかが欠けると settings だけ silent regression になる
-  - visible preference key inventory、hidden preference exception、locale key mapping、settings row coverage、reset default behavior の repo contract test を追加する
 
 - [ ] P2 i18n plural / count key の fallback 表示を locale contract にする
   - 対象: `src/locales/*/*.json`, `src/lib/i18n-resources.ts`, `src/__tests__/lib/i18next-locale-contract.test.ts`
