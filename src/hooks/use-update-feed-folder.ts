@@ -38,9 +38,21 @@ export function useUpdateFeedFolder() {
     onSuccess: () => {
       invalidateFeedQueries(qc, { includeFolders: false });
     },
-    onError: (error, _variables, context) => {
+    onError: (error, variables, context) => {
       for (const [queryKey, previousFeeds] of context?.previousFeedsQueries ?? []) {
-        qc.setQueryData(queryKey, previousFeeds);
+        qc.setQueryData<FeedDto[]>(queryKey, (currentFeeds) => {
+          if (!currentFeeds) {
+            return previousFeeds;
+          }
+
+          return currentFeeds.map((feed) => {
+            if (feed.id !== variables.feedId || feed.folder_id !== variables.folderId) {
+              return feed;
+            }
+
+            return previousFeeds?.find((previousFeed) => previousFeed.id === variables.feedId) ?? feed;
+          });
+        });
       }
       showToast(t("failed_to_update_folder", { message: error.message }));
     },
