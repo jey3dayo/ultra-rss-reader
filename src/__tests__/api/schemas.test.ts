@@ -780,6 +780,24 @@ describe("PreferencesDtoSchema", () => {
     expect(() => PreferencesDtoSchema.parse({ theme: null })).toThrow();
     expect(() => PreferencesDtoSchema.parse({ theme: true })).toThrow();
   });
+
+  it("keeps API preference result parsing limited to string records", () => {
+    expect(
+      PreferencesDtoSchema.parse({
+        theme: "midnight",
+        shortcut_next_article: "   ",
+        selected_account_id: "acc-1",
+      }),
+    ).toEqual({
+      theme: "midnight",
+      shortcut_next_article: "   ",
+      selected_account_id: "acc-1",
+    });
+
+    expect(() => PreferencesDtoSchema.parse({ theme: 1 })).toThrow();
+    expect(() => PreferencesDtoSchema.parse([])).toThrow();
+    expect(() => PreferencesDtoSchema.parse(null)).toThrow();
+  });
 });
 
 describe("BrowserWebviewStateSchema", () => {

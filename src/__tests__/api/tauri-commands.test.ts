@@ -27,6 +27,7 @@ import {
   getAccountSyncStatus,
   getDatabaseInfo,
   getPlatformInfo,
+  getPreferences,
   goBackBrowserWebview,
   goForwardBrowserWebview,
   listAccountArticles,
@@ -928,6 +929,42 @@ describe("safeInvoke response validation", () => {
       expect(error.type).toBe("UserVisible");
       expect(error.message).toContain("validation failed");
     }
+  });
+
+  it("validates getPreferences responses as string records without preference value normalization", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_preferences") {
+        return {
+          theme: "midnight",
+          shortcut_next_article: "   ",
+          selected_account_id: "acc-1",
+        };
+      }
+      return null;
+    });
+
+    expect(Result.unwrap(await getPreferences())).toEqual({
+      theme: "midnight",
+      shortcut_next_article: "   ",
+      selected_account_id: "acc-1",
+    });
+  });
+
+  it("rejects malformed getPreferences responses", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_preferences") {
+        return {
+          theme: null,
+        };
+      }
+      return null;
+    });
+
+    const result = await getPreferences();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).type).toBe("UserVisible");
+    expect(Result.unwrapError(result).message).toContain("validation failed");
   });
 });
 
