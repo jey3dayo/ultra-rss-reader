@@ -73,10 +73,10 @@ function normalizePathForComparison(value: string): string {
 function splitCommandLine(commandLine: string): string[] {
   const args: string[] = [];
   const pattern = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^']*)'|(\S+)/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = pattern.exec(commandLine)) !== null) {
+  let match = pattern.exec(commandLine);
+  while (match !== null) {
     args.push(match[1] ?? match[2] ?? match[3] ?? "");
+    match = pattern.exec(commandLine);
   }
 
   return args;
@@ -405,7 +405,7 @@ export async function runTauriDevViteManager({
     stopProcessImpl(existingProcess.pid);
     try {
       await waitForPortToBeFreeImpl(port);
-    } catch (error) {
+    } catch (_error) {
       log(
         `[tauri-dev-vite-manager] existing Vite dev server did not stop after SIGTERM; sending SIGKILL to pid ${existingProcess.pid}`,
       );
