@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { STORAGE_KEYS } from "@/constants/storage";
+import { MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
@@ -21,7 +21,17 @@ function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
       return {};
     }
 
-    const parsed = parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema) ?? {};
+    if (raw.length > MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH) {
+      window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
+      return {};
+    }
+
+    const parsed = parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema);
+    if (!parsed) {
+      window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
+      return {};
+    }
+
     const normalized = JSON.stringify(parsed);
     if (raw !== normalized) {
       window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, normalized);

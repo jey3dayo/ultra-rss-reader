@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from "@/constants/storage";
+import { MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
 type CommandHistoryStorageFailureKind = "unavailable" | "normalize" | "read" | "write" | "clear";
@@ -60,6 +60,16 @@ function writeNormalizedHistory(storage: Storage, raw: string, history: readonly
   }
 }
 
+function removeInvalidHistory(storage: Storage): void {
+  try {
+    storage.removeItem(STORAGE_KEYS.commandHistory);
+    resetCommandHistoryStorageFailure("normalize");
+  } catch (error) {
+    warnCommandHistoryStorageFailureOnce("normalize", "Failed to normalize command history in localStorage.", error);
+    // Ignore cleanup failures; callers can still fall back to an empty in-memory history.
+  }
+}
+
 export function getHistory(): string[] {
   const storage = readStorage();
   if (!storage) {
@@ -73,8 +83,22 @@ export function getHistory(): string[] {
       return [];
     }
 
-    const result = CommandHistoryStorageSchema.safeParse(JSON.parse(raw) as unknown);
+    if (raw.length > MAX_COMMAND_HISTORY_STORAGE_LENGTH) {
+      removeInvalidHistory(storage);
+      return [];
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw) as unknown;
+    } catch {
+      removeInvalidHistory(storage);
+      return [];
+    }
+
+    const result = CommandHistoryStorageSchema.safeParse(parsed);
     if (!result.success) {
+      removeInvalidHistory(storage);
       return [];
     }
 

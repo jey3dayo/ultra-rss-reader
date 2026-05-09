@@ -9,6 +9,7 @@ import {
 import {
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+  MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
   STORAGE_KEYS,
 } from "@/constants/storage";
 
@@ -357,6 +358,59 @@ describe("useSidebarStartupFolderExpansion", () => {
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
       "acc-1": ["folder-restored"],
     });
+  });
+
+  it("cleans corrupted sidebar expansion storage before restoring folders", async () => {
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, "not-json");
+
+    const { result } = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set());
+    });
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders)).toBe("{}");
+  });
+
+  it("cleans oversized raw sidebar expansion storage before parsing it", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      `"${"x".repeat(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH + 1)}"`,
+    );
+
+    const { result } = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set());
+    });
+    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders)).toBe("{}");
   });
 
   it("keeps the active account inside oversized sidebar expansion storage", async () => {

@@ -5,7 +5,7 @@ import {
   compactCommandHistory,
   getHistory,
 } from "@/components/reader/hooks/command-palette/use-command-history";
-import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
+import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 
 describe("use-command-history", () => {
   beforeEach(() => {
@@ -24,12 +24,21 @@ describe("use-command-history", () => {
     localStorage.setItem(STORAGE_KEYS.commandHistory, "not-json");
 
     expect(getHistory()).toEqual([]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
   });
 
   it("returns an empty array for non-array stored data", () => {
     localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify({ id: "feed-1" }));
 
     expect(getHistory()).toEqual([]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
+  });
+
+  it("cleans oversized raw history before parsing it", () => {
+    localStorage.setItem(STORAGE_KEYS.commandHistory, `"${"x".repeat(MAX_COMMAND_HISTORY_STORAGE_LENGTH + 1)}"`);
+
+    expect(getHistory()).toEqual([]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
   });
 
   it("discards non-string and blank entries from stored history", () => {
