@@ -160,11 +160,6 @@
   - settings modal 内のカテゴリ/アカウント切替が `aria-current` と `aria-pressed` を併用しており、navigation / tabs / radio 相当の操作モデルが曖昧
   - 現行 keyboard 操作を維持するか arrow key selection を足すか決め、selected state の role/aria contract を test で固定する
 
-- [ ] P2 sidebar expanded folders localStorage の prune / write contract を固定する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/schemas/storage.ts`, `src/constants/storage.ts`
-  - expanded folders は localStorage 永続化だが、保存時にも schema cap/prune を通さないと古い account id や巨大 map が残り続けやすい
-  - 保存時の account/folder id normalization と上限を適用し、unknown account accumulation、oversized map、storage write failure の test を追加する
-
 - [ ] P2 feed folder update の missing folder / concurrent delete message を分ける
   - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`
   - `feed not found or folder does not belong to feed account` に missing feed、missing folder、cross-account folder、concurrent folder delete が混ざると、UI rollback と toast の原因分類ができない
