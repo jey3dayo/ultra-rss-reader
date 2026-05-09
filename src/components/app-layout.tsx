@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useLayoutEffect, useRef } from "react";
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } from "../hooks/use-layout";
@@ -36,7 +36,9 @@ function disableHiddenPaneFocus(root: HTMLElement) {
     if (!element.hasAttribute(PREVIOUS_TAB_INDEX_ATTRIBUTE)) {
       element.setAttribute(PREVIOUS_TAB_INDEX_ATTRIBUTE, element.getAttribute("tabindex") ?? "");
     }
-    element.setAttribute("tabindex", "-1");
+    if (element.getAttribute("tabindex") !== "-1") {
+      element.setAttribute("tabindex", "-1");
+    }
   }
 
   if (document.activeElement instanceof HTMLElement && root.contains(document.activeElement)) {
@@ -85,7 +87,16 @@ function HiddenPaneBoundary({
 
     if (hidden) {
       disableHiddenPaneFocus(pane);
-      return;
+
+      const observer = new MutationObserver(() => disableHiddenPaneFocus(pane));
+      observer.observe(pane, {
+        attributes: true,
+        attributeFilter: ["tabindex"],
+        childList: true,
+        subtree: true,
+      });
+
+      return () => observer.disconnect();
     }
 
     restoreHiddenPaneFocus(pane);
