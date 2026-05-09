@@ -20,6 +20,7 @@ use crate::repository::folder::FolderRepository;
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+const OPML_GENERATE_ERROR_MESSAGE: &str = "Failed to generate OPML export";
 
 #[tauri::command]
 pub fn import_opml(
@@ -74,7 +75,7 @@ fn import_opml_in_db(
         folder_cache.insert(folder_cache_key(&f.name), f.id.clone());
     }
 
-    let mut sort_order = existing_folders.len() as i32;
+    let mut sort_order = next_import_folder_sort_order(&existing_folders);
 
     for opml_feed in parsed_feeds {
         // Skip if feed with same URL already exists
@@ -239,7 +240,20 @@ pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<Str
 
     let opml_feeds = build_export_opml_feeds(feeds, folders);
 
-    Ok(opml::generate_opml(&title, &opml_feeds))
+    opml::generate_opml(&title, &opml_feeds).map_err(|message| {
+        tracing::error!(error = %message, "failed to generate OPML export");
+        AppError::UserVisible {
+            message: OPML_GENERATE_ERROR_MESSAGE.to_string(),
+        }
+    })
+}
+
+fn next_import_folder_sort_order(existing_folders: &[Folder]) -> i32 {
+    existing_folders
+        .iter()
+        .map(|folder| folder.sort_order)
+        .max()
+        .map_or(0, |sort_order| sort_order.saturating_add(1))
 }
 
 fn build_export_opml_feeds(feeds: Vec<Feed>, folders: Vec<Folder>) -> Vec<OpmlFeed> {
@@ -317,11 +331,45 @@ mod tests {
     }
 
     fn insert_test_folder(db: &DbManager, account_id: &AccountId, name: &str) -> FolderId {
+        insert_test_folder_with_sort_order(db, account_id, name, 0)
+    }
+
+    fn insert_test_folder_with_sort_order(
+        db: &DbManager,
+        account_id: &AccountId,
+        name: &str,
+        sort_order: i32,
+    ) -> FolderId {
         let id = FolderId::new();
         db.writer()
             .execute(
                 "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
-                params![id.0, account_id.0, name, 0],
+                params![id.0, account_id.0, name, sort_order],
+            )
+            .unwrap();
+        id
+    }
+
+    fn insert_test_feed(
+        db: &DbManager,
+        account_id: &AccountId,
+        folder_id: Option<&FolderId>,
+        title: &str,
+        url: &str,
+    ) -> FeedId {
+        let id = FeedId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    id.0,
+                    account_id.0,
+                    folder_id.map(|id| id.0.as_str()),
+                    title,
+                    url,
+                    ""
+                ],
             )
             .unwrap();
         id
@@ -596,6 +644,171 @@ mod tests {
     }
 
     #[test]
+    fn import_skips_duplicate_urls_within_same_file_and_keeps_first_feed() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let parsed_feeds = vec![
+            OpmlFeed {
+                title: "First Title".to_string(),
+                xml_url: "https://example.com/shared.xml".to_string(),
+                html_url: Some("https://example.com/first".to_string()),
+                folder: Some("First Folder".to_string()),
+            },
+            OpmlFeed {
+                title: "Second Title".to_string(),
+                xml_url: "https://example.com/shared.xml".to_string(),
+                html_url: Some("https://example.com/second".to_string()),
+                folder: Some("Second Folder".to_string()),
+            },
+        ];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "First Title");
+        assert_eq!(feeds[0].url, "https://example.com/shared.xml");
+        let saved = db
+            .reader()
+            .query_row(
+                "SELECT feeds.title, feeds.site_url, folders.name
+                 FROM feeds
+                 LEFT JOIN folders ON feeds.folder_id = folders.id
+                 WHERE feeds.url = ?1",
+                params!["https://example.com/shared.xml"],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .unwrap();
+        let folder_names = db
+            .reader()
+            .prepare("SELECT name FROM folders ORDER BY name")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(
+            saved,
+            (
+                "First Title".to_string(),
+                "https://example.com/first".to_string(),
+                "First Folder".to_string()
+            )
+        );
+        assert_eq!(folder_names, vec!["First Folder"]);
+    }
+
+    #[test]
+    fn import_skips_existing_url_without_overwriting_or_moving_folder() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let existing_folder_id = insert_test_folder(&db, &account_id, "Existing Folder");
+        insert_test_feed(
+            &db,
+            &account_id,
+            Some(&existing_folder_id),
+            "Existing Title",
+            "https://example.com/shared.xml",
+        );
+        let parsed_feeds = vec![OpmlFeed {
+            title: "Imported Title".to_string(),
+            xml_url: "https://example.com/shared.xml".to_string(),
+            html_url: Some("https://example.com/imported".to_string()),
+            folder: Some("Imported Folder".to_string()),
+        }];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert!(feeds.is_empty());
+        let saved = db
+            .reader()
+            .query_row(
+                "SELECT feeds.title, feeds.site_url, folders.name
+                 FROM feeds
+                 LEFT JOIN folders ON feeds.folder_id = folders.id
+                 WHERE feeds.url = ?1",
+                params!["https://example.com/shared.xml"],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .unwrap();
+        let folder_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+            .unwrap();
+
+        assert_eq!(
+            saved,
+            (
+                "Existing Title".to_string(),
+                String::new(),
+                "Existing Folder".to_string()
+            )
+        );
+        assert_eq!(folder_count, 1);
+    }
+
+    #[test]
+    fn import_assigns_new_folder_sort_order_after_existing_max_order() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        insert_test_folder_with_sort_order(&db, &account_id, "Duplicate Low", 2);
+        insert_test_folder_with_sort_order(&db, &account_id, "Duplicate High", 2);
+        insert_test_folder_with_sort_order(&db, &account_id, "Gap High", 10);
+        let parsed_feeds = vec![
+            OpmlFeed {
+                title: "Alpha".to_string(),
+                xml_url: "https://example.com/alpha.xml".to_string(),
+                html_url: None,
+                folder: Some("Imported A".to_string()),
+            },
+            OpmlFeed {
+                title: "Beta".to_string(),
+                xml_url: "https://example.com/beta.xml".to_string(),
+                html_url: None,
+                folder: Some("Imported B".to_string()),
+            },
+        ];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        let imported_orders = db
+            .reader()
+            .prepare(
+                "SELECT name, sort_order FROM folders
+                 WHERE name LIKE 'Imported %'
+                 ORDER BY sort_order, name",
+            )
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(
+            imported_orders,
+            vec![
+                ("Imported A".to_string(), 11),
+                ("Imported B".to_string(), 12)
+            ]
+        );
+    }
+
+    #[test]
     fn import_rolls_back_created_folders_when_feed_save_fails() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
@@ -717,7 +930,7 @@ mod tests {
         ];
 
         let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
-        let xml = opml::generate_opml("Primary & Local", &opml_feeds);
+        let xml = opml::generate_opml("Primary & Local", &opml_feeds).unwrap();
         let parsed = opml::parse_opml(&xml).unwrap();
 
         assert_eq!(parsed, opml_feeds);

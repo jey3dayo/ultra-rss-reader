@@ -118,44 +118,44 @@ fn outline_title_or_url(attrs: &HashMap<String, String>, xml_url: &str) -> Strin
 
 /// Generate OPML 2.0 XML from a list of feeds.
 /// Feeds with a folder are grouped under a folder outline; feeds without a folder are top-level.
-pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
+pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> Result<String, String> {
     let mut buf = Cursor::new(Vec::new());
     let mut writer = Writer::new_with_indent(&mut buf, b' ', 2);
 
     // XML declaration
     writer
         .write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))
-        .expect("write xml decl");
+        .map_err(|error| format!("OPML generate error: write xml decl failed: {error}"))?;
 
     // <opml version="2.0">
     let mut opml_start = BytesStart::new("opml");
     opml_start.push_attribute(("version", "2.0"));
     writer
         .write_event(Event::Start(opml_start))
-        .expect("write opml start");
+        .map_err(|error| format!("OPML generate error: write opml start failed: {error}"))?;
 
     // <head><title>...</title></head>
     writer
         .write_event(Event::Start(BytesStart::new("head")))
-        .expect("write head start");
+        .map_err(|error| format!("OPML generate error: write head start failed: {error}"))?;
     writer
         .write_event(Event::Start(BytesStart::new("title")))
-        .expect("write title start");
+        .map_err(|error| format!("OPML generate error: write title start failed: {error}"))?;
     let safe_title = sanitize_xml_value(title);
     writer
         .write_event(Event::Text(BytesText::new(&safe_title)))
-        .expect("write title text");
+        .map_err(|error| format!("OPML generate error: write title text failed: {error}"))?;
     writer
         .write_event(Event::End(BytesEnd::new("title")))
-        .expect("write title end");
+        .map_err(|error| format!("OPML generate error: write title end failed: {error}"))?;
     writer
         .write_event(Event::End(BytesEnd::new("head")))
-        .expect("write head end");
+        .map_err(|error| format!("OPML generate error: write head end failed: {error}"))?;
 
     // <body>
     writer
         .write_event(Event::Start(BytesStart::new("body")))
-        .expect("write body start");
+        .map_err(|error| format!("OPML generate error: write body start failed: {error}"))?;
 
     // Group feeds: folder_name -> feeds, preserving insertion order
     let mut folder_order: Vec<String> = Vec::new();
@@ -185,36 +185,40 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
         folder_elem.push_attribute(("title", safe_folder_name.as_ref()));
         writer
             .write_event(Event::Start(folder_elem))
-            .expect("write folder start");
+            .map_err(|error| format!("OPML generate error: write folder start failed: {error}"))?;
 
         if let Some(folder_items) = folder_feeds.get(folder_name) {
             for feed in folder_items {
-                write_feed_outline(&mut writer, feed);
+                write_feed_outline(&mut writer, feed)?;
             }
         }
 
         writer
             .write_event(Event::End(BytesEnd::new("outline")))
-            .expect("write folder end");
+            .map_err(|error| format!("OPML generate error: write folder end failed: {error}"))?;
     }
 
     // Write top-level feeds
     for feed in &top_level {
-        write_feed_outline(&mut writer, feed);
+        write_feed_outline(&mut writer, feed)?;
     }
 
     // </body></opml>
     writer
         .write_event(Event::End(BytesEnd::new("body")))
-        .expect("write body end");
+        .map_err(|error| format!("OPML generate error: write body end failed: {error}"))?;
     writer
         .write_event(Event::End(BytesEnd::new("opml")))
-        .expect("write opml end");
+        .map_err(|error| format!("OPML generate error: write opml end failed: {error}"))?;
 
-    String::from_utf8(buf.into_inner()).expect("valid utf-8")
+    String::from_utf8(buf.into_inner())
+        .map_err(|error| format!("OPML generate error: invalid utf-8 output: {error}"))
 }
 
-fn write_feed_outline<W: std::io::Write>(writer: &mut Writer<W>, feed: &OpmlFeed) {
+fn write_feed_outline<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    feed: &OpmlFeed,
+) -> Result<(), String> {
     let safe_title = sanitize_xml_value(&feed.title);
     let safe_xml_url = sanitize_xml_value(&feed.xml_url);
     let safe_html_url = feed.html_url.as_deref().map(sanitize_xml_value);
@@ -229,7 +233,8 @@ fn write_feed_outline<W: std::io::Write>(writer: &mut Writer<W>, feed: &OpmlFeed
     }
     writer
         .write_event(Event::Empty(elem))
-        .expect("write feed outline");
+        .map_err(|error| format!("OPML generate error: write feed outline failed: {error}"))?;
+    Ok(())
 }
 
 fn sanitize_xml_value(value: &str) -> Cow<'_, str> {
@@ -490,7 +495,7 @@ mod tests {
             },
         ];
 
-        let xml = generate_opml("My Feeds", &feeds);
+        let xml = generate_opml("My Feeds", &feeds).unwrap();
 
         // Basic structure checks
         assert!(xml.contains(r#"<?xml version="1.0" encoding="UTF-8"?>"#));
@@ -523,7 +528,7 @@ mod tests {
             },
         ];
 
-        let xml = generate_opml("Round Trip Test", &original);
+        let xml = generate_opml("Round Trip Test", &original).unwrap();
         let parsed = parse_opml(&xml).unwrap();
 
         assert_eq!(parsed.len(), original.len());
@@ -537,14 +542,14 @@ mod tests {
 
     #[test]
     fn generate_opml_empty_feeds() {
-        let xml = generate_opml("Empty", &[]);
+        let xml = generate_opml("Empty", &[]).unwrap();
         let parsed = parse_opml(&xml).unwrap();
         assert!(parsed.is_empty());
     }
 
     #[test]
     fn generate_opml_escapes_head_title_once() {
-        let xml = generate_opml("Team & Research <Daily>", &[]);
+        let xml = generate_opml("Team & Research <Daily>", &[]).unwrap();
 
         assert!(xml.contains("<title>Team &amp; Research &lt;Daily&gt;</title>"));
         assert!(!xml.contains("&amp;amp;"));
@@ -560,7 +565,7 @@ mod tests {
             folder: Some("Folder \"quotes\"".to_string()),
         }];
 
-        let xml = generate_opml("Test & Title", &feeds);
+        let xml = generate_opml("Test & Title", &feeds).unwrap();
         assert!(xml.contains("<title>Test &amp; Title</title>"));
         assert!(!xml.contains("&amp;amp;"));
 
@@ -582,7 +587,7 @@ mod tests {
             folder: Some("Folder\u{C}Name".to_string()),
         }];
 
-        let xml = generate_opml("Title\u{0}Name", &feeds);
+        let xml = generate_opml("Title\u{0}Name", &feeds).unwrap();
         assert!(!xml.contains('\u{0}'));
         assert!(!xml.contains('\u{1}'));
         assert!(!xml.contains('\u{8}'));
@@ -613,7 +618,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        let xml = generate_opml("Large & Export", &feeds);
+        let xml = generate_opml("Large & Export", &feeds).unwrap();
         let parsed = parse_opml(&xml).unwrap();
 
         assert_eq!(parsed.len(), feeds.len());
