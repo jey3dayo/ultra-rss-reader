@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 use tracing::warn;
 
@@ -137,7 +138,20 @@ pub(crate) fn should_emit_sync_warning(result: &SyncResult) -> bool {
 
 fn emit_sync_warning_event(app_handle: &tauri::AppHandle, result: &SyncResult) {
     if should_emit_sync_warning(result) {
-        let _ = app_handle.emit(SYNC_WARNING_EVENT, result.warnings.clone());
+        emit_sync_event_log_only(app_handle, SYNC_WARNING_EVENT, result.warnings.clone());
+    }
+}
+
+fn sync_event_emit_warning(event: &str, error: &impl std::fmt::Display) -> String {
+    format!("Failed to emit {event} event after sync: {error}")
+}
+
+fn emit_sync_event_log_only<S>(app_handle: &AppHandle, event: &str, payload: S)
+where
+    S: Serialize + Clone,
+{
+    if let Err(error) = app_handle.emit(event, payload) {
+        warn!("{}", sync_event_emit_warning(event, &error));
     }
 }
 
@@ -498,9 +512,9 @@ pub async fn trigger_startup_sync(
         );
     }
     if sync_result.synced {
-        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&sync_result) {
-            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
         }
     }
     Ok(sync_result)
@@ -625,9 +639,9 @@ pub async fn trigger_sync(
             state.automatic_sync_notify.as_ref(),
         );
         emit_sync_warning_event(&app_handle, &result);
-        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
-            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
         }
     }
     Ok(result)
@@ -652,9 +666,9 @@ pub async fn trigger_automatic_sync(
     .await?;
     if result.synced {
         emit_sync_warning_event(&app_handle, &result);
-        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
-            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
         }
     }
     Ok(result)
@@ -753,9 +767,9 @@ pub async fn trigger_sync_account(
     reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
         emit_sync_warning_event(&app_handle, &result);
-        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
-            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
         }
     }
     Ok(result)
@@ -858,9 +872,9 @@ pub async fn trigger_sync_feed(
     reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
         emit_sync_warning_event(&app_handle, &result);
-        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
-            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
         }
     }
     Ok(result)
@@ -987,6 +1001,16 @@ mod tests {
         };
 
         assert!(should_emit_sync_warning(&result));
+    }
+
+    #[test]
+    fn sync_event_emit_warning_names_failed_event_without_failing_sync() {
+        let warning = sync_event_emit_warning(SYNC_COMPLETED_EVENT, &"listener unavailable");
+
+        assert_eq!(
+            warning,
+            "Failed to emit sync-completed event after sync: listener unavailable"
+        );
     }
 
     #[test]
