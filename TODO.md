@@ -205,11 +205,6 @@
   - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
   - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
 
-- [ ] feed display mode optimistic cancel 候補を追加する
-  - `src/hooks/use-update-feed-display-mode.ts` で楽観更新前に `feeds` query を cancel し、in-flight `listFeeds` が display mode を巻き戻さないようにする
-  - `src/__tests__/hooks/use-update-feed-display-mode.test.tsx` で未解決 refetch 中の display mode 更新が古い result に上書きされないことを確認する
-  - `useUpdateFeedFolder` との contract parity に限定し、feed settings UI 変更とは混ぜない
-
 - [ ] updater startup check unmount guard 候補を追加する
   - `src/hooks/use-updater.ts` の startup update check promise に cancelled guard を追加し、unmount 後に toast / warn が出ないようにする
   - `src/__tests__/hooks/use-updater.test.ts` で `useUpdater` unmount 後に startup check が resolve しても update toast が出ないことを確認する
