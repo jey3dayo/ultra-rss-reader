@@ -1,0 +1,75 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { useArticleTagPickerPopover } from "@/components/reader/hooks/article/use-article-tag-picker-popover";
+
+type HookHarnessProps = {
+  availableTagCount: number;
+  onExpandedChange: (expanded: boolean) => void;
+  onParentKeyDown: () => void;
+};
+
+function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: HookHarnessProps) {
+  const tags = Array.from({ length: availableTagCount }, (_, index) => ({
+    id: `tag-${index + 1}`,
+    name: `Tag ${index + 1}`,
+  }));
+  const { tagOptionRefs, handleListboxKeyDown } = useArticleTagPickerPopover({
+    isExpanded: true,
+    availableTagCount,
+    onExpandedChange,
+    onNewTagNameChange: vi.fn(),
+  });
+
+  return (
+    <fieldset onKeyDown={onParentKeyDown}>
+      <legend>Tag picker harness</legend>
+      <div role="listbox" aria-label="Available tags" onKeyDown={handleListboxKeyDown}>
+        {tags.map((tag, index) => (
+          <button
+            key={tag.id}
+            ref={(element) => {
+              tagOptionRefs.current[index] = element;
+            }}
+            type="button"
+            role="option"
+          >
+            {tag.name}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+describe("useArticleTagPickerPopover", () => {
+  it("owns Escape, Arrow, Home, and End listbox keyboard behavior", () => {
+    const onExpandedChange = vi.fn();
+    const onParentKeyDown = vi.fn();
+
+    render(<HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={onParentKeyDown} />);
+
+    const listbox = screen.getByRole("listbox", { name: "Available tags" });
+    const firstOption = screen.getByRole("option", { name: "Tag 1" });
+    const middleOption = screen.getByRole("option", { name: "Tag 2" });
+    const lastOption = screen.getByRole("option", { name: "Tag 3" });
+
+    middleOption.focus();
+    expect(middleOption).toHaveFocus();
+
+    expect(fireEvent.keyDown(listbox, { key: "End" })).toBe(false);
+    expect(lastOption).toHaveFocus();
+
+    expect(fireEvent.keyDown(listbox, { key: "Home" })).toBe(false);
+    expect(firstOption).toHaveFocus();
+
+    expect(fireEvent.keyDown(listbox, { key: "ArrowUp" })).toBe(false);
+    expect(lastOption).toHaveFocus();
+
+    expect(fireEvent.keyDown(listbox, { key: "ArrowDown" })).toBe(false);
+    expect(firstOption).toHaveFocus();
+
+    expect(fireEvent.keyDown(listbox, { key: "Escape" })).toBe(false);
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+    expect(onParentKeyDown).not.toHaveBeenCalled();
+  });
+});
