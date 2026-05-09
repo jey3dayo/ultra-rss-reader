@@ -118,5 +118,12 @@ describe("browser-webview-sync-helpers", () => {
         createBrowserState({ is_loading: false }),
       ),
     ).toBe(false);
+    expect(
+      shouldApplySyncedBrowserState(
+        createBrowserState({ is_loading: true }),
+        "https://example.com/article",
+        createBrowserState({ url: "https://example.com/other", is_loading: false }),
+      ),
+    ).toBe(false);
   });
 });

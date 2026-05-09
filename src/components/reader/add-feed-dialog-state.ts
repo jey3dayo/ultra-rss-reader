@@ -50,7 +50,7 @@ export function addFeedDialogReducer(state: AddFeedDialogState, action: AddFeedD
       return {
         ...state,
         discovering: false,
-        discoveredFeeds: action.feeds[0]?.title ? action.feeds : [],
+        discoveredFeeds: action.feeds[0] && hasDiscoveredFeedTitle(action.feeds[0]) ? action.feeds : [],
         selectedFeedUrl: action.feeds[0]?.url ?? null,
         successMessage: "feed_detected",
       };
@@ -113,18 +113,30 @@ function buildFeedDescription(url: string): string {
   }
 }
 
+function getDiscoveredFeedLabel(feed: DiscoveredFeedDto): string {
+  const title = feed.title.trim();
+  return title.length > 0 ? title : feed.url;
+}
+
+function hasDiscoveredFeedTitle(feed: DiscoveredFeedDto): boolean {
+  return feed.title.trim().length > 0;
+}
+
 function buildDiscoveredFeedOptions(feeds: DiscoveredFeedDto[]) {
   const labelCounts = new Map<string, number>();
   for (const feed of feeds) {
-    const label = feed.title || feed.url;
+    const label = getDiscoveredFeedLabel(feed);
     labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
   }
 
-  return feeds.map((feed) => ({
-    value: feed.url,
-    label: feed.title || feed.url,
-    description: (labelCounts.get(feed.title || feed.url) ?? 0) > 1 ? buildFeedDescription(feed.url) : undefined,
-  }));
+  return feeds.map((feed) => {
+    const label = getDiscoveredFeedLabel(feed);
+    return {
+      value: feed.url,
+      label,
+      description: (labelCounts.get(label) ?? 0) > 1 ? buildFeedDescription(feed.url) : undefined,
+    };
+  });
 }
 
 export function resolveAddFeedDialogDerived({

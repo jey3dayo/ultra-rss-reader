@@ -33,6 +33,17 @@ describe("addFeedDialogReducer", () => {
     expect(next.discoveredFeeds).toEqual([]);
     expect(next.selectedFeedUrl).toBe("https://example.com/feed.xml");
   });
+
+  it("treats whitespace-only titles as untitled for discover-single success message", () => {
+    const next = addFeedDialogReducer(createInitialAddFeedDialogState(), {
+      type: "discover-single",
+      feeds: [{ url: "https://example.com/feed.xml", title: "   " }],
+    });
+
+    expect(next.successMessage).toBe("feed_detected");
+    expect(next.discoveredFeeds).toEqual([]);
+    expect(next.selectedFeedUrl).toBe("https://example.com/feed.xml");
+  });
 });
 
 describe("isValidFeedUrl", () => {
@@ -116,6 +127,29 @@ describe("resolveAddFeedDialogDerived", () => {
       state: {
         ...createInitialAddFeedDialogState(),
         discoveredFeeds: [{ title: "", url: "https://example.com/feed.xml" }],
+      },
+      folderSelection: {
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
+      invalidUrlHint: "Invalid URL",
+      exampleUrlHint: "Example URL",
+    });
+
+    expect(derived.discoveredFeedOptions).toEqual([
+      {
+        value: "https://example.com/feed.xml",
+        label: "https://example.com/feed.xml",
+        description: undefined,
+      },
+    ]);
+  });
+
+  it("uses the URL as the discovered feed option label when discovery returns a whitespace title", () => {
+    const derived = resolveAddFeedDialogDerived({
+      state: {
+        ...createInitialAddFeedDialogState(),
+        discoveredFeeds: [{ title: "   ", url: "https://example.com/feed.xml" }],
       },
       folderSelection: {
         isCreatingFolder: false,

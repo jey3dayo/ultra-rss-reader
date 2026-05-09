@@ -8,6 +8,9 @@ describe("roving-focus", () => {
     expect(getLoopedFocusIndex(3, 3)).toBe(0);
     expect(getLoopedFocusIndex(3, -1)).toBe(2);
     expect(getLoopedFocusIndex(0, 1)).toBeNull();
+    expect(getLoopedFocusIndex(-1, 1)).toBeNull();
+    expect(getLoopedFocusIndex(1.5, 1)).toBeNull();
+    expect(getLoopedFocusIndex(3, 1000)).toBe(1);
   });
 
   it("focuses the normalized button ref when available", () => {

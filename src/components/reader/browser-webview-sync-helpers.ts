@@ -35,5 +35,9 @@ export function shouldApplySyncedBrowserState(
   requestedUrl: string,
   nextState: BrowserWebviewState,
 ): boolean {
+  if (nextState.url !== requestedUrl) {
+    return false;
+  }
+
   return !previousState || (previousState.url === requestedUrl && (previousState.is_loading || !nextState.is_loading));
 }

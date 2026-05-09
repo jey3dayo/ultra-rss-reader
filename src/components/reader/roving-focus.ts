@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 
 export function getLoopedFocusIndex(itemCount: number, index: number) {
-  if (itemCount === 0) {
+  if (!Number.isInteger(itemCount) || itemCount <= 0) {
     return null;
   }
 
