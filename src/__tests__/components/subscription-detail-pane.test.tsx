@@ -2,7 +2,10 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { SubscriptionDetailPane } from "@/components/subscriptions-index/subscription-detail-pane";
-import type { SubscriptionDetailMetrics, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import type {
+  SubscriptionDetailMetrics,
+  SubscriptionListRow,
+} from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto> = {}): FeedDto {
   return {
@@ -83,11 +86,24 @@ describe("SubscriptionDetailPane", () => {
     };
 
     render(
-      <SubscriptionDetailPane {...baseProps} decisionActions={decisionActions} managementActions={managementActions} />,
+      <SubscriptionDetailPane
+        {...baseProps}
+        decisionActions={decisionActions}
+        managementActions={managementActions}
+      />,
     );
 
-    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toBeInTheDocument();
-    expect(screen.queryByTestId("subscriptions-detail-management-bar")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("subscriptions-detail-decision-bar"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("subscriptions-detail-management-bar"),
+    ).not.toBeInTheDocument();
+    for (const label of ["Keep", "Later", "Delete"]) {
+      const actionButton = screen.getByRole("button", { name: label });
+      expect(actionButton).toBeVisible();
+      expect(actionButton.querySelector("svg")).toHaveClass("size-4");
+    }
 
     fireEvent.click(screen.getByRole("button", { name: "Keep" }));
     fireEvent.click(screen.getByRole("button", { name: "Later" }));
@@ -108,10 +124,25 @@ describe("SubscriptionDetailPane", () => {
       onDelete: vi.fn(),
     };
 
-    render(<SubscriptionDetailPane {...baseProps} decisionActions={null} managementActions={managementActions} />);
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        decisionActions={null}
+        managementActions={managementActions}
+      />,
+    );
 
-    expect(screen.queryByTestId("subscriptions-detail-decision-bar")).not.toBeInTheDocument();
-    expect(screen.getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("subscriptions-detail-decision-bar"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("subscriptions-detail-management-bar"),
+    ).toBeInTheDocument();
+    for (const label of ["Edit", "Remove"]) {
+      const actionButton = screen.getByRole("button", { name: label });
+      expect(actionButton).toBeVisible();
+      expect(actionButton.querySelector("svg")).toHaveClass("size-4");
+    }
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
@@ -130,8 +161,12 @@ describe("SubscriptionDetailPane", () => {
       />,
     );
 
-    expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
-    expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
+    expect(
+      within(getLatestArticleMetricRow()).getByText("No updates yet"),
+    ).toBeInTheDocument();
+    expect(
+      within(getLatestArticleMetricRow()).queryByText("—"),
+    ).not.toBeInTheDocument();
 
     rerender(
       <SubscriptionDetailPane
@@ -142,8 +177,14 @@ describe("SubscriptionDetailPane", () => {
       />,
     );
 
-    expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
-    expect(within(getLatestArticleMetricRow()).queryByText("Invalid Date")).not.toBeInTheDocument();
-    expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
+    expect(
+      within(getLatestArticleMetricRow()).getByText("No updates yet"),
+    ).toBeInTheDocument();
+    expect(
+      within(getLatestArticleMetricRow()).queryByText("Invalid Date"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(getLatestArticleMetricRow()).queryByText("—"),
+    ).not.toBeInTheDocument();
   });
 });

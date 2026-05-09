@@ -34,7 +34,9 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
+    const summarySection = screen
+      .getByRole("button", { name: /Needs review/ })
+      .closest("section");
     expect(summarySection).not.toBeNull();
     expect(summarySection).toHaveClass("rounded-md", "border-border/55");
     expect(summarySection).toHaveStyle({
@@ -45,7 +47,9 @@ describe("SubscriptionsOverviewSummary", () => {
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
       "gap-3",
     );
-    expect(screen.queryByText("Needs review: quiet feeds or weak usage signals.")).toBeNull();
+    expect(
+      screen.queryByText("Needs review: quiet feeds or weak usage signals."),
+    ).toBeNull();
 
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
     expect(actionableCard).toHaveClass("w-full", "min-w-0");
@@ -53,20 +57,33 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(actionableCard).toHaveClass("sm:col-span-2", "lg:col-span-1");
     expect(actionableCard).toHaveAttribute("aria-pressed", "false");
     expect(actionableCard).toBeVisible();
-    expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
-    expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
-    expect(within(actionableCard).getByText("絞り込む").closest("span")).toHaveAttribute("data-label-chip", "neutral");
-    expect(within(actionableCard).getByText("条件")).toHaveClass("text-foreground-soft");
+    expect(within(actionableCard).getByText("Needs review")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(within(actionableCard).getByText("Check these feeds")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(
+      within(actionableCard).getByText("絞り込む").closest("span"),
+    ).toHaveAttribute("data-label-chip", "neutral");
+    expect(within(actionableCard).getByText("条件")).toHaveClass(
+      "text-foreground-soft",
+    );
     const statusIcon = actionableCard.querySelector("svg[aria-hidden='true']");
     expect(statusIcon).not.toBeNull();
     expect(statusIcon).toHaveClass("size-3");
     expect(statusIcon).toBeVisible();
+    expect(within(actionableCard).getByText("条件")).toBeVisible();
 
     const neutralCard = screen.getByRole("button", { name: /Healthy/ });
     expect(neutralCard).not.toBeNull();
     expect(neutralCard).toBeVisible();
-    expect(within(neutralCard).getByText("Healthy")).toHaveClass("text-foreground-soft");
-    expect(within(neutralCard).getByText("All good")).toHaveClass("text-foreground-soft");
+    expect(within(neutralCard).getByText("Healthy")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(within(neutralCard).getByText("All good")).toHaveClass(
+      "text-foreground-soft",
+    );
   });
 
   it("shows review criteria from the review summary card tooltip", async () => {
@@ -88,11 +105,15 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    await user.hover(screen.getByRole("button", { name: "Needs review を表示" }));
-
-    expect(await screen.findByText("Needs review: quiet feeds or weak usage signals.")).toHaveClass(
-      "motion-popup-surface",
+    await user.hover(
+      screen.getByRole("button", { name: "Needs review を表示" }),
     );
+
+    expect(
+      await screen.findByText(
+        "Needs review: quiet feeds or weak usage signals.",
+      ),
+    ).toHaveClass("motion-popup-surface");
   });
 
   it("reserves the active badge slot to avoid layout shift", () => {
@@ -119,7 +140,9 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const cards = screen.getAllByTestId("subscriptions-summary-card-badge-slot");
+    const cards = screen.getAllByTestId(
+      "subscriptions-summary-card-badge-slot",
+    );
     expect(cards).toHaveLength(2);
     expect(cards[0]).toHaveClass("min-w-[4.75rem]");
     expect(cards[1]).toHaveClass("min-w-[4.75rem]");
@@ -151,11 +174,15 @@ describe("SubscriptionsOverviewSummary", () => {
       "text-state-review-foreground",
       "shadow-[var(--subscriptions-summary-badge-shadow)]",
     );
-    expect(within(activeCard).getByText("フィルタ中").closest("[data-label-chip]")).toHaveClass(
-      "shadow-[var(--subscriptions-summary-active-chip-shadow)]",
+    expect(
+      within(activeCard).getByText("フィルタ中").closest("[data-label-chip]"),
+    ).toHaveClass("shadow-[var(--subscriptions-summary-active-chip-shadow)]");
+    expect(activeCard).toHaveClass(
+      "shadow-[var(--subscriptions-summary-active-shadow-review)]",
     );
-    expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
-    expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
+    expect(activeCard).toHaveClass(
+      "ring-[color:var(--subscriptions-summary-active-ring-review)]",
+    );
     const metric = within(activeCard).getByText("2").closest(".t-digit-group");
     expect(metric).toHaveClass("t-digit-group", "tabular-nums");
     expect(metric?.parentElement).toHaveClass("text-state-review-foreground");
@@ -255,14 +282,20 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(screen.queryByRole("button", { name: /Sync state/ })).toBeNull();
 
     const staticCard = getRequiredHTMLElement(
-      screen.getByText("Sync state").closest("[data-subscriptions-summary-static-card]"),
+      screen
+        .getByText("Sync state")
+        .closest("[data-subscriptions-summary-static-card]"),
       "static summary card",
     );
     expect(staticCard).not.toBeNull();
     expect(staticCard).toHaveClass("rounded-md", "shadow-none");
-    expect(staticCard).not.toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-neutral)]");
+    expect(staticCard).not.toHaveClass(
+      "ring-[color:var(--subscriptions-summary-active-ring-neutral)]",
+    );
     expect(within(staticCard).getByText("参照")).toBeInTheDocument();
-    expect(within(staticCard).getByText("Ready")).toHaveClass("text-foreground-soft");
+    expect(within(staticCard).getByText("Ready")).toHaveClass(
+      "text-foreground-soft",
+    );
   });
 
   it("uses renderValue without replacing the surrounding card structure", () => {
@@ -278,15 +311,23 @@ describe("SubscriptionsOverviewSummary", () => {
           },
         ]}
         onSelectFilter={vi.fn()}
-        renderValue={(card) => <strong data-testid="custom-summary-value">{card.value} feeds</strong>}
+        renderValue={(card) => (
+          <strong data-testid="custom-summary-value">{card.value} feeds</strong>
+        )}
       />,
     );
 
     const card = screen.getByRole("button", { name: "Needs review を表示" });
 
     expect(card).toHaveClass("rounded-md", "w-full");
-    expect(within(card).getByTestId("subscriptions-summary-card-badge-slot")).toBeInTheDocument();
-    expect(within(card).getByTestId("custom-summary-value")).toHaveTextContent("2 feeds");
-    expect(within(card).getByText("絞り込む").closest("[data-label-chip]")).toBeInTheDocument();
+    expect(
+      within(card).getByTestId("subscriptions-summary-card-badge-slot"),
+    ).toBeInTheDocument();
+    expect(within(card).getByTestId("custom-summary-value")).toHaveTextContent(
+      "2 feeds",
+    );
+    expect(
+      within(card).getByText("絞り込む").closest("[data-label-chip]"),
+    ).toBeInTheDocument();
   });
 });
