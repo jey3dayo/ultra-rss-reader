@@ -21,7 +21,13 @@ function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
       return {};
     }
 
-    return parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema) ?? {};
+    const parsed = parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema) ?? {};
+    const normalized = JSON.stringify(parsed);
+    if (raw !== normalized) {
+      window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, normalized);
+    }
+
+    return parsed;
   } catch {
     return {};
   }
@@ -33,8 +39,11 @@ function getStoredSidebarExpandedFolders(accountId: string): string[] {
 
 function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<string>): void {
   try {
-    const nextState = readStoredSidebarExpandedFolders();
-    nextState[accountId] = [...new Set(folderIds)];
+    const currentState = readStoredSidebarExpandedFolders();
+    const nextState = {
+      [accountId]: [...new Set(folderIds)],
+      ...Object.fromEntries(Object.entries(currentState).filter(([storedAccountId]) => storedAccountId !== accountId)),
+    };
     window.localStorage.setItem(
       STORAGE_KEYS.sidebarExpandedFolders,
       JSON.stringify(StoredSidebarExpandedFoldersSchema.parse(nextState)),

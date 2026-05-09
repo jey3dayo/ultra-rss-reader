@@ -110,6 +110,17 @@ describe("use-command-history", () => {
     ]);
   });
 
+  it("normalizes the new history id before de-duplicating and persisting", () => {
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["feed:feed-1", "action:open-settings"]));
+
+    addToHistory(" feed:feed-1\u0000 ");
+
+    expect(getHistory()).toEqual(["feed:feed-1", "action:open-settings"]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(
+      JSON.stringify(["feed:feed-1", "action:open-settings"]),
+    );
+  });
+
   it("caps history to the maximum size", () => {
     for (let index = 0; index < MAX_COMMAND_HISTORY + 2; index += 1) {
       addToHistory(`item-${index}`);

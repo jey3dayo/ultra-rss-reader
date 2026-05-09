@@ -1,4 +1,4 @@
-import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
+import { STORAGE_KEYS } from "@/constants/storage";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
 type CommandHistoryStorageFailureKind = "unavailable" | "normalize" | "read" | "write" | "clear";
@@ -88,12 +88,12 @@ export function getHistory(): string[] {
 }
 
 export function compactCommandHistory(entries: readonly string[], id: string): string[] {
-  const cleanEntries = entries.filter((entry) => entry.trim().length > 0);
-  if (id.trim().length === 0) {
-    return cleanEntries.slice(0, MAX_COMMAND_HISTORY);
+  const [normalizedId] = CommandHistoryStorageSchema.parse([id]);
+  if (!normalizedId) {
+    return CommandHistoryStorageSchema.parse(entries);
   }
 
-  return [id, ...cleanEntries.filter((entry) => entry !== id)].slice(0, MAX_COMMAND_HISTORY);
+  return CommandHistoryStorageSchema.parse([normalizedId, ...entries]);
 }
 
 export function addToHistory(id: string): void {

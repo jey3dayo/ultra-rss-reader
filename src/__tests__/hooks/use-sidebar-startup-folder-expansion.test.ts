@@ -325,4 +325,71 @@ describe("useSidebarStartupFolderExpansion", () => {
       expect(stored["stale-account-0"]).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
     });
   });
+
+  it("cleans invalid stored folders while restoring the selected account", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify({
+        "acc-1": ["folder-restored", "", null, "folder-missing", "folder-restored"],
+        "acc-2": "folder-acc-2",
+      }),
+    );
+
+    const { result } = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set(["folder-restored"]));
+    });
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
+      "acc-1": ["folder-restored"],
+    });
+  });
+
+  it("keeps the active account inside oversized sidebar expansion storage", async () => {
+    const storedEntries = Array.from(
+      { length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS },
+      (_, index): [string, string[]] => [`stale-account-${index}`, [`stale-folder-${index}`]],
+    );
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(Object.fromEntries(storedEntries)));
+
+    const { rerender } = renderHook(
+      ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "acc-new",
+          expandedFolderIds,
+          feedList: [],
+          folderList: folders,
+          startupFolderExpansion: "unread_folders",
+          feedsReady: true,
+          foldersReady: true,
+          setExpandedFolders: vi.fn(),
+        });
+      },
+      { initialProps: { expandedFolderIds: new Set<string>() } },
+    );
+
+    rerender({ expandedFolderIds: new Set(["folder-restored"]) });
+
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}");
+
+      expect(Object.keys(stored)).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS);
+      expect(stored["acc-new"]).toEqual(["folder-restored"]);
+      expect(stored["stale-account-99"]).toBeUndefined();
+    });
+  });
 });
