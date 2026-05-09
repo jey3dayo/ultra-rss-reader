@@ -80,4 +80,24 @@ describe("createMutation", () => {
 
     expect(invalidate).not.toHaveBeenCalled();
   });
+
+  it("rejects without toast when invalidate throws after a successful mutation", async () => {
+    const args = { id: "item-1" };
+    const data = { savedId: "saved-1" };
+    const mutationFn = vi.fn(async () => Result.succeed(data));
+    const invalidateError = new Error("invalidate failed");
+    const invalidate = vi.fn(() => {
+      throw invalidateError;
+    });
+    const { result } = renderGeneratedMutation({
+      mutationFn,
+      invalidate,
+    });
+
+    await expect(result.current.mutateAsync(args)).rejects.toThrow("invalidate failed");
+
+    expect(mutationFn).toHaveBeenCalledWith(args);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
 });
