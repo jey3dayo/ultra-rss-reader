@@ -453,6 +453,30 @@ describe("subscriptions index helpers", () => {
     ).toBe("Review");
   });
 
+  it("falls back invalid summary card counts to zero before formatting labels", () => {
+    const totalCaption = vi.fn((count: number) => `${count} feeds`);
+    const reviewCaption = vi.fn((count: number) => `${count} candidates`);
+    const staleCaption = vi.fn((count: number) => `${count} stale`);
+
+    const summaryCards = buildSubscriptionSummaryCards({
+      summary: { totalCount: -1, reviewCount: Number.NaN, staleCount: Number.POSITIVE_INFINITY },
+      activeSummaryFilter: "all",
+      labels: {
+        total: "All",
+        totalCaption,
+        review: "Review",
+        reviewCaption,
+        stale: "Stale",
+        staleCaption,
+      },
+    });
+
+    expect(summaryCards.map((card) => card.value)).toEqual(["0", "0", "0"]);
+    expect(totalCaption).toHaveBeenCalledWith(0);
+    expect(reviewCaption).toHaveBeenCalledWith(0);
+    expect(staleCaption).toHaveBeenCalledWith(0);
+  });
+
   it("builds list rows with folder names and candidate status", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
@@ -801,6 +825,39 @@ describe("subscriptions index helpers", () => {
         sortKey: "title",
       }).map((row) => row.feed.id),
     ).toEqual(["feed-mid"]);
+  });
+
+  it("normalizes subscription row search across Unicode width, accents, marks, case, and edge whitespace", () => {
+    const searchableFeeds: FeedDto[] = [
+      {
+        ...feeds[0],
+        id: "feed-search",
+        title: "  Ｃａｆｅ ガイド  ",
+        url: "  https://example.com/fullwidth.xml  ",
+        site_url: "  https://example.com/CAFÉ  ",
+      },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: searchableFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map([["folder-work", "  Référence  "]]),
+    });
+    const matchingFeedIdsForQuery = (searchQuery: string) =>
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "all",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery,
+        sortKey: "title",
+      }).map((row) => row.feed.id);
+
+    expect(matchingFeedIdsForQuery(" cafe ")).toEqual(["feed-search"]);
+    expect(matchingFeedIdsForQuery("カイト")).toEqual(["feed-search"]);
+    expect(matchingFeedIdsForQuery("reference")).toEqual(["feed-search"]);
+    expect(matchingFeedIdsForQuery("example.com/cafe")).toEqual(["feed-search"]);
+    expect(matchingFeedIdsForQuery("example.com/fullwidth.xml")).toEqual(["feed-search"]);
   });
 
   it("sorts rows with invalid update dates after valid update dates", () => {

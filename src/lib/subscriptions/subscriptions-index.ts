@@ -92,17 +92,30 @@ function rowMatchesSubscriptionDecisionVisibility(params: {
   return activeSummaryFilter === "all" ? true : !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id);
 }
 
+function normalizeSubscriptionSearchText(value: string): string {
+  return value
+    .normalize("NFKC")
+    .normalize("NFD")
+    .replace(/\p{Mark}/gu, "")
+    .trim()
+    .toLocaleLowerCase();
+}
+
 function rowMatchesSubscriptionSearch(row: SubscriptionListRow, normalizedQuery: string): boolean {
   if (normalizedQuery.length === 0) {
     return true;
   }
 
   return (
-    row.feed.title.toLowerCase().includes(normalizedQuery) ||
-    row.feed.url.toLowerCase().includes(normalizedQuery) ||
-    row.feed.site_url.toLowerCase().includes(normalizedQuery) ||
-    (row.folderName ?? "").toLowerCase().includes(normalizedQuery)
+    normalizeSubscriptionSearchText(row.feed.title).includes(normalizedQuery) ||
+    normalizeSubscriptionSearchText(row.feed.url).includes(normalizedQuery) ||
+    normalizeSubscriptionSearchText(row.feed.site_url).includes(normalizedQuery) ||
+    normalizeSubscriptionSearchText(row.folderName ?? "").includes(normalizedQuery)
   );
+}
+
+function normalizeSubscriptionSummaryCount(count: number): number {
+  return Number.isFinite(count) && count >= 0 ? count : 0;
 }
 
 function compareSubscriptionRows(
@@ -148,7 +161,7 @@ export function buildVisibleSubscriptionRows({
   searchQuery: string;
   sortKey: SubscriptionSortKey;
 }): SubscriptionListRow[] {
-  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const normalizedQuery = normalizeSubscriptionSearchText(searchQuery);
 
   return rows
     .filter(
@@ -211,29 +224,32 @@ export function buildSubscriptionSummaryCards(params: {
   };
 }): SubscriptionSummaryCard[] {
   const { summary, activeSummaryFilter, labels } = params;
+  const totalCount = normalizeSubscriptionSummaryCount(summary.totalCount);
+  const reviewCount = normalizeSubscriptionSummaryCount(summary.reviewCount);
+  const staleCount = normalizeSubscriptionSummaryCount(summary.staleCount);
 
   return [
     {
       filterKey: "all",
       label: labels.total,
-      value: String(summary.totalCount),
-      caption: labels.totalCaption(summary.totalCount),
+      value: String(totalCount),
+      caption: labels.totalCaption(totalCount),
       tone: "neutral",
       isActive: activeSummaryFilter === "all",
     },
     {
       filterKey: "review",
       label: labels.review,
-      value: String(summary.reviewCount),
-      caption: labels.reviewCaption(summary.reviewCount),
+      value: String(reviewCount),
+      caption: labels.reviewCaption(reviewCount),
       tone: "review",
       isActive: activeSummaryFilter === "review",
     },
     {
       filterKey: "stale",
       label: labels.stale,
-      value: String(summary.staleCount),
-      caption: labels.staleCaption(summary.staleCount),
+      value: String(staleCount),
+      caption: labels.staleCaption(staleCount),
       tone: "stale",
       isActive: activeSummaryFilter === "stale",
     },
