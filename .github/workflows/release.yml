@@ -77,6 +77,40 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Validate release version parity
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const releaseTag = process.env.RELEASE_TAG;
+          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
+          const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
+          const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
+          const expectedTag = `v${packageJson.version}`;
+
+          const errors = [];
+          if (releaseTag !== expectedTag) {
+            errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
+          }
+          if (tauriConfig.version !== packageJson.version) {
+            errors.push(`src-tauri/tauri.conf.json version ${tauriConfig.version} does not match package.json version ${packageJson.version}`);
+          }
+          if (cargoVersion !== packageJson.version) {
+            errors.push(`src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`);
+          }
+
+          if (errors.length > 0) {
+            for (const error of errors) {
+              console.error(`::error::${error}`);
+            }
+            process.exit(1);
+          }
+          NODE
+
       - name: Preflight release build
         run: mise run ci
 
