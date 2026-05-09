@@ -405,6 +405,31 @@
   - `" acc-2 "` / whitespace-only / duplicate account id の期待値を `account-selection.test.ts` に追加し、初期選択の fallback contract を固定する
   - settings modal navigation や sidebar account selection lifecycle とは分け、preferred account id helper の入力正規化だけを扱う
 
+- [ ] feed website href whitespace normalization 候補を追加する
+  - `src/lib/feed/feed.ts` の `resolveFeedWebsiteHref` が `siteUrl || feedUrl` をそのまま返すため、whitespace-only `site_url` が feed URL fallback を塞がないか確認する
+  - `siteUrl` / `feedUrl` の trim 後 empty、trim 後 valid URL、payload は trim するか raw 表示に残すかを `feed.test.ts` で固定する
+  - add feed URL validation や provider normalizer URL trim とは分け、feed website href helper の入力正規化だけを扱う
+
+- [ ] feed site host invalid-site fallback policy 候補を追加する
+  - `extractSiteHost` は truthy な invalid `site_url` があると valid `feedUrl` へ fallback せず invalid error を返すため、この優先順位を仕様として残すか見直す
+  - invalid site URL + valid feed URL の期待値を `feed.test.ts` で明示し、site URL 優先と resilient fallback のどちらにするか固定する
+  - feed context menu open site failure toast とは分け、host label helper の URL fallback policy だけを扱う
+
+- [ ] sidebar blank folder id grouping guard 候補を追加する
+  - `src/lib/sidebar/sidebar.ts` の `groupFeedsByFolder` が blank / whitespace-only `folder_id` を通常 folder key として扱うため、unfoldered へ落とすか invalid data として固定する
+  - `countFeedsInFolder` / `countUnreadFeedsInFolder` も同じ folder id normalization を使うか、raw id matching のままにするかを `sidebar.test.ts` で揃える
+  - sidebar startup folder expansion や storage dedupe とは分け、feed DTO folder id の frontend grouping boundary だけを扱う
+
+- [ ] subscription list group sentinel collision 候補を追加する
+  - `buildSubscriptionListGroups` が no-folder key に `__ungrouped__` を使うため、同じ id の folder が来た場合に no-folder group と folder group が衝突しないか確認する
+  - sentinel key を prefix 化するか real folder id を別 namespace にするかを `subscriptions-index.test.ts` で固定する
+  - subscriptions list pane UI や folder rename behavior とは分け、list group key generation の collision guard だけを扱う
+
+- [ ] subscription detail preview invalid date ordering 候補を追加する
+  - `buildSubscriptionDetailMetrics` の preview article insertion が `compareDateInputsAsc` 失敗時 0 扱いになるため、invalid `published_at` が新しい記事の前に残らないか確認する
+  - valid date を invalid date より優先し、同じ valid date は入力順 / id tie-break のどちらにするかを focused test で固定する
+  - subscriptions detail invalid date display とは分け、detail preview articles の ordering contract だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
