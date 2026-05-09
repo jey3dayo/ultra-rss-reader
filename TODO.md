@@ -197,26 +197,6 @@
 
 ## 次の並列バッチ候補
 
-- [ ] P3 TypeScript feature-local `.types.ts` split 候補を追加する
-  - feature-local 候補: `src/components/reader/feed-tree.types.ts`、`sidebar.types.ts`、`sidebar-feed-section.types.ts`、`article-list.types.ts`、`browser-view.types.ts`、`command-palette.types.ts`、`add-feed-dialog.types.ts`、`rename-feed-dialog.types.ts`、`src/components/settings/settings-page.types.ts`、`settings-nav.types.ts`、`settings-modal.types.ts`、`account-detail/types.ts`
-  - Props / Params / Result が同じ file に混在している箇所を、view contract / controller contract / hook-local contract の小バッチに分けて整理する
-  - runtime behavior は変えず、feature 内 consumer が多い型の責務分割と name clarity だけを扱う
-
-- [ ] P3 TypeScript local-only exported Props/Params/Result 候補を追加する
-  - local-only 候補: `src/components/settings/add-account/form-view.types.ts`、`src/components/reader/sidebar-runtime.types.ts`、`sidebar-sources.types.ts`、`article-actions.types.ts`
-  - exported `*Props` / `Use*Params` / `Use*Result` の consumer が 1 runtime component / 1 hook group / story-only に閉じるものを owner file へ戻せるか確認する
-  - public contract 候補とは分け、localized type の export 削減だけを扱う
-
-- [ ] P3 react-doctor dead code type surface 候補を追加する
-  - `knip/types` / `knip/exports` の unused type/export を feature ごとに棚卸しする
-  - `article-list.types.ts` / `browser-view.types.ts` / `command-palette.types.ts` など広い contract は一括削除せず参照範囲ごとに分ける
-  - public wrapper API と Storybook helper export は allowlist 化し、実 dead code だけを削除する
-
-- [ ] P3 react-doctor many boolean props decomposition 候補を追加する
-  - `react-doctor/no-many-boolean-props` の対象 component を action group / named variant / discriminated props へ分割できるか確認する
-  - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
-  - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
-
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] P3 参照範囲が広い root-level type を別バッチで分割する
@@ -241,8 +221,3 @@
   - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
   - pending mutation / sync state / account sync status はデータ整合性に関わるため、UI sync feedback の型整理とは混ぜない
   - network error / auth error / rate limit など失敗種別は domain error contract の test を先に固定する
-
-- [ ] P1 feed content privacy hardening 候補を別バッチで設計する
-  - `docs/feed-content-privacy.md` の方針に沿って、reader mode remote image / frame / sanitizer version の実測観点を整理する
-  - CSP や sanitizer を一括で締めず、provider compatibility と Web Preview 影響を分けて検証する
-  - privacy mode や tracking pixel 対策を入れる場合は、settings UI と Rust sanitizer の境界を別々に扱う
