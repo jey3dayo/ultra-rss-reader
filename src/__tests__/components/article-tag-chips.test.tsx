@@ -125,6 +125,47 @@ describe("ArticleTagChips", () => {
     expect(within(listbox).queryByRole("option", { name: "Review" })).not.toBeInTheDocument();
   });
 
+  it("projects duplicate and blank tag identities once in the rendered picker", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "get_article_tags":
+          return [
+            { id: "tag-review", name: "Review", color: null },
+            { id: "tag-review", name: "Review duplicate", color: "#f97316" },
+            { id: "", name: "Blank assigned", color: null },
+          ];
+        case "list_tags":
+          return [
+            { id: "tag-review", name: "Review", color: null },
+            { id: "tag-inbox", name: "Inbox", color: null },
+            { id: "tag-inbox", name: "Inbox duplicate", color: "#22c55e" },
+            { id: "", name: "Blank available", color: null },
+            { id: "tag-important", name: "Important", color: "#ef4444" },
+          ];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Review")).toBeInTheDocument();
+    expect(screen.queryByText("Review duplicate")).not.toBeInTheDocument();
+    expect(screen.queryByText("Blank assigned")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Add tag" }));
+
+    const listbox = await screen.findByRole("listbox", {
+      name: "Available tags",
+    });
+    expect(
+      within(listbox)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Inbox", "Important"]);
+  });
+
   it("shows the empty tag state when both picker lists are empty", async () => {
     const user = userEvent.setup();
     setupTauriMocks((cmd) => {
