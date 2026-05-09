@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::Cursor;
 
@@ -140,8 +141,9 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
     writer
         .write_event(Event::Start(BytesStart::new("title")))
         .expect("write title start");
+    let safe_title = sanitize_xml_value(title);
     writer
-        .write_event(Event::Text(BytesText::new(title)))
+        .write_event(Event::Text(BytesText::new(&safe_title)))
         .expect("write title text");
     writer
         .write_event(Event::End(BytesEnd::new("title")))
@@ -177,9 +179,10 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
 
     // Write folder outlines
     for folder_name in &folder_order {
+        let safe_folder_name = sanitize_xml_value(folder_name);
         let mut folder_elem = BytesStart::new("outline");
-        folder_elem.push_attribute(("text", folder_name.as_str()));
-        folder_elem.push_attribute(("title", folder_name.as_str()));
+        folder_elem.push_attribute(("text", safe_folder_name.as_ref()));
+        folder_elem.push_attribute(("title", safe_folder_name.as_ref()));
         writer
             .write_event(Event::Start(folder_elem))
             .expect("write folder start");
@@ -212,17 +215,47 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
 }
 
 fn write_feed_outline<W: std::io::Write>(writer: &mut Writer<W>, feed: &OpmlFeed) {
+    let safe_title = sanitize_xml_value(&feed.title);
+    let safe_xml_url = sanitize_xml_value(&feed.xml_url);
+    let safe_html_url = feed.html_url.as_deref().map(sanitize_xml_value);
+
     let mut elem = BytesStart::new("outline");
-    elem.push_attribute(("text", feed.title.as_str()));
-    elem.push_attribute(("title", feed.title.as_str()));
+    elem.push_attribute(("text", safe_title.as_ref()));
+    elem.push_attribute(("title", safe_title.as_ref()));
     elem.push_attribute(("type", "rss"));
-    elem.push_attribute(("xmlUrl", feed.xml_url.as_str()));
-    if let Some(ref html_url) = feed.html_url {
-        elem.push_attribute(("htmlUrl", html_url.as_str()));
+    elem.push_attribute(("xmlUrl", safe_xml_url.as_ref()));
+    if let Some(html_url) = safe_html_url.as_ref() {
+        elem.push_attribute(("htmlUrl", html_url.as_ref()));
     }
     writer
         .write_event(Event::Empty(elem))
         .expect("write feed outline");
+}
+
+fn sanitize_xml_value(value: &str) -> Cow<'_, str> {
+    if value.chars().all(is_xml_10_char) {
+        return Cow::Borrowed(value);
+    }
+
+    Cow::Owned(
+        value
+            .chars()
+            .map(|ch| {
+                if is_xml_10_char(ch) {
+                    ch
+                } else {
+                    char::REPLACEMENT_CHARACTER
+                }
+            })
+            .collect(),
+    )
+}
+
+fn is_xml_10_char(ch: char) -> bool {
+    matches!(
+        ch as u32,
+        0x9 | 0xA | 0xD | 0x20..=0xD7FF | 0xE000..=0xFFFD | 0x10000..=0x10FFFF
+    )
 }
 
 #[cfg(test)]
@@ -537,5 +570,57 @@ mod tests {
         assert_eq!(parsed[0].title, "Feed & <Friends>");
         assert_eq!(parsed[0].xml_url, "https://example.com/feed?a=1&b=2");
         assert_eq!(parsed[0].folder, Some("Folder \"quotes\"".to_string()));
+    }
+
+    #[test]
+    fn generate_opml_replaces_invalid_xml_control_characters() {
+        let replacement = char::REPLACEMENT_CHARACTER;
+        let feeds = vec![OpmlFeed {
+            title: "Feed\u{0}Name".to_string(),
+            xml_url: "https://example.com/\u{1}feed.xml".to_string(),
+            html_url: Some("https://example.com/\u{8}".to_string()),
+            folder: Some("Folder\u{C}Name".to_string()),
+        }];
+
+        let xml = generate_opml("Title\u{0}Name", &feeds);
+        assert!(!xml.contains('\u{0}'));
+        assert!(!xml.contains('\u{1}'));
+        assert!(!xml.contains('\u{8}'));
+        assert!(!xml.contains('\u{C}'));
+
+        let parsed = parse_opml(&xml).unwrap();
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].title, format!("Feed{replacement}Name"));
+        assert_eq!(
+            parsed[0].xml_url,
+            format!("https://example.com/{replacement}feed.xml")
+        );
+        assert_eq!(
+            parsed[0].html_url,
+            Some(format!("https://example.com/{replacement}"))
+        );
+        assert_eq!(parsed[0].folder, Some(format!("Folder{replacement}Name")));
+    }
+
+    #[test]
+    fn generate_opml_handles_large_exports_without_panicking() {
+        let feeds = (0..2_000)
+            .map(|index| OpmlFeed {
+                title: format!("Feed {index:04} & team"),
+                xml_url: format!("https://example.com/feed-{index:04}.xml?a=1&b=2"),
+                html_url: Some(format!("https://example.com/feed-{index:04}")),
+                folder: Some(format!("Folder {}", index % 20)),
+            })
+            .collect::<Vec<_>>();
+
+        let xml = generate_opml("Large & Export", &feeds);
+        let parsed = parse_opml(&xml).unwrap();
+
+        assert_eq!(parsed.len(), feeds.len());
+        assert_eq!(parsed[0].title, "Feed 0000 & team");
+        assert_eq!(
+            parsed[1_999].xml_url,
+            "https://example.com/feed-1999.xml?a=1&b=2"
+        );
     }
 }
