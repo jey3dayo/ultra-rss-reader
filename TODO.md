@@ -70,11 +70,6 @@
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
   - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
 
-- [ ] P1 sidebar feed navigation RAF cleanup を補強する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller.ts`
-  - feed navigation focus が RAF と timeout に依存し、account switch / folder collapse / sidebar collapse と重なると stale focus が戻る可能性がある
-  - pending focus frame cancellation と account switch 後の target recalculation を focused test で固定する
-
 - [ ] P1 article list keydown RAF selection ordering を補強する
   - 対象: `src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts`, `src/components/reader/hooks/article-list/use-article-list-effects.ts`
   - keyboard navigation と RAF focus が article list update / search result update と重なる時、古い row へ focus する可能性がある
