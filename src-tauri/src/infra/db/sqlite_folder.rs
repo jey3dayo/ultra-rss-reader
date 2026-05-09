@@ -148,6 +148,28 @@ mod tests {
     }
 
     #[test]
+    fn save_rejects_missing_account_on_migration_applied_db() {
+        let db = test_db();
+        let repo = SqliteFolderRepository::new(db.writer());
+        let missing_account_id = AccountId("missing-account".to_string());
+        let folder = Folder {
+            id: FolderId::new(),
+            account_id: missing_account_id.clone(),
+            remote_id: None,
+            name: "Orphan".to_string(),
+            sort_order: 0,
+        };
+
+        let result = repo.save(&folder);
+
+        assert!(result.is_err());
+        assert!(repo
+            .find_by_account(&missing_account_id)
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
     fn delete_sets_feed_folder_id_to_null() {
         let db = test_db();
         let account_id = insert_test_account(&db);
