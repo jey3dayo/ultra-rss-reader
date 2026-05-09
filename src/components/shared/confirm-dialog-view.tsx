@@ -15,6 +15,8 @@ type ConfirmDialogViewProps = {
   cancelLabel: string;
   variant?: ConfirmDialogVariant;
   icon?: ConfirmDialogIcon;
+  confirmDisabled?: boolean;
+  cancelDisabled?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -61,6 +63,8 @@ export function ConfirmDialogView({
   cancelLabel,
   variant = "default",
   icon,
+  confirmDisabled = false,
+  cancelDisabled = false,
   onOpenChange,
   onConfirm,
   onCancel,
@@ -86,6 +90,7 @@ export function ConfirmDialogView({
           <div className="flex w-full flex-col gap-2">
             <Button
               onClick={onConfirm}
+              disabled={confirmDisabled}
               variant={tone.actionButtonVariant}
               className={cn("min-h-11 w-full", tone.actionButtonClassName)}
             >
@@ -94,6 +99,7 @@ export function ConfirmDialogView({
             <Button
               variant="ghost"
               onClick={onCancel}
+              disabled={cancelDisabled}
               className="min-h-11 w-full border-border/45 bg-surface-1/72 text-foreground-soft"
             >
               {cancelLabel}

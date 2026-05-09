@@ -58,6 +58,7 @@ export type MuteSettingsViewProps = {
   confirmOpen: boolean;
   confirmMessage: string;
   confirmActionLabel: string;
+  confirmPending?: boolean;
   cancelLabel: string;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
@@ -94,6 +95,7 @@ export function MuteSettingsView({
   confirmOpen,
   confirmMessage,
   confirmActionLabel,
+  confirmPending = false,
   cancelLabel,
   onConfirmDelete,
   onCancelDelete,
@@ -211,6 +213,8 @@ export function MuteSettingsView({
         actionLabel={confirmActionLabel}
         cancelLabel={cancelLabel}
         icon={AlertTriangle}
+        confirmDisabled={confirmPending}
+        cancelDisabled={confirmPending}
         onOpenChange={(open) => !open && onCancelDelete()}
         onConfirm={onConfirmDelete}
         onCancel={onCancelDelete}

@@ -13,6 +13,7 @@ type UseMuteSettingsViewPropsParams = {
   autoMarkReadChecked: boolean;
   autoMarkReadDisabled: boolean;
   confirmRule: MuteKeywordDto | null;
+  confirmPending?: boolean;
   onKeywordChange: (value: string) => void;
   onScopeChange: (value: MuteKeywordScope) => void;
   onRuleScopeChange: (ruleId: string, value: MuteKeywordScope) => void;
@@ -32,6 +33,7 @@ export function useMuteSettingsViewProps({
   autoMarkReadChecked,
   autoMarkReadDisabled,
   confirmRule,
+  confirmPending,
   onKeywordChange,
   onScopeChange,
   onRuleScopeChange,
@@ -93,6 +95,7 @@ export function useMuteSettingsViewProps({
         })
       : "",
     confirmActionLabel: t("mute.delete"),
+    confirmPending,
     cancelLabel: t("mute.cancel"),
     onConfirmDelete,
     onCancelDelete,

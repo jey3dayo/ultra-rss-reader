@@ -1,4 +1,4 @@
-import { useReducer, useRef } from "react";
+import { useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
@@ -60,6 +60,8 @@ export function MuteSettings() {
   const updateMuteKeyword = useUpdateMuteKeyword();
   const ruleScopeUpdateRevisionRef = useRef<Record<string, number>>({});
   const autoMarkReadRevisionRef = useRef(0);
+  const confirmDeleteInFlightRef = useRef(false);
+  const [confirmDeleteInFlight, setConfirmDeleteInFlight] = useState(false);
   const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
   const { keyword, scope, confirmRule } = state;
   const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
@@ -81,22 +83,30 @@ export function MuteSettings() {
 
   const handleRequestDelete = (ruleId: string) => {
     const rule = rules.find((candidate) => candidate.id === ruleId) ?? null;
+    confirmDeleteInFlightRef.current = false;
+    setConfirmDeleteInFlight(false);
     dispatch({ type: "set-confirm-rule", value: rule });
   };
 
   const handleConfirmDelete = async () => {
-    if (!confirmRule) {
+    if (!confirmRule || confirmDeleteInFlightRef.current) {
       return;
     }
 
+    confirmDeleteInFlightRef.current = true;
+    setConfirmDeleteInFlight(true);
     try {
       await deleteMuteKeyword.mutateAsync({
         muteKeywordId: confirmRule.id,
       });
       showToast(t("mute.delete_success"));
       dispatch({ type: "set-confirm-rule", value: null });
+      confirmDeleteInFlightRef.current = false;
+      setConfirmDeleteInFlight(false);
     } catch (error) {
       showToast(t("mute.delete_failed", { message: getErrorMessage(error) }));
+      confirmDeleteInFlightRef.current = false;
+      setConfirmDeleteInFlight(false);
     }
   };
 
@@ -159,6 +169,7 @@ export function MuteSettings() {
     autoMarkReadChecked: autoMarkReadEnabled,
     autoMarkReadDisabled: setMuteAutoMarkRead.isPending,
     confirmRule,
+    confirmPending: confirmDeleteInFlight || deleteMuteKeyword.isPending,
     onKeywordChange: (value) => dispatch({ type: "set-keyword", value }),
     onScopeChange: (value) => dispatch({ type: "set-scope", value }),
     onRuleScopeChange: (ruleId, nextScope) => void handleRuleScopeChange(ruleId, nextScope),
@@ -166,7 +177,12 @@ export function MuteSettings() {
     onAdd: () => void handleAdd(),
     onRequestDelete: handleRequestDelete,
     onConfirmDelete: () => void handleConfirmDelete(),
-    onCancelDelete: () => dispatch({ type: "set-confirm-rule", value: null }),
+    onCancelDelete: () => {
+      if (confirmDeleteInFlightRef.current) {
+        return;
+      }
+      dispatch({ type: "set-confirm-rule", value: null });
+    },
   });
 
   return <MuteSettingsView {...viewProps} />;

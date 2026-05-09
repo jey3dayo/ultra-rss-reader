@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
 import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
 import {
+  buildDebugHudClipboardText,
   emitDebugInputTrace,
   formatRawClickTrace,
   formatRawKeyboardTrace,
@@ -331,7 +332,7 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
     const keyTraceListener = createKeyboardEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: formatRawKeyboardTrace(event.key, describeDebugHudEventTarget(event.target)),
+        value: formatRawKeyboardTrace(event.key, describeDebugHudEventTarget(event.target), event.target),
       });
     });
     const traceListener = createCustomEventDetailListener(
@@ -354,13 +355,14 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
           clientX: event.clientX,
           clientY: event.clientY,
           targetDescription: describeDebugHudEventTarget(event.target),
+          target: event.target,
         }),
       });
     });
     const clickTraceListener = createMouseEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: formatRawClickTrace(event.clientX, event.clientY, describeDebugHudEventTarget(event.target)),
+        value: formatRawClickTrace(event.clientX, event.clientY, describeDebugHudEventTarget(event.target), event.target),
       });
     });
 
@@ -391,12 +393,15 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
     );
   }, []);
 
-  const debugHudText = [
-    `pane=${focusedPane} mode=${contentMode} article=${selectedArticleId ?? "none"}`,
-    `closing=${browserCloseInFlight} pending=${pendingBrowserCloseAction ?? "none"}`,
+  const debugHudText = buildDebugHudClipboardText({
+    focusedPane,
+    contentMode,
+    selectedArticleId,
+    browserCloseInFlight,
+    pendingBrowserCloseAction,
     activeElementDescription,
-    ...traces,
-  ].join("\n");
+    traces,
+  });
 
   const handleCopy = async () => {
     emitDebugInputTrace("hud-copy start");

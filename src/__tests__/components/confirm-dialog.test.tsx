@@ -54,6 +54,8 @@ describe("AppConfirmDialog", () => {
     render(<AppConfirmDialog />, { wrapper: createWrapper() });
 
     await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);

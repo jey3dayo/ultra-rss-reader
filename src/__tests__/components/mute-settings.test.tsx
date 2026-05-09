@@ -322,6 +322,33 @@ describe("MuteSettings", () => {
     });
   });
 
+  it("keeps the delete target snapshot and ignores duplicate confirms while deletion is pending", async () => {
+    const user = userEvent.setup();
+    const pendingDelete = createDeferred<void>();
+    deleteMuteKeywordMutateAsyncMock.mockReturnValueOnce(pendingDelete.promise);
+
+    render(<MuteSettings />);
+
+    await user.click(getDeleteButtonAt(0));
+    const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
+    const confirmDeleteButton = getElementAt(deleteButtons, deleteButtons.length - 1, "delete confirmation button");
+
+    await user.click(confirmDeleteButton);
+    expect(confirmDeleteButton).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    await user.click(confirmDeleteButton);
+    expect(deleteMuteKeywordMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(deleteMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
+      muteKeywordId: "mute-1",
+    });
+
+    await act(async () => {
+      pendingDelete.resolve();
+      await pendingDelete.promise;
+    });
+  });
+
   it("keeps the delete confirmation open when deletion fails", async () => {
     const user = userEvent.setup();
     deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("delete failed"));
