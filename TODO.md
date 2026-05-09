@@ -65,11 +65,6 @@
   - React Doctor の `server-sequential-independent-await` が e2e と hook test に出ており、独立 setup を直列実行していると Playwright / Vitest の待ち時間が増える
   - browser state 共有、fixture isolation、user event ordering、screenshot timing に依存しない await だけ並列化する
 
-- [ ] P2 sidebar test の async loop を user-event ordering と fixture setup に分離する
-  - 対象: `src/__tests__/components/sidebar.test.tsx`, `src/components/reader/sidebar-view.tsx`
-  - React Doctor の `async-await-in-loop` が sidebar test に出ており、連続 user event の意図的逐次実行と独立 fixture setup が混ざっている可能性がある
-  - keyboard navigation / pointer interaction は逐次維持し、独立 render setup や mock response setup は並列化できるか確認する
-
 - [ ] P3 test-only `.toSorted()` 一括移行バッチを node-target gate 後に作る
   - 対象: `src/__tests__/**/*.test.ts`, `src/__tests__/**/*.test.tsx`, `tests/helpers/*`
   - React Doctor の `.toSorted()` warning 29 件の大半は test-only なので、runtime target 確認後に production 変更と分けて一括処理できる
