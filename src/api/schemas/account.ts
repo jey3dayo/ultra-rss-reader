@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error"]);
-const accountSyncIntervalSecsSchema = z.number().int().min(60).max(86_400);
-const accountKeepReadItemsDaysSchema = z.number().int().min(1).max(3650);
+const accountSyncIntervalSecsSchema = z.number().int().finite().min(60).max(86_400);
+const accountKeepReadItemsDaysSchema = z.number().int().finite().min(1).max(3650);
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 const optionalBlankStringToUndefinedSchema = z.preprocess((value) => {
   if (typeof value !== "string") {

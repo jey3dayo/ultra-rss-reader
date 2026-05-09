@@ -15,6 +15,7 @@ import {
   browserWebviewBoundsArgs,
   commandArgsSchemas,
   type CommandWithArgs,
+  CountResponseSchema,
   countAccountStarredArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
@@ -37,7 +38,9 @@ import {
   listStarredArticlesArgs,
   MAX_IPC_PAGINATION_LIMIT,
   MuteKeywordDtoSchema,
+  NonnegativeIntResponseSchema,
   markArticleReadArgs,
+  markArticlesReadArgs,
   NullResponseSchema,
   oldUnreadArticlesArgs,
   openExternalUrlArgs,
@@ -257,9 +260,21 @@ describe("DTO schemas", () => {
     expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 59 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 86_401 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 60.5 })).toThrow();
+    expect(() =>
+      AccountDtoSchema.parse({
+        ...data,
+        sync_interval_secs: Number.POSITIVE_INFINITY,
+      }),
+    ).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 0 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 3651 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 30.5 })).toThrow();
+    expect(() =>
+      AccountDtoSchema.parse({
+        ...data,
+        keep_read_items_days: Number.POSITIVE_INFINITY,
+      }),
+    ).toThrow();
   });
   it("keeps AccountDto schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(AccountDtoSchema.shape).sort()).toEqual(
@@ -650,14 +665,26 @@ describe("primitive command result schemas", () => {
   it("keeps primitive Tauri command result parsing strict", () => {
     expect(NullResponseSchema.parse(null)).toBeNull();
     expect(IntResponseSchema.parse(0)).toBe(0);
+    expect(NonnegativeIntResponseSchema.parse(0)).toBe(0);
+    expect(CountResponseSchema.parse(1)).toBe(1);
     expect(StringResponseSchema.parse("ok")).toBe("ok");
     expect(BooleanResponseSchema.parse(false)).toBe(false);
 
     expect(() => NullResponseSchema.parse(undefined)).toThrow();
     expect(() => IntResponseSchema.parse(1.5)).toThrow();
     expect(() => IntResponseSchema.parse(Number.NaN)).toThrow();
+    expect(() => NonnegativeIntResponseSchema.parse(-1)).toThrow();
+    expect(() => NonnegativeIntResponseSchema.parse(Number.NaN)).toThrow();
+    expect(() => CountResponseSchema.parse(-1)).toThrow();
+    expect(() => CountResponseSchema.parse(1.5)).toThrow();
     expect(() => StringResponseSchema.parse(1)).toThrow();
     expect(() => BooleanResponseSchema.parse("false")).toThrow();
+  });
+
+  it("keeps count and nonnegative integer response schemas separate", () => {
+    expect(CountResponseSchema.parse(0)).toBe(0);
+    expect(NonnegativeIntResponseSchema.parse(0)).toBe(0);
+    expect(CountResponseSchema).not.toBe(NonnegativeIntResponseSchema);
   });
 });
 
@@ -767,6 +794,12 @@ describe("command args schemas", () => {
     expect(markArticleReadArgs.parse({ articleId: "a-1" })).toEqual({
       articleId: "a-1",
     });
+  });
+  it("rejects empty bulk markArticlesReadArgs article id lists", () => {
+    expect(markArticlesReadArgs.parse({ articleIds: ["a-1"] })).toEqual({
+      articleIds: ["a-1"],
+    });
+    expect(() => markArticlesReadArgs.parse({ articleIds: [] })).toThrow();
   });
   it("parses listStarredArticlesArgs", () => {
     expect(
