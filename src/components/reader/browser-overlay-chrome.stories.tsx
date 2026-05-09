@@ -14,6 +14,7 @@ function createController(overrides?: Partial<BrowserOverlayChromeController>): 
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: 1,
     },
     geometry: {
       compact: false,
@@ -143,6 +144,7 @@ export const DisabledHistory: Story = {
         can_go_back: false,
         can_go_forward: false,
         is_loading: false,
+        load_generation: 1,
       },
     }),
   },

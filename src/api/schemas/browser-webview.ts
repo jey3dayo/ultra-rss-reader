@@ -20,9 +20,7 @@ export const BrowserWebviewFallbackPayloadSchema = z
   })
   .strict();
 
-export type BrowserWebviewFallbackPayload = z.output<
-  typeof BrowserWebviewFallbackPayloadSchema
->;
+export type BrowserWebviewFallbackPayload = z.output<typeof BrowserWebviewFallbackPayloadSchema>;
 
 const BrowserWebviewLogicalRectSchema = z
   .object({
@@ -43,6 +41,4 @@ export const BrowserWebviewDiagnosticsPayloadSchema = z
   })
   .strict();
 
-export type BrowserWebviewDiagnosticsPayload = z.output<
-  typeof BrowserWebviewDiagnosticsPayloadSchema
->;
+export type BrowserWebviewDiagnosticsPayload = z.output<typeof BrowserWebviewDiagnosticsPayloadSchema>;

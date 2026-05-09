@@ -547,6 +547,7 @@ describe("tauri-commands with mockIPC", () => {
         can_go_back: false,
         can_go_forward: false,
         is_loading: true,
+        load_generation: 1,
       });
     });
 
@@ -568,6 +569,7 @@ describe("tauri-commands with mockIPC", () => {
             can_go_back: false,
             can_go_forward: false,
             is_loading: true,
+            load_generation: 1,
           };
         }
         return undefined;
@@ -632,6 +634,7 @@ describe("tauri-commands with mockIPC", () => {
         can_go_back: false,
         can_go_forward: false,
         is_loading: false,
+        load_generation: 1,
       });
     });
 

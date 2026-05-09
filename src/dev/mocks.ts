@@ -902,6 +902,7 @@ export function setupDevMocks(): RestoreDevMocks {
           can_go_back: false,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
       }
 
@@ -1001,6 +1002,7 @@ export function setupDevMocks(): RestoreDevMocks {
           can_go_back: false,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
 
       case "close_browser_webview":

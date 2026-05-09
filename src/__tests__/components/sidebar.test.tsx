@@ -1838,7 +1838,7 @@ describe("Sidebar", () => {
       { wrapper: createWrapper() },
     );
 
-    await screen.findByText("Tech Blog");
+    await screen.findByRole("button", { name: /Tech Blog/ });
     const selectedFeed = queryFeedButton("feed-1");
     expect(selectedFeed).not.toBeNull();
     if (!selectedFeed) {

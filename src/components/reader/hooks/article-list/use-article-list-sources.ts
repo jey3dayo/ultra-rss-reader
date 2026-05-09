@@ -152,15 +152,45 @@ export function useArticleListSources({
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
 
   useEffect(() => {
+    const selectedSourceHasLoadedArticles =
+      (selection.type === "feed" && articles !== undefined && articles.length > 0) ||
+      (selection.type === "folder" && folderArticles !== undefined && folderArticles.length > 0) ||
+      (selection.type === "tag" && tagArticles !== undefined && tagArticles.length > 0);
+    const selectedSourceIsLoading =
+      (selection.type === "feed" && isLoadingFeedArticles) ||
+      (selection.type === "folder" && isLoadingFolderArticles) ||
+      (selection.type === "tag" && isLoadingTagArticles);
+    if (selectedSourceIsLoading || selectedSourceHasLoadedArticles) {
+      return;
+    }
+
+    const folderIds =
+      folders !== undefined
+        ? new Set([
+            ...folders.map((folder) => folder.id),
+            ...(feeds ?? []).flatMap((feed) => (feed.folder_id ? [feed.folder_id] : [])),
+          ])
+        : undefined;
     const availability: ReaderSelectionAvailability = {
       ...(feeds !== undefined ? { feedIds: new Set(feeds.map((feed) => feed.id)) } : {}),
-      ...(folders !== undefined ? { folderIds: new Set(folders.map((folder) => folder.id)) } : {}),
+      ...(folderIds !== undefined ? { folderIds } : {}),
       ...(tags !== undefined ? { tagIds: new Set(tags.map((tag) => tag.id)) } : {}),
     };
     if (shouldRecoverUnavailableReaderSelection(selection, availability)) {
       recoverStaleReaderSelection(selection);
     }
-  }, [feeds, folders, selection, tags]);
+  }, [
+    articles,
+    feeds,
+    folderArticles,
+    folders,
+    isLoadingFeedArticles,
+    isLoadingFolderArticles,
+    isLoadingTagArticles,
+    selection,
+    tagArticles,
+    tags,
+  ]);
 
   const accountSelectionArticles = sourcePlan.sourceKind === "recent" ? recentArticles : accountArticles;
   const primarySourceArticles = resolvePrimarySourceArticles({

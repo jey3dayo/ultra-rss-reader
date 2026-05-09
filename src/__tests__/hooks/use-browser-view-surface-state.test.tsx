@@ -19,6 +19,7 @@ function createLoadingState(): BrowserWebviewState {
     can_go_back: false,
     can_go_forward: false,
     is_loading: true,
+    load_generation: 1,
   };
 }
 

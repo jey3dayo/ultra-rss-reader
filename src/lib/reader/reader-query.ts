@@ -23,13 +23,7 @@ export type DisabledReaderQuery = {
 };
 export type ReaderQueryResult = ReaderQuery | DisabledReaderQuery;
 
-export type ReaderSourceKind =
-  | "none"
-  | "account"
-  | "folder"
-  | "feed"
-  | "tag"
-  | "recent";
+export type ReaderSourceKind = "none" | "account" | "folder" | "feed" | "tag" | "recent";
 
 export type ReaderSourcePlan = {
   query: ReaderQuery | null;
@@ -59,24 +53,15 @@ export function shouldRecoverUnavailableReaderSelection(
   availability: ReaderSelectionAvailability,
 ): boolean {
   if (selection.type === "feed") {
-    return (
-      availability.feedIds !== undefined &&
-      !availability.feedIds.has(selection.feedId)
-    );
+    return availability.feedIds !== undefined && !availability.feedIds.has(selection.feedId);
   }
 
   if (selection.type === "folder") {
-    return (
-      availability.folderIds !== undefined &&
-      !availability.folderIds.has(selection.folderId)
-    );
+    return availability.folderIds !== undefined && !availability.folderIds.has(selection.folderId);
   }
 
   if (selection.type === "tag") {
-    return (
-      availability.tagIds !== undefined &&
-      !availability.tagIds.has(selection.tagId)
-    );
+    return availability.tagIds !== undefined && !availability.tagIds.has(selection.tagId);
   }
 
   return false;
@@ -181,9 +166,7 @@ export function resolveReaderQuery(
   };
 }
 
-function buildDisabledReaderSourcePlan(
-  viewMode: ReaderFilter,
-): ReaderSourcePlan {
+function buildDisabledReaderSourcePlan(viewMode: ReaderFilter): ReaderSourcePlan {
   return {
     query: null,
     sourceKind: "none",
@@ -211,11 +194,7 @@ export function resolveReaderSourcePlan(
   if (query.source === "disabled") {
     return buildDisabledReaderSourcePlan(viewMode);
   }
-  const effectiveViewMode = resolveEffectiveViewMode(
-    selection,
-    viewMode,
-    query,
-  );
+  const effectiveViewMode = resolveEffectiveViewMode(selection, viewMode, query);
 
   if (query.source === "recent") {
     return {

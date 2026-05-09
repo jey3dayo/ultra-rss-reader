@@ -281,6 +281,7 @@ describe("BrowserView", () => {
           can_go_back: false,
           can_go_forward: false,
           is_loading: true,
+          load_generation: 1,
         };
       }
       if (cmd === "set_browser_webview_bounds") {
@@ -331,6 +332,7 @@ describe("BrowserView", () => {
           can_go_back: true,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
       }
       if (cmd === "go_back_browser_webview") {
@@ -339,6 +341,7 @@ describe("BrowserView", () => {
           can_go_back: false,
           can_go_forward: true,
           is_loading: false,
+          load_generation: 1,
         };
       }
       if (cmd === "reload_browser_webview") {
@@ -347,6 +350,7 @@ describe("BrowserView", () => {
           can_go_back: false,
           can_go_forward: true,
           is_loading: true,
+          load_generation: 1,
         };
       }
       if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
@@ -387,6 +391,7 @@ describe("BrowserView", () => {
           can_go_back: false,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
       }
       if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
@@ -1087,6 +1092,7 @@ describe("BrowserView", () => {
           can_go_back: false,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
       }
       if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
@@ -1245,6 +1251,7 @@ describe("BrowserView", () => {
           can_go_back: false,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
       }
       if (cmd === "set_browser_webview_bounds") {

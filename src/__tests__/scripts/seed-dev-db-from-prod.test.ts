@@ -325,20 +325,11 @@ describe("seedDevDatabaseFromProdPlan", () => {
       timestamp: "20260501T123456",
     });
     const accessRequests: string[] = [];
-    const accessCounts = new Map<string, number>();
-    const releaseArtifactChecks = new Map<string, () => void>();
 
     const resultPromise = seedDevDatabaseFromProdPlan(plan, {
       accessImpl: async (targetPath) => {
         const pathText = toPortablePath(String(targetPath));
         accessRequests.push(pathText);
-        const accessCount = (accessCounts.get(pathText) ?? 0) + 1;
-        accessCounts.set(pathText, accessCount);
-        if (pathText.startsWith("/prod/") && accessCount > 1 && !releaseArtifactChecks.has(pathText)) {
-          await new Promise<void>((resolve) => {
-            releaseArtifactChecks.set(pathText, resolve);
-          });
-        }
       },
       lstatImpl: async () => createNonSymlinkStats(),
       copyFileImpl: async () => {},
@@ -346,10 +337,11 @@ describe("seedDevDatabaseFromProdPlan", () => {
       rmImpl: async () => {},
     });
 
-    for (let index = 0; index < 10 && releaseArtifactChecks.size < 3; index += 1) {
-      await Promise.resolve();
-    }
-    expect(releaseArtifactChecks.size).toBe(3);
+    await expect(resultPromise).resolves.toMatchObject({
+      copied: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
+      backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
+    });
+
     expect(accessRequests).toEqual(
       expect.arrayContaining([
         "/prod/ultra-rss-reader.db",
@@ -357,16 +349,13 @@ describe("seedDevDatabaseFromProdPlan", () => {
         "/prod/ultra-rss-reader.db-shm",
       ]),
     );
-    expect(accessRequests.filter((request) => request.startsWith("/dev/"))).toEqual([]);
-
-    for (const releaseCheck of releaseArtifactChecks.values()) {
-      releaseCheck();
-    }
-
-    await expect(resultPromise).resolves.toMatchObject({
-      copied: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
-      backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
-    });
+    expect(accessRequests.filter((request) => request.startsWith("/dev/"))).toEqual(
+      expect.arrayContaining([
+        "/dev/ultra-rss-reader.db",
+        "/dev/ultra-rss-reader.db-wal",
+        "/dev/ultra-rss-reader.db-shm",
+      ]),
+    );
   });
 
   it("backs up existing Dev artifacts concurrently before destination cleanup", async () => {

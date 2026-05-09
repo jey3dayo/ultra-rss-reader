@@ -38,6 +38,7 @@ function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWe
     can_go_back: true,
     can_go_forward: false,
     is_loading: false,
+    load_generation: 1,
     ...overrides,
   };
 }
@@ -48,6 +49,7 @@ function createInitialBrowserState(url: string): BrowserWebviewState {
     can_go_back: false,
     can_go_forward: false,
     is_loading: true,
+    load_generation: 0,
   };
 }
 
@@ -111,6 +113,7 @@ describe("useBrowserViewActions", () => {
         can_go_back: false,
         can_go_forward: false,
         is_loading: true,
+        load_generation: 0,
       }),
     );
     expect(showToast).not.toHaveBeenCalled();

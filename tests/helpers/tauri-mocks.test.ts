@@ -202,8 +202,8 @@ describe("setupTauriMocks fixture isolation", () => {
     const result = await cleanupFeedIntegrityOrphans(true);
 
     const error = Result.unwrapError(result);
-    expect(error.type).toBe("UserVisible");
-    expect(error.message).toContain("validation failed");
+    expect(error.type).toBe("Diagnostics");
+    expect(error.message).toBe("Response validation failed. See diagnostics for details.");
   });
 
   it("records Tauri mock calls while preserving custom handler overrides", async () => {

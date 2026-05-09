@@ -31,6 +31,7 @@ function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWe
     can_go_back: false,
     can_go_forward: false,
     is_loading: false,
+    load_generation: 1,
     ...overrides,
   };
 }

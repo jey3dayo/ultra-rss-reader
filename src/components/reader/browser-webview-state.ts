@@ -5,8 +5,7 @@ import { useUiStore } from "@/stores/ui-store";
 
 export type { BrowserWebviewFallbackPayload };
 
-const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR =
-  "Embedded browser webview is not open";
+const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR = "Embedded browser webview is not open";
 
 function toBrowserNavigationState(nextState: BrowserWebviewState | null) {
   if (!nextState) {
@@ -33,9 +32,7 @@ export function resolveBrowserStateForRequestedUrl(
   previousState: BrowserWebviewState | null,
   requestedUrl: string,
 ): BrowserWebviewState {
-  return previousState?.url === requestedUrl
-    ? previousState
-    : initialBrowserState(requestedUrl);
+  return previousState?.url === requestedUrl ? previousState : initialBrowserState(requestedUrl);
 }
 
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
@@ -51,11 +48,7 @@ export function mergeBrowserState(
     return nextState;
   }
 
-  if (
-    !previousState.is_loading &&
-    nextState.is_loading &&
-    previousState.url !== nextState.url
-  ) {
+  if (!previousState.is_loading && nextState.is_loading && previousState.url !== nextState.url) {
     return {
       ...previousState,
       can_go_back: nextState.can_go_back,
@@ -98,23 +91,17 @@ export function setBrowserStateWithRef(
   nextState: BrowserWebviewState | null,
 ) {
   browserStateRef.current = nextState;
-  useUiStore
-    .getState()
-    .setBrowserNavigationState(toBrowserNavigationState(nextState));
+  useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
   setBrowserState(nextState);
 }
 
 export function updateBrowserStateWithRef(
   browserStateRef: MutableRefObject<BrowserWebviewState | null>,
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>,
-  update: (
-    currentState: BrowserWebviewState | null,
-  ) => BrowserWebviewState | null,
+  update: (currentState: BrowserWebviewState | null) => BrowserWebviewState | null,
 ) {
   const nextState = update(browserStateRef.current);
   browserStateRef.current = nextState;
-  useUiStore
-    .getState()
-    .setBrowserNavigationState(toBrowserNavigationState(nextState));
+  useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
   setBrowserState(nextState);
 }

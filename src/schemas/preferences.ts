@@ -122,7 +122,10 @@ const typoDetectionCandidateKeys = [
   ...backendOwnedPreferenceKeys,
 ] as const;
 
-const hiddenPreferenceDefaultKeys = ["sort_subscriptions", "action_open_browser"] as const satisfies readonly KnownPreferenceKey[];
+const hiddenPreferenceDefaultKeys = [
+  "sort_subscriptions",
+  "action_open_browser",
+] as const satisfies readonly KnownPreferenceKey[];
 export type HiddenPreferenceKey = (typeof hiddenPreferenceDefaultKeys)[number];
 export type VisiblePreferenceDefaultKey = Exclude<KnownPreferenceKey, HiddenPreferenceKey> | ShortcutPreferenceKey;
 export type PreferenceDefaultsRecord = Partial<Record<VisiblePreferenceDefaultKey, string>>;
@@ -202,6 +205,7 @@ const corePreferenceDefaults = {
 };
 
 const hiddenPreferenceDefaults: Record<HiddenPreferenceKey, string> = {
+  action_open_browser: corePreferenceDefaults.action_open_browser,
   sort_subscriptions: corePreferenceDefaults.sort_subscriptions,
 };
 

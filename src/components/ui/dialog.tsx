@@ -126,9 +126,7 @@ function DialogFooter({ className, showCloseButton = false, closeLabel, children
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          {resolvedCloseLabel}
-        </DialogPrimitive.Close>
+        <DialogPrimitive.Close render={<Button variant="outline" />}>{resolvedCloseLabel}</DialogPrimitive.Close>
       )}
     </div>
   );

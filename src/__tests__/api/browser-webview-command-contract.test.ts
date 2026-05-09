@@ -27,20 +27,12 @@ const browserBounds: BrowserWebviewBounds = {
 };
 
 function readRustBrowserWebviewSource() {
-  return readFileSync(
-    join(process.cwd(), "src-tauri/src/browser_webview.rs"),
-    "utf8",
-  );
+  return readFileSync(join(process.cwd(), "src-tauri/src/browser_webview.rs"), "utf8");
 }
 
 function extractRustStructFields(source: string, structName: string) {
-  const structMatch = source.match(
-    new RegExp(`pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`),
-  );
-  expect(
-    structMatch,
-    `${structName} should exist in Rust browser_webview.rs`,
-  ).not.toBeNull();
+  const structMatch = source.match(new RegExp(`pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`));
+  expect(structMatch, `${structName} should exist in Rust browser_webview.rs`).not.toBeNull();
 
   const fields: string[] = [];
   let skipNextField = false;
@@ -79,22 +71,17 @@ function extractRustStructFields(source: string, structName: string) {
 describe("browser webview command contract", () => {
   it("keeps BrowserWebviewState schema fields aligned with the Rust DTO", () => {
     expect(Object.keys(BrowserWebviewStateSchema.shape).sort()).toEqual(
-      extractRustStructFields(
-        readRustBrowserWebviewSource(),
-        "BrowserWebviewState",
-      ),
+      extractRustStructFields(readRustBrowserWebviewSource(), "BrowserWebviewState"),
     );
   });
 
   it("keeps browser webview event payload schemas aligned with the Rust DTOs", () => {
     const source = readRustBrowserWebviewSource();
 
-    expect(
-      Object.keys(BrowserWebviewFallbackPayloadSchema.shape).sort(),
-    ).toEqual(extractRustStructFields(source, "BrowserWebviewFallbackPayload"));
-    expect(
-      Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).sort(),
-    ).toEqual(
+    expect(Object.keys(BrowserWebviewFallbackPayloadSchema.shape).sort()).toEqual(
+      extractRustStructFields(source, "BrowserWebviewFallbackPayload"),
+    );
+    expect(Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).sort()).toEqual(
       extractRustStructFields(source, "BrowserWebviewDiagnosticsPayload"),
     );
   });
@@ -103,11 +90,7 @@ describe("browser webview command contract", () => {
     const stateCommandCases = [
       [
         "create_or_update_browser_webview",
-        () =>
-          createOrUpdateBrowserWebview(
-            "https://example.com/article",
-            browserBounds,
-          ),
+        () => createOrUpdateBrowserWebview("https://example.com/article", browserBounds),
       ],
       ["go_back_browser_webview", () => goBackBrowserWebview()],
       ["go_forward_browser_webview", () => goForwardBrowserWebview()],
@@ -135,10 +118,7 @@ describe("browser webview command contract", () => {
 
   it("validates browser webview null command responses", async () => {
     const nullCommandCases = [
-      [
-        "set_browser_webview_bounds",
-        () => setBrowserWebviewBounds(browserBounds),
-      ],
+      ["set_browser_webview_bounds", () => setBrowserWebviewBounds(browserBounds)],
       ["focus_browser_webview", () => focusBrowserWebview()],
       ["close_browser_webview", () => closeBrowserWebview()],
     ] as const;

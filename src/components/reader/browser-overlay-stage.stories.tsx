@@ -93,6 +93,7 @@ function createChromeController(overrides?: Partial<BrowserOverlayChromeControll
       can_go_back: true,
       can_go_forward: false,
       is_loading: true,
+      load_generation: 1,
     },
     geometry: createGeometry(),
     handleCloseOverlay: fn(),
@@ -203,6 +204,7 @@ export const Loaded: Story = {
         can_go_back: true,
         can_go_forward: false,
         is_loading: false,
+        load_generation: 1,
       },
     }),
     stageController: createStageController({
@@ -219,6 +221,7 @@ export const RetryableIssue: Story = {
         can_go_back: false,
         can_go_forward: false,
         is_loading: false,
+        load_generation: 1,
       },
     }),
     stageController: createStageController({

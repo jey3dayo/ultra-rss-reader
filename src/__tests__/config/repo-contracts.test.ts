@@ -973,7 +973,7 @@ describe("repository static contracts", () => {
 
     for (const { jobId, section } of extractWorkflowCheckJobSections(ciWorkflow)) {
       const storePathIndex = section.indexOf("pnpm store path --silent");
-      const cacheIndex = section.indexOf("uses: actions/cache@v5.0.5");
+      const cacheIndex = section.indexOf("uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(storePathIndex, `${jobId} should resolve pnpm store path`).toBeGreaterThanOrEqual(0);
@@ -1603,7 +1603,9 @@ describe("repository static contracts", () => {
     expect(extractIssueTemplateCheckboxLabels(issueTestTemplate, "follow-up-labels")).toEqual(
       expect.arrayContaining(["manual-verification が必要", "release-readiness に入る"]),
     );
-    expect(prInsightsLabelerWorkflow).toContain("uses: jey3dayo/pr-insights-labeler@v1.11.1");
+    expect(prInsightsLabelerWorkflow).toContain(
+      "uses: jey3dayo/pr-insights-labeler@e9bccb2e8c9ed048d6022d6ae2e5c85eeed80f16",
+    );
     expect(prInsightsLabelerWorkflow).toContain('file_size_limit: "100KB"');
     expect(prInsightsLabelerWorkflow).toContain('pr_files_limit: "50"');
   });

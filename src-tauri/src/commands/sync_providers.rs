@@ -309,48 +309,8 @@ pub(super) async fn sync_local_feed(
                     fetched_at: chrono::Utc::now(),
                 }
             })
-            .collect();
-
-        let next_state = SyncState {
-            account_id: account_id.clone(),
-            scope_key: scope_key.as_string(),
-            timestamp_usec: None,
-            continuation: None,
-            etag: result
-                .next_cursor
-                .as_ref()
-                .and_then(|cursor| cursor.etag.clone()),
-            last_modified: result
-                .next_cursor
-                .as_ref()
-                .and_then(|cursor| cursor.last_modified.clone()),
-            last_success_at: Some(chrono::Utc::now().to_rfc3339()),
-            last_error: None,
-            error_count: 0,
-            next_retry_at: None,
-        };
-        let db_guard = lock_db(db)?;
-        let tx = db_guard
-            .writer()
-            .unchecked_transaction()
-            .map_err(crate::domain::error::DomainError::from)
-            .map_err(AppError::from)?;
-        upsert_articles_in_current_transaction(&tx, &articles)?;
-        let candidate_ids = articles
-            .iter()
-            .map(|article| article.id.clone())
-            .collect::<Vec<ArticleId>>();
-        mark_muted_unread_as_read_with_conn(&tx, account_id, Some(&candidate_ids))?;
-        let feed_repo = SqliteFeedRepository::new(&tx);
-        feed_repo.recalculate_unread_count(&feed.id)?;
-        let sync_state_repo = SqliteSyncStateRepository::new(&tx);
-        sync_state_repo.save(&next_state)?;
-        tx.commit()
-            .map_err(crate::domain::error::DomainError::from)
-            .map_err(AppError::from)?;
-
-        return Ok(());
-    }
+            .collect()
+    };
 
     let next_state = SyncState {
         account_id: account_id.clone(),
@@ -371,8 +331,21 @@ pub(super) async fn sync_local_feed(
         next_retry_at: None,
     };
     let db_guard = lock_db(db)?;
-    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
-    sync_state_repo.save(&next_state)?;
+    let tx = db_guard
+        .writer()
+        .unchecked_transaction()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    save_local_feed_sync_result_in_current_transaction(
+        &tx,
+        account_id,
+        feed,
+        &articles,
+        &next_state,
+    )?;
+    tx.commit()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
 
     Ok(())
 }
@@ -1459,12 +1432,17 @@ mod tests {
     struct DevCredentialsContext {
         _guard: tokio::sync::MutexGuard<'static, ()>,
         _dir: tempfile::TempDir,
+        previous_home: Option<String>,
     }
 
     impl Drop for DevCredentialsContext {
         fn drop(&mut self) {
             std::env::remove_var("DEV_CREDENTIALS");
             std::env::remove_var("XDG_DATA_HOME");
+            match self.previous_home.as_ref() {
+                Some(home) => std::env::set_var("HOME", home),
+                None => std::env::remove_var("HOME"),
+            }
         }
     }
     const LOCAL_RSS_INITIAL: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -1774,13 +1752,25 @@ mod tests {
 
     async fn configure_dev_credentials(account_id: &AccountId) -> DevCredentialsContext {
         let guard = DEV_CREDENTIALS_ENV_LOCK.lock().await;
+        let previous_home = std::env::var("HOME").ok();
         std::env::set_var("DEV_CREDENTIALS", "1");
         let credentials_dir = tempfile::tempdir().unwrap();
         std::env::set_var("XDG_DATA_HOME", credentials_dir.path());
+        std::env::set_var("HOME", credentials_dir.path());
+        std::fs::create_dir_all(credentials_dir.path().join("ultra-rss-reader")).unwrap();
+        std::fs::write(
+            credentials_dir
+                .path()
+                .join("ultra-rss-reader")
+                .join("dev-credentials.json"),
+            "{}",
+        )
+        .unwrap();
         keyring_store::set_password(account_id.as_ref(), "p").unwrap();
         DevCredentialsContext {
             _guard: guard,
             _dir: credentials_dir,
+            previous_home,
         }
     }
 

@@ -264,7 +264,9 @@ describe("clipboard", () => {
 
   it("classifies frontend clipboard insecure-context failures as permission failures", async () => {
     setTauriRuntimeMissing();
-    const writeText = vi.fn().mockRejectedValue(new DOMException("Clipboard requires a secure context", "SecurityError"));
+    const writeText = vi
+      .fn()
+      .mockRejectedValue(new DOMException("Clipboard requires a secure context", "SecurityError"));
     setFrontendClipboard(writeText);
 
     const result = await copyTextToClipboard("copy me");

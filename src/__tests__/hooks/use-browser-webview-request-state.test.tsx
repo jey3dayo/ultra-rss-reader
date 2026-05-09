@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserWebviewRequestState } from "@/components/reader/hooks/browser/use-browser-webview-request-state";
 
-function createBrowserState(url: string, isLoading = false): BrowserWebviewState {
+function createBrowserState(url: string, isLoading = false, loadGeneration = 1): BrowserWebviewState {
   return {
     url,
     can_go_back: false,
     can_go_forward: false,
     is_loading: isLoading,
+    load_generation: loadGeneration,
   };
 }
 
@@ -39,8 +40,8 @@ describe("useBrowserWebviewRequestState", () => {
     expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
     expect(result.current.fallbackInFlightRef.current).toBe(false);
-    expect(result.current.browserState).toEqual(createBrowserState("https://example.com/article", true));
-    expect(result.current.browserStateRef.current).toEqual(createBrowserState("https://example.com/article", true));
+    expect(result.current.browserState).toEqual(createBrowserState("https://example.com/article", true, 0));
+    expect(result.current.browserStateRef.current).toEqual(createBrowserState("https://example.com/article", true, 0));
   });
 
   it("keeps the existing browser state when the requested url is unchanged", () => {

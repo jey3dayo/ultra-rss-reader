@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { BrowserWebviewState } from "@/api/tauri-commands";
 import {
   initialBrowserState,
   isMissingEmbeddedBrowserWebviewError,
@@ -8,6 +9,17 @@ import {
   updateBrowserStateWithRef,
 } from "@/components/reader/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
+
+function browserState(overrides: Partial<BrowserWebviewState>): BrowserWebviewState {
+  return {
+    url: "https://example.com/article",
+    can_go_back: false,
+    can_go_forward: false,
+    is_loading: false,
+    load_generation: 1,
+    ...overrides,
+  };
+}
 
 describe("browser-webview-state", () => {
   beforeEach(() => {
@@ -20,16 +32,15 @@ describe("browser-webview-state", () => {
       can_go_back: false,
       can_go_forward: false,
       is_loading: true,
+      load_generation: 0,
     });
   });
 
   it("reuses the current state when the requested url has not changed", () => {
-    const currentState = {
+    const currentState = browserState({
       url: "https://example.com/article",
       can_go_back: true,
-      can_go_forward: false,
-      is_loading: false,
-    } satisfies ReturnType<typeof initialBrowserState>;
+    });
 
     expect(resolveBrowserStateForRequestedUrl(currentState, "https://example.com/article")).toBe(currentState);
   });
@@ -37,12 +48,11 @@ describe("browser-webview-state", () => {
   it("resets to the initial loading state when the requested url changes", () => {
     expect(
       resolveBrowserStateForRequestedUrl(
-        {
+        browserState({
           url: "https://example.com/old",
           can_go_back: true,
           can_go_forward: true,
-          is_loading: false,
-        },
+        }),
         "https://example.com/new",
       ),
     ).toEqual({
@@ -50,24 +60,22 @@ describe("browser-webview-state", () => {
       can_go_back: false,
       can_go_forward: false,
       is_loading: true,
+      load_generation: 0,
     });
   });
 
   it("keeps the previous url while a new page starts loading", () => {
     expect(
       mergeBrowserState(
-        {
+        browserState({
           url: "https://example.com/old",
-          can_go_back: false,
-          can_go_forward: false,
-          is_loading: false,
-        },
-        {
+        }),
+        browserState({
           url: "https://example.com/new",
           can_go_back: true,
-          can_go_forward: false,
           is_loading: true,
-        },
+          load_generation: 2,
+        }),
         "https://example.com/new",
       ),
     ).toEqual({
@@ -75,24 +83,25 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: 1,
     });
   });
 
   it("keeps the current url for same-url reload loading updates", () => {
     expect(
       mergeBrowserState(
-        {
+        browserState({
           url: "https://example.com/article",
           can_go_back: true,
           can_go_forward: true,
-          is_loading: false,
-        },
-        {
+        }),
+        browserState({
           url: "https://example.com/article",
           can_go_back: true,
           can_go_forward: true,
           is_loading: true,
-        },
+          load_generation: 2,
+        }),
         "https://example.com/article",
       ),
     ).toEqual({
@@ -100,24 +109,24 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: true,
       is_loading: true,
+      load_generation: 2,
     });
   });
 
   it("keeps the intended url while loading updates briefly report a stale url", () => {
     expect(
       mergeBrowserState(
-        {
+        browserState({
           url: "https://example.com/intended",
-          can_go_back: false,
-          can_go_forward: false,
           is_loading: true,
-        },
-        {
+        }),
+        browserState({
           url: "https://example.com/stale",
           can_go_back: true,
           can_go_forward: true,
           is_loading: true,
-        },
+          load_generation: 2,
+        }),
         "https://example.com/intended",
       ),
     ).toEqual({
@@ -125,24 +134,22 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: true,
       is_loading: true,
+      load_generation: 1,
     });
   });
 
   it("accepts the redirected url once the native payload finishes loading", () => {
     expect(
       mergeBrowserState(
-        {
+        browserState({
           url: "https://example.com/requested",
-          can_go_back: false,
-          can_go_forward: false,
           is_loading: true,
-        },
-        {
+        }),
+        browserState({
           url: "https://example.com/redirected",
           can_go_back: true,
-          can_go_forward: false,
-          is_loading: false,
-        },
+          load_generation: 2,
+        }),
         "https://example.com/requested",
       ),
     ).toEqual({
@@ -150,6 +157,7 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: 2,
     });
   });
 
@@ -176,12 +184,10 @@ describe("browser-webview-state", () => {
 
   it("updates the browser ref and navigation store outside the React state updater", () => {
     const browserStateRef = {
-      current: {
+      current: browserState({
         url: "https://example.com/current",
-        can_go_back: false,
-        can_go_forward: false,
         is_loading: true,
-      },
+      }),
     };
     const setBrowserState = vi.fn();
 
@@ -190,6 +196,7 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: currentState?.load_generation ?? 0,
     }));
 
     expect(browserStateRef.current).toEqual({
@@ -197,6 +204,7 @@ describe("browser-webview-state", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: 1,
     });
     expect(useUiStore.getState().browserNavigationState).toEqual({
       canGoBack: true,
@@ -211,12 +219,11 @@ describe("browser-webview-state", () => {
       current: null,
     };
     const setBrowserState = vi.fn();
-    const nextState = {
+    const nextState = browserState({
       url: "https://example.com/loading",
-      can_go_back: false,
       can_go_forward: true,
       is_loading: true,
-    };
+    });
 
     setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
 
@@ -234,12 +241,11 @@ describe("browser-webview-state", () => {
       canGoForward: true,
     });
     const browserStateRef = {
-      current: {
+      current: browserState({
         url: "https://example.com/current",
         can_go_back: true,
         can_go_forward: true,
-        is_loading: false,
-      },
+      }),
     };
     const setBrowserState = vi.fn();
 

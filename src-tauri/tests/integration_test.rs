@@ -43,6 +43,28 @@ impl Drop for EnvVarCleanup {
     }
 }
 
+struct EnvVarRestore {
+    key: &'static str,
+    previous: Option<String>,
+}
+
+impl EnvVarRestore {
+    fn set(key: &'static str, value: &std::path::Path) -> Self {
+        let previous = std::env::var(key).ok();
+        std::env::set_var(key, value);
+        Self { key, previous }
+    }
+}
+
+impl Drop for EnvVarRestore {
+    fn drop(&mut self) {
+        match self.previous.as_ref() {
+            Some(value) => std::env::set_var(self.key, value),
+            None => std::env::remove_var(self.key),
+        }
+    }
+}
+
 #[tokio::test]
 async fn local_feed_e2e() {
     // 1. Setup
@@ -142,6 +164,18 @@ async fn local_feed_e2e() {
 async fn freshrss_sync_preserves_local_like_feed_read_state() {
     std::env::set_var("DEV_CREDENTIALS", "1");
     let _env_cleanup = EnvVarCleanup("DEV_CREDENTIALS");
+    let credentials_dir = tempfile::tempdir().unwrap();
+    let _xdg_cleanup = EnvVarRestore::set("XDG_DATA_HOME", credentials_dir.path());
+    let _home_cleanup = EnvVarRestore::set("HOME", credentials_dir.path());
+    std::fs::create_dir_all(credentials_dir.path().join("ultra-rss-reader")).unwrap();
+    std::fs::write(
+        credentials_dir
+            .path()
+            .join("ultra-rss-reader")
+            .join("dev-credentials.json"),
+        "{}",
+    )
+    .unwrap();
     let db = Mutex::new(DbManager::new_in_memory().unwrap());
     let syncing = AtomicBool::new(false);
     let account_id = AccountId::new();

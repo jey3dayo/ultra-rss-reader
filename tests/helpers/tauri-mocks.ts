@@ -315,6 +315,7 @@ function createDefaultHandler(): MockHandler {
           can_go_back: false,
           can_go_forward: false,
           is_loading: true,
+          load_generation: 1,
         };
       case "set_browser_webview_bounds":
         return null;
@@ -328,6 +329,7 @@ function createDefaultHandler(): MockHandler {
           can_go_back: false,
           can_go_forward: false,
           is_loading: false,
+          load_generation: 1,
         };
       case "close_browser_webview":
         return null;

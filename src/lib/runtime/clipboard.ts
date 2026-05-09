@@ -71,6 +71,15 @@ function toClipboardCopyError(error: unknown): ClipboardCopyError {
     };
   }
 
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = String(error.message);
+    return {
+      type: "UserVisible",
+      message,
+      category: resolveClipboardErrorCategory(`${"name" in error ? String(error.name) : ""} ${message}`),
+    };
+  }
+
   const message = String(error);
   return {
     type: "UserVisible",

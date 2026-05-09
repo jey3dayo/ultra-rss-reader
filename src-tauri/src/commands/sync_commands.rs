@@ -514,15 +514,15 @@ pub async fn trigger_startup_sync(
         result
     };
 
-    if repair_pending {
-        if startup_remote_state_repair_succeeded(
+    if repair_pending
+        && startup_remote_state_repair_succeeded(
             &startup_sync_accounts,
             &repair_only_accounts,
             &repaired_account_ids,
             &sync_result,
-        ) {
-            mark_startup_remote_state_repair_complete(&state.db)?;
-        }
+        )
+    {
+        mark_startup_remote_state_repair_complete(&state.db)?;
     }
 
     if sync_result.synced

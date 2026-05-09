@@ -44,8 +44,9 @@ const extractReleaseCacheBlock = (source: string): string => {
 
 const extractTaskBlock = (source: string, taskName: string): string => {
   const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const value = source.match(new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>[\\s\\S]*?)(?=\\n\\[tasks\\.|$)`))
-    ?.groups?.block;
+  const value = source.match(
+    new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>[\\s\\S]*?)(?=\\n\\[tasks\\.|$)`),
+  )?.groups?.block;
   if (!value) {
     throw new Error(`Missing mise task block: ${taskName}`);
   }
@@ -61,7 +62,6 @@ const extractWorkflowUses = (source: string): string[] => {
   const usesPattern = /^\s*-\s+uses:\s+([^\s#]+)$/gm;
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
 };
-
 
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
@@ -170,7 +170,7 @@ describe("release repository contract", () => {
         /sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
       ),
     ).toHaveLength(2);
-    expect(ciWorkflow).not.toContain("sudo apt-get install -y ${{ env.TAURI_SYSTEM_DEPS }}");
+    expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");
   });
 
   it("keeps actionlint shellcheck disabled only with a paired shell gate", () => {

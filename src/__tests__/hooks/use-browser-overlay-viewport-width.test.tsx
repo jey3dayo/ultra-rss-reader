@@ -43,7 +43,7 @@ describe("useBrowserOverlayViewportWidth", () => {
 
   it("logs resize listener cleanup failures without throwing on unmount", () => {
     const error = new Error("cleanup failed");
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(window, "removeEventListener").mockImplementation((type, listener, options) => {
       if (type === "resize") {
         throw error;
@@ -54,6 +54,6 @@ describe("useBrowserOverlayViewportWidth", () => {
     const { unmount } = renderHook(() => useBrowserOverlayViewportWidth());
 
     expect(() => unmount()).not.toThrow();
-    expect(warn).toHaveBeenCalledWith("Failed to cleanup browser overlay viewport resize listener.", error);
+    expect(errorSpy).toHaveBeenCalledWith("Failed to remove window event listener.", error);
   });
 });

@@ -14,9 +14,7 @@ use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::feed::FeedRepository;
-use crate::repository::pending_mutation::{
-    PendingMutation, PendingMutationRepository, PendingMutationType,
-};
+use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
 
 const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
 const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;

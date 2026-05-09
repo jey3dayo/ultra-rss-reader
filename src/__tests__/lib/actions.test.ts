@@ -35,6 +35,7 @@ const reloadBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebvie
     can_go_back: false,
     can_go_forward: false,
     is_loading: false,
+    load_generation: 1,
   }),
 );
 const goBackBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
@@ -43,6 +44,7 @@ const goBackBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebvie
     can_go_back: true,
     can_go_forward: false,
     is_loading: false,
+    load_generation: 1,
   }),
 );
 const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
@@ -51,6 +53,7 @@ const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWeb
     can_go_back: true,
     can_go_forward: false,
     is_loading: false,
+    load_generation: 1,
   }),
 );
 
@@ -717,6 +720,7 @@ describe("executeAction", () => {
           can_go_back: false,
           can_go_forward: true,
           is_loading: false,
+          load_generation: 1,
         } satisfies BrowserWebviewState),
       );
       useUiStore.setState({

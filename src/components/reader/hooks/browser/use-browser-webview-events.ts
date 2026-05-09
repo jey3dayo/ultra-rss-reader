@@ -21,23 +21,17 @@ type UseBrowserWebviewEventsParams = {
 
 type UseBrowserWebviewEventsResult = () => Promise<void>;
 
-function parseBrowserWebviewStatePayload(
-  payload: unknown,
-): BrowserWebviewState | null {
+function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewState | null {
   const result = BrowserWebviewStateSchema.safeParse(payload);
   return result.success ? result.data : null;
 }
 
-function parseBrowserWebviewFallbackPayload(
-  payload: unknown,
-): BrowserWebviewFallbackPayload | null {
+function parseBrowserWebviewFallbackPayload(payload: unknown): BrowserWebviewFallbackPayload | null {
   const result = BrowserWebviewFallbackPayloadSchema.safeParse(payload);
   return result.success ? result.data : null;
 }
 
-function parseBrowserWebviewDiagnosticsPayload(
-  payload: unknown,
-): BrowserDebugGeometryNativeDiagnostics | null {
+function parseBrowserWebviewDiagnosticsPayload(payload: unknown): BrowserDebugGeometryNativeDiagnostics | null {
   const result = BrowserWebviewDiagnosticsPayloadSchema.safeParse(payload);
   return result.success ? result.data : null;
 }
@@ -52,11 +46,7 @@ function malformedPayloadSummary(payload: unknown) {
   return typeof payload;
 }
 
-function warnMalformedBrowserWebviewEvent(
-  warnedMalformedEventNames: Set<string>,
-  eventName: string,
-  payload: unknown,
-) {
+function warnMalformedBrowserWebviewEvent(warnedMalformedEventNames: Set<string>, eventName: string, payload: unknown) {
   if (warnedMalformedEventNames.has(eventName)) {
     return;
   }
@@ -113,23 +103,19 @@ export function useBrowserWebviewEvents({
       }),
       ...(showDiagnostics
         ? [
-            listen<unknown>(
-              BROWSER_WINDOW_EVENTS.diagnostics,
-              ({ payload }) => {
-                if (cancelled) return;
-                const diagnosticsPayload =
-                  parseBrowserWebviewDiagnosticsPayload(payload);
-                if (!diagnosticsPayload) {
-                  warnMalformedBrowserWebviewEvent(
-                    warnedMalformedEventNamesRef.current,
-                    BROWSER_WINDOW_EVENTS.diagnostics,
-                    payload,
-                  );
-                  return;
-                }
-                onDiagnostics(diagnosticsPayload);
-              },
-            ),
+            listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
+              if (cancelled) return;
+              const diagnosticsPayload = parseBrowserWebviewDiagnosticsPayload(payload);
+              if (!diagnosticsPayload) {
+                warnMalformedBrowserWebviewEvent(
+                  warnedMalformedEventNamesRef.current,
+                  BROWSER_WINDOW_EVENTS.diagnostics,
+                  payload,
+                );
+                return;
+              }
+              onDiagnostics(diagnosticsPayload);
+            }),
           ]
         : []),
     ]);

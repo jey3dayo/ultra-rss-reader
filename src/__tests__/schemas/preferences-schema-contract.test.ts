@@ -25,6 +25,10 @@ function extractBlock(source: string, pattern: RegExp, label: string): string {
   return matched;
 }
 
+function hasOwnKey(value: object, key: string): boolean {
+  return Reflect.getOwnPropertyDescriptor(value, key) !== undefined;
+}
+
 function extractFrontendPreferenceKeys(source: string): string[] {
   const block = extractBlock(source, /const preferenceSchemas = \{([\s\S]*?)\};/, "frontend preferenceSchemas block");
 
@@ -269,7 +273,7 @@ describe("preference contract", () => {
         let value: unknown = settings;
         for (const segment of path) {
           value =
-            typeof value === "object" && value !== null && Object.hasOwn(value, segment)
+            typeof value === "object" && value !== null && hasOwnKey(value, segment)
               ? value[segment as keyof typeof value]
               : undefined;
         }

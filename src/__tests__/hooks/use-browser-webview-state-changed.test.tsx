@@ -10,6 +10,7 @@ function createState(url: string, isLoading: boolean): BrowserWebviewState {
     can_go_back: false,
     can_go_forward: false,
     is_loading: isLoading,
+    load_generation: 1,
   };
 }
 
@@ -17,10 +18,9 @@ describe("useBrowserWebviewStateChanged", () => {
   it("clears fallback recovery markers when a loading state change arrives", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] =
-        useState<BrowserWebviewState | null>(() =>
-          createState("https://example.com/old", false),
-        );
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
+        createState("https://example.com/old", false),
+      );
       const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(true);
@@ -47,6 +47,7 @@ describe("useBrowserWebviewStateChanged", () => {
         can_go_back: true,
         can_go_forward: false,
         is_loading: true,
+        load_generation: 2,
       });
     });
 
@@ -55,10 +56,9 @@ describe("useBrowserWebviewStateChanged", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: false,
+      load_generation: 1,
     });
-    expect(result.current.browserStateRef.current).toEqual(
-      result.current.browserState,
-    );
+    expect(result.current.browserStateRef.current).toEqual(result.current.browserState);
     expect(result.current.fallbackInFlightRef.current).toBe(false);
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
   });
@@ -66,10 +66,9 @@ describe("useBrowserWebviewStateChanged", () => {
   it("clears fallback recovery markers when a finished state change arrives", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] =
-        useState<BrowserWebviewState | null>(() =>
-          createState("https://example.com/loading", true),
-        );
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
+        createState("https://example.com/loading", true),
+      );
       const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(true);
@@ -96,6 +95,7 @@ describe("useBrowserWebviewStateChanged", () => {
         can_go_back: true,
         can_go_forward: true,
         is_loading: false,
+        load_generation: 2,
       });
     });
 
@@ -104,10 +104,9 @@ describe("useBrowserWebviewStateChanged", () => {
       can_go_back: true,
       can_go_forward: true,
       is_loading: false,
+      load_generation: 2,
     });
-    expect(result.current.browserStateRef.current).toEqual(
-      result.current.browserState,
-    );
+    expect(result.current.browserStateRef.current).toEqual(result.current.browserState);
     expect(result.current.fallbackInFlightRef.current).toBe(false);
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
   });
@@ -115,10 +114,9 @@ describe("useBrowserWebviewStateChanged", () => {
   it("ignores a late finished state change for the previous request while the new request is loading", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] =
-        useState<BrowserWebviewState | null>(() =>
-          createState("https://example.com/new", true),
-        );
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
+        createState("https://example.com/new", true),
+      );
       const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(false);
@@ -140,6 +138,7 @@ describe("useBrowserWebviewStateChanged", () => {
         can_go_back: true,
         can_go_forward: false,
         is_loading: false,
+        load_generation: 1,
       });
     });
 
@@ -148,20 +147,18 @@ describe("useBrowserWebviewStateChanged", () => {
       can_go_back: true,
       can_go_forward: false,
       is_loading: true,
+      load_generation: 1,
     });
-    expect(result.current.browserStateRef.current).toEqual(
-      result.current.browserState,
-    );
+    expect(result.current.browserStateRef.current).toEqual(result.current.browserState);
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
   });
 
   it("treats a late loaded event as recovery after a load timeout surface failure", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] =
-        useState<BrowserWebviewState | null>(() =>
-          createState("https://example.com/slow", true),
-        );
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
+        createState("https://example.com/slow", true),
+      );
       const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(false);
@@ -183,6 +180,7 @@ describe("useBrowserWebviewStateChanged", () => {
         can_go_back: false,
         can_go_forward: true,
         is_loading: false,
+        load_generation: 2,
       });
     });
 
@@ -191,10 +189,9 @@ describe("useBrowserWebviewStateChanged", () => {
       can_go_back: false,
       can_go_forward: true,
       is_loading: false,
+      load_generation: 2,
     });
-    expect(result.current.browserStateRef.current).toEqual(
-      result.current.browserState,
-    );
+    expect(result.current.browserStateRef.current).toEqual(result.current.browserState);
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
   });
 });
