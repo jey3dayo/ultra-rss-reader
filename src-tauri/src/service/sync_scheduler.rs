@@ -80,6 +80,12 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 Ok(accounts) => accounts,
                 Err(error) => {
                     tracing::warn!("Skipping scheduled sync: failed to load accounts: {error}");
+                    if let Err(emit_error) = app_handle.emit(
+                        SYNC_WARNING_EVENT,
+                        vec![scheduler_load_failure_warning(&error)],
+                    ) {
+                        tracing::warn!("Failed to emit sync-warning event: {emit_error}");
+                    }
                     continue;
                 }
             };
@@ -285,6 +291,17 @@ fn load_scheduler_accounts(db: &Mutex<DbManager>) -> DomainResult<Vec<Account>> 
         .map_err(|error| DomainError::Persistence(format!("Lock error: {error}")))?;
     let repo = SqliteAccountRepository::new(db_guard.reader());
     repo.find_all()
+}
+
+fn scheduler_load_failure_warning(error: &DomainError) -> AccountSyncWarning {
+    AccountSyncWarning {
+        account_id: "scheduler".to_string(),
+        account_name: "Scheduler".to_string(),
+        kind: AccountSyncWarningKind::Generic,
+        message: format!("Scheduled sync skipped because accounts could not be loaded: {error}"),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
 }
 
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
@@ -575,6 +592,23 @@ mod tests {
         let error = load_scheduler_accounts(&db).expect_err("account load failure should return");
 
         assert!(matches!(error, DomainError::Persistence(_)));
+    }
+
+    #[test]
+    fn scheduler_load_failure_warning_is_observable_as_generic_scheduler_warning() {
+        let error = DomainError::Persistence("Lock error: poisoned".to_string());
+
+        let warning = scheduler_load_failure_warning(&error);
+
+        assert_eq!(warning.account_id, "scheduler");
+        assert_eq!(warning.account_name, "Scheduler");
+        assert_eq!(warning.kind, AccountSyncWarningKind::Generic);
+        assert_eq!(
+            warning.message,
+            "Scheduled sync skipped because accounts could not be loaded: Persistence error: Lock error: poisoned"
+        );
+        assert_eq!(warning.retry_at, None);
+        assert_eq!(warning.retry_in_seconds, None);
     }
 
     #[test]

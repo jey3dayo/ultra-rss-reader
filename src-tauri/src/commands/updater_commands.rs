@@ -15,6 +15,10 @@ static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 /// without a second network round-trip.
 pub struct PendingUpdate(pub Arc<Mutex<Option<Update>>>);
 
+fn clear_pending_update<T>(pending: &mut Option<T>) {
+    *pending = None;
+}
+
 #[tauri::command]
 pub fn restart_app(app: AppHandle) {
     app.restart();
@@ -34,7 +38,7 @@ struct DownloadProgress {
 #[tauri::command]
 pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppError> {
     let pending = app.state::<PendingUpdate>();
-    *pending.0.lock().await = None;
+    clear_pending_update(&mut *pending.0.lock().await);
 
     let updater = app.updater().map_err(|e| AppError::Retryable {
         message: format!("Failed to initialize updater: {e}"),
@@ -127,4 +131,18 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
     let _ = app.emit("update-ready", ());
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::clear_pending_update;
+
+    #[test]
+    fn clear_pending_update_drops_stale_cached_update_before_runtime_check() {
+        let mut pending = Some("stale-update");
+
+        clear_pending_update(&mut pending);
+
+        assert_eq!(pending, None);
+    }
 }
