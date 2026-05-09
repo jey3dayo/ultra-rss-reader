@@ -165,9 +165,9 @@ describe("MuteSettings", () => {
     render(<MuteSettings />);
 
     await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
-    await user.click(await screen.findByRole("option", { name: "mute.scope_body" }));
+    await user.click(await screen.findByRole("option", { name: "Body" }));
     await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
-    await user.click(await screen.findByRole("option", { name: "mute.scope_title_and_body" }));
+    await user.click(await screen.findByRole("option", { name: "Title and body" }));
 
     await waitFor(() => {
       expect(updateMuteKeywordMutateAsyncMock).toHaveBeenCalledTimes(2);
