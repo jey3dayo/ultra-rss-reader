@@ -63,8 +63,10 @@ describe("useGeneralSettingsViewProps", () => {
     }));
 
     try {
-      const { useGeneralSettingsViewProps } = await import("@/components/settings/hooks/use-general-settings-view-props");
-      const props = useGeneralSettingsViewProps({
+      const { useGeneralSettingsViewProps: buildPropsWithMockedLanguages } = await import(
+        "@/components/settings/hooks/use-general-settings-view-props"
+      );
+      const props = buildPropsWithMockedLanguages({
         t,
         prefs: {},
         setPref: vi.fn(),
