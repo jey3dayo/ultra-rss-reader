@@ -35,8 +35,8 @@ export function ArticleEmptyStateView({
       )}
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[10%] top-[16%] h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(245,78,0,0.08)_0%,rgba(245,78,0,0)_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(192,168,221,0.10)_0%,rgba(192,168,221,0)_72%)]" />
-        <div className="absolute right-[8%] top-[22%] h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(192,133,50,0.12)_0%,rgba(192,133,50,0)_74%)] blur-[84px] dark:bg-[radial-gradient(circle,rgba(201,151,87,0.12)_0%,rgba(201,151,87,0)_76%)]" />
+        <div className="absolute left-[10%] top-[16%] size-44 rounded-full bg-[radial-gradient(circle,rgba(245,78,0,0.08)_0%,rgba(245,78,0,0)_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(192,168,221,0.10)_0%,rgba(192,168,221,0)_72%)]" />
+        <div className="absolute right-[8%] top-[22%] size-64 rounded-full bg-[radial-gradient(circle,rgba(192,133,50,0.12)_0%,rgba(192,133,50,0)_74%)] blur-[84px] dark:bg-[radial-gradient(circle,rgba(201,151,87,0.12)_0%,rgba(201,151,87,0)_76%)]" />
       </div>
       <div
         className={cn(

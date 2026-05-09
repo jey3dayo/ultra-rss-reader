@@ -64,7 +64,7 @@ export function TagOptionRowButton({
       {...props}
     >
       {swatchColor ? (
-        <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: swatchColor }} />
+        <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ backgroundColor: swatchColor }} />
       ) : null}
       {children}
     </button>

@@ -16,7 +16,7 @@ const actionsSettingsServiceEntries = [
     id: "action-copy-link",
     prefKey: "action_copy_link",
     labelKey: "actions.copy_link",
-    icon: <Copy className="h-5 w-5" />,
+    icon: <Copy className="size-5" />,
   },
 ] satisfies ActionsSettingsServiceEntry[];
 

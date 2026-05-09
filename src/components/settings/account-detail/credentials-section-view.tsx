@@ -100,7 +100,7 @@ export function AccountCredentialsSectionView({
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
           actionTooltipLabel={serverUrlCopyLabel}
-          actionIcon={<Copy className="h-3.5 w-3.5" />}
+          actionIcon={<Copy className="size-3.5" />}
           actionPlacement="inside"
           actionVariant="ghost"
           actionSize="icon-sm"
