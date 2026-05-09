@@ -370,6 +370,8 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::menu_i18n::{labels, ResolvedMenuLanguage};
+
     use super::{
         is_check_for_updates_menu_available, is_group_by_feed_checked,
         is_reading_list_menu_available, is_sort_unread_checked, is_toggle_check_menu_item,
@@ -438,6 +440,125 @@ mod tests {
         assert_eq!(MENU_ACTION_EVENT, "menu-action");
         for (menu_id, action_id) in contracts {
             assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
+        }
+    }
+
+    #[test]
+    fn action_menu_labels_exist_for_supported_locales() {
+        let en = labels(ResolvedMenuLanguage::En);
+        let ja = labels(ResolvedMenuLanguage::Ja);
+        let contracts = [
+            ("settings", "open-settings", en.settings, ja.settings),
+            (
+                "check-for-updates",
+                "check-for-updates",
+                en.check_for_updates,
+                ja.check_for_updates,
+            ),
+            ("view-unread", "set-filter-unread", en.unread, ja.unread),
+            ("view-all", "set-filter-all", en.all, ja.all),
+            ("view-starred", "set-filter-starred", en.starred, ja.starred),
+            (
+                "view-sort-unread",
+                "toggle-sort-unread",
+                en.sort_unread_to_top,
+                ja.sort_unread_to_top,
+            ),
+            (
+                "view-group-by-feed",
+                "toggle-group-by-feed",
+                en.group_by_feed,
+                ja.group_by_feed,
+            ),
+            (
+                "view-fullscreen",
+                "toggle-fullscreen",
+                en.full_screen,
+                ja.full_screen,
+            ),
+            ("accounts-sync", "sync-all", en.sync_all, ja.sync_all),
+            (
+                "accounts-show",
+                "open-settings-accounts",
+                en.show_accounts,
+                ja.show_accounts,
+            ),
+            (
+                "accounts-add",
+                "open-settings-accounts-add",
+                en.add_account,
+                ja.add_account,
+            ),
+            (
+                "subs-add",
+                "open-add-feed",
+                en.add_subscription,
+                ja.add_subscription,
+            ),
+            ("subs-prev", "prev-feed", en.previous_feed, ja.previous_feed),
+            ("subs-next", "next-feed", en.next_feed, ja.next_feed),
+            (
+                "item-prev",
+                "prev-article",
+                en.previous_item,
+                ja.previous_item,
+            ),
+            ("item-next", "next-article", en.next_item, ja.next_item),
+            (
+                "item-reader",
+                "open-in-reader",
+                en.open_web_preview,
+                ja.open_web_preview,
+            ),
+            (
+                "item-browser",
+                "open-in-browser",
+                en.open_external_browser,
+                ja.open_external_browser,
+            ),
+            (
+                "item-toggle-star",
+                "toggle-star",
+                en.toggle_star,
+                ja.toggle_star,
+            ),
+            (
+                "item-toggle-read",
+                "toggle-read",
+                en.mark_as_read_unread,
+                ja.mark_as_read_unread,
+            ),
+            (
+                "item-mark-all-read",
+                "mark-all-read",
+                en.mark_all_as_read,
+                ja.mark_all_as_read,
+            ),
+            ("share-copy-link", "copy-link", en.copy_link, ja.copy_link),
+            (
+                "share-open-browser",
+                "open-in-default-browser",
+                en.open_external_browser,
+                ja.open_external_browser,
+            ),
+            (
+                "share-reading-list",
+                "add-to-reading-list",
+                en.add_to_reading_list,
+                ja.add_to_reading_list,
+            ),
+        ];
+
+        for (menu_id, action_id, en_label, ja_label) in contracts {
+            assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
+            assert!(
+                !en_label.trim().is_empty(),
+                "missing English label for {menu_id}"
+            );
+            assert!(
+                !ja_label.trim().is_empty(),
+                "missing Japanese label for {menu_id}"
+            );
         }
     }
 

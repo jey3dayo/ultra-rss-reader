@@ -106,14 +106,52 @@ function extractExecuteActionCases(source: string): string[] {
   return [...block.matchAll(/case "([^"]+)":/g)].map((match) => match[1]);
 }
 
-function extractMenuActionPayloads(source: string): string[] {
+function extractMenuIdConstants(source: string): ReadonlyMap<string, string> {
+  return new Map([...source.matchAll(/const ([A-Z0-9_]+): &str = "([^"]+)";/g)].map((match) => [match[1], match[2]]));
+}
+
+function extractMenuActionContracts(source: string): Array<{ menuId: string; action: string }> {
   const block = extractBlock(
     source,
     /fn resolve_menu_action\(menu_id: &str\) -> Option<&'static str> \{[\s\S]*?match menu_id \{([\s\S]*?)^\s*\}/m,
     "resolve_menu_action block",
   );
+  const menuIdsByConstant = extractMenuIdConstants(source);
 
-  return [...block.matchAll(/=> Some\("([^"]+)"\),/g)].map((match) => match[1]);
+  return [...block.matchAll(/([A-Z0-9_]+) => Some\("([^"]+)"\),/g)].map((match) => {
+    const menuId = menuIdsByConstant.get(match[1]);
+    if (!menuId) {
+      throw new Error(`Could not resolve menu id constant ${match[1]}`);
+    }
+    return {
+      menuId,
+      action: match[2],
+    };
+  });
+}
+
+function extractMenuActionPayloads(source: string): string[] {
+  return extractMenuActionContracts(source).map((contract) => contract.action);
+}
+
+function extractItemMenuShortcutHints(source: string): Array<{ menuId: string; shortcutHint: string }> {
+  const block = extractBlock(
+    source,
+    /const ITEM_MENU_SHORTCUT_HINTS: &\[\(&str, &str\)\] = &\[([\s\S]*?)^\];/m,
+    "ITEM_MENU_SHORTCUT_HINTS block",
+  );
+  const menuIdsByConstant = extractMenuIdConstants(source);
+
+  return [...block.matchAll(/\(([A-Z0-9_]+), "([^"]+)"\),/g)].map((match) => {
+    const menuId = menuIdsByConstant.get(match[1]);
+    if (!menuId) {
+      throw new Error(`Could not resolve shortcut menu id constant ${match[1]}`);
+    }
+    return {
+      menuId,
+      shortcutHint: match[2],
+    };
+  });
 }
 
 function shortcutActionToAppAction(shortcutAction: string): string {
@@ -1063,6 +1101,37 @@ describe("executeAction", () => {
       }
     });
 
+    it("snapshots the native menu action payload list for frontend registry drift detection", () => {
+      expect(extractMenuActionPayloads(menuSource)).toMatchInlineSnapshot(`
+        [
+          "set-filter-unread",
+          "set-filter-all",
+          "set-filter-starred",
+          "toggle-sort-unread",
+          "toggle-group-by-feed",
+          "toggle-fullscreen",
+          "sync-all",
+          "open-settings-accounts",
+          "open-settings-accounts-add",
+          "open-add-feed",
+          "prev-feed",
+          "next-feed",
+          "prev-article",
+          "next-article",
+          "open-in-reader",
+          "open-in-browser",
+          "toggle-star",
+          "toggle-read",
+          "mark-all-read",
+          "copy-link",
+          "open-in-default-browser",
+          "add-to-reading-list",
+          "check-for-updates",
+          "open-settings",
+        ]
+      `);
+    });
+
     it("keeps shared shortcut and native menu action ids mapped to registered app actions", () => {
       const menuActionPayloads = new Set(extractMenuActionPayloads(menuSource));
       const sharedShortcutActions = shortcutDefinitions
@@ -1090,6 +1159,76 @@ describe("executeAction", () => {
         expect(actionIds.has(action)).toBe(true);
         expect(isAppAction(action)).toBe(true);
       }
+    });
+
+    it("keeps native item shortcut hints aligned with frontend default shortcuts", () => {
+      const actionByMenuId = new Map(
+        extractMenuActionContracts(menuSource).map(({ menuId, action }) => [menuId, action]),
+      );
+      const shortcutDefaultsByAction = new Map(
+        shortcutDefinitions.map((definition) => [
+          shortcutActionToAppAction(definition.id),
+          definition.defaultKey.toUpperCase(),
+        ]),
+      );
+
+      expect(
+        extractItemMenuShortcutHints(menuSource).map(({ menuId, shortcutHint }) => {
+          const action = actionByMenuId.get(menuId);
+          if (!action) {
+            throw new Error(`Could not resolve action for ${menuId}`);
+          }
+          return {
+            action,
+            menuId,
+            shortcutHint,
+            frontendDefaultKey: shortcutDefaultsByAction.get(action),
+          };
+        }),
+      ).toEqual([
+        {
+          action: "prev-article",
+          menuId: "item-prev",
+          shortcutHint: "K",
+          frontendDefaultKey: "K",
+        },
+        {
+          action: "next-article",
+          menuId: "item-next",
+          shortcutHint: "J",
+          frontendDefaultKey: "J",
+        },
+        {
+          action: "open-in-reader",
+          menuId: "item-reader",
+          shortcutHint: "V",
+          frontendDefaultKey: "V",
+        },
+        {
+          action: "open-in-browser",
+          menuId: "item-browser",
+          shortcutHint: "B",
+          frontendDefaultKey: "B",
+        },
+        {
+          action: "toggle-star",
+          menuId: "item-toggle-star",
+          shortcutHint: "S",
+          frontendDefaultKey: "S",
+        },
+        {
+          action: "toggle-read",
+          menuId: "item-toggle-read",
+          shortcutHint: "M",
+          frontendDefaultKey: "M",
+        },
+        {
+          action: "mark-all-read",
+          menuId: "item-mark-all-read",
+          shortcutHint: "A",
+          frontendDefaultKey: "A",
+        },
+      ]);
     });
   });
 });
