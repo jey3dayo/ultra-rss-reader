@@ -10,14 +10,25 @@ import {
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+  SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
   STORAGE_KEYS,
 } from "@/constants/storage";
 
 const folders: FolderDto[] = [
   { id: "folder-unread", account_id: "acc-1", name: "Unread", sort_order: 0 },
   { id: "folder-read", account_id: "acc-1", name: "Read", sort_order: 1 },
-  { id: "folder-restored", account_id: "acc-1", name: "Restored", sort_order: 2 },
-  { id: "folder-acc-2", account_id: "acc-2", name: "Second Account", sort_order: 3 },
+  {
+    id: "folder-restored",
+    account_id: "acc-1",
+    name: "Restored",
+    sort_order: 2,
+  },
+  {
+    id: "folder-acc-2",
+    account_id: "acc-2",
+    name: "Second Account",
+    sort_order: 3,
+  },
 ];
 
 const makeFeed = (overrides: Partial<FeedDto>): FeedDto => ({
@@ -34,6 +45,11 @@ const makeFeed = (overrides: Partial<FeedDto>): FeedDto => ({
   ...overrides,
 });
 
+const readStoredExpansion = (): unknown =>
+  JSON.parse(
+    window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}",
+  );
+
 afterEach(() => {
   window.localStorage.clear();
   vi.restoreAllMocks();
@@ -45,9 +61,21 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
       startupFolderExpansion: "unread_folders",
       folderList: folders,
       feedList: [
-        makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 }),
-        makeFeed({ id: "feed-read", folder_id: "folder-read", unread_count: 0 }),
-        makeFeed({ id: "feed-missing-folder", folder_id: "folder-missing", unread_count: 3 }),
+        makeFeed({
+          id: "feed-unread",
+          folder_id: "folder-unread",
+          unread_count: 2,
+        }),
+        makeFeed({
+          id: "feed-read",
+          folder_id: "folder-read",
+          unread_count: 0,
+        }),
+        makeFeed({
+          id: "feed-missing-folder",
+          folder_id: "folder-missing",
+          unread_count: 3,
+        }),
         makeFeed({ id: "feed-unfoldered", folder_id: null, unread_count: 4 }),
       ],
     });
@@ -59,7 +87,13 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "restore_previous",
       folderList: folders,
-      feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+      feedList: [
+        makeFeed({
+          id: "feed-unread",
+          folder_id: "folder-unread",
+          unread_count: 2,
+        }),
+      ],
       storedFolderIds: ["folder-restored", "folder-missing", "folder-restored"],
     });
 
@@ -70,7 +104,13 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "unread_folders",
       folderList: folders,
-      feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+      feedList: [
+        makeFeed({
+          id: "feed-unread",
+          folder_id: "folder-unread",
+          unread_count: 2,
+        }),
+      ],
       storedFolderIds: ["folder-restored"],
     });
 
@@ -81,7 +121,13 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "unread_folders",
       folderList: folders,
-      feedList: [makeFeed({ id: "feed-read", folder_id: "folder-read", unread_count: 1 })],
+      feedList: [
+        makeFeed({
+          id: "feed-read",
+          folder_id: "folder-read",
+          unread_count: 1,
+        }),
+      ],
     });
 
     expect(result).toEqual(new Set(["folder-read"]));
@@ -91,7 +137,13 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "unread_folders",
       folderList: folders,
-      feedList: [makeFeed({ id: "feed-read", folder_id: "folder-read", unread_count: 0 })],
+      feedList: [
+        makeFeed({
+          id: "feed-read",
+          folder_id: "folder-read",
+          unread_count: 0,
+        }),
+      ],
     });
 
     expect(result).toEqual(new Set());
@@ -101,7 +153,13 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "all_collapsed",
       folderList: folders,
-      feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+      feedList: [
+        makeFeed({
+          id: "feed-unread",
+          folder_id: "folder-unread",
+          unread_count: 2,
+        }),
+      ],
       storedFolderIds: ["folder-restored"],
     });
 
@@ -112,16 +170,25 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
 describe("useSidebarStartupFolderExpansion", () => {
   it("expands unread folders on startup", async () => {
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set<string>(),
+      );
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
-        feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+        feedList: [
+          makeFeed({
+            id: "feed-unread",
+            folder_id: "folder-unread",
+            unread_count: 2,
+          }),
+        ],
         folderList: folders,
         startupFolderExpansion: "unread_folders",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -134,17 +201,34 @@ describe("useSidebarStartupFolderExpansion", () => {
 
   it("waits for last selected account feeds and folders before applying startup expansion", async () => {
     const { result, rerender } = renderHook(
-      ({ feedsReady, foldersReady }: { feedsReady: boolean; foldersReady: boolean }) => {
-        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      ({
+        feedsReady,
+        foldersReady,
+      }: {
+        feedsReady: boolean;
+        foldersReady: boolean;
+      }) => {
+        const [expandedFolderIds, setExpandedFolderIds] = useState(
+          new Set<string>(),
+        );
         useSidebarStartupFolderExpansion({
           selectedAccountId: "acc-1",
           expandedFolderIds,
-          feedList: feedsReady ? [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })] : [],
+          feedList: feedsReady
+            ? [
+                makeFeed({
+                  id: "feed-unread",
+                  folder_id: "folder-unread",
+                  unread_count: 2,
+                }),
+              ]
+            : [],
           folderList: foldersReady ? folders : [],
           startupFolderExpansion: "unread_folders",
           feedsReady,
           foldersReady,
-          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+          setExpandedFolders: (folderIds) =>
+            setExpandedFolderIds(new Set(folderIds)),
         });
 
         return expandedFolderIds;
@@ -163,16 +247,25 @@ describe("useSidebarStartupFolderExpansion", () => {
 
   it("does not reopen an unread folder after the user has manually changed expansion", async () => {
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set(["folder-read"]));
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set(["folder-read"]),
+      );
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
-        feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+        feedList: [
+          makeFeed({
+            id: "feed-unread",
+            folder_id: "folder-unread",
+            unread_count: 2,
+          }),
+        ],
         folderList: folders,
         startupFolderExpansion: "unread_folders",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -194,7 +287,9 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     const { result, rerender } = renderHook(
       ({ selectedAccountId }: { selectedAccountId: string }) => {
-        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+        const [expandedFolderIds, setExpandedFolderIds] = useState(
+          new Set<string>(),
+        );
         useSidebarStartupFolderExpansion({
           selectedAccountId,
           expandedFolderIds,
@@ -203,7 +298,8 @@ describe("useSidebarStartupFolderExpansion", () => {
           startupFolderExpansion: "restore_previous",
           feedsReady: true,
           foldersReady: true,
-          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+          setExpandedFolders: (folderIds) =>
+            setExpandedFolderIds(new Set(folderIds)),
         });
 
         return expandedFolderIds;
@@ -251,15 +347,21 @@ describe("useSidebarStartupFolderExpansion", () => {
     await waitFor(() => {
       expect(result.current).toEqual(new Set());
     });
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
-      "acc-1": ["folder-restored"],
+    expect(readStoredExpansion()).toEqual({
+      version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+      accounts: {
+        "acc-1": ["folder-restored"],
+      },
     });
 
     rerender({ expandedFolderIds: new Set(["folder-read"]) });
 
     await waitFor(() => {
-      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
-        "acc-1": ["folder-read"],
+      expect(readStoredExpansion()).toEqual({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+        accounts: {
+          "acc-1": ["folder-read"],
+        },
       });
     });
   });
@@ -270,16 +372,25 @@ describe("useSidebarStartupFolderExpansion", () => {
     });
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set<string>(),
+      );
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
-        feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+        feedList: [
+          makeFeed({
+            id: "feed-unread",
+            folder_id: "folder-unread",
+            unread_count: 2,
+          }),
+        ],
         folderList: folders,
         startupFolderExpansion: "unread_folders",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -299,7 +410,10 @@ describe("useSidebarStartupFolderExpansion", () => {
       { length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS + 5 },
       (_, index): [string, string[]] => [`stale-account-${index}`, folderIds],
     );
-    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(Object.fromEntries(storedEntries)));
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify(Object.fromEntries(storedEntries)),
+    );
 
     const { rerender } = renderHook(
       ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
@@ -320,24 +434,34 @@ describe("useSidebarStartupFolderExpansion", () => {
     rerender({ expandedFolderIds: new Set(folderIds) });
 
     await waitFor(() => {
-      const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}");
+      const stored = readStoredExpansion();
 
-      expect(Object.keys(stored)).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS);
-      expect(stored["stale-account-0"]).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
+      expect(stored).toEqual({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+        accounts: {},
+      });
     });
   });
 
-  it("cleans invalid stored folders while restoring the selected account", async () => {
+  it("migrates legacy account folder maps to the versioned storage contract", async () => {
     window.localStorage.setItem(
       STORAGE_KEYS.sidebarExpandedFolders,
       JSON.stringify({
-        "acc-1": ["folder-restored", "", null, "folder-missing", "folder-restored"],
+        "acc-1": [
+          "folder-restored",
+          "",
+          null,
+          "folder-missing",
+          "folder-restored",
+        ],
         "acc-2": "folder-acc-2",
       }),
     );
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set<string>(),
+      );
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -346,7 +470,8 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -355,16 +480,24 @@ describe("useSidebarStartupFolderExpansion", () => {
     await waitFor(() => {
       expect(result.current).toEqual(new Set(["folder-restored"]));
     });
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
-      "acc-1": ["folder-restored"],
+    expect(readStoredExpansion()).toEqual({
+      version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+      accounts: {
+        "acc-1": ["folder-restored"],
+      },
     });
   });
 
   it("cleans corrupted sidebar expansion storage before restoring folders", async () => {
-    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, "not-json");
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      "not-json",
+    );
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set<string>(),
+      );
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -373,7 +506,8 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -382,7 +516,10 @@ describe("useSidebarStartupFolderExpansion", () => {
     await waitFor(() => {
       expect(result.current).toEqual(new Set());
     });
-    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders)).toBe("{}");
+    expect(readStoredExpansion()).toEqual({
+      version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+      accounts: {},
+    });
   });
 
   it("cleans oversized raw sidebar expansion storage before parsing it", async () => {
@@ -392,7 +529,9 @@ describe("useSidebarStartupFolderExpansion", () => {
     );
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set<string>(),
+      );
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -401,7 +540,8 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -410,15 +550,24 @@ describe("useSidebarStartupFolderExpansion", () => {
     await waitFor(() => {
       expect(result.current).toEqual(new Set());
     });
-    expect(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders)).toBe("{}");
+    expect(readStoredExpansion()).toEqual({
+      version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+      accounts: {},
+    });
   });
 
   it("keeps the active account inside oversized sidebar expansion storage", async () => {
     const storedEntries = Array.from(
       { length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS },
-      (_, index): [string, string[]] => [`stale-account-${index}`, [`stale-folder-${index}`]],
+      (_, index): [string, string[]] => [
+        `stale-account-${index}`,
+        [`stale-folder-${index}`],
+      ],
     );
-    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(Object.fromEntries(storedEntries)));
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify(Object.fromEntries(storedEntries)),
+    );
 
     const { rerender } = renderHook(
       ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
@@ -439,11 +588,54 @@ describe("useSidebarStartupFolderExpansion", () => {
     rerender({ expandedFolderIds: new Set(["folder-restored"]) });
 
     await waitFor(() => {
-      const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}");
+      const stored = readStoredExpansion();
 
-      expect(Object.keys(stored)).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS);
-      expect(stored["acc-new"]).toEqual(["folder-restored"]);
-      expect(stored["stale-account-99"]).toBeUndefined();
+      expect(stored).toEqual({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+        accounts: {},
+      });
+    });
+  });
+
+  it("prunes missing accounts and missing folders from versioned storage", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+        accounts: {
+          "acc-1": ["folder-restored", "folder-missing", "folder-acc-2"],
+          "acc-missing": ["folder-restored"],
+        },
+      }),
+    );
+
+    const { result } = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(
+        new Set<string>(),
+      );
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) =>
+          setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set(["folder-restored"]));
+    });
+    expect(readStoredExpansion()).toEqual({
+      version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+      accounts: {
+        "acc-1": ["folder-restored"],
+      },
     });
   });
 });

@@ -12,7 +12,10 @@ export type StorageKeySchemaPolicy =
   | "command-history-json"
   | "sidebar-expanded-folders-json"
   | "startup-sync-timestamp";
-export type StorageKeyCleanupPolicy = "mirror-retained" | "user-clearable" | "startup-window-expiring";
+export type StorageKeyCleanupPolicy =
+  | "mirror-retained"
+  | "user-clearable"
+  | "startup-window-expiring";
 export type StorageKeyOwner =
   | "preferences-store"
   | "command-palette-history"
@@ -53,7 +56,8 @@ export const LEGACY_STORAGE_KEYS = {
   startupSyncLastTriggeredAt: "startup-sync-last-triggered-at",
 } as const;
 export type LegacyStorageKeyName = keyof typeof LEGACY_STORAGE_KEYS;
-export type LegacyStorageKey = (typeof LEGACY_STORAGE_KEYS)[LegacyStorageKeyName];
+export type LegacyStorageKey =
+  (typeof LEGACY_STORAGE_KEYS)[LegacyStorageKeyName];
 
 export const MAX_COMMAND_HISTORY = 10;
 export const MAX_COMMAND_HISTORY_ENTRY_LENGTH = 200;
@@ -61,3 +65,4 @@ export const MAX_COMMAND_HISTORY_STORAGE_LENGTH = 10_000;
 export const MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS = 100;
 export const MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT = 500;
 export const MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH = 2_000_000;
+export const SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION = 1;
