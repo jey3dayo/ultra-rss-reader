@@ -726,6 +726,58 @@ describe("ArticleToolbarView", () => {
     expect(screen.queryByRole("button", { name: "More actions" })).not.toBeInTheDocument();
   });
 
+  it("uses the compact layoutMode prop as a toolbar layout boundary", () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        layoutMode="compact"
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
+        }}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "More actions" })).not.toBeInTheDocument();
+  });
+
   it("uses the mobile layoutMode prop for action rendering even when the UI store is wide", () => {
     useUiStore.setState({ layoutMode: "wide" });
 

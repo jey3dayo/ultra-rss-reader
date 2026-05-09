@@ -290,6 +290,12 @@ describe("ArticleListHeader", () => {
     expect(screen.getByRole("button", { name: "Props mark all" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Props search" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Props close search" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Props mark all" })).toHaveAttribute("aria-label", "Props mark all");
+    expect(screen.getByRole("button", { name: "Props search" })).toHaveAttribute("aria-label", "Props search");
+    expect(screen.getByRole("button", { name: "Props close search" })).toHaveAttribute(
+      "aria-label",
+      "Props close search",
+    );
     expect(screen.getByRole("textbox", { name: "Props search" })).toHaveAttribute(
       "placeholder",
       "Props search placeholder",
