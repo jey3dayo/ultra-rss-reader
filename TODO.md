@@ -260,11 +260,6 @@
   - dev runtime options は env と Tauri command の両方から入るため、invalid env、command failure、window size overflow の fallback precedence が drift しやすい
   - env only、Tauri only、both present、command reject、out-of-range size の precedence matrix を test にする
 
-- [ ] P2 generated command args schema の coverage gate を追加する
-  - 対象: `src/api/tauri-commands.ts`, `src/api/schemas`, `src/dev/mocks.ts`, `src-tauri/src/commands`
-  - command args schema がない command は dev mock や frontend call で malformed payload を早期検出できず、runtime boundary の責務が分散する
-  - exported command wrapper、schema registry、dev mock case、Rust command name の一覧差分を検出する test を追加する
-
 - [ ] P3 TODO priority taxonomy を CLAUDE.md / TODO.md で同期する
   - 対象: `CLAUDE.md`, `TODO.md`
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
@@ -375,16 +370,6 @@
   - `delete_feed` は missing を error にする一方、`delete_tag` は missing no-op になっており、confirm 後の stale target を成功扱いにするかが操作ごとにズレる
   - delete feed/tag/account/mute keyword の missing target、already deleted、cross-account target の policy を command/component test で統一する
 
-- [ ] P2 frontend command args schema と Rust validation の max length を同期する
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/tag_commands.rs`, `src-tauri/src/commands/account_commands.rs`
-  - frontend schema は feed title / folder name / tag name / account name の長さ制限を持たず、Rust まで送ってから落ちるため、UI と backend の validation message が drift しやすい
-  - FEED_TITLE_MAX_CHARS、FOLDER_NAME_MAX_CHARS、tag 50 chars、account name limit を shared contract test で照合する
-
-- [ ] P2 tag color validation を frontend schema と view helper で共有する
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/tag_commands.rs`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/tag-context-menu.tsx`
-  - Rust は `#rrggbb` だけを許すが frontend args schema は arbitrary string を通すため、invalid color の failure surface が UI ごとにズレやすい
-  - short hex、uppercase hex、blank color、nullish color、invalid color の normalization と message を TS/Rust test で揃える
-
 - [ ] P2 pagination offset の上限と large offset performance policy を固定する
   - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/infra/db/sqlite_tag.rs`
   - limit は 200 で止めているが offset は無制限なので、破損 UI state や手動 IPC で巨大 offset が入り、SQLite scan と response latency が悪化しやすい
@@ -415,11 +400,6 @@
   - rate limit error はあるが provider の `Retry-After` を scheduler の `next_retry_at` と UI warning へどう渡すか未固定だと、過剰 retry や短すぎる cooldown になりやすい
   - 429 with Retry-After seconds/date、missing header、invalid header、account sync/manual sync の warning表示を test にする
 
-- [ ] P2 `safeInvoke` の schema parse error を user-facing / diagnostics に分類する
-  - 対象: `src/api/tauri-commands.ts`, `src/schemas/parse.ts`, `src/lib/ui-errors.ts`
-  - response schema mismatch や args schema mismatch が throw として扱われると、backend failure と frontend contract drift の区別が UI 上でつきにくい
-  - args parse failure、response parse failure、AppError parse failure の error category と toast/log policy を lib test で固定する
-
 - [ ] P2 update_feed_display_settings の `inherit` / default preference 解決を account/feed context で固定する
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
   - feed の reader/web preview mode と account/default preference が別経路で解決されるため、`inherit` 表示と実際の article/browser behavior がズレやすい
@@ -439,11 +419,6 @@
   - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/commands/tag_commands.rs`
   - default limit と max limit が TS/Rust/tag command に分散しているため、今後の pagination UI 変更で片側だけ更新されやすい
   - constants 共有は難しければ repo contract test で数値一致を固定し、default 20/50 と max 200 の意味をコメント化する
-
-- [ ] P3 deleted resource no-op の product copy を locale key として揃える
-  - 対象: `src/locales/*/reader.json`, `src/locales/*/settings.json`, `src/components/reader`, `src/components/settings`
-  - stale target を no-op/成功扱いにする操作では、toast を出さないのか「既に削除済み」と出すのかが feature ごとに揺れやすい
-  - feed/tag/account/article の already-deleted copy、diagnostics-only policy、user-visible policy を locale key と component test で固定する
 
 - [ ] P1 fullscreen toggle の unhandled rejection を global action boundary で吸収する
   - 対象: `src/lib/actions.ts`, `src/lib/window/windows.ts`, `src/hooks/use-keyboard.ts`, `src/hooks/use-menu-events.ts`
