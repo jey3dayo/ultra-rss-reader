@@ -129,7 +129,10 @@ export function useBrowserViewActions({
     clearSurfaceIssue();
     const nextState = initialBrowserState(browserUrl);
     setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
-    void syncBrowserWebview(browserUrl, "create");
+    void syncBrowserWebview(browserUrl, "create").catch((error: unknown) => {
+      console.error("Failed to retry embedded browser webview:", error);
+      showToast(error instanceof Error ? error.message : "Failed to retry embedded browser webview.");
+    });
   }, [
     browserStateRef,
     browserUrl,
@@ -138,6 +141,7 @@ export function useBrowserViewActions({
     initialBrowserState,
     resetBrowserWebviewSyncState,
     setBrowserState,
+    showToast,
     syncBrowserWebview,
   ]);
 

@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { closeBrowserWebview } from "@/api/tauri-commands";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { flushPendingBrowserCloseAction } from "@/lib/actions";
@@ -23,12 +23,35 @@ function prefersReducedMotion() {
 
 function waitForBrowserOverlayCloseMotion() {
   if (prefersReducedMotion()) {
-    return Promise.resolve();
+    return { cancel: () => {}, done: Promise.resolve() };
   }
 
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, BROWSER_OVERLAY_CLOSE_DELAY_MS);
+  let timeoutId: number | null = null;
+  const done = new Promise<void>((resolve) => {
+    try {
+      timeoutId = window.setTimeout(resolve, BROWSER_OVERLAY_CLOSE_DELAY_MS);
+    } catch (error) {
+      console.warn("Failed to schedule browser overlay close motion timer.", error);
+      resolve();
+    }
+  }).finally(() => {
+    timeoutId = null;
   });
+
+  return {
+    cancel: () => {
+      if (timeoutId === null) {
+        return;
+      }
+      try {
+        window.clearTimeout(timeoutId);
+      } catch (error) {
+        console.warn("Failed to clear browser overlay close motion timer.", error);
+      }
+      timeoutId = null;
+    },
+    done,
+  };
 }
 
 export function useArticleBrowserOverlayClose({
@@ -37,6 +60,19 @@ export function useArticleBrowserOverlayClose({
   setBrowserCloseInFlight,
   setBrowserOverlayClosedPreference,
 }: UseArticleBrowserOverlayCloseParams) {
+  const mountedRef = useRef(true);
+  const closeGenerationRef = useRef(0);
+  const closeMotionCancelRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      closeGenerationRef.current += 1;
+      closeMotionCancelRef.current?.();
+      closeMotionCancelRef.current = null;
+    };
+  }, []);
+
   const finalizeCloseBrowserOverlay = useCallback(() => {
     useUiStore.getState().setFocusedPane("list");
     focusSelectedArticleRow();
@@ -70,7 +106,21 @@ export function useArticleBrowserOverlayClose({
       })
       .finally(() => {
         emitDebugInputTrace("close-browser finalize");
-        void waitForBrowserOverlayCloseMotion().then(finalizeCloseBrowserOverlay);
+        if (!mountedRef.current) {
+          return;
+        }
+        const closeGeneration = closeGenerationRef.current + 1;
+        closeGenerationRef.current = closeGeneration;
+        closeMotionCancelRef.current?.();
+        const closeMotion = waitForBrowserOverlayCloseMotion();
+        closeMotionCancelRef.current = closeMotion.cancel;
+        void closeMotion.done.then(() => {
+          if (closeGenerationRef.current !== closeGeneration) {
+            return;
+          }
+          closeMotionCancelRef.current = null;
+          finalizeCloseBrowserOverlay();
+        });
       });
   }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
 }

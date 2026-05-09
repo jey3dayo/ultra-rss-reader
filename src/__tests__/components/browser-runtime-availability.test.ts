@@ -34,4 +34,38 @@ describe("browser-runtime-availability", () => {
 
     expect(isBrowserRuntimeUnavailable()).toBe(false);
   });
+
+  it.each([
+    {
+      name: "packaged runtime",
+      setup: () => {
+        setTauriRuntimePresent();
+        window.__DEV_BROWSER_MOCKS__ = false;
+        window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+      },
+      unavailable: false,
+    },
+    {
+      name: "dev browser mocks",
+      setup: () => {
+        setTauriRuntimePresent();
+        window.__DEV_BROWSER_MOCKS__ = true;
+        window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+      },
+      unavailable: true,
+    },
+    {
+      name: "Storybook/browser preview without Tauri internals",
+      setup: () => {
+        setTauriRuntimeMissing();
+        window.__DEV_BROWSER_MOCKS__ = false;
+        window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+      },
+      unavailable: true,
+    },
+  ])("keeps runtime availability consistent for $name", ({ setup, unavailable }) => {
+    setup();
+
+    expect(isBrowserRuntimeUnavailable()).toBe(unavailable);
+  });
 });

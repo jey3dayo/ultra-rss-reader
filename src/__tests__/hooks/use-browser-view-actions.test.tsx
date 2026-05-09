@@ -463,4 +463,51 @@ describe("useBrowserViewActions", () => {
     expect(clearSurfaceIssue).not.toHaveBeenCalled();
     expect(syncBrowserWebview).not.toHaveBeenCalled();
   });
+
+  it("surfaces rejected retry sync failures from the native webview boundary", async () => {
+    const error = new Error("retry rejected");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const resetBrowserWebviewSyncState = vi.fn();
+    const clearSurfaceIssue = vi.fn();
+    const showToast = vi.fn();
+    const syncBrowserWebview = vi.fn(async () => {
+      throw error;
+    });
+
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const actions = useBrowserViewActions({
+        browserUrl: "https://example.com/article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState,
+        clearSurfaceIssue,
+        showToast,
+        syncBrowserWebview,
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+
+      return { ...actions, fallbackInFlightRef, browserState };
+    });
+
+    act(() => {
+      result.current.handleRetry();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.fallbackInFlightRef.current).toBe(false);
+    expect(result.current.browserState).toEqual(createInitialBrowserState("https://example.com/article"));
+    expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
+    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
+    expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/article", "create");
+    expect(consoleError).toHaveBeenCalledWith("Failed to retry embedded browser webview:", error);
+    expect(showToast).toHaveBeenCalledWith("retry rejected");
+  });
 });
