@@ -282,7 +282,7 @@ describe("ArticleTagPickerView", () => {
     expect(screen.getByRole("textbox")).toHaveValue("");
 
     await user.type(screen.getByRole("textbox"), "Outside");
-    fireEvent.mouseDown(document.body);
+    fireEvent.pointerDown(document.body);
 
     await waitFor(() => {
       expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();

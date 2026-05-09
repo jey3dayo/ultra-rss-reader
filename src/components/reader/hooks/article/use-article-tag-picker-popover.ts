@@ -85,8 +85,8 @@ export function useArticleTagPickerPopover({
       return;
     }
 
-    const handleMouseDown = (event: MouseEvent) => {
-      if (isOutsideElement(pickerRef.current, event.target)) {
+    const handlePointerOrTouchDown = (event: PointerEvent | TouchEvent) => {
+      if (isOutsideElement(pickerRef.current, event)) {
         closePicker();
       }
     };
@@ -96,16 +96,27 @@ export function useArticleTagPickerPopover({
       return;
     }
 
+    const eventTypes = ["pointerdown", "touchstart"] as const;
+    const boundEventTypes: Array<(typeof eventTypes)[number]> = [];
+
     try {
-      ownerDocument.addEventListener("mousedown", handleMouseDown);
+      for (const eventType of eventTypes) {
+        ownerDocument.addEventListener(eventType, handlePointerOrTouchDown);
+        boundEventTypes.push(eventType);
+      }
     } catch (error) {
+      for (const eventType of boundEventTypes) {
+        ownerDocument.removeEventListener(eventType, handlePointerOrTouchDown);
+      }
       console.warn("Failed to bind article tag picker outside-click listener.", error);
       return;
     }
 
     return () => {
       try {
-        ownerDocument.removeEventListener("mousedown", handleMouseDown);
+        for (const eventType of boundEventTypes) {
+          ownerDocument.removeEventListener(eventType, handlePointerOrTouchDown);
+        }
       } catch (error) {
         console.warn("Failed to cleanup article tag picker outside-click listener.", error);
       }

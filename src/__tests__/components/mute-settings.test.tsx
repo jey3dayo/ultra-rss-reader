@@ -7,6 +7,7 @@ import { useUiStore } from "@/stores/ui-store";
 const updateMuteKeywordMutateAsyncMock = vi.fn();
 const createMuteKeywordMutateAsyncMock = vi.fn();
 const deleteMuteKeywordMutateAsyncMock = vi.fn();
+const setMuteAutoMarkReadMutateAsyncMock = vi.fn();
 const muteKeywordRules = [
   {
     id: "mute-1",
@@ -36,7 +37,10 @@ vi.mock("@/hooks/use-mute-keywords", () => ({
     isPending: false,
     mutateAsync: deleteMuteKeywordMutateAsyncMock,
   }),
-  useSetMuteAutoMarkRead: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useSetMuteAutoMarkRead: () => ({
+    isPending: false,
+    mutateAsync: setMuteAutoMarkReadMutateAsyncMock,
+  }),
   useUpdateMuteKeyword: () => ({
     isPending: false,
     mutateAsync: updateMuteKeywordMutateAsyncMock,
@@ -55,7 +59,11 @@ function createDeferred<T>() {
 }
 
 function getDeleteButtonAt(index: number): HTMLElement {
-  return getElementAt(screen.getAllByRole("button", { name: "Delete" }), index, "delete button");
+  return getElementAt(
+    screen.getAllByRole("button", { name: "Delete" }),
+    index,
+    "delete button",
+  );
 }
 
 function getElementAt<T>(items: T[], index: number, label: string): T {
@@ -67,7 +75,10 @@ function getElementAt<T>(items: T[], index: number, label: string): T {
   return item;
 }
 
-function getDeleteButtonFrom(buttons: HTMLElement[], index: number): HTMLElement {
+function getDeleteButtonFrom(
+  buttons: HTMLElement[],
+  index: number,
+): HTMLElement {
   const button = buttons[index];
   if (!button) {
     throw new Error(`expected delete button at index ${index}`);
@@ -81,9 +92,11 @@ describe("MuteSettings", () => {
     updateMuteKeywordMutateAsyncMock.mockReset();
     createMuteKeywordMutateAsyncMock.mockReset();
     deleteMuteKeywordMutateAsyncMock.mockReset();
+    setMuteAutoMarkReadMutateAsyncMock.mockReset();
     updateMuteKeywordMutateAsyncMock.mockResolvedValue(undefined);
     createMuteKeywordMutateAsyncMock.mockResolvedValue(undefined);
     deleteMuteKeywordMutateAsyncMock.mockResolvedValue(undefined);
+    setMuteAutoMarkReadMutateAsyncMock.mockResolvedValue(undefined);
     useUiStore.setState(useUiStore.getInitialState());
   });
 
@@ -98,7 +111,9 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Scope for spoiler" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Title" }));
 
     expect(updateMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
@@ -113,7 +128,9 @@ describe("MuteSettings", () => {
     render(<MuteSettings />);
 
     await user.click(screen.getByRole("combobox", { name: "Scope" }));
-    await user.click(await screen.findByRole("option", { name: "Title and body" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Title and body" }),
+    );
 
     expect(createMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
     expect(updateMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
@@ -127,7 +144,10 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "spoiler alert");
+    await user.type(
+      screen.getByRole("textbox", { name: "Keyword" }),
+      "spoiler alert",
+    );
     await user.click(screen.getByRole("combobox", { name: "Scope" }));
     await user.click(await screen.findByRole("option", { name: "Body" }));
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -139,16 +159,23 @@ describe("MuteSettings", () => {
       });
     });
     expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveValue("");
-    expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent("Body");
+    expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent(
+      "Body",
+    );
   });
 
   it("keeps the add draft when mute keyword creation fails", async () => {
     const user = userEvent.setup();
-    createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("create failed"));
+    createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(
+      new Error("create failed"),
+    );
 
     render(<MuteSettings />);
 
-    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "spoiler alert");
+    await user.type(
+      screen.getByRole("textbox", { name: "Keyword" }),
+      "spoiler alert",
+    );
     await user.click(screen.getByRole("combobox", { name: "Scope" }));
     await user.click(await screen.findByRole("option", { name: "Body" }));
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -159,8 +186,12 @@ describe("MuteSettings", () => {
         scope: "body",
       });
     });
-    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveValue("spoiler alert");
-    expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent("Body");
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveValue(
+      "spoiler alert",
+    );
+    expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent(
+      "Body",
+    );
   });
 
   it("submits mute keyword creation from the keyword input with Enter", async () => {
@@ -168,7 +199,10 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "spoiler alert{Enter}");
+    await user.type(
+      screen.getByRole("textbox", { name: "Keyword" }),
+      "spoiler alert{Enter}",
+    );
 
     await waitFor(() => {
       expect(createMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
@@ -209,7 +243,9 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Scope for spoiler" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Body" }));
 
     await waitFor(() => {
@@ -226,14 +262,22 @@ describe("MuteSettings", () => {
     useUiStore.setState({ showToast });
     const firstUpdate = createDeferred<void>();
     const secondUpdate = createDeferred<void>();
-    updateMuteKeywordMutateAsyncMock.mockReturnValueOnce(firstUpdate.promise).mockReturnValueOnce(secondUpdate.promise);
+    updateMuteKeywordMutateAsyncMock
+      .mockReturnValueOnce(firstUpdate.promise)
+      .mockReturnValueOnce(secondUpdate.promise);
 
     render(<MuteSettings />);
 
-    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Scope for spoiler" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Body" }));
-    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
-    await user.click(await screen.findByRole("option", { name: "Title and body" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Scope for spoiler" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Title and body" }),
+    );
 
     await waitFor(() => {
       expect(updateMuteKeywordMutateAsyncMock).toHaveBeenCalledTimes(2);
@@ -285,11 +329,17 @@ describe("MuteSettings", () => {
 
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
     await user.click(getDeleteButtonAt(0));
-    expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
+    expect(
+      within(screen.getByRole("dialog")).getAllByText(/spoiler/).length,
+    ).toBeGreaterThan(0);
 
     await user.click(getDeleteButtonFrom(deleteButtons, 1));
-    expect(within(screen.getByRole("dialog")).getAllByText(/ending/).length).toBeGreaterThan(0);
-    expect(within(screen.getByRole("dialog")).queryByText(/spoiler/)).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("dialog")).getAllByText(/ending/).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(screen.getByRole("dialog")).queryByText(/spoiler/),
+    ).not.toBeInTheDocument();
     expect(deleteMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
   });
 
@@ -302,7 +352,11 @@ describe("MuteSettings", () => {
 
     await user.click(getDeleteButtonAt(0));
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
-    const confirmDeleteButton = getElementAt(deleteButtons, deleteButtons.length - 1, "delete confirmation button");
+    const confirmDeleteButton = getElementAt(
+      deleteButtons,
+      deleteButtons.length - 1,
+      "delete confirmation button",
+    );
 
     await user.click(confirmDeleteButton);
 
@@ -318,13 +372,19 @@ describe("MuteSettings", () => {
 
   it("keeps the delete confirmation open when deletion fails", async () => {
     const user = userEvent.setup();
-    deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("delete failed"));
+    deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(
+      new Error("delete failed"),
+    );
 
     render(<MuteSettings />);
 
     await user.click(getDeleteButtonAt(0));
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
-    const confirmDeleteButton = getElementAt(deleteButtons, deleteButtons.length - 1, "delete confirmation button");
+    const confirmDeleteButton = getElementAt(
+      deleteButtons,
+      deleteButtons.length - 1,
+      "delete confirmation button",
+    );
 
     await user.click(confirmDeleteButton);
 
@@ -334,6 +394,51 @@ describe("MuteSettings", () => {
       });
     });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
+    expect(
+      within(screen.getByRole("dialog")).getAllByText(/spoiler/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("does not let an older failed auto-mark update roll back a newer successful value", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
+    const firstUpdate = createDeferred<void>();
+    const secondUpdate = createDeferred<void>();
+    setMuteAutoMarkReadMutateAsyncMock
+      .mockReturnValueOnce(firstUpdate.promise)
+      .mockReturnValueOnce(secondUpdate.promise);
+
+    render(<MuteSettings />);
+
+    const switchControl = screen.getByRole("switch", {
+      name: "Auto mark as read",
+    });
+    await user.click(switchControl);
+    await user.click(switchControl);
+
+    await waitFor(() => {
+      expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenCalledTimes(2);
+    });
+    expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenNthCalledWith(1, {
+      enabled: true,
+    });
+    expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenNthCalledWith(2, {
+      enabled: false,
+    });
+
+    await act(async () => {
+      secondUpdate.resolve();
+      await secondUpdate.promise;
+    });
+    await act(async () => {
+      firstUpdate.reject(new Error("first failed"));
+      await firstUpdate.promise.catch(() => undefined);
+    });
+
+    expect(switchControl).not.toBeChecked();
+    expect(showToast).not.toHaveBeenCalledWith(
+      expect.stringContaining("first failed"),
+    );
   });
 });

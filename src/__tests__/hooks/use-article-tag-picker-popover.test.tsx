@@ -13,7 +13,7 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
     id: `tag-${index + 1}`,
     name: `Tag ${index + 1}`,
   }));
-  const { tagOptionRefs, handleListboxKeyDown } = useArticleTagPickerPopover({
+  const { pickerRef, tagOptionRefs, handleListboxKeyDown } = useArticleTagPickerPopover({
     isExpanded: true,
     availableTagCount,
     onExpandedChange,
@@ -21,7 +21,7 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
   });
 
   return (
-    <fieldset onKeyDown={onParentKeyDown}>
+    <fieldset ref={pickerRef} onKeyDown={onParentKeyDown}>
       <legend>Tag picker harness</legend>
       <div role="listbox" aria-label="Available tags" onKeyDown={handleListboxKeyDown}>
         {tags.map((tag, index) => (
@@ -32,6 +32,7 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
             }}
             type="button"
             role="option"
+            aria-selected="false"
           >
             {tag.name}
           </button>
@@ -78,11 +79,35 @@ describe("useArticleTagPickerPopover", () => {
     expect(onParentKeyDown).not.toHaveBeenCalled();
   });
 
+  it("closes only from the picker owner document on outside pointerdown", () => {
+    const onExpandedChange = vi.fn();
+    const ownerDocument = document.implementation.createHTMLDocument("tag picker portal owner");
+
+    render(<HookHarness availableTagCount={1} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />, {
+      container: ownerDocument.body,
+    });
+
+    fireEvent.pointerDown(document.body);
+    expect(onExpandedChange).not.toHaveBeenCalled();
+
+    ownerDocument.body.dispatchEvent(new Event("pointerdown", { bubbles: true, composed: true }));
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
+  it("closes from the picker owner document on outside touchstart", () => {
+    const onExpandedChange = vi.fn();
+
+    render(<HookHarness availableTagCount={1} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />);
+
+    fireEvent.touchStart(document.body);
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
   it("keeps the popover mounted when outside-click listener binding fails", () => {
     const error = new Error("document listener blocked");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(document, "addEventListener").mockImplementation((type, listener, options) => {
-      if (type === "mousedown") {
+      if (type === "pointerdown") {
         throw error;
       }
 

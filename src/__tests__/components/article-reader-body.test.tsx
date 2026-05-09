@@ -40,11 +40,77 @@ describe("ArticleReaderBody", () => {
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
   });
 
+  it("delegates content link clicks added after the article body renders", () => {
+    const { container } = render(<ArticleReaderBody article={{ ...baseArticle, content_sanitized: "<p>Body</p>" }} />);
+    const contentContainer = container.querySelector("[data-article-content-container]");
+    const dynamicLink = document.createElement("a");
+    dynamicLink.href = "/posts/dynamic";
+    dynamicLink.textContent = "Dynamic link";
+    contentContainer?.append(dynamicLink);
+
+    fireEvent.click(dynamicLink);
+
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/dynamic");
+  });
+
+  it("delegates nested element clicks to the owning content link", () => {
+    render(
+      <ArticleReaderBody
+        article={{
+          ...baseArticle,
+          content_sanitized: '<p><a href="/posts/nested"><span>Nested link</span></a></p>',
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Nested link"));
+
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/nested");
+  });
+
+  it("does not intercept modified content link clicks", () => {
+    render(
+      <ArticleReaderBody
+        article={{ ...baseArticle, content_sanitized: '<p><a href="mailto:test@example.com">Email</a></p>' }}
+      />,
+    );
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, metaKey: true });
+
+    const defaultAllowed = screen.getByRole("link", { name: "Email" }).dispatchEvent(event);
+
+    expect(defaultAllowed).toBe(true);
+    expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
+  });
+
   it("does not open relative content links without an article URL base", () => {
     render(<ArticleReaderBody article={{ ...baseArticle, url: "" }} />);
 
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
     expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
+  });
+
+  it("cleans up delegated content link clicks when switching articles", () => {
+    const { rerender } = render(<ArticleReaderBody article={baseArticle} />);
+    const oldLink = screen.getByRole("link", { name: "Read more" });
+    oldLink.addEventListener("click", (event) => {
+      event.preventDefault();
+    });
+
+    rerender(
+      <ArticleReaderBody
+        article={{
+          ...baseArticle,
+          id: "article-2",
+          content_sanitized: '<p><a href="/posts/2">Second article</a></p>',
+        }}
+      />,
+    );
+
+    fireEvent.click(oldLink);
+    fireEvent.click(screen.getByRole("link", { name: "Second article" }));
+
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(1);
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/2");
   });
 });
