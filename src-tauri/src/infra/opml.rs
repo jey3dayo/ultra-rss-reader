@@ -510,6 +510,15 @@ mod tests {
     }
 
     #[test]
+    fn generate_opml_escapes_head_title_once() {
+        let xml = generate_opml("Team & Research <Daily>", &[]);
+
+        assert!(xml.contains("<title>Team &amp; Research &lt;Daily&gt;</title>"));
+        assert!(!xml.contains("&amp;amp;"));
+        assert!(!xml.contains("&amp;lt;"));
+    }
+
+    #[test]
     fn generate_opml_escapes_special_characters() {
         let feeds = vec![OpmlFeed {
             title: "Feed & <Friends>".to_string(),
