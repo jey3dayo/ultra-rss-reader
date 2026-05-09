@@ -69,10 +69,18 @@ export function AccountSyncSectionView({
   secondaryActionLabel,
   onSecondaryAction,
 }: AccountSyncSectionViewProps) {
-  const normalizedProgressValue = typeof progressValue === "number" ? clampProgressValue(progressValue) : null;
+  const normalizedProgressValue =
+    typeof progressValue === "number"
+      ? clampProgressValue(progressValue)
+      : null;
 
   return (
-    <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
+    <SettingsSection
+      heading={heading}
+      note={note}
+      surface="flat"
+      className="mb-6 sm:mb-7"
+    >
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow
         label={syncOnStartup.label}
@@ -96,14 +104,22 @@ export function AccountSyncSectionView({
         >
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="font-medium text-foreground">{progressLabel}</span>
-            {progressCurrentLabel ? <span className="text-foreground-soft">{progressCurrentLabel}</span> : null}
+            {progressCurrentLabel ? (
+              <span className="text-foreground-soft">
+                {progressCurrentLabel}
+              </span>
+            ) : null}
           </div>
           <div
             role="progressbar"
             aria-label={progressLabel}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={normalizedProgressValue === null ? undefined : Math.round(normalizedProgressValue)}
+            aria-valuenow={
+              normalizedProgressValue === null
+                ? undefined
+                : Math.round(normalizedProgressValue)
+            }
             className="h-1.5 overflow-hidden rounded-full bg-surface-3"
           >
             {normalizedProgressValue === null ? (
@@ -132,20 +148,34 @@ export function AccountSyncSectionView({
               <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-soft">
                 {row.label}
               </div>
-              <div className="break-words text-[13px] leading-5 text-foreground">{row.value}</div>
+              <div className="break-words text-[13px] leading-5 text-foreground">
+                {row.value}
+              </div>
             </div>
           ))}
         </div>
       ) : null}
       {(onSyncNow || onSecondaryAction) && (
-        <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
+        <div
+          className={cn(
+            CONTROL_RAIL_CLASS,
+            "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end",
+          )}
+        >
           {onSecondaryAction && secondaryActionLabel ? (
-            <SettingsActionButton onClick={onSecondaryAction} disabled={isSyncing}>
+            <SettingsActionButton
+              onClick={onSecondaryAction}
+              disabled={isSyncing}
+            >
               {secondaryActionLabel}
             </SettingsActionButton>
           ) : null}
           {onSyncNow ? (
-            <SettingsLoadingActionButton onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>
+            <SettingsLoadingActionButton
+              onClick={onSyncNow}
+              loading={isSyncing}
+              loadingLabel={syncingLabel}
+            >
               {syncNowLabel}
             </SettingsLoadingActionButton>
           ) : null}
