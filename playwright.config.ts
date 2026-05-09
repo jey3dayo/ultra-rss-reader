@@ -13,7 +13,7 @@ export default defineConfig({
   outputDir: "test-results/e2e",
   reporter: [["list"], ["html", { outputFolder: "playwright-report/e2e", open: "never" }]],
   webServer: {
-    command: "pnpm dev",
+    command: "pnpm dev:tauri:vite",
     url: "http://localhost:1420",
     reuseExistingServer: false,
     timeout: 10000,

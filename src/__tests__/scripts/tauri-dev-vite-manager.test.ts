@@ -94,6 +94,31 @@ describe("runTauriDevViteManager", () => {
     expect(spawnImpl).not.toHaveBeenCalled();
   });
 
+  it("rejects foreign listeners instead of reusing them", async () => {
+    const stopProcessImpl = vi.fn();
+    const waitForPortToBeFreeImpl = vi.fn();
+    const spawnImpl = vi.fn();
+
+    await expect(
+      runTauriDevViteManager({
+        args: ["--check"],
+        env: { TAURI_DEV_PORT: "1432" },
+        getListeningProcessImpl: vi.fn(async () => ({
+          pid: 456,
+          commandLine: "python -m http.server 1432",
+        })),
+        stopProcessImpl,
+        waitForPortToBeFreeImpl,
+        spawnImpl,
+        log: vi.fn(),
+      }),
+    ).rejects.toThrow("Port 1432 is already in use by another process");
+
+    expect(stopProcessImpl).not.toHaveBeenCalled();
+    expect(waitForPortToBeFreeImpl).not.toHaveBeenCalled();
+    expect(spawnImpl).not.toHaveBeenCalled();
+  });
+
   it("uses the resolved TAURI_DEV_PORT for listener checks and Vite launch", async () => {
     const checkedPorts: number[] = [];
     const spawnImpl = vi.fn(() => ({

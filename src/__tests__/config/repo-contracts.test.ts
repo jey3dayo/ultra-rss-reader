@@ -800,10 +800,10 @@ describe("repository static contracts", () => {
     const playwrightWebServerUrl = playwrightConfig.match(/\bwebServer:\s*{[^}]*\burl:\s*"([^"]+)"/s)?.[1] ?? "";
 
     expect(packageScripts.dev).toBe("pnpm exec vite");
-    expect(playwrightWebServerCommand).toBe("pnpm dev");
-    expect(playwrightWebServerCommand).toBe(
-      `pnpm ${Object.entries(packageScripts).find(([, script]) => script === packageScripts.dev)?.[0]}`,
-    );
+    expect(packageScripts["dev:tauri:vite"]).toBe("node ./scripts/tauri-dev-vite-manager.ts");
+    expect(playwrightWebServerCommand).toBe("pnpm dev:tauri:vite");
+    expect(packageScripts[extractPnpmScriptName(playwrightWebServerCommand)]).toBe(packageScripts["dev:tauri:vite"]);
+    expect(readRepoFile("scripts/tauri-dev-vite-manager.ts")).toContain("classifyPortOwnerCommandLine");
     expect(extractPlaywrightReuseExistingServerExpression(playwrightConfig)).toBe("false");
     expect(vitePort).toBe(1420);
     expect(viteConfig).toContain("strictPort: true");
