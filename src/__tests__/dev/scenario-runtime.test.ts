@@ -137,6 +137,20 @@ describe("dev-scenario-runtime", () => {
     expect(importScenarioModule).toHaveBeenCalledTimes(2);
   });
 
+  it("returns module_load_failed with a string rejection message when the dynamic import rejects", async () => {
+    vi.stubEnv("DEV", true);
+    vi.spyOn(DEV_SCENARIO_MODULE_IMPORTERS, DEV_SCENARIO_ID.openSubscriptionsIndex).mockRejectedValueOnce(
+      "String import failure",
+    );
+
+    const result = await loadRuntimeDevScenariosResult();
+
+    expect(Result.unwrapError(result)).toEqual({
+      type: "module_load_failed",
+      message: "String import failure",
+    });
+  });
+
   it("retries module loading after an invalid module", async () => {
     vi.stubEnv("DEV", true);
     devScenariosModuleMock.module = {};
@@ -155,11 +169,15 @@ describe("dev-scenario-runtime", () => {
     expect(Result.unwrap(retriedResult)).toEqual([]);
   });
 
-  it("uses the runtime fallback message when module listing throws a non-error value", async () => {
+  it.each([
+    undefined,
+    "",
+    new Error(""),
+  ] as const)("uses the runtime fallback message when module listing throws %s", async (thrownValue) => {
     vi.stubEnv("DEV", true);
     devScenariosModuleMock.module = {
       listDevScenarios: vi.fn(() => {
-        throw undefined;
+        throw thrownValue;
       }),
       runDevScenario: vi.fn(async () => {}),
     };
@@ -169,6 +187,23 @@ describe("dev-scenario-runtime", () => {
     expect(Result.unwrapError(result)).toEqual({
       type: "module_load_failed",
       message: "Unknown dev scenario runtime error.",
+    });
+  });
+
+  it("returns module_load_failed when scenario listing throws an Error", async () => {
+    vi.stubEnv("DEV", true);
+    devScenariosModuleMock.module = {
+      listDevScenarios: vi.fn(() => {
+        throw new Error("Scenario listing failed");
+      }),
+      runDevScenario: vi.fn(async () => {}),
+    };
+
+    const result = await loadRuntimeDevScenariosResult();
+
+    expect(Result.unwrapError(result)).toEqual({
+      type: "module_load_failed",
+      message: "Scenario listing failed",
     });
   });
 
@@ -189,12 +224,16 @@ describe("dev-scenario-runtime", () => {
     });
   });
 
-  it("uses the runtime fallback message when the scenario runner rejects a non-error value", async () => {
+  it.each([
+    undefined,
+    "",
+    new Error(""),
+  ] as const)("uses the runtime fallback message when the scenario runner rejects %s", async (thrownValue) => {
     vi.stubEnv("DEV", true);
     devScenariosModuleMock.module = {
       listDevScenarios: vi.fn(() => []),
       runDevScenario: vi.fn(async () => {
-        throw undefined;
+        throw thrownValue;
       }),
     };
 
@@ -204,5 +243,19 @@ describe("dev-scenario-runtime", () => {
       type: "scenario_failed",
       message: "Unknown dev scenario runtime error.",
     });
+  });
+
+  it("rejects promise wrappers with the scenario failure fallback message", async () => {
+    vi.stubEnv("DEV", true);
+    devScenariosModuleMock.module = {
+      listDevScenarios: vi.fn(() => []),
+      runDevScenario: vi.fn(async () => {
+        throw undefined;
+      }),
+    };
+
+    await expect(runRuntimeDevScenario(DEV_SCENARIO_ID.openSubscriptionsIndex)).rejects.toThrow(
+      "Unknown dev scenario runtime error.",
+    );
   });
 });
