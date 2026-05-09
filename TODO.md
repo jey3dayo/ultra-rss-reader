@@ -189,26 +189,6 @@
   - `src/__tests__/lib/subscriptions-index.test.ts` で mixed-case 以外の Unicode query と whitespace-padded URL/title の期待値を追加する
   - search input UI や summary filter scroll reset とは分け、subscription row pure search helper の normalization だけを扱う
 
-- [ ] app query client mutation retry policy 候補を追加する
-  - `src/lib/query/query-client.ts` は query retry だけを `false` にしているため、app runtime の mutation retry を TanStack default 任せにするか明示的に `false` にするか固定する
-  - `src/__tests__/lib/query-client.test.ts` で production `queryClient` の `defaultOptions.mutations?.retry` を確認し、test / Storybook provider 方針との揺れをなくす
-  - React Query staleTime や individual mutation retry policy とは分け、app shared query client の default retry contract だけを扱う
-
-- [ ] query invalidation rejection surface 候補を追加する
-  - `src/lib/query/query-invalidation.ts` の `invalidateQueryKeys()` が `void queryClient.invalidateQueries(...)` で rejection を捨てるため、unhandled rejection / console warn / no-op の方針を決める
-  - `src/__tests__/lib/query-invalidation.test.ts` で `invalidateQueries` が reject する query key が混じっても後続 key の invalidation が走るか、failure を表面化するかを固定する
-  - generated mutation `onSuccess` の invalidate throw surface とは分け、shared invalidation helper の async rejection だけを扱う
-
-- [ ] manual sync request-start callback failure 候補を追加する
-  - `src/lib/sync/manual-sync.ts` の `triggerManualSyncWithCooldownResult(onRequestStart)` で `onRequestStart` が throw した時に `triggerSync` / cooldown / caller rejection をどう扱うか固定する
-  - `src/__tests__/lib/manual-sync.test.ts` で throwing `onRequestStart` が command 実行前に止まるのか、error callback へ流れるのかを明示する
-  - cooldown listener isolation や triggerSync Result.fail 後の cooldown behavior とは分け、request-start callback の failure boundary だけを扱う
-
-- [ ] updater download promise rejection cleanup 候補を追加する
-  - `src/hooks/use-updater.ts` の `startDownload()` が `downloadAndInstallUpdate().then(...)` 前提なので、command が Result ではなく promise reject した時に `downloadInFlight` が戻るか確認する
-  - `src/__tests__/hooks/use-updater.test.ts` で rejected download promise 後に fallback toast が出ること、再クリック/再確認で次の download/check が可能なことを固定する
-  - progress payload schema や restart failure toast とは分け、download command promise rejection の cleanup だけを扱う
-
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
@@ -290,11 +270,6 @@
   - test readability を壊さない範囲に限定し、assertion message と fixture order が変わらないことを確認する
   - runtime iterable performance とは分け、test-only fixture iteration cleanup だけを扱う
 
-- [ ] react-doctor repo contract lookup cleanup 候補を追加する
-  - `src/__tests__/config/repo-contracts.test.ts` / `src/__tests__/api/schemas.test.ts` / `src/__tests__/lib/i18next-locale-contract.test.ts` の repeated membership check を `Set` 化する
-  - contract test の failure message と検証対象 glob/order が変わらないことを確認する
-  - tauri dispatch lookup set とは分け、test contract lookup cleanup だけを扱う
-
 - [ ] react-doctor immutable sort cleanup 候補を追加する
   - `js-tosorted-immutable` の `[...array].sort()` を runtime file から `toSorted()` へ寄せる
   - 対象候補: `src/lib/sidebar/sidebar.ts` / `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` / `src/lib/subscriptions/subscriptions-index.ts`
@@ -364,16 +339,6 @@
   - `react-doctor/async-await-in-loop` のうち、独立実行できる script/dev helper の loop await を `Promise.all` 系へ寄せる
   - 対象候補: `scripts/tauri-dev-vite-manager.ts` / `scripts/tauri-cli-dispatch.ts` / `scripts/seed-dev-db-from-prod.ts` / `src/dev/scenarios/helpers.ts`
   - 順序依存がある database seed / dispatch check は先に dependency を明文化し、test async waterfall cleanup とは分ける
-
-- [ ] react-doctor article-list length guard 候補を追加する
-  - `src/lib/articles/article-list.ts` の `.every()` 比較に length guard を足し、長さ不一致時に早期 return する
-  - `src/__tests__/lib/article-list.test.ts` で same length / different length / same IDs different order の boundary を固定する
-  - article list navigation や selection helper cleanup とは分け、`js-length-check-first` の一点だけを扱う
-
-- [ ] react-doctor dev mock min-max cleanup 候補を追加する
-  - `src/dev/mocks.ts` の min/max 用 `sort()[0]` を `Math.min` / `Math.max` または single-pass reduce へ寄せる
-  - dev mock の generated timestamp / article order / scenario fixture が変わらないことを `dev-mock-data` 系 test で確認する
-  - dev mock combine-iterations cleanup とは分け、`js-min-max-loop` の一点だけを扱う
 
 - [ ] react-doctor dev scenario dynamic import 候補を追加する
   - `src/dev/scenario-runtime.ts` の dynamic import path を bundler が静的解析できる manifest / registry import へ寄せる
