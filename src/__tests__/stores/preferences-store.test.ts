@@ -932,6 +932,33 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("ignores stale Result.fail persists after a newer preference write succeeds", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const staleSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    const latestSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    vi.mocked(setPreference).mockReturnValueOnce(staleSave.promise).mockReturnValueOnce(latestSave.promise);
+
+    try {
+      usePreferencesStore.getState().setPref("language", "en");
+      usePreferencesStore.getState().setPref("language", "ja");
+
+      latestSave.resolve(Result.succeed(null));
+      await latestSave.promise;
+      await Promise.resolve();
+
+      staleSave.resolve(Result.fail({ type: "UserVisible", message: "old write failed" }));
+      await staleSave.promise;
+      await Promise.resolve();
+
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(usePreferencesStore.getState().prefs.language).toBe("ja");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("does not reuse completed request ids for later preference writes", async () => {
     await i18n.changeLanguage("ja");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
