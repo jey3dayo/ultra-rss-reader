@@ -5,8 +5,8 @@ export type ReaderFilter = ViewMode;
 
 export type ReaderQuerySelection = ReaderSelection;
 
-export type AccountReaderScope = { type: "account"; accountId: string };
-export type ArticleReaderScope =
+type AccountReaderScope = { type: "account"; accountId: string };
+type ArticleReaderScope =
   | AccountReaderScope
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
@@ -16,8 +16,8 @@ export type ReaderQuery =
   | { source: "articles"; scope: ArticleReaderScope; filter: ReaderFilter }
   | { source: "recent"; scope: AccountReaderScope; filter: ReaderFilter };
 
-export type DisabledReaderQueryReason = "missing_account" | "invalid_selection";
-export type DisabledReaderQuery = {
+type DisabledReaderQueryReason = "missing_account" | "invalid_selection";
+type DisabledReaderQuery = {
   source: "disabled";
   reason: DisabledReaderQueryReason;
 };

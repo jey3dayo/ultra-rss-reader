@@ -2,7 +2,7 @@ import { type ReactNode, type RefObject, useCallback, useRef } from "react";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
 
-export type ArticleListHeaderLabels = {
+type ArticleListHeaderLabels = {
   markAllReadLabel: string;
   markAllReadButtonText: string;
   searchArticlesLabel: string;

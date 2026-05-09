@@ -12,7 +12,7 @@ import { contextMenuStyles } from "./context-menu-styles";
 
 type ArticleToolbarLayoutMode = "wide" | "compact" | "mobile";
 
-export type ArticleToolbarViewLabels = {
+type ArticleToolbarViewLabels = {
   closeView: string;
   toggleRead: string;
   toggleReadShort?: string;
@@ -65,11 +65,11 @@ export type ArticleToolbarActionResolverResult = {
   showExternalBrowserInMoreMenu: boolean;
 };
 
-export type ArticleToolbarActionOptions = Omit<ArticleToolbarActionResolverResult, "showExternalBrowserInMoreMenu"> & {
+type ArticleToolbarActionOptions = Omit<ArticleToolbarActionResolverResult, "showExternalBrowserInMoreMenu"> & {
   showExternalBrowserInMoreMenu?: ArticleToolbarActionResolverResult["showExternalBrowserInMoreMenu"];
 };
 
-export type ArticleToolbarArticleState = {
+type ArticleToolbarArticleState = {
   hasArticle: boolean;
   isRead: boolean;
   isStarred: boolean;
