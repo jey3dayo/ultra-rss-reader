@@ -1,6 +1,11 @@
-import { useEffect, useReducer } from "react";
+import { Result } from "@praha/byethrow";
+import { useEffect, useReducer, useRef } from "react";
 import { useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
-import type { DevScenarioRuntimeError, RuntimeDevScenario } from "@/dev/scenario-runtime";
+import {
+  type DevScenarioRuntimeError,
+  loadRuntimeDevScenariosResult,
+  type RuntimeDevScenario,
+} from "@/dev/scenario-runtime";
 
 type UseCommandPaletteRuntimeParams = {
   open: boolean;
@@ -43,10 +48,6 @@ async function loadCommandPaletteRuntimeDevScenarios(): Promise<CommandPaletteRu
     return { ok: true, scenarios: [] };
   }
 
-  const [{ Result }, { loadRuntimeDevScenariosResult }] = await Promise.all([
-    import("@praha/byethrow"),
-    import("@/dev/scenario-runtime"),
-  ]);
   const result = await loadRuntimeDevScenariosResult();
   if (Result.isFailure(result)) {
     return { ok: false, error: Result.unwrapError(result) };
@@ -64,7 +65,11 @@ function commandPaletteRuntimeReducer(
     case "reset-input":
       return { ...state, input: "" };
     case "set-dev-scenarios":
-      return { ...state, devScenarios: action.value, devScenarioLoadError: null };
+      return {
+        ...state,
+        devScenarios: action.value,
+        devScenarioLoadError: null,
+      };
     case "set-dev-scenario-load-error":
       return { ...state, devScenarios: [], devScenarioLoadError: action.value };
     default:
@@ -74,6 +79,7 @@ function commandPaletteRuntimeReducer(
 
 export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParams): UseCommandPaletteRuntimeResult {
   const [state, dispatch] = useReducer(commandPaletteRuntimeReducer, initialCommandPaletteRuntimeState);
+  const openGenerationRef = useRef(0);
   const { input, devScenarios, devScenarioLoadError } = state;
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
@@ -88,11 +94,19 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
       return;
     }
 
+    openGenerationRef.current += 1;
+    const openGeneration = openGenerationRef.current;
     let cancelled = false;
+
+    if (!open) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     void loadCommandPaletteRuntimeDevScenarios()
       .then((loadResult) => {
-        if (cancelled) {
+        if (cancelled || openGeneration !== openGenerationRef.current) {
           return;
         }
 
@@ -102,10 +116,13 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
         }
 
         console.warn("Command palette dev scenario loader failed.", loadResult.error);
-        dispatch({ type: "set-dev-scenario-load-error", value: loadResult.error });
+        dispatch({
+          type: "set-dev-scenario-load-error",
+          value: loadResult.error,
+        });
       })
       .catch((error: unknown) => {
-        if (cancelled) {
+        if (cancelled || openGeneration !== openGenerationRef.current) {
           return;
         }
 
@@ -123,7 +140,7 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [open]);
 
   return {
     input,

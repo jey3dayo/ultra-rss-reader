@@ -523,6 +523,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       selectedAccountId: id,
       accountPaneOpen: false,
+      commandPaletteOpen: false,
       selection: { type: "all" },
       viewMode: "unread",
       selectedArticleId: null,
@@ -541,6 +542,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         Object.assign(nextState, {
           selectedAccountId: fallbackAccountId,
           accountPaneOpen: false,
+          commandPaletteOpen: false,
           selection: { type: "all" },
           viewMode: "unread",
           selectedArticleId: null,
@@ -562,6 +564,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       selectedAccountId: id,
       accountPaneOpen: false,
+      commandPaletteOpen: false,
       selection: { type: "smart", kind: "unread" },
       viewMode: "unread",
       selectedArticleId: null,
@@ -575,6 +578,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       selectedAccountId: null,
       accountPaneOpen: false,
+      commandPaletteOpen: false,
       selection: { type: "all" },
       viewMode: "unread",
       selectedArticleId: null,

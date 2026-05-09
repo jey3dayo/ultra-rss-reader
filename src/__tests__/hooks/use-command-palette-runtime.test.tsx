@@ -148,6 +148,63 @@ describe("useCommandPaletteRuntime", () => {
     consoleWarnSpy.mockRestore();
   });
 
+  it("ignores stale dev scenario loads after close and reopen", async () => {
+    const staleLoad = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenariosResult>>>();
+    const currentLoad = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenariosResult>>>();
+    loadRuntimeDevScenariosResultMock.mockReturnValueOnce(staleLoad.promise).mockReturnValueOnce(currentLoad.promise);
+
+    const { result, rerender } = renderHook(({ open }: { open: boolean }) => useCommandPaletteRuntime({ open }), {
+      initialProps: { open: true },
+    });
+
+    rerender({ open: false });
+    rerender({ open: true });
+
+    await act(async () => {
+      currentLoad.resolve(
+        Result.succeed([
+          {
+            id: "open-add-feed-dialog",
+            title: "Current scenario",
+            keywords: ["current"],
+          },
+        ]),
+      );
+      await currentLoad.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.devScenarios).toEqual([
+        {
+          id: "open-add-feed-dialog",
+          title: "Current scenario",
+          keywords: ["current"],
+        },
+      ]);
+    });
+
+    await act(async () => {
+      staleLoad.resolve(
+        Result.succeed([
+          {
+            id: "open-add-feed-dialog",
+            title: "Stale scenario",
+            keywords: ["stale"],
+          },
+        ]),
+      );
+      await staleLoad.promise;
+    });
+
+    expect(result.current.devScenarios).toEqual([
+      {
+        id: "open-add-feed-dialog",
+        title: "Current scenario",
+        keywords: ["current"],
+      },
+    ]);
+  });
+
   it("exposes and warns about dev scenario load failures without treating them as empty results", async () => {
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     loadRuntimeDevScenariosResultMock.mockResolvedValueOnce(

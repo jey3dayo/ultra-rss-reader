@@ -325,6 +325,25 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);
   });
 
+  it("closes the command palette when the selected account context changes", () => {
+    useUiStore.getState().openCommandPalette();
+    useUiStore.getState().selectAccount("acc-1");
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+
+    useUiStore.getState().openCommandPalette();
+    useUiStore.getState().restoreAccountSelection("acc-2");
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+
+    useUiStore.getState().openCommandPalette();
+    useUiStore.getState().clearSelectedAccount();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+
+    useUiStore.setState({ selectedAccountId: "acc-3" });
+    useUiStore.getState().openCommandPalette();
+    useUiStore.getState().handleAccountDeleted("acc-3", ["acc-4"]);
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+  });
+
   it("tracks account setup verification before an account id exists", () => {
     useUiStore.getState().startAccountSetupVerification();
 

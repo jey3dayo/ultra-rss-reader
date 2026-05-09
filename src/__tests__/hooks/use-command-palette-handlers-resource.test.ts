@@ -1,26 +1,41 @@
 import { Result } from "@praha/byethrow";
-import { waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteHandlers as createCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { STORAGE_KEYS } from "@/constants/storage";
+import type { FeedLandingResult } from "@/hooks/use-feed-landing";
+
+function createDeferred<T>() {
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
 
 function expectCommandHistory(entries: string[]) {
   expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(entries));
 }
 
 function createHandlers(overrides: Partial<Parameters<typeof createCommandPaletteHandlers>[0]> = {}) {
-  return createCommandPaletteHandlers({
-    closePalette: vi.fn(),
-    openShortcutsHelp: vi.fn(),
-    showToast: vi.fn(),
-    selectedAccountId: "acc-1",
-    isSyncing: false,
-    selectFeedFromCurrentContext: vi.fn(),
-    selectTagFromCurrentContext: vi.fn(),
-    selectArticle: vi.fn(),
-    openFeedLanding: vi.fn(),
-    ...overrides,
-  });
+  const { result } = renderHook(() =>
+    createCommandPaletteHandlers({
+      closePalette: vi.fn(),
+      openShortcutsHelp: vi.fn(),
+      showToast: vi.fn(),
+      selectedAccountId: "acc-1",
+      isSyncing: false,
+      selectFeedFromCurrentContext: vi.fn(),
+      selectTagFromCurrentContext: vi.fn(),
+      selectArticle: vi.fn(),
+      openFeedLanding: vi.fn(),
+      ...overrides,
+    }),
+  );
+  return result.current;
 }
 
 describe("useCommandPaletteHandlers resource history", () => {
@@ -43,7 +58,11 @@ describe("useCommandPaletteHandlers resource history", () => {
         message: "boom",
       });
     });
-    const handlers = createHandlers({ closePalette, showToast, openFeedLanding });
+    const handlers = createHandlers({
+      closePalette,
+      showToast,
+      openFeedLanding,
+    });
 
     handlers.handleFeedSelect("feed-1");
 
@@ -71,6 +90,57 @@ describe("useCommandPaletteHandlers resource history", () => {
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith('Failed to open feed "missing-feed": Feed not found.');
     });
+  });
+
+  it("ignores stale feed landing failures after an account switch or newer feed selection", async () => {
+    const showToast = vi.fn();
+    const staleLanding = createDeferred<FeedLandingResult>();
+    const currentLanding = createDeferred<FeedLandingResult>();
+    const openFeedLanding = vi
+      .fn<(feedId: string) => Promise<FeedLandingResult>>()
+      .mockReturnValueOnce(staleLanding.promise)
+      .mockReturnValueOnce(currentLanding.promise);
+    const { result, rerender } = renderHook(
+      ({ selectedAccountId }: { selectedAccountId: string }) =>
+        createCommandPaletteHandlers({
+          closePalette: vi.fn(),
+          openShortcutsHelp: vi.fn(),
+          selectedAccountId,
+          isSyncing: false,
+          selectFeedFromCurrentContext: vi.fn(),
+          selectTagFromCurrentContext: vi.fn(),
+          selectArticle: vi.fn(),
+          showToast,
+          openFeedLanding,
+        }),
+      {
+        initialProps: { selectedAccountId: "acc-1" },
+      },
+    );
+
+    result.current.handleFeedSelect("feed-1");
+    rerender({ selectedAccountId: "acc-2" });
+    result.current.handleFeedSelect("feed-2");
+
+    staleLanding.resolve(
+      Result.fail({
+        type: "landing_fetch_failed" as const,
+        feedId: "feed-1",
+        message: "old boom",
+      }),
+    );
+    currentLanding.resolve(
+      Result.fail({
+        type: "landing_fetch_failed" as const,
+        feedId: "feed-2",
+        message: "new boom",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Failed to open feed "feed-2": new boom');
+    });
+    expect(showToast).not.toHaveBeenCalledWith('Failed to open feed "feed-1": old boom');
   });
 
   it("records tag and article resource history before selection and closes after navigation", () => {

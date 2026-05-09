@@ -42,7 +42,7 @@ describe("useCommandPaletteData", () => {
     } as ReturnType<typeof useRecentArticles>);
   });
 
-  it("projects persisted feed, tag, and article resource history into recent resources", () => {
+  it("projects only existing feed, tag, and article targets into recent resources", () => {
     localStorage.setItem(
       STORAGE_KEYS.commandHistory,
       JSON.stringify(["feed:feed-1", "tag:tag-1", "article:art-1", "action:open-settings", "feed:missing"]),

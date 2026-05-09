@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { useEffect, useRef } from "react";
 import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { FeedLandingFailure, FeedLandingResult } from "@/hooks/use-feed-landing";
@@ -86,6 +87,14 @@ export function useCommandPaletteHandlers({
   selectArticle,
   openFeedLanding,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
+  const feedLandingRequestIdRef = useRef(0);
+  const selectedAccountIdRef = useRef(selectedAccountId);
+  selectedAccountIdRef.current = selectedAccountId;
+
+  useEffect(() => {
+    feedLandingRequestIdRef.current += 1;
+  }, [selectedAccountId]);
+
   function handleActionSelect(action: PaletteAction["id"]) {
     if (action === "open-shortcuts-help") {
       openShortcutsHelp();
@@ -105,15 +114,31 @@ export function useCommandPaletteHandlers({
   }
 
   function handleFeedSelect(feedId: string) {
+    const requestId = feedLandingRequestIdRef.current + 1;
+    feedLandingRequestIdRef.current = requestId;
+    const requestAccountId = selectedAccountIdRef.current;
     addToHistory(createCommandPaletteHistoryValue({ kind: "feed", id: feedId }));
     void openFeedLanding(feedId)
       .then((result) => {
+        if (requestId !== feedLandingRequestIdRef.current || requestAccountId !== selectedAccountIdRef.current) {
+          return;
+        }
+
         if (Result.isFailure(result)) {
           const message = getFeedLandingFailureMessage(Result.unwrapError(result));
-          showToast(translateCommandPaletteMessage("feed_landing_failed", { feedId, message }));
+          showToast(
+            translateCommandPaletteMessage("feed_landing_failed", {
+              feedId,
+              message,
+            }),
+          );
         }
       })
       .catch((error) => {
+        if (requestId !== feedLandingRequestIdRef.current || requestAccountId !== selectedAccountIdRef.current) {
+          return;
+        }
+
         showToast(
           translateCommandPaletteMessage("feed_landing_failed", {
             feedId,
