@@ -5,7 +5,7 @@ import { OverlayStageSurface } from "@/components/shared/overlay-stage-surface";
 
 describe("OverlayStageSurface", () => {
   it("requires scope to be explicit at the type level", () => {
-    // @ts-expect-error scope is required for the shell stage boundary
+    // @ts-expect-error negative type contract: OverlayStageSurface requires scope for shell stage boundary.
     const props: ComponentProps<typeof OverlayStageSurface> = { children: "Missing scope" };
 
     expect(props).toBeDefined();

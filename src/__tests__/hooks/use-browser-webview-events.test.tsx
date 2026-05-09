@@ -317,11 +317,12 @@ describe("useBrowserWebviewEvents", () => {
 
     warnOnceMalformedPayloadEvents();
 
-    const malformedPayloadMessages = consoleWarn.mock.calls
-      .map(([message]) => message)
-      .filter(
-        (message) => typeof message === "string" && message.includes("Ignored malformed embedded browser webview"),
-      );
+    const malformedPayloadMessages = consoleWarn.mock.calls.reduce<string[]>((messages, [message]) => {
+      if (typeof message === "string" && message.includes("Ignored malformed embedded browser webview")) {
+        messages.push(message);
+      }
+      return messages;
+    }, []);
 
     expect(malformedPayloadMessages).toEqual([
       `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload: payloadType=null`,

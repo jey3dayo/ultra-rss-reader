@@ -6,7 +6,7 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 
 describe("SurfaceCard", () => {
   it("requires an explicit variant in the component API", () => {
-    // @ts-expect-error SurfaceCard requires a semantic variant.
+    // @ts-expect-error negative type contract: SurfaceCard requires a semantic variant.
     const props: ComponentProps<typeof SurfaceCard> = { children: "Missing variant" };
 
     expect(props.children).toBe("Missing variant");

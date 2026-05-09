@@ -5,7 +5,7 @@ import { OverlayActionSurface } from "@/components/shared/overlay-action-surface
 
 describe("OverlayActionSurface", () => {
   it("requires compact to be explicit at the type level", () => {
-    // @ts-expect-error compact is required for the shell control mode
+    // @ts-expect-error negative type contract: OverlayActionSurface requires compact for shell control mode.
     const props: ComponentProps<typeof OverlayActionSurface> = { children: "Missing compact" };
 
     expect(props).toBeDefined();
