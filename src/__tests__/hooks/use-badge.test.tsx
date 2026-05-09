@@ -273,6 +273,32 @@ describe("useBadge", () => {
     });
   });
 
+  it("skips a deferred native badge write after the hook unmounts", async () => {
+    const deferredWindow = {
+      setBadgeCount: vi.fn(),
+    };
+    const windowReady = createDeferred<typeof deferredWindow>();
+    getCurrentWindowMock.mockReturnValueOnce(windowReady.promise).mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+
+    const { unmount } = render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getCurrentWindowMock).toHaveBeenCalledTimes(1);
+    });
+
+    unmount();
+    windowReady.resolve(deferredWindow);
+    await act(async () => {
+      await windowReady.promise;
+    });
+
+    expect(deferredWindow.setBadgeCount).not.toHaveBeenCalled();
+    expect(setBadgeCountMock).not.toHaveBeenCalled();
+  });
+
   it("reapplies the latest badge count after an older native badge write settles", async () => {
     const firstBadgeWrite = createDeferred<void>();
     setBadgeCountMock.mockReturnValueOnce(firstBadgeWrite.promise).mockResolvedValue(undefined);

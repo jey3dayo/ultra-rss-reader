@@ -41,22 +41,30 @@ function resolveBadgeCount({
   return unreadCountToBadgeCount(totalUnread);
 }
 
-async function setBadgeCount(count: number | undefined, isLatestRequest: () => boolean): Promise<void> {
+type BadgeCommandResult = "applied" | "skipped" | "unavailable";
+
+async function applyBadgeCountCommand(
+  count: number | undefined,
+  shouldApplyRequest: () => boolean,
+): Promise<BadgeCommandResult> {
   try {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
     const currentWindow = await getCurrentWindow();
-    if (!isLatestRequest()) {
-      return;
+    if (!shouldApplyRequest()) {
+      return "skipped";
     }
     await currentWindow.setBadgeCount(count);
+    return "applied";
   } catch {
     // Non-Tauri context (browser dev mode) — no-op
+    return "unavailable";
   }
 }
 
 export function useBadge() {
   const badgeRequestSeqRef = useRef(0);
   const latestBadgeCountRef = useRef<number | undefined>(undefined);
+  const mountedRef = useRef(true);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
@@ -77,19 +85,26 @@ export function useBadge() {
   );
 
   useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     badgeRequestSeqRef.current += 1;
     const requestSeq = badgeRequestSeqRef.current;
     latestBadgeCountRef.current = badgeCount;
+    const shouldApplyRequest = (seq: number) => mountedRef.current && badgeRequestSeqRef.current === seq;
 
     void (async () => {
-      await setBadgeCount(badgeCount, () => badgeRequestSeqRef.current === requestSeq);
+      await applyBadgeCountCommand(badgeCount, () => shouldApplyRequest(requestSeq));
 
       let appliedRequestSeq = requestSeq;
-      while (appliedRequestSeq !== badgeRequestSeqRef.current) {
+      while (mountedRef.current && appliedRequestSeq !== badgeRequestSeqRef.current) {
         const latestRequestSeq = badgeRequestSeqRef.current;
         const latestBadgeCount = latestBadgeCountRef.current;
 
-        await setBadgeCount(latestBadgeCount, () => badgeRequestSeqRef.current === latestRequestSeq);
+        await applyBadgeCountCommand(latestBadgeCount, () => shouldApplyRequest(latestRequestSeq));
         appliedRequestSeq = latestRequestSeq;
       }
     })();
