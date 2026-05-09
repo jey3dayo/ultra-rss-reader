@@ -170,6 +170,35 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Collapse debug HUD" })).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("shows only the latest trace in the collapsed HUD summary", () => {
+    renderFocusDebugHudView({
+      traces: [
+        "12:00:00.000 raw-key ArrowDown target=article-row",
+        "12:00:00.050 browser-geometry resize width=1200 height=800",
+      ],
+    });
+
+    expect(screen.queryByText("12:00:00.000 raw-key ArrowDown target=article-row")).not.toBeInTheDocument();
+    expect(screen.getByText("12:00:00.050 browser-geometry resize width=1200 height=800")).toBeInTheDocument();
+    expect(screen.getByText("+1 more")).toBeInTheDocument();
+  });
+
+  it("keeps dev-only input, geometry, and sync traces visible when expanded", () => {
+    renderFocusDebugHudView({
+      traces: [
+        "12:00:00.000 raw-key ArrowDown target=article-row",
+        "12:00:00.050 browser-geometry resize width=1200 height=800",
+        "12:00:00.100 sync-error account=acc-1 kind=network",
+      ],
+      defaultExpanded: true,
+    });
+
+    expect(screen.getByText("12:00:00.000 raw-key ArrowDown target=article-row")).toBeInTheDocument();
+    expect(screen.getByText("12:00:00.050 browser-geometry resize width=1200 height=800")).toBeInTheDocument();
+    expect(screen.getByText("12:00:00.100 sync-error account=acc-1 kind=network")).toBeInTheDocument();
+    expect(screen.queryByText("+2 more")).not.toBeInTheDocument();
+  });
+
   it("keeps dev-only HUD accessible action copy in English", () => {
     renderFocusDebugHudView();
 

@@ -45,6 +45,7 @@ describe("debug-input-trace", () => {
     expect(resolveDebugTraceSource("raw-key Enter target=button")).toBe("input");
     expect(resolveDebugTraceSource("12:00:00.000 raw-pointer pointerdown x=12 y=99 target=main")).toBe("input");
     expect(resolveDebugTraceSource("window-mouse 3 -> mouse-back")).toBe("input");
+    expect(resolveDebugTraceSource("12:00:00.000 menu-action next-article")).toBe("input");
     expect(resolveDebugTraceSource("browser-geometry resize width=1200 height=800")).toBe("browser_geometry");
     expect(resolveDebugTraceSource("12:00:00.000 browser-geometry resize width=1200 height=800")).toBe(
       "browser_geometry",
@@ -53,5 +54,6 @@ describe("debug-input-trace", () => {
     expect(resolveDebugTraceSource("12:00:00.000 sync-error account=acc-1 kind=network")).toBe("sync_error");
     expect(resolveDebugTraceSource("hud-copy success")).toBe("app");
     expect(resolveDebugTraceSource("open_log_dir")).toBe("app");
+    expect(resolveDebugTraceSource("rotate_file_log")).toBe("app");
   });
 });
