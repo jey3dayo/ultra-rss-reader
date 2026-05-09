@@ -463,10 +463,13 @@ export const useMarkFeedRead = createMutation(markFeedRead, invalidateArticleMut
 export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticleMutationQueries);
 
 export function useSearchArticles(accountId: string | null, query: string) {
+  const normalizedQuery = query.trim();
+
   return useQuery({
-    queryKey: queryKeys.search.byAccountAndQuery(accountId, query),
-    queryFn: () => searchArticles(requireEnabledQueryValue(accountId, "accountId"), query).then(Result.unwrap()),
-    enabled: !!accountId && query.trim().length > 0,
+    queryKey: queryKeys.search.byAccountAndQuery(accountId, normalizedQuery),
+    queryFn: () =>
+      searchArticles(requireEnabledQueryValue(accountId, "accountId"), normalizedQuery).then(Result.unwrap()),
+    enabled: !!accountId && normalizedQuery.length > 0,
   });
 }
 

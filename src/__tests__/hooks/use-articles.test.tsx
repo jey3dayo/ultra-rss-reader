@@ -111,6 +111,8 @@ describe("useToggleStar", () => {
     renderHook(() => useSearchArticles("acc-1", "   \n\t  "), { wrapper });
 
     expect(searchArticlesSpy).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery("acc-1", ""))).toBeDefined();
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery("acc-1", "   \n\t  "))).toBeUndefined();
   });
 
   it("treats whitespace-only manual article query ids as null-equivalent disabled ids", () => {
