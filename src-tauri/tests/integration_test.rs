@@ -17,7 +17,6 @@ use ultra_rss_reader_lib::infra::db::sqlite_article::SqliteArticleRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_feed::SqliteFeedRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_folder::SqliteFolderRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
-use ultra_rss_reader_lib::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use ultra_rss_reader_lib::infra::keyring_store;
 use ultra_rss_reader_lib::infra::provider::local::LocalProvider;
 use ultra_rss_reader_lib::repository::account::AccountRepository;
@@ -26,7 +25,6 @@ use ultra_rss_reader_lib::repository::feed::FeedRepository;
 use ultra_rss_reader_lib::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,
 };
-use ultra_rss_reader_lib::repository::sync_state::SyncStateRepository;
 use ultra_rss_reader_lib::service::sync_flow;
 
 struct PasswordCleanup(String);
@@ -213,6 +211,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
 
     let local_feed_mock = server
         .mock("GET", "/feed.xml")
+        .expect(0)
         .with_status(200)
         .with_header("Content-Type", "application/rss+xml")
         .with_body(format!(
@@ -336,13 +335,12 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
     let db_guard = db.lock().unwrap();
     let article_repo = SqliteArticleRepository::new(db_guard.reader());
     let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
 
     let articles = article_repo
         .find_by_feed(&feed_id, &Pagination::default())
         .unwrap();
     assert_eq!(articles.len(), 1);
-    assert_eq!(articles[0].title, "Updated Local Article");
+    assert_eq!(articles[0].title, "Original Local Article");
     assert!(articles[0].is_read);
 
     let unread = article_repo.count_unread_by_account(&account_id).unwrap();
@@ -351,12 +349,4 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
         .find_by_account(&account_id)
         .unwrap()
         .is_empty());
-    assert!(sync_state_repo
-        .get(&account_id, &format!("local_feed:{feed_url}"))
-        .unwrap()
-        .is_some());
-    assert!(sync_state_repo
-        .get(&account_id, &format!("feed:{feed_url}"))
-        .unwrap()
-        .is_none());
 }
