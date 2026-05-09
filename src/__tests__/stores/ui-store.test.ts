@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
-import type { SyncProgressEventDto, SyncProgressRuntimeEventDto } from "@/lib/sync/sync-progress-event.types";
-import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
+import type { SyncProgressRuntimeEventDto } from "@/lib/sync/sync-progress-event.types";
 import type {
+  SyncProgressEventDto,
+  SyncProgressUiState,
   UiStoreAccountSetupActions,
   UiStoreAccountSetupState,
   UiStoreDialogActions,

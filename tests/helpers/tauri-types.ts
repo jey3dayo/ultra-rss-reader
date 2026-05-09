@@ -27,9 +27,7 @@ export type ValidatedMockTauriCommandArgs = RawMockTauriCommandArgs &
  * Schema output captured by the call recorder. It remains structurally broad
  * because this helper does not model command-specific validated arg shapes.
  */
-export type ValidatedMockTauriRecordedArgs = Record<string, unknown>;
-
-export type MockTauriCommandArgs = ValidatedMockTauriCommandArgs;
+type ValidatedMockTauriRecordedArgs = Record<string, unknown>;
 
 export type ValidatedMockTauriCommandCall = {
   cmd: string;

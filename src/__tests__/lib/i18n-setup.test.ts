@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
-import i18n, { testI18nResourceNamespaces } from "../../../tests/helpers/i18n-setup";
+import i18n, { resetTestI18nState, testI18nResourceNamespaces } from "../../../tests/helpers/i18n-setup";
 
 describe("test i18n setup", () => {
   describe("language isolation", () => {
@@ -47,5 +47,15 @@ describe("test i18n setup", () => {
     expect(i18n.language).toBe("en");
     expect(i18n.exists("__test_leaked_key", { lng: "en", ns: "common" })).toBe(false);
     expect(i18n.hasResourceBundle("fr", "common")).toBe(false);
+  });
+
+  it("exposes the Vitest lifecycle reset helper for explicit isolation checks", async () => {
+    await i18n.changeLanguage("ja");
+    i18n.addResource("en", "common", "__test_manual_reset_key", "leaked");
+
+    await resetTestI18nState();
+
+    expect(i18n.language).toBe("en");
+    expect(i18n.exists("__test_manual_reset_key", { lng: "en", ns: "common" })).toBe(false);
   });
 });
