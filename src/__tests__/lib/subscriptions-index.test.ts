@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildFeedArticleSummaryMap,
@@ -195,6 +196,40 @@ describe("subscriptions index helpers", () => {
     });
     expect(countReviewCandidates(candidates)).toBe(3);
     expect(countStaleCandidates(candidates)).toBe(2);
+  });
+
+  it("uses the last duplicate review candidate feed id while summary counts preserve caller input", () => {
+    const firstCandidate: SubscriptionReviewCandidate = {
+      feedId: "feed-stale",
+      title: "First duplicate",
+      folderId: "folder-work",
+      folderName: "Work",
+      latestArticleAt: "2025-11-01T10:00:00Z",
+      staleDays: 155,
+      unreadCount: 0,
+      starredCount: 1,
+      reasonKeys: ["stale_90d"],
+    };
+    const secondCandidate: SubscriptionReviewCandidate = {
+      ...firstCandidate,
+      title: "Second duplicate",
+      staleDays: 94,
+      reasonKeys: ["stale_90d", "no_unread"],
+    };
+    const candidateMap = buildSubscriptionReviewCandidateMap([firstCandidate, secondCandidate]);
+
+    expect(candidateMap).toEqual(new Map([["feed-stale", secondCandidate]]));
+    expect(resolveSelectedSubscriptionCandidate({ selectedRow: null, candidateMap })).toBeNull();
+    expect(
+      buildSubscriptionsIndexSummary({
+        feeds: [feeds[0]],
+        candidates: [firstCandidate, secondCandidate],
+      }),
+    ).toEqual({
+      totalCount: 1,
+      reviewCount: 2,
+      staleCount: 2,
+    });
   });
 
   it("derives row status from review candidates only", () => {

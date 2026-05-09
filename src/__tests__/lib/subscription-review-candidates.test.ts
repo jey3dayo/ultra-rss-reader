@@ -81,6 +81,37 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(buildFolderNameByIdMap(folders)).toEqual(new Map([["folder-work", "Work"]]));
   });
 
+  it("uses the last duplicate folder id entry for review candidate folder names", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [{ ...feeds[0], id: "feed-duplicate-folder" }],
+      folders: [
+        ...folders,
+        { id: "folder-work", account_id: "acc-1", name: "Work override", sort_order: 1 },
+        { id: "folder-empty", account_id: "acc-1", name: "", sort_order: 2 },
+      ],
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-duplicate-folder",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          starred_count: 1,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(buildFolderNameByIdMap([...folders, { ...folders[0], name: "Work override", sort_order: 1 }])).toEqual(
+      new Map([["folder-work", "Work override"]]),
+    );
+    expect(buildFolderNameByIdMap([{ id: "folder-empty", account_id: "acc-1", name: "", sort_order: 0 }])).toEqual(
+      new Map([["folder-empty", ""]]),
+    );
+    expect(candidates[0]).toMatchObject({
+      feedId: "feed-duplicate-folder",
+      folderName: "Work override",
+    });
+  });
+
   it("derives one candidate per feed with latest article, folder name, and signal counts", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
@@ -98,6 +129,35 @@ describe("buildSubscriptionReviewCandidates", () => {
       latestArticleAt: "2025-11-01T10:00:00Z",
       unreadCount: 0,
       starredCount: 1,
+    });
+  });
+
+  it("uses the last duplicate feed article summary for review signal projection", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [{ ...feeds[0], id: "feed-duplicate-summary", unread_count: 0 }],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-duplicate-summary",
+          latest_article_at: "2025-01-01T00:00:00Z",
+          starred_count: 7,
+        },
+        {
+          feed_id: "feed-duplicate-summary",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          starred_count: 0,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates[0]).toMatchObject({
+      feedId: "feed-duplicate-summary",
+      latestArticleAt: "2026-04-01T00:00:00Z",
+      staleDays: 4,
+      starredCount: 0,
+      reasonKeys: ["no_unread", "no_stars"],
     });
   });
 
