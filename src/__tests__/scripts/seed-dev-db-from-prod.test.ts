@@ -295,6 +295,60 @@ describe("seedDevDatabaseFromProd", () => {
     ]);
   });
 
+  it("detects long Unix app process names from full command lines when exact name checks miss", async () => {
+    const result = await detectLikelyRunningAppProcesses({
+      platform: "linux",
+      execFileImpl: async (_command, args) => {
+        const mode = args[0];
+        const processName = args[1];
+        if (mode === "-f" && processName === "Ultra RSS Reader Dev") {
+          return { stdout: "123 /opt/Ultra RSS Reader Dev/ultra-rss-reader\n", stderr: "" };
+        }
+        const error = new Error("not found") as NodeJS.ErrnoException;
+        error.code = "1";
+        throw error;
+      },
+    });
+
+    expect(Result.unwrap(result)).toEqual(["Ultra RSS Reader Dev"]);
+  });
+
+  it("does not replace the Dev database when the Unix full command line guard detects a running app", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      await mkdir(prodDir, { recursive: true });
+      await mkdir(devDir, { recursive: true });
+      await writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db");
+      await writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db");
+
+      await expect(
+        seedDevDatabaseFromProd({
+          env: {
+            ULTRA_RSS_PROD_APP_DATA_DIR: prodDir,
+            ULTRA_RSS_DEV_APP_DATA_DIR: devDir,
+          },
+          platform: "linux",
+          execFileImpl: async (_command, args) => {
+            const mode = args[0];
+            const processName = args[1];
+            if (mode === "-f" && processName === "Ultra RSS Reader Dev") {
+              return { stdout: "123 /opt/Ultra RSS Reader Dev/ultra-rss-reader\n", stderr: "" };
+            }
+            const error = new Error("not found") as NodeJS.ErrnoException;
+            error.code = "1";
+            throw error;
+          },
+        }),
+      ).rejects.toThrow("Ultra RSS Reader appears to be running");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("detects open Dev database handles on Unix-like platforms", async () => {
     const result = await detectOpenDevDatabaseHandles({
       platform: "darwin",

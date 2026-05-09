@@ -173,14 +173,7 @@ export async function detectLikelyRunningAppProcesses(
   if (platform === "darwin" || platform === "linux") {
     const processNames = ["Ultra RSS Reader", "Ultra RSS Reader Dev", "ultra-rss-reader"];
     const checks = await Promise.all(
-      processNames.map(async (processName) => {
-        try {
-          await execFileImpl("pgrep", ["-x", processName], { encoding: "utf8" });
-          return { processName, error: null };
-        } catch (error) {
-          return { processName, error };
-        }
-      }),
+      processNames.map((processName) => checkUnixProcessName(processName, execFileImpl)),
     );
 
     for (const check of checks) {
@@ -210,6 +203,31 @@ export async function detectLikelyRunningAppProcesses(
   }
 
   return Result.succeed([]);
+}
+
+async function checkUnixProcessName(
+  processName: string,
+  execFileImpl: ExecFileAsync,
+): Promise<{ processName: string; error: unknown | null }> {
+  try {
+    await execFileImpl("pgrep", ["-x", processName], { encoding: "utf8" });
+    return { processName, error: null };
+  } catch (exactError) {
+    if (!isProcessNotFoundError(exactError)) {
+      return { processName, error: exactError };
+    }
+
+    if (!processName.includes(" ")) {
+      return { processName, error: exactError };
+    }
+  }
+
+  try {
+    await execFileImpl("pgrep", ["-f", processName], { encoding: "utf8" });
+    return { processName, error: null };
+  } catch (fullCommandLineError) {
+    return { processName, error: fullCommandLineError };
+  }
 }
 
 function isProcessNotFoundError(error: unknown): boolean {
