@@ -165,11 +165,6 @@
   - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
   - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
 
-- [ ] similarity not-found error display type review 候補を追加する
-  - `ArticleNotFoundStateViewProps` と `AccountDetailError` が 94.8% 類似なので、message/title/action を持つ not-found/error display shape を共有すべきか確認する
-  - 共通化する場合は shared display state type に留め、article not-found copy と account detail toast/error copy は各 feature に残す
-  - AppError DTO invariant とは分け、view/display error shape の type duplication だけを扱う
-
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
