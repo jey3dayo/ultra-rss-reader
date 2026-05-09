@@ -8,6 +8,7 @@ const storybookCommand = isWindows
 export default defineConfig({
   testDir: "./e2e/storybook",
   timeout: 120000,
+  forbidOnly: Boolean(process.env.CI),
   use: {
     baseURL: "http://127.0.0.1:6006",
     headless: true,
@@ -19,7 +20,7 @@ export default defineConfig({
   webServer: {
     command: storybookCommand,
     url: "http://127.0.0.1:6006",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 120000,
   },
 });

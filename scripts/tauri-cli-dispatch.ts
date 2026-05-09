@@ -42,15 +42,52 @@ const STALE_MACOS_DEV_BUNDLE_PATHS = [
   path.join("src-tauri", "target", "debug", "bundle", "macos", "Ultra RSS Reader.app"),
   path.join("src-tauri", "target", "release", "bundle", "macos", "Ultra RSS Reader.app"),
 ];
+const CONFIG_PATH_ARG_FLAGS = new Set(["-c", "--config"]);
+const MACOS_BUNDLE_IDENTIFIER_KEY_MARKER = "<key>CFBundleIdentifier</key>";
+const MACOS_DEV_BUNDLE_IDENTIFIER_VALUE_MARKER = "<string>com.ultra-rss-reader.dev</string>";
 
 function normalizePathForComparison(value: string): string {
   return value.replaceAll("\\", "/");
 }
 
+function collectConfigArgs(cliArgs: string[]): string[] {
+  const configPaths: string[] = [];
+
+  for (let index = 0; index < cliArgs.length; index += 1) {
+    const arg = cliArgs[index];
+    if (CONFIG_PATH_ARG_FLAGS.has(arg)) {
+      const nextArg = cliArgs[index + 1];
+      if (nextArg) {
+        configPaths.push(nextArg);
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("-c=")) {
+      configPaths.push(arg.slice("-c=".length));
+      continue;
+    }
+    if (arg.startsWith("--config=")) {
+      configPaths.push(arg.slice("--config=".length));
+    }
+  }
+
+  return configPaths;
+}
+
 export function shouldCleanStaleMacosDevBundle(cliArgs: string[]): boolean {
   return (
     cliArgs[0] === "dev" &&
-    cliArgs.some((arg) => normalizePathForComparison(arg) === normalizePathForComparison(DEV_CONFIG_PATH))
+    collectConfigArgs(cliArgs).some(
+      (arg) => normalizePathForComparison(arg) === normalizePathForComparison(DEV_CONFIG_PATH),
+    )
+  );
+}
+
+export function hasMacosDevBundleIdentifierMarker(infoPlist: string): boolean {
+  return (
+    infoPlist.includes(MACOS_BUNDLE_IDENTIFIER_KEY_MARKER) &&
+    infoPlist.includes(MACOS_DEV_BUNDLE_IDENTIFIER_VALUE_MARKER)
   );
 }
 
@@ -66,29 +103,27 @@ export async function removeStaleMacosDevBundle(
     return false;
   }
 
-  let removedAny = false;
+  const removableBundlePaths = (
+    await Promise.all(
+      STALE_MACOS_DEV_BUNDLE_PATHS.map(async (bundlePath) => {
+        const infoPlistPath = path.join(cwd, bundlePath, "Contents", "Info.plist");
+        let infoPlist = "";
+        try {
+          infoPlist = await readFileImpl(infoPlistPath, "utf8");
+        } catch {
+          return null;
+        }
 
-  for (const bundlePath of STALE_MACOS_DEV_BUNDLE_PATHS) {
-    const infoPlistPath = path.join(cwd, bundlePath, "Contents", "Info.plist");
-    let infoPlist = "";
-    try {
-      infoPlist = await readFileImpl(infoPlistPath, "utf8");
-    } catch {
-      continue;
-    }
+        return hasMacosDevBundleIdentifierMarker(infoPlist) ? bundlePath : null;
+      }),
+    )
+  ).filter((bundlePath): bundlePath is string => bundlePath !== null);
 
-    if (
-      !infoPlist.includes("<key>CFBundleIdentifier</key>") ||
-      !infoPlist.includes("<string>com.ultra-rss-reader.dev</string>")
-    ) {
-      continue;
-    }
+  await Promise.all(
+    removableBundlePaths.map((bundlePath) => rmImpl(path.join(cwd, bundlePath), { recursive: true, force: true })),
+  );
 
-    await rmImpl(path.join(cwd, bundlePath), { recursive: true, force: true });
-    removedAny = true;
-  }
-
-  return removedAny;
+  return removableBundlePaths.length > 0;
 }
 
 export function buildWslTauriSpawnSpec(

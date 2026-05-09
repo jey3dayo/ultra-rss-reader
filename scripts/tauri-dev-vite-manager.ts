@@ -16,9 +16,35 @@ type SpawnSpec = {
   args: string[];
 };
 
+type ManagedChildProcess = {
+  killed: boolean;
+  kill(signal: NodeJS.Signals): boolean;
+  on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): void;
+  on(event: "error", listener: (error: Error) => void): void;
+};
+
+type SpawnImpl = (
+  command: string,
+  args: string[],
+  options: { stdio: "inherit"; env: NodeJS.ProcessEnv },
+) => ManagedChildProcess;
+
 type ListeningProcess = {
   pid: number;
   commandLine: string;
+};
+
+type ManagerResult = "checked" | "spawned";
+
+type TauriDevViteManagerOptions = {
+  args?: string[];
+  env?: NodeJS.ProcessEnv;
+  scriptUrl?: string;
+  getListeningProcessImpl?: (port: number) => Promise<ListeningProcess | null>;
+  stopProcessImpl?: (pid: number) => void;
+  waitForPortToBeFreeImpl?: (port: number) => Promise<void>;
+  spawnImpl?: SpawnImpl;
+  log?: (message: string) => void;
 };
 
 export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind {
@@ -38,7 +64,7 @@ export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind
   return "foreign";
 }
 
-export function buildViteSpawnSpec(scriptUrl: string = import.meta.url): SpawnSpec {
+export function buildViteSpawnSpec(scriptUrl: string = import.meta.url, port: number = DEFAULT_DEV_PORT): SpawnSpec {
   return {
     command: process.execPath,
     args: [
@@ -46,10 +72,25 @@ export function buildViteSpawnSpec(scriptUrl: string = import.meta.url): SpawnSp
       "--host",
       DEFAULT_DEV_HOST,
       "--port",
-      String(DEFAULT_DEV_PORT),
+      String(port),
       "--strictPort",
     ],
   };
+}
+
+export function resolveTauriDevPort(env: NodeJS.ProcessEnv = process.env): number {
+  const rawPort = env.TAURI_DEV_PORT;
+  if (rawPort === undefined) {
+    return DEFAULT_DEV_PORT;
+  }
+
+  const trimmedPort = rawPort.trim();
+  const port = Number(trimmedPort);
+  if (!trimmedPort || !Number.isInteger(port) || port <= 0) {
+    throw new Error("TAURI_DEV_PORT must be a positive integer.");
+  }
+
+  return port;
 }
 
 function getExecErrorCode(error: unknown): number | string {
@@ -163,6 +204,7 @@ async function getListeningProcessOnWindows(port: number): Promise<ListeningProc
 async function waitForPortToBeFree(port: number): Promise<void> {
   const deadline = Date.now() + PORT_WAIT_TIMEOUT_MS;
 
+  // Poll sequentially so each check observes the port after the previous wait interval.
   while (Date.now() < deadline) {
     const processInfo = await getListeningProcess(port);
     if (!processInfo) {
@@ -183,9 +225,19 @@ function isCheckMode(args: string[]): boolean {
   return args.includes("--check");
 }
 
-async function main(): Promise<void> {
-  const port = Number(process.env.TAURI_DEV_PORT ?? String(DEFAULT_DEV_PORT));
-  const existingProcess = await getListeningProcess(port);
+export async function runTauriDevViteManager({
+  args = process.argv.slice(2),
+  env = process.env,
+  scriptUrl = import.meta.url,
+  getListeningProcessImpl = getListeningProcess,
+  stopProcessImpl = stopProcess,
+  waitForPortToBeFreeImpl = waitForPortToBeFree,
+  spawnImpl = spawn,
+  log = console.log,
+}: TauriDevViteManagerOptions = {}): Promise<ManagerResult> {
+  const port = resolveTauriDevPort(env);
+  const checkMode = isCheckMode(args);
+  const existingProcess = await getListeningProcessImpl(port);
 
   if (existingProcess) {
     const ownerKind = classifyPortOwnerCommandLine(existingProcess.commandLine);
@@ -195,22 +247,25 @@ async function main(): Promise<void> {
       );
     }
 
-    console.log(
-      `[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`,
-    );
-    stopProcess(existingProcess.pid);
-    await waitForPortToBeFree(port);
+    if (checkMode) {
+      log(`[tauri-dev-vite-manager] existing Vite dev server is ready on port ${port} (pid ${existingProcess.pid})`);
+      return "checked";
+    }
+
+    log(`[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`);
+    stopProcessImpl(existingProcess.pid);
+    await waitForPortToBeFreeImpl(port);
   }
 
-  if (isCheckMode(process.argv.slice(2))) {
-    console.log(`[tauri-dev-vite-manager] port ${port} is ready`);
-    return;
+  if (checkMode) {
+    log(`[tauri-dev-vite-manager] port ${port} is ready`);
+    return "checked";
   }
 
-  const viteSpawnSpec = buildViteSpawnSpec();
-  const child = spawn(viteSpawnSpec.command, viteSpawnSpec.args, {
+  const viteSpawnSpec = buildViteSpawnSpec(scriptUrl, port);
+  const child = spawnImpl(viteSpawnSpec.command, viteSpawnSpec.args, {
     stdio: "inherit",
-    env: process.env,
+    env,
   });
 
   const forwardSignal = (signal: NodeJS.Signals): void => {
@@ -234,6 +289,12 @@ async function main(): Promise<void> {
     console.error("[tauri-dev-vite-manager] failed to start Vite:", error);
     process.exit(1);
   });
+
+  return "spawned";
+}
+
+async function main(): Promise<void> {
+  await runTauriDevViteManager();
 }
 
 const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;

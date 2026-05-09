@@ -51,6 +51,16 @@ function processDetectionError(error: unknown): Error {
   return new Error(`Failed to check whether Ultra RSS Reader is running: ${detail}`);
 }
 
+function databaseHandleDetectionError(error: unknown): Error {
+  const detail = error instanceof Error ? error.message : String(error);
+  return new Error(`Failed to check whether the Dev database is open: ${detail}`);
+}
+
+function readConfiguredEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
+  const value = env[key];
+  return value !== undefined && value.trim().length > 0 ? value : undefined;
+}
+
 export function resolveAppDataDir(options: {
   platform?: SeedPlatform;
   homeDir?: string;
@@ -66,11 +76,11 @@ export function resolveAppDataDir(options: {
   }
 
   if (platform === "win32") {
-    const roamingAppData = env.APPDATA ?? path.join(homeDir, "AppData", "Roaming");
+    const roamingAppData = readConfiguredEnvValue(env, "APPDATA") ?? path.join(homeDir, "AppData", "Roaming");
     return path.join(roamingAppData, options.identifier);
   }
 
-  const dataHome = env.XDG_DATA_HOME ?? path.join(homeDir, ".local", "share");
+  const dataHome = readConfiguredEnvValue(env, "XDG_DATA_HOME") ?? path.join(homeDir, ".local", "share");
   return path.join(dataHome, options.identifier);
 }
 
@@ -134,12 +144,12 @@ export function resolveSeedAppDataDirs(
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const homeDir = options.homeDir ?? os.homedir();
+  const prodAppDataDir = readConfiguredEnvValue(env, "ULTRA_RSS_PROD_APP_DATA_DIR");
+  const devAppDataDir = readConfiguredEnvValue(env, "ULTRA_RSS_DEV_APP_DATA_DIR");
 
   return {
-    prodAppDataDir:
-      env.ULTRA_RSS_PROD_APP_DATA_DIR ?? resolveAppDataDir({ platform, homeDir, env, identifier: PROD_APP_IDENTIFIER }),
-    devAppDataDir:
-      env.ULTRA_RSS_DEV_APP_DATA_DIR ?? resolveAppDataDir({ platform, homeDir, env, identifier: DEV_APP_IDENTIFIER }),
+    prodAppDataDir: prodAppDataDir ?? resolveAppDataDir({ platform, homeDir, env, identifier: PROD_APP_IDENTIFIER }),
+    devAppDataDir: devAppDataDir ?? resolveAppDataDir({ platform, homeDir, env, identifier: DEV_APP_IDENTIFIER }),
   };
 }
 
@@ -162,19 +172,28 @@ export async function detectLikelyRunningAppProcesses(
 
   if (platform === "darwin" || platform === "linux") {
     const processNames = ["Ultra RSS Reader", "Ultra RSS Reader Dev", "ultra-rss-reader"];
-    const running: string[] = [];
-    for (const processName of processNames) {
-      try {
-        await execFileImpl("pgrep", ["-x", processName], { encoding: "utf8" });
-        running.push(processName);
-      } catch (error) {
-        if (isProcessNotFoundError(error)) {
-          continue;
+    const checks = await Promise.all(
+      processNames.map(async (processName) => {
+        try {
+          await execFileImpl("pgrep", ["-x", processName], { encoding: "utf8" });
+          return { processName, error: null };
+        } catch (error) {
+          return { processName, error };
         }
-        return Result.fail(processDetectionError(error));
+      }),
+    );
+
+    for (const check of checks) {
+      if (check.error === null) {
+        continue;
+      }
+
+      if (!isProcessNotFoundError(check.error)) {
+        return Result.fail(processDetectionError(check.error));
       }
     }
-    return Result.succeed(running);
+
+    return Result.succeed(checks.flatMap((check) => (check.error === null ? [check.processName] : [])));
   }
 
   if (platform === "win32") {
@@ -194,9 +213,51 @@ export async function detectLikelyRunningAppProcesses(
 }
 
 function isProcessNotFoundError(error: unknown): boolean {
-  return (
-    typeof error === "object" && error !== null && "code" in error && typeof error.code === "number" && error.code === 1
+  return typeof error === "object" && error !== null && "code" in error && (error.code === 1 || error.code === "1");
+}
+
+export async function detectOpenDevDatabaseHandles(options: {
+  platform?: SeedPlatform;
+  artifactPaths: readonly string[];
+  execFileImpl?: ExecFileAsync;
+}): Promise<Result.Result<string[], Error>> {
+  const platform = options.platform ?? process.platform;
+  const execFileImpl = options.execFileImpl ?? execFileAsync;
+
+  if (platform !== "darwin" && platform !== "linux") {
+    return Result.succeed([]);
+  }
+
+  const checks = await Promise.all(
+    options.artifactPaths.map(async (artifactPath) => {
+      try {
+        const { stdout } = await execFileImpl("lsof", ["-t", artifactPath], { encoding: "utf8", timeout: 5000 });
+        return { artifactPath, stdout, error: null };
+      } catch (error) {
+        return { artifactPath, stdout: "", error };
+      }
+    }),
   );
+
+  for (const check of checks) {
+    if (check.error === null) {
+      continue;
+    }
+
+    if (!isProcessNotFoundError(check.error)) {
+      return Result.fail(databaseHandleDetectionError(check.error));
+    }
+  }
+
+  return Result.succeed(
+    checks.flatMap((check) => (check.error === null && check.stdout.trim().length > 0 ? [check.artifactPath] : [])),
+  );
+}
+
+function assertSafeDevTarget(plan: SeedPlan): void {
+  if (path.basename(path.resolve(plan.devAppDataDir)) === PROD_APP_IDENTIFIER) {
+    throw new Error("Refusing to seed a non-Dev app data directory.");
+  }
 }
 
 export async function seedDevDatabaseFromProdPlan(
@@ -222,49 +283,58 @@ export async function seedDevDatabaseFromProdPlan(
     throw new Error("Production and Dev app data directories resolve to the same path.");
   }
 
+  assertSafeDevTarget(plan);
+
   await accessImpl(mainArtifact.source, fsConstants.R_OK);
 
-  const sourceArtifacts = [];
-  for (const artifact of plan.artifacts) {
-    if (await fileExists(artifact.source, accessImpl)) {
-      await accessImpl(artifact.source, fsConstants.R_OK);
-      sourceArtifacts.push(artifact);
-    }
-  }
+  const sourceArtifacts = (
+    await Promise.all(
+      plan.artifacts.map(async (artifact) => {
+        if (!(await fileExists(artifact.source, accessImpl))) {
+          return null;
+        }
+        await accessImpl(artifact.source, fsConstants.R_OK);
+        return artifact;
+      }),
+    )
+  ).filter((artifact): artifact is SeedArtifact => artifact !== null);
 
   await rmImpl(plan.stagingDir, { recursive: true, force: true });
   await mkdirImpl(plan.stagingDir, { recursive: true });
 
-  for (const artifact of sourceArtifacts) {
-    await copyFileImpl(artifact.source, artifact.staging);
-  }
-
-  const backedUp = [];
-  await mkdirImpl(plan.backupDir, { recursive: true });
-  for (const artifact of plan.artifacts) {
-    if (await fileExists(artifact.destination, accessImpl)) {
-      await accessImpl(artifact.destination, fsConstants.R_OK);
-      await copyFileImpl(artifact.destination, artifact.backup);
-      backedUp.push(artifact.destination);
+  try {
+    for (const artifact of sourceArtifacts) {
+      await copyFileImpl(artifact.source, artifact.staging);
     }
+
+    // Keep replacement phases ordered: staging copy, backup, destination cleanup, then install.
+    const backedUp = [];
+    await mkdirImpl(plan.backupDir, { recursive: true });
+    for (const artifact of plan.artifacts) {
+      if (await fileExists(artifact.destination, accessImpl)) {
+        await accessImpl(artifact.destination, fsConstants.R_OK);
+        await copyFileImpl(artifact.destination, artifact.backup);
+        backedUp.push(artifact.destination);
+      }
+    }
+
+    await mkdirImpl(plan.devAppDataDir, { recursive: true });
+    for (const artifact of plan.artifacts) {
+      await rmImpl(artifact.destination, { force: true });
+    }
+
+    for (const artifact of sourceArtifacts) {
+      await copyFileImpl(artifact.staging, artifact.destination);
+    }
+
+    return {
+      copied: sourceArtifacts.map((artifact) => artifact.destination),
+      backedUp,
+      backupDir: plan.backupDir,
+    };
+  } finally {
+    await rmImpl(plan.stagingDir, { recursive: true, force: true });
   }
-
-  await mkdirImpl(plan.devAppDataDir, { recursive: true });
-  for (const artifact of plan.artifacts) {
-    await rmImpl(artifact.destination, { force: true });
-  }
-
-  for (const artifact of sourceArtifacts) {
-    await copyFileImpl(artifact.staging, artifact.destination);
-  }
-
-  await rmImpl(plan.stagingDir, { recursive: true, force: true });
-
-  return {
-    copied: sourceArtifacts.map((artifact) => artifact.destination),
-    backedUp,
-    backupDir: plan.backupDir,
-  };
 }
 
 export async function seedDevDatabaseFromProd(
@@ -289,6 +359,20 @@ export async function seedDevDatabaseFromProd(
 
   const dirs = resolveSeedAppDataDirs(options);
   const plan = buildSeedPlan(dirs);
+  const openHandlesResult = await detectOpenDevDatabaseHandles({
+    platform,
+    artifactPaths: plan.artifacts.map((artifact) => artifact.destination),
+    execFileImpl: options.execFileImpl,
+  });
+  if (Result.isFailure(openHandlesResult)) {
+    throw Result.unwrapError(openHandlesResult);
+  }
+
+  const openHandles = Result.unwrap(openHandlesResult);
+  if (openHandles.length > 0) {
+    throw new Error(`Dev database appears to be open (${openHandles.join(", ")}). Close the app before replacing it.`);
+  }
+
   return seedDevDatabaseFromProdPlan(plan);
 }
 

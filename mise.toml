@@ -9,6 +9,7 @@ _.path = ["./node_modules/.bin"]
 MD_GLOB = "**/*.md"
 MD_EXCLUDE_NODE_MODULES = "#**/node_modules/**"
 MD_EXCLUDE_WORKTREES = "#**/.worktrees/**"
+MD_EXCLUDE_TARGET = "#**/target/**"
 
 [tools]
 node = "24"
@@ -42,8 +43,8 @@ run = "taplo fmt mise.toml src-tauri/Cargo.toml"
 
 [tasks."format:md"]
 description = "Markdown format + lint autofix"
-run = "pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/** --fix"
-run_windows = "markdownlint-cli2.CMD **/*.md #**/node_modules/** #**/.worktrees/** #**/target/** --fix"
+run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET --fix"
+run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% --fix"
 
 # ========================================
 # フォーマットチェック（書き込みなし、CI用）
@@ -105,12 +106,12 @@ run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
-run = "pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
-run_windows = "markdownlint-cli2.CMD **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
+run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET"
+run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET%"
 
 [tasks."lint:yaml"]
 description = "YAML lint check"
-run = "yamllint -c .yamllint .github/"
+run = "yamllint -c .yamllint .github/ .yamllint"
 
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
@@ -155,7 +156,7 @@ run_windows = "pnpm.CMD run test:storybook:e2e"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
-depends = ["test:rust", "test:unit", "test:e2e"]
+depends = ["test:rust", "test:unit", "test:e2e", "test:storybook:e2e"]
 
 [tasks."test:live"]
 description = "Run FreshRSS live integration tests (requires .env with credentials)"
@@ -229,7 +230,7 @@ run = "node ./scripts/tauri-cli-dispatch.ts build"
 run_windows = "node ./scripts/tauri-cli-dispatch.ts build"
 
 [tasks."app:install"]
-description = "Build and install the native app for the current platform"
+description = "Build, locally re-sign, and install the current checkout; not a published release artifact verification"
 depends = ["app:build"]
 run = """
 APP_SRC="src-tauri/target/release/bundle/macos/Ultra RSS Reader.app"

@@ -3,6 +3,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30000,
+  forbidOnly: Boolean(process.env.CI),
   use: {
     baseURL: "http://localhost:1420",
     headless: true,
@@ -14,7 +15,7 @@ export default defineConfig({
   webServer: {
     command: "pnpm dev",
     url: "http://localhost:1420",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 10000,
   },
 });

@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const FORWARDED_ENV_PREFIXES = ["DEV_", "VITE_", "TAURI_", "RUST_"];
+const SECRET_ENV_SUFFIXES = ["_KEY", "_TOKEN", "_PASSWORD"];
 
 export type SpawnSpec = {
   command: string;
@@ -31,7 +32,11 @@ export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): R
   const overrides: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(env)) {
-    if (typeof value === "string" && FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+    if (
+      typeof value === "string" &&
+      FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+      !SECRET_ENV_SUFFIXES.some((suffix) => key.endsWith(suffix))
+    ) {
       overrides[key] = value;
     }
   }

@@ -4,6 +4,10 @@
   "version": "0.31.1",
   "type": "module",
   "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": "24",
+    "pnpm": "10.33.4"
+  },
   "scripts": {
     "dev": "pnpm exec vite",
     "dev:tauri:vite": "node ./scripts/tauri-dev-vite-manager.ts",
@@ -22,12 +26,20 @@
     "storybook:portless": "portless storybook.ultra-rss-reader sh -c 'storybook dev -p \"$PORT\" --host \"$HOST\" --no-open'",
     "build-storybook": "storybook build"
   },
+  "knip": {
+    "entry": [
+      "playwright.storybook.config.ts",
+      "src/dev/scenarios/index.ts"
+    ],
+    "ignoreDependencies": [
+      "markdownlint-cli2"
+    ]
+  },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@praha/byethrow": "^0.11.1",
     "@tanstack/react-query": "^5.100.9",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2.5.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
