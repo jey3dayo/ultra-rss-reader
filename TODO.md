@@ -120,11 +120,6 @@
   - feed A の landing が `previousUiState` を保持した後に feed B が成功しても、A の fetch 失敗が後から来ると B の選択を巻き戻せる
   - A/B 並行 landing で A だけ後失敗させる test を追加し、landing request generation を store/hook に持って最新でない restore を無視する
 
-- [ ] P1 add account setup sync 完了が古いユーザー意図を上書きしないようにする
-  - 対象: `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts`
-  - `runAccountSetupSync` 成功時に無条件で `selectAccount` / `selectSmartView` / `closeSettings` するため、sync 中にユーザーが別画面へ移動すると古い setup 完了が画面を奪える
-  - setup sync を遅延させ、途中で settings navigation や account selection を変える test を追加し、owner/account/generation 一致時だけ final UI action を適用する
-
 - [ ] P1 feed discovery / local provider redirect policy の cross-scheme downgrade を固定する
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`
   - initial URL が `https` でも redirect 先が `http` の場合にどこまで許すかが曖昧だと、feed discovery と actual fetch の security posture がズレる
@@ -240,16 +235,6 @@
   - language preference は DB 保存と `i18n.changeLanguage` が別境界で、changeLanguage reject 時に DB と表示言語のどちらを source of truth にするか曖昧
   - i18n runtime unavailable、unknown navigator language、DB save success + language change failure の fallback/rollback 方針を store test で固定する
 
-- [ ] P1 native menu event payload の runtime validation を追加する
-  - 対象: `src/hooks/use-menu-events.ts`, `src/lib/app-actions.ts`, `src-tauri/src/menu.rs`
-  - Tauri menu event は外部 runtime 境界なので、unknown action や malformed payload を silent ignore するだけだと menu definition drift を検出しにくい
-  - native menu action registry と frontend action guard を照合し、unknown action は diagnostics に残す contract test を追加する
-
-- [ ] P1 Tauri event listener attach failure の user-visible degradation を整理する
-  - 対象: `src/components/app-shell.tsx`, `src/lib/runtime/tauri-event-listeners.ts`, `src/hooks/use-menu-events.ts`
-  - menu、browser webview、debug input などの listener attach が失敗した時の fallback が console warning 中心だと、packaged app だけでショートカットや menu が効かない原因が見えにくい
-  - listener attach failure を一度だけ toast/diagnostics へ出すか、developer-only log に閉じるか決め、failure injection test を追加する
-
 - [ ] P1 app badge count が unavailable platform で stale badge を残さない contract を作る
   - 対象: `src/hooks/use-badge.ts`, `src-tauri/capabilities/default.json`
   - badge command が unsupported/unavailable の時に best-effort で終わるため、preference off、account switch、sync count 0 の時に stale badge が残らない保証が薄い
@@ -334,16 +319,6 @@
   - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
   - feed を folder A -> B -> C と連続移動した時、古い mutation failure が後から来ると `previousFeedsQueries` で最新の folder state を巻き戻し得る
   - deferred promise で逆順 settle する hook test を追加し、feedId ごとの mutation generation または現在値比較 rollback にする
-
-- [ ] P1 account detail name save の stale account response を最新編集へ反映しない
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-name-editor.ts`
-  - rename 中に別 account へ切り替わる、または再編集が始まると、古い rename 成功が `updateCachedAccount` と `finish-edit` を実行して現在画面に混ざる可能性がある
-  - accountId/editSession を response 適用時にも確認し、account switch 中の delayed rename success/failure を hook test にする
-
-- [ ] P1 account detail credentials test connection を latest account/draft だけへ適用する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
-  - `handleTestConnection` は save 後に `testAccountConnection(account.id)` を実行するため、account switch や draft 更新が挟まると古い connection result が toast/cache に反映され得る
-  - accountId/draftRevision/request id を result 適用前に確認し、古い success/error は toast も cache update もしない contract test を追加する
 
 - [ ] P1 account detail の masked password 表示と keyring missing 状態を分ける
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`, `src-tauri/src/commands/account_commands.rs`
@@ -449,16 +424,6 @@
   - 対象: `src/lib/account/add-account-form.ts`, `src/components/settings/add-account/account-config-form.tsx`, `src-tauri/src/infra/provider/greader.rs`
   - form validation は `http:` と `https:` を許可しているため、FreshRSS credential を平文 HTTP へ送ることを product として許すか、localhost 例外だけにするかが曖昧
   - `https`、public `http`、loopback `http`、credential-in-URL、trailing slash の payload normalization を frontend/Rust provider test で固定する
-
-- [ ] P1 add account の service switch 後 stale fields submit を防ぐ
-  - 対象: `src/lib/account/add-account-form.ts`, `src/components/settings/add-account/account-config-form.tsx`
-  - provider を FreshRSS -> Local に切り替えても `serverUrl` / `username` / `password` が reducer state に残るため、後続 provider 追加時や payload 拡張で非表示 field が混入しやすい
-  - kind switch 時に hidden field を clear するか payload builder で必ず drop する方針を決め、provider switch、back switch、submit 中 switch の test を追加する
-
-- [ ] P1 add account の test connection / submit response を provider snapshot で検証する
-  - 対象: `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/hooks/use-add-account-form-controller.ts`
-  - 接続確認や追加 submit 中に provider/name/serverUrl が変わると、古い success/error が現在の form state に toast や navigation として反映される可能性がある
-  - request 開始時の provider snapshot と current state を比較し、stale response ignore / abort / latest-only のどれにするか component test で固定する
 
 - [ ] P1 rename feed dialog submit の feed/account snapshot を固定する
   - 対象: `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller.ts`, `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-view-props.tsx`
