@@ -305,15 +305,17 @@ describe("dev-intent helpers", () => {
       throw new Error("Expected runtime options request to be captured");
     }
     (
-      resolveFirstRequest as (result: Result.Result<
-        {
-          dev_intent: null;
-          dev_web_url: null;
-          dev_window_width: null;
-          dev_window_height: null;
-        },
-        { type: "UserVisible"; message: string }
-      >) => void
+      resolveFirstRequest as (
+        result: Result.Result<
+          {
+            dev_intent: null;
+            dev_web_url: null;
+            dev_window_width: null;
+            dev_window_height: null;
+          },
+          { type: "UserVisible"; message: string }
+        >,
+      ) => void
     )(Result.fail({ type: "UserVisible", message: "boom" }));
 
     expect(Result.unwrapError(await firstLoad)).toBe("request_failed");

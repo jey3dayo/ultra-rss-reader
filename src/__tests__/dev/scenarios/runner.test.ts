@@ -488,11 +488,11 @@ describe("runDevScenario", () => {
       genericFeed,
       { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
     ]);
-    expectCachedQuery(
-      queryClient,
-      queryKeys.articles.byFeed(mangaFeed.id, "all"),
-      [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
-    );
+    expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), [
+      overlayPreferredOlderArticle,
+      landingNewestArticle,
+      readArticle,
+    ]);
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
@@ -541,11 +541,11 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, blockedRankedFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
     expectCachedQuery(queryClient, queryKeys.articles.byFeed(blockedRankedFeed.id, "all"), [blockedReadArticle]);
-    expectCachedQuery(
-      queryClient,
-      queryKeys.articles.byFeed(mangaFeed.id, "all"),
-      [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
-    );
+    expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), [
+      overlayPreferredOlderArticle,
+      landingNewestArticle,
+      readArticle,
+    ]);
     expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
       blockedRankedFeed,
       { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
@@ -667,11 +667,9 @@ describe("runDevScenario", () => {
     expectCachedQuery(queryClient, tagQueryKeys.tagArticleCounts.byAccount(account.id), {
       [primaryTag.id]: 1,
     });
-    expectCachedQuery(
-      queryClient,
-      tagQueryKeys.articlesByTag.byTagAndAccount(primaryTag.id, account.id, "all"),
-      [landingNewestArticle],
-    );
+    expectCachedQuery(queryClient, tagQueryKeys.articlesByTag.byTagAndAccount(primaryTag.id, account.id, "all"), [
+      landingNewestArticle,
+    ]);
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
     expect(ui.selectArticle).not.toHaveBeenCalled();
