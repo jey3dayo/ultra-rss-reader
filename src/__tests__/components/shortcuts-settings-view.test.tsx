@@ -1,13 +1,22 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
+import { ShortcutKeyButton, ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 
 function expectNoButtonMinWidth(button: HTMLElement) {
   expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
 }
 
 describe("ShortcutsSettingsView", () => {
+  it("passes explicit ref props from ShortcutKeyButton to the underlying button", () => {
+    const buttonRef = createRef<HTMLButtonElement>();
+
+    render(<ShortcutKeyButton ref={buttonRef}>J</ShortcutKeyButton>);
+
+    expect(buttonRef.current).toBe(screen.getByRole("button", { name: "J" }));
+  });
+
   it("renders shortcut categories, conflicts, and static bindings", async () => {
     const user = userEvent.setup();
     const onStartRecording = vi.fn();
