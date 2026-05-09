@@ -355,6 +355,31 @@
   - hook skeleton だけの類似なら共通化せず、timeout / request / shortcut / mouse navigation の責務差分を保つ判断を TODO コメントか test で固定する
   - browser visibility lifecycle helper とは分け、small lifecycle hook の共通化可否判断だけを扱う
 
+- [ ] clipboard direct copy whitespace guard 候補を追加する
+  - `src/lib/runtime/clipboard.ts` の `copyValueToClipboard` は whitespace-only を no-op にする一方、public `copyTextToClipboard` は空文字だけを invalid にしている点を揃える
+  - `copyTextToClipboard("   ")` / `"\n\t"` が Tauri command を呼ばず `invalid_text` になることを `clipboard.test.ts` で固定する
+  - article share menu や readonly field copy の payload trim とは分け、clipboard helper の direct API 入力境界だけを扱う
+
+- [ ] clipboard error category token matching 候補を追加する
+  - `resolveClipboardErrorCategory` が `message.includes("text")` で `invalid_text` を判定しているため、`context` など偶然 `text` を含む unknown error を誤分類しないか確認する
+  - permission / unavailable / invalid text の既存分類を維持しつつ、単語境界または既知 phrase に寄せる test case を追加する
+  - clipboard action toast copy や native share command とは分け、frontend clipboard error categorization だけを扱う
+
+- [ ] badge count latest-only side effect 候補を追加する
+  - `src/hooks/use-badge.ts` が unread count / preference change ごとに async `setBadgeCount` を fire-and-forget するため、古い promise が後から resolve して dock badge を巻き戻さないか確認する
+  - dynamic import と `getCurrentWindow().setBadgeCount` を deferred mock 化し、最新 badge count だけが native command へ残る contract を hook test で固定する
+  - badge preference calculation や platform unavailable fallback とは分け、native badge side effect の ordering だけを扱う
+
+- [ ] app icon latest-only side effect 候補を追加する
+  - `src/hooks/use-app-icon-theme.ts` が theme / platform capability change ごとに async `setWindowIcon` を呼ぶため、rapid theme toggle 時に古い icon request が後勝ちしないか確認する
+  - deferred `setWindowIcon` mock と `matchMedia` change event を使い、unmount 後と latest request 以外の resolution が表示状態を巻き戻さないことを固定する
+  - matchMedia presence guard や listener cleanup とは分け、runtime icon replacement の async ordering だけを扱う
+
+- [ ] account unread count query id boundary 候補を追加する
+  - `src/hooks/use-account-unread-count.ts` が `enabled && !!accountId` で query を有効化するため、whitespace-only account id を command に渡さない contract を追加する
+  - `accountId` trim 後 empty の時は query disabled、queryFn 直実行時も明示 error になることを focused hook test で固定する
+  - generic `createQuery` whitespace guard や account sync status query key drift とは分け、account unread count hook の id boundary だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
