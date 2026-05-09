@@ -1,21 +1,8 @@
 import { Result } from "@praha/byethrow";
-import type { z } from "zod";
 import { create } from "zustand";
-import type { PlatformInfoSchema } from "@/api/schemas";
+import type { PlatformInfo } from "@/api/schemas";
 import { getPlatformInfo } from "@/api/tauri-commands";
-
-type PlatformInfo = z.infer<typeof PlatformInfoSchema>;
-
-const defaultPlatformInfo: PlatformInfo = {
-  kind: "unknown",
-  capabilities: {
-    supports_reading_list: false,
-    supports_background_browser_open: false,
-    supports_runtime_window_icon_replacement: false,
-    supports_native_browser_navigation: false,
-    uses_dev_file_credentials: false,
-  },
-};
+import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 
 type PlatformState = {
   platform: PlatformInfo;
@@ -28,8 +15,12 @@ type PlatformActions = {
   loadPlatformInfo: () => Promise<void>;
 };
 
+export function supportsReadingListNativeMenu(platform: PlatformInfo): boolean {
+  return platform.kind === "macos" && platform.capabilities.supports_reading_list;
+}
+
 export const usePlatformStore = create<PlatformState & PlatformActions>()((set, getState) => ({
-  platform: defaultPlatformInfo,
+  platform: DEFAULT_PLATFORM_INFO,
   loaded: false,
   loadError: false,
   inFlightLoad: null,
@@ -55,9 +46,21 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
           }),
           Result.inspectError((error) => {
             console.error("Failed to load platform info:", error);
-            set({ platform: defaultPlatformInfo, loaded: true, loadError: true });
+            set({
+              platform: DEFAULT_PLATFORM_INFO,
+              loaded: true,
+              loadError: true,
+            });
           }),
         );
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load platform info:", error);
+        set({
+          platform: DEFAULT_PLATFORM_INFO,
+          loaded: true,
+          loadError: true,
+        });
       })
       .finally(() => {
         set({ inFlightLoad: null });

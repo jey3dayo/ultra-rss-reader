@@ -6,8 +6,9 @@ export function getPreferredAccountId<T extends { id: string }>(
     return null;
   }
 
-  if (savedAccountId && accounts.some((account) => account.id === savedAccountId)) {
-    return savedAccountId;
+  const normalizedSavedAccountId = savedAccountId?.trim();
+  if (normalizedSavedAccountId && accounts.some((account) => account.id === normalizedSavedAccountId)) {
+    return normalizedSavedAccountId;
   }
 
   return accounts[0].id;

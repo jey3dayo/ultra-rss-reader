@@ -1,6 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PlatformInfo } from "@/api/schemas";
+import {
+  DEFAULT_PLATFORM_CAPABILITIES,
+  DEFAULT_PLATFORM_INFO,
+  SHORTCUT_MODIFIER_BY_PLATFORM,
+} from "@/constants/platform";
 
 const mockGetPlatformInfo = vi.hoisted(() => vi.fn());
 
@@ -8,21 +13,23 @@ vi.mock("@/api/tauri-commands", () => ({
   getPlatformInfo: mockGetPlatformInfo,
 }));
 
-import { usePlatformStore } from "@/stores/platform-store";
-
-const defaultCapabilities = {
-  supports_reading_list: false,
-  supports_background_browser_open: false,
-  supports_runtime_window_icon_replacement: false,
-  supports_native_browser_navigation: false,
-  uses_dev_file_credentials: false,
-};
+import { supportsReadingListNativeMenu, usePlatformStore } from "@/stores/platform-store";
 
 const windowsPlatformInfo: PlatformInfo = {
   kind: "windows",
   capabilities: {
-    ...defaultCapabilities,
+    ...DEFAULT_PLATFORM_CAPABILITIES,
     supports_runtime_window_icon_replacement: true,
+    supports_native_browser_navigation: true,
+  },
+};
+
+const macosPlatformInfo: PlatformInfo = {
+  kind: "macos",
+  capabilities: {
+    ...DEFAULT_PLATFORM_CAPABILITIES,
+    supports_reading_list: true,
+    supports_background_browser_open: true,
     supports_native_browser_navigation: true,
   },
 };
@@ -59,8 +66,24 @@ describe("usePlatformStore", () => {
   it("uses safe non-macos defaults before loading", () => {
     const state = usePlatformStore.getState();
 
-    expect(state.platform.kind).toBe("unknown");
-    expect(state.platform.capabilities.supports_reading_list).toBe(false);
+    expect(state.platform).toEqual(DEFAULT_PLATFORM_INFO);
+    expect(state.platform.capabilities).toEqual(DEFAULT_PLATFORM_INFO.capabilities);
+    expect(SHORTCUT_MODIFIER_BY_PLATFORM).toHaveProperty(state.platform.kind);
+  });
+
+  it("keeps Reading List native menu capability limited to macOS platform info", () => {
+    expect(supportsReadingListNativeMenu(macosPlatformInfo)).toBe(true);
+    expect(supportsReadingListNativeMenu(windowsPlatformInfo)).toBe(false);
+    expect(supportsReadingListNativeMenu(DEFAULT_PLATFORM_INFO)).toBe(false);
+    expect(
+      supportsReadingListNativeMenu({
+        ...macosPlatformInfo,
+        capabilities: {
+          ...macosPlatformInfo.capabilities,
+          supports_reading_list: false,
+        },
+      }),
+    ).toBe(false);
   });
 
   it("retries after failure and updates platform when retry succeeds", async () => {
@@ -72,13 +95,32 @@ describe("usePlatformStore", () => {
 
     expect(usePlatformStore.getState().loaded).toBe(true);
     expect(usePlatformStore.getState().loadError).toBe(true);
-    expect(usePlatformStore.getState().platform.kind).toBe("unknown");
+    expect(usePlatformStore.getState().platform).toEqual(DEFAULT_PLATFORM_INFO);
 
     await usePlatformStore.getState().loadPlatformInfo();
 
     expect(usePlatformStore.getState().loaded).toBe(true);
     expect(usePlatformStore.getState().loadError).toBe(false);
     expect(usePlatformStore.getState().platform.kind).toBe("windows");
+    expect(mockGetPlatformInfo).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to defaults and allows retry after platform info load rejects", async () => {
+    mockGetPlatformInfo
+      .mockRejectedValueOnce(new Error("transport failure"))
+      .mockResolvedValueOnce(Result.succeed(windowsPlatformInfo));
+
+    await usePlatformStore.getState().loadPlatformInfo();
+
+    expect(usePlatformStore.getState().platform).toEqual(DEFAULT_PLATFORM_INFO);
+    expect(usePlatformStore.getState().loaded).toBe(true);
+    expect(usePlatformStore.getState().loadError).toBe(true);
+    expect(usePlatformStore.getState().inFlightLoad).toBeNull();
+
+    await usePlatformStore.getState().loadPlatformInfo();
+
+    expect(usePlatformStore.getState().platform.kind).toBe("windows");
+    expect(usePlatformStore.getState().loadError).toBe(false);
     expect(mockGetPlatformInfo).toHaveBeenCalledTimes(2);
   });
 

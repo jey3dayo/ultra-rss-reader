@@ -23,21 +23,32 @@ export type SyncFeedbackMessages = {
 };
 
 function getDistinctAccountNames(items: Array<AccountSyncError | AccountSyncWarning>): string {
-  return [...new Set(items.map((item) => item.account_name))].join(", ");
+  return [
+    ...new Set(
+      items.map((item) => {
+        const accountName = item.account_name.trim();
+        return accountName.length > 0 ? item.account_name : item.account_id;
+      }),
+    ),
+  ].join(", ");
 }
 
 function hasRetryPendingWarnings(warnings: AccountSyncWarning[]): boolean {
   return warnings.some((warning) => warning.kind === "retry_pending");
 }
 
+function getRetryWarningSeconds(warning: AccountSyncWarning): number {
+  return warning.retry_in_seconds ?? Number.MAX_SAFE_INTEGER;
+}
+
 function getEarliestRetryWarning(warnings: AccountSyncWarning[]): AccountSyncWarning | undefined {
-  return warnings
-    .filter((warning) => warning.kind === "retry_scheduled")
-    .sort((left, right) => {
-      const leftValue = left.retry_in_seconds ?? Number.MAX_SAFE_INTEGER;
-      const rightValue = right.retry_in_seconds ?? Number.MAX_SAFE_INTEGER;
-      return leftValue - rightValue;
-    })[0];
+  const scheduledWarnings = warnings.filter((warning) => warning.kind === "retry_scheduled");
+  if (scheduledWarnings.length === 0) {
+    return undefined;
+  }
+
+  const earliestRetrySeconds = Math.min(...scheduledWarnings.map(getRetryWarningSeconds));
+  return scheduledWarnings.find((warning) => getRetryWarningSeconds(warning) === earliestRetrySeconds);
 }
 
 export function summarizeSyncResult(result: SyncResultDto): SyncFeedback {

@@ -4,5 +4,6 @@ export type OptionWithLabel = {
 };
 
 export function getOptionLabelByValue(options: readonly OptionWithLabel[], value: string | null) {
-  return options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
+  const normalizedValue = value?.trim() ?? "";
+  return options.find((option) => option.value === normalizedValue)?.label ?? normalizedValue;
 }

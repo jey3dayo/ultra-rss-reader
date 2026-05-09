@@ -13,5 +13,20 @@
   "mark_as_read_action": "既読にする",
   "back": "戻る",
   "failed_to_save_setting": "設定の保存に失敗しました: {{message}}",
-  "connection_testing": "接続を確認中…"
+  "connection_testing": "接続を確認中…",
+  "updater": {
+    "available": "v{{version}} が利用可能です",
+    "update_now": "今すぐ更新",
+    "later": "後で",
+    "download_failed_keep_current": "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
+    "check_again": "もう一度確認",
+    "downloading": "ダウンロード中…",
+    "downloading_percent": "ダウンロード中… {{percent}}%",
+    "restart_failed_ready": "再起動に失敗しました。更新の準備は完了しています。",
+    "restart_again": "もう一度再起動",
+    "ready": "更新の準備ができました",
+    "restart": "再起動",
+    "check_failed": "アップデートの確認に失敗しました",
+    "up_to_date": "最新バージョンです"
+  }
 }

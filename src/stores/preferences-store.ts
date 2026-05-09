@@ -6,6 +6,9 @@ import { STORAGE_KEYS } from "@/constants/storage";
 import { resolveUiLanguage } from "@/lib/ui/ui-language";
 import {
   type AfterReadingPreference,
+  type FontSizePreference,
+  type FontStylePreference,
+  normalizePreferenceRecord,
   normalizePreferenceValue,
   parseLanguagePreference,
   parseThemePreference,
@@ -52,6 +55,22 @@ function readMirroredThemePreference(): Theme | null {
   }
 }
 
+function resolveErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return String(error);
+}
+
+function notifyPreferencePersistFailure(key: string, error: unknown): void {
+  const message = resolveErrorMessage(error);
+  console.error(`Failed to persist preference ${key}:`, error);
+  useUiStore.getState().showToast(i18n.t("failed_to_save_setting", { message }));
+}
+
 function getPrefersReducedMotion(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -73,6 +92,8 @@ function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", 
   root.classList.add(THEME_VIEW_TRANSITION_CLASS);
   const transitionId = themeViewTransitionId + 1;
   themeViewTransitionId = transitionId;
+  // Tauri shell boundary: theme updates mutate documentElement outside React's tree.
+  // react-doctor-disable-next-line react-doctor/no-document-start-view-transition -- React 19 ViewTransition cannot wrap document root class/color-scheme sync.
   const transition = document.startViewTransition(() => {
     updateResolvedTheme(root, resolvedTheme);
   });
@@ -108,24 +129,32 @@ function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void 
   }
 }
 
-const fontStyleClasses: Record<string, string> = {
+const fontStyleClasses = {
   sans_serif: "font-sans",
   serif: "font-serif",
   monospace: "font-mono",
-};
+} satisfies Record<FontStylePreference, string>;
 
-const fontSizeClasses: Record<string, string> = {
+const fontSizeClasses = {
   small: "text-sm",
   medium: "text-base",
   large: "text-lg",
-};
+} satisfies Record<FontSizePreference, string>;
+
+function isFontStylePreference(value: string): value is FontStylePreference {
+  return objectHasOwnProperty.call(fontStyleClasses, value);
+}
+
+function isFontSizePreference(value: string): value is FontSizePreference {
+  return objectHasOwnProperty.call(fontSizeClasses, value);
+}
 
 function applyFontStyle(style: string): void {
   const root = document.documentElement;
   for (const cls of Object.values(fontStyleClasses)) {
     root.classList.remove(cls);
   }
-  const cls = fontStyleClasses[style] ?? fontStyleClasses.sans_serif;
+  const cls = isFontStylePreference(style) ? fontStyleClasses[style] : fontStyleClasses.sans_serif;
   root.classList.add(cls);
 }
 
@@ -134,12 +163,18 @@ function applyFontSize(size: string): void {
   for (const cls of Object.values(fontSizeClasses)) {
     root.classList.remove(cls);
   }
-  const cls = fontSizeClasses[size] ?? fontSizeClasses.medium;
+  const cls = isFontSizePreference(size) ? fontSizeClasses[size] : fontSizeClasses.medium;
   root.classList.add(cls);
 }
 
 function applyLanguage(language: ReturnType<typeof parseLanguagePreference>): void {
   i18n.changeLanguage(resolveUiLanguage(language, navigator.language));
+}
+
+function applyDefaultLoadFallback(): void {
+  applyLanguage(resolvePreferenceValue({}, "language"));
+  applyFontStyle(resolvePreferenceValue({}, "font_style"));
+  applyFontSize(resolvePreferenceValue({}, "font_size"));
 }
 
 export const usePreferencesStore = create<PreferencesState & PreferencesActions>()((set, getState) => ({
@@ -152,29 +187,36 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     }
 
     preferencesLoadPromise = (async () => {
-      const result = await getPreferences();
-      Result.pipe(
-        result,
-        Result.inspect((data) => {
-          const theme = objectHasOwnProperty.call(data, "theme")
-            ? resolvePreferenceValue(data, "theme")
-            : (readMirroredThemePreference() ?? resolvePreferenceValue(data, "theme"));
-          set({
-            prefs: objectHasOwnProperty.call(data, "theme") ? data : { ...data, theme },
-            loaded: true,
-          });
-          applyTheme(theme, { withTransition: false });
-          mirrorThemePreference(theme);
-          applyLanguage(resolvePreferenceValue(data, "language"));
-          applyFontStyle(resolvePreferenceValue(data, "font_style"));
-          applyFontSize(resolvePreferenceValue(data, "font_size"));
-        }),
-        Result.inspectError((e) => {
-          console.error("Failed to load preferences:", e);
-          set({ loaded: true });
-          applyLanguage(resolvePreferenceValue({}, "language"));
-        }),
-      );
+      try {
+        const result = await getPreferences();
+        Result.pipe(
+          result,
+          Result.inspect((data) => {
+            const normalizedData = normalizePreferenceRecord(data);
+            const theme = objectHasOwnProperty.call(normalizedData, "theme")
+              ? resolvePreferenceValue(normalizedData, "theme")
+              : (readMirroredThemePreference() ?? resolvePreferenceValue(normalizedData, "theme"));
+            set({
+              prefs: objectHasOwnProperty.call(normalizedData, "theme") ? normalizedData : { ...normalizedData, theme },
+              loaded: true,
+            });
+            applyTheme(theme, { withTransition: false });
+            mirrorThemePreference(theme);
+            applyLanguage(resolvePreferenceValue(normalizedData, "language"));
+            applyFontStyle(resolvePreferenceValue(normalizedData, "font_style"));
+            applyFontSize(resolvePreferenceValue(normalizedData, "font_size"));
+          }),
+          Result.inspectError((e) => {
+            console.error("Failed to load preferences:", e);
+            set({ loaded: true });
+            applyDefaultLoadFallback();
+          }),
+        );
+      } catch (e) {
+        console.error("Failed to load preferences:", e);
+        set({ loaded: true });
+        applyDefaultLoadFallback();
+      }
     })().finally(() => {
       preferencesLoadPromise = null;
     });
@@ -204,14 +246,13 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     }
 
     // Fire and forget — notify user on failure
-    setPreference(key, normalizedValue).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspectError((e: { message: string }) => {
-          console.error(`Failed to persist preference ${key}:`, e);
-          useUiStore.getState().showToast(i18n.t("failed_to_save_setting", { message: e.message }));
-        }),
-      ),
+    setPreference(key, normalizedValue).then(
+      (result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((e: { message: string }) => notifyPreferencePersistFailure(key, e)),
+        ),
+      (error: unknown) => notifyPreferencePersistFailure(key, error),
     );
   },
 

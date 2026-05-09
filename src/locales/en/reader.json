@@ -3,6 +3,7 @@
   "unread": "Unread",
   "starred": "Starred",
   "recent_articles": "Recently Viewed",
+  "sidebar_landmark": "Sidebar",
   "viewed_at": "Viewed {{time}}",
   "tagged_articles": "Tagged Articles",
   "all_articles": "All Articles",
@@ -179,6 +180,7 @@
     "no_results": "No results found",
     "recent_actions": "Recent Actions",
     "actions": "Actions",
+    "dev_scenarios": "Dev Scenarios",
     "restart_app": "Restart app",
     "theme_action": "Theme: {{theme}}",
     "feeds": "Feeds",
@@ -187,7 +189,11 @@
     "online_results": "Online Results",
     "prefix_hint_actions": "Actions",
     "prefix_hint_feeds": "Feeds",
-    "prefix_hint_tags": "Tags"
+    "prefix_hint_tags": "Tags",
+    "feed_landing_failed": "Failed to open feed \"{{feedId}}\": {{message}}",
+    "feed_landing_missing_account": "No account is selected.",
+    "feed_landing_feed_not_found": "Feed not found.",
+    "dev_scenario_failed": "Failed to run dev scenario \"{{scenarioId}}\": {{message}}"
   },
   "shortcuts_help": {
     "title": "Keyboard shortcuts",

@@ -93,13 +93,26 @@ export function differenceInDays(later: Date, earlier: Date): number {
   return differenceInDateFnsDays(later, earlier);
 }
 
+function resolveDateTimeLocale(locale?: string): string | undefined {
+  if (locale === undefined) {
+    return undefined;
+  }
+
+  try {
+    const [supportedLocale] = Intl.DateTimeFormat.supportedLocalesOf(locale);
+    return supportedLocale;
+  } catch {
+    return undefined;
+  }
+}
+
 export function formatHourMinute(value: DateInput, locale?: string): string | null {
   const date = parseDateInput(value);
   if (date === null) {
     return null;
   }
 
-  return date.toLocaleTimeString(locale, {
+  return date.toLocaleTimeString(resolveDateTimeLocale(locale), {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -121,7 +134,7 @@ export function formatShortDate(value: DateInput, locale?: string): string | nul
     return null;
   }
 
-  return date.toLocaleDateString(locale, {
+  return date.toLocaleDateString(resolveDateTimeLocale(locale), {
     month: "short",
     day: "numeric",
   });
@@ -133,7 +146,7 @@ export function formatShortDateTime(value: DateInput, locale?: string): string |
     return null;
   }
 
-  return date.toLocaleString(locale, {
+  return date.toLocaleString(resolveDateTimeLocale(locale), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -148,7 +161,7 @@ export function formatLongDate(value: DateInput, locale?: string): string | null
     return null;
   }
 
-  return date.toLocaleDateString(locale, {
+  return date.toLocaleDateString(resolveDateTimeLocale(locale), {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -161,7 +174,7 @@ export function formatMediumDate(value: DateInput, locale?: string): string | nu
     return null;
   }
 
-  return date.toLocaleDateString(locale, {
+  return date.toLocaleDateString(resolveDateTimeLocale(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",

@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 type InvalidateFeedQueriesOptions = {
   includeFeeds?: boolean;
@@ -20,7 +21,9 @@ type InvalidateArticleQueriesOptions = {
   includeRecentArticles?: boolean;
 };
 
-const QUERY_KEYS = {
+type QueryInvalidationKey = readonly [string];
+
+export const QUERY_KEY_ROOTS = {
   feeds: ["feeds"],
   folders: ["folders"],
   articles: ["articles"],
@@ -34,99 +37,202 @@ const QUERY_KEYS = {
   tagArticleCounts: ["tagArticleCounts"],
   search: ["search"],
   feedIntegrityReport: ["feedIntegrityReport"],
+  feedArticleSummaries: ["feedArticleSummaries"],
+} as const satisfies Record<string, QueryInvalidationKey>;
+
+export const queryKeys = {
+  feeds: {
+    root: QUERY_KEY_ROOTS.feeds,
+    byAccount: (accountId: string) => [QUERY_KEY_ROOTS.feeds[0], accountId] as const,
+  },
+  articles: {
+    root: QUERY_KEY_ROOTS.articles,
+    byFeed: (feedId: string | null, mode: ReaderFilter) => [QUERY_KEY_ROOTS.articles[0], feedId, { mode }] as const,
+  },
+  accountArticles: {
+    root: QUERY_KEY_ROOTS.accountArticles,
+    byAccountPrefix: (accountId: string) => [QUERY_KEY_ROOTS.accountArticles[0], accountId] as const,
+    byAccount: (accountId: string | null, mode: ReaderFilter) =>
+      [QUERY_KEY_ROOTS.accountArticles[0], accountId, { mode }] as const,
+  },
+  folderArticles: {
+    root: QUERY_KEY_ROOTS.folderArticles,
+    byFolder: (folderId: string | null, mode: ReaderFilter) =>
+      [QUERY_KEY_ROOTS.folderArticles[0], folderId, { mode }] as const,
+  },
+  starredArticles: {
+    root: QUERY_KEY_ROOTS.starredArticles,
+    byAccount: (accountId: string) => [QUERY_KEY_ROOTS.starredArticles[0], accountId] as const,
+  },
+  recentArticles: {
+    root: QUERY_KEY_ROOTS.recentArticles,
+    byAccount: (accountId: string | null, mode: ReaderFilter) =>
+      [QUERY_KEY_ROOTS.recentArticles[0], accountId, { mode }] as const,
+  },
+  accountUnreadCount: {
+    root: QUERY_KEY_ROOTS.accountUnreadCount,
+  },
+  accountStarredCount: {
+    root: QUERY_KEY_ROOTS.accountStarredCount,
+    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.accountStarredCount[0], accountId] as const,
+  },
+  articlesByTag: {
+    root: QUERY_KEY_ROOTS.articlesByTag,
+  },
+  tagArticleCounts: {
+    root: QUERY_KEY_ROOTS.tagArticleCounts,
+  },
+  search: {
+    root: QUERY_KEY_ROOTS.search,
+    byAccountAndQuery: (accountId: string | null, query: string) =>
+      [QUERY_KEY_ROOTS.search[0], accountId, query] as const,
+  },
+  feedIntegrityReport: {
+    root: QUERY_KEY_ROOTS.feedIntegrityReport,
+  },
+  feedArticleSummaries: {
+    root: QUERY_KEY_ROOTS.feedArticleSummaries,
+    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feedArticleSummaries[0], accountId] as const,
+  },
 } as const;
 
-function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<readonly [string]>) {
+export type FeedQueryKey = typeof queryKeys.feeds.root | ReturnType<typeof queryKeys.feeds.byAccount>;
+export type ArticleQueryKey = typeof queryKeys.articles.root | ReturnType<typeof queryKeys.articles.byFeed>;
+export type AccountArticlesQueryKey =
+  | typeof queryKeys.accountArticles.root
+  | ReturnType<typeof queryKeys.accountArticles.byAccountPrefix>
+  | ReturnType<typeof queryKeys.accountArticles.byAccount>;
+export type FolderArticlesQueryKey =
+  | typeof queryKeys.folderArticles.root
+  | ReturnType<typeof queryKeys.folderArticles.byFolder>;
+export type RecentArticlesQueryKey =
+  | typeof queryKeys.recentArticles.root
+  | ReturnType<typeof queryKeys.recentArticles.byAccount>;
+export type SearchArticlesQueryKey =
+  | typeof queryKeys.search.root
+  | ReturnType<typeof queryKeys.search.byAccountAndQuery>;
+
+type InvalidationTarget<TOption extends string> = {
+  option: TOption;
+  defaultEnabled: boolean;
+  queryKeys: ReadonlyArray<QueryInvalidationKey>;
+};
+
+const FEED_INVALIDATION_TARGETS = [
+  {
+    option: "includeFeeds",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.feeds.root],
+  },
+  {
+    option: "includeFolders",
+    defaultEnabled: true,
+    queryKeys: [QUERY_KEY_ROOTS.folders],
+  },
+  {
+    option: "includeAccountUnreadCount",
+    defaultEnabled: false,
+    queryKeys: [queryKeys.accountUnreadCount.root],
+  },
+] as const satisfies ReadonlyArray<InvalidationTarget<keyof InvalidateFeedQueriesOptions>>;
+
+const ARTICLE_INVALIDATION_TARGETS = [
+  {
+    option: "includeArticles",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.articles.root],
+  },
+  {
+    option: "includeAccountArticles",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.accountArticles.root, queryKeys.folderArticles.root],
+  },
+  {
+    option: "includeStarredArticles",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.starredArticles.root],
+  },
+  {
+    option: "includeAccountUnreadCount",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.accountUnreadCount.root],
+  },
+  {
+    option: "includeAccountStarredCount",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.accountStarredCount.root],
+  },
+  {
+    option: "includeFeeds",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.feeds.root],
+  },
+  {
+    option: "includeArticlesByTag",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.articlesByTag.root],
+  },
+  {
+    option: "includeTagArticleCounts",
+    defaultEnabled: false,
+    queryKeys: [queryKeys.tagArticleCounts.root],
+  },
+  {
+    option: "includeSearch",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.search.root],
+  },
+  {
+    option: "includeFeedIntegrityReport",
+    defaultEnabled: false,
+    queryKeys: [queryKeys.feedIntegrityReport.root],
+  },
+  {
+    option: "includeRecentArticles",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.recentArticles.root],
+  },
+] as const satisfies ReadonlyArray<InvalidationTarget<keyof InvalidateArticleQueriesOptions>>;
+
+function resolveInvalidationQueryKeys<TOption extends string>(
+  targets: ReadonlyArray<InvalidationTarget<TOption>>,
+  options: Partial<Record<TOption, boolean>>,
+): QueryInvalidationKey[] {
+  const queryKeys: QueryInvalidationKey[] = [];
+
+  for (const target of targets) {
+    if (options[target.option] ?? target.defaultEnabled) {
+      queryKeys.push(...target.queryKeys);
+    }
+  }
+
+  return queryKeys;
+}
+
+export function resolveFeedInvalidationQueryKeys(
+  options: InvalidateFeedQueriesOptions = {},
+): ReadonlyArray<QueryInvalidationKey> {
+  return resolveInvalidationQueryKeys(FEED_INVALIDATION_TARGETS, options);
+}
+
+export function resolveArticleInvalidationQueryKeys(
+  options: InvalidateArticleQueriesOptions = {},
+): ReadonlyArray<QueryInvalidationKey> {
+  return resolveInvalidationQueryKeys(ARTICLE_INVALIDATION_TARGETS, options);
+}
+
+function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<QueryInvalidationKey>) {
   for (const queryKey of queryKeys) {
     void queryClient.invalidateQueries({ queryKey });
   }
 }
 
-export function invalidateFeedQueries(
-  queryClient: QueryClient,
-  { includeFeeds = true, includeFolders = true, includeAccountUnreadCount = false }: InvalidateFeedQueriesOptions = {},
-) {
-  const queryKeys: Array<readonly [string]> = [];
-
-  if (includeFeeds) {
-    queryKeys.push(QUERY_KEYS.feeds);
-  }
-
-  if (includeFolders) {
-    queryKeys.push(QUERY_KEYS.folders);
-  }
-
-  if (includeAccountUnreadCount) {
-    queryKeys.push(QUERY_KEYS.accountUnreadCount);
-  }
-
-  invalidateQueryKeys(queryClient, queryKeys);
+export function invalidateFeedQueries(queryClient: QueryClient, options: InvalidateFeedQueriesOptions = {}) {
+  invalidateQueryKeys(queryClient, resolveFeedInvalidationQueryKeys(options));
 }
 
-export function invalidateArticleQueries(
-  queryClient: QueryClient,
-  {
-    includeArticles = true,
-    includeAccountArticles = true,
-    includeStarredArticles = true,
-    includeAccountUnreadCount = true,
-    includeAccountStarredCount = true,
-    includeFeeds = true,
-    includeArticlesByTag = true,
-    includeTagArticleCounts = false,
-    includeSearch = true,
-    includeFeedIntegrityReport = false,
-    includeRecentArticles = true,
-  }: InvalidateArticleQueriesOptions = {},
-) {
-  const queryKeys: Array<readonly [string]> = [];
-
-  if (includeArticles) {
-    queryKeys.push(QUERY_KEYS.articles);
-  }
-
-  if (includeAccountArticles) {
-    queryKeys.push(QUERY_KEYS.accountArticles);
-    queryKeys.push(QUERY_KEYS.folderArticles);
-  }
-
-  if (includeStarredArticles) {
-    queryKeys.push(QUERY_KEYS.starredArticles);
-  }
-
-  if (includeAccountUnreadCount) {
-    queryKeys.push(QUERY_KEYS.accountUnreadCount);
-  }
-
-  if (includeAccountStarredCount) {
-    queryKeys.push(QUERY_KEYS.accountStarredCount);
-  }
-
-  if (includeFeeds) {
-    queryKeys.push(QUERY_KEYS.feeds);
-  }
-
-  if (includeArticlesByTag) {
-    queryKeys.push(QUERY_KEYS.articlesByTag);
-  }
-
-  if (includeTagArticleCounts) {
-    queryKeys.push(QUERY_KEYS.tagArticleCounts);
-  }
-
-  if (includeSearch) {
-    queryKeys.push(QUERY_KEYS.search);
-  }
-
-  if (includeFeedIntegrityReport) {
-    queryKeys.push(QUERY_KEYS.feedIntegrityReport);
-  }
-
-  if (includeRecentArticles) {
-    queryKeys.push(QUERY_KEYS.recentArticles);
-  }
-
-  invalidateQueryKeys(queryClient, queryKeys);
+export function invalidateArticleQueries(queryClient: QueryClient, options: InvalidateArticleQueriesOptions = {}) {
+  invalidateQueryKeys(queryClient, resolveArticleInvalidationQueryKeys(options));
 }
 
 export function invalidateSyncCompletedQueries(queryClient: QueryClient) {

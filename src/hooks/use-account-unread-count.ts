@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { countAccountUnreadArticles } from "@/api/tauri-commands";
 
 export function useAccountUnreadCount(accountId: string | null, enabled: boolean) {
+  const normalizedAccountId = accountId?.trim() || null;
+
   return useQuery({
-    queryKey: ["accountUnreadCount", accountId],
+    queryKey: ["accountUnreadCount", normalizedAccountId],
     queryFn: () => {
-      if (!accountId) {
+      if (!normalizedAccountId) {
         throw new Error("accountId is required");
       }
-      return countAccountUnreadArticles(accountId).then(Result.unwrap());
+      return countAccountUnreadArticles(normalizedAccountId).then(Result.unwrap());
     },
-    enabled: enabled && !!accountId,
+    enabled: enabled && normalizedAccountId !== null,
   });
 }

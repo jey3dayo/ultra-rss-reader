@@ -18,6 +18,7 @@ export function formatAccountSyncRetryDateTime(retryAt: string | undefined, lang
 export function formatAccountLastSuccessLabel(
   lastSuccessAt: string | undefined,
   language: string,
+  now: Date = getCurrentDate(),
 ): {
   date: string;
   time: string;
@@ -31,6 +32,6 @@ export function formatAccountLastSuccessLabel(
   return {
     date: formatShortDate(date, language) ?? "",
     time: formatHourMinute(date, language) ?? "",
-    isToday: isSameLocalDay(date, getCurrentDate()),
+    isToday: isSameLocalDay(date, now),
   };
 }

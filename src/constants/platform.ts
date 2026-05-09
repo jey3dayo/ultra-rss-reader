@@ -1,8 +1,25 @@
 import type { PlatformInfo } from "@/api/schemas";
 
+export const PLATFORM_KINDS = ["macos", "windows", "linux", "unknown"] as const;
+export type PlatformKind = (typeof PLATFORM_KINDS)[number];
+
+export const DEFAULT_PLATFORM_CAPABILITIES = {
+  supports_reading_list: false,
+  supports_background_browser_open: false,
+  supports_runtime_window_icon_replacement: false,
+  supports_native_browser_navigation: false,
+  uses_dev_file_credentials: false,
+} as const satisfies PlatformInfo["capabilities"];
+export type PlatformCapabilityName = keyof typeof DEFAULT_PLATFORM_CAPABILITIES;
+
+export const DEFAULT_PLATFORM_INFO = {
+  kind: "unknown",
+  capabilities: DEFAULT_PLATFORM_CAPABILITIES,
+} as const satisfies PlatformInfo;
+
 export const SHORTCUT_MODIFIER_BY_PLATFORM = {
   macos: "\u2318",
   windows: "Ctrl",
   linux: "Ctrl",
   unknown: "Ctrl",
-} as const satisfies Record<PlatformInfo["kind"], string>;
+} as const satisfies Record<PlatformKind, string>;

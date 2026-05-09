@@ -3,6 +3,7 @@
   "unread": "未読",
   "starred": "スター",
   "recent_articles": "最近見た記事",
+  "sidebar_landmark": "サイドバー",
   "viewed_at": "閲覧 {{time}}",
   "tagged_articles": "タグ付き記事",
   "all_articles": "すべての記事",
@@ -179,6 +180,7 @@
     "no_results": "結果が見つかりません",
     "recent_actions": "最近のアクション",
     "actions": "アクション",
+    "dev_scenarios": "開発シナリオ",
     "restart_app": "アプリを再起動",
     "theme_action": "テーマ: {{theme}}",
     "feeds": "フィード",
@@ -187,7 +189,11 @@
     "online_results": "オンライン結果",
     "prefix_hint_actions": "アクション",
     "prefix_hint_feeds": "フィード",
-    "prefix_hint_tags": "タグ"
+    "prefix_hint_tags": "タグ",
+    "feed_landing_failed": "フィード \"{{feedId}}\" を開けませんでした: {{message}}",
+    "feed_landing_missing_account": "アカウントが選択されていません。",
+    "feed_landing_feed_not_found": "フィードが見つかりません。",
+    "dev_scenario_failed": "開発シナリオ \"{{scenarioId}}\" の実行に失敗しました: {{message}}"
   },
   "shortcuts_help": {
     "title": "キーボードショートカット",

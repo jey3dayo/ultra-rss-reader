@@ -13,5 +13,20 @@
   "mark_as_read_action": "Mark as Read",
   "back": "Back",
   "failed_to_save_setting": "Failed to save setting: {{message}}",
-  "connection_testing": "Testing connection…"
+  "connection_testing": "Testing connection…",
+  "updater": {
+    "available": "v{{version}} is available",
+    "update_now": "Update now",
+    "later": "Later",
+    "download_failed_keep_current": "Update failed. You can keep using the current version.",
+    "check_again": "Check again",
+    "downloading": "Downloading…",
+    "downloading_percent": "Downloading… {{percent}}%",
+    "restart_failed_ready": "Restart failed. The update is ready.",
+    "restart_again": "Restart again",
+    "ready": "Update is ready",
+    "restart": "Restart",
+    "check_failed": "Failed to check for updates",
+    "up_to_date": "You're up to date"
+  }
 }

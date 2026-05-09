@@ -1,6 +1,69 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
+import type { SyncProgressEventDto, SyncProgressRuntimeEventDto } from "@/lib/sync/sync-progress-event.types";
+import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
+import type {
+  UiStoreAccountSetupActions,
+  UiStoreAccountSetupState,
+  UiStoreDialogActions,
+  UiStoreDialogState,
+  UiStoreLayoutActions,
+  UiStoreLayoutState,
+  UiStoreReaderActions,
+  UiStoreReaderState,
+  UiStoreSettingsActions,
+  UiStoreSettingsState,
+  UiStoreShellState,
+  UiStoreSyncProgressActions,
+  UiStoreSyncProgressState,
+  UiStoreToastActions,
+  UiStoreToastState,
+} from "../../stores/ui-store";
 import { useUiStore } from "../../stores/ui-store";
+
+function getReaderStateSnapshot(state: UiStoreReaderState) {
+  return {
+    selectedAccountId: state.selectedAccountId,
+    selection: state.selection,
+    selectedArticleId: state.selectedArticleId,
+    viewMode: state.viewMode,
+    contentMode: state.contentMode,
+    browserUrl: state.browserUrl,
+  };
+}
+
+function getSettingsStateSnapshot(state: UiStoreSettingsState) {
+  return {
+    settingsOpen: state.settingsOpen,
+    settingsCategory: state.settingsCategory,
+    settingsAccountId: state.settingsAccountId,
+    settingsAddAccount: state.settingsAddAccount,
+    settingsAddAccountInitialKind: state.settingsAddAccountInitialKind,
+    settingsLoading: state.settingsLoading,
+  };
+}
+
+function setStaleBrowserState() {
+  useUiStore.setState({
+    contentMode: "browser",
+    browserUrl: "https://example.com/preview",
+    browserNavigationState: { canGoBack: true, canGoForward: true },
+    browserCloseInFlight: true,
+    pendingBrowserCloseAction: "next-article",
+  });
+}
+
+function expectBrowserStateReset() {
+  expect(useUiStore.getState()).toEqual(
+    expect.objectContaining({
+      contentMode: "empty",
+      browserUrl: null,
+      browserNavigationState: null,
+      browserCloseInFlight: false,
+      pendingBrowserCloseAction: null,
+    }),
+  );
+}
 
 describe("useUiStore", () => {
   beforeEach(() => {
@@ -21,9 +84,109 @@ describe("useUiStore", () => {
     expect(s.accountPaneOpen).toBe(false);
   });
 
+  it("keeps typed slice inventories assignable from the current store", () => {
+    const state = useUiStore.getState();
+    const shellState: UiStoreShellState = state;
+    const layoutState: UiStoreLayoutState = state;
+    const readerState: UiStoreReaderState = state;
+    const settingsState: UiStoreSettingsState = state;
+    const dialogState: UiStoreDialogState = state;
+    const syncProgressState: UiStoreSyncProgressState = state;
+    const accountSetupState: UiStoreAccountSetupState = state;
+    const toastState: UiStoreToastState = state;
+    const layoutActions: UiStoreLayoutActions = state;
+    const readerActions: UiStoreReaderActions = state;
+    const settingsActions: UiStoreSettingsActions = state;
+    const dialogActions: UiStoreDialogActions = state;
+    const syncProgressActions: UiStoreSyncProgressActions = state;
+    const accountSetupActions: UiStoreAccountSetupActions = state;
+    const toastActions: UiStoreToastActions = state;
+
+    expect(shellState.sidebarOpen).toBe(true);
+    expect(layoutState.focusedPane).toBe("sidebar");
+    expect(readerState.selection).toEqual({ type: "all" });
+    expect(settingsState.settingsOpen).toBe(false);
+    expect(dialogState.confirmDialog.open).toBe(false);
+    expect(syncProgressState.syncProgress.active).toBe(false);
+    expect(accountSetupState.accountSetupSession).toBeNull();
+    expect(toastState.toastMessage).toBeNull();
+    expect(layoutActions.setFocusedPane).toBe(state.setFocusedPane);
+    expect(readerActions.selectFeed).toBe(state.selectFeed);
+    expect(settingsActions.openSettings).toBe(state.openSettings);
+    expect(dialogActions.showConfirm).toBe(state.showConfirm);
+    expect(syncProgressActions.applySyncProgress).toBe(state.applySyncProgress);
+    expect(accountSetupActions.startAccountSetup).toBe(state.startAccountSetup);
+    expect(toastActions.showToast).toBe(state.showToast);
+  });
+
+  it("keeps sync progress runtime DTO and UI state type boundaries separate", () => {
+    expectTypeOf<SyncProgressEventDto>().toEqualTypeOf<SyncProgressRuntimeEventDto>();
+    expectTypeOf<SyncProgressRuntimeEventDto>().toHaveProperty("account_id").toEqualTypeOf<string | null | undefined>();
+    expectTypeOf<SyncProgressRuntimeEventDto>()
+      .toHaveProperty("account_name")
+      .toEqualTypeOf<string | null | undefined>();
+    expectTypeOf<SyncProgressUiState>().toHaveProperty("currentAccountName").toEqualTypeOf<string | null>();
+    expectTypeOf<SyncProgressUiState>().toHaveProperty("activeAccountIds").toEqualTypeOf<Set<string>>();
+
+    const runtimeEvent = {
+      stage: "account_started",
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "FreshRSS",
+    } satisfies SyncProgressRuntimeEventDto;
+    const uiState = {
+      active: true,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      currentAccountName: "FreshRSS",
+      activeAccountIds: new Set(["acc-1"]),
+    } satisfies SyncProgressUiState;
+
+    expect(runtimeEvent.account_name).toBe("FreshRSS");
+    expect(uiState.currentAccountName).toBe("FreshRSS");
+    // @ts-expect-error Runtime sync progress events keep Rust/Tauri snake_case payload keys.
+    void runtimeEvent.currentAccountName;
+    // @ts-expect-error UI sync progress state keeps React/store camelCase keys.
+    void uiState.account_name;
+  });
+
   it("openCommandPalette sets true", () => {
     useUiStore.getState().openCommandPalette();
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+  });
+
+  it("tracks account setup verification before an account id exists", () => {
+    useUiStore.getState().startAccountSetupVerification();
+
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      owner: "add-account",
+      state: "verifying",
+    });
+
+    useUiStore.getState().markAccountSetupFailed("acc-new", "Sync failed");
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      owner: "add-account",
+      state: "verifying",
+    });
+
+    useUiStore.getState().startAccountSetup("acc-new");
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "acc-new",
+      owner: "add-account",
+      state: "syncing",
+    });
+
+    useUiStore.getState().markAccountSetupFailed("acc-new", "Sync failed");
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "acc-new",
+      owner: "add-account",
+      state: "failed",
+      errorMessage: "Sync failed",
+    });
   });
 
   it("closeCommandPalette sets false", () => {
@@ -152,6 +315,27 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().viewMode).toBe("starred");
   });
 
+  it("clears stale browser state when switching reader scopes", () => {
+    const cases = [
+      ["selectAccount", () => useUiStore.getState().selectAccount("acc-1")],
+      ["selectFeed", () => useUiStore.getState().selectFeed("feed-1")],
+      ["selectFeedFromCurrentContext", () => useUiStore.getState().selectFeedFromCurrentContext("feed-1")],
+      ["selectSmartView", () => useUiStore.getState().selectSmartView("unread")],
+      ["selectTag", () => useUiStore.getState().selectTag("tag-1")],
+      ["selectTagFromCurrentContext", () => useUiStore.getState().selectTagFromCurrentContext("tag-1")],
+    ] as const;
+
+    for (const [name, runAction] of cases) {
+      useUiStore.setState(useUiStore.getInitialState());
+      setStaleBrowserState();
+
+      runAction();
+
+      expectBrowserStateReset();
+      expect(useUiStore.getState().focusedPane, name).toBe("list");
+    }
+  });
+
   it("selectArticle sets reader mode", () => {
     useUiStore.getState().selectArticle("a1");
     expect(useUiStore.getState().contentMode).toBe("reader");
@@ -270,6 +454,49 @@ describe("useUiStore", () => {
     useUiStore.getState().setFocusedPane("sidebar");
     useUiStore.getState().selectAll();
     expect(useUiStore.getState().focusedPane).toBe("list");
+  });
+
+  it("keeps settings state stable when reader selection actions run", () => {
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-settings",
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+      settingsLoading: true,
+    });
+    const before = getSettingsStateSnapshot(useUiStore.getState());
+
+    useUiStore.getState().selectFeed("feed-1");
+
+    expect(getSettingsStateSnapshot(useUiStore.getState())).toEqual(before);
+  });
+
+  it("keeps reader state stable when settings navigation actions run", () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-reader",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "article-1",
+      viewMode: "starred",
+      contentMode: "reader",
+      browserUrl: null,
+    });
+    const before = getReaderStateSnapshot(useUiStore.getState());
+
+    useUiStore.getState().openSettingsAccount("acc-settings");
+    useUiStore.getState().setSettingsLoading(true);
+    useUiStore.getState().closeSettings();
+
+    expect(getReaderStateSnapshot(useUiStore.getState())).toEqual(before);
+  });
+
+  it("resets settings loading when settings close", () => {
+    useUiStore.getState().openSettings("data");
+    useUiStore.getState().setSettingsLoading(true);
+
+    useUiStore.getState().closeSettings();
+
+    expect(useUiStore.getState().settingsLoading).toBe(false);
   });
 
   it("clears retained articles when the user changes the current screen", () => {
@@ -428,6 +655,76 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().toastMessage).toEqual({
       message: "Downloading",
       persistent: true,
+    });
+  });
+
+  it("replaces confirm dialog content and callbacks completely", () => {
+    const FirstIcon = () => null;
+    const SecondIcon = () => null;
+    const firstConfirm = vi.fn();
+    const secondConfirm = vi.fn();
+
+    useUiStore.getState().showConfirm("Delete feed?", firstConfirm, {
+      actionLabel: "Delete",
+      variant: "destructive",
+      icon: FirstIcon,
+    });
+    useUiStore.getState().showConfirm("Archive feed?", secondConfirm, {
+      actionLabel: "Archive",
+      variant: "default",
+      icon: SecondIcon,
+    });
+
+    expect(useUiStore.getState().confirmDialog).toEqual({
+      open: true,
+      message: "Archive feed?",
+      actionLabel: "Archive",
+      variant: "default",
+      icon: SecondIcon,
+      onConfirm: secondConfirm,
+    });
+  });
+
+  it("clears optional confirm dialog fields when replacement omits them", () => {
+    const FirstIcon = () => null;
+    const firstConfirm = vi.fn();
+    const secondConfirm = vi.fn();
+
+    useUiStore.getState().showConfirm("Delete feed?", firstConfirm, {
+      actionLabel: "Delete",
+      variant: "destructive",
+      icon: FirstIcon,
+    });
+    useUiStore.getState().showConfirm("Continue?", secondConfirm);
+
+    expect(useUiStore.getState().confirmDialog).toEqual({
+      open: true,
+      message: "Continue?",
+      actionLabel: null,
+      variant: "default",
+      icon: null,
+      onConfirm: secondConfirm,
+    });
+  });
+
+  it("closes confirm dialog without retaining stale callback or icon", () => {
+    const Icon = () => null;
+    const onConfirm = vi.fn();
+
+    useUiStore.getState().showConfirm("Delete feed?", onConfirm, {
+      actionLabel: "Delete",
+      variant: "destructive",
+      icon: Icon,
+    });
+    useUiStore.getState().closeConfirm();
+
+    expect(useUiStore.getState().confirmDialog).toEqual({
+      open: false,
+      message: "",
+      actionLabel: null,
+      variant: "default",
+      icon: null,
+      onConfirm: null,
     });
   });
 });

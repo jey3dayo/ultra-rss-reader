@@ -9,10 +9,25 @@ let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 const manualSyncCooldownListeners = new Set<() => void>();
 
-function emitManualSyncCooldownChanged() {
-  for (const listener of manualSyncCooldownListeners) {
-    listener();
+function reportManualSyncCooldownListenerError(error: unknown) {
+  console.error("Manual sync cooldown listener failed:", error);
+}
+
+export function notifyManualSyncCooldownListeners(
+  listeners: Iterable<() => void>,
+  onListenerError: (error: unknown) => void = reportManualSyncCooldownListenerError,
+) {
+  for (const listener of listeners) {
+    try {
+      listener();
+    } catch (error) {
+      onListenerError(error);
+    }
   }
+}
+
+function emitManualSyncCooldownChanged() {
+  notifyManualSyncCooldownListeners(manualSyncCooldownListeners);
 }
 
 function setManualSyncCooldownUntil(nextCooldownUntil: number) {
@@ -50,7 +65,7 @@ export function subscribeManualSyncCooldown(listener: () => void) {
 }
 
 export function isManualSyncCoolingDown() {
-  return manualSyncCooldownUntil > getCurrentTimeMs();
+  return manualSyncCooldownTimer !== null;
 }
 
 type TriggerManualSyncWithCooldownParams = {

@@ -1,14 +1,22 @@
-import { STORAGE_KEYS } from "@/constants/storage";
+import { LEGACY_STORAGE_KEYS, STORAGE_KEYS } from "@/constants/storage";
 import { STARTUP_SYNC_THROTTLE_MS } from "@/constants/ui-runtime";
 import { getCurrentTimeMs } from "@/lib/datetime";
 
 type StartupSyncStorage = Pick<Storage, "getItem" | "removeItem" | "setItem">;
+const startupSyncStorageKeys = [
+  STORAGE_KEYS.startupSyncLastTriggeredAt,
+  LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt,
+] as const;
 
 function readStartupSyncStorage(): StartupSyncStorage | null {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.localStorage;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 export function getLastStartupSyncTriggeredAt(
@@ -20,18 +28,27 @@ export function getLastStartupSyncTriggeredAt(
   }
 
   try {
-    const rawValue = storage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt);
-    if (!rawValue) {
-      return null;
+    for (const storageKey of startupSyncStorageKeys) {
+      const rawValue = storage.getItem(storageKey);
+      if (!rawValue) {
+        continue;
+      }
+
+      const timestamp = Number(rawValue);
+      if (!Number.isFinite(timestamp) || timestamp > now) {
+        storage.removeItem(storageKey);
+        continue;
+      }
+
+      if (storageKey === LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt) {
+        storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
+        storage.removeItem(LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt);
+      }
+
+      return timestamp;
     }
 
-    const timestamp = Number(rawValue);
-    if (!Number.isFinite(timestamp) || timestamp > now) {
-      storage.removeItem(STORAGE_KEYS.startupSyncLastTriggeredAt);
-      return null;
-    }
-
-    return timestamp;
+    return null;
   } catch {
     return null;
   }

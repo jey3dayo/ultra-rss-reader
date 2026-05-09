@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
+import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("@/api/tauri-commands", () => ({
   getPreferences: vi.fn(),
@@ -48,11 +49,67 @@ function mockReducedMotion(matches: boolean): void {
   });
 }
 
+function mockSystemThemeMedia(initialMatches: boolean) {
+  const listeners = new Set<(event: MediaQueryListEvent) => void>();
+  const mediaQuery = {
+    matches: initialMatches,
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn((event: string, listener: EventListenerOrEventListenerObject) => {
+      if (event === "change" && typeof listener === "function") {
+        listeners.add(listener as (event: MediaQueryListEvent) => void);
+      }
+    }),
+    removeEventListener: vi.fn((event: string, listener: EventListenerOrEventListenerObject) => {
+      if (event === "change" && typeof listener === "function") {
+        listeners.delete(listener as (event: MediaQueryListEvent) => void);
+      }
+    }),
+    dispatchEvent: vi.fn(() => false),
+  };
+
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn<typeof window.matchMedia>((query) => {
+      if (query === "(prefers-color-scheme: dark)") {
+        return mediaQuery;
+      }
+
+      return {
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(() => false),
+      };
+    }),
+  });
+
+  return {
+    listeners,
+    addEventListener: mediaQuery.addEventListener,
+    removeEventListener: mediaQuery.removeEventListener,
+    dispatchChange: (matches: boolean) => {
+      mediaQuery.matches = matches;
+      for (const listener of listeners) {
+        listener({ matches } as MediaQueryListEvent);
+      }
+    },
+  };
+}
+
 describe("usePreferencesStore preferences", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    vi.mocked(setPreference).mockResolvedValue(Result.succeed(null));
     usePreferencesStore.setState({ prefs: {}, loaded: false });
+    useUiStore.setState({ toastMessage: null });
     document.documentElement.classList.remove("dark", "theme-transitioning", "vertical-wipe-transition");
     document.documentElement.style.colorScheme = "";
     Object.defineProperty(document, "startViewTransition", {
@@ -84,7 +141,7 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().theme()).toBe("light");
   });
 
-  it("wraps manual theme switches in a vertical wipe view transition when supported", async () => {
+  it("keeps manual theme switches as Tauri document-root view transitions when supported", async () => {
     const transitionDone = createDeferred();
     const startViewTransition = vi.fn((callback: ViewTransitionUpdateCallback): ViewTransition => {
       callback();
@@ -136,6 +193,30 @@ describe("usePreferencesStore preferences", () => {
     expect(document.documentElement).not.toHaveClass("vertical-wipe-transition");
   });
 
+  it.each(["light", "dark"] as const)("removes the system theme listener when switching from system to %s", (theme) => {
+    const systemTheme = mockSystemThemeMedia(false);
+
+    usePreferencesStore.getState().setPref("theme", "system");
+
+    expect(systemTheme.addEventListener).toHaveBeenCalledWith("change", expect.any(Function));
+    expect(systemTheme.listeners.size).toBe(1);
+    expect(document.documentElement).not.toHaveClass("dark");
+
+    systemTheme.dispatchChange(true);
+    expect(document.documentElement).toHaveClass("dark");
+
+    usePreferencesStore.getState().setPref("theme", theme);
+
+    expect(systemTheme.removeEventListener).toHaveBeenCalledWith("change", expect.any(Function));
+    expect(systemTheme.listeners.size).toBe(0);
+    expect(document.documentElement.classList.contains("dark")).toBe(theme === "dark");
+
+    systemTheme.dispatchChange(theme !== "dark");
+
+    expect(document.documentElement.classList.contains("dark")).toBe(theme === "dark");
+    expect(document.documentElement.style.colorScheme).toBe(theme);
+  });
+
   it("does not add a transition class when applying the persisted theme during startup", async () => {
     vi.mocked(getPreferences).mockResolvedValue(Result.succeed({ theme: "dark" }));
 
@@ -168,6 +249,33 @@ describe("usePreferencesStore preferences", () => {
     });
   });
 
+  it("normalizes schema-invalid backend preferences before storing loaded state", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(
+      Result.succeed({
+        theme: "midnight",
+        language: "klingon",
+        font_style: "comic_sans",
+        font_size: "huge",
+        show_sidebar_unread: "maybe",
+        after_reading: "mark_as_read",
+        custom_backend_preference: "preserved",
+      }),
+    );
+
+    await usePreferencesStore.getState().loadPreferences();
+
+    expect(usePreferencesStore.getState().prefs).toMatchObject({
+      theme: "light",
+      language: "system",
+      font_style: "sans_serif",
+      font_size: "medium",
+      show_sidebar_unread: "true",
+      after_reading: "immediately",
+      custom_backend_preference: "preserved",
+    });
+    expect(usePreferencesStore.getState().theme()).toBe("light");
+  });
+
   it("dedupes concurrent failed preference loads and applies the default language fallback", async () => {
     const changeLanguage = vi.spyOn(i18n, "changeLanguage");
     const languageDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "language");
@@ -192,6 +300,54 @@ describe("usePreferencesStore preferences", () => {
       expect(usePreferencesStore.getState().loaded).toBe(true);
       expect(usePreferencesStore.getState().prefs).toEqual({});
       expect(changeLanguage).toHaveBeenCalledWith("ja");
+      expect(document.documentElement).toHaveClass("font-sans");
+      expect(document.documentElement).toHaveClass("text-base");
+    } finally {
+      changeLanguage.mockRestore();
+      if (languageDescriptor) {
+        Object.defineProperty(navigator, "language", languageDescriptor);
+      }
+    }
+  });
+
+  it("recovers from rejected preference loads with defaults and allows retry", async () => {
+    const changeLanguage = vi.spyOn(i18n, "changeLanguage");
+    const languageDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "language");
+    Object.defineProperty(navigator, "language", {
+      configurable: true,
+      value: "ja-JP",
+    });
+    vi.mocked(getPreferences)
+      .mockRejectedValueOnce(new Error("transport down"))
+      .mockResolvedValueOnce(
+        Result.succeed({
+          language: "en",
+          font_style: "serif",
+          font_size: "large",
+        }),
+      );
+
+    try {
+      await usePreferencesStore.getState().loadPreferences();
+
+      expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(usePreferencesStore.getState().prefs).toEqual({});
+      expect(changeLanguage).toHaveBeenCalledWith("ja");
+      expect(document.documentElement).toHaveClass("font-sans");
+      expect(document.documentElement).toHaveClass("text-base");
+
+      await usePreferencesStore.getState().loadPreferences();
+
+      expect(getPreferences).toHaveBeenCalledTimes(2);
+      expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        language: "en",
+        font_style: "serif",
+        font_size: "large",
+      });
+      expect(changeLanguage).toHaveBeenCalledWith("en");
+      expect(document.documentElement).toHaveClass("font-serif");
+      expect(document.documentElement).toHaveClass("text-lg");
     } finally {
       changeLanguage.mockRestore();
       if (languageDescriptor) {
@@ -211,6 +367,28 @@ describe("usePreferencesStore preferences", () => {
 
     expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
     expect(vi.mocked(setPreference)).toHaveBeenCalledWith("theme", "dark");
+  });
+
+  it("reports rejected manual preference persists without rolling back optimistic theme state or mirrored cache", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(setPreference).mockRejectedValue(new Error("db offline"));
+
+    try {
+      usePreferencesStore.getState().setPref("theme", "dark");
+      await vi.waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("Failed to persist preference theme:", expect.any(Error));
+      });
+
+      expect(usePreferencesStore.getState().prefs.theme).toBe("dark");
+      expect(document.documentElement).toHaveClass("dark");
+      expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "設定の保存に失敗しました: db offline",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("keeps the bootstrapped theme and mirrored cache when loading preferences fails", async () => {

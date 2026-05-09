@@ -4,7 +4,6 @@ import { initReactI18next } from "react-i18next";
 import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 
 export const supportedLanguages = ["en", "ja"] as const;
-export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 i18n
   .use(LanguageDetector)

@@ -10,7 +10,11 @@ export type AddAccountPayload = {
   password?: string;
 };
 
-export type AddAccountValidationError = "missing_server_url" | "missing_username" | "missing_password";
+export type AddAccountValidationError =
+  | "missing_server_url"
+  | "invalid_server_url"
+  | "missing_username"
+  | "missing_password";
 
 export type AddAccountFormState = {
   kind: AddAccountProviderKind;
@@ -42,6 +46,12 @@ export function addAccountFormReducer(state: AddAccountFormState, action: AddAcc
 }
 
 type AddAccountFormInput = AddAccountFormState;
+
+type AddAccountValidationMessageKey =
+  | "account.error_server_url_required"
+  | "account.error_server_url_invalid"
+  | "account.error_username_required"
+  | "account.error_password_required";
 
 type AddAccountFormConfig = {
   sectionHeading: "Account" | "Server" | "Credentials";
@@ -75,14 +85,25 @@ export function getAddAccountFormConfig(kind: AddAccountProviderKind): AddAccoun
 export function formatAddAccountValidationError(
   _kind: AddAccountProviderKind,
   error: AddAccountValidationError,
-): string {
+): AddAccountValidationMessageKey {
   switch (error) {
     case "missing_server_url":
-      return "Server URL is required";
+      return "account.error_server_url_required";
+    case "invalid_server_url":
+      return "account.error_server_url_invalid";
     case "missing_username":
-      return "Username is required";
+      return "account.error_username_required";
     case "missing_password":
-      return "Password is required";
+      return "account.error_password_required";
+  }
+}
+
+function isValidServerUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
   }
 }
 
@@ -112,6 +133,9 @@ export function buildAddAccountPayload(
     const serverUrl = input.serverUrl.trim();
     if (!serverUrl) {
       return Result.fail("missing_server_url");
+    }
+    if (!isValidServerUrl(serverUrl)) {
+      return Result.fail("invalid_server_url");
     }
 
     return Result.pipe(

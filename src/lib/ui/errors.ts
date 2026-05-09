@@ -1,13 +1,28 @@
 import type { ToastData, ToastSeverity } from "@/lib/ui/toast.types";
 
-export function getErrorMessage(error: unknown) {
+const UNKNOWN_ERROR_MESSAGE = "Unknown error";
+
+function normalizeErrorMessage(message: unknown): string {
+  if (typeof message !== "string") {
+    return UNKNOWN_ERROR_MESSAGE;
+  }
+
+  const normalizedMessage = message.trim();
+  return normalizedMessage.length > 0 ? normalizedMessage : UNKNOWN_ERROR_MESSAGE;
+}
+
+export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    return error.message;
+    return normalizeErrorMessage(error.message);
   }
   if (typeof error === "object" && error !== null && "message" in error) {
-    return String(Reflect.get(error, "message"));
+    try {
+      return normalizeErrorMessage(Reflect.get(error, "message"));
+    } catch {
+      return UNKNOWN_ERROR_MESSAGE;
+    }
   }
-  return "Unknown error";
+  return UNKNOWN_ERROR_MESSAGE;
 }
 
 export type UiErrorProjectionInput = {
@@ -28,17 +43,19 @@ export function projectUiErrorToast({
   onDismiss,
 }: UiErrorProjectionInput): ToastData {
   const actions: ToastData["actions"] = [];
+  const normalizedRetryLabel = retryLabel?.trim();
+  const normalizedDismissLabel = dismissLabel?.trim();
 
-  if (retryLabel && onRetry) {
-    actions.push({ label: retryLabel, onClick: onRetry });
+  if (normalizedRetryLabel && onRetry) {
+    actions.push({ label: normalizedRetryLabel, onClick: onRetry });
   }
 
-  if (dismissLabel && onDismiss) {
-    actions.push({ label: dismissLabel, onClick: onDismiss });
+  if (normalizedDismissLabel && onDismiss) {
+    actions.push({ label: normalizedDismissLabel, onClick: onDismiss });
   }
 
   return {
-    message,
+    message: normalizeErrorMessage(message),
     severity,
     ...(actions.length > 0 ? { actions } : {}),
   };

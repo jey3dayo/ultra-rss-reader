@@ -1,14 +1,14 @@
-import type { Theme } from "@/schemas/preferences";
+import type { PreferenceRecord, Theme } from "@/schemas/preferences";
 
-export interface PreferencesState {
-  prefs: Record<string, string>;
+export type PreferencesState = {
+  prefs: PreferenceRecord;
   loaded: boolean;
-}
+};
 
-export interface PreferencesActions {
+export type PreferencesActions = {
   loadPreferences: () => Promise<void>;
   setPref: (key: string, value: string) => void;
   theme: () => Theme;
   sortUnread: () => string;
   groupBy: () => string;
-}
+};

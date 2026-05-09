@@ -1,7 +1,8 @@
-export type ToastAction = {
-  label: string;
-  onClick: () => void;
-};
+import type { UiFeedbackAction } from "@/lib/ui/action.types";
+
+// Toasts share only the minimal label/callback action primitive with display states;
+// severity, progress, persistence, and update variants stay toast-specific.
+export type ToastAction = UiFeedbackAction;
 
 export type ToastSeverity = "info" | "success" | "warning" | "error";
 

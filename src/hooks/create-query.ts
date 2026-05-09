@@ -2,11 +2,15 @@ import { Result } from "@praha/byethrow";
 import { useQuery } from "@tanstack/react-query";
 
 function requireQueryId(id: string | null): string {
-  if (!id) {
+  if (!id || id.trim().length === 0) {
     throw new Error("Query id is required when the query is enabled.");
   }
 
   return id;
+}
+
+function hasQueryId(id: string | null): boolean {
+  return id !== null && id.trim().length > 0;
 }
 
 export function createQuery<TData, TId extends string | null>(
@@ -17,7 +21,7 @@ export function createQuery<TData, TId extends string | null>(
     return useQuery({
       queryKey: [queryKey, id],
       queryFn: () => fetcher(requireQueryId(id)).then(Result.unwrap()),
-      enabled: !!id,
+      enabled: hasQueryId(id),
     });
   };
 }

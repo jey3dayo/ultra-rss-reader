@@ -14,9 +14,11 @@ function requireAccountSyncStatusId(accountId: string | null): string {
 }
 
 export function useAccountSyncStatus(accountId: string | null) {
+  const normalizedAccountId = accountId?.trim() || null;
+
   return useQuery({
-    queryKey: accountSyncStatusQueryKey(accountId),
-    queryFn: async () => Result.unwrap(await getAccountSyncStatus(requireAccountSyncStatusId(accountId))),
-    enabled: Boolean(accountId),
+    queryKey: accountSyncStatusQueryKey(normalizedAccountId),
+    queryFn: async () => Result.unwrap(await getAccountSyncStatus(requireAccountSyncStatusId(normalizedAccountId))),
+    enabled: Boolean(normalizedAccountId),
   });
 }

@@ -80,7 +80,7 @@ export function closeAccountPaneAndFocusSidebar() {
 export function selectCurrentAccountPaneTargetAndFocusSidebar(): boolean {
   const targets = getAccountPaneNavigationTargets();
   const currentTarget = getCurrentAccountPaneTarget(targets);
-  const accountId = currentTarget?.getAttribute(ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE);
+  const accountId = currentTarget?.getAttribute(ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE)?.trim();
   if (!accountId) {
     return false;
   }
