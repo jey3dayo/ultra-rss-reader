@@ -10,6 +10,8 @@ import pullRequestTemplate from "../../../.github/PULL_REQUEST_TEMPLATE.md?raw";
 import releaseNotesConfig from "../../../.github/release.yml?raw";
 import prInsightsLabelerWorkflow from "../../../.github/workflows/pr-insights-labeler.yml?raw";
 import storybookConfig from "../../../.storybook/main";
+import appE2eSpec from "../../../e2e/app.spec.ts?raw";
+import runtimeErrorGuardHelper from "../../../e2e/helpers/runtime-error-guard.ts?raw";
 import { uiReferenceCanvasStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 import packageJson from "../../../package.json";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
@@ -796,6 +798,23 @@ describe("repository static contracts", () => {
     expect(viteConfig).toContain("strictPort: true");
     expect(extractUrlPort(playwrightBaseUrl)).toBe(vitePort);
     expect(playwrightWebServerUrl).toBe(playwrightBaseUrl);
+  });
+
+  it("keeps app E2E tests covered by the runtime error guard", () => {
+    const runtimeGuardImports = ["disposeRuntimeErrorGuard", "expectNoPageErrors", "installRuntimeErrorGuard"] as const;
+
+    for (const importedName of runtimeGuardImports) {
+      expect(appE2eSpec).toContain(importedName);
+      expect(runtimeErrorGuardHelper).toContain(`function ${importedName}`);
+    }
+
+    expect(appE2eSpec).toContain("test.beforeEach(async ({ page }) => {");
+    expect(appE2eSpec).toContain("installRuntimeErrorGuard(page);");
+    expect(appE2eSpec).toContain("test.afterEach(async ({ page }) => {");
+    expect(appE2eSpec).toContain("expectNoPageErrors(page);");
+    expect(appE2eSpec).toContain("disposeRuntimeErrorGuard(page);");
+    expect(runtimeErrorGuardHelper).toContain('page.on("pageerror", pageErrorHandler)');
+    expect(runtimeErrorGuardHelper).toContain('page.off("pageerror", pageErrorHandler)');
   });
 
   it("keeps app and Storybook Playwright artifacts separated", () => {
