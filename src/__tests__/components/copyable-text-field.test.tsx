@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
@@ -160,12 +160,14 @@ describe("CopyableTextField", () => {
     );
 
     const input = screen.getByRole("textbox", { name: "Server URL" });
+    const copyButton = screen.getByRole("button", { name: "Copy server URL" });
     await user.click(input);
 
     expect(input).toHaveFocus();
     expect(input).toHaveSelection("https://example.com");
+    expect(fireEvent.pointerDown(copyButton)).toBe(false);
 
-    await user.click(screen.getByRole("button", { name: "Copy server URL" }));
+    await user.click(copyButton);
 
     expect(onCopy).toHaveBeenCalledOnce();
     expect(input).toHaveFocus();

@@ -66,6 +66,7 @@ export function CopyableTextField({
               type="button"
               variant="ghost"
               size="icon-sm"
+              onPointerDown={(event) => event.preventDefault()}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onCopy(value)}
               disabled={disabled || !canCopy}
