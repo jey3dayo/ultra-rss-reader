@@ -16,7 +16,7 @@ export function useConfirmMarkAllRead() {
 
   return useCallback(
     ({ count, onConfirm }: ConfirmMarkAllReadOptions) => {
-      if (count === 0) return;
+      if (!Number.isFinite(count) || count <= 0) return;
       if (askBeforeMarkAll === "true") {
         showConfirm(t("confirm_mark_read", { count }), onConfirm, {
           actionLabel: tc("mark_as_read_action"),
