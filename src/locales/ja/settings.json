@@ -133,7 +133,7 @@
     "behavior": "ミュート時の動作",
     "auto_mark_read": "ミュート時に自動既読",
     "auto_mark_read_note": "オンにすると、既存の一致記事もすぐ既読になります。オフに戻しても未読には戻りません。",
-    "keyword_too_short_note": "キーワードは3文字以上で入力してください。",
+    "keyword_too_short_note": "キーワードは3文字以上で入力してください。大文字小文字を区別しない一致はASCII英字のみです。",
     "auto_mark_read_failed": "自動既読の更新に失敗しました: {{message}}",
     "delete": "削除",
     "cancel": "キャンセル",

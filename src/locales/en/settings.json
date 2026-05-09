@@ -133,7 +133,7 @@
     "behavior": "Behavior",
     "auto_mark_read": "Auto mark as read",
     "auto_mark_read_note": "Turning this on marks existing muted matches as read immediately. Turning it off does not restore unread state.",
-    "keyword_too_short_note": "Use at least 3 characters so broad words do not mute too much by accident.",
+    "keyword_too_short_note": "Use at least 3 characters. Case-insensitive matching applies to ASCII letters only.",
     "auto_mark_read_failed": "Failed to update auto mark as read: {{message}}",
     "delete": "Delete",
     "cancel": "Cancel",
