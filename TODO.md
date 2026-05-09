@@ -140,11 +140,6 @@
   - account 作成成功後に `qc.invalidateQueries({ queryKey: ["accounts"] })` / `["feeds"]` を await も catch もせず呼んでおり、cache refresh failure と setup sync 開始の順序が未固定
   - account creation success、cache invalidation failure、setup sync reject を分け、created account の選択と settings account id が stale にならないことを test で固定する
 
-- [ ] P0 sidebar sync status invalidation failure を修正する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`
-  - `sync-completed` event 後の `queryClient.invalidateQueries(accountSyncStatusQueryKey())` が fire-and-forget で、sync status row が stale のまま残る failure を捕捉できない
-  - invalidation failure は log-only / toast / status warning のどれにするか決め、malformed event payload と合わせて focused test にする
-
 - [ ] P0 feed display preset fire-and-forget failure を修正する
   - 対象: `src/components/reader/feed-context-menu.tsx`, `src/components/reader/folder-context-menu.tsx`
   - feed/folder display preset update が fire-and-forget で、persist failure 時に選択 UI と backend preference がズレる
