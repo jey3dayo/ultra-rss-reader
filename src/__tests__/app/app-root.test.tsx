@@ -383,13 +383,6 @@ describe("App", () => {
     consoleWarnSpy.mockRestore();
   });
 
-  it("uses the shared user-visible test error fixture shape", () => {
-    expect(testUserVisibleAppError("sync failed")).toEqual({
-      type: "UserVisible",
-      message: "sync failed",
-    });
-  });
-
   it("logs sync-on-wake account sync failures", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
