@@ -30,6 +30,10 @@ type AccountSwitcherViewModel = {
   canOpenAccountList: boolean;
 };
 
+function getRuntimeDocument(): Document | null {
+  return typeof document === "undefined" ? null : document;
+}
+
 function sidebarAccountSwitcherReducer(
   state: SidebarAccountSwitcherState,
   action: SidebarAccountSwitcherAction,
@@ -50,7 +54,25 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const accountItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const restoreFocusFrameRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
   const accountMenuId = useId();
+
+  const cancelRestoreFocusFrame = useCallback(() => {
+    if (restoreFocusFrameRef.current !== null) {
+      cancelAnimationFrame(restoreFocusFrameRef.current);
+      restoreFocusFrameRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      cancelRestoreFocusFrame();
+    };
+  }, [cancelRestoreFocusFrame]);
 
   useEffect(() => {
     if (!isAccountListOpen) return;
@@ -61,20 +83,54 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
       }
     };
 
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const ownerDocument = accountDropdownRef.current?.ownerDocument ?? getRuntimeDocument();
+    if (!ownerDocument) {
+      return;
+    }
+
+    try {
+      ownerDocument.addEventListener("mousedown", handler);
+    } catch (error) {
+      console.warn("Failed to bind sidebar account switcher outside-click listener.", error);
+      return;
+    }
+
+    return () => {
+      try {
+        ownerDocument.removeEventListener("mousedown", handler);
+      } catch (error) {
+        console.warn("Failed to cleanup sidebar account switcher outside-click listener.", error);
+      }
+    };
   }, [isAccountListOpen]);
 
-  const closeAccountList = useCallback((restoreFocus = false) => {
-    dispatch({ type: "set-account-list-open", value: false });
-    if (restoreFocus) {
-      accountTriggerRef.current?.focus();
-    }
-  }, []);
+  const closeAccountList = useCallback(
+    (restoreFocus = false) => {
+      dispatch({ type: "set-account-list-open", value: false });
+      cancelRestoreFocusFrame();
+      if (restoreFocus) {
+        const restoreFocusFrame = requestAnimationFrame(() => {
+          if (restoreFocusFrameRef.current !== restoreFocusFrame) {
+            return;
+          }
+
+          restoreFocusFrameRef.current = null;
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          accountTriggerRef.current?.focus();
+        });
+        restoreFocusFrameRef.current = restoreFocusFrame;
+      }
+    },
+    [cancelRestoreFocusFrame],
+  );
 
   const toggleAccountList = useCallback(() => {
+    cancelRestoreFocusFrame();
     dispatch({ type: "toggle-account-list-open" });
-  }, []);
+  }, [cancelRestoreFocusFrame]);
 
   return {
     isAccountListOpen,

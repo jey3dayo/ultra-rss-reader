@@ -68,9 +68,14 @@ describe("useSidebarAccountSwitcher", () => {
   });
 
   it("restores focus to the trigger when closing with restoreFocus", () => {
+    const scheduledCallbacks: FrameRequestCallback[] = [];
     const trigger = document.createElement("button");
     const other = document.createElement("button");
     document.body.append(trigger, other);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 1;
+    });
     const { result } = renderHook(() => useSidebarAccountSwitcher());
     setRef(result.current.accountTriggerRef, trigger);
     other.focus();
@@ -85,7 +90,60 @@ describe("useSidebarAccountSwitcher", () => {
     });
 
     expect(result.current.isAccountListOpen).toBe(false);
+    scheduledCallbacks[0]?.(0);
     expect(trigger).toHaveFocus();
+  });
+
+  it("cancels restore focus when the account list reopens before the focus frame runs", () => {
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    const trigger = document.createElement("button");
+    const other = document.createElement("button");
+    document.body.append(trigger, other);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 88;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const focusSpy = vi.spyOn(trigger, "focus");
+    const { result } = renderHook(() => useSidebarAccountSwitcher());
+    setRef(result.current.accountTriggerRef, trigger);
+    other.focus();
+
+    act(() => {
+      result.current.toggleAccountList();
+      result.current.closeAccountList(true);
+    });
+    expect(result.current.isAccountListOpen).toBe(false);
+
+    act(() => {
+      result.current.toggleAccountList();
+    });
+
+    expect(scheduledCallbacks).toHaveLength(1);
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(88);
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps the account list mounted when outside-click listener binding fails", () => {
+    const error = new Error("document listener blocked");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(document, "addEventListener").mockImplementation((type, listener, options) => {
+      if (type === "mousedown") {
+        throw error;
+      }
+
+      return EventTarget.prototype.addEventListener.call(document, type, listener, options);
+    });
+    const { result } = renderHook(() => useSidebarAccountSwitcher());
+
+    expect(() => {
+      act(() => {
+        result.current.toggleAccountList();
+      });
+    }).not.toThrow();
+
+    expect(result.current.isAccountListOpen).toBe(true);
+    expect(warn).toHaveBeenCalledWith("Failed to bind sidebar account switcher outside-click listener.", error);
   });
 
   it("resolves the fallback title when the selected account is missing", () => {

@@ -10,6 +10,10 @@ type UseArticleTagPickerPopoverParams = {
   onNewTagNameChange: ArticleTagPickerViewProps["onNewTagNameChange"];
 };
 
+function getRuntimeDocument(): Document | null {
+  return typeof document === "undefined" ? null : document;
+}
+
 export function useArticleTagPickerPopover({
   isExpanded,
   availableTagCount,
@@ -87,8 +91,25 @@ export function useArticleTagPickerPopover({
       }
     };
 
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
+    const ownerDocument = pickerRef.current?.ownerDocument ?? getRuntimeDocument();
+    if (!ownerDocument) {
+      return;
+    }
+
+    try {
+      ownerDocument.addEventListener("mousedown", handleMouseDown);
+    } catch (error) {
+      console.warn("Failed to bind article tag picker outside-click listener.", error);
+      return;
+    }
+
+    return () => {
+      try {
+        ownerDocument.removeEventListener("mousedown", handleMouseDown);
+      } catch (error) {
+        console.warn("Failed to cleanup article tag picker outside-click listener.", error);
+      }
+    };
   }, [closePicker, isExpanded]);
 
   useEffect(() => {
@@ -99,10 +120,11 @@ export function useArticleTagPickerPopover({
     hasFocusedOnOpenRef.current = true;
 
     const frameId = requestAnimationFrame(() => {
-      const activeElement = document.activeElement;
+      const ownerDocument = pickerRef.current?.ownerDocument ?? getRuntimeDocument();
+      const activeElement = ownerDocument?.activeElement ?? null;
       if (
         activeElement &&
-        activeElement !== document.body &&
+        activeElement !== ownerDocument?.body &&
         activeElement !== triggerRef.current &&
         pickerRef.current?.contains(activeElement)
       ) {
@@ -153,7 +175,7 @@ export function useArticleTagPickerPopover({
 
   const handleListboxKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      const currentIndex = getActiveRovingButtonIndex(tagOptionRefs, document.activeElement);
+      const currentIndex = getActiveRovingButtonIndex(tagOptionRefs, event.currentTarget.ownerDocument.activeElement);
 
       if (event.key === "Escape") {
         event.preventDefault();

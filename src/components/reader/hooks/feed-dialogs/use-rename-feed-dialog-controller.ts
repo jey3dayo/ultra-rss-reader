@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +8,7 @@ import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { resolveFeedDisplayPreset } from "@/lib/articles/article-display";
-import { copyValueToClipboard } from "@/lib/runtime/clipboard";
+import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { type FeedEditorState, submitFeedEdits } from "../../feed-edit-submit";
 import type {
@@ -86,13 +87,14 @@ export function useRenameFeedDialogController({
   }, [open, feed, feed.folder_id, feed.title, resetFolderSelection]);
 
   const handleCopy = async (value: string) => {
-    await copyValueToClipboard(value, {
-      onSuccess: () => showToast(t("copied_to_clipboard")),
-      onError: (message, error) => {
+    Result.pipe(
+      await copyTextToClipboard(value),
+      Result.inspect(() => showToast(t("copied_to_clipboard"))),
+      Result.inspectError((error) => {
         console.error("Copy failed:", error);
-        showToast(message);
-      },
-    });
+        showToast(error.message);
+      }),
+    );
   };
 
   const handleSubmit = async () => {

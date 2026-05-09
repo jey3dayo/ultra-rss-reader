@@ -1,0 +1,94 @@
+import { Result } from "@praha/byethrow";
+import { act, renderHook } from "@testing-library/react";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { sampleFeeds } from "@tests/helpers/fixtures";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRenameFeedDialogController } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller";
+import type { ToastData } from "@/lib/ui/toast.types";
+import { useUiStore } from "@/stores/ui-store";
+
+const { copyTextToClipboardMock } = vi.hoisted(() => ({
+  copyTextToClipboardMock: vi.fn(),
+}));
+
+vi.mock("@/lib/runtime/clipboard", () => ({
+  copyTextToClipboard: copyTextToClipboardMock,
+}));
+
+vi.mock("@/hooks/use-folders", () => ({
+  useFolders: () => ({ data: [] }),
+}));
+
+vi.mock("@/hooks/use-update-feed-display-mode", () => ({
+  useUpdateFeedDisplaySettings: () => vi.fn(async () => true),
+}));
+
+vi.mock("@/hooks/use-update-feed-folder", () => ({
+  useUpdateFeedFolder: () => ({ mutateAsync: vi.fn(async () => undefined) }),
+}));
+
+describe("useRenameFeedDialogController copy action", () => {
+  let showToast: ReturnType<typeof vi.fn<(message: string | ToastData) => void>>;
+
+  beforeEach(() => {
+    copyTextToClipboardMock.mockReset();
+    showToast = vi.fn();
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.setState({ showToast });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  it.each([
+    ["clipboard unavailable", "runtime_unavailable"],
+    ["Permission denied", "permission_denied"],
+    ["Invalid clipboard text", "invalid_text"],
+  ] as const)("surfaces %s as a categorized copy rejection", async (message, category) => {
+    const error = { type: "UserVisible" as const, message, category };
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    copyTextToClipboardMock.mockResolvedValue(Result.fail(error));
+    const { wrapper } = createQueryWrapper();
+    const { result } = renderHook(
+      () =>
+        useRenameFeedDialogController({
+          feed: sampleFeeds[0],
+          open: true,
+          onOpenChange: vi.fn(),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleCopy(category === "invalid_text" ? "" : "https://example.com/feed.xml");
+    });
+
+    expect(showToast).toHaveBeenCalledWith(message);
+    expect(consoleError).toHaveBeenCalledWith("Copy failed:", error);
+    expect(copyTextToClipboardMock).toHaveBeenCalledWith(
+      category === "invalid_text" ? "" : "https://example.com/feed.xml",
+    );
+  });
+
+  it("shows the copied toast after a successful readonly URL copy", async () => {
+    copyTextToClipboardMock.mockResolvedValue(Result.succeed(undefined));
+    const { wrapper } = createQueryWrapper();
+    const { result } = renderHook(
+      () =>
+        useRenameFeedDialogController({
+          feed: sampleFeeds[0],
+          open: true,
+          onOpenChange: vi.fn(),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleCopy("https://example.com/feed.xml");
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Copied");
+  });
+});

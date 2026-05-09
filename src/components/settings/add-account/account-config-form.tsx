@@ -83,12 +83,13 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
   });
   const { submitting, errorMessage } = uiState;
   const submittingRef = useRef(submitting);
+  const submittedSuccessfullyRef = useRef(false);
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const serviceDef = findServiceDefinition(kind);
 
   const handleSubmit = async () => {
-    if (submittingRef.current) {
+    if (submittingRef.current || submittedSuccessfullyRef.current) {
       return;
     }
 
@@ -131,6 +132,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           useUiStore.getState().clearAccountSetup();
         }),
         Result.inspect((account) => {
+          submittedSuccessfullyRef.current = true;
           upsertCachedAccount(qc, account);
           invalidateQueryKeysLogOnly(qc, [["accounts"], queryKeys.feeds.root]);
           const { selectAccount } = useUiStore.getState();

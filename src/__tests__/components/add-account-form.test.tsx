@@ -10,6 +10,7 @@ import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AddAccountForm, buildServicePickerCategories } from "@/components/settings/add-account/controller";
 import { ServicePicker } from "@/components/settings/add-account/service-picker";
+import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import i18n from "@/lib/i18n";
 import enSettings from "@/locales/en/settings.json";
 import jaSettings from "@/locales/ja/settings.json";
@@ -649,6 +650,95 @@ describe("AddAccountForm", () => {
       sync_interval_secs: 3600,
       sync_on_wake: false,
       keep_read_items_days: 30,
+    });
+  });
+
+  it("keeps setup sync ownership stable across duplicate submit, navigation away, rejection, and retry", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    let rejectSetupSync = (_error: unknown) => {};
+    let resolveSetupSync = (_value: unknown) => {};
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "add_account") {
+        return {
+          ...sampleAccounts[1],
+          id: "acc-new",
+          kind: "FreshRss",
+          name: "FreshRSS",
+          username: "alice",
+          server_url: "https://freshrss.example.com",
+          sync_interval_secs: 3600,
+          sync_on_startup: true,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
+        };
+      }
+
+      if (cmd === "trigger_sync_account") {
+        return new Promise((resolve, reject) => {
+          rejectSetupSync = reject;
+          resolveSetupSync = resolve;
+        });
+      }
+
+      return null;
+    });
+
+    const { unmount } = render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.dblClick(screen.getByRole("button", { name: "Add" }));
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "add_account")).toHaveLength(1);
+      expect(calls.filter((call) => call.cmd === "trigger_sync_account")).toHaveLength(1);
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        accountId: "acc-new",
+        owner: "add-account",
+        state: "syncing",
+      });
+    });
+
+    unmount();
+    rejectSetupSync(new Error("setup sync failed"));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        accountId: "acc-new",
+        owner: "add-account",
+        state: "failed",
+        errorMessage: "account.sync_failed",
+      });
+    });
+
+    const retry = runAccountSetupSync({
+      accountId: "acc-new",
+      queryClient: createQueryWrapper().queryClient,
+      t: i18n.getFixedT("en", "settings"),
+      owner: "add-account",
+    });
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "trigger_sync_account")).toHaveLength(2);
+    });
+    resolveSetupSync({
+      synced: true,
+      total: 1,
+      succeeded: 1,
+      failed: [],
+      warnings: [],
+    });
+    await retry;
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toBeNull();
     });
   });
 

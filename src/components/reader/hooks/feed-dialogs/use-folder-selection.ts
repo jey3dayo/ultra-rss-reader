@@ -110,18 +110,26 @@ export function useFolderSelection(initialFolderId: string | null) {
     pendingFocusFrameRef.current = focusFrame;
   }, [cancelPendingFocusFrame, isCreatingFolder]);
 
-  const resetFolderSelection = useCallback((folderId: string | null) => {
-    dispatch({ type: "reset", folderId });
-  }, []);
+  const resetFolderSelection = useCallback(
+    (folderId: string | null) => {
+      cancelPendingFocusFrame();
+      dispatch({ type: "reset", folderId });
+    },
+    [cancelPendingFocusFrame],
+  );
 
-  const handleFolderChange = useCallback((value: string) => {
-    if (value === NEW_FOLDER_VALUE) {
-      dispatch({ type: "start-creating-folder" });
-      return;
-    }
+  const handleFolderChange = useCallback(
+    (value: string) => {
+      cancelPendingFocusFrame();
+      if (value === NEW_FOLDER_VALUE) {
+        dispatch({ type: "start-creating-folder" });
+        return;
+      }
 
-    dispatch({ type: "select-folder", folderId: value || null });
-  }, []);
+      dispatch({ type: "select-folder", folderId: value || null });
+    },
+    [cancelPendingFocusFrame],
+  );
 
   return {
     selectedFolderId,
