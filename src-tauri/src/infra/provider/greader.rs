@@ -2549,7 +2549,10 @@ mod tests {
             .await;
 
         let quickadd_mock = server
-            .mock("POST", "/api/greader.php/reader/api/0/subscription/quickadd")
+            .mock(
+                "POST",
+                "/api/greader.php/reader/api/0/subscription/quickadd",
+            )
             .match_header("Authorization", "GoogleLogin auth=tok")
             .with_status(200)
             .with_body("OK")

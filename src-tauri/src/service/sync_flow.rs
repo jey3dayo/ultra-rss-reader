@@ -38,7 +38,9 @@ pub async fn sync_account(
         let pending = pending_mutation_repo.find_by_account(account_id)?;
         for pending_mutation in pending {
             let mutation = pending_to_provider_mutation(&pending_mutation);
-            provider.push_mutations(std::slice::from_ref(&mutation)).await?;
+            provider
+                .push_mutations(std::slice::from_ref(&mutation))
+                .await?;
             let id = pending_mutation.id.ok_or_else(|| {
                 DomainError::Persistence(format!(
                     "Pending mutation for remote entry {} has no id after push",
@@ -191,7 +193,9 @@ pub async fn sync_account(
     Ok(updated_feeds)
 }
 
-fn pending_to_provider_mutation(pending: &crate::repository::pending_mutation::PendingMutation) -> Mutation {
+fn pending_to_provider_mutation(
+    pending: &crate::repository::pending_mutation::PendingMutation,
+) -> Mutation {
     match pending.mutation_type {
         PendingMutationType::MarkRead => Mutation::MarkRead {
             remote_entry_id: pending.remote_entry_id.clone(),
