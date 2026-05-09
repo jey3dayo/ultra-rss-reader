@@ -40,11 +40,6 @@
   - injected script が `window.addEventListener` と focus override を入れるため、navigation / reload / recreate 時に listener が重複しないか実機寄りに確認する
   - bridge install idempotence、mouse back/forward in-flight、close in-flight の contract test または manual verification を追加する
 
-- [ ] P1 startup sync storage warning policy を整理する
-  - 対象: `src/lib/sync/startup-sync-storage.ts`, `src/App.tsx`
-  - localStorage unavailable / write failure を warn するようになっているが、startup path で毎起動 noisy にならないかと throttle bypass の影響が未整理
-  - unavailable storage 時の sync frequency、future timestamp cleanup failure、legacy key migration failure を contract test で固定する
-
 - [ ] P2 app shell debug HUD portal target contract を固定する
   - 対象: `src/components/app-shell.tsx`
   - Debug HUD が `document.body` portal と `document.activeElement` に依存するため、test/runtime boundary では document unavailable や focus target malformed の扱いが曖昧
@@ -105,21 +100,6 @@
   - second instance / foreground handling で `let _ = window.show(); let _ = window.set_focus();` と error を捨てており、packaged app の復帰失敗を追跡しにくい
   - expected unsupported と unexpected error を分けて log するか、manual verification に残すか決める
 
-- [ ] P2 dev intent runtime option cache invalidation を補強する
-  - 対象: `src/dev/intent.ts`, `src/dev/use-resolved-dev-intent.ts`
-  - runtime dev options の promise/error cache が失敗後に stale になった時、dev intent を直しても再読込まで復旧しない可能性がある
-  - failure cache clear / retry trigger / dev-only warning の contract を test で固定する
-
-- [ ] P0 feed landing selection rollback contract を固定する
-  - 対象: `src/hooks/use-feed-landing.ts`, `src/lib/feed/feed-landing.ts`, `src/stores/ui-store.ts`
-  - feed landing は feed 選択を先に store へ反映してから記事 fetch に進むため、記事 fetch failure 時に selection だけ変わり browser が閉じる状態になり得る
-  - feed selected -> article fetch reject / cached stale fallback / no landing article の時、selection 維持・rollback・empty state のどれを正にするか contract test で固定する
-
-- [ ] P0 article star optimistic cache cross-scope drift を固定する
-  - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`
-  - `patchCachedArticleStarState()` は feed cache から account id を推定して複数 query を手動更新するため、feed cache missing / duplicate feed id / stale account scope で starred list がズレやすい
-  - account feed cache なし、cross-account article id、starred mode query missing のケースで patch と invalidation の契約を focused test にする
-
 - [ ] P1 query key raw string usage を整理する
   - 対象: `src/hooks/use-accounts.ts`, `src/hooks/use-account-unread-count.ts`, `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/account-detail/query-cache.ts`, `src/lib/query/query-invalidation.ts`
   - `queryKeys` helper と raw `["accounts"]` / `["feeds"]` / `["accountUnreadCount"]` が混在し、root key rename や account scoped invalidation で漏れが出やすい
@@ -165,11 +145,6 @@
   - sync progress は `total` / `completed` / `stage` を store にそのまま取り込み、view 側で一部 clamp しているため、negative count や completed > total の source-of-truth が曖昧
   - malformed native event、completed overflow、account_finished without account_id の store normalization と UI 表示を contract test で固定する
 
-- [ ] P2 dev mock article time arithmetic boundary を補強する
-  - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`
-  - dev mock は `Date.parse()` と day threshold 計算に依存しており、invalid published_at / negative days / timezone drift の時に mock と real backend の挙動がズレやすい
-  - invalid date、future article、olderThanDays 0/negative の mock behavior を real command contract に合わせる
-
 - [ ] P2 article list retained snapshot duplicate identity contract を固定する
   - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`
   - retained article snapshot は Map で id 重複を後勝ち merge するため、same id with stale read/star state が source 間で競合した時の表示が未固定
@@ -184,31 +159,6 @@
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/build.rs`
   - app data dir 作成 / DB init / log cleanup で `expect` / `panic` / silent remove failure が混在しており、packaged startup failure の user-facing message が揺れやすい
   - app data permission denied、DB open failure、log cleanup permission denied の message と recovery guidance を native test / manual verification に分ける
-
-- [ ] P1 dev scenario query cache seeding compatibility を整理する
-  - 対象: `src/dev/scenarios/helpers.ts`, `src/dev/scenarios/types.ts`, `src/lib/query/query-invalidation.ts`
-  - dev scenario helper が query cache を直接 seed しており、`["articles", feedId]` のような実 hook と違う key が残ると scenario が実キャッシュを温めない可能性がある
-  - scenario seed key は `queryKeys` source of truth に寄せ、mode object shape / account scoped key / direct key usage を compatibility test にする
-
-- [ ] P0 account別 purge cutoff の破壊的削除を固定する
-  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
-  - old read purge が account ごとの保持期間で呼ばれる一方、repository 側の削除 scope が account 境界を持たない場合、短い保持期間の account が他 account の既読記事を削除し得る
-  - account A keep 7 days / account B keep 90 days の fixture で、purge cutoff が account scoped であることを DB repository test にする
-
-- [ ] P0 database vacuum と scheduler の排他契約を固定する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/service/sync_scheduler.rs`
-  - VACUUM は syncing state を見るが、DB 接続差し替え直後に scheduler が走る競合の契約が未固定
-  - vacuum in progress / scheduler tick / manual sync request の順序で、DB handle と user feedback が破綻しないことを native test か manual verification にする
-
-- [ ] P0 scheduled sync backoff の二重基準を統一する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/commands/sync_commands.rs`
-  - in-memory next sync と persisted retry/backoff が別基準で更新されると、settings の次回同期表示と実際の retry 時刻がズレる可能性がある
-  - auth failure / transient network failure / successful recovery の backoff reset と next retry 表示を scheduler test で固定する
-
-- [ ] P1 scheduler interval 更新時の既存 schedule 再計算を固定する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/commands/account_commands.rs`
-  - sync interval preference 変更後も既存 schedule entry が残ると、成功/失敗まで古い interval で走る可能性がある
-  - interval 60s -> disabled -> 3600s の変更で、next_sync が即時再計算されるか次回成功まで維持されるかを contract test にする
 
 - [ ] P1 same-URL webview timeout 世代管理を追加する
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src-tauri/src/browser_webview.rs`
@@ -249,11 +199,6 @@
   - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`
   - search query は trim しているが account id の blank/whitespace normalization が揃わないと、enabled 判定や cache key が実 account とズレる可能性がある
   - blank account id、trimmed query、account switch 中の search cache reuse を focused hook test にする
-
-- [ ] P1 dev mock DTO clone boundary を固定する
-  - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src/__tests__/dev/dev-mocks.test.ts`
-  - dev mock command が singleton DTO 配列や object をそのまま返すと、React Query cache 側で保持した object が後続 mock mutation によって暗黙に変わる可能性がある
-  - list accounts / feeds / tags / articles の戻り値を clone する方針を固定し、cache object identity が mock state mutation で変わらないことを test にする
 
 - [ ] P2 query client global default policy を明文化する
   - 対象: `src/lib/query/query-client.ts`, query hook tests
