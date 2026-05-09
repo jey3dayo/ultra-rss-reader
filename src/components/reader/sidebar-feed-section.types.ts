@@ -1,20 +1,11 @@
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
-import type {
-  SortSubscriptions,
-  StartupFolderExpansionPreference,
-} from "@/schemas/preferences";
+import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
-import type {
-  SidebarFeedTreeViewMode,
-  SidebarSelection,
-} from "./sidebar-feed-tree.types";
+import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
 
-export type SidebarFeedTreeProps = Omit<
-  FeedTreeViewProps,
-  "emptyState" | "unfolderedLabel"
->;
+export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;
 
 export type StartupFolderExpansionMode = StartupFolderExpansionPreference;
 
@@ -36,9 +27,7 @@ export type SidebarFeedDragStateResult = {
   clearDragState: NonNullable<FeedTreeViewProps["onDragEnd"]>;
   handleDragStartFeed: (feedId: string) => void;
   handleDragEnterFolder: NonNullable<FeedTreeViewProps["onDragEnterFolder"]>;
-  handleDragEnterUnfoldered: NonNullable<
-    FeedTreeViewProps["onDragEnterUnfoldered"]
-  >;
+  handleDragEnterUnfoldered: NonNullable<FeedTreeViewProps["onDragEnterUnfoldered"]>;
   handleDropToFolder: (folderId: string) => Promise<unknown>;
   handleDropToUnfoldered: () => Promise<unknown>;
 };

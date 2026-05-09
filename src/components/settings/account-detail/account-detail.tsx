@@ -6,8 +6,8 @@ import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { useUiStore } from "@/stores/ui-store";
-import { refetchAccountSyncStatusWithErrorSurface } from "./sync-status-refetch";
 import type { AccountDetailSyncProgress } from "./sync.types";
+import { refetchAccountSyncStatusWithErrorSurface } from "./sync-status-refetch";
 import type { AccountDetailAccount } from "./types";
 import { AccountDetailView } from "./view";
 

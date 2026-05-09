@@ -40,9 +40,7 @@ function readRepoFile(path: string) {
 }
 
 function extractExportedTypeNames(source: string) {
-  return [...source.matchAll(/^export type\s+([A-Z]\w*)/gm)].map(
-    (match) => match[1],
-  );
+  return [...source.matchAll(/^export type\s+([A-Z]\w*)/gm)].map((match) => match[1]);
 }
 
 function escapeRegExp(value: string) {
@@ -51,11 +49,7 @@ function escapeRegExp(value: string) {
 
 describe("reader type surface", () => {
   it("tracks the reader feature-local type split candidates", () => {
-    expect(
-      readerTypeSurfaceFiles.filter(
-        (path) => !existsSync(join(repoRoot, path)),
-      ),
-    ).toEqual([]);
+    expect(readerTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
     expect(readerTypeSurfaceFiles).toEqual([...readerTypeSurfaceFiles].sort());
   });
 
@@ -67,9 +61,7 @@ describe("reader type surface", () => {
     ];
 
     const unusedExports = readerTypeSurfaceFiles.flatMap((surfaceFile) => {
-      const exportedTypeNames = extractExportedTypeNames(
-        readRepoFile(surfaceFile),
-      );
+      const exportedTypeNames = extractExportedTypeNames(readRepoFile(surfaceFile));
 
       return exportedTypeNames
         .filter((typeName) => {

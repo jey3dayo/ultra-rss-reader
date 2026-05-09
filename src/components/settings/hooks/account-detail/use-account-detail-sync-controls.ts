@@ -14,8 +14,8 @@ import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
-import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountSelectOption, UpdateAccountSyncParams } from "../../account-detail/sync.types";
+import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
 
 type AccountDetailSyncControlsParams = {
