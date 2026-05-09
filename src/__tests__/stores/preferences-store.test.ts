@@ -674,6 +674,8 @@ describe("usePreferencesStore preferences", () => {
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
     expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+    expect(document.documentElement).toHaveClass("font-sans");
+    expect(document.documentElement).toHaveClass("text-base");
   });
 
   it("keeps the mirrored bootstrapped theme when loaded preferences omit theme", async () => {

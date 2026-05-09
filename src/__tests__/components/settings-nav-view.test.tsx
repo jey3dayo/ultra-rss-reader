@@ -1,9 +1,33 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import type { SettingsNavItem } from "@/components/settings/settings-nav.types";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
 describe("SettingsNavView", () => {
+  it("keeps modal settings nav ids separate from reusable specimen ids", () => {
+    expectTypeOf<SettingsNavItemId>().toEqualTypeOf<Exclude<SettingsCategory, "accounts">>();
+
+    const modalItem = {
+      id: "general",
+      label: "General",
+      icon: <span aria-hidden="true">G</span>,
+      isActive: true,
+    } satisfies SettingsNavItem;
+    const specimenItem = {
+      id: "custom-category",
+      label: "Custom category",
+      icon: <span aria-hidden="true">A</span>,
+      isActive: false,
+    } satisfies SettingsNavItem<"custom-category">;
+    const accountNavId = "accounts";
+
+    expect(modalItem.id).toBe("general");
+    expect(specimenItem.id).toBe("custom-category");
+    // @ts-expect-error Account navigation is handled by AccountsNavView, not modal category SettingsNavView ids.
+    void (accountNavId satisfies SettingsNavItemId);
+  });
+
   it("renders category entries from props and reports selection", () => {
     const onSelectCategory = vi.fn();
     const items: SettingsNavItem<"general" | "custom-category">[] = [
