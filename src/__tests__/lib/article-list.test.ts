@@ -423,6 +423,24 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["tag-source"]);
   });
 
+  it("does not fall back to feed or account articles while selected tag articles are unresolved", () => {
+    const result = selectVisibleArticles({
+      articles: [{ ...sampleArticles[0], id: "feed-source", feed_id: "feed-1" }],
+      accountArticles: [{ ...sampleArticles[1], id: "account-source", feed_id: "feed-2" }],
+      tagArticles: undefined,
+      searchResults: [],
+      feedId: "feed-1",
+      tagId: "tag-1",
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result).toEqual([]);
+  });
+
   it("returns no visible folder articles when the selected folder has no feeds", () => {
     const result = selectVisibleArticles({
       articles: [],
@@ -534,6 +552,17 @@ describe("article-list utils", () => {
     });
 
     expect(Object.keys(result)).toEqual(["Tech Blog"]);
+  });
+
+  it("groups articles with missing feed titles under the unknown-feed sentinel", () => {
+    const result = groupArticles({
+      articles: [{ ...sampleArticles[0], feed_id: "missing-feed" }],
+      groupBy: "feed",
+      feedNameMap: new Map(),
+    });
+
+    expect(Object.keys(result)).toEqual(["__unknown_feed__"]);
+    expect(result.__unknown_feed__?.map((article) => article.id)).toEqual(["art-1"]);
   });
 
   it("groups older articles by long local date label", () => {
