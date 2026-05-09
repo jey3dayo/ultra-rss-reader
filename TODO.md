@@ -69,11 +69,6 @@
   - `src/__tests__/hooks/use-command-search.test.ts` で repeated prefix、prefix 間 whitespace、unknown prefix-like character の期待値を追加する
   - command palette history parser や resource filtering ranking とは分け、search input prefix parser の文字列境界だけを扱う
 
-- [ ] startup sync negative timestamp cleanup 候補を追加する
-  - `src/lib/sync/startup-sync-storage.ts` の `getLastStartupSyncTriggeredAt()` が negative timestamp を finite past timestamp として受け入れるため、保存値の最小値を 0 以上に固定するか現仕様を明示する
-  - `src/__tests__/lib/startup-sync-storage.test.ts` で `-1` / `-Infinity` / fractional timestamp を追加し、remove する値と許可する値を分ける
-  - legacy migration write failure や localStorage getter guard とは分け、startup sync throttle timestamp の numeric domain だけを扱う
-
 - [ ] dom target shadow boundary contract 候補を追加する
   - `src/components/reader/dom-target.ts` の `isOutsideElement()` が `element.contains(target)` だけで判定するため、Shadow DOM 内 target や composed event path を outside と扱うか確認する
   - `src/__tests__/components/dom-target.test.ts` で open shadow root 内の button、detached node、host element を追加し、click-outside helper の DOM boundary を固定する
@@ -89,16 +84,6 @@
   - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
   - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
 
-- [ ] app action registry source-of-truth 候補を追加する
-  - `src/lib/app-actions.ts` の `AppAction` union と `APP_ACTIONS` 配列が二重定義なので、片方から派生できる形に寄せられるか確認する
-  - `src/__tests__/lib/actions.test.ts` か dedicated test で `APP_ACTIONS` の重複なし、`isAppAction` の runtime acceptance、shortcut/menu 呼び出しの action id drift を固定する
-  - share action target policy や command palette action UI とは分け、action id registry の型/runtime parity だけを扱う
-
-- [ ] folder display preset aggregate invalid policy 候補を追加する
-  - `src/lib/articles/article-display.ts` の `resolveFolderDisplayPreset` が各 feed の invalid axis を `inherit` fallback 後に比較するため、invalid child feed を aggregate に含める方針を確認する
-  - `src/__tests__/lib/article-display.test.ts` で child feed の片方だけ invalid / 両方 invalid / mixed valid preset の結果を固定する
-  - feed display override partial invalid contract とは分け、folder-level aggregate selector の invalid persisted value policy だけを扱う
-
 - [ ] account setup session blank id guard 候補を追加する
   - `src/stores/ui-store.ts` の `startAccountSetup` / `markAccountSetupFailed` / `markAccountSetupSucceeded` が blank account id を session state に入れない contract を固定する
   - `src/__tests__/lib/account-setup-session.test.ts` で whitespace-only id は no-op、trim 後 id は既存 owner を維持することを確認する
@@ -108,16 +93,6 @@
   - `src/lib/sync/sync-result-feedback.ts` の `getDistinctAccountNames()` が blank / whitespace-only `account_name` を toast 用 accounts 文字列に含めるか確認する
   - `src/__tests__/lib/sync-result-feedback.test.ts` で blank name を除外するか account id fallback にするかを固定し、重複 name dedupe の既存挙動を保つ
   - sync result DTO schema message invariant とは分け、UI feedback helper の account label projection だけを扱う
-
-- [ ] account sync status datetime schema 候補を追加する
-  - `src/api/schemas/account-sync-status.ts` の `last_success_at` / `next_retry_at` が nullable string のため、invalid date / date-only / offset なし timestamp を許すか固定する
-  - `src/__tests__/api/schemas.test.ts` で ISO datetime with offset は通し、malformed timestamp は reject または UI formatter fallback 前提として明示する
-  - account sync last success clock injection や retry copy formatting とは分け、AccountSyncStatus DTO schema の datetime boundary だけを扱う
-
-- [ ] nullable starred count nonnegative schema 候補を追加する
-  - `src/api/schemas/starred-articles.ts` の `NullableStarredCountSchema` が `z.number().int().nullable()` なので、negative count を 0 にするか validation error にするか決める
-  - `src/__tests__/api/tauri-commands.test.ts` または `src/__tests__/api/schemas.test.ts` で `null -> 0` は維持しつつ `-1` / fractional / `Infinity` の扱いを固定する
-  - sidebar starred badge display や feed-level starred counts とは分け、count_account_starred_articles response schema だけを扱う
 
 - [ ] breakpoint layout preference normalization 候補を追加する
   - `src/hooks/use-breakpoint.ts` の `resolvePreferredLayoutMode()` が `" compact "` や uppercase 値を invalid として wide 扱いするため、preferences schema default と同じ正規化方針に寄せるか確認する
@@ -168,11 +143,6 @@
   - `src/lib/subscriptions/subscriptions-index.ts` の `buildSubscriptionReviewCandidateMap` が duplicate candidate `feedId` を後勝ちにするため、同一 feed candidate が複数渡らない前提を test で固定する
   - `src/__tests__/lib/subscriptions-index.test.ts` で duplicate candidate 入力時の map value と summary count の扱いを明示する
   - review candidate ranking や hidden feed filtering とは分け、candidate map helper の duplicate key contract だけを扱う
-
-- [ ] subscription folder name lookup duplicate policy 候補を追加する
-  - `src/lib/subscriptions/subscription-review-candidates.ts` の `buildFolderNameByIdMap` が duplicate folder id を後勝ちにするため、DTO invariant 前提か UI helper 側で first-wins にするか決める
-  - `src/__tests__/lib/subscription-review-candidates.test.ts` で duplicate folder id / blank folder name の folder label projection を固定する
-  - folder DTO schema や OPML folder import とは分け、subscription review helper の folder name lookup だけを扱う
 
 ## UI/UX 監査の残り
 
@@ -250,11 +220,6 @@
   - `src/__tests__/hooks/use-articles.test.tsx` で同一入力時の article/tag association と invalidation side effect を固定する
   - mutation invalidation 候補とは分け、`useArticles` 周辺の lookup complexity だけを扱う
 
-- [ ] react-doctor test fixture combine-iterations 候補を追加する
-  - `article-view.test.tsx` / `use-feed-landing.test.tsx` / `ui-reference-specimen-registry.test.ts` の `.filter().map()` / `.map().filter()` を test helper 単位で整理する
-  - test readability を壊さない範囲に限定し、assertion message と fixture order が変わらないことを確認する
-  - runtime iterable performance とは分け、test-only fixture iteration cleanup だけを扱う
-
 - [ ] react-doctor immutable sort cleanup 候補を追加する
   - `js-tosorted-immutable` の `[...array].sort()` を runtime file から `toSorted()` へ寄せる
   - 対象候補: `src/lib/sidebar/sidebar.ts` / `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` / `src/lib/subscriptions/subscriptions-index.ts`
@@ -274,11 +239,6 @@
   - `react-doctor/no-many-boolean-props` の対象 component を action group / named variant / discriminated props へ分割できるか確認する
   - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
   - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
-
-- [ ] react-doctor icon toolbar handler naming 候補を追加する
-  - `src/components/shared/icon-toolbar-control.tsx` の non-descriptive `handleClick` を、実際の動作を表す handler name へ変更する
-  - `icon-toolbar-control` focused test で click / ariaDisabled / tooltip behavior が変わらないことを確認する
-  - icon toolbar ariaDisabled activation guard とは分け、handler naming と readability だけを扱う
 
 - [ ] react-doctor settings modal state effects 候補を追加する
   - `src/components/settings/settings-modal.tsx` の cascading setState を reducer または derived state に寄せる
@@ -465,11 +425,6 @@
   - `src/__tests__/components/use-data-settings-controller.test.ts` で deferred info request と vacuum success の順序逆転を固定する
   - database command busy / restore contract とは分け、settings controller state race だけを扱う
 
-- [ ] create folder schema blank name 候補を追加する
-  - `src/api/schemas/commands.ts` の `createFolderArgs.name` で空文字 / whitespace-only folder 名を拒否する
-  - `src/__tests__/api/schemas.test.ts` と `src/__tests__/api/tauri-commands.test.ts` で invalid name が IPC invoke へ進まないことを確認する
-  - rename feed validation とは分け、create folder IPC schema boundary だけを扱う
-
 - [ ] fixture folder relationship contract 候補を追加する
   - `tests/helpers/fixtures.ts` の sample feed / folder 関係に folder scope を表現できる fixture を追加する
   - `tests/helpers/fixtures.test.ts` で `sampleFolders` と `sampleFeeds.folder_id` の参照整合性を固定する
@@ -489,11 +444,6 @@
   - `src/components/reader/sidebar-header-view.tsx` の `useUiStore` / `usePlatformStore` / `hasTauriRuntime()` 直参照を controller 由来 props へ寄せる
   - `useSidebarHeaderProps` 側で `isMobile` / `useDesktopOverlay` を解決し、view test は props-only rendering に寄せる
   - sidebar layout 再設計とは分け、header view の runtime 判定分離だけを扱う
-
-- [ ] similarity reader focus retry helper 候補を追加する
-  - `src/lib/reader-focus.ts` の `focusArticleListRowTargetWhenReady` と `focusSidebarSmartViewTargetWhenReady` が 88% 類似なので、retry / frame scheduling 部分を共通 helper に寄せる
-  - target selector / fallback focus rule は呼び出し側に残し、article list と smart view の focus behavior が変わらないことを focused test で固定する
-  - account switcher focus frame とは分け、reader focus retry loop の重複だけを扱う
 
 - [ ] tag dialog autofocus shared boundary 候補を追加する
   - `src/components/reader/create-tag-dialog-view.tsx` と `src/components/reader/rename-tag-dialog-view.tsx` の translation / input ref / open 時 autofocus frame の重複を整理する
@@ -520,21 +470,6 @@
   - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
   - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
 
-- [ ] feed discovery resolved URL safety 候補を追加する
-  - `src-tauri/src/infra/feed_discovery.rs` で `<base>` / `<link href>` 解決後の feed candidate URL にも private / unsupported URL filter を適用する
-  - Rust test で `127.0.0.1` / `file://` / public `https://` を混ぜ、公開 http/https だけ残ることを固定する
-  - discovery start URL / redirect validation とは分け、resolved candidate URL safety だけを扱う
-
-- [ ] feed discovery unquoted attribute parser 候補を追加する
-  - `src-tauri/src/infra/feed_discovery.rs` の link attribute parser が unquoted `rel=alternate type=application/rss+xml href=/feed.xml` を拾えるようにする
-  - Rust test で unquoted `rel` / `type` / `href` / `title` から feed URL と title が抽出されることを固定する
-  - HTML whitespace attribute parsing とは分け、unquoted link attribute 境界だけを扱う
-
-- [ ] local provider private URL guard 候補を追加する
-  - `src-tauri/src/infra/provider/local.rs` の `pull_entries` / `create_subscription` が feed URL を直接 `reqwest` へ渡す前に private / loopback URL を拒否する
-  - Rust test で `http://127.0.0.1:<mock-port>/feed.xml` が validation error になり、mock server hit が 0 のままになることを確認する
-  - feed discovery candidate filter とは分け、保存済み / 直接追加 feed URL の provider boundary だけを扱う
-
 - [ ] sync scheduler backoff persistence error 候補を追加する
   - `src-tauri/src/service/sync_scheduler.rs` の `reset_error_count` / `increment_error_count` が `repo.save(&state)` 失敗を silent success にしないようにする
   - Rust test で backoff state 保存成功時の `is_in_backoff` と保存失敗時の error surface を固定する
@@ -555,11 +490,6 @@
   - dialog wrapper test で `showCloseButton` の accessible name が props 由来になり、未指定時 fallback が locale と一致することを確認する
   - feature dialog copy 変更とは分け、shared dialog primitive の close label だけを扱う
 
-- [ ] local subscription site URL preference 候補を追加する
-  - `src-tauri/src/infra/provider/local.rs` の `create_subscription` で Atom self feed link より alternate HTML site link を優先する
-  - Rust test で self atom link と alternate HTML link が並ぶ feed から `subscription.site_url` が alternate HTML になることを固定する
-  - feed discovery site URL scoring とは分け、local provider subscription site URL selection だけを扱う
-
 - [ ] dev mock account cascade delete 候補を追加する
   - `src/dev/mocks.ts` の `delete_account` mock で account 本体だけでなく feeds / folders / articles / recent history を掃除する
   - `src/__tests__/dev/dev-mocks.test.ts` で account 削除後の `listFeeds` / `listRecentArticles` / account scoped count が空または 0 になることを固定する
@@ -574,11 +504,6 @@
   - `src/dev/mocks.ts` の browser-only unknown command が `null` 成功にならないよう、test helper と同じく明示 reject にする
   - `src/__tests__/dev/dev-mocks.test.ts` で `invoke("unknown_dev_command")` が reject し、既知 command coverage は維持されることを固定する
   - Tauri default mock command coverage とは分け、browser dev mock unknown command policy だけを扱う
-
-- [ ] startup sync storage getter guard 候補を追加する
-  - `src/lib/sync/startup-sync-storage.ts` で `window.localStorage` getter 自体が `SecurityError` を投げる環境でも public function が落ちないようにする
-  - `src/__tests__/lib/startup-sync-storage.test.ts` で getter failure 時に read は not throttled、write は no-op になることを固定する
-  - storage key prefix migration とは分け、storage access failure boundary だけを扱う
 
 - [ ] sidebar expanded folders storage failure 候補を追加する
   - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の expanded folder 永続化で `setItem` 失敗を捕捉する
@@ -615,11 +540,6 @@
   - `src/__tests__/components/account-detail.test.tsx` で clipboard failure 時に `ja` / `en` の locale wrapper 経由 toast になることを固定する
   - account detail credentials validation とは分け、copy failure feedback copy だけを扱う
 
-- [ ] settings action aria label contract 候補を追加する
-  - `src/components/settings/settings-page-view.tsx` と `src/components/settings/shortcuts-settings-view.tsx` の `${actionLabel}: ${label}` 直組みを locale/control props へ寄せる
-  - view test で `actionAriaLabel` / `resetAriaLabel` props が優先され、controller test で `ja` の aria label が locale key 由来になることを確認する
-  - settings nav/page/modal contract 再設計とは分け、action button aria label だけを扱う
-
 - [ ] general settings language option contract 候補を追加する
   - `src/components/settings/hooks/use-general-settings-view-props.ts` の `English` / `日本語` self-label を locale 例外として残すか locale 管理へ寄せるか固定する
   - `src/__tests__/components/use-general-settings-view-props.test.ts` で `system` は locale 由来、`en` / `ja` は意図した self-label であることを確認する
@@ -639,11 +559,6 @@
   - `src/components/reader/article-reader-body.tsx` で sanitized 本文内の相対リンククリックを app origin ではなく記事 URL 基準にするか無効化するか固定する
   - article reader focused test で `<a href="/posts/1">` の click が期待 URL へ解決される、または外部 open されないことを確認する
   - sanitizer URL filtering とは分け、reader body relative link click policy だけを扱う
-
-- [ ] icon toolbar ariaDisabled activation guard 候補を追加する
-  - `src/components/shared/icon-toolbar-control.tsx` の `ariaDisabled` が `aria-disabled="true"` だけでなく click / Enter / Space の実行抑止にも効くようにする
-  - `src/__tests__/components/icon-toolbar-control.test.tsx` で tooltip は維持しつつ、pointer / keyboard activation で `onClick` しないことを固定する
-  - settings action aria label contract とは分け、shared icon toolbar の disabled interaction だけを扱う
 
 - [ ] tag color picker radiogroup contract 候補を追加する
   - `src/components/shared/tag-color-picker.tsx` の色選択を単一選択グループとして扱えるようにする
