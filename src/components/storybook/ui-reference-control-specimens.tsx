@@ -26,50 +26,13 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUiStore } from "@/stores/ui-store";
 
-export { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
+export {
+  AnnotatedNote,
+  ReferencePage,
+  UI_REFERENCE_DECORATIVE_TEST_IDS,
+  UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS,
+} from "./ui-reference-canvas-specimens";
 export { NavigationButtonPatternsSpecimen } from "./ui-reference-navigation-specimens";
-
-export const UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS = [
-  "reference-button-family-guide",
-  "reference-button-variant-matrix",
-  "reference-button-size-matrix",
-  "reference-settings-action-button-matrix",
-  "reference-form-loading-actions",
-  "reference-semantic-action-buttons",
-  "reference-article-filter-toggle-buttons",
-  "reference-reader-header-action-strip",
-  "reference-reader-header-action-strip-dark",
-  "reference-icon-utility-buttons",
-  "reference-navigation-button-patterns",
-  "reference-specialized-button-patterns",
-  "reference-annotated-note",
-  "reference-validation-frame",
-  "reference-disabled-switch-frame",
-  "reference-primitive-control-matrix",
-  "reference-update-toast-stability",
-  "reference-update-toast-download-0",
-  "reference-update-toast-download-90",
-  "reference-update-toast-ready",
-  "reference-update-toast-failure",
-  "reference-utility-action-chrome-strip",
-  "reference-command-palette-shell",
-  "reference-semantic-state-grid",
-  "reference-filter-strip-frame",
-  "reference-account-article-nav-alignment",
-  "reference-account-card-frame",
-  "reference-folder-stack-frame",
-  "reference-primitive-collection-states",
-  "reference-workspace-filter-cluster-frame",
-  "reference-motion-number-frame",
-  "reference-summary-filter-card-frame",
-  "reference-subscription-group-disclosure-frame",
-  "reference-workspace-action-cluster",
-  "reference-detail-panel-frame",
-  "reference-workspace-two-pane-frame",
-  "reference-workspace-two-pane-detail",
-  "reference-announcement-card-pending",
-  "reference-settings-header-summary-frame",
-] as const;
 
 type CssVariableProperties = CSSProperties & Record<`--${string}`, string>;
 
