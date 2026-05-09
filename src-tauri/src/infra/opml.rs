@@ -5,6 +5,9 @@ use std::io::Cursor;
 use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 
+const OPML_ROOT_ERROR_MESSAGE: &str = "OPML document must contain an <opml> root element";
+const OPML_MALFORMED_XML_ERROR_MESSAGE: &str = "OPML document is malformed XML";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpmlFeed {
     pub title: String,
@@ -32,7 +35,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 saw_root_element = true;
             }
             Ok(Event::Start(_)) | Ok(Event::Empty(_)) if !saw_root_element => {
-                return Err("OPML document must contain an <opml> root element".to_string());
+                return Err(OPML_ROOT_ERROR_MESSAGE.to_string());
             }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
                 let attrs = parse_outline_attrs(e)?;
@@ -75,17 +78,17 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 }
             }
             Ok(Event::Eof) => break,
-            Err(e) => return Err(format!("OPML parse error: {e}")),
+            Err(_) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
             _ => {}
         }
     }
 
     if depth > 0 {
-        return Err("OPML parse error: unexpected EOF while reading outline elements".to_string());
+        return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
     }
 
     if !saw_opml_root {
-        return Err("OPML document must contain an <opml> root element".to_string());
+        return Err(OPML_ROOT_ERROR_MESSAGE.to_string());
     }
 
     Ok(feeds)
@@ -350,10 +353,13 @@ mod tests {
     #[test]
     fn rejects_malformed_xml() {
         let result = parse_opml(r#"<?xml version="1.0"?><opml><body><outline text="Feed">"#);
-        assert_eq!(
-            result.unwrap_err(),
-            "OPML parse error: unexpected EOF while reading outline elements"
-        );
+        assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
+    }
+
+    #[test]
+    fn rejects_mismatched_xml_as_malformed_xml() {
+        let result = parse_opml("<opml><body></opml>");
+        assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
     }
 
     #[test]
@@ -578,33 +584,53 @@ mod tests {
     }
 
     #[test]
-    fn generate_opml_replaces_invalid_xml_control_characters() {
+    fn generate_opml_replaces_invalid_xml_control_characters_in_all_text_boundaries() {
         let replacement = char::REPLACEMENT_CHARACTER;
+        let long_account_title = format!("Title\u{0}Name & 日本語 🚀 {}", "x".repeat(512));
         let feeds = vec![OpmlFeed {
-            title: "Feed\u{0}Name".to_string(),
-            xml_url: "https://example.com/\u{1}feed.xml".to_string(),
+            title: "Feed\u{0}Name & 日本語 🚀".to_string(),
+            xml_url: "https://example.com/feed.xml".to_string(),
             html_url: Some("https://example.com/\u{8}".to_string()),
-            folder: Some("Folder\u{C}Name".to_string()),
+            folder: Some("Folder\u{C}Name & 日本語 🚀".to_string()),
         }];
 
-        let xml = generate_opml("Title\u{0}Name", &feeds).unwrap();
+        let xml = generate_opml(&long_account_title, &feeds).unwrap();
         assert!(!xml.contains('\u{0}'));
-        assert!(!xml.contains('\u{1}'));
         assert!(!xml.contains('\u{8}'));
         assert!(!xml.contains('\u{C}'));
+        assert!(xml.contains(&format!("Title{replacement}Name &amp; 日本語 🚀")));
 
         let parsed = parse_opml(&xml).unwrap();
         assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0].title, format!("Feed{replacement}Name"));
         assert_eq!(
-            parsed[0].xml_url,
-            format!("https://example.com/{replacement}feed.xml")
+            parsed[0].title,
+            format!("Feed{replacement}Name & 日本語 🚀")
         );
+        assert_eq!(parsed[0].xml_url, "https://example.com/feed.xml");
         assert_eq!(
             parsed[0].html_url,
             Some(format!("https://example.com/{replacement}"))
         );
-        assert_eq!(parsed[0].folder, Some(format!("Folder{replacement}Name")));
+        assert_eq!(
+            parsed[0].folder,
+            Some(format!("Folder{replacement}Name & 日本語 🚀"))
+        );
+    }
+
+    #[test]
+    fn generate_opml_preserves_empty_feed_title_as_writer_boundary_input() {
+        let feeds = vec![OpmlFeed {
+            title: String::new(),
+            xml_url: "https://example.com/feed.xml".to_string(),
+            html_url: None,
+            folder: None,
+        }];
+
+        let xml = generate_opml("", &feeds).unwrap();
+        let parsed = parse_opml(&xml).unwrap();
+
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].title, String::new());
     }
 
     #[test]

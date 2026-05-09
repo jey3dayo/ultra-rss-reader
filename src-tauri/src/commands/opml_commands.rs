@@ -416,6 +416,21 @@ mod tests {
     }
 
     #[test]
+    fn import_parser_malformed_xml_error_matches_toast_surface() {
+        let error = parse_import_opml(r#"<?xml version="1.0"?><opml><body><outline text="Feed">"#)
+            .unwrap_err();
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, "OPML document is malformed XML");
+            }
+            AppError::Retryable { message } => {
+                panic!("OPML malformed XML errors should not be retryable: {message}");
+            }
+        }
+    }
+
+    #[test]
     fn import_parser_preserves_feed_urls_and_folder_assignment() {
         let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
@@ -934,5 +949,27 @@ mod tests {
         let parsed = opml::parse_opml(&xml).unwrap();
 
         assert_eq!(parsed, opml_feeds);
+    }
+
+    #[test]
+    fn export_sanitizes_invalid_xml_chars_in_account_feed_and_folder_titles() {
+        let replacement = char::REPLACEMENT_CHARACTER;
+        let folder_news = folder("folder-news", "News\u{0}Research", 0);
+        let feeds = vec![feed(
+            "folder-alpha",
+            Some(&folder_news.id),
+            "Alpha\u{8}Friends",
+        )];
+
+        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+        let xml = opml::generate_opml("Primary\u{C}Local", &opml_feeds).unwrap();
+        let parsed = opml::parse_opml(&xml).unwrap();
+
+        assert!(!xml.contains('\u{0}'));
+        assert!(!xml.contains('\u{8}'));
+        assert!(!xml.contains('\u{C}'));
+        assert!(xml.contains(&format!("<title>Primary{replacement}Local</title>")));
+        assert_eq!(parsed[0].title, format!("Alpha{replacement}Friends"));
+        assert_eq!(parsed[0].folder, Some(format!("News{replacement}Research")));
     }
 }
