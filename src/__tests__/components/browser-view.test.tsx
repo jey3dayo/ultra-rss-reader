@@ -180,6 +180,36 @@ function setReducedMotionPreference(matches: boolean) {
   });
 }
 
+type MatchMediaChangeEvent = Pick<MediaQueryListEvent, "matches">;
+
+function createLegacyColorSchemeMatchMedia(matches: boolean, options: { throwOnRemove?: boolean } = {}) {
+  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
+
+  return {
+    get matches() {
+      return matches;
+    },
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addListener: (listener: (event: MatchMediaChangeEvent) => void) => {
+      listeners.add(listener);
+    },
+    removeListener: (listener: (event: MatchMediaChangeEvent) => void) => {
+      if (options.throwOnRemove) {
+        throw new Error("legacy cleanup unavailable");
+      }
+      listeners.delete(listener);
+    },
+    dispatch(nextMatches: boolean) {
+      matches = nextMatches;
+      const event: MatchMediaChangeEvent = { matches: nextMatches };
+      for (const listener of listeners) {
+        listener(event);
+      }
+    },
+  };
+}
+
 type BrowserViewHarnessProps = {
   controllerParams?: Partial<UseBrowserViewControllerParams>;
 };
@@ -560,6 +590,49 @@ describe("BrowserView", () => {
     });
 
     expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
+  });
+
+  it("uses legacy system theme listeners for the theme wipe and ignores cleanup failures", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const colorSchemeQuery = createLegacyColorSchemeMatchMedia(false, { throwOnRemove: true });
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => {
+        if (query === "(prefers-color-scheme: dark)") {
+          return colorSchemeQuery;
+        }
+
+        return {
+          matches: false,
+          media: query,
+          onchange: null,
+        };
+      }),
+    });
+    usePreferencesStore.setState({
+      prefs: { theme: "system" },
+      loaded: true,
+    });
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    const view = render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("browser-overlay-shell")).toHaveAttribute("data-open", "true");
+    });
+    expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
+
+    act(() => {
+      colorSchemeQuery.dispatch(true);
+    });
+
+    expect(screen.getByTestId("browser-theme-wipe-overlay")).toBeInTheDocument();
+    expect(() => view.unmount()).not.toThrow();
   });
 
   it("wraps custom toolbar actions in the shared action shell", () => {

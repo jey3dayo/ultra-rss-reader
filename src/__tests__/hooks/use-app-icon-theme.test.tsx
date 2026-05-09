@@ -57,6 +57,37 @@ function createMatchMedia(matches: boolean) {
   };
 }
 
+function createLegacyMatchMedia(matches: boolean, options: { throwOnRemove?: boolean } = {}) {
+  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
+
+  return {
+    get matches() {
+      return matches;
+    },
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addListener: (listener: (event: MatchMediaChangeEvent) => void) => {
+      listeners.add(listener);
+    },
+    removeListener: (listener: (event: MatchMediaChangeEvent) => void) => {
+      if (options.throwOnRemove) {
+        throw new Error("legacy cleanup unavailable");
+      }
+      listeners.delete(listener);
+    },
+    listenerCount() {
+      return listeners.size;
+    },
+    dispatch(nextMatches: boolean) {
+      matches = nextMatches;
+      const event: MatchMediaChangeEvent = { matches: nextMatches };
+      for (const listener of listeners) {
+        listener(event);
+      }
+    },
+  };
+}
+
 async function flushAsyncWork(): Promise<void> {
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -259,6 +290,36 @@ describe("useAppIconTheme", () => {
     await flushAsyncWork();
 
     expect(setIconMock).not.toHaveBeenCalled();
+  });
+
+  it("uses legacy system theme listeners and ignores cleanup failures", async () => {
+    const mql = createLegacyMatchMedia(true, { throwOnRemove: true });
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => mql),
+    );
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    const { unmount } = render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+    expect(mql.listenerCount()).toBe(1);
+
+    act(() => {
+      mql.dispatch(false);
+    });
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
+    });
+
+    expect(() => unmount()).not.toThrow();
   });
 
   it("applies icon after platform info loads and runtime replacement becomes available", async () => {

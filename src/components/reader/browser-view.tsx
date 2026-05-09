@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from "r
 import { createPortal } from "react-dom";
 import { useBrowserViewController } from "@/components/reader/hooks/browser/use-browser-view-controller";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
+import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -44,9 +45,7 @@ function subscribeSystemThemeChange(onStoreChange: () => void) {
   }
 
   const mediaQuery = window.matchMedia(SYSTEM_COLOR_SCHEME_QUERY);
-  mediaQuery.addEventListener("change", onStoreChange);
-
-  return () => mediaQuery.removeEventListener("change", onStoreChange);
+  return subscribeMatchMediaChange(mediaQuery, onStoreChange);
 }
 
 function useSystemTheme() {

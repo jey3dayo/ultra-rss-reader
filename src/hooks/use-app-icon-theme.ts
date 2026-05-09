@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
+import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { setWindowIcon } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -146,7 +147,6 @@ export function useAppIconTheme() {
       apply(event.matches);
     };
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    return subscribeMatchMediaChange(mediaQuery, handleChange);
   }, [theme, platformLoaded, supportsRuntimeWindowIconReplacement, requestAppIcon]);
 }
