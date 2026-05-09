@@ -327,11 +327,6 @@
   - `test_account_connection` で FreshRSS の `server_url` 欠落を明示エラーにし、空文字から認証へ進まない contract を固定する
   - keyring 保存や provider login flow の再設計とは別に、command input validation だけを扱う
 
-- [ ] GReader compatibility parsing 候補を追加する
-  - `src-tauri/src/infra/provider/greader.rs` で subscription JSON の `categories` / `htmlUrl` 欠落許容 contract を追加する
-  - item category の read / star 判定を `contains` ではなく exact state id contract に寄せる
-  - 実サービス通信ではなく provider adapter fixture test に限定する
-
 - [ ] updater menu availability contract 候補を追加する
   - `src-tauri/src/menu.rs` の `Check for Updates` menu 表示方針を updater 初期化可否と分けて固定する
   - updater command 側の runtime error 表示や release artifact 検証とは混ぜない
@@ -360,16 +355,6 @@
   - `src-tauri/src/commands/opml_commands.rs` の `import_opml` で `account_id` 存在確認を先に行い、DB 制約エラーではなく user-visible error にする
   - OPML import の folder cache が exact-name match のため、`create_folder` と同じ case-insensitive 契約に寄せて重複 folder を防ぐ
   - feed save や OPML UI copy とは混ぜず、import command の入力・folder 解決 contract に限定する
-
-- [ ] OPML parser attribute error contract 候補を追加する
-  - `src-tauri/src/infra/opml.rs` の `parse_outline_attrs` が `flatten()` で malformed attribute を silent drop しないようにする
-  - 壊れた OPML attribute は明示的な parse error として返す fixture を追加する
-  - outline tree の仕様拡張や export 形式変更とは別に、parser error surface だけを扱う
-
-- [ ] feed discovery HTML attribute / dedupe 候補を追加する
-  - `src-tauri/src/infra/feed_discovery.rs` の `extract_attribute` が `href = "..."` のような `=` 前後 whitespace 付き attribute を拾える contract を追加する
-  - 同じ URL の `<link rel="alternate">` が複数ある場合は、入力順を保った URL dedupe を追加する
-  - network fetch や scoring 変更ではなく、HTML parse fixture の小粒改善に限定する
 
 - [ ] migration V16 drift contract 候補を追加する
   - `src-tauri/migrations/V16__account_connection_verification.sql` と `src-tauri/src/infra/db/migration.rs` の inline migration が drift しない contract を追加する
