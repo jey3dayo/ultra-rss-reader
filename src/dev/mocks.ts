@@ -1067,7 +1067,17 @@ export function setupDevMocks(): RestoreDevMocks {
       case "update_feed_folder": {
         const { feedId, folderId } = parseBrowserMockArgs("update_feed_folder", rawIpcPayload);
         const targetFeed = mockFeeds.find((f) => f.id === feedId);
-        if (targetFeed) targetFeed.folder_id = folderId;
+        if (!targetFeed) {
+          throw { type: "UserVisible", message: "Feed not found" };
+        }
+        const targetFolder = folderId ? mockFolders.find((folder) => folder.id === folderId) : null;
+        if (folderId && !targetFolder) {
+          throw { type: "UserVisible", message: "Folder not found" };
+        }
+        if (targetFolder && targetFolder.account_id !== targetFeed.account_id) {
+          throw { type: "UserVisible", message: "Folder belongs to another account" };
+        }
+        targetFeed.folder_id = folderId;
         return null;
       }
 

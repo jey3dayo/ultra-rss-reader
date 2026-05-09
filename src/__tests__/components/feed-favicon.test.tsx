@@ -69,6 +69,20 @@ describe("FeedFavicon", () => {
     expect(screen.getByText("G")).toHaveClass("h-5", "w-5");
   });
 
+  it("does not retry a broken favicon source after repeated image errors", () => {
+    const { container } = render(
+      <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,
+    );
+
+    const image = container.querySelector("img");
+
+    fireEvent.error(image as HTMLImageElement);
+    fireEvent.error(image as HTMLImageElement);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("uses an https favicon proxy and strips path and query data from feed URLs", () => {
     const { container } = render(
       <FeedFavicon

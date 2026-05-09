@@ -46,6 +46,7 @@ import {
   createTag,
   deleteAccount,
   deleteFeed,
+  deleteTag,
   discoverFeeds,
   exportOpml,
   getAccountSyncStatus,
@@ -82,6 +83,7 @@ import {
   triggerStartupSync,
   triggerSync,
   updateAccountCredentials,
+  updateFeedFolder,
   vacuumDatabase,
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
@@ -600,6 +602,44 @@ describe("setupDevMocks", () => {
       deletedArticleId,
     );
     expect(Result.unwrap(await clearArticleViewHistory("acc-freshrss"))).toBe(0);
+  });
+
+  it("cascades tag deletion across browser-only article tag joins", async () => {
+    setupDevMocks();
+
+    expect(Result.unwrap(await getArticleTags("art-1")).map((tag) => tag.id)).toEqual(["tag-important", "tag-work"]);
+
+    Result.unwrap(await deleteTag("tag-important"));
+
+    expect(Result.unwrap(await listTags()).map((tag) => tag.id)).not.toContain("tag-important");
+    expect(Result.unwrap(await getArticleTags("art-1")).map((tag) => tag.id)).toEqual(["tag-work"]);
+    expect(Result.unwrap(await listArticlesByTag("tag-important", 0, 10, "acc-freshrss", "all"))).toEqual([]);
+    expect(Result.unwrap(await getTagArticleCounts("acc-freshrss"))).not.toHaveProperty("tag-important");
+  });
+
+  it("rejects browser-only folder moves that production would reject", async () => {
+    setupDevMocks();
+
+    const beforeFeeds = Result.unwrap(await listFeeds("acc-freshrss"));
+    const targetFeed = beforeFeeds.find((feed) => feed.id === "feed-automaton");
+    const originalFolderId = targetFeed?.folder_id;
+    const otherAccountFolder = Result.unwrap(await createFolder("acc-local", "Other account"));
+
+    expect(originalFolderId).toBeTruthy();
+
+    expect(Result.unwrapError(await updateFeedFolder("missing-feed", "folder-tech"))).toMatchObject({
+      message: "Feed not found",
+    });
+    expect(Result.unwrapError(await updateFeedFolder("feed-automaton", "missing-folder"))).toMatchObject({
+      message: "Folder not found",
+    });
+    expect(Result.unwrapError(await updateFeedFolder("feed-automaton", otherAccountFolder.id))).toMatchObject({
+      message: "Folder belongs to another account",
+    });
+
+    expect(Result.unwrap(await listFeeds("acc-freshrss")).find((feed) => feed.id === "feed-automaton")?.folder_id).toBe(
+      originalFolderId,
+    );
   });
 
   it("keeps every schema-validated command covered by the browser-only mock switch", () => {

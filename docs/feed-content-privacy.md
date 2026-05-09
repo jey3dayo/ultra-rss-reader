@@ -91,12 +91,18 @@ settings UI.
 
 ## Verification Checklist
 
-- [ ] Reader mode: remote image loads, blocked-image readability, thumbnail
-  behavior, and tracking-pixel candidates are recorded per provider.
-- [ ] Reader mode: sanitized frame-like embeds are checked independently from
+- [ ] Reader thumbnail: accepted thumbnail schemes, rejected mixed-content or
+  credentialed thumbnails, referrer policy, and broken-image readability are
+  recorded per provider.
+- [ ] Reader sanitized body: remote image loads, blocked-image readability, and
+  tracking-pixel candidates are recorded per provider.
+- [ ] Reader sanitized body: frame-like embeds are checked independently from
   Web Preview.
 - [ ] Web Preview: publisher page load, navigation, and browser controls are
-  checked separately from reader-mode article rendering.
+  checked separately from reader-mode thumbnails and sanitized article
+  rendering.
+- [ ] Feed favicon: favicon requests use an HTTPS proxy, send no referrer, strip
+  feed path/query data, and fall back without retry loops after image failures.
 - [ ] Sanitizer: `SANITIZER_VERSION`, saved-article behavior, new-sync behavior,
   and re-sanitize needs are recorded before implementation.
 - [ ] Packaging: any privacy change that affects remote content is verified in a
