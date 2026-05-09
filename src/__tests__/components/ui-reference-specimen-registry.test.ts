@@ -22,6 +22,9 @@ const SPECIMENS_SOURCE_FILE_NAMES = [
   "ui-reference-shell-specimens.tsx",
   "ui-reference-workspace-specimens.tsx",
 ] as const;
+const CATEGORY_SPECIMENS_SOURCE_FILE_NAMES = SPECIMENS_SOURCE_FILE_NAMES.filter(
+  (fileName) => fileName !== "ui-reference-canvas-specimens.tsx",
+);
 
 const uiReferenceSections = [
   {
@@ -166,5 +169,22 @@ describe("UI Reference specimen registry", () => {
     ].sort();
 
     expect(referencedSpecimens).toEqual(exportedSpecimens);
+  });
+
+  it("keeps UI Reference specimen ownership in category files", () => {
+    const canvasSpecimensSource = readFileSync(
+      join(STORYBOOK_COMPONENTS_DIR, "ui-reference-canvas-specimens.tsx"),
+      "utf8",
+    );
+    const categorySpecimenExports = CATEGORY_SPECIMENS_SOURCE_FILE_NAMES.map((fileName) => ({
+      fileName,
+      exports: extractSpecimenExports(readFileSync(join(STORYBOOK_COMPONENTS_DIR, fileName), "utf8")),
+    }));
+
+    expect(extractSpecimenExports(canvasSpecimensSource)).toEqual([]);
+    expect(categorySpecimenExports.flatMap(({ exports }) => exports).sort()).toEqual(
+      extractSpecimenExports(specimensSource).sort(),
+    );
+    expect(categorySpecimenExports.filter(({ exports }) => exports.length === 0)).toEqual([]);
   });
 });
