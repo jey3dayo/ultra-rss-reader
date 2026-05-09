@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
+import { extractSortedUniqueRegistryMatches, sortedRegistryValues } from "@tests/helpers/design-registry";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,20 +28,6 @@ import {
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
 const motionCss = globalCss.slice(globalCss.indexOf("@keyframes vertical-wipe"), globalCss.indexOf("\n\nhtml,\nbody"));
 
-const extractUniqueMatches = (source: string, pattern: RegExp) => {
-  const values = new Set<string>();
-
-  for (const match of source.matchAll(pattern)) {
-    const value = match[1];
-
-    if (value !== undefined) {
-      values.add(value);
-    }
-  }
-
-  return Array.from(values).sort();
-};
-
 const expectGlobalCssToContain = (...snippets: readonly string[]) => {
   for (const snippet of snippets) {
     expect(globalCss).toContain(snippet);
@@ -48,11 +35,15 @@ const expectGlobalCssToContain = (...snippets: readonly string[]) => {
 };
 
 const expectGlobalCssToContainMotionContract = () => {
-  expect(extractUniqueMatches(motionCss, /\.((?:motion|t)-[A-Za-z0-9_-]+|is-animating)\b/g)).toEqual(
-    [...MOTION_CLASS_NAMES].sort(),
+  expect(extractSortedUniqueRegistryMatches(motionCss, /\.((?:motion|t)-[A-Za-z0-9_-]+|is-animating)\b/g)).toEqual(
+    sortedRegistryValues(MOTION_CLASS_NAMES),
   );
-  expect(extractUniqueMatches(motionCss, /@keyframes ([A-Za-z0-9_-]+)/g)).toEqual([...MOTION_KEYFRAMES_NAMES].sort());
-  expect(extractUniqueMatches(motionCss, /\[(data-[A-Za-z0-9_-]+)/g)).toEqual([...MOTION_DATA_ATTRIBUTES].sort());
+  expect(extractSortedUniqueRegistryMatches(motionCss, /@keyframes ([A-Za-z0-9_-]+)/g)).toEqual(
+    sortedRegistryValues(MOTION_KEYFRAMES_NAMES),
+  );
+  expect(extractSortedUniqueRegistryMatches(motionCss, /\[(data-[A-Za-z0-9_-]+)/g)).toEqual(
+    sortedRegistryValues(MOTION_DATA_ATTRIBUTES),
+  );
 
   for (const className of MOTION_CLASS_NAMES) {
     expectGlobalCssToContain(`.${className}`);

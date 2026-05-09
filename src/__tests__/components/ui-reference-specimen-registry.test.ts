@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { collectDuplicateRegistryValues, sortedRegistryValues } from "@tests/helpers/design-registry";
 import { describe, expect, it } from "vitest";
 import {
   UI_REFERENCE_DECORATIVE_TEST_IDS,
@@ -81,22 +82,6 @@ const specimensSource = SPECIMENS_SOURCE_FILE_NAMES.map((fileName) =>
 ).join("\n");
 const uiReferenceSource = [specimensSource, ...storySourceEntries.map(({ source }) => source)].join("\n");
 
-function findDuplicates(values: readonly string[]) {
-  const counts = new Map<string, number>();
-  const duplicates: string[] = [];
-
-  for (const value of values) {
-    const nextCount = (counts.get(value) ?? 0) + 1;
-    counts.set(value, nextCount);
-
-    if (nextCount === 2) {
-      duplicates.push(value);
-    }
-  }
-
-  return duplicates;
-}
-
 function countValues(values: readonly string[]) {
   return values.reduce<Record<string, number>>((counts, value) => {
     counts[value] = (counts[value] ?? 0) + 1;
@@ -146,12 +131,12 @@ function extractCategorySpecimenExports() {
 describe("UI Reference specimen registry", () => {
   it("keeps UI Reference story sections explicitly registered without duplicate ids", () => {
     const sectionIds = uiReferenceSections.map((section) => section.sectionId);
-    const storyFileNames = readdirSync(STORYBOOK_COMPONENTS_DIR)
-      .filter((fileName) => /^ui-reference-.*\.stories\.tsx$/.test(fileName))
-      .sort();
+    const storyFileNames = sortedRegistryValues(
+      readdirSync(STORYBOOK_COMPONENTS_DIR).filter((fileName) => /^ui-reference-.*\.stories\.tsx$/.test(fileName)),
+    );
 
-    expect(findDuplicates(sectionIds)).toEqual([]);
-    expect(storyFileNames).toEqual(uiReferenceSections.map((section) => section.fileName).sort());
+    expect(collectDuplicateRegistryValues(sectionIds)).toEqual([]);
+    expect(storyFileNames).toEqual(sortedRegistryValues(uiReferenceSections.map((section) => section.fileName)));
   });
 
   it("keeps registered section titles aligned with the Storybook meta titles", () => {
@@ -168,20 +153,19 @@ describe("UI Reference specimen registry", () => {
       ...storySourceEntries.flatMap(({ source }) => extractReferenceTestIds(source)),
     ];
 
-    expect(findDuplicates(referenceIds)).toEqual([]);
+    expect(collectDuplicateRegistryValues(referenceIds)).toEqual([]);
   });
 
   it("classifies every reference specimen test id as a smoke anchor or decorative id", () => {
     const referenceIds = extractReferenceTestIds(uiReferenceSource);
-    const classifiedReferenceIds = [
-      ...UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS,
-      ...UI_REFERENCE_DECORATIVE_TEST_IDS,
-    ].sort();
+    const classifiedReferenceIds = [...UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS, ...UI_REFERENCE_DECORATIVE_TEST_IDS];
 
     expect(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS).toEqual([...new Set(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS)]);
     expect(UI_REFERENCE_DECORATIVE_TEST_IDS).toEqual([...new Set(UI_REFERENCE_DECORATIVE_TEST_IDS)]);
-    expect(classifiedReferenceIds).toEqual([...new Set(classifiedReferenceIds)]);
-    expect(classifiedReferenceIds).toEqual([...new Set(referenceIds)].sort());
+    expect(sortedRegistryValues(classifiedReferenceIds)).toEqual(
+      sortedRegistryValues([...new Set(classifiedReferenceIds)]),
+    );
+    expect(sortedRegistryValues(classifiedReferenceIds)).toEqual(sortedRegistryValues([...new Set(referenceIds)]));
   });
 
   it("keeps primary specimen smoke anchors present exactly once", () => {
@@ -196,10 +180,10 @@ describe("UI Reference specimen registry", () => {
   });
 
   it("keeps exported specimen sections referenced by a UI Reference story", () => {
-    const exportedSpecimens = extractSpecimenExports(specimensSource).sort();
-    const referencedSpecimens = [
+    const exportedSpecimens = sortedRegistryValues(extractSpecimenExports(specimensSource));
+    const referencedSpecimens = sortedRegistryValues([
       ...new Set(storySourceEntries.flatMap(({ source }) => extractReferencedSpecimens(source))),
-    ].sort();
+    ]);
 
     expect(referencedSpecimens).toEqual(exportedSpecimens);
   });
@@ -212,7 +196,9 @@ describe("UI Reference specimen registry", () => {
     const categorySpecimenExports = extractCategorySpecimenExports();
 
     expect(extractSpecimenExports(canvasSpecimensSource)).toEqual([]);
-    expect(categorySpecimenExports.exportNames.sort()).toEqual(extractSpecimenExports(specimensSource).sort());
+    expect(sortedRegistryValues(categorySpecimenExports.exportNames)).toEqual(
+      sortedRegistryValues(extractSpecimenExports(specimensSource)),
+    );
     expect(categorySpecimenExports.emptyExportFiles).toEqual([]);
   });
 
