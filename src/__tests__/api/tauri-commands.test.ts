@@ -22,9 +22,11 @@ import {
   createTag,
   deleteAccount,
   deleteFeed,
+  deleteTag,
   discoverFeeds,
   focusBrowserWebview,
   getAccountSyncStatus,
+  getArticleTags,
   getDatabaseInfo,
   getPlatformInfo,
   getPreferences,
@@ -36,6 +38,7 @@ import {
   listArticlesByTag,
   listFeeds,
   listFolderArticles,
+  listFolders,
   listMuteKeywords,
   listRecentArticles,
   listStarredArticles,
@@ -43,24 +46,30 @@ import {
   markAccountRead,
   markAccountStarredRead,
   markArticleRead,
+  markFeedRead,
+  markFolderRead,
   markOldUnreadRead,
   openExternalUrl,
   openInBrowser,
   openLogDir,
+  type PreferencesDto,
   recordArticleView,
   reloadBrowserWebview,
   renameAccount,
   renameFeed,
+  renameTag,
   searchArticles,
   setBrowserWebviewBounds,
   setMuteAutoMarkRead,
   setPreference,
+  tagArticle,
   testAccountConnection,
   triggerAutomaticSync,
   triggerStartupSync,
   triggerSync,
   type UpdateInfoDto,
   unstarAccountArticles,
+  untagArticle,
   updateAccountCredentials,
   updateAccountSync,
   updateFeedDisplaySettings,
@@ -677,6 +686,7 @@ describe("tauri-commands with custom handler", () => {
 describe("safeInvoke response validation", () => {
   it("keeps schema-backed command return types derived from response schemas", () => {
     expectTypeOf<CommandSuccess<typeof listAccounts>>().toEqualTypeOf<AccountDto[]>();
+    expectTypeOf<CommandSuccess<typeof getPreferences>>().toEqualTypeOf<PreferencesDto>();
     expectTypeOf<CommandSuccess<typeof checkForUpdate>>().toEqualTypeOf<UpdateInfoDto | null>();
     expectTypeOf<CommandSuccess<typeof openLogDir>>().toEqualTypeOf<null>();
   });
@@ -754,6 +764,73 @@ describe("safeInvoke response validation", () => {
     const error = Result.unwrapError(result);
     expect(error.type).toBe("UserVisible");
     expect(error.message).toContain("validation failed");
+  });
+
+  it("validates article command group ArticleDto responses", async () => {
+    const invalidArticleDto = {
+      id: "article-1",
+      feed_id: "feed-1",
+      title: "Article",
+      content_sanitized: "",
+      summary: null,
+      url: "   ",
+      author: null,
+      published_at: "2026-05-10T01:00:00Z",
+      thumbnail: null,
+      is_read: false,
+      is_starred: false,
+    };
+    const articleCommandCases = [
+      ["list_articles", () => listArticles("feed-1")],
+      ["list_account_articles", () => listAccountArticles("acc-1")],
+      ["list_folder_articles", () => listFolderArticles("folder-1")],
+      ["list_starred_articles", () => listStarredArticles("acc-1")],
+      ["list_recent_articles", () => listRecentArticles("acc-1")],
+      ["search_articles", () => searchArticles("acc-1", "query")],
+      ["list_articles_by_tag", () => listArticlesByTag("tag-1")],
+    ] as const;
+
+    setupTauriMocks((cmd) => {
+      if (articleCommandCases.some(([command]) => command === cmd)) {
+        return [invalidArticleDto];
+      }
+      return null;
+    });
+
+    for (const [command, runCommand] of articleCommandCases) {
+      const result = await runCommand();
+      expect(Result.isFailure(result), command).toBe(true);
+      const error = Result.unwrapError(result);
+      expect(error.type).toBe("UserVisible");
+      expect(error.message).toContain("validation failed");
+    }
+  });
+
+  it("validates article command group null responses", async () => {
+    const articleNullCommandCases = [
+      ["mark_account_read", () => markAccountRead("acc-1")],
+      ["mark_account_starred_read", () => markAccountStarredRead("acc-1")],
+      ["mark_article_read", () => markArticleRead("article-1")],
+      ["record_article_view", () => recordArticleView("acc-1", "article-1")],
+      ["mark_feed_read", () => markFeedRead("feed-1")],
+      ["mark_folder_read", () => markFolderRead("folder-1")],
+      ["unstar_account_articles", () => unstarAccountArticles("acc-1")],
+    ] as const;
+
+    setupTauriMocks((cmd) => {
+      if (articleNullCommandCases.some(([command]) => command === cmd)) {
+        return { ok: true };
+      }
+      return null;
+    });
+
+    for (const [command, runCommand] of articleNullCommandCases) {
+      const result = await runCommand();
+      expect(Result.isFailure(result), command).toBe(true);
+      const error = Result.unwrapError(result);
+      expect(error.type).toBe("UserVisible");
+      expect(error.message).toContain("validation failed");
+    }
   });
 
   it("validates database command group DatabaseInfo responses", async () => {
@@ -843,6 +920,37 @@ describe("safeInvoke response validation", () => {
     }
   });
 
+  it("validates folder command group FolderDto responses", async () => {
+    const invalidFolderDto = {
+      id: "folder-1",
+      account_id: "acc-1",
+      name: "Folder",
+      sort_order: -1,
+    };
+    const folderCommandCases = [
+      ["list_folders", () => listFolders("acc-1")],
+      ["create_folder", () => createFolder("acc-1", "Folder")],
+    ] as const;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_folders") {
+        return [invalidFolderDto];
+      }
+      if (cmd === "create_folder") {
+        return invalidFolderDto;
+      }
+      return null;
+    });
+
+    for (const [command, runCommand] of folderCommandCases) {
+      const result = await runCommand();
+      expect(Result.isFailure(result), command).toBe(true);
+      const error = Result.unwrapError(result);
+      expect(error.type).toBe("UserVisible");
+      expect(error.message).toContain("validation failed");
+    }
+  });
+
   it("validates mute keyword command group DTO responses", async () => {
     const invalidMuteKeywordDto = {
       id: "mute-1",
@@ -868,6 +976,61 @@ describe("safeInvoke response validation", () => {
     });
 
     for (const [command, runCommand] of muteKeywordCommandCases) {
+      const result = await runCommand();
+      expect(Result.isFailure(result), command).toBe(true);
+      const error = Result.unwrapError(result);
+      expect(error.type).toBe("UserVisible");
+      expect(error.message).toContain("validation failed");
+    }
+  });
+
+  it("validates tag command group DTO responses", async () => {
+    const invalidTagDto = {
+      id: "tag-1",
+      name: "   ",
+      color: "#123456",
+    };
+    const tagCommandCases = [
+      ["list_tags", () => listTags()],
+      ["create_tag", () => createTag("Research", "#123456")],
+      ["rename_tag", () => renameTag("tag-1", "Research", "#123456")],
+      ["get_article_tags", () => getArticleTags("article-1")],
+    ] as const;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_tags" || cmd === "get_article_tags") {
+        return [invalidTagDto];
+      }
+      if (cmd === "create_tag" || cmd === "rename_tag") {
+        return invalidTagDto;
+      }
+      return null;
+    });
+
+    for (const [command, runCommand] of tagCommandCases) {
+      const result = await runCommand();
+      expect(Result.isFailure(result), command).toBe(true);
+      const error = Result.unwrapError(result);
+      expect(error.type).toBe("UserVisible");
+      expect(error.message).toContain("validation failed");
+    }
+  });
+
+  it("validates tag command group null responses", async () => {
+    const tagNullCommandCases = [
+      ["delete_tag", () => deleteTag("tag-1")],
+      ["tag_article", () => tagArticle("article-1", "tag-1")],
+      ["untag_article", () => untagArticle("article-1", "tag-1")],
+    ] as const;
+
+    setupTauriMocks((cmd) => {
+      if (tagNullCommandCases.some(([command]) => command === cmd)) {
+        return { ok: true };
+      }
+      return null;
+    });
+
+    for (const [command, runCommand] of tagNullCommandCases) {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);

@@ -85,6 +85,7 @@ import {
   openInBrowserArgs,
   type PlatformInfo,
   PlatformInfoSchema,
+  type PreferencesDto,
   PreferencesDtoSchema,
   recordArticleViewArgs,
   renameAccountArgs,
@@ -137,6 +138,7 @@ export type {
   OldUnreadDays,
   OldUnreadScopeKind,
   PlatformInfo,
+  PreferencesDto,
   TagDto,
   UpdateInfoDto,
 };

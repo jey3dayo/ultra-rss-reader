@@ -103,11 +103,7 @@ export {
   DiscoveredFeedDtoSchema,
 } from "./discovered-feed";
 export { type AppError, AppErrorSchema } from "./error";
-export {
-  type FeedDto,
-  FeedDtoListSchema,
-  FeedDtoSchema,
-} from "./feed";
+export { type FeedDto, FeedDtoListSchema, FeedDtoSchema } from "./feed";
 export {
   type FeedArticleSummaryDto,
   FeedArticleSummaryDtoListSchema,
@@ -133,7 +129,7 @@ export {
   type PlatformInfo,
   PlatformInfoSchema,
 } from "./platform-info";
-export { PreferencesDtoSchema } from "./preferences";
+export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
 export {
   NullableStarredArticlesSchema,
   NullableStarredCountSchema,
