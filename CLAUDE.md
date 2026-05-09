@@ -27,6 +27,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - When adding async UI side effects, fire-and-forget calls, optimistic updates, or native command wrappers, follow [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md).
 - When adding or changing runtime schemas, DTO parsing, preferences schemas, or localStorage config schemas, follow [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md).
 - When adding boundary tests or turning TODO findings into durable coverage, follow [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
+- For TODO priority taxonomy, React Compiler adoption, ES2023 array copy methods, or React Doctor suppression decisions, follow [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
 
 ## File Placement
 
@@ -77,6 +78,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - `CHANGELOG.md` records completed user-visible changes.
 - Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
 - Classify new TODO entries as implementation, contract test, rule update, manual verification, or type placement cleanup. If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of growing `TODO.md`.
+- Use the P0/P1/P2/P3 taxonomy in [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md) when adding or triaging TODO entries.
 - React Doctor / Knip baselines live in `scripts/quality-baseline.ts`. Update those constants only after running the matching pinned task, reviewing whether the drift is expected, and keeping the tool versions pinned in `package.json` / `pnpm-lock.yaml`. Test `@latest` versions outside the baseline tasks.
 
 ## Localization Notes
@@ -106,6 +108,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md): async side effects, latest-only ordering, cleanup, and rejection surface
 - [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md): schema strictness, DTO trust boundaries, and fallback ownership
 - [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md): contract test placement, TODO intake, and durable regression coverage
+- [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md): TODO priority taxonomy, React Compiler opt-in, ES2023 array copy methods, and React Doctor warning suppression policy
 
 ## Agent Routing
 
