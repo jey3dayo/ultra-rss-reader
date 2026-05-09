@@ -2,6 +2,7 @@ export type RuntimeDiagnosticPolicyId =
   | "dev-runtime-options-load"
   | "startup-sync"
   | "sync-on-wake"
+  | "manual-sync-cooldown-listener"
   | "platform-info-load"
   | "app-icon-theme"
   | "unread-badge";
@@ -33,6 +34,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     redactSecrets: true,
   },
   "sync-on-wake": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
+  "manual-sync-cooldown-listener": {
     console: "warn",
     devOnlyConsole: false,
     productionDiagnostics: true,

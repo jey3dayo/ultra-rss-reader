@@ -2,40 +2,73 @@ import { Result } from "@praha/byethrow";
 import type { SyncResultDto } from "@/api/schemas";
 import { type AppError, triggerSync } from "@/api/tauri-commands";
 import { getCurrentTimeMs } from "@/lib/datetime";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 
 const MANUAL_SYNC_COOLDOWN_MS = 15_000;
+const MANUAL_SYNC_COOLDOWN_SUBSCRIBER_ID_PREFIX = "manual-sync-cooldown-listener";
 
 let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
-const manualSyncCooldownListeners = new Set<() => void>();
-let manualSyncCooldownListenerErrorReporter: (errors: readonly unknown[]) => void =
-  reportManualSyncCooldownListenerErrors;
+let manualSyncCooldownListenerSequence = 0;
+const manualSyncCooldownListeners = new Set<ManualSyncCooldownListenerEntry>();
+let manualSyncCooldownListenerDiagnosticsReporter: ((
+  reports: readonly ManualSyncCooldownListenerErrorReport[],
+) => void) | null = null;
 
-function reportManualSyncCooldownListenerErrors(errors: readonly unknown[]) {
-  console.error("Manual sync cooldown listeners failed:", errors);
+type ManualSyncCooldownListenerEntry = {
+  id: string;
+  listener: () => void;
+};
+
+export type ManualSyncCooldownListenerErrorReport = {
+  subscriberId: string;
+  error: unknown;
+};
+
+function reportManualSyncCooldownListenerErrors(
+  reports: readonly ManualSyncCooldownListenerErrorReport[],
+) {
+  logRuntimeDiagnostic(
+    "manual-sync-cooldown-listener",
+    "Manual sync cooldown listeners failed:",
+    reports,
+  );
+  manualSyncCooldownListenerDiagnosticsReporter?.(reports);
 }
 
 export function notifyManualSyncCooldownListeners(
-  listeners: Iterable<() => void>,
-  onListenerErrors: (errors: readonly unknown[]) => void = reportManualSyncCooldownListenerErrors,
+  listeners: Iterable<ManualSyncCooldownListenerEntry | (() => void)>,
+  onListenerErrors: (
+    reports: readonly ManualSyncCooldownListenerErrorReport[],
+  ) => void = reportManualSyncCooldownListenerErrors,
 ) {
-  const errors: unknown[] = [];
+  const reports: ManualSyncCooldownListenerErrorReport[] = [];
 
-  for (const listener of listeners) {
+  for (const [index, listenerEntry] of Array.from(listeners).entries()) {
+    const entry =
+      typeof listenerEntry === "function"
+        ? {
+            id: `${MANUAL_SYNC_COOLDOWN_SUBSCRIBER_ID_PREFIX}:ad-hoc-${index + 1}`,
+            listener: listenerEntry,
+          }
+        : listenerEntry;
     try {
-      listener();
+      entry.listener();
     } catch (error) {
-      errors.push(error);
+      reports.push({
+        subscriberId: entry.id,
+        error,
+      });
     }
   }
 
-  if (errors.length > 0) {
-    onListenerErrors(errors);
+  if (reports.length > 0) {
+    onListenerErrors(reports);
   }
 }
 
 function emitManualSyncCooldownChanged() {
-  notifyManualSyncCooldownListeners(manualSyncCooldownListeners, manualSyncCooldownListenerErrorReporter);
+  notifyManualSyncCooldownListeners(manualSyncCooldownListeners);
 }
 
 function setManualSyncCooldownUntil(nextCooldownUntil: number) {
@@ -66,18 +99,23 @@ export function getManualSyncCooldownUntil() {
 }
 
 export function subscribeManualSyncCooldown(listener: () => void) {
-  manualSyncCooldownListeners.add(listener);
+  manualSyncCooldownListenerSequence += 1;
+  const entry = {
+    id: `${MANUAL_SYNC_COOLDOWN_SUBSCRIBER_ID_PREFIX}:${manualSyncCooldownListenerSequence}`,
+    listener,
+  };
+  manualSyncCooldownListeners.add(entry);
   return () => {
-    manualSyncCooldownListeners.delete(listener);
+    manualSyncCooldownListeners.delete(entry);
   };
 }
 
 export function setManualSyncCooldownListenerErrorReporterForDiagnostics(
-  reporter: (errors: readonly unknown[]) => void,
+  reporter: (reports: readonly ManualSyncCooldownListenerErrorReport[]) => void,
 ) {
-  manualSyncCooldownListenerErrorReporter = reporter;
+  manualSyncCooldownListenerDiagnosticsReporter = reporter;
   return () => {
-    manualSyncCooldownListenerErrorReporter = reportManualSyncCooldownListenerErrors;
+    manualSyncCooldownListenerDiagnosticsReporter = null;
   };
 }
 
@@ -144,6 +182,7 @@ export function resetManualSyncCooldownForTests() {
     manualSyncCooldownTimer = null;
   }
   manualSyncCooldownUntil = 0;
+  manualSyncCooldownListenerSequence = 0;
   manualSyncCooldownListeners.clear();
-  manualSyncCooldownListenerErrorReporter = reportManualSyncCooldownListenerErrors;
+  manualSyncCooldownListenerDiagnosticsReporter = null;
 }
