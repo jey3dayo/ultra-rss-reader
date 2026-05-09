@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
+import { resolveSubscriptionCleanupRecommendation } from "@/lib/subscriptions/subscription-review-candidates";
 
 describe("article retention", () => {
   it("retains the selected article in unread mode before auto-read can refetch it away", () => {
@@ -66,5 +67,28 @@ describe("article retention", () => {
 
     expect(previousRetainedArticleIds).toEqual(new Set(["art-1"]));
     expect(retainedArticleIds).toEqual(new Set(["art-1"]));
+  });
+
+  it("keeps selected unread article retention separate from cleanup recommendation policy", () => {
+    const retainedArticleIds = getRetainedArticleIdsAfterSelectingArticle({
+      articleId: "art-active",
+      viewMode: "unread",
+      currentRetainedArticleIds: new Set(),
+    });
+
+    const cleanupRecommendation = resolveSubscriptionCleanupRecommendation({
+      feedId: "feed-stale",
+      title: "Stale Feed",
+      folderId: null,
+      folderName: null,
+      latestArticleAt: "2026-01-01T00:00:00Z",
+      staleDays: 94,
+      unreadCount: 0,
+      starredCount: 1,
+      reasonKeys: ["stale_90d", "no_unread"],
+    });
+
+    expect(retainedArticleIds).toEqual(new Set(["art-active"]));
+    expect(cleanupRecommendation).toBe("cleanup_candidate");
   });
 });

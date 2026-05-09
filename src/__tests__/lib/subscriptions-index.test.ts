@@ -473,7 +473,11 @@ describe("subscriptions index helpers", () => {
     const staleCaption = vi.fn((count: number) => `${count} stale`);
 
     const summaryCards = buildSubscriptionSummaryCards({
-      summary: { totalCount: -1, reviewCount: Number.NaN, staleCount: Number.POSITIVE_INFINITY },
+      summary: {
+        totalCount: -1,
+        reviewCount: Number.NaN,
+        staleCount: Number.POSITIVE_INFINITY,
+      },
       activeSummaryFilter: "all",
       labels: {
         total: "All",
@@ -926,6 +930,58 @@ describe("subscriptions index helpers", () => {
     expect(visibleRows[visibleRows.length - 1]?.feed.id).toBe("feed-stale");
   });
 
+  it("sorts invalid update date rows by title and feed id after valid update dates", () => {
+    const invalidDateFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-invalid-z", title: "Shared" },
+      { ...feeds[1], id: "feed-valid", title: "Valid Feed" },
+      { ...feeds[2], id: "feed-invalid-a", title: "Shared" },
+      { ...feeds[3], id: "feed-invalid-b", title: "Alpha" },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: invalidDateFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: buildFeedArticleSummaryMap([
+        {
+          feed_id: "feed-invalid-z",
+          latest_article_at: "not-a-date",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-valid",
+          latest_article_at: "2026-04-01T09:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-invalid-a",
+          latest_article_at: "",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-invalid-b",
+          latest_article_at: "invalid-date",
+          starred_count: 0,
+        },
+      ]),
+      folderNameById: new Map(),
+    });
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "updated_at",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual([
+      "feed-valid",
+      "feed-invalid-b",
+      "feed-invalid-a",
+      "feed-invalid-z",
+    ]);
+  });
+
   it("uses title and feed id tie-breakers for rows with the same update date", () => {
     const tieFeeds: FeedDto[] = [
       { ...feeds[0], id: "feed-z", title: "Shared", unread_count: 0 },
@@ -980,6 +1036,37 @@ describe("subscriptions index helpers", () => {
     });
 
     expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-b", "feed-a", "feed-z"]);
+  });
+
+  it("normalizes invalid unread counts before applying title and feed id tie-breakers", () => {
+    const invalidUnreadFeeds: FeedDto[] = [
+      { ...feeds[0], id: "feed-negative-z", title: "Shared", unread_count: -5 },
+      { ...feeds[1], id: "feed-positive", title: "Positive", unread_count: 2 },
+      { ...feeds[2], id: "feed-zero", title: "Zero", unread_count: 0 },
+      { ...feeds[3], id: "feed-negative-a", title: "Shared", unread_count: -1 },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: invalidUnreadFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map(),
+    });
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "unread_count",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual([
+      "feed-positive",
+      "feed-negative-a",
+      "feed-negative-z",
+      "feed-zero",
+    ]);
   });
 
   it("groups subscription rows by folder label", () => {

@@ -118,6 +118,10 @@ function normalizeSubscriptionSummaryCount(count: number): number {
   return Number.isFinite(count) && count >= 0 ? count : 0;
 }
 
+function normalizeSubscriptionListUnreadCount(count: number): number {
+  return Number.isFinite(count) && count >= 0 ? count : 0;
+}
+
 function compareSubscriptionRows(
   left: SubscriptionListRow,
   right: SubscriptionListRow,
@@ -139,7 +143,9 @@ function compareSubscriptionRows(
   }
 
   if (sortKey === "unread_count") {
-    const unreadCountOrder = right.feed.unread_count - left.feed.unread_count;
+    const unreadCountOrder =
+      normalizeSubscriptionListUnreadCount(right.feed.unread_count) -
+      normalizeSubscriptionListUnreadCount(left.feed.unread_count);
     return unreadCountOrder === 0 ? compareByTitleAndId() : unreadCountOrder;
   }
 
