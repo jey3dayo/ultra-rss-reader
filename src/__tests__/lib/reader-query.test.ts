@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   type ReaderFilter,
+  type ReaderQuery,
   type ReaderQuerySelection,
   resolveReaderQuery,
   resolveReaderSourcePlan,
 } from "@/lib/reader/reader-query";
+
+function expectedReaderQuery(query: ReaderQuery): ReaderQuery {
+  return query;
+}
 
 describe("resolveReaderQuery", () => {
   it("normalizes smart views to account-scoped reader queries", () => {
@@ -136,6 +141,7 @@ describe("resolveReaderSourcePlan", () => {
       selection: ReaderQuerySelection;
       viewMode: ReaderFilter;
       expected: {
+        query: ReaderQuery;
         sourceKind: string;
         sourceKey: string;
         accountId: string | null;
@@ -154,6 +160,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "smart", kind: "unread" },
         viewMode: "all",
         expected: {
+          query: expectedReaderQuery({
+            source: "articles",
+            scope: { type: "account", accountId: "acc-1" },
+            filter: "unread",
+          }),
           sourceKind: "account",
           sourceKey: "account:acc-1:articles:unread",
           accountId: "acc-1",
@@ -172,6 +183,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "all" },
         viewMode: "all",
         expected: {
+          query: expectedReaderQuery({
+            source: "articles",
+            scope: { type: "account", accountId: "acc-1" },
+            filter: "all",
+          }),
           sourceKind: "account",
           sourceKey: "account:acc-1:articles:all",
           accountId: "acc-1",
@@ -190,6 +206,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "smart", kind: "starred" },
         viewMode: "all",
         expected: {
+          query: expectedReaderQuery({
+            source: "articles",
+            scope: { type: "account", accountId: "acc-1" },
+            filter: "starred",
+          }),
           sourceKind: "account",
           sourceKey: "account:acc-1:articles:starred",
           accountId: "acc-1",
@@ -208,6 +229,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "folder", folderId: "folder-1" } as const,
         viewMode,
         expected: {
+          query: expectedReaderQuery({
+            source: "articles",
+            scope: { type: "folder", folderId: "folder-1" },
+            filter: viewMode,
+          }),
           sourceKind: "folder",
           sourceKey: `folder:folder-1:${viewMode}`,
           accountId: null,
@@ -226,6 +252,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "feed", feedId: "feed-1" } as const,
         viewMode,
         expected: {
+          query: expectedReaderQuery({
+            source: "articles",
+            scope: { type: "feed", feedId: "feed-1" },
+            filter: viewMode,
+          }),
           sourceKind: "feed",
           sourceKey: `feed:feed-1:${viewMode}`,
           accountId: null,
@@ -244,6 +275,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "tag", tagId: "tag-1" } as const,
         viewMode,
         expected: {
+          query: expectedReaderQuery({
+            source: "articles",
+            scope: { type: "tag", tagId: "tag-1" },
+            filter: viewMode,
+          }),
           sourceKind: "tag",
           sourceKey: `tag:tag-1:${viewMode}`,
           accountId: null,
@@ -262,6 +298,11 @@ describe("resolveReaderSourcePlan", () => {
         selection: { type: "smart", kind: "recent" } as const,
         viewMode,
         expected: {
+          query: expectedReaderQuery({
+            source: "recent",
+            scope: { type: "account", accountId: "acc-1" },
+            filter: viewMode,
+          }),
           sourceKind: "recent",
           sourceKey: `recent:acc-1:${viewMode}`,
           accountId: "acc-1",
