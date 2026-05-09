@@ -1,5 +1,33 @@
-import { useCallback } from "react";
-import type { SidebarUiActionsParams, SidebarUiActionsResult } from "../../sidebar-controller.types";
+import { type Dispatch, type SetStateAction, useCallback } from "react";
+import type { SettingsCategory } from "@/lib/settings/settings-category.types";
+
+export type SidebarSetSelectedAccountPreference = (accountId: string) => void;
+
+export type SidebarUiActionsParams = {
+  selectedAccountId: string | null;
+  selectAccount: (accountId: string) => void;
+  setSelectedAccountPreference: SidebarSetSelectedAccountPreference;
+  openSettings: (category?: SettingsCategory) => void;
+  openSubscriptionsIndex: () => void;
+  openSettingsAccount: (accountId: string) => void;
+  openSettingsAddAccount: () => void;
+  openAddFeedDialog: () => void;
+  closeAddFeedDialog: () => void;
+  setIsFeedsSectionOpen: Dispatch<SetStateAction<boolean>>;
+  setIsTagsSectionOpen: Dispatch<SetStateAction<boolean>>;
+};
+
+export type SidebarUiActionsResult = {
+  handleSelectAccount: (accountId: string) => void;
+  toggleFeedsSection: () => void;
+  toggleTagsSection: () => void;
+  handleOpenSubscriptionsIndex: () => void;
+  handleOpenSettings: () => void;
+  handleOpenTagSettings: () => void;
+  handleOpenAccountSettings: () => void;
+  handleAddFeed: () => void;
+  handleAddFeedDialogOpenChange: (open: boolean) => void;
+};
 
 export function useSidebarUiActions({
   selectedAccountId,

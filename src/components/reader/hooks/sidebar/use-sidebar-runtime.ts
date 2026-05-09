@@ -5,7 +5,7 @@ import { useSidebarSync } from "@/components/reader/hooks/sidebar/use-sidebar-sy
 import { useSidebarUiState } from "@/components/reader/hooks/sidebar/use-sidebar-ui-state";
 import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
 import type { SidebarRuntimeResult } from "../../sidebar-runtime.types";
-import type { SidebarSyncResult } from "../../sidebar-sync.types";
+import type { SidebarSyncResult } from "./use-sidebar-sync";
 
 type SidebarRuntimeState = {
   isFeedsSectionOpen: boolean;
@@ -24,9 +24,15 @@ const initialSidebarRuntimeState: SidebarRuntimeState = {
 function sidebarRuntimeReducer(state: SidebarRuntimeState, action: SidebarRuntimeAction): SidebarRuntimeState {
   switch (action.type) {
     case "set-feeds-section-open":
-      return { ...state, isFeedsSectionOpen: resolveNextBooleanValue(state.isFeedsSectionOpen, action.value) };
+      return {
+        ...state,
+        isFeedsSectionOpen: resolveNextBooleanValue(state.isFeedsSectionOpen, action.value),
+      };
     case "set-tags-section-open":
-      return { ...state, isTagsSectionOpen: resolveNextBooleanValue(state.isTagsSectionOpen, action.value) };
+      return {
+        ...state,
+        isTagsSectionOpen: resolveNextBooleanValue(state.isTagsSectionOpen, action.value),
+      };
     default:
       return state;
   }

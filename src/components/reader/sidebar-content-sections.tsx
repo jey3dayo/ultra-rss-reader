@@ -5,12 +5,13 @@ import { useSidebarTagItems } from "@/components/reader/hooks/sidebar/use-sideba
 import { AddFeedDialog } from "./add-feed-dialog";
 import type { FeedTreeEmptyState } from "./feed-tree.types";
 import { FeedTreeView } from "./feed-tree-view";
+import type { SidebarTagItemsParams } from "./hooks/sidebar/use-sidebar-tag-items";
 import { SidebarContentView } from "./sidebar-content-view";
 import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import { SidebarFeedTreeSkeleton } from "./sidebar-feed-tree-skeleton";
-import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
 import { SidebarTagSection } from "./sidebar-tag-section";
+import type { SidebarTagListProps } from "./tag-list-view";
 
 export type SidebarContentSectionsProps = {
   subscriptions: {

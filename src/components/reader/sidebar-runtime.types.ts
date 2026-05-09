@@ -2,9 +2,9 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { DevIntent } from "@/dev/intent";
 import type { PreferenceWritableKey, SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
 import type { UiStoreState } from "@/stores/ui-store";
+import type { SidebarSyncResult } from "./hooks/sidebar/use-sidebar-sync";
 import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarSourcesResult } from "./sidebar-sources.types";
-import type { SidebarSyncResult } from "./sidebar-sync.types";
 
 export type SidebarAccountSwitcherResult = {
   isAccountListOpen: boolean;

@@ -1,10 +1,23 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import type { ReactNode } from "react";
 import { SidebarSectionToggle } from "@/components/shared/sidebar-section-toggle";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import { getSidebarDensityTokens } from "./sidebar-density";
+import type { SidebarTagItem, SidebarTagItemsResult } from "./hooks/sidebar/use-sidebar-tag-items";
+import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
-import type { SidebarTagListProps } from "./sidebar-tag-items.types";
+
+export type SidebarTagListProps = {
+  tagsLabel: string;
+  emptyLabel?: string;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+  sidebarDensity?: SidebarDensity;
+  tags: SidebarTagItemsResult;
+  onSelectTag: (tagId: string) => void;
+  renderContextMenu?: (tag: SidebarTagItem) => ReactNode;
+  renderTagSectionContextMenu?: () => ReactNode;
+};
 
 export function TagListView({
   tagsLabel,

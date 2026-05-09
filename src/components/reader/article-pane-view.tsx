@@ -1,3 +1,4 @@
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticlePaneController } from "@/components/reader/hooks/article/use-article-pane-controller";
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
 import {
@@ -12,8 +13,20 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
-import type { ArticlePaneProps, ArticlePaneToolbarState } from "./article-view.types";
 import { BrowserOverlaySurface } from "./article-view-state";
+
+export type ArticlePaneProps = {
+  article: ArticleDto;
+  feed?: FeedDto;
+  feedName?: string;
+};
+
+type ArticlePaneToolbarState = {
+  article: ArticleDto | null;
+  isBrowserOpen: boolean;
+  onCloseView: () => void;
+  onToggleBrowserOverlay: () => void;
+};
 
 export function ArticleToolbar({
   article,

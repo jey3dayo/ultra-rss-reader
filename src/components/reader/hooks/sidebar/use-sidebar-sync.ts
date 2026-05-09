@@ -18,8 +18,15 @@ import {
 import type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
 import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
-import type { SidebarSyncResult } from "../../sidebar-sync.types";
 import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
+
+export type SidebarSyncResult = {
+  handleSync: () => Promise<void>;
+  lastSyncedLabel: string;
+  syncTooltipLabel: string | null;
+  isSyncCoolingDown: boolean;
+  isSyncDisabled: boolean;
+};
 
 type SidebarSyncProgressPayload = SyncProgressEventDto;
 type SidebarSyncWarningPayload = AccountSyncWarning[];

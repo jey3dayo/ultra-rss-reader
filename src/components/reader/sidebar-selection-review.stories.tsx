@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { fn } from "storybook/test";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FeedTreeView } from "./feed-tree-view";
-import type { SidebarTagItem } from "./sidebar-tag-items.types";
+import type { SidebarTagItem } from "./hooks/sidebar/use-sidebar-tag-items";
 import { SmartViewsView } from "./smart-views-view";
 import { TagListView } from "./tag-list-view";
 
@@ -76,19 +76,61 @@ const folderSelectedArgs = {
 };
 
 const smartViewsUnreadSelected = [
-  { kind: "unread" as const, label: "未読", count: 11855, showCount: true, isSelected: true },
-  { kind: "starred" as const, label: "スター", count: 0, showCount: false, isSelected: false },
+  {
+    kind: "unread" as const,
+    label: "未読",
+    count: 11855,
+    showCount: true,
+    isSelected: true,
+  },
+  {
+    kind: "starred" as const,
+    label: "スター",
+    count: 0,
+    showCount: false,
+    isSelected: false,
+  },
 ];
 
 const smartViewsStarredSelected = [
-  { kind: "unread" as const, label: "未読", count: 11855, showCount: true, isSelected: false },
-  { kind: "starred" as const, label: "スター", count: 28, showCount: true, isSelected: true },
+  {
+    kind: "unread" as const,
+    label: "未読",
+    count: 11855,
+    showCount: true,
+    isSelected: false,
+  },
+  {
+    kind: "starred" as const,
+    label: "スター",
+    count: 28,
+    showCount: true,
+    isSelected: true,
+  },
 ];
 
 const reviewTags: SidebarTagItem[] = [
-  { id: "tag-1", name: "Fav", color: "#caa75e", articleCount: 8, isSelected: false },
-  { id: "tag-2", name: "Gray", color: "#8d857e", articleCount: 1, isSelected: false },
-  { id: "tag-3", name: "Red", color: "#eb8a72", articleCount: 3, isSelected: true },
+  {
+    id: "tag-1",
+    name: "Fav",
+    color: "#caa75e",
+    articleCount: 8,
+    isSelected: false,
+  },
+  {
+    id: "tag-2",
+    name: "Gray",
+    color: "#8d857e",
+    articleCount: 1,
+    isSelected: false,
+  },
+  {
+    id: "tag-3",
+    name: "Red",
+    color: "#eb8a72",
+    articleCount: 3,
+    isSelected: true,
+  },
 ];
 
 function ReviewCard(props: { title: string; children: ReactNode }) {

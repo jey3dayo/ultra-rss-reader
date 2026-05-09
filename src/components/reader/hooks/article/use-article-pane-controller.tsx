@@ -8,7 +8,34 @@ import { useArticleViewUiState } from "@/components/reader/hooks/article/use-art
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import type { ArticlePaneControllerResult, ArticlePaneProps } from "../../article-view.types";
+import type { ArticlePaneProps } from "../../article-pane-view";
+import type { BrowserOverlayToolbarAction } from "../../browser-view.types";
+
+type ArticlePaneToolbarState = {
+  article: ArticlePaneProps["article"] | null;
+  isBrowserOpen: boolean;
+  onCloseView: () => void;
+  onToggleBrowserOverlay: () => void;
+};
+
+type ArticlePaneBrowserOverlayState = {
+  onCloseOverlay: () => void;
+  showBrowserView?: boolean;
+};
+
+type ArticlePaneControllerResult = {
+  toolbarProps: ArticlePaneToolbarState;
+  browserOverlayProps: ArticlePaneBrowserOverlayState;
+  browserOverlayToolbarActions?: BrowserOverlayToolbarAction[];
+  showWebPreviewUnavailableWarning: boolean;
+  webPreviewUnavailableLabel: string;
+  showReaderBody: boolean;
+  readerBodyProps: {
+    onOpenArticleTitleInWebPreview: () => void;
+    "aria-hidden": boolean;
+    inert?: true;
+  };
+};
 
 export function useArticlePaneController({ article, feed }: ArticlePaneProps): ArticlePaneControllerResult {
   const { t } = useTranslation("reader");

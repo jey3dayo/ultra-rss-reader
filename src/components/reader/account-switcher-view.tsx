@@ -1,11 +1,28 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
-import type { ButtonHTMLAttributes, Ref } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref, RefObject } from "react";
+import type { AccountDto } from "@/api/tauri-commands";
 import { SIDEBAR_FALLBACK_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu } from "./account-switcher-menu";
 import { useAccountSwitcherViewModel } from "./hooks/sidebar/use-sidebar-account-switcher";
+
+export type AccountSwitcherProps = {
+  title: string;
+  lastSyncedLabel: string;
+  accounts: AccountDto[];
+  accountStatusLabels?: Record<string, string>;
+  selectedAccountId: string | null;
+  isExpanded: boolean;
+  menuId: string;
+  menuLabel: string;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+  itemRefs: RefObject<Array<HTMLButtonElement | null>>;
+  onToggle: () => void;
+  onSelectAccount: (accountId: string) => void;
+  onClose: (restoreFocus: boolean) => void;
+  renderContextMenu?: () => ReactNode;
+};
 
 type AccountSwitcherTriggerButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,

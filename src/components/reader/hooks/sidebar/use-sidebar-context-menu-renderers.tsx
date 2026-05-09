@@ -3,10 +3,10 @@ import { FeedContextMenuContent } from "../../feed-context-menu";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
 import { FolderContextMenuContent } from "../../folder-context-menu";
 import type { SidebarContextMenuRenderersResult } from "../../sidebar.types";
-import type { SidebarTagItem } from "../../sidebar-tag-items.types";
 import { SubscriptionsSectionContextMenu } from "../../subscriptions-section-context-menu";
 import { TagContextMenuContent } from "../../tag-context-menu";
 import { TagSectionContextMenu } from "../../tag-section-context-menu";
+import type { SidebarTagItem } from "./use-sidebar-tag-items";
 
 type UseSidebarContextMenuRenderersParams = {
   folders: Array<{ id: string }> | undefined;

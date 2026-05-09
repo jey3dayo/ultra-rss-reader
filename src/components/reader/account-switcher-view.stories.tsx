@@ -2,8 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createRef } from "react";
 import { fn } from "storybook/test";
 import type { AccountDto } from "@/api/tauri-commands";
-import type { AccountSwitcherProps } from "./account-switcher.types";
-import { AccountSwitcherView } from "./account-switcher-view";
+import { type AccountSwitcherProps, AccountSwitcherView } from "./account-switcher-view";
 
 type AccountSwitcherStoryArgs = Omit<AccountSwitcherProps, "triggerRef" | "itemRefs">;
 
