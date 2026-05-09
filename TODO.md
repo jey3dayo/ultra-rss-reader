@@ -115,11 +115,6 @@
   - log dir はユーザーが直接開けるため、sync error、browser diagnostics、debug trace に URL query や account data が残ると support 共有時に漏えいしやすい
   - log redaction 対象、retention、manual support 手順を checklist 化し、代表ログに secret-like string が出ない test を追加する
 
-- [ ] P2 preferences freeform string の key別 max length / control char policy を固定する
-  - 対象: `src/schemas/preferences.ts`, `src-tauri/src/commands/preference_commands.rs`
-  - freeform preference は key によって URL、shortcut、selected account id など意味が違うため、長大文字列や control char が DB/UI に残ると後段 helper が壊れやすい
-  - selected_account_id、debug_web_preview_url、shortcut_*、font/layout 系で max length と control char policy を分け、schema/backend test を追加する
-
 - [ ] P2 app root visibilitychange sync trigger の throttle / cleanup を固定する
   - 対象: `src/App.tsx`, `src/lib/sync/startup-sync-storage.ts`, `src-tauri/src/service/sync_scheduler.rs`
   - visibilitychange や wake/startup sync が重なると、foreground 復帰時に manual sync、automatic sync、startup sync の開始条件が競合しやすい
@@ -139,11 +134,6 @@
   - 対象: `src/components/app-confirm-dialog.tsx`, `src/hooks/use-delete-feed.ts`, `src/components/reader/article-list.tsx`, `src/components/settings/mute-settings.tsx`
   - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
   - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
-
-- [ ] P1 app root missing / lazy chunk failure の user-visible fallback を固定する
-  - 対象: `src/main.tsx`, `src/components/app-shell.tsx`
-  - `#root` 不在や lazy chunk import failure が throw のままだと、packaging / asset path / webview cache 事故で白画面になり、復旧導線がない
-  - root missing、settings chunk failure、command palette chunk failure の fallback UI / telemetry / reload action 方針を決め、app shell test を追加する
 
 - [ ] P2 search_articles の query length / unicode / FTS escape policy を固定する
   - 対象: `src/hooks/use-articles.ts`, `src/dev/mocks.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
@@ -180,11 +170,6 @@
   - foreground 復帰時に wake sync、startup throttle、manual sync、updater install gate が近いタイミングで動くため、UI では idle に見えて native 側だけ busy になりやすい
   - app wake、manual sync click、update-ready、scheduler tick を組み合わせた integration test / manual verification checklist を作る
 
-- [ ] P2 sidebar sync feedback spin と cooldown/disabled 状態の表示優先順位を固定する
-  - 対象: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`
-  - cooldown 中でも `allowAriaDisabledClick` で click handler が呼ばれるため、実 sync は走らなくても feedback spin や toast が user intent とズレやすい
-  - cooldown click、disabled click、syncing中 click、manual sync rejected の表示優先順位を component/hook test で固定する
-
 - [ ] P2 browser theme wipe overlay の rapid theme switching / reduced motion 追従を固定する
   - 対象: `src/components/reader/browser-view.tsx`, `src/stores/preferences-store.ts`
   - theme を連続変更した時に wipe timer と system theme subscription が重なると、overlay key reset や reduced motion 切替が現在 preference とズレる可能性がある
@@ -194,11 +179,6 @@
   - 対象: `src/hooks/use-updater.ts`
   - startup silent check と manual check が同じ `checkInFlight` を共有するため、manual click が silent startup の失敗/成功結果に相乗りした時の toast 方針が分かりにくい
   - startup in-flight 中 manual click、manual in-flight 中 startup effect、failure/success/null result の toast behavior を hook/lib test にする
-
-- [ ] P2 dev scenario helper の delayed replay timer cleanup を固定する
-  - 対象: `src/dev/scenarios/helpers.ts`, `src/dev/scenarios/runner.ts`
-  - dev scenario が `setTimeout` で preview state を遅延 replay するため、別 scenario 実行や画面遷移後に古い scenario が UI state を上書きする可能性がある
-  - scenario generation/cancel token、late replay ignore、sequential scenario run の dev runtime test を追加する
 
 - [ ] P2 Tauri dev server manager が他 repo の Vite process を止める条件を厳格化する
   - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
@@ -234,11 +214,6 @@
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
-
-- [ ] P2 app shell lazy preload failure の retry/backoff を一度だけにする
-  - 対象: `src/components/app-shell.tsx`
-  - settings modal preload が failure を console に出すだけだと、chunk outage や asset path 破損時に hover/focus のたびに同じ preload が失敗し続け、原因が diagnostics に残りにくい
-  - preload failure cache、manual retry、reload action、production/dev logging の behavior を app shell test にする
 
 - [ ] P2 mute settings auto-mark optimistic rollback を latest-only にする
   - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`
@@ -360,11 +335,6 @@
   - 複数 account を並列 sync する時、1 account の throw/reject が他 account の結果待ちや warning 集約を壊すと、どの account が成功/失敗したか見えにくい
   - `Promise.allSettled`、per-account warning、partial success invalidation、sync_on_wake off account skip の component test を追加する
 
-- [ ] P2 Tauri listener failure once flag を runtime recovery / test reset できるようにする
-  - 対象: `src/lib/runtime/tauri-event-listeners.ts`, `src/components/app-shell.tsx`
-  - listener failure event は module-level once flag で抑制されるため、runtime recovery 後の再失敗や test isolation で二回目以降の警告を観測しにくい
-  - reset helper、diagnostics counter、runtime session id、registration failure -> cleanup failure の ordering test を追加する
-
 - [ ] P2 Tauri dev Vite manager が SIGTERM で止まらない process を扱えるようにする
   - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
   - stale Vite を SIGTERM した後は port が空くまで待つだけなので、process が signal を無視すると dev server 起動が timeout し、次の対処が手動 kill になりやすい
@@ -425,25 +395,10 @@
   - sanitized HTML 内の全 anchor へ個別 listener を張るため、長文記事や頻繁な article 切替で listener attach/detach のコストと stale anchor cleanup が増えやすい
   - container-level click delegation、nested element click、modifier key、relative URL、article切替時 cleanup の component test を追加する
 
-- [ ] P2 article list search focus restore が aria-label 文字列依存で壊れないようにする
-  - 対象: `src/components/reader/article-list-header-search.tsx`, `src/components/reader/article-list-header.tsx`
-  - Escape 後の focus restore が全 button から aria-label 一致で探すため、locale 変更や同名 button が増えた時に別要素へ focus が移りやすい
-  - trigger ref / data attribute 化、duplicate label、locale switch、search open/close rapid toggle の component test を追加する
-
 - [ ] P2 settings add account form の preventDefault warning を Tauri form contract として整理する
   - 対象: `src/components/settings/add-account/form-view.tsx`, `src/components/settings/add-account/account-config-form-view.tsx`
   - React Doctor は form `preventDefault` を progressive enhancement warning として出すが、Tauri app では native command submit が正なので、button/form semantics の意図を明文化しないと毎回 noise になる
   - `type=submit` / `onSubmit` / Enter key / disabled submitting / no-JS 非対応方針を component test と suppression policy へ整理する
-
-- [ ] P2 subscription review candidate の array chain warning を production hot path として潰す
-  - 対象: `src/lib/subscriptions/subscription-review-candidates.ts`, `src/components/subscriptions-index/subscriptions-index-page.tsx`
-  - `filter().map()` warning は小さく見えるが、feed 数が増えるほど review index 表示時の全件走査コストに直結する
-  - single-pass build、hiddenFeedIds large set、stale reason sorting、candidate count regression の lib test を追加する
-
-- [ ] P2 command palette dev scenario loader の dynamic import / runtime load を stale open state で捨てる
-  - 対象: `src/components/reader/hooks/command-palette/use-command-palette-runtime.ts`, `src/dev/scenario-runtime.ts`
-  - dev scenario loader は open state と別 effect で一度走るため、palette close/open や HMR 中の late result が現在 input reset と混ざる可能性がある
-  - cancelled flag、open generation、module load failure、scenario registry update、rapid close/open の hook test を追加する
 
 - [ ] P3 React 19 deprecated API warning を context wrapper 単位で移行判断する
   - 対象: `src/components/settings/shared/settings-content-layout.tsx`, `src/components/settings/**`
@@ -495,11 +450,6 @@
   - sequential await warning 25 件は order-dependent contract test と独立処理の performance issue が混在している
   - order が必要な test は理由を明示し、独立 command / fixture setup は `Promise.all` / `Promise.allSettled` 化して flake と実行時間を下げる
 
-- [ ] P2 use-update-feed-folder の repeated find を Map index 化する
-  - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/feed-tree/*`
-  - React Doctor の `js-index-maps` が `array.find()` in loop を検出しており、feed 数が増えるほど folder update 時の lookup が O(n*m) になりやすい
-  - folder/feed id index を一度だけ作り、duplicate id、missing folder、same folder move、large list の hook test を追加する
-
 - [ ] P2 account detail name editor の await placement を skip path 優先で整理する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-name-editor.ts`
   - React Doctor の `async-defer-await` が、early return で使わない await が先に走る箇所を検出している
@@ -509,11 +459,6 @@
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
   - React Doctor の `async-parallel` が script 内の 3 sequential await を検出しており、dev data refresh が不要に遅くなる可能性がある
   - DB connection、backup/read、transform、write の依存関係を明確にし、独立処理だけ並列化して error diagnostics を維持する
-
-- [ ] P3 account sync statuses の map/filter chain を single-pass 化する
-  - 対象: `src/hooks/use-account-sync-statuses.ts`, `src/__tests__/hooks/use-account-sync-statuses.test.tsx`
-  - React Doctor の `js-flatmap-filter` が `.map().filter(Boolean)` を検出しており、account 数が増えた時に不要な中間配列を作る
-  - sync disabled、missing account、warning/error mixed、order preservation の hook test を維持して `.flatMap` または明示 loop へ寄せる
 
 - [ ] P3 Tailwind redundant size axes を design primitive から小さく潰す
   - 対象: `src/components/reader/account-switcher-view.tsx`, `src/components/shared/nav-row-button.stories.tsx`
@@ -559,16 +504,6 @@
   - 対象: `src/__tests__/components/add-account-services.test.ts`, `src/components/settings/add-account/services.ts`, `src/components/settings/add-account/services.types.ts`
   - React Doctor の `js-combine-iterations` が add-account service test に出ており、service option の filter/map が実装と test で重複している可能性がある
   - supported service、disabled service、provider label、config schema availability の test helper を service source of truth から組み立てる
-
-- [ ] P2 tauri-commands API surface の unused type / export を command schema と突き合わせる
-  - 対象: `src/api/tauri-commands.ts`, `src/api/schemas/index.ts`, `src/__tests__/api/tauri-commands.test.ts`
-  - React Doctor / Knip が API command module に unused type/export を検出しており、Rust IPC contract と frontend helper のどちらが source of truth か分かりにくい
-  - command wrapper、schema-derived type、test-only export、public import path を分類し、不要 export は削除、必要 export は schema barrel contract へ追加する
-
-- [ ] P2 update-info schema の unused type を updater command contract と揃える
-  - 対象: `src/api/schemas/update-info.ts`, `src/hooks/use-updater.ts`, `src/__tests__/hooks/use-updater.test.ts`, `src-tauri/src/commands/updater_commands.rs`
-  - React Doctor / Knip が update info schema 側の type を unused として検出しており、backend trusted schema と frontend guard の境界が揺れやすい
-  - available/no-update/error payload、version string、release date、download URL、malformed updater response の schema contract を整理する
 
 - [ ] P2 constants の unused export を design token / runtime token / dead token に分ける
   - 対象: `src/constants/storage.ts`, `src/constants/browser.ts`, `src/constants/events.ts`, `src/constants/motion.ts`, `src/constants/ui-layout.ts`
@@ -640,16 +575,6 @@
   - React Doctor が `js-combine-iterations` と `js-index-maps` を同 test に検出しており、settings option を loop 内 find で探している可能性がある
   - option id Map、duplicate option id、disabled state、label/description presence、preference update callback の assertion helper を追加する
 
-- [ ] P2 dev scenario registry の sort / filter を registry index helper へ寄せる
-  - 対象: `src/__tests__/dev/scenarios/registry.test.ts`, `src/dev/scenarios/registry.ts`, `src/dev/scenarios/helpers.ts`
-  - React Doctor が dev scenario registry test に `js-combine-iterations` と `.toSorted()` warning を検出しており、scenario 数が増えると registry validation が重くなる
-  - scenario id Set、category grouping、stable display order、duplicate id diagnostics、missing setup/teardown contract を helper 化する
-
-- [ ] P2 dev scenario helpers の async loop を setup dependency graph で分類する
-  - 対象: `src/dev/scenarios/helpers.ts`, `src/__tests__/dev/scenario-runtime.test.ts`
-  - React Doctor の `async-await-in-loop` が dev scenario helper に複数出ており、独立 setup と順序依存 setup が同じ loop に見える
-  - account/feed/article/tag setup の依存関係を graph として明示し、独立作成は並列化、順序が必要な箇所は comment と test で固定する
-
 - [ ] P2 sidebar test の async loop を user-event ordering と fixture setup に分離する
   - 対象: `src/__tests__/components/sidebar.test.tsx`, `src/components/reader/sidebar-view.tsx`
   - React Doctor の `async-await-in-loop` が sidebar test に出ており、連続 user event の意図的逐次実行と独立 fixture setup が混ざっている可能性がある
@@ -659,11 +584,6 @@
   - 対象: `src/__tests__/schemas/preferences-schema-contract.test.ts`, `src/schemas/preferences.ts`
   - React Doctor が `.toSorted()` warning を preferences schema contract に出しており、schema key order assertion が spread sort 前提になっている
   - Node/WebView target 方針に合わせて `toSorted` へ寄せるか stable sort helper に逃がし、unknown enum、default value、missing nested setting の diagnostics を維持する
-
-- [ ] P2 schema barrel public API test の sorted export assertion を helper 化する
-  - 対象: `src/__tests__/api/schema-barrel-public-api.test.ts`, `src/api/schemas/index.ts`
-  - React Doctor が `.toSorted()` warning を schema barrel test に検出しており、public schema export 追加時に test helper の並び替え処理が散りやすい
-  - expected export list、actual export list、missing/extra diff、type-only export policy を共通 helper へ寄せる
 
 - [ ] P2 UI reference specimen registry test の sort helper を design registry と共有する
   - 対象: `src/__tests__/components/ui-reference-specimen-registry.test.ts`, `src/__tests__/components/design-ui-primitives.test.tsx`
@@ -849,11 +769,6 @@
   - 対象: `src/components/shared/feed-favicon.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/feed-tree-row.tsx`
   - remote favicon failure 時の fallback、grayscale、size variant、title initials の扱いが崩れると reader row と feed tree でアイコン幅や alt 表示が揺れやすい
   - broken URL、empty title、long CJK title、grayscale unread/read、size variant の component test を追加する
-
-- [ ] P2 preferences DTO schema と domain preference schema の strictness drift を潰す
-  - 対象: `src/api/schemas/preferences.ts`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - backend DTO は `z.record(string,string)` + `superRefine`、domain schema は known key / shortcut / passthrough を持っており、unknown key や retired key の扱いが二重管理になりやすい
-  - blank key、reserved `shortcut_` prefix、retired backend key、max key length、UTF-8 byte limit、unknown passthrough の contract を揃える
 
 - [ ] P2 `ts-expect-error` を negative contract test と legacy escape に分類する
   - 対象: `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.test.tsx`, `src/__tests__/components/*surface*.test.tsx`, `src/__tests__/components/settings-nav-view.test.tsx`
