@@ -14,11 +14,6 @@
   - `src/__tests__/config/repo-contracts.test.ts` で `README.md` 以外の rule file が index に相対リンクされ、必要なら `CLAUDE.md` の Documentation Map から辿れることを固定する
   - markdown link scan 拡張とは分け、rules index の source-of-truth drift だけを扱う
 
-- [ ] article list header blank feed id control boundary 候補を追加する
-  - `src/components/reader/hooks/article-list/use-article-list-header-controls.tsx` の `resolveArticleListHeaderControlAvailability()` が `resolvedFeedId !== null` だけで feed display select を出すため、blank / whitespace feed id の扱いを固定する
-  - `src/__tests__/components/article-list-header.test.tsx` で `resolvedFeedId: ""` / `"   "` を追加し、control を隠すか caller invariant として現仕様を明示する
-  - feed display setting mutation や reader query scope id guard とは分け、header control availability の入力境界だけを扱う
-
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
