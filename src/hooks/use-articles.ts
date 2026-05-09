@@ -157,27 +157,38 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
   return null;
 }
 
+function indexFeedAccountIdsByFeedId(data: unknown): Map<string, string> {
+  const accountIdsByFeedId = new Map<string, string>();
+  if (!Array.isArray(data)) {
+    return accountIdsByFeedId;
+  }
+
+  for (const candidate of data) {
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      "id" in candidate &&
+      typeof candidate.id === "string" &&
+      "account_id" in candidate &&
+      typeof candidate.account_id === "string" &&
+      !accountIdsByFeedId.has(candidate.id)
+    ) {
+      accountIdsByFeedId.set(candidate.id, candidate.account_id);
+    }
+  }
+
+  return accountIdsByFeedId;
+}
+
 function resolveAccountIdsForArticle(qc: QueryClient, feedId: string): string[] {
   const accountIds = new Set<string>();
 
   for (const [, data] of qc.getQueriesData<unknown>({
     queryKey: queryKeys.feeds.root,
   })) {
-    if (!Array.isArray(data)) {
-      continue;
-    }
-
-    for (const candidate of data) {
-      if (
-        candidate &&
-        typeof candidate === "object" &&
-        "id" in candidate &&
-        candidate.id === feedId &&
-        "account_id" in candidate &&
-        typeof candidate.account_id === "string"
-      ) {
-        accountIds.add(candidate.account_id);
-      }
+    const accountId = indexFeedAccountIdsByFeedId(data).get(feedId);
+    if (accountId) {
+      accountIds.add(accountId);
     }
   }
 

@@ -339,6 +339,43 @@ describe("useToggleStar", () => {
       ]);
     });
   });
+
+  it("associates a cached article with its feed account before invalidating article caches", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    const feedTwoArticle = {
+      ...sampleArticles[0],
+      id: "art-feed-2",
+      feed_id: "feed-2",
+      is_starred: false,
+    };
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-2"), [
+      {
+        ...sampleFeeds[1],
+        account_id: "acc-2",
+      },
+    ]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"), [feedTwoArticle]);
+    queryClient.setQueryData(["articlesByTag", "tag-1", "acc-2", { mode: "all" }], [feedTwoArticle, sampleArticles[1]]);
+    queryClient.setQueryData(["tagArticleCounts", "acc-2"], { "tag-1": 1 });
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-feed-2", starred: true });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"))).toEqual([
+        expect.objectContaining({ id: "art-feed-2", is_starred: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toEqual([
+        expect.objectContaining({ id: "art-feed-2", is_starred: true }),
+      ]);
+    });
+    expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-2", { mode: "all" }])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(["tagArticleCounts", "acc-2"])?.isInvalidated).toBe(true);
+  });
 });
 
 describe("useSetRead", () => {
