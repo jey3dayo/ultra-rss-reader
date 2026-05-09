@@ -87,6 +87,37 @@ describe("mute keyword mutations", () => {
     });
   });
 
+  it("keeps mute keyword creation successful when post-success invalidation fails", async () => {
+    const invalidationError = new Error("mute cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    invalidateQueriesSpy.mockRejectedValue(invalidationError);
+    vi.spyOn(tauriCommands, "createMuteKeyword").mockResolvedValue(
+      Result.succeed({
+        id: "mute-1",
+        keyword: "spoiler",
+        scope: "title",
+        created_at: "2026-05-09T00:00:00Z",
+        updated_at: "2026-05-09T00:00:00Z",
+      }),
+    );
+
+    const { result } = renderHook(() => useCreateMuteKeyword(), { wrapper });
+
+    await expect(result.current.mutateAsync({ keyword: "spoiler", scope: "title" })).resolves.toEqual({
+      id: "mute-1",
+      keyword: "spoiler",
+      scope: "title",
+      created_at: "2026-05-09T00:00:00Z",
+      updated_at: "2026-05-09T00:00:00Z",
+    });
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["muteKeywords"],
+        error: invalidationError,
+      });
+    });
+  });
+
   it("invalidates mute keyword and article caches after updating a mute keyword", async () => {
     vi.spyOn(tauriCommands, "updateMuteKeyword").mockResolvedValue(
       Result.succeed({
