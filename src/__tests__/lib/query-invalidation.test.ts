@@ -99,6 +99,7 @@ describe("query-invalidation", () => {
       ["articlesByTag"],
       ["search"],
       ["recentArticles"],
+      ["feedArticleSummaries"],
     ]);
     expect(
       resolveArticleInvalidationQueryKeys({
@@ -113,6 +114,7 @@ describe("query-invalidation", () => {
         includeSearch: false,
         includeFeedIntegrityReport: true,
         includeRecentArticles: false,
+        includeFeedArticleSummaries: false,
       }),
     ).toEqual([["tagArticleCounts"], ["feedIntegrityReport"]]);
   });
@@ -148,6 +150,7 @@ describe("query-invalidation", () => {
       { queryKey: ["articlesByTag"] },
       { queryKey: ["search"] },
       { queryKey: ["recentArticles"] },
+      { queryKey: ["feedArticleSummaries"] },
     ]);
   });
 
@@ -165,6 +168,7 @@ describe("query-invalidation", () => {
       includeSearch: false,
       includeFeedIntegrityReport: true,
       includeRecentArticles: false,
+      includeFeedArticleSummaries: false,
     });
 
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
@@ -220,6 +224,7 @@ describe("query-invalidation", () => {
       { queryKey: ["search"] },
       { queryKey: ["feedIntegrityReport"] },
       { queryKey: ["recentArticles"] },
+      { queryKey: ["feedArticleSummaries"] },
     ]);
   });
 });

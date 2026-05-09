@@ -365,6 +365,7 @@ describe("useAddFeedDialogActions", () => {
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["search"] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["recentArticles"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feedArticleSummaries"] });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

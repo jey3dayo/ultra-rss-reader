@@ -19,6 +19,7 @@ type InvalidateArticleQueriesOptions = {
   includeSearch?: boolean;
   includeFeedIntegrityReport?: boolean;
   includeRecentArticles?: boolean;
+  includeFeedArticleSummaries?: boolean;
 };
 
 type QueryInvalidationKey = readonly [string];
@@ -240,6 +241,11 @@ const ARTICLE_INVALIDATION_TARGETS = [
     option: "includeRecentArticles",
     defaultEnabled: true,
     queryKeys: [queryKeys.recentArticles.root],
+  },
+  {
+    option: "includeFeedArticleSummaries",
+    defaultEnabled: true,
+    queryKeys: [queryKeys.feedArticleSummaries.root],
   },
 ] as const satisfies ReadonlyArray<InvalidationTarget<keyof InvalidateArticleQueriesOptions>>;
 
