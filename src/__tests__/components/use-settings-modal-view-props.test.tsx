@@ -193,4 +193,39 @@ describe("useSettingsModalViewProps", () => {
     });
     expect(viewProps.contentResetKey).not.toBe(addAccountViewProps.contentResetKey);
   });
+
+  it("changes content reset keys only when the routed content identity changes", () => {
+    const baseProps = {
+      t,
+      devBuild: false,
+      settingsOpen: true,
+      settingsCategory: "general" as const,
+      settingsAccountId: null,
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+      settingsLoading: false,
+      accounts: [],
+      content: <div>Settings content</div>,
+      closeSettings: vi.fn(),
+      openSettings: vi.fn(),
+      setSettingsCategory: vi.fn(),
+      openSettingsAccount: vi.fn(),
+      openSettingsAddAccount: vi.fn(),
+    };
+
+    const generalKey = useSettingsModalViewProps(baseProps).contentResetKey;
+    const loadingKey = useSettingsModalViewProps({ ...baseProps, settingsLoading: true }).contentResetKey;
+    const accountKey = useSettingsModalViewProps({ ...baseProps, settingsAccountId: "acc-1" }).contentResetKey;
+    const addPickKey = useSettingsModalViewProps({ ...baseProps, settingsAddAccount: true }).contentResetKey;
+    const addFreshRssKey = useSettingsModalViewProps({
+      ...baseProps,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+    }).contentResetKey;
+
+    expect(loadingKey).toBe(generalKey);
+    expect(accountKey).not.toBe(generalKey);
+    expect(addPickKey).not.toBe(generalKey);
+    expect(addFreshRssKey).not.toBe(addPickKey);
+  });
 });

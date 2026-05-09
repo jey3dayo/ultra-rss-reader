@@ -65,6 +65,8 @@ vi.mock("@/components/settings/account-detail/view", () => ({
       };
     };
     dangerZone: {
+      exportLabel: string;
+      onExport: () => void;
       disabled?: boolean;
     };
   }) => {
@@ -120,6 +122,9 @@ vi.mock("@/components/settings/account-detail/view", () => ({
             </div>
           ))}
         </dl>
+        <button type="button" onClick={props.dangerZone.onExport} disabled={props.dangerZone.disabled}>
+          {props.dangerZone.exportLabel}
+        </button>
       </div>
     );
   },
@@ -1118,6 +1123,43 @@ describe("AccountDetail", () => {
     });
   });
 
+  it("shows a failure toast without invoking clipboard when server URL is empty", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    useUiStore.setState({ showToast });
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "   ",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Copy Server URL" }));
+
+    expect(calls.some((call) => call.cmd === "copy_to_clipboard")).toBe(false);
+    expect(showToast).toHaveBeenCalledWith("Failed to copy server URL: Server URL is required");
+  });
+
   it.each(
     accountDetailCopyFailureLocaleCases,
   )("wraps server URL copy failures in the %s locale toast", async (language, expectedMessage) => {
@@ -1157,6 +1199,57 @@ describe("AccountDetail", () => {
       expect(showToast).toHaveBeenCalledWith(expectedMessage);
     });
     expect(showToast).not.toHaveBeenCalledWith("Clipboard unavailable");
+  });
+
+  it("revokes OPML export object URLs after download, before a rapid replacement, and on unmount", async () => {
+    const createObjectUrl = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValueOnce("blob:first")
+      .mockReturnValueOnce("blob:second");
+    const revokeObjectUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "export_opml":
+          return '<opml version="2.0" />';
+        default:
+          return undefined;
+      }
+    });
+
+    const { unmount } = render(<AccountDetail />, { wrapper: createWrapper() });
+    const exportButton = await screen.findByRole("button", { name: "Export OPML" });
+
+    fireEvent.click(exportButton);
+    await waitFor(() => {
+      expect(createObjectUrl).toHaveBeenCalledTimes(1);
+    });
+
+    expect(revokeObjectUrl).not.toHaveBeenCalled();
+
+    fireEvent.click(exportButton);
+    await waitFor(() => {
+      expect(createObjectUrl).toHaveBeenCalledTimes(2);
+    });
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:first");
+
+    unmount();
+
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:second");
   });
 
   it("shows a warning toast when account sync completes with anomalies", async () => {

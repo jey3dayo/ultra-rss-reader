@@ -221,6 +221,7 @@ export function useAccountDetailCredentialsEditor({
   const handleCopyServerUrl = async () => {
     const value = (credServerUrl ?? account.server_url ?? "").trim();
     if (!value) {
+      showCopyServerUrlError({ message: t("account.error_server_url_required") });
       return;
     }
 
