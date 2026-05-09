@@ -1033,6 +1033,66 @@
   - Tauri desktop app として progressive enhancement 指摘をそのまま直すか、button-driven form contract として明示するか判断する
   - add account URL validation とは分け、form semantics と keyboard submit contract だけを扱う
 
+- [ ] react-doctor Tailwind padding shorthand 候補を追加する
+  - `react-doctor/design-no-redundant-padding-axes` の `px-N py-N` 同値指定を runtime view / Storybook specimen / debug view に分けて `p-N` へ寄せる
+  - 対象候補: `shortcuts-help-modal` / `tag-list-view` / `settings-modal-view` / `focus-debug-hud-view` / UI reference specimen
+  - size shorthand cleanup とは分け、padding shorthand だけを扱い、表示差分は focused component test または Storybook smoke で確認する
+
+- [ ] react-doctor many boolean props decomposition 候補を追加する
+  - `react-doctor/no-many-boolean-props` の対象 component を action group / named variant / discriminated props へ分割できるか確認する
+  - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
+  - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
+
+- [ ] react-doctor settings modal state effects 候補を追加する
+  - `src/components/settings/settings-modal.tsx` の cascading setState を reducer または derived state に寄せる
+  - modal open / category selection / account navigation の既存 state transition が変わらないことを `settings-modal` focused test で固定する
+  - browser-view state effects とは分け、settings modal の state/effect 整理だけを扱う
+
+- [ ] react-doctor badge hook state effects 候補を追加する
+  - `src/hooks/use-badge.ts` の cascading setState を reducer / derived value / command result path に整理する
+  - badge count 更新と platform unavailable 時の fallback が変わらない hook test を追加する
+  - updater badge behavior や native command contract とは分け、badge hook 内の React state 整理だけを扱う
+
+- [ ] react-doctor feed favicon ref state 候補を追加する
+  - `src/components/shared/feed-favicon.tsx` の render で読まれない state を `useRef` に寄せ、不要 rerender を避ける
+  - load/error event 後の fallback rendering と retry boundary が変わらない component test を追加する
+  - feed detail panel 表示とは分け、favicon component の state-only handler だけを扱う
+
+- [ ] react-doctor shortcuts help effect handler 候補を追加する
+  - `src/components/reader/shortcuts-help-modal.tsx` の `useEffect` による event-handler 相当処理を open/change handler 境界へ寄せる
+  - modal open 時の focus / scroll / selected shortcut 表示が変わらない focused test を追加する
+  - shortcut recording Alt key contract とは分け、shortcuts help modal の effect handler 整理だけを扱う
+
+- [ ] react-doctor preferences view transition 候補を追加する
+  - `src/stores/preferences-store.ts` の `document.startViewTransition()` 直接呼び出しを React 19 の view transition 方針に合わせるか、Tauri app 方針として明示的に残すか決める
+  - 方針を test または repo contract に固定し、`react-doctor/no-document-start-view-transition` の抑制が必要なら理由を局所化する
+  - motion / browser overlay 検証とは分け、theme preference transition の integration boundary だけを扱う
+
+- [ ] react-doctor script async waterfall 候補を追加する
+  - `scripts/seed-dev-db-from-prod.ts` / `scripts/tauri-cli-dispatch.ts` / `scripts/tauri-dev-vite-manager.ts` の独立 await loop を `Promise.all` 化できる箇所だけ整理する
+  - filesystem / process 起動順に依存する処理は除外し、script unit test で dispatch order と failure handling を固定する
+  - app runtime async flow とは分け、developer script の async-await-in-loop 指摘だけを扱う
+
+- [ ] react-doctor test async waterfall 候補を追加する
+  - `react-doctor/server-sequential-independent-await` が出ている test 群を、読みやすさを壊さない範囲で setup await と assertion await に分ける
+  - 対象候補: `use-updater.test.ts` / `tauri-commands.test.ts` / `sidebar.test.tsx` / `scenario-runtime.test.ts`
+  - production code の async policy とは分け、test runtime の無駄な waterfall cleanup だけを扱う
+
+- [ ] react-doctor dev scenario dynamic import 候補を追加する
+  - `src/dev/scenario-runtime.ts` の dynamic import path を bundler が静的解析できる manifest / registry import へ寄せる
+  - dev scenario ID 追加時に import registry から漏れない contract test を追加する
+  - dev intent scenario id coverage とは分け、scenario runtime の bundle-splitting/import boundary だけを扱う
+
+- [ ] react-doctor knip unused files cleanup 候補を追加する
+  - `knip/files` の unused file 指摘を実 unused / config entrypoint / Storybook or Playwright entrypoint に分類する
+  - 対象候補: `playwright.storybook.config.ts` / legacy settings form files / `src/dev/scenarios/index.ts`
+  - dead code type surface とは分け、file-level export/entrypoint contract と削除可否だけを扱う
+
+- [ ] react-doctor knip duplicate exports cleanup 候補を追加する
+  - `knip/duplicates` の duplicate export を schema barrel / story runtime helper ごとに整理する
+  - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
+  - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
+
 - [ ] keyboard listener subscription boundary 候補を追加する
   - `src/hooks/use-keyboard.ts` の `useUiStore()` 全体購読を必要な selector に分け、無関係な UI state 更新で `keydown` listener が張り替わらないようにする
   - `src/__tests__/hooks/use-keyboard.test.tsx` で toast / sidebar state など無関係更新時の `addEventListener` / `removeEventListener` 回数を固定する
