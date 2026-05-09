@@ -706,12 +706,17 @@ mod tests {
     #[test]
     fn validate_external_feed_redirect_rejects_private_redirect_targets() {
         let previous = vec![reqwest::Url::parse("https://example.com/feed.xml").unwrap()];
-        let next = reqwest::Url::parse("https://localhost/feed.xml").unwrap();
 
-        assert!(matches!(
-            validate_external_feed_redirect(&previous, &next),
-            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
-        ));
+        for next in [
+            reqwest::Url::parse("https://localhost/feed.xml").unwrap(),
+            reqwest::Url::parse("https://127.0.0.1/feed.xml").unwrap(),
+            reqwest::Url::parse("https://10.0.0.2/feed.xml").unwrap(),
+        ] {
+            assert!(matches!(
+                validate_external_feed_redirect(&previous, &next),
+                Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+            ));
+        }
     }
 
     #[test]
