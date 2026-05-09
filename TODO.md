@@ -210,6 +210,31 @@
   - generated `labelId` と explicit `labelId` の `aria-labelledby` が drift しないことも shared field test に追加する
   - folder select / rename feed の business logic とは分け、shared stacked select field の primitive contract だけを扱う
 
+- [ ] motion constants / global CSS parity 候補を追加する
+  - `src/constants/motion.ts` の `MOTION_*_CLASS_NAME` / keyframes / data attributes と `src/styles/global.css` の実定義が drift しない contract を追加する
+  - `design-ui-primitives.test.tsx` に散っている `globalCss.toContain(...)` を、motion constant parity helper へ寄せられるか確認する
+  - motion duration や animation curve の変更とは分け、TS constants と CSS selector の対応だけを扱う
+
+- [ ] semantic tone token matrix 候補を追加する
+  - `src/__tests__/styles/semantic-tone-tokens.test.ts` の light/dark `toContain` 羅列を、required token list と theme scope matrix へ整理する
+  - `@theme inline` の `--color-*` alias と `:root` / `:root.dark` の実 token が片側だけ欠けない contract を追加する
+  - visual color value の変更や palette redesign とは分け、semantic token presence / alias parity だけを扱う
+
+- [ ] AppTooltip primitive contract 候補を追加する
+  - `src/components/ui/tooltip.tsx` の `AppTooltip` が trigger を `render` でそのまま使い、popup に `data-app-tooltip-side` と motion popup surface class を付ける契約を固定する
+  - `side` / `align` / `sideOffset` の default と override が Base UI props へ流れることを focused primitive test で確認する
+  - mobile tooltip discoverability や feature button copy とは分け、tooltip primitive wrapper の contract だけを扱う
+
+- [ ] ScrollArea scrollbar orientation contract 候補を追加する
+  - `src/components/ui/scroll-area.tsx` の `ScrollBar` が vertical / horizontal orientation で `data-orientation` と class を正しく切り替える contract を追加する
+  - `contentClassName` wrapper と viewport focus treatment の既存 test に、scrollbar / thumb className override の小粒検証を足す
+  - scroll behavior や virtualized list tuning とは分け、ScrollArea primitive wrapper の slot/orientation contract だけを扱う
+
+- [ ] Switch primitive size/state contract 候補を追加する
+  - `src/components/ui/switch.tsx` の `size="sm" | "default"` が `data-size`、track size、thumb size/translate class を保つことを focused test で固定する
+  - `aria-invalid` / disabled / checked state の semantic token class を、shared design primitive test から Switch 専用 test へ切り出せるか確認する
+  - gradient switch や settings toggle behavior とは分け、Base UI Switch wrapper の primitive contract だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
