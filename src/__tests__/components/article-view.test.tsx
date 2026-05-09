@@ -191,9 +191,7 @@ function listSampleArticlesByFeedId(feedId: string | undefined) {
 }
 
 function listSampleArticlesByAccountId(accountId: string | undefined) {
-  const feedIds = new Set(
-    sampleFeeds.flatMap((feed) => (feed.account_id === accountId ? [feed.id] : [])),
-  );
+  const feedIds = new Set(sampleFeeds.flatMap((feed) => (feed.account_id === accountId ? [feed.id] : [])));
 
   return sampleArticles.filter((article) => feedIds.has(article.feed_id));
 }

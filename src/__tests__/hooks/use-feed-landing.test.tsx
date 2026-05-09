@@ -324,10 +324,7 @@ describe("useFeedLanding", () => {
     });
 
     const { queryClient, wrapper } = createQueryWrapper();
-    queryClient.setQueryData(
-      queryKeys.articles.byFeed("feed-1", "all"),
-      listSampleArticlesByFeedId("feed-1"),
-    );
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), listSampleArticlesByFeedId("feed-1"));
 
     const { result } = renderHook(() => useFeedLanding(), { wrapper });
 
