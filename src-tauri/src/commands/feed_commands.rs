@@ -239,6 +239,16 @@ async fn add_local_feed_with_db(
     account_id: String,
     url: String,
 ) -> Result<FeedDto, AppError> {
+    let provider = LocalProvider::new();
+    add_local_feed_with_provider(db, account_id, url, &provider).await
+}
+
+async fn add_local_feed_with_provider(
+    db: &Mutex<DbManager>,
+    account_id: String,
+    url: String,
+    provider: &LocalProvider,
+) -> Result<FeedDto, AppError> {
     let account_id = AccountId(account_id);
 
     {
@@ -247,7 +257,6 @@ async fn add_local_feed_with_db(
     }
 
     // 1. Validate by fetching the feed
-    let provider = LocalProvider::new();
     let sub = provider.create_subscription(&url, None).await?;
 
     // 2. Save to DB
@@ -282,7 +291,7 @@ async fn add_local_feed_with_db(
     };
 
     // 3. Fetch initial articles for the new feed
-    super::sync_providers::sync_local_feed(db, &provider, &account_id, &persisted_feed).await?;
+    super::sync_providers::sync_local_feed(db, provider, &account_id, &persisted_feed).await?;
 
     // 4. Re-read unread count from DB
     let unread_count = {
@@ -362,13 +371,27 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{
-        add_local_feed_with_db, create_folder_in_db, delete_feed_in_db, lock_db,
-        recalculate_feed_unread_count_in_db, rename_feed_in_db, update_feed_display_settings_in_db,
-        update_feed_folder_in_db, validate_add_local_feed_account_in_db,
+        add_local_feed_with_db, add_local_feed_with_provider, create_folder_in_db,
+        delete_feed_in_db, lock_db, recalculate_feed_unread_count_in_db, rename_feed_in_db,
+        update_feed_display_settings_in_db, update_feed_folder_in_db,
+        validate_add_local_feed_account_in_db,
     };
     use crate::commands::dto::AppError;
     use crate::domain::types::{AccountId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
+    use crate::infra::provider::local::LocalProvider;
+
+    const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+      <channel>
+        <title>Local Feed</title>
+        <item>
+          <title>Local Article</title>
+          <link>https://example.com/1</link>
+          <guid>local-guid-1</guid>
+        </item>
+      </channel>
+    </rss>"#;
 
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
@@ -780,6 +803,62 @@ mod tests {
         assert!(
             connection_rx.try_recv().is_err(),
             "missing account must not trigger an HTTP request"
+        );
+    }
+
+    #[tokio::test]
+    async fn add_local_feed_returns_unread_count_recalculation_errors() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(SAMPLE_RSS)
+            .expect(2)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, "Primary")
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute("CREATE TABLE recalc_attempts (n INTEGER NOT NULL)", [])
+                .unwrap();
+            db_guard
+                .writer()
+                .execute("INSERT INTO recalc_attempts (n) VALUES (0)", [])
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "CREATE TRIGGER fail_second_unread_recalc
+                     BEFORE UPDATE OF unread_count ON feeds
+                     BEGIN
+                       UPDATE recalc_attempts SET n = n + 1;
+                       SELECT CASE
+                         WHEN (SELECT n FROM recalc_attempts) > 1
+                         THEN RAISE(FAIL, 'unread recalc failed')
+                       END;
+                     END",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error = add_local_feed_with_provider(&db, account_id.0, feed_url, &provider)
+            .await
+            .expect_err("final unread count recalculation failure should be returned");
+
+        mock.assert_async().await;
+        assert!(
+            matches!(error, AppError::UserVisible { message } if message.contains("unread recalc failed"))
         );
     }
 
