@@ -8,7 +8,7 @@ import {
   MOTION_PHASE_ENTERING,
 } from "@/constants/motion";
 
-export type ActionsSettingsActionRow = {
+type ActionsSettingsActionRow = {
   id: string;
   label: string;
   icon: React.ReactNode;

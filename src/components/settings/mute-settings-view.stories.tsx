@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { type MuteSettingsScopeOption, MuteSettingsView } from "./mute-settings-view";
+import { type MuteSettingsViewProps, MuteSettingsView } from "./mute-settings-view";
 
-const scopeOptions: MuteSettingsScopeOption[] = [
+const scopeOptions: MuteSettingsViewProps["scopeOptions"] = [
   { value: "title", label: "Title" },
   { value: "body", label: "Body" },
   { value: "title_and_body", label: "Title and body" },

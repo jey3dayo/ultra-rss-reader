@@ -12,7 +12,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/c
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { getOptionLabelByValue } from "@/lib/ui/options";
 
-export type MuteSettingsScopeOption = {
+type MuteSettingsScopeOption = {
   value: MuteKeywordScope;
   label: string;
 };
@@ -21,7 +21,7 @@ function isMuteKeywordScope(value: string | null): value is MuteKeywordScope {
   return value === "title" || value === "body" || value === "title_and_body";
 }
 
-export type MuteSettingsKeywordRow = {
+type MuteSettingsKeywordRow = {
   id: string;
   keyword: string;
   scope: MuteKeywordScope;
