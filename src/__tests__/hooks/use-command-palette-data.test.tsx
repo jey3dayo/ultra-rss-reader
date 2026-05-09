@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { createHookDataResult } from "@tests/helpers/typed-test-factories";
 import { SettingsIcon } from "lucide-react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaletteAction } from "@/components/reader/command-palette.types";
@@ -32,14 +33,12 @@ const action: PaletteAction = {
 describe("useCommandPaletteData", () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.mocked(useFeeds).mockReturnValue({ data: sampleFeeds } as ReturnType<typeof useFeeds>);
-    vi.mocked(useTags).mockReturnValue({ data: sampleTags } as ReturnType<typeof useTags>);
-    vi.mocked(useSearchArticles).mockReturnValue({
-      data: [],
-    } as unknown as ReturnType<typeof useSearchArticles>);
-    vi.mocked(useRecentArticles).mockReturnValue({
-      data: sampleArticles,
-    } as ReturnType<typeof useRecentArticles>);
+    vi.mocked(useFeeds).mockReturnValue(createHookDataResult<ReturnType<typeof useFeeds>>(sampleFeeds));
+    vi.mocked(useTags).mockReturnValue(createHookDataResult<ReturnType<typeof useTags>>(sampleTags));
+    vi.mocked(useSearchArticles).mockReturnValue(createHookDataResult<ReturnType<typeof useSearchArticles>>([]));
+    vi.mocked(useRecentArticles).mockReturnValue(
+      createHookDataResult<ReturnType<typeof useRecentArticles>>(sampleArticles),
+    );
   });
 
   it("projects only existing feed, tag, and article targets into recent resources", () => {

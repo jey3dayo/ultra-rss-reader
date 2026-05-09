@@ -1,20 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
+import { mockObserverConstructors } from "@tests/helpers/typed-test-factories";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
-
-type ObserverMock = {
-  observe: ReturnType<typeof vi.fn>;
-  disconnect: ReturnType<typeof vi.fn>;
-};
-
-type ResizeObserverMockInstance = ObserverMock & {
-  callback: ResizeObserverCallback;
-  unobserve: ReturnType<typeof vi.fn>;
-};
-
-type MutationObserverMockInstance = ObserverMock & {
-  callback: MutationCallback;
-};
 
 function setScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeight: number) {
   Object.defineProperty(element, "clientHeight", {
@@ -49,40 +36,6 @@ function setTrackedScrollMetrics(element: HTMLElement, clientHeight: number, scr
   });
 
   return readCounts;
-}
-
-function mockObservers() {
-  const resizeObservers: ResizeObserverMockInstance[] = [];
-  const mutationObservers: MutationObserverMockInstance[] = [];
-
-  class ResizeObserverMock {
-    observe = vi.fn();
-    unobserve = vi.fn();
-    disconnect = vi.fn();
-    callback: ResizeObserverCallback;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-      resizeObservers.push(this);
-    }
-  }
-
-  class MutationObserverMock {
-    observe = vi.fn();
-    disconnect = vi.fn();
-    takeRecords = vi.fn(() => []);
-    callback: MutationCallback;
-
-    constructor(callback: MutationCallback) {
-      this.callback = callback;
-      mutationObservers.push(this);
-    }
-  }
-
-  vi.stubGlobal("ResizeObserver", ResizeObserverMock);
-  vi.stubGlobal("MutationObserver", MutationObserverMock);
-
-  return { resizeObservers, mutationObservers };
 }
 
 describe("useScrollOverflowState", () => {
@@ -191,7 +144,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("disconnects observers when the dependency changes", () => {
-    const { resizeObservers, mutationObservers } = mockObservers();
+    const { resizeObservers, mutationObservers } = mockObserverConstructors();
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
@@ -222,7 +175,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("disconnects observers when the viewport node changes and on unmount", () => {
-    const { resizeObservers, mutationObservers } = mockObservers();
+    const { resizeObservers, mutationObservers } = mockObserverConstructors();
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const firstViewport = document.createElement("div");
@@ -256,7 +209,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("observes content children added after observer setup", () => {
-    const { resizeObservers, mutationObservers } = mockObservers();
+    const { resizeObservers, mutationObservers } = mockObserverConstructors();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -279,7 +232,7 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(viewport, 100, 140);
 
     act(() => {
-      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
+      mutationObservers[0]?.flush();
     });
     act(() => {
       animationFrameCallback?.(0);
@@ -295,7 +248,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("updates overflow when content child is added and then resized", () => {
-    const { resizeObservers } = mockObservers();
+    const { resizeObservers } = mockObserverConstructors();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -316,7 +269,7 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(viewport, 100, 140);
 
     act(() => {
-      resizeObservers[0]?.callback([], resizeObservers[0] as unknown as ResizeObserver);
+      resizeObservers[0]?.flush();
     });
     act(() => {
       animationFrameCallback?.(0);
@@ -327,7 +280,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("updates overflow when content child is replaced and then resized", () => {
-    const { resizeObservers, mutationObservers } = mockObservers();
+    const { resizeObservers, mutationObservers } = mockObserverConstructors();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -353,7 +306,7 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(viewport, 100, 100);
 
     act(() => {
-      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
+      mutationObservers[0]?.flush();
     });
     act(() => {
       animationFrameCallback?.(0);
@@ -366,7 +319,7 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(viewport, 100, 150);
 
     act(() => {
-      resizeObservers[0]?.callback([], resizeObservers[0] as unknown as ResizeObserver);
+      resizeObservers[0]?.flush();
     });
     act(() => {
       animationFrameCallback?.(0);
@@ -376,7 +329,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("coalesces high-frequency mutation overflow reads into one scheduled measurement", () => {
-    const { mutationObservers } = mockObservers();
+    const { mutationObservers } = mockObserverConstructors();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -398,9 +351,9 @@ describe("useScrollOverflowState", () => {
     expect(readCounts.clientHeight).toBe(1);
 
     act(() => {
-      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
-      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
-      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
+      mutationObservers[0]?.flush();
+      mutationObservers[0]?.flush();
+      mutationObservers[0]?.flush();
     });
 
     expect(readCounts.scrollHeight).toBe(1);

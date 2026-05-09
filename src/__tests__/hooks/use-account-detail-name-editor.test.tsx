@@ -4,7 +4,8 @@ import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
-import type { KeyboardEvent, RefObject } from "react";
+import { createInputKeyboardEvent } from "@tests/helpers/typed-test-factories";
+import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { scheduleAccountDetailInputFocus } from "@/components/settings/hooks/account-detail/account-detail-editor-focus";
 import { useAccountDetailNameEditor } from "@/components/settings/hooks/account-detail/use-account-detail-name-editor";
@@ -155,10 +156,12 @@ describe("useAccountDetailNameEditor", () => {
     act(() => {
       result.current.startEditingName();
       result.current.setNameDraft("Canceled Name");
-      result.current.handleNameKeyDown({
-        key: "Escape",
-        preventDefault: vi.fn(),
-      } as unknown as KeyboardEvent<HTMLInputElement>);
+      result.current.handleNameKeyDown(
+        createInputKeyboardEvent({
+          key: "Escape",
+          preventDefault: vi.fn(),
+        }),
+      );
     });
 
     await act(async () => {
@@ -187,10 +190,12 @@ describe("useAccountDetailNameEditor", () => {
     const blurCommitFromFocusedInput = result.current.commitRename;
 
     act(() => {
-      result.current.handleNameKeyDown({
-        key: "Escape",
-        preventDefault: vi.fn(),
-      } as unknown as KeyboardEvent<HTMLInputElement>);
+      result.current.handleNameKeyDown(
+        createInputKeyboardEvent({
+          key: "Escape",
+          preventDefault: vi.fn(),
+        }),
+      );
     });
 
     await act(async () => {
