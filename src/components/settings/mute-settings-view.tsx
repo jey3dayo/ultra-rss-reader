@@ -21,7 +21,7 @@ function isMuteKeywordScope(value: string | null): value is MuteKeywordScope {
   return value === "title" || value === "body" || value === "title_and_body";
 }
 
-export type MuteSettingsSavedRule = {
+export type MuteSettingsKeywordRow = {
   id: string;
   keyword: string;
   scope: MuteKeywordScope;
@@ -44,7 +44,7 @@ export type MuteSettingsViewProps = {
   addDisabled: boolean;
   savedHeading: string;
   emptyState: string;
-  rules: MuteSettingsSavedRule[];
+  rules: MuteSettingsKeywordRow[];
   savedScopeAriaLabel: (keyword: string) => string;
   onRuleScopeChange: (ruleId: string, scope: MuteKeywordScope) => void;
   deleteLabel: string;

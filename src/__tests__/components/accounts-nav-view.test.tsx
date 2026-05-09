@@ -1,9 +1,14 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import type { AccountNavItem } from "@/components/settings/accounts-nav.types";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { AccountNavItem, AccountsNavViewProps } from "@/components/settings/accounts-nav.types";
 import { AccountsNavView, resolveAccountDescription } from "@/components/settings/accounts-nav-view";
 
 describe("AccountsNavView", () => {
+  it("keeps account nav items as navigation view models", () => {
+    expectTypeOf<AccountsNavViewProps>().toHaveProperty("accounts").toEqualTypeOf<AccountNavItem[]>();
+    expectTypeOf<AccountNavItem>().toHaveProperty("serverUrl").toEqualTypeOf<string | null | undefined>();
+  });
+
   it("resolves account descriptions for multiple accounts", () => {
     expect(
       resolveAccountDescription(

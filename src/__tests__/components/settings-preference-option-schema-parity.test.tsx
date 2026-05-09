@@ -7,7 +7,7 @@ import { useReadingSettingsViewProps } from "@/components/settings/hooks/use-rea
 import type { SettingsPageControl, SettingsPageViewProps } from "@/components/settings/settings-page.types";
 import type { SettingsPreferenceViewPropsParams } from "@/components/settings/settings-preference.types";
 import i18n from "@/lib/i18n";
-import { type KnownPreferenceKey, preferenceSchemas } from "@/schemas/preferences";
+import { type KnownPreferenceKey, type PreferenceSchemaKey, preferenceSchemas } from "@/schemas/preferences";
 
 const t = i18n.getFixedT("en", "settings");
 
@@ -55,6 +55,7 @@ function assertSettingsPreferenceSchemaParity(props: SettingsPageViewProps, setP
 
 describe("settings preference option schema parity", () => {
   it("keeps settings preference writes bounded to known schema keys", () => {
+    expectTypeOf<PreferenceSchemaKey>().toEqualTypeOf<KnownPreferenceKey>();
     expectTypeOf<Parameters<SettingsPreferenceViewPropsParams["setPref"]>[0]>().toEqualTypeOf<KnownPreferenceKey>();
   });
 

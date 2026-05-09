@@ -1,12 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
+import type {
+  SettingsNavItem,
+  SettingsNavItemId,
+  SettingsNavViewProps,
+} from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
 describe("SettingsNavView", () => {
   it("keeps modal settings nav ids separate from reusable specimen ids", () => {
     expectTypeOf<SettingsNavItemId>().toEqualTypeOf<Exclude<SettingsCategory, "accounts">>();
+    expectTypeOf<SettingsNavViewProps<"general" | "reading">>()
+      .toHaveProperty("items")
+      .toEqualTypeOf<SettingsNavItem<"general" | "reading">[]>();
 
     const modalItem = {
       id: "general",

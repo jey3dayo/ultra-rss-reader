@@ -8,7 +8,7 @@ import {
   MOTION_PHASE_ENTERING,
 } from "@/constants/motion";
 
-export type ActionsSettingsService = {
+export type ActionsSettingsActionRow = {
   id: string;
   label: string;
   icon: React.ReactNode;
@@ -20,7 +20,7 @@ export type ActionsSettingsViewProps = {
   title: string;
   heading: string;
   toggleLabel: string;
-  services: ActionsSettingsService[];
+  services: ActionsSettingsActionRow[];
 };
 
 export function ActionsSettingsView({ title, heading, toggleLabel, services }: ActionsSettingsViewProps) {

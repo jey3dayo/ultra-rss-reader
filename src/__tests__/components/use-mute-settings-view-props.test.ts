@@ -1,6 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { useMuteSettingsViewProps as buildMuteSettingsViewProps } from "@/components/settings/hooks/use-mute-settings-view-props";
+import type {
+  MuteSettingsKeywordRow,
+  MuteSettingsScopeOption,
+  MuteSettingsViewProps,
+} from "@/components/settings/mute-settings-view";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");
@@ -36,6 +42,16 @@ function createProps(overrides: Partial<Parameters<typeof buildMuteSettingsViewP
 }
 
 describe("useMuteSettingsViewProps", () => {
+  it("keeps mute option and keyword row models view-local", () => {
+    expectTypeOf<MuteSettingsScopeOption>().toEqualTypeOf<{ value: MuteKeywordScope; label: string }>();
+    expectTypeOf<MuteSettingsKeywordRow>().toEqualTypeOf<{
+      id: string;
+      keyword: string;
+      scope: MuteKeywordScope;
+    }>();
+    expectTypeOf<MuteSettingsViewProps>().toHaveProperty("rules").toEqualTypeOf<MuteSettingsKeywordRow[]>();
+  });
+
   it("maps scope options and saved rules", () => {
     const props = createProps();
 
