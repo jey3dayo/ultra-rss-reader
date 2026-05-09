@@ -189,16 +189,6 @@
   - `src/__tests__/lib/subscriptions-index.test.ts` で mixed-case 以外の Unicode query と whitespace-padded URL/title の期待値を追加する
   - search input UI や summary filter scroll reset とは分け、subscription row pure search helper の normalization だけを扱う
 
-- [ ] reader focus aria-disabled target guard 候補を追加する
-  - `src/lib/reader-focus.ts` の focus helper が `disabled` 属性だけを避けるため、`aria-disabled="true"` の sidebar/list/account pane target を focus 対象にするか決める
-  - `src/__tests__/lib/reader-focus.test.ts` で selected target が `aria-disabled` の時に fallback へ進むか、focusable target として許可するかを固定する
-  - component 側の disabled styling や keyboard navigation policy とは分け、reader focus helper の target eligibility だけを扱う
-
-- [ ] reader focus scrollIntoView failure guard 候補を追加する
-  - `src/lib/reader-focus.ts` / `src/lib/account/account-pane-navigation.ts` の focus path が `scrollIntoView` 例外で全体失敗しないか確認する
-  - `src/__tests__/lib/reader-focus.test.ts` と `src/__tests__/lib/account-pane-navigation.test.ts` で throwing `scrollIntoView` 時も focus 成功扱いにするか、false を返すかを固定する
-  - navigation math や retry helper 共通化とは分け、focus 後スクロールの failure boundary だけを扱う
-
 - [ ] app query client mutation retry policy 候補を追加する
   - `src/lib/query/query-client.ts` は query retry だけを `false` にしているため、app runtime の mutation retry を TanStack default 任せにするか明示的に `false` にするか固定する
   - `src/__tests__/lib/query-client.test.ts` で production `queryClient` の `defaultOptions.mutations?.retry` を確認し、test / Storybook provider 方針との揺れをなくす
@@ -208,11 +198,6 @@
   - `src/lib/query/query-invalidation.ts` の `invalidateQueryKeys()` が `void queryClient.invalidateQueries(...)` で rejection を捨てるため、unhandled rejection / console warn / no-op の方針を決める
   - `src/__tests__/lib/query-invalidation.test.ts` で `invalidateQueries` が reject する query key が混じっても後続 key の invalidation が走るか、failure を表面化するかを固定する
   - generated mutation `onSuccess` の invalidate throw surface とは分け、shared invalidation helper の async rejection だけを扱う
-
-- [ ] startup sync legacy migration write failure 候補を追加する
-  - `src/lib/sync/startup-sync-storage.ts` の legacy timestamp migration で prefixed key への `setItem` が失敗した時、valid legacy timestamp を throttling に使うか全体 missing 扱いにするか固定する
-  - `src/__tests__/lib/startup-sync-storage.test.ts` で valid legacy key + throwing `setItem` / `removeItem` の期待値を追加する
-  - startup sync storage getter guard や storage key rename とは分け、legacy migration 中の partial storage failure だけを扱う
 
 - [ ] manual sync request-start callback failure 候補を追加する
   - `src/lib/sync/manual-sync.ts` の `triggerManualSyncWithCooldownResult(onRequestStart)` で `onRequestStart` が throw した時に `triggerSync` / cooldown / caller rejection をどう扱うか固定する
@@ -275,25 +260,10 @@
   - reducer 化する state と `useRef` 化する render 非依存 state を分け、browser surface state test を追加する
   - Browser WebView geometry 数値や native bounds 挙動は触らず、React state/effect の形だけを扱う
 
-- [ ] react-doctor App visibility handler ref 候補を追加する
-  - `src/App.tsx` の visibilitychange listener が handler identity 変更で再購読される点を ref-based event handler へ寄せる
-  - sync-on-wake の in-flight guard と hidden duration 判定が変わらない test を追加する
-  - startup sync / Tauri listener invalidation とは分け、DOM event subscription stability だけを扱う
-
-- [ ] react-doctor article content danger boundary 候補を追加する
-  - `src/components/reader/article-content-view.tsx` の `dangerouslySetInnerHTML` を sanitizer contract とセットで再確認する
-  - Rust sanitizer 済みであることを TS 側の branded/sanitized HTML 型または schema 境界で表現できるか検討する
-  - HTML rendering の挙動変更は避け、danger boundary の documentation / type contract と sanitizer regression test に限定する
-
 - [ ] react-doctor dead code type surface 候補を追加する
   - `knip/types` / `knip/exports` の unused type/export を feature ごとに棚卸しする
   - `article-list.types.ts` / `browser-view.types.ts` / `command-palette.types.ts` など広い contract は一括削除せず参照範囲ごとに分ける
   - public wrapper API と Storybook helper export は allowlist 化し、実 dead code だけを削除する
-
-- [ ] react-doctor i18n / schema barrel dead export 候補を追加する
-  - `src/lib/i18n-resources.ts` / `src/lib/i18n.ts` / `src/api/schemas/index.ts` / schema barrels の `knip/types` / `knip/exports` 指摘を実参照と public barrel に分類する
-  - locale/schema contract test が import path 変更で壊れないことを確認し、public barrel と実 dead export を分けて整理する
-  - reader view type surface cleanup とは分け、i18n/schema barrel の dead export 判断だけを扱う
 
 - [ ] react-doctor UI primitive dead export allowlist 候補を追加する
   - `src/components/ui/button.tsx` / `dialog.tsx` / `input.tsx` / `select.tsx` / `scroll-area.tsx` / `collapsible.tsx` の unused type/export 指摘を wrapper public API として残すか削るか判断する

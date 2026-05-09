@@ -152,10 +152,11 @@ describe("i18next locale contract", () => {
 
     for (const locale of ["en", "ja"] as const) {
       const readerKeys = flattenLocaleKeys(meaningLocaleResources[locale].reader);
+      const readerKeySet = new Set(readerKeys);
       const readerShortcutKeys = readerKeys.filter((key) => key.startsWith("shortcuts."));
 
       for (const key of expectedShortcutKeys) {
-        if (!readerKeys.includes(key)) {
+        if (!readerKeySet.has(key)) {
           failures.push(`${locale}:missing:${key}`);
         }
       }
@@ -177,10 +178,15 @@ describe("i18next locale contract", () => {
     const missingMeaningKeys: string[] = [];
 
     for (const locale of ["en", "ja"] as const) {
-      for (const [namespace, key] of readerBrowserMeaningKeys) {
-        const keys = flattenLocaleKeys(meaningLocaleResources[locale][namespace]);
+      const keysByNamespace = new Map(
+        (["reader", "settings"] as const).map((namespace) => [
+          namespace,
+          new Set(flattenLocaleKeys(meaningLocaleResources[locale][namespace])),
+        ]),
+      );
 
-        if (!keys.includes(key)) {
+      for (const [namespace, key] of readerBrowserMeaningKeys) {
+        if (!keysByNamespace.get(namespace)?.has(key)) {
           missingMeaningKeys.push(`${locale}:${namespace}.${key}`);
         }
       }

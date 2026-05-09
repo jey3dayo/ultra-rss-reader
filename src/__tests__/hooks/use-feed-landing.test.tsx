@@ -39,6 +39,34 @@ function listFeedArticlesWithFirstArticleUrl(feedId: string | undefined, url: st
   return articles;
 }
 
+function listSampleFeedsByAccountId(accountId: string | undefined) {
+  return sampleFeeds.filter((feed) => feed.account_id === accountId);
+}
+
+function listSampleArticlesByFeedId(feedId: string | undefined) {
+  return sampleArticles.filter((article) => article.feed_id === feedId);
+}
+
+function listSampleArticlesByFeedIdAndStarred({
+  feedId,
+  starredOnly,
+}: {
+  feedId: string | undefined;
+  starredOnly: boolean | undefined;
+}) {
+  const articles: (typeof sampleArticles)[number][] = [];
+
+  for (const article of sampleArticles) {
+    if (article.feed_id !== feedId || (starredOnly && !article.is_starred)) {
+      continue;
+    }
+
+    articles.push(article);
+  }
+
+  return articles;
+}
+
 function listReadFeedArticles(feedId: string | undefined) {
   const articles: (typeof sampleArticles)[number][] = [];
 
@@ -68,9 +96,9 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         default:
           return undefined;
       }
@@ -168,7 +196,7 @@ describe("useFeedLanding", () => {
         case "list_feeds":
           return listAccountFeedsWithLandingMode(args.accountId);
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         default:
           return undefined;
       }
@@ -220,7 +248,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
           return listReadFeedArticles(args.feedId);
         default:
@@ -254,11 +282,12 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId && (!args.starredOnly || article.is_starred),
-          );
+          return listSampleArticlesByFeedIdAndStarred({
+            feedId: args.feedId,
+            starredOnly: args.starredOnly,
+          });
         default:
           return undefined;
       }
@@ -286,7 +315,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
           throw new Error("temporary list failure");
         default:
@@ -297,7 +326,7 @@ describe("useFeedLanding", () => {
     const { queryClient, wrapper } = createQueryWrapper();
     queryClient.setQueryData(
       queryKeys.articles.byFeed("feed-1", "all"),
-      sampleArticles.filter((article) => article.feed_id === "feed-1"),
+      listSampleArticlesByFeedId("feed-1"),
     );
 
     const { result } = renderHook(() => useFeedLanding(), { wrapper });
@@ -320,7 +349,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
           throw new Error("temporary list failure");
         default:
@@ -369,7 +398,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         default:
           return undefined;
       }
@@ -397,7 +426,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
           throw { message: Symbol("landing failed") };
         default:

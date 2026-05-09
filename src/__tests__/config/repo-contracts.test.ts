@@ -453,6 +453,11 @@ const workflowUsesRefAllowlist = new Set(["dtolnay/rust-toolchain@stable"]);
 const workflowLocalReusableActionAllowlist = new Set<string>();
 const maintainerManagedLabelSet = new Set<string>(maintainerManagedLabels);
 const automationMaintenanceLabelSet = new Set(["ci", "maintenance-family"]);
+const auditedReaderTypeSurfacePathSet = new Set([
+  "src/components/reader/article-list.types.ts",
+  "src/components/reader/browser-view.types.ts",
+  "src/components/reader/sidebar.types.ts",
+]);
 const pathLabelableAffectedAreaTemplateNames = ["feature", "bug", "test verification", "maintenance"] as const;
 const sharedAutomaticAffectedAreaLabelParity = [
   {
@@ -1460,13 +1465,7 @@ describe("repository static contracts", () => {
     ).toBe(true);
     expect(
       typeSurfaceInventory
-        .filter(({ path }) =>
-          [
-            "src/components/reader/article-list.types.ts",
-            "src/components/reader/browser-view.types.ts",
-            "src/components/reader/sidebar.types.ts",
-          ].includes(path),
-        )
+        .filter(({ path }) => auditedReaderTypeSurfacePathSet.has(path))
         .every((inventoryItem) => "auditedExports" in inventoryItem && inventoryItem.auditedExports.length > 0),
     ).toBe(true);
 
