@@ -62,19 +62,53 @@ describe("manual-sync", () => {
     unsubscribe();
   });
 
-  it("continues notifying manual sync cooldown listeners after one throws", () => {
-    const listenerError = new Error("listener failed");
+  it("continues notifying manual sync cooldown listeners and aggregates listener errors", () => {
+    const firstError = new Error("first listener failed");
+    const secondError = new Error("second listener failed");
     const firstListener = vi.fn(() => {
-      throw listenerError;
+      throw firstError;
     });
     const secondListener = vi.fn();
-    const onListenerError = vi.fn();
+    const thirdListener = vi.fn(() => {
+      throw secondError;
+    });
+    const onListenerErrors = vi.fn();
 
-    notifyManualSyncCooldownListeners([firstListener, secondListener], onListenerError);
+    notifyManualSyncCooldownListeners([firstListener, secondListener, thirdListener], onListenerErrors);
 
     expect(firstListener).toHaveBeenCalledTimes(1);
     expect(secondListener).toHaveBeenCalledTimes(1);
-    expect(onListenerError).toHaveBeenCalledWith(listenerError);
+    expect(thirdListener).toHaveBeenCalledTimes(1);
+    expect(onListenerErrors).toHaveBeenCalledOnce();
+    expect(onListenerErrors).toHaveBeenCalledWith([firstError, secondError]);
+  });
+
+  it("keeps timer cleanup and remaining cooldown subscribers isolated from listener failures", async () => {
+    const listenerError = new Error("listener failed");
+    const throwingListener = vi.fn(() => {
+      throw listenerError;
+    });
+    const remainingListener = vi.fn();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    subscribeManualSyncCooldown(throwingListener);
+    subscribeManualSyncCooldown(remainingListener);
+
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
+    vi.advanceTimersByTime(15_000);
+
+    expect(throwingListener).toHaveBeenCalledTimes(2);
+    expect(remainingListener).toHaveBeenCalledTimes(2);
+    expect(isManualSyncCoolingDown()).toBe(false);
+    expect(getManualSyncCooldownUntil()).toBe(0);
+    expect(consoleError).toHaveBeenCalledTimes(2);
+    expect(consoleError).toHaveBeenCalledWith("Manual sync cooldown listeners failed:", [listenerError]);
+
+    consoleError.mockRestore();
   });
 
   it("skips triggerSync while manual sync is cooling down", async () => {
@@ -211,40 +245,72 @@ describe("manual-sync", () => {
     expect(getManualSyncCooldownUntil()).toBe(failureStartedAt + 15_000);
   });
 
-  it("keeps cooldown duration stable when the system clock changes", async () => {
+  it("keeps cooldown duration stable when the system clock moves backward", async () => {
+    const onCooldown = vi.fn();
+
     await triggerManualSyncWithCooldown({
-      onCooldown: vi.fn(),
+      onCooldown,
       onSuccess: vi.fn(),
       onError: vi.fn(),
     });
+
+    const wallClockCooldownUntil = getManualSyncCooldownUntil();
 
     vi.advanceTimersByTime(5_000);
     vi.setSystemTime(Date.now() - 60_000);
 
     expect(isManualSyncCoolingDown()).toBe(true);
+    expect(getManualSyncCooldownUntil()).toBe(wallClockCooldownUntil);
+
+    await triggerManualSyncWithCooldown({
+      onCooldown,
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
 
     vi.advanceTimersByTime(9_999);
 
     expect(isManualSyncCoolingDown()).toBe(true);
+    expect(onCooldown).toHaveBeenCalledTimes(1);
 
     vi.advanceTimersByTime(1);
 
     expect(isManualSyncCoolingDown()).toBe(false);
+    expect(triggerSyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps cooldown duration stable when the system clock moves forward", async () => {
+    const onCooldown = vi.fn();
 
     await triggerManualSyncWithCooldown({
-      onCooldown: vi.fn(),
+      onCooldown,
       onSuccess: vi.fn(),
       onError: vi.fn(),
     });
+
+    const wallClockCooldownUntil = getManualSyncCooldownUntil();
 
     vi.advanceTimersByTime(5_000);
     vi.setSystemTime(Date.now() + 60_000);
 
     expect(isManualSyncCoolingDown()).toBe(true);
+    expect(getManualSyncCooldownUntil()).toBe(wallClockCooldownUntil);
 
-    vi.advanceTimersByTime(10_000);
+    await triggerManualSyncWithCooldown({
+      onCooldown,
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    vi.advanceTimersByTime(9_999);
+
+    expect(isManualSyncCoolingDown()).toBe(true);
+    expect(onCooldown).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(1);
 
     expect(isManualSyncCoolingDown()).toBe(false);
+    expect(triggerSyncMock).toHaveBeenCalledTimes(1);
   });
 
   it("stops notifying an unsubscribed cooldown listener", async () => {

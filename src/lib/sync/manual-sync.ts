@@ -9,20 +9,26 @@ let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 const manualSyncCooldownListeners = new Set<() => void>();
 
-function reportManualSyncCooldownListenerError(error: unknown) {
-  console.error("Manual sync cooldown listener failed:", error);
+function reportManualSyncCooldownListenerErrors(errors: readonly unknown[]) {
+  console.error("Manual sync cooldown listeners failed:", errors);
 }
 
 export function notifyManualSyncCooldownListeners(
   listeners: Iterable<() => void>,
-  onListenerError: (error: unknown) => void = reportManualSyncCooldownListenerError,
+  onListenerErrors: (errors: readonly unknown[]) => void = reportManualSyncCooldownListenerErrors,
 ) {
+  const errors: unknown[] = [];
+
   for (const listener of listeners) {
     try {
       listener();
     } catch (error) {
-      onListenerError(error);
+      errors.push(error);
     }
+  }
+
+  if (errors.length > 0) {
+    onListenerErrors(errors);
   }
 }
 
