@@ -11,12 +11,14 @@ function QueryClientProbe({ onClient }: { onClient: (queryClient: QueryClient) =
 }
 
 describe("StoryQueryClientProvider", () => {
-  it("does not install an app-like Tauri runtime for component isolation stories", () => {
+  it("does not install or reset runtime globals for component isolation stories", () => {
     Object.defineProperty(window, "__TAURI_INTERNALS__", {
       configurable: true,
       writable: true,
       value: undefined,
     });
+    window.__DEV_BROWSER_MOCKS__ = true;
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
 
     render(
       <StoryQueryClientProvider>
@@ -25,6 +27,8 @@ describe("StoryQueryClientProvider", () => {
     );
 
     expect(window.__TAURI_INTERNALS__).toBeUndefined();
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(true);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(true);
   });
 
   it("creates an isolated non-retrying query client per story render", () => {
