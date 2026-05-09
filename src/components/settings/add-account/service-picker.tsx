@@ -67,7 +67,7 @@ export function ServicePicker({ title, categories, onSelect }: ServicePickerProp
                         <div
                           className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}
                         >
-                          <service.icon className="size-[18px] text-white" />
+                          <service.icon className="size-4.5 text-white" />
                         </div>
                       }
                       title={

@@ -394,7 +394,7 @@ describe("AddAccountForm", () => {
   it("keeps the service row and icon badge on the rounded-md baseline", () => {
     expect(servicePickerSource).toContain('className={cn("items-center rounded-md px-3 py-2.5")}');
     expect(servicePickerSource).toContain('"flex size-9 shrink-0 items-center justify-center rounded-md"');
-    expect(servicePickerSource).toContain("size-[18px]");
+    expect(servicePickerSource).toContain("size-4.5");
     expect(servicePickerSource).toContain("service.iconBg");
     expect(accountConfigFormViewSource).toContain(
       'className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", serviceSummary.iconBg)}',
