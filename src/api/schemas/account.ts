@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error"]);
+const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error"]);
 const accountSyncIntervalSecsSchema = z.number().int().finite().min(60).max(86_400);
 const accountKeepReadItemsDaysSchema = z.number().int().finite().min(1).max(3650);
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
@@ -12,7 +12,7 @@ const optionalBlankStringToUndefinedSchema = z.preprocess((value) => {
   return trimmed.length > 0 ? trimmed : undefined;
 }, z.string().optional());
 
-export const AccountProviderCapabilitiesSchema = z.object({
+const AccountProviderCapabilitiesSchema = z.object({
   supports_folders: z.boolean(),
   supports_starring: z.boolean(),
   supports_search: z.boolean(),

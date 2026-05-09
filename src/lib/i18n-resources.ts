@@ -12,8 +12,8 @@ import jaSubscriptions from "@/locales/ja/subscriptions.json";
 export const i18nResourceLocales = ["en", "ja"] as const;
 export const i18nResourceNamespaces = ["common", "settings", "reader", "sidebar", "subscriptions"] as const;
 
-export type I18nResourceLocale = (typeof i18nResourceLocales)[number];
-export type I18nResourceNamespace = (typeof i18nResourceNamespaces)[number];
+type I18nResourceLocale = (typeof i18nResourceLocales)[number];
+type I18nResourceNamespace = (typeof i18nResourceNamespaces)[number];
 
 export type I18nResourceFile = {
   locale: I18nResourceLocale;
