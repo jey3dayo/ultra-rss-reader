@@ -155,6 +155,32 @@ describe("query-invalidation", () => {
     ]);
   });
 
+  it("warns on invalidation rejection while continuing later query keys", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const rejection = new Error("invalidate failed");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    invalidateQueries.mockRejectedValueOnce(rejection);
+
+    invalidateFeedQueries(queryClient, {
+      includeAccountUnreadCount: true,
+    });
+
+    await vi.waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["feeds"],
+        error: rejection,
+      });
+    });
+    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
+      { queryKey: ["feeds"] },
+      { queryKey: ["folders"] },
+      { queryKey: ["accountUnreadCount"] },
+    ]);
+
+    warnSpy.mockRestore();
+  });
+
   it("invalidates scoped feed, article, and account status query keys after sync completion", () => {
     const { invalidateQueries, queryClient } = createInvalidateSpy();
 

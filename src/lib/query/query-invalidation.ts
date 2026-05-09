@@ -258,7 +258,9 @@ export function resolveArticleInvalidationQueryKeys(
 
 function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<QueryInvalidationKey>) {
   for (const queryKey of queryKeys) {
-    void queryClient.invalidateQueries({ queryKey });
+    void queryClient.invalidateQueries({ queryKey }).catch((error: unknown) => {
+      console.warn("Query invalidation failed:", { queryKey, error });
+    });
   }
 }
 
