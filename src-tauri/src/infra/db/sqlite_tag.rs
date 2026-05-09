@@ -602,6 +602,35 @@ mod tests {
     }
 
     #[test]
+    fn find_articles_by_tag_returns_decode_error_for_malformed_published_at() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "work".to_string(),
+            color: Some("#0000ff".to_string()),
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        db.writer()
+            .execute(
+                "UPDATE articles SET published_at = ?1 WHERE id = ?2",
+                params!["not-a-date", article_id.0],
+            )
+            .unwrap();
+
+        let pagination = Pagination {
+            offset: 0,
+            limit: 50,
+        };
+        let result = repo.find_articles_by_tag(&tag.id, &pagination, None, ArticleListMode::All);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn find_articles_by_tag_filters_muted_articles() {
         let db = test_db();
         let (_, _, article_id) = insert_test_data(&db);

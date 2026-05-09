@@ -244,9 +244,7 @@ impl FeedProvider for LocalProvider {
         }
 
         if !status.is_success() {
-            return Err(DomainError::Network(format!(
-                "Local feed request failed: {status}"
-            )));
+            return Err(DomainError::from_provider_http_status(status));
         }
 
         let bytes = response.bytes().await?;
@@ -483,6 +481,54 @@ mod tests {
         assert_eq!(cursor.etag.as_deref(), Some(request_etag));
         assert_eq!(cursor.last_modified.as_deref(), Some(request_last_modified));
         assert!(result.not_modified);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_returns_auth_error_for_unauthorized_status() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/private.xml")
+            .with_status(401)
+            .with_body("unauthorized")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/private.xml", server.url()),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("401 should be classified as auth failure");
+
+        assert!(matches!(error, DomainError::Auth(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_returns_rate_limit_error_for_too_many_requests_status() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/rate-limited.xml")
+            .with_status(429)
+            .with_body("too many requests")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/rate-limited.xml", server.url()),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("429 should be classified as rate limit failure");
+
+        assert!(matches!(error, DomainError::RateLimit(_)));
         mock.assert_async().await;
     }
 

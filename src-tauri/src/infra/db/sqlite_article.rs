@@ -1398,6 +1398,27 @@ mod tests {
     }
 
     #[test]
+    fn find_by_feed_returns_decode_error_for_malformed_fetched_at() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let article = make_article(&feed_id, "Malformed fetched date article");
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        db.writer()
+            .execute(
+                "UPDATE articles SET fetched_at = ?1 WHERE id = ?2",
+                params!["not-a-date", article.id.0],
+            )
+            .unwrap();
+
+        let result = repo.find_by_feed(&feed_id, &Pagination::default());
+
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn upsert_preserves_is_read_and_is_starred() {
         let db = test_db();
         let account_id = insert_test_account(&db);
