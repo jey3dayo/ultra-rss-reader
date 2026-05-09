@@ -1,16 +1,22 @@
 import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createQuery, setCreateQueryDiagnosticsReporterForDiagnostics } from "@/hooks/create-query";
 
 describe("createQuery", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
+  let restoreDiagnosticsReporter: (() => void) | null = null;
   type GeneratedQueryProps = { id: string | null };
 
   beforeEach(() => {
     const queryWrapper = createQueryWrapper();
     wrapper = queryWrapper.wrapper;
+  });
+
+  afterEach(() => {
+    restoreDiagnosticsReporter?.();
+    restoreDiagnosticsReporter = null;
   });
 
   it("keeps nullable id queries disabled and calls the fetcher for string ids", async () => {
@@ -55,7 +61,7 @@ describe("createQuery", () => {
     const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
     const useGeneratedQuery = createQuery("items", fetcher);
     const diagnosticsReporter = vi.fn();
-    const restoreDiagnosticsReporter = setCreateQueryDiagnosticsReporterForDiagnostics(diagnosticsReporter);
+    restoreDiagnosticsReporter = setCreateQueryDiagnosticsReporterForDiagnostics(diagnosticsReporter);
 
     const { result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
       initialProps: { id: "item-1" },
@@ -67,15 +73,13 @@ describe("createQuery", () => {
     });
 
     expect(fetcher).toHaveBeenCalledWith("item-1");
-    expect(result.current.error).toMatchObject({ message: "load failed" });
+    expect(result.current.error).toMatchObject({ message: "[items:item-1] load failed" });
     expect(diagnosticsReporter).toHaveBeenCalledWith({
       type: "query-function-rejected",
       queryKey: "items",
       queryId: "item-1",
-      error: expect.objectContaining({ message: "load failed" }),
+      error: expect.objectContaining({ message: "[items:item-1] load failed" }),
     });
-
-    restoreDiagnosticsReporter();
   });
 
   it("does not pass missing or invalid disabled ids to the fetcher", () => {

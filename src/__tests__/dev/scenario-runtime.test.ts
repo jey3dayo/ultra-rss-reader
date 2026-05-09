@@ -30,6 +30,22 @@ vi.mock("@/dev/scenarios", () => ({
   },
 }));
 
+function expectResultValue<T, E>(result: Result.Result<T, E>): T {
+  if (Result.isFailure(result)) {
+    throw new Error(`Expected success result, received failure: ${JSON.stringify(result.error)}`);
+  }
+
+  return result.value;
+}
+
+function expectResultError<T, E>(result: Result.Result<T, E>): E {
+  if (!Result.isFailure(result)) {
+    throw new Error(`Expected failure result, received success: ${JSON.stringify(result.value)}`);
+  }
+
+  return result.error;
+}
+
 describe("dev-scenario-runtime", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -52,11 +68,11 @@ describe("dev-scenario-runtime", () => {
       runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex),
     ]);
 
-    expect(Result.unwrapError(loadResult)).toEqual({
+    expect(expectResultError(loadResult)).toEqual({
       type: "unavailable",
       message: "Dev scenarios runtime is unavailable outside dev builds.",
     });
-    expect(Result.unwrapError(runResult)).toEqual({
+    expect(expectResultError(runResult)).toEqual({
       type: "unavailable",
       message: "Dev scenarios runtime is unavailable outside dev builds.",
     });
@@ -82,7 +98,7 @@ describe("dev-scenario-runtime", () => {
 
     const result = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(result)).toEqual({
+    expect(expectResultError(result)).toEqual({
       type: "invalid_module",
       message: "Dev scenarios module does not match the expected runtime interface.",
     });
@@ -113,8 +129,8 @@ describe("dev-scenario-runtime", () => {
 
     const loadFailureResult = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(invalidResult).type).toBe("invalid_module");
-    expect(Result.unwrapError(loadFailureResult)).toEqual({
+    expect(expectResultError(invalidResult).type).toBe("invalid_module");
+    expect(expectResultError(loadFailureResult)).toEqual({
       type: "module_load_failed",
       message: "Registry failed",
     });
@@ -129,11 +145,11 @@ describe("dev-scenario-runtime", () => {
     const failedResult = await loadRuntimeDevScenariosResult();
     const retriedResult = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(failedResult)).toEqual({
+    expect(expectResultError(failedResult)).toEqual({
       type: "module_load_failed",
       message: "Temporary import failure",
     });
-    expect(Result.unwrap(retriedResult)).toEqual([]);
+    expect(expectResultValue(retriedResult)).toEqual([]);
     expect(importScenarioModule).toHaveBeenCalledTimes(2);
   });
 
@@ -145,7 +161,7 @@ describe("dev-scenario-runtime", () => {
 
     const result = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(result)).toEqual({
+    expect(expectResultError(result)).toEqual({
       type: "module_load_failed",
       message: "String import failure",
     });
@@ -162,11 +178,11 @@ describe("dev-scenario-runtime", () => {
     };
     const retriedResult = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(invalidResult)).toEqual({
+    expect(expectResultError(invalidResult)).toEqual({
       type: "invalid_module",
       message: "Dev scenarios module does not match the expected runtime interface.",
     });
-    expect(Result.unwrap(retriedResult)).toEqual([]);
+    expect(expectResultValue(retriedResult)).toEqual([]);
   });
 
   it.each([
@@ -184,7 +200,7 @@ describe("dev-scenario-runtime", () => {
 
     const result = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(result)).toEqual({
+    expect(expectResultError(result)).toEqual({
       type: "module_load_failed",
       message: "Unknown dev scenario runtime error.",
     });
@@ -201,7 +217,7 @@ describe("dev-scenario-runtime", () => {
 
     const result = await loadRuntimeDevScenariosResult();
 
-    expect(Result.unwrapError(result)).toEqual({
+    expect(expectResultError(result)).toEqual({
       type: "module_load_failed",
       message: "Scenario listing failed",
     });
@@ -218,7 +234,7 @@ describe("dev-scenario-runtime", () => {
 
     const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
 
-    expect(Result.unwrapError(result)).toEqual({
+    expect(expectResultError(result)).toEqual({
       type: "scenario_failed",
       message: "Scenario action failed",
     });
@@ -239,7 +255,7 @@ describe("dev-scenario-runtime", () => {
 
     const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
 
-    expect(Result.unwrapError(result)).toEqual({
+    expect(expectResultError(result)).toEqual({
       type: "scenario_failed",
       message: "Unknown dev scenario runtime error.",
     });

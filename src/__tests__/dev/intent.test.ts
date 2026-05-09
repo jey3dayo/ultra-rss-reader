@@ -26,6 +26,22 @@ import {
 } from "@/dev/intent";
 import { DEV_SCENARIO_IDS } from "@/dev/scenario-ids";
 
+function expectResultValue<T, E>(result: Result.Result<T, E>): T {
+  if (Result.isFailure(result)) {
+    throw new Error(`Expected success result, received failure: ${JSON.stringify(result.error)}`);
+  }
+
+  return result.value;
+}
+
+function expectResultError<T, E>(result: Result.Result<T, E>): E {
+  if (!Result.isFailure(result)) {
+    throw new Error(`Expected failure result, received success: ${JSON.stringify(result.value)}`);
+  }
+
+  return result.error;
+}
+
 describe("dev-intent helpers", () => {
   beforeEach(() => {
     vi.stubEnv("DEV", true);
@@ -148,7 +164,7 @@ describe("dev-intent helpers", () => {
 
     const result = await loadDevRuntimeOptionsResult();
 
-    expect(Result.unwrap(result)).toEqual({
+    expect(expectResultValue(result)).toEqual({
       dev_intent: "open-command-palette",
       dev_web_url: "https://example.com/runtime",
       dev_window_width: 640,
@@ -332,14 +348,14 @@ describe("dev-intent helpers", () => {
 
   it("returns typed runtime option failures for unavailable contexts", async () => {
     vi.stubEnv("DEV", false);
-    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe("not_dev_build");
+    expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe("not_dev_build");
     expect(await loadDevRuntimeOptions()).toBeNull();
 
     vi.stubEnv("DEV", true);
     resetDevRuntimeOptionsCacheForTests();
     hasTauriRuntimeMock.mockReturnValue(false);
 
-    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe("tauri_unavailable");
+    expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe("tauri_unavailable");
     expect(await loadDevRuntimeOptions()).toBeNull();
   });
 
@@ -348,7 +364,7 @@ describe("dev-intent helpers", () => {
 
     const result = await loadDevRuntimeOptionsResult();
 
-    expect(Result.unwrapError(result)).toBe("request_failed");
+    expect(expectResultError(result)).toBe("request_failed");
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -391,8 +407,8 @@ describe("dev-intent helpers", () => {
       ) => void
     )(Result.fail({ type: "UserVisible", message: "boom" }));
 
-    expect(Result.unwrapError(await firstLoad)).toBe("request_failed");
-    expect(Result.unwrapError(await sharedLoad)).toBe("request_failed");
+    expect(expectResultError(await firstLoad)).toBe("request_failed");
+    expect(expectResultError(await sharedLoad)).toBe("request_failed");
 
     getDevRuntimeOptionsMock.mockResolvedValueOnce(
       Result.succeed({
@@ -405,7 +421,7 @@ describe("dev-intent helpers", () => {
 
     const recovered = await loadDevRuntimeOptionsResult();
 
-    expect(Result.unwrap(recovered).dev_intent).toBe("open-command-palette");
+    expect(expectResultValue(recovered).dev_intent).toBe("open-command-palette");
     expect(readDevIntent()).toBe("open-command-palette");
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(2);
   });
@@ -430,18 +446,18 @@ describe("dev-intent helpers", () => {
       }),
     );
 
-    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
+    expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
     const result = await loadDevRuntimeOptionsResult();
 
     if (shouldRetry) {
-      expect(Result.unwrap(result)).toEqual({
+      expect(expectResultValue(result)).toEqual({
         dev_intent: "open-settings-general",
         dev_web_url: "https://example.com/retry",
         dev_window_width: 720,
         dev_window_height: 960,
       });
     } else {
-      expect(Result.unwrapError(result)).toBe(expectedError);
+      expect(expectResultError(result)).toBe(expectedError);
     }
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(expectedCallCount);
   });
@@ -452,8 +468,8 @@ describe("dev-intent helpers", () => {
   ] as const)("keeps %s runtime option failures cached", async (expectedError, arrangeFailure) => {
     arrangeFailure();
 
-    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
-    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
+    expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
+    expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
     expect(getDevRuntimeOptionsMock).not.toHaveBeenCalled();
   });
 });
