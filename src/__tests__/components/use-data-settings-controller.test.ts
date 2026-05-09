@@ -101,6 +101,32 @@ describe("useDataSettingsController", () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
+  it("shows non-duplicated copy when opening the log directory fails", async () => {
+    vi.mocked(openLogDir).mockResolvedValue(
+      Result.fail({ type: "UserVisible", message: "Check OS permissions and try again." }),
+    );
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string, options?: { message?: string }) =>
+          key === "data.open_log_dir_failed"
+            ? `Failed to open log directory: ${options?.message ?? ""}`
+            : key) as never,
+        showToast,
+        setSettingsLoading: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleOpenLogDir();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(
+      "Failed to open log directory: Check OS permissions and try again.",
+    );
+    expect(showToast.mock.calls[0]?.[0].match(/Failed to open log directory/g)).toHaveLength(1);
+  });
+
   it("tracks log directory pending state and suppresses duplicate data actions", async () => {
     let resolveOpenLogDir: (() => void) | undefined;
     vi.mocked(openLogDir).mockReturnValue(
