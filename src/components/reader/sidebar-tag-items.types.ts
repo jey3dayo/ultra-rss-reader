@@ -21,6 +21,7 @@ export type SidebarTagItemsResult = SidebarTagItem[];
 
 export type SidebarTagListProps = {
   tagsLabel: string;
+  emptyLabel?: string;
   isOpen: boolean;
   onToggleOpen: () => void;
   sidebarDensity?: SidebarDensity;

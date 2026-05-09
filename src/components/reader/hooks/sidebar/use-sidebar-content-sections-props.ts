@@ -58,6 +58,7 @@ export function useSidebarContentSectionsProps({
     tagSection: {
       isVisible: showSidebarTags,
       label: t("tags"),
+      emptyLabel: t("no_tags"),
       isOpen: isTagsSectionOpen,
       onToggle: toggleTagsSection,
       tags,

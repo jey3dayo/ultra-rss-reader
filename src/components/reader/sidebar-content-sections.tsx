@@ -43,6 +43,7 @@ export type SidebarContentSectionsProps = {
   tagSection: {
     isVisible: boolean;
     label: string;
+    emptyLabel: NonNullable<SidebarTagListProps["emptyLabel"]>;
     isOpen: SidebarTagListProps["isOpen"];
     onToggle: SidebarTagListProps["onToggleOpen"];
     tags: SidebarTagItemsParams["tags"];
@@ -81,6 +82,7 @@ export function SidebarContentSections({
   const tagSection = tagSectionProps.isVisible ? (
     <SidebarTagSection
       tagsLabel={tagSectionProps.label}
+      emptyLabel={tagSectionProps.emptyLabel}
       isOpen={tagSectionProps.isOpen}
       onToggleOpen={tagSectionProps.onToggle}
       sidebarDensity={sidebarDensity}

@@ -49,6 +49,31 @@ describe("ArticleTagChips", () => {
     });
   });
 
+  it("dedupes tag picker identities and ignores blank ids at the projection boundary", () => {
+    expect(
+      buildArticleTagPickerLists({
+        articleTags: [
+          { id: "tag-review", name: "Review", color: null },
+          { id: "tag-review", name: "Review duplicate", color: "#f97316" },
+          { id: "", name: "Blank assigned", color: null },
+        ],
+        allTags: [
+          { id: "tag-review", name: "Review", color: null },
+          { id: "tag-inbox", name: "Inbox", color: null },
+          { id: "tag-inbox", name: "Inbox duplicate", color: "#22c55e" },
+          { id: "", name: "Blank available", color: null },
+          { id: "tag-important", name: "Important", color: "#ef4444" },
+        ],
+      }),
+    ).toEqual({
+      assignedTags: [{ id: "tag-review", name: "Review", color: null }],
+      availableTags: [
+        { id: "tag-inbox", name: "Inbox", color: null },
+        { id: "tag-important", name: "Important", color: "#ef4444" },
+      ],
+    });
+  });
+
   it("finds existing tags by trimmed case-insensitive name", () => {
     const tags = [
       { id: "tag-later", name: "Later", color: "#3b82f6" },
@@ -87,10 +112,10 @@ describe("ArticleTagChips", () => {
     expect(screen.getByText("Review").compareDocumentPosition(screen.getByText("Later"))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    await user.click(screen.getByRole("button", { name: "add_tag" }));
+    await user.click(screen.getByRole("button", { name: "Add tag" }));
 
     const listbox = await screen.findByRole("listbox", {
-      name: "available_tags",
+      name: "Available tags",
     });
     const options = within(listbox).getAllByRole("option");
     expect(options.map((option) => option.textContent)).toEqual(["Inbox", "Important"]);
@@ -115,10 +140,10 @@ describe("ArticleTagChips", () => {
 
     render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("heading", { name: "tags_section_title" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "add_tag" }));
+    expect(await screen.findByRole("heading", { name: "Tags" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add tag" }));
 
-    const listbox = await screen.findByRole("listbox", { name: "available_tags" });
+    const listbox = await screen.findByRole("listbox", { name: "Available tags" });
     expect(within(listbox).queryAllByRole("option")).toEqual([]);
     expect(screen.getByRole("textbox")).toHaveValue("");
   });
@@ -145,7 +170,7 @@ describe("ArticleTagChips", () => {
 
     render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "add_tag" }));
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
     await user.type(await screen.findByRole("textbox"), "  later  ");
     await user.keyboard("{Enter}");
 
@@ -179,13 +204,13 @@ describe("ArticleTagChips", () => {
 
     render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "add_tag" }));
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
     const input = await screen.findByRole("textbox");
     await user.type(input, "later");
     await user.keyboard("{Enter}");
 
     expect(await screen.findByText("Assign failed")).toBeInTheDocument();
-    expect(screen.getByRole("listbox", { name: "available_tags" })).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toHaveValue("later");
   });
 
@@ -208,11 +233,11 @@ describe("ArticleTagChips", () => {
 
     render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "add_tag" }));
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
     await user.click(await screen.findByRole("option", { name: "Later" }));
 
     expect(await screen.findByText("Assign failed")).toBeInTheDocument();
-    expect(screen.getByRole("listbox", { name: "available_tags" })).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Later" })).toBeInTheDocument();
   });
 
@@ -239,13 +264,13 @@ describe("ArticleTagChips", () => {
 
     render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "add_tag" }));
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
     const input = await screen.findByRole("textbox");
     await user.type(input, "Review");
     await user.keyboard("{Enter}");
 
     expect(await screen.findByText("Assign failed")).toBeInTheDocument();
-    expect(screen.getByRole("listbox", { name: "available_tags" })).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toHaveValue("Review");
     expect(commands).toContainEqual({
       cmd: "tag_article",
