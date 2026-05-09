@@ -1,4 +1,5 @@
 import {
+  ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE,
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedSidebarTarget,
   focusSidebarSmartViewTargetWhenReady,
@@ -33,7 +34,7 @@ export function normalizePaneNavigationKey(key: string): PaneNavigationKey | nul
 
 function getAccountPaneNavigationTargets(): HTMLButtonElement[] {
   return Array.from(
-    document.querySelectorAll<HTMLButtonElement>('[data-account-pane-navigation-target="true"]'),
+    document.querySelectorAll<HTMLButtonElement>(`[${ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE}="true"]`),
   ).filter((target) => !isReaderFocusTargetDisabled(target) && !target.closest('[aria-hidden="true"]'));
 }
 

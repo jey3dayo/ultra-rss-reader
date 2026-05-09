@@ -10,6 +10,7 @@ import {
   selectCurrentAccountPaneTargetAndFocusSidebar,
 } from "@/lib/account/account-pane-navigation";
 import {
+  ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE,
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedAccountPaneTarget,
   focusSidebarSmartViewTargetWhenReady,
@@ -101,7 +102,7 @@ export function AccountPane() {
               <SidebarNavButton
                 key={account.id}
                 ref={setAccountItemRef(index)}
-                data-account-pane-navigation-target="true"
+                {...{ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" }}
                 {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
                 {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
                 {...(selected ? { "aria-current": "true" } : {})}

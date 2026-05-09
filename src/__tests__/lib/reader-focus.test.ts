@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE,
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusArticleContentTarget,
   focusArticleListRowTargetWhenReady,
@@ -53,7 +54,7 @@ describe("reader-focus", () => {
     expect(focusSelectedSidebarTarget()).toBe(true);
     expect(sidebarFallbackTarget).toHaveFocus();
 
-    const accountFallbackTarget = createButton({ "data-account-pane-navigation-target": "true" });
+    const accountFallbackTarget = createButton({ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" });
     const accountSelectedTarget = createButton({
       [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true",
       "aria-disabled": "true",
@@ -76,7 +77,7 @@ describe("reader-focus", () => {
   });
 
   it("focuses the selected account pane target before its navigation fallback", () => {
-    const fallbackTarget = createButton({ "data-account-pane-navigation-target": "true" });
+    const fallbackTarget = createButton({ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" });
     const selectedTarget = createButton({ [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" });
     document.body.append(fallbackTarget, selectedTarget);
 
@@ -87,7 +88,7 @@ describe("reader-focus", () => {
 
   it("falls back to the account pane navigation target when the selected target cannot receive focus", () => {
     const selectedTarget = createButton({ [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true", disabled: "" });
-    const fallbackTarget = createButton({ "data-account-pane-navigation-target": "true" });
+    const fallbackTarget = createButton({ [ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE]: "true" });
     document.body.append(selectedTarget, fallbackTarget);
 
     expect(focusSelectedAccountPaneTarget()).toBe(true);

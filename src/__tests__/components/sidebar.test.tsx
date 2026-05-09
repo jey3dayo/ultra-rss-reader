@@ -16,6 +16,7 @@ import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
+import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { resetManualSyncCooldownForTests } from "@/lib/sync/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -2038,7 +2039,8 @@ describe("Sidebar", () => {
     freshRssAccount.focus();
 
     expect(localAccount).toHaveAttribute("aria-current", "true");
-    expect(localAccount).toHaveAttribute("data-account-pane-selected-target", "true");
+    expect(localAccount).toHaveAttribute(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE, "true");
+    expect(localAccount).toHaveAttribute(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, "true");
     expect(localAccount).not.toHaveAttribute("data-sidebar-navigation-target");
     expect(localAccount).toHaveClass(
       "before:left-0",
@@ -2049,7 +2051,8 @@ describe("Sidebar", () => {
     expect(localAccount.querySelector("svg")).toBeNull();
     expect(freshRssAccount).toHaveFocus();
     expect(freshRssAccount).not.toHaveAttribute("aria-current");
-    expect(freshRssAccount).not.toHaveAttribute("data-account-pane-selected-target");
+    expect(freshRssAccount).not.toHaveAttribute(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE);
+    expect(freshRssAccount).toHaveAttribute(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, "true");
     expect(freshRssAccount.querySelector("svg")).toBeNull();
   });
 
