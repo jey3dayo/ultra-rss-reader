@@ -175,11 +175,6 @@
   - background open は `open -g` を spawn してすぐ成功扱いにするため、`open` command の終了失敗や LaunchServices error が toast/diagnostics に残らない
   - spawn failure、non-zero exit、stderr redaction、foreground fallback、unsupported platform の Rust command test / manual verification を追加する
 
-- [ ] P2 startup sync throttle を account scope / clock skew / storage tamper 込みで固定する
-  - 対象: `src/lib/sync/startup-sync-storage.ts`, `src/App.tsx`, `src/constants/ui-runtime.ts`
-  - startup sync throttle は localStorage の単一 timestamp で全 account を抑制するため、account switch、時計戻り、future timestamp tamper、storage migration failure 時の再実行範囲が分かりにくい
-  - account-scoped key、future timestamp cleanup、legacy key migration、private mode storage unavailable の unit/component test を追加する
-
 - [ ] P2 sync-on-wake の per-account failure を Promise.all fail-fast から集約 diagnostics にする
   - 対象: `src/App.tsx`, `src/hooks/use-feeds.ts`, `src/lib/query/query-invalidation.ts`
   - 複数 account を並列 sync する時、1 account の throw/reject が他 account の結果待ちや warning 集約を壊すと、どの account が成功/失敗したか見えにくい
@@ -229,11 +224,6 @@
   - 対象: `src/components/reader/article-reader-body.tsx`, `src/components/reader/article-content-view.tsx`
   - sanitized HTML 内の全 anchor へ個別 listener を張るため、長文記事や頻繁な article 切替で listener attach/detach のコストと stale anchor cleanup が増えやすい
   - container-level click delegation、nested element click、modifier key、relative URL、article切替時 cleanup の component test を追加する
-
-- [ ] P2 settings add account form の preventDefault warning を Tauri form contract として整理する
-  - 対象: `src/components/settings/add-account/form-view.tsx`, `src/components/settings/add-account/account-config-form-view.tsx`
-  - React Doctor は form `preventDefault` を progressive enhancement warning として出すが、Tauri app では native command submit が正なので、button/form semantics の意図を明文化しないと毎回 noise になる
-  - `type=submit` / `onSubmit` / Enter key / disabled submitting / no-JS 非対応方針を component test と suppression policy へ整理する
 
 - [ ] P3 React 19 deprecated API warning を context wrapper 単位で移行判断する
   - 対象: `src/components/settings/shared/settings-content-layout.tsx`, `src/components/settings/**`
@@ -380,11 +370,6 @@
   - React Doctor / Knip が subscriptions index 周辺の unused export/type を検出しており、page view props と workspace controller contract が混ざる原因になる
   - list pane view-local props、workspace state type、candidate helper、test fixture export を分類し、必要な public surface だけ残す
 
-- [ ] P2 account setup session types を add-account flow contract として残すか決める
-  - 対象: `src/lib/account/account-setup-session.types.ts`, `src/components/settings/add-account-form.tsx`, `src/components/settings/add-account/service-picker.tsx`
-  - React Doctor / Knip が account setup session type を unused として検出しており、add-account flow の controller contract と過去の session model が混在している可能性がある
-  - service select、config submit、setup cancel、retry、account detail navigation の参照を確認し、不要なら削除、必要なら add-account contract test へ明示する
-
 - [ ] P2 create-mutation の invalidation warning を generic helper policy として整理する
   - 対象: `src/hooks/create-mutation.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`, `src/hooks/use-delete-feed.ts`
   - React Doctor が generic mutation helper 自体にも `query-mutation-missing-invalidation` を出しており、helper 側で invalidation を要求するのか caller 側 contract にするのか曖昧になっている
@@ -419,11 +404,6 @@
   - 対象: `src/components/reader/article-list-header.tsx`, `src/components/reader/article-list-header-search.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
   - React Doctor / Knip が article list header の unused type を検出しており、header props、search props、action hook params が分散している
   - view-local props は component 内へ寄せ、hook params/result と keyboard/search focus contract だけを public type として残す
-
-- [ ] P2 add-account form の unused type を form view / controller / service config へ分割する
-  - 対象: `src/components/settings/add-account-form.tsx`, `src/components/settings/add-account/form-view.tsx`, `src/components/settings/add-account/account-config-form.tsx`
-  - React Doctor / Knip が add-account form 周辺の unused type を検出しており、form view props と service setup controller contract が同じ層に残りやすい
-  - submit payload、validation state、service config view props、navigation callback、cancel/retry contract を分ける
 
 - [ ] P2 settings preference type の unused surface を preference schema と view props に分ける
   - 対象: `src/components/settings/settings-preference.types.ts`, `src/schemas/preferences.ts`, `src/components/settings/general-settings-view.tsx`
@@ -484,11 +464,6 @@
   - 対象: `src/components/reader/feed-edit-submit.ts`, `src/components/reader/feed-query-cache.ts`, `src/hooks/use-delete-feed.ts`, `src/components/reader/hooks/feed-dialogs/*`
   - React Doctor / Knip が feed edit submit と feed query cache の unused type を検出しており、mutation submit payload と cache update helper が分離できていない可能性がある
   - add/rename/delete feed の submit result、optimistic update、rollback、query cache patch の owner を決める
-
-- [ ] P3 account-switcher / nav-row story の `size-*` 表記を design cleanup として分離する
-  - 対象: `src/components/reader/account-switcher-view.tsx`, `src/components/shared/nav-row-button.stories.tsx`
-  - React Doctor の `design-no-redundant-size-axes` は小さいが、production component と Storybook story が混在しているため、UI cleanup と story cleanup を分けた方が差分が読みやすい
-  - production は visual regression 優先、Storybook は specimen consistency 優先で `w-N h-N` から `size-N` へ寄せる
 
 - [ ] P2 browser-webview-events diff warning を current-diff blocker として再掲しない運用にする
   - 対象: `src/__tests__/hooks/use-browser-webview-events.test.tsx`, `TODO.md`, `mise.toml`
