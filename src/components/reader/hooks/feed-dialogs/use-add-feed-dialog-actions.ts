@@ -59,8 +59,28 @@ export function useAddFeedDialogActions({
     const requestUrl = trimmedUrl;
     dispatch({ type: "start-discover", requestId });
 
+    const handleDiscoveryError = (message: string) => {
+      if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
+        return;
+      }
+
+      dispatch({
+        type: "discover-error",
+        error: t("discovery_failed", { message }),
+        requestId,
+      });
+    };
+
+    let discoveryResult: Awaited<ReturnType<typeof discoverFeeds>>;
+    try {
+      discoveryResult = await discoverFeeds(requestUrl);
+    } catch (error) {
+      handleDiscoveryError(error instanceof Error ? error.message : String(error));
+      return;
+    }
+
     Result.pipe(
-      await discoverFeeds(requestUrl),
+      discoveryResult,
       Result.inspect((feeds) => {
         if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
           return;
@@ -75,15 +95,7 @@ export function useAddFeedDialogActions({
         }
       }),
       Result.inspectError((error) => {
-        if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
-          return;
-        }
-
-        dispatch({
-          type: "discover-error",
-          error: t("discovery_failed", { message: error.message }),
-          requestId,
-        });
+        handleDiscoveryError(error.message);
       }),
     );
   }, [derived.hasManualUrl, derived.isManualUrlValid, dispatch, t, trimmedUrl]);

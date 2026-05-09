@@ -289,6 +289,62 @@ describe("useAddFeedDialogActions", () => {
     );
   });
 
+  it("clears discovering with an error when the latest discovery request rejects", async () => {
+    vi.mocked(discoverFeeds).mockRejectedValue(new Error("network down"));
+
+    const dispatch = vi.fn();
+    const { result } = renderHook(() =>
+      useAddFeedDialogActions({
+        accountId: "account-1",
+        state: {
+          url: "https://example.com",
+          error: null,
+          successMessage: null,
+          loading: false,
+          discovering: false,
+          discoveryRequestId: null,
+          discoveredFeeds: [],
+          selectedFeedUrl: null,
+        },
+        dispatch,
+        derived: {
+          hasManualUrl: true,
+          isManualUrlValid: true,
+          urlHint: null,
+          urlHintTone: "muted",
+          isSubmitDisabled: false,
+          isDiscoverDisabled: false,
+          discoveredFeedOptions: [],
+        },
+        trimmedUrl: "https://example.com",
+        folderSelection: {
+          selectedFolderId: null,
+          isCreatingFolder: false,
+          newFolderName: "",
+        },
+        queryClient: new QueryClient(),
+        onOpenChange: vi.fn(),
+        showToast: vi.fn(),
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleDiscover();
+    });
+
+    expect(discoverFeeds).toHaveBeenCalledWith("https://example.com");
+    expect(dispatch).toHaveBeenNthCalledWith(1, {
+      type: "start-discover",
+      requestId: 1,
+    });
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: "discover-error",
+      error: t("discovery_failed", { message: "network down" }),
+      requestId: 1,
+    });
+  });
+
   it("adds the selected discovered feed and assigns the selected folder", async () => {
     vi.mocked(addLocalFeed).mockResolvedValue(
       Result.succeed({
