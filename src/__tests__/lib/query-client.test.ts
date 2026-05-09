@@ -9,6 +9,7 @@ describe("query client retry policy", () => {
   });
 
   it("keeps test mutations non-retrying by default", () => {
+    expect(queryClient.getDefaultOptions().mutations?.retry).toBe(false);
     expect(createTestQueryClient().getDefaultOptions().mutations?.retry).toBe(false);
   });
 
