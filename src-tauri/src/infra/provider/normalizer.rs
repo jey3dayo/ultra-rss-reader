@@ -295,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn article_url_skips_invalid_and_control_character_links() {
+    fn article_url_skips_invalid_links() {
         let atom = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <feed xmlns=\"http://www.w3.org/2005/Atom\">
   <title>Atom Feed</title>
@@ -307,18 +307,19 @@ mod tests {
     <updated>2026-03-27T12:00:00Z</updated>
     <link href=\"javascript:alert(1)\"/>
   </entry>
-  <entry>
-    <title>Control Link</title>
-    <id>atom-control-link</id>
-    <updated>2026-03-27T12:00:00Z</updated>
-    <link href=\"https://example.com/article\u{8}\"/>
-  </entry>
 </feed>";
 
         let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
 
         assert_eq!(entries[0].url, None);
-        assert_eq!(entries[1].url, None);
+    }
+
+    #[test]
+    fn article_url_rejects_control_characters_before_parsing() {
+        assert_eq!(
+            normalize_provider_article_url("https://example.com/article\u{8}"),
+            None
+        );
     }
 
     #[test]
