@@ -81,9 +81,12 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(buildFolderNameByIdMap(folders)).toEqual(new Map([["folder-work", "Work"]]));
   });
 
-  it("uses the last duplicate folder id entry for review candidate folder names", () => {
+  it("uses the last duplicate folder id entry and preserves blank folder names for review candidate folder labels", () => {
     const candidates = buildSubscriptionReviewCandidates({
-      feeds: [{ ...feeds[0], id: "feed-duplicate-folder" }],
+      feeds: [
+        { ...feeds[0], id: "feed-duplicate-folder" },
+        { ...feeds[0], id: "feed-blank-folder", folder_id: "folder-empty", title: "Blank Folder Feed" },
+      ],
       folders: [
         ...folders,
         { id: "folder-work", account_id: "acc-1", name: "Work override", sort_order: 1 },
@@ -92,6 +95,11 @@ describe("buildSubscriptionReviewCandidates", () => {
       feedArticleSummaries: [
         {
           feed_id: "feed-duplicate-folder",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          starred_count: 1,
+        },
+        {
+          feed_id: "feed-blank-folder",
           latest_article_at: "2026-04-01T00:00:00Z",
           starred_count: 1,
         },
@@ -106,9 +114,13 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(buildFolderNameByIdMap([{ id: "folder-empty", account_id: "acc-1", name: "", sort_order: 0 }])).toEqual(
       new Map([["folder-empty", ""]]),
     );
-    expect(candidates[0]).toMatchObject({
+    expect(candidates.find((candidate) => candidate.feedId === "feed-duplicate-folder")).toMatchObject({
       feedId: "feed-duplicate-folder",
       folderName: "Work override",
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-blank-folder")).toMatchObject({
+      feedId: "feed-blank-folder",
+      folderName: "",
     });
   });
 
