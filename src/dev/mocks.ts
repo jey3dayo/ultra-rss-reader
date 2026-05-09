@@ -174,6 +174,28 @@ function applyMuteKeywordFilter<
   });
 }
 
+function findLatestPublishedAt(articles: readonly ArticleDto[]): string | null {
+  return articles.reduce<{ publishedAt: string | null; publishedTime: number }>(
+    (latest, article) => {
+      const publishedTime = Date.parse(article.published_at);
+      if (!Number.isFinite(publishedTime)) {
+        return latest;
+      }
+
+      const nextPublishedTime = Math.max(latest.publishedTime, publishedTime);
+      if (nextPublishedTime === latest.publishedTime) {
+        return latest;
+      }
+
+      return {
+        publishedAt: article.published_at,
+        publishedTime: nextPublishedTime,
+      };
+    },
+    { publishedAt: null, publishedTime: Number.NEGATIVE_INFINITY },
+  ).publishedAt;
+}
+
 export function setupDevMocks() {
   if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return;
   resetDevMockState();
@@ -385,20 +407,10 @@ export function setupDevMocks() {
           .filter((feed) => feed.account_id === accountId)
           .map((feed) => {
             const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
-            let latestArticleAt: string | null = null;
-            let latestArticleTime = Number.NEGATIVE_INFINITY;
-
-            for (const article of feedArticles) {
-              const publishedTime = Date.parse(article.published_at);
-              if (!Number.isNaN(publishedTime) && publishedTime > latestArticleTime) {
-                latestArticleAt = article.published_at;
-                latestArticleTime = publishedTime;
-              }
-            }
 
             return {
               feed_id: feed.id,
-              latest_article_at: latestArticleAt,
+              latest_article_at: findLatestPublishedAt(feedArticles),
               starred_count: feedArticles.filter((article) => article.is_starred).length,
             };
           });

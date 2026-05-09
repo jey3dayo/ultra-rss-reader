@@ -26,6 +26,7 @@ import {
   getPreferences,
   getTagArticleCounts,
   listAccountArticles,
+  listFeedArticleSummaries,
   listArticlesByTag,
   listFeeds,
   listFolders,
@@ -193,14 +194,29 @@ describe("setupDevMocks", () => {
         .slice(0, 3)
         .map((feed) => feed.id),
     ).toEqual(["feed-automaton", "feed-hatima", "feed-yumenavi"]);
-    expect(Result.unwrap(await listAccountArticles("acc-freshrss", 0, 3)).map((article) => article.id)).toEqual([
-      "art-1",
-      "art-2",
-      "art-3",
-    ]);
+    const accountArticles = Result.unwrap(await listAccountArticles("acc-freshrss", 0, 3));
+
+    expect(accountArticles.map((article) => article.id)).toEqual(["art-1", "art-2", "art-3"]);
     expect(Result.unwrap(await listStarredArticles("acc-freshrss")).map((article) => article.id)).toEqual([
       "art-4",
       "art-8",
+    ]);
+    expect(Result.unwrap(await listFeedArticleSummaries("acc-freshrss")).slice(0, 3)).toEqual([
+      {
+        feed_id: "feed-automaton",
+        latest_article_at: accountArticles[0]?.published_at,
+        starred_count: 0,
+      },
+      {
+        feed_id: "feed-hatima",
+        latest_article_at: null,
+        starred_count: 0,
+      },
+      {
+        feed_id: "feed-yumenavi",
+        latest_article_at: null,
+        starred_count: 0,
+      },
     ]);
     expect(
       Result.unwrap(await listArticlesByTag("tag-important", 0, 10, "acc-freshrss", "all")).map(
