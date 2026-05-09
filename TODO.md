@@ -30,21 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P1 child webview command invoke 権限を検証する
-  - 対象: `src-tauri/capabilities/default.json`, `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
-  - embedded webview bridge が native command を invoke する経路は capability / window label / webview label の前提が壊れると packaged app だけで失敗しやすい
-  - main webview と child webview の permission 差を整理し、close bridge / back-forward mouse bridge の invoke 可否を manual verification に残す
-
-- [ ] P1 Tauri unstable feature を release build で許可する条件を棚卸しする
-  - 対象: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/browser_webview.rs`
-  - `tauri` に `unstable` feature が入っているため、release artifact で使ってよい API 面積と将来の breaking risk が明文化されていない
-  - unstable API の使用箇所、必要理由、代替可能性、release smoke で見るべき挙動を一覧化し、不要なら feature を外す
-
-- [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
-  - 対象: `docs/feed-content-privacy.md`, `TODO.md`
-  - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
-  - `docs/feed-content-privacy.md` の checklist と TODO の実行単位を対応させ、manual verification を reader thumbnail / sanitized body / Web Preview に分割する
-
 - [ ] P3 manual sync cooldown listener error aggregation を diagnostics に接続する
   - 対象: `src/lib/sync/manual-sync.ts`
   - cooldown listener が throw しても console error に集約されるだけなので、UI 更新が止まった時にどの subscriber が壊れたか分かりにくい
@@ -54,26 +39,6 @@
   - 対象: `CLAUDE.md`, `TODO.md`
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
-
-- [ ] P2 dev mocks の mutation side effect と real DB cascade の差分を検出する
-  - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
-  - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
-  - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
-
-- [ ] P1 macOS background browser open の child process failure を user-visible にする
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/article-browser-actions.ts`
-  - background open は `open -g` を spawn してすぐ成功扱いにするため、`open` command の終了失敗や LaunchServices error が toast/diagnostics に残らない
-  - spawn failure、non-zero exit、stderr redaction、foreground fallback、unsupported platform の Rust command test / manual verification を追加する
-
-- [ ] P1 React Doctor の mutation invalidation warning を実バグ / false positive に分類する
-  - 対象: `src/hooks/use-articles.ts`, `src/hooks/use-delete-feed.ts`, `src/hooks/use-tags.ts`, `src/hooks/create-mutation.ts`
-  - `useMutation` の cache update warning が 6 件あり、local patch だけで足りる mutation と query invalidation が必要な mutationが混在している
-  - setRead/toggleStar/recordView/deleteFeed/tagArticle の onSuccess 後 cache state を hook test で固定し、false positive は helper contract へ逃がす
-
-- [ ] P2 React Doctor score を local gate として drift 検出する
-  - 対象: `package.json`, `mise.toml`, `CLAUDE.md`, `TODO.md`
-  - 現状 full scan は 86/100 で、今後の React 変更が score を下げても `mise run check` だけでは気づけない可能性がある
-  - `npx -y react-doctor@latest . --verbose --diff` の実行タイミング、score threshold、known warning baseline、CI に入れる/入れない境界を決める
 
 - [ ] P2 React Doctor の unused type / unused export を機械削除できる単位へ分ける
   - 対象: `src/stores/ui-store.ts`, `src/api/tauri-commands.ts`, `src/constants/*`, `src/components/**`, `tests/helpers/*`
@@ -89,21 +54,6 @@
   - 対象: `src/__tests__/**`, `tests/helpers/**`, `src/dev/**`, `src/lib/**`
   - `.toSorted()` 29 件、combine iterations 59 件は test/dev noise と production hot path が混在しており、一括置換すると Node/WebView target や readability を崩しやすい
   - runtime target、polyfill不要性、production-only優先、test helper bulk rewrite の順でバッチ化する
-
-- [ ] P3 React Doctor scan 結果の baseline 保存場所を決める
-  - 対象: `TODO.md`, `CLAUDE.md`, `.claude/rules/*`, `mise.toml`
-  - full diagnostics は temp path に出るだけなので、known issue と新規 regression の差分を別エージェントが追いにくい
-  - baseline を TODO に積むか rule/gate に昇格するか決め、score、error count、warning category、scan command を短い記録として残す
-
-- [ ] P1 React Doctor diff scan の changed-file warning を先に潰す
-  - 対象: `src/__tests__/hooks/use-browser-webview-events.test.tsx`
-  - `npx -y react-doctor@latest . --verbose --diff` は 99/100 だが、未コミット差分内に `.map().filter()` の `js-combine-iterations` warning が 1 件残っている
-  - 既存負債より先に current diff を clean にし、focused test と React Doctor diff scan で新規 warning 0 を確認する
-
-- [ ] P2 React Doctor full scan と diff scan の gate 役割を分ける
-  - 対象: `mise.toml`, `CLAUDE.md`, `TODO.md`
-  - full scan は 86/100 で既存 warning 274 件、diff scan は 99/100 で 1 件なので、同じ threshold にすると小変更が既存負債に巻き込まれる
-  - diff scan は新規 regression gate、full scan は baseline 改善 task として扱い、error count、warning count、score の記録粒度を決める
 
 - [ ] P2 React Doctor unused type を settings view contract 単位で整理する
   - 対象: `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/actions-settings-view.tsx`, `src/components/settings/mute-settings-view.tsx`, `src/components/settings/settings-preference.types.ts`, `src/components/settings/add-account/services.types.ts`
@@ -154,20 +104,10 @@
   - React Doctor の `async-await-in-loop` が sidebar test に出ており、連続 user event の意図的逐次実行と独立 fixture setup が混ざっている可能性がある
   - keyboard navigation / pointer interaction は逐次維持し、独立 render setup や mock response setup は並列化できるか確認する
 
-- [ ] P2 create-mutation の invalidation warning を generic helper policy として整理する
-  - 対象: `src/hooks/create-mutation.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`, `src/hooks/use-delete-feed.ts`
-  - React Doctor が generic mutation helper 自体にも `query-mutation-missing-invalidation` を出しており、helper 側で invalidation を要求するのか caller 側 contract にするのか曖昧になっている
-  - helper options に `onSuccess` / `invalidate` / `setQueryData` のどれを必須化するか決め、false positive なら suppression policy へ逃がす
-
 - [ ] P3 test-only `.toSorted()` 一括移行バッチを node-target gate 後に作る
   - 対象: `src/__tests__/**/*.test.ts`, `src/__tests__/**/*.test.tsx`, `tests/helpers/*`
   - React Doctor の `.toSorted()` warning 29 件の大半は test-only なので、runtime target 確認後に production 変更と分けて一括処理できる
   - test helper bulk rewrite、Node 24 support、snapshot order stability、readability regression の review checklist を用意する
-
-- [ ] P2 use-articles の unused export と mutation invalidation を同じバッチで棚卸しする
-  - 対象: `src/hooks/use-articles.ts`, `src/hooks/create-mutation.ts`, `src/__tests__/hooks/use-articles.test.tsx`
-  - React Doctor / Knip が `use-articles` に unused export と mutation invalidation warning の両方を出しており、公開 hook API と cache update 責務が同時に膨らんでいる
-  - external import、test-only helper、mutation helper、query key helperを分類し、cache update が必要な public mutation だけを残す
 
 - [ ] P2 use-updater hook の unused export を updater schema migration と一緒に整理する
   - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`, `src/__tests__/hooks/use-updater.test.ts`
@@ -262,11 +202,6 @@
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
   - z-index や pointer-events の数値が component 内に分散しており、overlay 追加のたびにどの layer が上に来るべきか review で判断する必要がある
   - semantic layer constants、CSS custom property、component snapshot、DESIGN/CLAUDE rule 化のどれで固定するか決める
-
-- [ ] P2 dev/runtime error console policy を user-visible diagnostics と揃える
-  - 対象: `src/dev/intent.ts`, `src/App.tsx`, `src/stores/platform-store.ts`, `src/hooks/use-app-icon-theme.ts`, `src/hooks/use-badge.ts`
-  - runtime failure が `console.warn/error` だけで終わる箇所が多く、dev-only noise と packaged app の user-visible failure が混在している
-  - dev-only console、production diagnostics、toast対象、once suppression、secret redaction の分類表と代表 hook test を追加する
 
 - [ ] P2 Result.unwrap usage を async boundary ごとに failure surface 化する
   - 対象: `src/hooks/**`, `src/dev/**`, `tests/helpers/**`
