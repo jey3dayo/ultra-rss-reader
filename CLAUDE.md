@@ -27,7 +27,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - When adding async UI side effects, fire-and-forget calls, optimistic updates, or native command wrappers, follow [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md).
 - When adding or changing runtime schemas, DTO parsing, preferences schemas, or localStorage config schemas, follow [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md).
 - When adding boundary tests or turning TODO findings into durable coverage, follow [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
-- For TODO priority taxonomy, React Compiler adoption, ES2023 array copy methods, or React Doctor suppression decisions, follow [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- For TODO priority taxonomy, similarity false positives, React Compiler adoption, ES2023 array copy methods, or React Doctor suppression decisions, follow [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
 - For Rust test `unwrap` / `expect` usage, classify call sites as fixture boundary or production behavior boundary using [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md).
 
 ## File Placement
@@ -109,7 +109,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md): async side effects, latest-only ordering, cleanup, and rejection surface
 - [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md): schema strictness, DTO trust boundaries, and fallback ownership
 - [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md): contract test placement, TODO intake, and durable regression coverage
-- [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md): TODO priority taxonomy, React Compiler opt-in, ES2023 array copy methods, and React Doctor warning suppression policy
+- [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md): TODO priority taxonomy, similarity false positives, React Compiler opt-in, ES2023 array copy methods, and React Doctor warning suppression policy
 - [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md): Rust test unwrap/expect classification for fixture and production behavior boundaries
 
 ## Agent Routing
