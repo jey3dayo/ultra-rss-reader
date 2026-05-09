@@ -267,6 +267,7 @@ describe("App", () => {
     listAccountsMock.mockResolvedValueOnce(
       Result.succeed([
         createAccount({ id: "acc-active", sync_on_wake: true }),
+        createAccount({ id: "acc-background", sync_on_wake: true }),
         createAccount({ id: "acc-disabled", sync_on_wake: false }),
       ]),
     );
@@ -289,10 +290,11 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(syncAccountMock).toHaveBeenCalledTimes(1);
+      expect(syncAccountMock).toHaveBeenCalledTimes(2);
     });
     expect(listAccountsMock).toHaveBeenCalledTimes(1);
     expect(syncAccountMock).toHaveBeenCalledWith("acc-active");
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-background");
     expect(syncAccountMock).not.toHaveBeenCalledWith("acc-disabled");
     dateNowSpy.mockRestore();
   });
