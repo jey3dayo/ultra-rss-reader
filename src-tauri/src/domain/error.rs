@@ -1,4 +1,4 @@
-use reqwest::StatusCode;
+use reqwest::{header::HeaderMap, StatusCode};
 use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use thiserror::Error;
@@ -41,6 +41,7 @@ const CONNECTIVITY_ERROR_MESSAGE: &str =
     "Could not connect to the server. Check the server URL and whether the server is reachable.";
 const TIMEOUT_ERROR_MESSAGE: &str =
     "Request timed out. Check the server URL or your network connection.";
+const RETRY_AFTER_HEADER: &str = "retry-after";
 
 fn is_loopback_host(host: &str) -> bool {
     host.eq_ignore_ascii_case("localhost")
@@ -184,6 +185,22 @@ impl DomainError {
         }
     }
 
+    pub(crate) fn from_provider_http_response_status(
+        status: StatusCode,
+        headers: &HeaderMap,
+    ) -> Self {
+        let Some(retry_after_seconds) = retry_after_seconds(headers) else {
+            return Self::from_provider_http_status(status);
+        };
+
+        match status {
+            StatusCode::TOO_MANY_REQUESTS => Self::RateLimit(format!(
+                "HTTP {status}; retry_after_seconds={retry_after_seconds}"
+            )),
+            _ => Self::from_provider_http_status(status),
+        }
+    }
+
     pub(crate) fn from_provider_http_error(error: reqwest::Error) -> Self {
         if let Some(status) = error.status() {
             return Self::from_provider_http_status(status);
@@ -191,6 +208,25 @@ impl DomainError {
 
         Self::Network(classify_reqwest_network_error(&error))
     }
+}
+
+fn retry_after_seconds(headers: &HeaderMap) -> Option<u64> {
+    let value = headers.get(RETRY_AFTER_HEADER)?.to_str().ok()?.trim();
+    if value.is_empty() {
+        return None;
+    }
+
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(seconds);
+    }
+
+    let retry_at = chrono::DateTime::parse_from_rfc2822(value).ok()?;
+    let now = chrono::Utc::now();
+    let seconds = retry_at
+        .with_timezone(&chrono::Utc)
+        .signed_duration_since(now)
+        .num_seconds();
+    Some(seconds.max(0) as u64)
 }
 
 impl From<rusqlite::Error> for DomainError {
@@ -214,7 +250,10 @@ mod tests {
         redact_sensitive_network_error_message, DomainError, NetworkErrorClassificationInput,
     };
     use crate::commands::dto::AppError;
-    use reqwest::StatusCode;
+    use reqwest::{
+        header::{HeaderMap, HeaderValue, RETRY_AFTER},
+        StatusCode,
+    };
 
     #[test]
     fn network_error_classification_maps_resolution_failures_to_actionable_message() {
@@ -477,6 +516,38 @@ mod tests {
                 expected_retryable
             );
         }
+    }
+
+    #[test]
+    fn provider_http_status_429_includes_retry_after_seconds_when_present() {
+        let mut headers = HeaderMap::new();
+        headers.insert(RETRY_AFTER, HeaderValue::from_static("120"));
+
+        let domain_error = DomainError::from_provider_http_response_status(
+            StatusCode::TOO_MANY_REQUESTS,
+            &headers,
+        );
+
+        assert_eq!(
+            domain_error.to_string(),
+            "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=120"
+        );
+    }
+
+    #[test]
+    fn provider_http_status_429_ignores_invalid_retry_after() {
+        let mut headers = HeaderMap::new();
+        headers.insert(RETRY_AFTER, HeaderValue::from_static("not-a-date"));
+
+        let domain_error = DomainError::from_provider_http_response_status(
+            StatusCode::TOO_MANY_REQUESTS,
+            &headers,
+        );
+
+        assert_eq!(
+            domain_error.to_string(),
+            "Rate limit error: HTTP 429 Too Many Requests"
+        );
     }
 
     #[test]

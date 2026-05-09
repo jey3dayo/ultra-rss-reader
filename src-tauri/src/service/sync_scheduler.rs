@@ -44,6 +44,8 @@ struct RetryBackoffState {
     retry_in_seconds: u64,
 }
 
+const RETRY_AFTER_MESSAGE_MARKER: &str = "retry_after_seconds=";
+
 struct SchedulerSyncGuard<'a>(&'a std::sync::atomic::AtomicBool);
 
 impl Drop for SchedulerSyncGuard<'_> {
@@ -356,7 +358,8 @@ fn complete_failed_account_sync(
             }
         }
     };
-    let backoff = calculate_backoff(account, backoff_state.error_count);
+    let backoff = calculate_backoff(account, backoff_state.error_count)
+        .max(Duration::from_secs(backoff_state.retry_in_seconds));
     warnings_to_emit.push(AccountSyncWarning {
         account_id: account.id.as_ref().to_string(),
         account_name: account.name.clone(),
@@ -475,7 +478,9 @@ fn increment_error_count(
         });
     state.error_count = (clamped_backoff_error_count(state.error_count) as i32).saturating_add(1);
     state.last_error = Some(error.to_string());
-    let backoff_secs = calculate_backoff_secs(account, state.error_count);
+    let backoff_secs = retry_after_seconds_from_app_error(error)
+        .unwrap_or(0)
+        .max(calculate_backoff_secs(account, state.error_count));
     let next_retry = chrono::Utc::now() + chrono::Duration::seconds(backoff_secs as i64);
     let next_retry_at = next_retry.to_rfc3339();
     state.next_retry_at = Some(next_retry_at.clone());
@@ -489,6 +494,21 @@ fn increment_error_count(
 
 fn clamped_backoff_error_count(error_count: i32) -> u32 {
     error_count.clamp(0, MAX_BACKOFF_SHIFT_BITS as i32) as u32
+}
+
+fn retry_after_seconds_from_app_error(error: &crate::commands::dto::AppError) -> Option<u64> {
+    let message = match error {
+        AppError::Retryable { message } | AppError::UserVisible { message } => message,
+    };
+    let (_, value) = message.split_once(RETRY_AFTER_MESSAGE_MARKER)?;
+    let value = value
+        .split(|ch: char| !ch.is_ascii_digit())
+        .next()
+        .unwrap_or_default();
+    if value.is_empty() {
+        return None;
+    }
+    value.parse::<u64>().ok()
 }
 
 pub async fn wait_for_automatic_sync_enabled(
@@ -927,6 +947,59 @@ mod tests {
         );
         assert!(warnings[0].retry_at.is_some());
         assert!(is_in_backoff(&db, &account.id));
+    }
+
+    #[test]
+    fn failed_account_sync_uses_provider_retry_after_when_longer_than_backoff() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+        }
+        let mut warnings = Vec::new();
+
+        let backoff = complete_failed_account_sync(
+            &db,
+            &account,
+            &AppError::Retryable {
+                message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
+                    .to_string(),
+            },
+            &mut warnings,
+        );
+
+        assert_eq!(backoff, Duration::from_secs(600));
+        assert_eq!(warnings[0].retry_in_seconds, Some(600));
+        assert!(warnings[0].retry_at.is_some());
+        assert!(is_in_backoff(&db, &account.id));
+    }
+
+    #[test]
+    fn failed_account_sync_ignores_invalid_provider_retry_after_marker() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+        }
+        let mut warnings = Vec::new();
+
+        let backoff = complete_failed_account_sync(
+            &db,
+            &account,
+            &AppError::Retryable {
+                message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=soon"
+                    .to_string(),
+            },
+            &mut warnings,
+        );
+
+        assert_eq!(backoff, calculate_backoff(&account, 1));
+        assert_eq!(
+            warnings[0].retry_in_seconds,
+            Some(calculate_backoff_secs(&account, 1))
+        );
     }
 
     #[test]

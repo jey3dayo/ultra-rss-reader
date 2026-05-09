@@ -235,6 +235,18 @@ impl GReaderProvider {
             .map_err(|e| DomainError::Auth(e.to_string()))
     }
 
+    fn ensure_success_response(response: reqwest::Response) -> DomainResult<reqwest::Response> {
+        let status = response.status();
+        if status.is_success() {
+            return Ok(response);
+        }
+
+        Err(DomainError::from_provider_http_response_status(
+            status,
+            response.headers(),
+        ))
+    }
+
     async fn fetch_unread_count_map(&self) -> DomainResult<HashMap<String, i32>> {
         let url = self.api_url("/reader/api/0/unread-count?output=json&all=true");
         let response: UnreadCountsResponse = self
@@ -242,9 +254,9 @@ impl GReaderProvider {
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?
             .json()
             .await?;
 
@@ -288,9 +300,9 @@ impl GReaderProvider {
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?
             .json()
             .await?;
 
@@ -393,9 +405,9 @@ impl GReaderProvider {
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?
             .json::<StreamItemIdsResponse>()
             .await
             .map_err(DomainError::from)
@@ -540,7 +552,10 @@ impl FeedProvider for GReaderProvider {
 
         let status = response.status();
         if !status.is_success() {
-            return Err(DomainError::from_provider_http_status(status));
+            return Err(DomainError::from_provider_http_response_status(
+                status,
+                response.headers(),
+            ));
         }
 
         let text = response.text().await?;
@@ -561,9 +576,9 @@ impl FeedProvider for GReaderProvider {
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?
             .json()
             .await?;
 
@@ -596,9 +611,9 @@ impl FeedProvider for GReaderProvider {
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?
             .json()
             .await?;
 
@@ -702,9 +717,9 @@ impl FeedProvider for GReaderProvider {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(body)
                 .send()
-                .await?
-                .error_for_status()
-                .map_err(DomainError::from_provider_http_error)?;
+                .await
+                .map_err(DomainError::from_provider_http_error)
+                .and_then(Self::ensure_success_response)?;
         }
 
         Ok(())
@@ -734,9 +749,9 @@ impl FeedProvider for GReaderProvider {
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?;
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?;
 
         let _text = resp.text().await?;
 
@@ -771,9 +786,9 @@ impl FeedProvider for GReaderProvider {
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
-            .await?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?;
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?;
 
         Ok(())
     }
@@ -1002,6 +1017,61 @@ mod tests {
             assert_eq!(error.to_string(), expected_message);
             auth_mock.assert_async().await;
         }
+    }
+
+    #[tokio::test]
+    async fn authenticate_preserves_retry_after_seconds_for_rate_limit() {
+        let mut server = mockito::Server::new_async().await;
+        let auth_mock = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .match_header("Content-Type", "application/x-www-form-urlencoded")
+            .with_status(429)
+            .with_header("Retry-After", "180")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        let error = provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .expect_err("rate limit should preserve retry-after seconds");
+
+        assert_eq!(
+            error.to_string(),
+            "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=180"
+        );
+        auth_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_subscriptions_preserves_retry_after_seconds_for_rate_limit() {
+        let mut server = mockito::Server::new_async().await;
+        let subs_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
+            .match_query(mockito::Matcher::UrlEncoded(
+                "output".to_string(),
+                "json".to_string(),
+            ))
+            .with_status(429)
+            .with_header("Retry-After", "240")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("token".to_string());
+        let error = provider
+            .get_subscriptions()
+            .await
+            .expect_err("rate limit should preserve retry-after seconds");
+
+        assert_eq!(
+            error.to_string(),
+            "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=240"
+        );
+        subs_mock.assert_async().await;
     }
 
     #[tokio::test]
