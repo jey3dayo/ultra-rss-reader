@@ -6,10 +6,18 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDetail } from "@/components/settings/account-detail";
+import { i18nResourceLocales } from "@/lib/i18n-resources";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const accountDetailViewSpy = vi.fn();
+const accountDetailCopyFailureLocaleMessages = {
+  en: "Failed to copy server URL: Clipboard unavailable",
+  ja: "サーバーURLのコピーに失敗しました: Clipboard unavailable",
+} satisfies Record<(typeof i18nResourceLocales)[number], string>;
+const accountDetailCopyFailureLocaleCases = i18nResourceLocales.map(
+  (language) => [language, accountDetailCopyFailureLocaleMessages[language]] as const,
+);
 
 async function findPasswordInput() {
   const input = await screen.findByPlaceholderText("Enter new password");
@@ -1110,10 +1118,9 @@ describe("AccountDetail", () => {
     });
   });
 
-  it.each([
-    ["en", "Failed to copy server URL: Clipboard unavailable"],
-    ["ja", "サーバーURLのコピーに失敗しました: Clipboard unavailable"],
-  ] as const)("wraps server URL copy failures in the %s locale toast", async (language, expectedMessage) => {
+  it.each(
+    accountDetailCopyFailureLocaleCases,
+  )("wraps server URL copy failures in the %s locale toast", async (language, expectedMessage) => {
     await i18n.changeLanguage(language);
     const user = userEvent.setup();
     const showToast = vi.fn();
