@@ -24,5 +24,3 @@ export const UpdateReadyEventPayloadSchema = z
   .passthrough();
 
 export type UpdateInfoDto = z.output<typeof UpdateInfoDtoSchema>;
-export type UpdateDownloadProgressEventPayload = z.output<typeof UpdateDownloadProgressEventPayloadSchema>;
-export type UpdateReadyEventPayload = z.output<typeof UpdateReadyEventPayloadSchema>;

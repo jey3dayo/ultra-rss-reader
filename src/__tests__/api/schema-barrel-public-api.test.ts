@@ -1,3 +1,4 @@
+import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type {
   AccountDto,
@@ -145,9 +146,10 @@ type PublicSchemaTypeContracts = readonly [
 
 describe("schema barrel public API", () => {
   it("keeps runtime exports intentionally public through the schema barrel", () => {
-    expect(Object.keys(apiSchemas).sort()).toEqual(
-      [...publicSchemaRuntimeExports, ...publicCommandArgSchemaExports].sort(),
-    );
+    expectSortedKeysForTarget("@/api/schemas barrel", Object.keys(apiSchemas), [
+      ...publicSchemaRuntimeExports,
+      ...publicCommandArgSchemaExports,
+    ]);
   });
 
   it("keeps Tauri command schema boundary exports intentionally public", () => {

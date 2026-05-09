@@ -1,3 +1,13 @@
+import { expect } from "vitest";
+
+export function expectSortedKeysForTarget(
+  target: string,
+  actualKeys: Iterable<string>,
+  expectedKeys: Iterable<string>,
+): void {
+  expect([...actualKeys].sort(), `${target} sorted keys`).toEqual([...expectedKeys].sort());
+}
+
 export function extractMarkdownSection(source: string, heading: string): string {
   const sectionStart = source.indexOf(`## ${heading}`);
   if (sectionStart === -1) {

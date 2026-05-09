@@ -1,3 +1,4 @@
+import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
 import enSettings from "@/locales/en/settings.json";
@@ -266,7 +267,11 @@ describe("preference contract", () => {
       (key): key is Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`> => !key.startsWith("shortcut_"),
     );
 
-    expect(nonShortcutDefaultKeys.sort()).toEqual(Object.keys(settingsPreferenceLabelKeys).sort());
+    expectSortedKeysForTarget(
+      "visible preference defaults vs settings locale label keys",
+      nonShortcutDefaultKeys,
+      Object.keys(settingsPreferenceLabelKeys),
+    );
     for (const labelKey of Object.values(settingsPreferenceLabelKeys)) {
       const path = labelKey.split(".");
       for (const settings of localeSettings) {

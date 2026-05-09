@@ -51,6 +51,15 @@ export const PreferencesDtoSchema = z.record(z.string(), z.string()).superRefine
       });
     }
 
+    const valueSchema = getPreferenceValueSchema(key);
+    if (valueSchema?.safeParse(value).success === false) {
+      context.addIssue({
+        code: "custom",
+        message: `Invalid value for preference key: ${key}`,
+        path: [key],
+      });
+    }
+
     if (textEncoder.encode(value).length > preferenceValueMaxUtf8Bytes) {
       context.addIssue({
         code: "custom",

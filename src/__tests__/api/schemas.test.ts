@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { extractSafeInvokeCommandsWithArgs } from "@tests/helpers/tauri-command-contract";
 import { describe, expect, it } from "vitest";
 import {
@@ -1188,19 +1189,22 @@ describe("PreferencesDtoSchema", () => {
     expect(() => PreferencesDtoSchema.parse({ theme: true })).toThrow();
   });
 
-  it("keeps API preference result parsing limited to string records", () => {
+  it("keeps API preference result parsing strict for known keys without normalizing values", () => {
     expect(
       PreferencesDtoSchema.parse({
-        theme: "midnight",
-        shortcut_next_article: "   ",
+        theme: "dark",
+        shortcut_next_article: " Shift+J ",
         selected_account_id: "acc-1",
       }),
     ).toEqual({
-      theme: "midnight",
-      shortcut_next_article: "   ",
+      theme: "dark",
+      shortcut_next_article: " Shift+J ",
       selected_account_id: "acc-1",
     });
 
+    expect(() => PreferencesDtoSchema.parse({ theme: "midnight" })).toThrow();
+    expect(() => PreferencesDtoSchema.parse({ shortcut_next_article: "   " })).toThrow();
+    expect(() => PreferencesDtoSchema.parse({ selected_account_id: "" })).toThrow();
     expect(() => PreferencesDtoSchema.parse({ theme: 1 })).toThrow();
     expect(() => PreferencesDtoSchema.parse([])).toThrow();
     expect(() => PreferencesDtoSchema.parse(null)).toThrow();
@@ -2250,7 +2254,7 @@ describe("command args schemas", () => {
   it("keeps every safeInvoke args schema registered by command name", () => {
     const commandsWithArgs = extractSafeInvokeCommandsWithArgs(readTauriCommandsSource());
 
-    expect(Object.keys(commandArgsSchemas).sort()).toEqual(commandsWithArgs);
+    expectSortedKeysForTarget("commandArgsSchemas", Object.keys(commandArgsSchemas), commandsWithArgs);
   });
 
   it("keeps generated command args schemas backed by Rust command names", () => {
