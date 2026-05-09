@@ -45,11 +45,6 @@
   - delayed auto mark の timeout と `setRead.mutate` callback が article switch / unmount / unread view retention と重なる時の state rollback が事故りやすい
   - article A timer pending -> article B selected -> A mutation fail の順序で retained article / recently read / toast が正しいことを focused test で固定する
 
-- [ ] P0 browser overlay close rejected promise contract を修正する
-  - 対象: `src/components/reader/hooks/article/use-article-browser-overlay-close.ts`
-  - `closeBrowserWebview().then(...).finally(...)` に rejected promise の catch がなく、native command reject 時に close finalize と unhandled rejection が混在し得る
-  - close failure は log-only で reader へ戻すのか、surface issue として残すのかを決め、close in-flight の解除も test で固定する
-
 - [ ] P0 add account setup sync duplicate submit contract を補強する
   - 対象: `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts`
   - account create success 後の setup sync と account detail retry が並ぶと、setup session owner と selected account が stale になり得る
@@ -134,11 +129,6 @@
   - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
   - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
-
-- [ ] P0 add account post-success invalidation failure を修正する
-  - 対象: `src/components/settings/add-account/account-config-form.tsx`
-  - account 作成成功後に `qc.invalidateQueries({ queryKey: ["accounts"] })` / `["feeds"]` を await も catch もせず呼んでおり、cache refresh failure と setup sync 開始の順序が未固定
-  - account creation success、cache invalidation failure、setup sync reject を分け、created account の選択と settings account id が stale にならないことを test で固定する
 
 - [ ] P0 feed display preset fire-and-forget failure を修正する
   - 対象: `src/components/reader/feed-context-menu.tsx`, `src/components/reader/folder-context-menu.tsx`
