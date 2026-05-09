@@ -144,4 +144,53 @@ describe("useSettingsModalViewProps", () => {
     expect(openSettingsAccount).not.toHaveBeenCalled();
     expect(openSettingsAddAccount).not.toHaveBeenCalled();
   });
+
+  it("builds structured content reset keys for account ids containing delimiters", () => {
+    const viewProps = useSettingsModalViewProps({
+      t,
+      devBuild: false,
+      settingsOpen: true,
+      settingsCategory: "general",
+      settingsAccountId: "acc:add:FreshRss",
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+      settingsLoading: false,
+      accounts: [],
+      content: <div>Settings content</div>,
+      closeSettings: vi.fn(),
+      openSettings: vi.fn(),
+      setSettingsCategory: vi.fn(),
+      openSettingsAccount: vi.fn(),
+      openSettingsAddAccount: vi.fn(),
+    });
+    const addAccountViewProps = useSettingsModalViewProps({
+      t,
+      devBuild: false,
+      settingsOpen: true,
+      settingsCategory: "general",
+      settingsAccountId: "acc:add",
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+      settingsLoading: false,
+      accounts: [],
+      content: <div>Settings content</div>,
+      closeSettings: vi.fn(),
+      openSettings: vi.fn(),
+      setSettingsCategory: vi.fn(),
+      openSettingsAccount: vi.fn(),
+      openSettingsAddAccount: vi.fn(),
+    });
+
+    expect(JSON.parse(viewProps.contentResetKey)).toEqual({
+      category: "general",
+      accountId: "acc:add:FreshRss",
+      mode: { type: "browse" },
+    });
+    expect(JSON.parse(addAccountViewProps.contentResetKey)).toEqual({
+      category: "general",
+      accountId: "acc:add",
+      mode: { type: "add", initialKind: "FreshRss" },
+    });
+    expect(viewProps.contentResetKey).not.toBe(addAccountViewProps.contentResetKey);
+  });
 });

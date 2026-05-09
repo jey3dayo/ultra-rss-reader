@@ -42,6 +42,24 @@ const settingsCategoryByNavId: Record<SettingsNavItemId, SettingsCategory> = {
   debug: "debug",
 };
 
+function buildSettingsContentResetKey({
+  settingsCategory,
+  settingsAccountId,
+  settingsAddAccount,
+  settingsAddAccountInitialKind,
+}: Pick<
+  UseSettingsModalViewPropsParams,
+  "settingsCategory" | "settingsAccountId" | "settingsAddAccount" | "settingsAddAccountInitialKind"
+>): string {
+  return JSON.stringify({
+    category: settingsCategory,
+    accountId: settingsAccountId,
+    mode: settingsAddAccount
+      ? { type: "add", initialKind: settingsAddAccountInitialKind ?? "pick" }
+      : { type: "browse" },
+  });
+}
+
 export function useSettingsModalViewProps({
   t,
   devBuild,
@@ -169,7 +187,12 @@ export function useSettingsModalViewProps({
       />
     ),
     content,
-    contentResetKey: `${settingsCategory}:${settingsAccountId ?? ""}:${settingsAddAccount ? `add:${settingsAddAccountInitialKind ?? "pick"}` : "browse"}`,
+    contentResetKey: buildSettingsContentResetKey({
+      settingsCategory,
+      settingsAccountId,
+      settingsAddAccount,
+      settingsAddAccountInitialKind,
+    }),
     isLoading: settingsLoading,
     isCloseDisabled: setupLocked,
     lockMessage: setupLockReason ?? undefined,
