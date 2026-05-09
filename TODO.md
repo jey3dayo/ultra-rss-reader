@@ -239,16 +239,6 @@
   - React Doctor / Knip が article list header の unused type を検出しており、header props、search props、action hook params が分散している
   - view-local props は component 内へ寄せ、hook params/result と keyboard/search focus contract だけを public type として残す
 
-- [ ] P2 settings preference type の unused surface を preference schema と view props に分ける
-  - 対象: `src/components/settings/settings-preference.types.ts`, `src/schemas/preferences.ts`, `src/components/settings/general-settings-view.tsx`
-  - React Doctor / Knip が settings preference type と schema に unused type/export を検出しており、schema-derived type と view option type が重複しやすい
-  - schema-derived type、view option model、form field props、test fixture type を分類し、schema boundary policy に沿って残す
-
-- [ ] P2 settings nav/action/mute view の unused type を nav/page/modal contract 再設計前に棚卸しする
-  - 対象: `src/components/settings/settings-nav-view.tsx`, `src/components/settings/actions-settings-view.tsx`, `src/components/settings/mute-settings-view.tsx`, `src/components/settings/accounts-nav-view.tsx`
-  - React Doctor / Knip が settings view 群に unused type を検出しており、nav/page/modal contract を動かす前に dead type が混ざると移動差分が膨らむ
-  - view-local props、navigation item model、action row model、mute keyword row model を分け、再設計バッチへ持ち込む type を減らす
-
 - [ ] P2 browser / storage / events constants の unused type を runtime boundary constants として整理する
   - 対象: `src/constants/browser.ts`, `src/constants/storage.ts`, `src/constants/events.ts`, `src/lib/runtime/*`
   - React Doctor / Knip が runtime constants の unused type/export を検出しており、browser event name、storage key、Tauri event key の source of truth が散りやすい
@@ -257,11 +247,6 @@
   - 対象: `src/constants/motion.ts`, `src/components/reader/*`, `src/components/settings/*`, `src/__tests__/components/design-ui-primitives.test.tsx`
   - React Doctor / Knip が motion constants に unused export を検出しており、過去の transition token が残ると motion rule の判断がぶれる
   - production usage、Storybook specimen、test-only selector、dead token を分類し、使わない motion token は削除する
-
-- [ ] P2 clipboard runtime helper の unused type と async test loop を同時に整理する
-  - 対象: `src/lib/runtime/clipboard.ts`, `src/__tests__/lib/clipboard.test.ts`, `src/components/reader/article-browser-actions.ts`
-  - 最新 React Doctor full scan で `src/lib/runtime/clipboard.ts` が unused type に入り、`clipboard.test.ts:203` に async loop warning も増えている
-  - Clipboard API / fallback / permission error / large text の runtime contract を確認し、必要な型だけ残し、独立 test case setup は並列化する
 
 - [ ] P2 reader-query helper の unused type を query key / query option contract に分ける
   - 対象: `src/lib/reader/reader-query.ts`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list/*`
@@ -317,11 +302,6 @@
   - 対象: `tests/helpers/tauri-runtime.ts`, `src/components/storybook/story-tauri-runtime.ts`, `src/__tests__/components/*runtime*.test.tsx`, `src/__tests__/dev/dev-mocks.test.ts`
   - Tauri internals の Object.defineProperty が test/story/dev mock に分散しており、descriptor restore や mock shape がずれると runtime 判定だけが壊れやすい
   - install/restore helper、readonly descriptor、missing invoke、partial internals、Storybook decorator parity の test を追加する
-
-- [ ] P2 navigator platform stub を window chrome / app shell test helper に集約する
-  - 対象: `src/lib/window/window-chrome.ts`, `src/__tests__/app.test.tsx`, `src/__tests__/components/app-shell.test.tsx`, `src/__tests__/components/design-shared-components.test.tsx`
-  - `window.navigator.platform` の descriptor mutation が複数 test にあり、restore漏れや `userAgentData.platform` との優先順位差を見落としやすい
-  - platform stub helper、userAgentData優先、Mac overlay、Windows/Linux fallback、restore failure の test を追加する
 
 - [ ] P2 sidebar startup folder expansion localStorage schema を account/folder identity contract にする
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.tsx`, `src/constants/storage.ts`
