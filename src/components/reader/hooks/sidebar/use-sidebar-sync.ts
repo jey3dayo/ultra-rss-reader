@@ -8,6 +8,7 @@ import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-acc
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
+import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import {
   getManualSyncCooldownUntil,
@@ -144,9 +145,7 @@ export function useSidebarSync({
   const [state, dispatch] = useReducer(sidebarSyncReducer, undefined, createInitialSidebarSyncState);
   const { cooldownTick } = state;
   const invalidateAccountSyncStatuses = useCallback(() => {
-    void queryClient.invalidateQueries({
-      queryKey: accountSyncStatusQueryKey(),
-    });
+    invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
   }, [queryClient]);
 
   useEffect(() => {

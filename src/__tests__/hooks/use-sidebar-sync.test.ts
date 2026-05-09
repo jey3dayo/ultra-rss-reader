@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -194,6 +194,28 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: accountSyncStatusQueryKey(),
+    });
+  });
+
+  it("logs account sync status invalidation failures after sync completion", async () => {
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidationError = new Error("sync status cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    const clearSyncProgress = vi.fn();
+
+    renderHook(() => useSidebarSync(createSyncHookParams({ clearSyncProgress })), { wrapper });
+
+    act(() => {
+      getRegisteredListener("sync-completed")({ payload: null });
+    });
+
+    expect(clearSyncProgress).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: accountSyncStatusQueryKey(),
+        error: invalidationError,
+      });
     });
   });
 
