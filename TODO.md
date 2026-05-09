@@ -285,6 +285,31 @@
   - command-level transaction / unique constraint / 後段 renumber のどれで整合性を保つかを repository or command test で固定する
   - folder account validation や OPML folder cache とは分け、local folder 作成時の sort_order allocation だけを扱う
 
+- [ ] GitHub workflow action pinning contract 候補を追加する
+  - `.github/workflows/*.yml` の `uses:` が floating branch や unpinned local shorthand にならない contract を `repo-contracts.test.ts` に追加する
+  - `actions/checkout@v6.0.2` / `actions/cache@v5.0.5` / `jdx/mise-action@v4.0.1` などの major-only ではない pinning を許可し、local reusable action が増える場合は明示 allowlist にする
+  - workflow job 内容や action version bump とは分け、pinning policy の drift 防止だけを扱う
+
+- [ ] GitHub workflow concurrency parity 候補を追加する
+  - `.github/workflows/ci.yml` / `release.yml` には concurrency がある一方、`labeler.yml` / `pr-insights-labeler.yml` には同一 PR 更新時の重複実行方針が明示されていない
+  - labeler 系 workflow に PR ref 単位の concurrency を入れるか、短時間 job として意図的に許容するかを repo contract test で固定する
+  - CI quality gate や release dispatch guard とは分け、workflow duplicate-run policy だけを扱う
+
+- [ ] GitHub workflow permissions least-privilege contract 候補を追加する
+  - `.github/workflows/*.yml` の top-level `permissions` を static test で棚卸しし、`contents: write` は release workflow だけ、`issues: write` は PR insights labeler だけ、などの許可範囲を固定する
+  - pull request labeler と PR insights labeler の必要 permission を分け、権限追加時は test failure で理由を確認できるようにする
+  - workflow action pinning や label taxonomy とは分け、GitHub token permission surface だけを扱う
+
+- [ ] PR template quality gate parity 候補を追加する
+  - `.github/PULL_REQUEST_TEMPLATE.md` の確認済み項目が `mise run check` だけを示しているため、release / native / Storybook 影響時に `mise run ci` や focused test をどう記録するか整理する
+  - `AGENTS.md` の DoD と PR template の checkbox が矛盾しないことを repo contract test で固定する
+  - PR 文面全体の copy redesign とは分け、quality gate checkbox の実行コマンド対応だけを扱う
+
+- [ ] issue template affected-area parity expansion 候補を追加する
+  - `repo-contracts.test.ts` は bug template の affected area と labeler の対応だけを見ているため、feature / maintenance / test verification template も最低限の area label parity を持つか確認する
+  - `Product / release planning` や `実機確認` のような maintainer-managed area は labeler 自動付与と分け、docs/ci/dependencies/i18n など自動付与可能な項目だけを固定する
+  - issue template 文面整理や release note label parity とは分け、Affected Areas checkbox と labeler path coverage だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
