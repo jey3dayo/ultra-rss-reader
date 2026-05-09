@@ -1,5 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
+import enSettings from "@/locales/en/settings.json";
+import jaSettings from "@/locales/ja/settings.json";
 import {
   getLikelyPreferenceKeyTypo,
   getPreferenceValueSchema,
@@ -70,6 +72,49 @@ function collectDuplicates(keys: string[]): string[] {
 }
 
 const backendOnlyPreferenceKeys = ["selected_account_id"];
+const settingsPreferenceLabelKeys = {
+  language: "general.language",
+  unread_badge: "general.unread_count_badge",
+  open_links: "reading.open_links",
+  open_links_background: "reading.open_links_in_background",
+  sort_unread: "reading.sort",
+  group_by: "reading.group_by",
+  cmd_click_browser: "reading.cmd_click_browser",
+  ask_before_mark_all: "reading.ask_before_mark_all",
+  list_selection_style: "appearance.list_selection_style",
+  sidebar_density: "appearance.sidebar_density",
+  layout: "appearance.layout",
+  theme: "appearance.theme",
+  opaque_sidebars: "appearance.opaque_sidebars",
+  grayscale_favicons: "appearance.grayscale_favicons",
+  font_style: "appearance.app_font_style",
+  font_size: "appearance.font_size",
+  show_starred_count: "appearance.starred_list",
+  show_unread_count: "appearance.unread_list",
+  show_sidebar_unread: "general.show_unread",
+  show_sidebar_starred: "general.show_starred",
+  show_sidebar_recent_articles: "general.show_recent_articles",
+  show_sidebar_tags: "general.show_tags",
+  startup_folder_expansion: "general.startup_folder_expansion",
+  image_previews: "appearance.image_previews",
+  display_favicons: "appearance.display_favicons",
+  text_preview: "appearance.text_preview",
+  dim_archived: "appearance.dim_archived_articles",
+  reader_mode_default: "reading.default_display_mode",
+  web_preview_mode_default: "reading.default_display_mode",
+  web_preview_keep_focus: "reading.web_preview_keep_focus",
+  window_always_on_top: "reading.window_always_on_top",
+  reading_sort: "reading.sort",
+  after_reading: "reading.after_reading",
+  scroll_to_top_on_change: "reading.scroll_to_top_on_feed_change",
+  open_first_article_on_feed_selection: "reading.open_first_article_on_feed_selection",
+  sync_on_startup: "general.sync_on_startup",
+  action_copy_link: "actions.copy_link",
+  debug_browser_hud: "debug.web_preview_hud",
+  debug_web_preview_url: "debug.web_preview_url",
+  mute_auto_mark_read: "mute.auto_mark_read",
+  recent_articles_history_enabled: "reading.recent_articles_history_enabled",
+} as const satisfies Record<Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`>, string>;
 
 const afterReadingStoredValueCases = [
   { stored: "mark_as_read", normalized: "immediately" },
@@ -119,8 +164,9 @@ describe("preference contract", () => {
   });
 
   it("keeps visible, hidden, and shortcut default key types separated", () => {
-    expectTypeOf<HiddenPreferenceKey>().toEqualTypeOf<"sort_subscriptions">();
+    expectTypeOf<HiddenPreferenceKey>().toEqualTypeOf<"sort_subscriptions" | "action_open_browser">();
     expectTypeOf<Extract<VisiblePreferenceDefaultKey, "sort_subscriptions">>().toEqualTypeOf<never>();
+    expectTypeOf<Extract<VisiblePreferenceDefaultKey, "action_open_browser">>().toEqualTypeOf<never>();
     expectTypeOf<Extract<VisiblePreferenceDefaultKey, "after_reading">>().toEqualTypeOf<"after_reading">();
     expectTypeOf<
       Extract<VisiblePreferenceDefaultKey, "shortcut_next_article">
@@ -176,10 +222,10 @@ describe("preference contract", () => {
     expect(normalizePreferenceValue("selected_account_id", "account\n1")).toBe("");
 
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/path?q=1").success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(2048)).success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(2049)).success).toBe(false);
+    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1024)).success).toBe(true);
+    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1025)).success).toBe(false);
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success).toBe(false);
-    expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(2049))).toBe("");
+    expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025))).toBe("");
 
     expect(shortcutSchema?.safeParse(" Shift+J ").data).toBe("Shift+J");
     expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
@@ -208,5 +254,27 @@ describe("preference contract", () => {
     expect(collectDuplicates(frontendShortcutIds)).toEqual([]);
     expect(collectDuplicates(backendShortcutIds)).toEqual([]);
     expect(backendShortcutIds).toEqual(frontendShortcutIds);
+  });
+
+  it("keeps visible preference defaults covered by settings locale labels", () => {
+    const localeSettings = [enSettings, jaSettings];
+    const nonShortcutDefaultKeys = Object.keys(preferenceDefaults).filter(
+      (key): key is Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`> => !key.startsWith("shortcut_"),
+    );
+
+    expect(nonShortcutDefaultKeys.sort()).toEqual(Object.keys(settingsPreferenceLabelKeys).sort());
+    for (const labelKey of Object.values(settingsPreferenceLabelKeys)) {
+      const path = labelKey.split(".");
+      for (const settings of localeSettings) {
+        let value: unknown = settings;
+        for (const segment of path) {
+          value =
+            typeof value === "object" && value !== null && Object.hasOwn(value, segment)
+              ? value[segment as keyof typeof value]
+              : undefined;
+        }
+        expect(typeof value === "string" && value.length > 0, `${labelKey} should exist`).toBe(true);
+      }
+    }
   });
 });

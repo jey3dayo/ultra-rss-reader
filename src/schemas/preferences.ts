@@ -23,13 +23,16 @@ const afterReadingSchema = z.enum(["never", "immediately", "after_0_3s", "after_
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
 const startupFolderExpansionSchema = z.enum(["all_collapsed", "unread_folders", "restore_previous"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
+export const preferenceKeyMaxLength = 128;
+export const preferenceValueMaxUtf8Bytes = 1024;
+export const reservedUnknownPreferenceKeyPrefixes = ["shortcut_"] as const;
 const hasControlCharacter = (value: string): boolean =>
   Array.from(value).some((character) => {
     const codePoint = character.codePointAt(0);
     return codePoint !== undefined && ((codePoint >= 0 && codePoint <= 31) || (codePoint >= 127 && codePoint <= 159));
   });
 const freeformPreferenceStringSchema = z.string().refine((value) => !hasControlCharacter(value));
-const debugWebPreviewUrlSchema = freeformPreferenceStringSchema.max(2048);
+const debugWebPreviewUrlSchema = freeformPreferenceStringSchema.max(preferenceValueMaxUtf8Bytes);
 const selectedAccountIdSchema = freeformPreferenceStringSchema
   .transform((value) => value.trim())
   .pipe(z.string().min(1).max(256));
@@ -119,7 +122,7 @@ const typoDetectionCandidateKeys = [
   ...backendOwnedPreferenceKeys,
 ] as const;
 
-const hiddenPreferenceDefaultKeys = ["sort_subscriptions"] as const satisfies readonly KnownPreferenceKey[];
+const hiddenPreferenceDefaultKeys = ["sort_subscriptions", "action_open_browser"] as const satisfies readonly KnownPreferenceKey[];
 export type HiddenPreferenceKey = (typeof hiddenPreferenceDefaultKeys)[number];
 export type VisiblePreferenceDefaultKey = Exclude<KnownPreferenceKey, HiddenPreferenceKey> | ShortcutPreferenceKey;
 export type PreferenceDefaultsRecord = Partial<Record<VisiblePreferenceDefaultKey, string>>;
