@@ -35,9 +35,7 @@ const focusableSelector = [
 ].join(",");
 
 function subscriptionRows(page: Page) {
-  return page.locator(
-    '[data-testid^="subscriptions-folder-tree-rail-"] button',
-  );
+  return page.locator('[data-testid^="subscriptions-folder-tree-rail-"] button');
 }
 
 async function expectLocatorsVisibleInParallel(locators: Locator[]) {
@@ -77,55 +75,38 @@ async function openSubscriptionsIndex(page: Page) {
   await manageSubscriptionsButton.click();
 
   await expect(
-    page
-      .getByTestId("workspace-header-title-group")
-      .getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
+    page.getByTestId("workspace-header-title-group").getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
   ).toBeVisible();
 }
 
 async function openSubscriptionReview(page: Page) {
   await openSubscriptionsIndex(page);
-  await page
-    .getByRole("button", { name: subscriptionsReviewFilterButtonName })
-    .click();
+  await page.getByRole("button", { name: subscriptionsReviewFilterButtonName }).click();
 
-  await expect(
-    page.getByRole("heading", { name: subscriptionsReviewHeadingName }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible();
 }
 
 async function openSubscriptionInventory(page: Page) {
   await openSubscriptionsIndex(page);
 
   await Promise.all([
-    expect(
-      page.getByRole("heading", { name: subscriptionsInventoryHeadingName }),
-    ).toBeVisible(),
+    expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible(),
     expect(subscriptionRows(page).first()).toBeVisible(),
   ]);
 }
 
-async function expectHiddenAppLayoutPanesBlockFocus(
-  page: Page,
-  expectedHiddenPaneCount: number,
-) {
+async function expectHiddenAppLayoutPanesBlockFocus(page: Page, expectedHiddenPaneCount: number) {
   await expect
     .poll(async () => page.locator(appLayoutHiddenPaneSelector).count())
     .toBeGreaterThanOrEqual(expectedHiddenPaneCount);
 
   const result = await page.evaluate(
     ({ hiddenPaneSelector, focusableElementSelector }) => {
-      const hiddenPanes = Array.from(
-        document.querySelectorAll<HTMLElement>(hiddenPaneSelector),
-      );
+      const hiddenPanes = Array.from(document.querySelectorAll<HTMLElement>(hiddenPaneSelector));
       const focusableElements = hiddenPanes.flatMap((pane) =>
-        Array.from(
-          pane.querySelectorAll<HTMLElement>(focusableElementSelector),
-        ),
+        Array.from(pane.querySelectorAll<HTMLElement>(focusableElementSelector)),
       );
-      const focusableWithoutFallback = focusableElements.filter(
-        (element) => element.tabIndex !== -1,
-      );
+      const focusableWithoutFallback = focusableElements.filter((element) => element.tabIndex !== -1);
       const programmaticTarget = focusableElements[0] ?? null;
 
       programmaticTarget?.focus();
@@ -134,9 +115,7 @@ async function expectHiddenAppLayoutPanesBlockFocus(
         hiddenPaneCount: hiddenPanes.length,
         focusableCount: focusableElements.length,
         focusableWithoutFallbackCount: focusableWithoutFallback.length,
-        programmaticFocusCaptured:
-          programmaticTarget !== null &&
-          document.activeElement === programmaticTarget,
+        programmaticFocusCaptured: programmaticTarget !== null && document.activeElement === programmaticTarget,
       };
     },
     {
@@ -145,9 +124,7 @@ async function expectHiddenAppLayoutPanesBlockFocus(
     },
   );
 
-  expect(result.hiddenPaneCount).toBeGreaterThanOrEqual(
-    expectedHiddenPaneCount,
-  );
+  expect(result.hiddenPaneCount).toBeGreaterThanOrEqual(expectedHiddenPaneCount);
   expect(result.focusableCount).toBeGreaterThan(0);
   expect(result.focusableWithoutFallbackCount).toBe(0);
   expect(result.programmaticFocusCaptured).toBe(false);
@@ -180,9 +157,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   });
 
   test("shows the default selection summary", async ({ page }) => {
-    await expect(
-      page.getByRole("heading", { name: /Unread|未読/i }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Unread|未読/i })).toBeVisible();
   });
 
   test("uses the light theme baseline by default", async ({ page }) => {
@@ -192,9 +167,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     expect(bgColor).not.toBe("rgb(28, 25, 21)");
   });
 
-  test("keeps an auto-read article visible in unread view until the user changes screens", async ({
-    page,
-  }) => {
+  test("keeps an auto-read article visible in unread view until the user changes screens", async ({ page }) => {
     const sidebar = page.getByTestId("wide-sidebar-content");
     const articleList = page.getByRole("listbox", {
       name: /Article list|記事一覧/i,
@@ -205,27 +178,17 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     expect(articleId).toBeTruthy();
     await firstArticle.click();
 
-    await expect(
-      articleList.locator(`[data-article-id="${articleId}"]`),
-    ).toBeVisible();
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toBeVisible();
 
-    await sidebar
-      .getByRole("button", { name: starredSmartViewButtonName })
-      .click();
+    await sidebar.getByRole("button", { name: starredSmartViewButtonName }).click();
 
-    await expect(
-      articleList.locator(`[data-article-id="${articleId}"]`),
-    ).toHaveCount(0);
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
   });
 
-  test("keeps an unstarred article visible in starred view until the user changes screens", async ({
-    page,
-  }) => {
+  test("keeps an unstarred article visible in starred view until the user changes screens", async ({ page }) => {
     const sidebar = page.getByTestId("wide-sidebar-content");
 
-    await sidebar
-      .getByRole("button", { name: starredSmartViewButtonName })
-      .click();
+    await sidebar.getByRole("button", { name: starredSmartViewButtonName }).click();
 
     const articleList = page.getByRole("listbox", {
       name: /Article list|記事一覧/i,
@@ -235,29 +198,17 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     expect(articleId).toBeTruthy();
     await firstStarredArticle.click();
-    await page
-      .getByRole("button", { name: /Toggle star|スターを切替/i })
-      .click();
+    await page.getByRole("button", { name: /Toggle star|スターを切替/i }).click();
 
-    await expect(
-      articleList.locator(`[data-article-id="${articleId}"]`),
-    ).toBeVisible();
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toBeVisible();
 
-    await sidebar
-      .getByRole("button", { name: unreadSmartViewButtonName })
-      .click();
-    await sidebar
-      .getByRole("button", { name: starredSmartViewButtonName })
-      .click();
+    await sidebar.getByRole("button", { name: unreadSmartViewButtonName }).click();
+    await sidebar.getByRole("button", { name: starredSmartViewButtonName }).click();
 
-    await expect(
-      articleList.locator(`[data-article-id="${articleId}"]`),
-    ).toHaveCount(0);
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
   });
 
-  test("uses the single-pane mobile layout and exposes article actions on narrow viewports", async ({
-    page,
-  }) => {
+  test("uses the single-pane mobile layout and exposes article actions on narrow viewports", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.goto("/");
 
@@ -281,9 +232,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     ]);
 
     const mobilePaneMetrics = await markAllReadButton.evaluate(() => {
-      const tray = document.querySelector<HTMLElement>(
-        '[data-testid="sliding-pane-tray"]',
-      );
+      const tray = document.querySelector<HTMLElement>('[data-testid="sliding-pane-tray"]');
       const viewport = tray?.parentElement;
       if (!viewport) {
         return null;
@@ -297,9 +246,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     expect(mobilePaneMetrics?.scrollLeft).toBe(0);
   });
 
-  test("keeps hidden AppLayout panes out of keyboard focus across the WebView support matrix", async ({
-    page,
-  }) => {
+  test("keeps hidden AppLayout panes out of keyboard focus across the WebView support matrix", async ({ page }) => {
     const layoutCases = [
       { name: "wide", width: 1280, expectedHiddenPaneCount: 1 },
       { name: "compact", width: 900, expectedHiddenPaneCount: 2 },
@@ -311,10 +258,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
       await test.step(layoutCase.name, async () => {
         await page.setViewportSize({ width: layoutCase.width, height: 900 });
         await page.goto("/", { waitUntil: "load" });
-        await expectHiddenAppLayoutPanesBlockFocus(
-          page,
-          layoutCase.expectedHiddenPaneCount,
-        );
+        await expectHiddenAppLayoutPanesBlockFocus(page, layoutCase.expectedHiddenPaneCount);
       });
     }
 
@@ -323,13 +267,9 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
       await page.goto("/", { waitUntil: "load" });
       const wideSidebar = page.getByTestId("wide-sidebar-content");
       await expect(wideSidebar).toBeVisible();
-      await wideSidebar
-        .getByRole("button", { name: /Manage Subscriptions|購読を管理/i })
-        .click();
+      await wideSidebar.getByRole("button", { name: /Manage Subscriptions|購読を管理/i }).click();
       await expect(
-        page
-          .getByTestId("workspace-header-title-group")
-          .getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
+        page.getByTestId("workspace-header-title-group").getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
       ).toBeVisible();
       await page.setViewportSize({ width: 390, height: 900 });
 
@@ -340,9 +280,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     });
   });
 
-  test("groups secondary article actions under More actions on mobile", async ({
-    page,
-  }) => {
+  test("groups secondary article actions under More actions on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 639, height: 900 });
     await page.goto("/");
 
@@ -366,28 +304,23 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     ]);
   });
 
-  test("opens subscription review from the subscriptions index and shows split review controls", async ({
-    page,
-  }) => {
+  test("opens subscription review from the subscriptions index and shows split review controls", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
     await openSubscriptionReview(page);
 
     await Promise.all([
-      expect(
-        page.getByRole("heading", { name: subscriptionsReviewHeadingName }),
-      ).toBeVisible(),
-      expect(
-        page.getByRole("button", { name: subscriptionsReviewFilterButtonName }),
-      ).toHaveAttribute("aria-pressed", "true"),
+      expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible(),
+      expect(page.getByRole("button", { name: subscriptionsReviewFilterButtonName })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
       expect(page.getByTestId("subscriptions-detail-pane")).toBeVisible(),
     ]);
   });
 
-  test("keeps subscription detail actions below the inventory heading on narrow screens", async ({
-    page,
-  }) => {
+  test("keeps subscription detail actions below the inventory heading on narrow screens", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
@@ -395,18 +328,13 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 639, height: 900 });
 
     const detailActions = page
-      .locator(
-        '[data-testid="subscriptions-detail-decision-bar"], [data-testid="subscriptions-detail-management-bar"]',
-      )
+      .locator('[data-testid="subscriptions-detail-decision-bar"], [data-testid="subscriptions-detail-management-bar"]')
       .first();
     const inventoryHeading = page.getByRole("heading", {
       name: subscriptionsInventoryHeadingName,
     });
 
-    await Promise.all([
-      expect(detailActions).toBeVisible(),
-      expect(inventoryHeading).toBeVisible(),
-    ]);
+    await Promise.all([expect(detailActions).toBeVisible(), expect(inventoryHeading).toBeVisible()]);
 
     const [actionBox, headingBox] = await Promise.all([
       expectMeasurableBox(detailActions, "subscription detail controls"),
@@ -416,16 +344,12 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     expect(actionBox.y).toBeGreaterThan(headingBox.y);
   });
 
-  test("keeps the first subscription row fixed when selection state changes", async ({
-    page,
-  }) => {
+  test("keeps the first subscription row fixed when selection state changes", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
     await openSubscriptionInventory(page);
-    await expect(
-      page.getByRole("heading", { name: subscriptionsInventoryHeadingName }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible();
 
     const rows = subscriptionRows(page);
     const firstRow = rows.first();
@@ -438,9 +362,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     expect(rowAfter.y).toBe(rowBefore.y);
   });
 
-  test("keeps the first subscription row fixed on narrow screens when selection state changes", async ({
-    page,
-  }) => {
+  test("keeps the first subscription row fixed on narrow screens when selection state changes", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
@@ -458,20 +380,14 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     expect(rowAfter.y).toBe(rowBefore.y);
   });
 
-  test("aligns the subscription rail and rows to the same right content edge", async ({
-    page,
-  }) => {
+  test("aligns the subscription rail and rows to the same right content edge", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
     await openSubscriptionInventory(page);
-    await expect(
-      page.getByRole("heading", { name: subscriptionsInventoryHeadingName }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible();
 
-    const subscriptionRail = page
-      .locator('[data-testid^="subscriptions-folder-tree-rail-"]')
-      .first();
+    const subscriptionRail = page.locator('[data-testid^="subscriptions-folder-tree-rail-"]').first();
     const firstRow = subscriptionRows(page).first();
 
     const [railBox, rowBox] = await Promise.all([
@@ -479,8 +395,6 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
       expectMeasurableBox(firstRow, "subscription row"),
     ]);
 
-    expect(
-      Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width)),
-    ).toBeLessThanOrEqual(1);
+    expect(Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(1);
   });
 });

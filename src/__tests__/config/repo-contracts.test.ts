@@ -1116,7 +1116,9 @@ describe("repository static contracts", () => {
     expect(storybookWebServerUrl).toBe(storybookBaseUrl);
     expect(extractUrlPort(storybookWebServerUrl)).toBe(storybookPort);
     expect(storybookReuseExistingServer).toBe("false");
-    expect([...uiReferenceCanvasStoryIds].toSorted()).toEqual(storySources.flatMap(extractStorybookCanvasIds).toSorted());
+    expect([...uiReferenceCanvasStoryIds].toSorted()).toEqual(
+      storySources.flatMap(extractStorybookCanvasIds).toSorted(),
+    );
   });
 
   it("keeps repository-relative documentation links pointing at existing files", () => {

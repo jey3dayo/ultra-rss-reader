@@ -15,9 +15,7 @@ const rule: MuteKeywordDto = {
   updated_at: "2026-04-30T00:00:00.000Z",
 };
 
-function createProps(
-  overrides: Partial<Parameters<typeof buildMuteSettingsViewProps>[0]> = {},
-) {
+function createProps(overrides: Partial<Parameters<typeof buildMuteSettingsViewProps>[0]> = {}) {
   return buildMuteSettingsViewProps({
     t,
     keyword: "spoiler",
@@ -41,9 +39,7 @@ function createProps(
 
 describe("useMuteSettingsViewProps", () => {
   it("keeps mute option and keyword row models view-local", () => {
-    expectTypeOf<
-      MuteSettingsViewProps["scopeOptions"][number]
-    >().toEqualTypeOf<{
+    expectTypeOf<MuteSettingsViewProps["scopeOptions"][number]>().toEqualTypeOf<{
       value: MuteKeywordScope;
       label: string;
     }>();
@@ -62,9 +58,7 @@ describe("useMuteSettingsViewProps", () => {
       { value: "body", label: "Body" },
       { value: "title_and_body", label: "Title and body" },
     ]);
-    expect(props.rules).toEqual([
-      { id: "mute-1", keyword: "spoiler", scope: "title_and_body" },
-    ]);
+    expect(props.rules).toEqual([{ id: "mute-1", keyword: "spoiler", scope: "title_and_body" }]);
     expect(props.savedScopeAriaLabel("spoiler")).toBe("Scope for spoiler");
   });
 

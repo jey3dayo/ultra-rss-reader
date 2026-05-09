@@ -77,7 +77,9 @@ describe("ArticleToolbarView", () => {
       hideBrowserOverlayActions: false,
       layoutMode: "mobile",
     });
-    const contractResultKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap((action) => action.resultKeys).toSorted();
+    const contractResultKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap(
+      (action) => action.resultKeys,
+    ).toSorted();
     const contractActionOptionKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap(
       (action) => action.actionOptionKeys,
     ).toSorted();

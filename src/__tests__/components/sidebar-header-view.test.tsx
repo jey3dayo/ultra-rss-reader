@@ -57,12 +57,12 @@ describe("SidebarHeaderView", () => {
     expect(onAddFeed).toHaveBeenCalledTimes(1);
   });
 
-  it("uses icon-dominant actions in mobile layout", () => {
+  it("uses compact labeled actions in mobile layout", () => {
     render(<SidebarHeaderView {...defaultProps} displayState={{ ...defaultProps.displayState, layout: "mobile" }} />);
 
-    expect(screen.getByRole("button", { name: "Sync feeds" })).not.toHaveTextContent("Sync");
+    expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveTextContent("Sync");
     expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveClass("size-11", "rounded-md");
-    expect(screen.getByRole("button", { name: "Add feed" })).not.toHaveTextContent("Add");
+    expect(screen.getByRole("button", { name: "Add feed" })).toHaveTextContent("Add");
     expect(screen.getByRole("button", { name: "Add feed" })).toHaveClass("size-11", "rounded-md");
   });
 
