@@ -55,7 +55,7 @@ export function useBrowserViewController({
     hostRef,
   });
   const {
-    setSurfaceIssue,
+    clearSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
     showSurfaceFailure,
     activeSurfaceIssue,
@@ -92,7 +92,7 @@ export function useBrowserViewController({
     fallbackInFlightRef,
     resetBrowserWebviewSyncState,
     setBrowserState,
-    setSurfaceIssue,
+    clearSurfaceIssue,
   });
 
   useBrowserWebviewBoundsSync({
@@ -119,7 +119,7 @@ export function useBrowserViewController({
     browserStateRef,
     setBrowserState,
     resetBrowserWebviewSyncState,
-    setSurfaceIssue,
+    clearSurfaceIssue,
     showToast,
     syncBrowserWebview,
     initialBrowserState,

@@ -16,7 +16,7 @@ type UseBrowserViewEventBridgeParams = BrowserWebviewStateBinding & {
 };
 
 type UseBrowserViewEventBridgeResult = {
-  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
+  clearSurfaceIssue: () => void;
   handleLostEmbeddedBrowserWebview: (error: AppError) => void;
   showSurfaceFailure: (error: AppError) => void;
   activeSurfaceIssue: BrowserSurfaceIssue | null;
@@ -33,7 +33,7 @@ export function useBrowserViewEventBridge({
   onDiagnostics,
 }: UseBrowserViewEventBridgeParams): UseBrowserViewEventBridgeResult {
   const {
-    setSurfaceIssue,
+    clearSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
     handleBrowserWebviewFallback,
     showSurfaceFailure,
@@ -50,7 +50,7 @@ export function useBrowserViewEventBridge({
     browserStateRef,
     fallbackInFlightRef,
     setBrowserState,
-    setSurfaceIssue,
+    clearSurfaceIssue,
     getRequestedUrl: () => useUiStore.getState().browserUrl ?? "",
   });
 
@@ -68,7 +68,7 @@ export function useBrowserViewEventBridge({
   });
 
   return {
-    setSurfaceIssue,
+    clearSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
     showSurfaceFailure,
     activeSurfaceIssue,

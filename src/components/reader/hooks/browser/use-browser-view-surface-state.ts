@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import {
   type BrowserSurfaceIssue,
@@ -30,12 +30,23 @@ type UseBrowserViewSurfaceStateParams = {
 
 export type UseBrowserViewSurfaceStateResult = {
   surfaceIssue: BrowserSurfaceIssue | null;
-  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
+  clearSurfaceIssue: () => void;
   handleLostEmbeddedBrowserWebview: (error: AppError) => void;
   handleBrowserWebviewFallback: (payload: BrowserWebviewFallbackPayload) => void;
   showSurfaceFailure: (error: AppError) => void;
   activeSurfaceIssue: BrowserSurfaceIssue | null;
 };
+
+type SurfaceIssueAction = { type: "clear" } | { type: "set"; issue: BrowserSurfaceIssue };
+
+function surfaceIssueReducer(_state: BrowserSurfaceIssue | null, action: SurfaceIssueAction) {
+  switch (action.type) {
+    case "clear":
+      return null;
+    case "set":
+      return action.issue;
+  }
+}
 
 export function useBrowserViewSurfaceState({
   browserStateRef,
@@ -51,12 +62,16 @@ export function useBrowserViewSurfaceState({
   blocked,
   blockedHint,
 }: UseBrowserViewSurfaceStateParams): UseBrowserViewSurfaceStateResult {
-  const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
+  const [surfaceIssue, dispatchSurfaceIssue] = useReducer(surfaceIssueReducer, null);
   const currentBrowserUrl = browserStateRef.current?.url ?? null;
   const currentBrowserIsLoading = browserStateRef.current?.is_loading ?? false;
   const previousBrowserUrlRef = useRef<string | null>(currentBrowserUrl);
   const previousBrowserIsLoadingRef = useRef(currentBrowserIsLoading);
   const previousSurfaceIssueRef = useRef<BrowserSurfaceIssue | null>(surfaceIssue);
+
+  const clearSurfaceIssue = useCallback(() => {
+    dispatchSurfaceIssue({ type: "clear" });
+  }, []);
 
   useEffect(() => {
     const previousBrowserUrl = previousBrowserUrlRef.current;
@@ -80,18 +95,18 @@ export function useBrowserViewSurfaceState({
     }
 
     fallbackInFlightRef.current = false;
-    setSurfaceIssue(null);
-  }, [currentBrowserIsLoading, currentBrowserUrl, fallbackInFlightRef, surfaceIssue]);
+    clearSurfaceIssue();
+  }, [clearSurfaceIssue, currentBrowserIsLoading, currentBrowserUrl, fallbackInFlightRef, surfaceIssue]);
 
   const handleLostEmbeddedBrowserWebview = useCallback(
     (error: AppError) => {
       console.warn("Embedded browser webview disappeared while overlay was open:", error.message);
       fallbackInFlightRef.current = false;
       setBrowserStateWithRef(browserStateRef, setBrowserState, null);
-      setSurfaceIssue(null);
+      clearSurfaceIssue();
       onCloseOverlay();
     },
-    [browserStateRef, fallbackInFlightRef, onCloseOverlay, setBrowserState],
+    [browserStateRef, clearSurfaceIssue, fallbackInFlightRef, onCloseOverlay, setBrowserState],
   );
 
   const showSurfaceFailure = useCallback(
@@ -101,12 +116,13 @@ export function useBrowserViewSurfaceState({
       }
       fallbackInFlightRef.current = true;
       console.error("Failed to open embedded browser webview:", error);
-      setSurfaceIssue(
-        createBrowserSurfaceFailure(error.message, {
+      dispatchSurfaceIssue({
+        type: "set",
+        issue: createBrowserSurfaceFailure(error.message, {
           failed,
           failedHint,
         }),
-      );
+      });
       updateBrowserStateWithRef(browserStateRef, setBrowserState, (currentState) => {
         if (!currentState) {
           return currentState;
@@ -119,14 +135,15 @@ export function useBrowserViewSurfaceState({
 
   const handleBrowserWebviewFallback = useCallback(
     (payload: BrowserWebviewFallbackPayload) => {
-      setSurfaceIssue(
-        createBrowserSurfaceFallback(payload.error_message, {
+      dispatchSurfaceIssue({
+        type: "set",
+        issue: createBrowserSurfaceFallback(payload.error_message, {
           failed,
           failedHint,
           blocked,
           blockedHint,
         }),
-      );
+      });
       updateBrowserStateWithRef(browserStateRef, setBrowserState, (currentState) => {
         if (!currentState) {
           return currentState;
@@ -137,23 +154,20 @@ export function useBrowserViewSurfaceState({
     [blocked, blockedHint, browserStateRef, failed, failedHint, setBrowserState],
   );
 
-  const activeSurfaceIssue = useMemo(
-    () =>
-      surfaceIssue ??
-      resolveRuntimeUnavailableSurfaceIssue({
-        runtimeUnavailable,
-        isLoading,
-        labels: {
-          browserMode,
-          browserModeHint,
-        },
-      }),
-    [browserMode, browserModeHint, isLoading, runtimeUnavailable, surfaceIssue],
-  );
+  const activeSurfaceIssue =
+    surfaceIssue ??
+    resolveRuntimeUnavailableSurfaceIssue({
+      runtimeUnavailable,
+      isLoading,
+      labels: {
+        browserMode,
+        browserModeHint,
+      },
+    });
 
   return {
     surfaceIssue,
-    setSurfaceIssue,
+    clearSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
     handleBrowserWebviewFallback,
     showSurfaceFailure,

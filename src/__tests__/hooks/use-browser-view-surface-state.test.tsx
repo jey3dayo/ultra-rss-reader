@@ -361,6 +361,46 @@ describe("useBrowserViewSurfaceState", () => {
     expect(result.current.fallbackInFlightRef.current).toBe(false);
   });
 
+  it("keeps explicit issues across rerenders without a browser state transition", () => {
+    const onCloseOverlay = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ isLoading }) => {
+        const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createReadyState());
+        const browserStateRef = useRef(browserState);
+        browserStateRef.current = browserState;
+        const fallbackInFlightRef = useRef(false);
+
+        const hook = useBrowserViewSurfaceState({
+          browserStateRef,
+          fallbackInFlightRef,
+          isLoading,
+          runtimeUnavailable: false,
+          onCloseOverlay,
+          setBrowserState,
+          ...labels,
+        });
+
+        return { ...hook, fallbackInFlightRef };
+      },
+      { initialProps: { isLoading: false } },
+    );
+
+    act(() => {
+      result.current.showSurfaceFailure(createError("load failed"));
+    });
+
+    rerender({ isLoading: false });
+
+    expect(result.current.activeSurfaceIssue).toEqual({
+      kind: "failed",
+      title: labels.failed,
+      description: labels.failedHint,
+      detail: "load failed",
+      canRetry: true,
+    });
+    expect(result.current.fallbackInFlightRef.current).toBe(true);
+  });
+
   it("resets the runtime unavailable issue when loading restarts or runtime becomes available", () => {
     const onCloseOverlay = vi.fn();
     const { result, rerender } = renderHook(

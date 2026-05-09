@@ -7,7 +7,7 @@ type UseBrowserWebviewStateChangedParams = {
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
   fallbackInFlightRef: MutableRefObject<boolean>;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  setSurfaceIssue: (issue: null) => void;
+  clearSurfaceIssue: () => void;
   getRequestedUrl: () => string;
 };
 
@@ -15,16 +15,16 @@ export function useBrowserWebviewStateChanged({
   browserStateRef,
   fallbackInFlightRef,
   setBrowserState,
-  setSurfaceIssue,
+  clearSurfaceIssue,
   getRequestedUrl,
 }: UseBrowserWebviewStateChangedParams) {
   return useCallback(
     (payload: BrowserWebviewState) => {
       const nextState = mergeBrowserState(browserStateRef.current, payload, getRequestedUrl());
       setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
-      setSurfaceIssue(null);
+      clearSurfaceIssue();
       fallbackInFlightRef.current = false;
     },
-    [browserStateRef, fallbackInFlightRef, getRequestedUrl, setBrowserState, setSurfaceIssue],
+    [browserStateRef, clearSurfaceIssue, fallbackInFlightRef, getRequestedUrl, setBrowserState],
   );
 }

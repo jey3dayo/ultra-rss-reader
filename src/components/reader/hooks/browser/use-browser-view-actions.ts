@@ -21,7 +21,7 @@ type UseBrowserViewActionsParams = {
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
   resetBrowserWebviewSyncState: () => void;
-  setSurfaceIssue: (issue: null) => void;
+  clearSurfaceIssue: () => void;
   showToast: (message: string) => void;
   syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
   initialBrowserState: (url: string) => BrowserWebviewState;
@@ -38,7 +38,7 @@ export function useBrowserViewActions({
   browserStateRef,
   setBrowserState,
   resetBrowserWebviewSyncState,
-  setSurfaceIssue,
+  clearSurfaceIssue,
   showToast,
   syncBrowserWebview,
   initialBrowserState,
@@ -51,10 +51,10 @@ export function useBrowserViewActions({
   const applyBrowserState = useCallback(
     (nextState: BrowserWebviewState) => {
       setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
-      setSurfaceIssue(null);
+      clearSurfaceIssue();
       fallbackInFlightRef.current = false;
     },
-    [browserStateRef, fallbackInFlightRef, setBrowserState, setSurfaceIssue],
+    [browserStateRef, clearSurfaceIssue, fallbackInFlightRef, setBrowserState],
   );
 
   const recoverMissingEmbeddedBrowserWebview = useCallback(async () => {
@@ -65,7 +65,7 @@ export function useBrowserViewActions({
 
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
-    setSurfaceIssue(null);
+    clearSurfaceIssue();
     const nextState = initialBrowserState(requestedUrl);
     setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
     await syncBrowserWebview(requestedUrl, "create");
@@ -73,11 +73,11 @@ export function useBrowserViewActions({
   }, [
     browserStateRef,
     browserUrl,
+    clearSurfaceIssue,
     fallbackInFlightRef,
     initialBrowserState,
     resetBrowserWebviewSyncState,
     setBrowserState,
-    setSurfaceIssue,
     syncBrowserWebview,
   ]);
 
@@ -126,18 +126,18 @@ export function useBrowserViewActions({
 
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
-    setSurfaceIssue(null);
+    clearSurfaceIssue();
     const nextState = initialBrowserState(browserUrl);
     setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
     void syncBrowserWebview(browserUrl, "create");
   }, [
     browserStateRef,
     browserUrl,
+    clearSurfaceIssue,
     fallbackInFlightRef,
     initialBrowserState,
     resetBrowserWebviewSyncState,
     setBrowserState,
-    setSurfaceIssue,
     syncBrowserWebview,
   ]);
 

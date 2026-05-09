@@ -9,7 +9,7 @@ type UseBrowserWebviewRequestStateParams = {
   fallbackInFlightRef: MutableRefObject<boolean>;
   resetBrowserWebviewSyncState: () => void;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  setSurfaceIssue: (issue: null) => void;
+  clearSurfaceIssue: () => void;
 };
 
 export function useBrowserWebviewRequestState({
@@ -18,7 +18,7 @@ export function useBrowserWebviewRequestState({
   fallbackInFlightRef,
   resetBrowserWebviewSyncState,
   setBrowserState,
-  setSurfaceIssue,
+  clearSurfaceIssue,
 }: UseBrowserWebviewRequestStateParams) {
   // Keep this separate from the similar lifecycle hooks: it resets request
   // state synchronously and intentionally has no async cleanup.
@@ -33,13 +33,13 @@ export function useBrowserWebviewRequestState({
     updateBrowserStateWithRef(browserStateRef, setBrowserState, (state) =>
       resolveBrowserStateForRequestedUrl(state, browserUrl),
     );
-    setSurfaceIssue(null);
+    clearSurfaceIssue();
   }, [
     browserStateRef,
     browserUrl,
+    clearSurfaceIssue,
     fallbackInFlightRef,
     resetBrowserWebviewSyncState,
     setBrowserState,
-    setSurfaceIssue,
   ]);
 }
