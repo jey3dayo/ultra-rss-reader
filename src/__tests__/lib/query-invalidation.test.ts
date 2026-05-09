@@ -10,6 +10,7 @@ import {
   queryKeys,
   resolveArticleInvalidationQueryKeys,
   resolveFeedInvalidationQueryKeys,
+  setQueryInvalidationFailureReporterForDiagnostics,
 } from "@/lib/query/query-invalidation";
 
 function createInvalidateSpy() {
@@ -202,6 +203,38 @@ describe("query-invalidation", () => {
     ]);
 
     warnSpy.mockRestore();
+  });
+
+  it("routes log-only invalidation failures through the diagnostics reporter as one aggregation", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const feedRejection = new Error("feed invalidate failed");
+    const unreadRejection = new Error("unread invalidate failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+
+    invalidateQueries
+      .mockRejectedValueOnce(feedRejection)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(unreadRejection);
+
+    invalidateFeedQueries(queryClient, {
+      includeAccountUnreadCount: true,
+    });
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { queryKey: ["feeds"], error: feedRejection },
+        { queryKey: ["accountUnreadCount"], error: unreadRejection },
+      ]);
+    });
+    expect(diagnosticsReporter).toHaveBeenCalledOnce();
+    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
+      { queryKey: ["feeds"] },
+      { queryKey: ["folders"] },
+      { queryKey: ["accountUnreadCount"] },
+    ]);
+
+    restoreDiagnosticsReporter();
   });
 
   it("invalidates scoped feed, article, and account status query keys after sync completion", () => {

@@ -24,6 +24,28 @@ type InvalidateArticleQueriesOptions = {
 
 type QueryInvalidationKey = readonly [string];
 type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
+export type QueryInvalidationFailure = {
+  queryKey: QueryKey;
+  error: unknown;
+};
+
+let queryInvalidationFailureReporter: (failures: readonly QueryInvalidationFailure[]) => void =
+  reportQueryInvalidationFailures;
+
+function reportQueryInvalidationFailures(failures: readonly QueryInvalidationFailure[]) {
+  for (const failure of failures) {
+    console.warn("Query invalidation failed:", failure);
+  }
+}
+
+export function setQueryInvalidationFailureReporterForDiagnostics(
+  reporter: (failures: readonly QueryInvalidationFailure[]) => void,
+) {
+  queryInvalidationFailureReporter = reporter;
+  return () => {
+    queryInvalidationFailureReporter = reportQueryInvalidationFailures;
+  };
+}
 
 function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions {
   return { mode };
@@ -277,11 +299,19 @@ export function resolveArticleInvalidationQueryKeys(
 }
 
 export function invalidateQueryKeysLogOnly(queryClient: QueryClient, queryKeys: ReadonlyArray<QueryKey>) {
-  for (const queryKey of queryKeys) {
-    void queryClient.invalidateQueries({ queryKey }).catch((error: unknown) => {
-      console.warn("Query invalidation failed:", { queryKey, error });
-    });
-  }
+  void Promise.all(
+    queryKeys.map((queryKey) =>
+      queryClient
+        .invalidateQueries({ queryKey })
+        .then(() => null)
+        .catch((error: unknown): QueryInvalidationFailure => ({ queryKey, error })),
+    ),
+  ).then((results) => {
+    const failures = results.filter((result): result is QueryInvalidationFailure => result !== null);
+    if (failures.length > 0) {
+      queryInvalidationFailureReporter(failures);
+    }
+  });
 }
 
 export function invalidateFeedQueries(queryClient: QueryClient, options: InvalidateFeedQueriesOptions = {}) {

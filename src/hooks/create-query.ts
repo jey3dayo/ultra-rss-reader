@@ -1,6 +1,40 @@
 import { Result } from "@praha/byethrow";
 import { useQuery } from "@tanstack/react-query";
 
+export type CreateQueryDiagnostic =
+  | {
+      type: "disabled-query-refetch";
+      queryKey: string;
+    }
+  | {
+      type: "query-function-rejected";
+      queryKey: string;
+      queryId: string;
+      error: unknown;
+    };
+
+let createQueryDiagnosticsReporter: (diagnostic: CreateQueryDiagnostic) => void = reportCreateQueryDiagnostic;
+
+function reportCreateQueryDiagnostic(diagnostic: CreateQueryDiagnostic) {
+  if (diagnostic.type === "disabled-query-refetch") {
+    console.warn("[createQuery] queryFn called while generated query is disabled:", { queryKey: diagnostic.queryKey });
+    return;
+  }
+
+  console.warn("[createQuery] generated queryFn rejected:", {
+    queryKey: diagnostic.queryKey,
+    queryId: diagnostic.queryId,
+    error: diagnostic.error,
+  });
+}
+
+export function setCreateQueryDiagnosticsReporterForDiagnostics(reporter: (diagnostic: CreateQueryDiagnostic) => void) {
+  createQueryDiagnosticsReporter = reporter;
+  return () => {
+    createQueryDiagnosticsReporter = reportCreateQueryDiagnostic;
+  };
+}
+
 function normalizeQueryId(id: string | null): string | null {
   const normalizedId = id?.trim() ?? "";
   if (normalizedId.length === 0) {
@@ -20,11 +54,16 @@ export function createQuery<TData, TId extends string | null>(
       queryKey: [queryKey, queryId],
       queryFn: () => {
         if (queryId === null) {
-          console.warn("[createQuery] queryFn called while generated query is disabled:", { queryKey });
+          createQueryDiagnosticsReporter({ type: "disabled-query-refetch", queryKey });
           return Promise.reject(new Error("Query id is required when the query is enabled."));
         }
 
-        return fetcher(queryId).then(Result.unwrap());
+        return fetcher(queryId)
+          .then(Result.unwrap())
+          .catch((error: unknown) => {
+            createQueryDiagnosticsReporter({ type: "query-function-rejected", queryKey, queryId, error });
+            throw error;
+          });
       },
       enabled: queryId !== null,
       retry: false,

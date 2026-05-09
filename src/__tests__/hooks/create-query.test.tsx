@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createQuery } from "@/hooks/create-query";
+import { createQuery, setCreateQueryDiagnosticsReporterForDiagnostics } from "@/hooks/create-query";
 
 describe("createQuery", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
@@ -54,6 +54,8 @@ describe("createQuery", () => {
   it("unwraps Result.fail into a query error", async () => {
     const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
     const useGeneratedQuery = createQuery("items", fetcher);
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setCreateQueryDiagnosticsReporterForDiagnostics(diagnosticsReporter);
 
     const { result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
       initialProps: { id: "item-1" },
@@ -66,6 +68,14 @@ describe("createQuery", () => {
 
     expect(fetcher).toHaveBeenCalledWith("item-1");
     expect(result.current.error).toMatchObject({ message: "load failed" });
+    expect(diagnosticsReporter).toHaveBeenCalledWith({
+      type: "query-function-rejected",
+      queryKey: "items",
+      queryId: "item-1",
+      error: expect.objectContaining({ message: "load failed" }),
+    });
+
+    restoreDiagnosticsReporter();
   });
 
   it("does not pass missing or invalid disabled ids to the fetcher", () => {
