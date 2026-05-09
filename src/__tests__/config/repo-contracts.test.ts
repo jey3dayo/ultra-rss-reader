@@ -974,6 +974,16 @@ describe("repository static contracts", () => {
     expect(storybookMainSource).toContain('"@tests": path.resolve(import.meta.dirname, "../tests")');
   });
 
+  it("keeps Storybook config changes covered by labeler", () => {
+    const storybookConfigPaths = [".storybook/main.ts", ".storybook/preview.ts"] as const;
+
+    expect(extractLabelerLabelsForGlob(labelerConfig, ".storybook/**")).toContain("ui");
+
+    for (const path of storybookConfigPaths) {
+      expect(extractLabelerLabelsForPath(labelerConfig, path)).toContain("ui");
+    }
+  });
+
   it("keeps file-level tooling entrypoints explicit for knip", () => {
     const packageScripts = expectPackageJsonStringRecord("scripts");
     const knipConfig = expectPackageJsonKnipEntryConfig();
