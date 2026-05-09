@@ -56,6 +56,31 @@ describe("useGeneralSettingsViewProps", () => {
     ]);
   });
 
+  it("builds language option values from supported runtime languages", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/i18n", () => ({
+      supportedLanguages: ["en", "ja", "fr"],
+    }));
+
+    const { useGeneralSettingsViewProps } = await import("@/components/settings/hooks/use-general-settings-view-props");
+    const props = useGeneralSettingsViewProps({
+      t,
+      prefs: {},
+      setPref: vi.fn(),
+    });
+    const languageControl = props.sections
+      .flatMap((section) => section.controls)
+      .find((candidate) => candidate.id === "language");
+
+    if (languageControl?.type !== "select") {
+      throw new Error("Expected language select control");
+    }
+
+    expect(languageControl.options.map((option) => option.value)).toEqual(["system", "en", "ja", "fr"]);
+
+    vi.doUnmock("@/lib/i18n");
+  });
+
   it("writes app startup sync from the general sync section", () => {
     const setPref = vi.fn();
     const props = buildGeneralSettingsViewProps({
