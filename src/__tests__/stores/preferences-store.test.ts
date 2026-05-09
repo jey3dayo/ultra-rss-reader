@@ -371,6 +371,8 @@ describe("usePreferencesStore preferences", () => {
       Result.succeed({
         theme: "midnight",
         language: "klingon",
+        layout: "narrow",
+        unread_badge: "bad",
         font_style: "comic_sans",
         font_size: "huge",
         show_sidebar_unread: "maybe",
@@ -384,6 +386,8 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().prefs).toMatchObject({
       theme: "light",
       language: "system",
+      layout: "automatic",
+      unread_badge: "dont_display",
       font_style: "sans_serif",
       font_size: "medium",
       show_sidebar_unread: "true",
