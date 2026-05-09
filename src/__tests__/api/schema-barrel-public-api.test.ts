@@ -76,71 +76,30 @@ const publicSchemaRuntimeExports = [
   "TagDtoListSchema",
   "TagDtoSchema",
   "UpdateInfoDtoSchema",
-  "addAccountArgs",
-  "addLocalFeedArgs",
-  "addToReadingListArgs",
   "browserWebviewBoundsArgs",
-  "checkBrowserEmbedSupportArgs",
-  "cleanupFeedIntegrityOrphansArgs",
-  "clearArticleViewHistoryArgs",
-  "commandArgsSchemas",
-  "copyToClipboardArgs",
-  "countAccountStarredArticlesArgs",
-  "countAccountUnreadArticlesArgs",
-  "createFolderArgs",
-  "createMuteKeywordArgs",
-  "createOrUpdateBrowserWebviewArgs",
-  "createTagArgs",
-  "deleteAccountArgs",
-  "deleteFeedArgs",
-  "deleteMuteKeywordArgs",
-  "deleteTagArgs",
-  "discoverFeedsArgs",
-  "exportOpmlArgs",
-  "getAccountSyncStatusArgs",
-  "getArticleTagsArgs",
-  "getCommandArgsSchema",
-  "getTagArticleCountsArgs",
-  "isCommandWithArgs",
-  "listAccountArticlesArgs",
-  "listArticlesArgs",
-  "listArticlesByTagArgs",
-  "listFeedArticleSummariesArgs",
-  "listFeedsArgs",
-  "listFolderArticlesArgs",
-  "listFoldersArgs",
-  "listRecentArticlesArgs",
-  "listStarredArticlesArgs",
-  "markAccountReadArgs",
-  "markArticleReadArgs",
-  "markArticlesReadArgs",
-  "markFeedReadArgs",
-  "markFolderReadArgs",
-  "oldUnreadArticlesArgs",
-  "openExternalUrlArgs",
-  "openInBrowserArgs",
-  "recordArticleViewArgs",
-  "renameAccountArgs",
-  "renameFeedArgs",
-  "renameTagArgs",
-  "searchArticlesArgs",
-  "setBrowserWebviewBoundsArgs",
-  "setMuteAutoMarkReadArgs",
-  "setPreferenceArgs",
-  "startupSyncArgs",
-  "syncAccountArgs",
-  "syncFeedArgs",
-  "tagArticleArgs",
-  "testAccountConnectionArgs",
-  "toggleArticleStarArgs",
-  "unstarAccountArticlesArgs",
-  "untagArticleArgs",
-  "updateAccountCredentialsArgs",
-  "updateAccountSyncArgs",
-  "updateFeedDisplaySettingsArgs",
-  "updateFeedFolderArgs",
-  "updateMuteKeywordArgs",
 ] as const satisfies readonly (keyof typeof apiSchemas)[];
+
+const commandArgExportNameOverrides = new Map<string, string>([
+  ["count_old_unread_articles", "oldUnreadArticlesArgs"],
+  ["mark_account_starred_read", "markAccountReadArgs"],
+  ["mark_old_unread_read", "oldUnreadArticlesArgs"],
+  ["plugin:opener|open_url", "openExternalUrlArgs"],
+  ["trigger_startup_sync", "startupSyncArgs"],
+  ["trigger_sync_account", "syncAccountArgs"],
+  ["trigger_sync_feed", "syncFeedArgs"],
+]);
+
+const toCommandArgExportName = (commandName: string): string => {
+  const override = commandArgExportNameOverrides.get(commandName);
+  if (override) {
+    return override;
+  }
+
+  const camelName = commandName.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+  return `${camelName}Args`;
+};
+
+const publicCommandArgSchemaExports = [...new Set(Object.keys(apiSchemas.commandArgsSchemas).map(toCommandArgExportName))];
 
 const publicTauriCommandSchemaBoundaryExports = [
   "DevRuntimeOptionsSchema",
@@ -182,7 +141,7 @@ type PublicSchemaTypeContracts = readonly [
 describe("schema barrel public API", () => {
   it("keeps runtime exports intentionally public through the schema barrel", () => {
     expect(Object.keys(apiSchemas).sort()).toEqual(
-      [...publicSchemaRuntimeExports].sort(),
+      [...publicSchemaRuntimeExports, ...publicCommandArgSchemaExports].sort(),
     );
   });
 

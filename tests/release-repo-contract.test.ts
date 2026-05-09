@@ -1,6 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import {
+  extractYamlInlineListValues,
+  extractYamlLabelsFields,
+  extractYamlTopLevelKeys,
+} from "./helpers/repo-contract-parser";
+
 type PackageJson = {
   name: string;
   private: boolean;
@@ -56,29 +62,6 @@ const extractWorkflowUses = (source: string): string[] => {
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
 };
 
-const extractYamlListLabels = (source: string, key: string): string[] => {
-  const value = source.match(new RegExp(`^${key}: \\[(?<labels>[^\\]]*)\\]`, "m"))?.groups?.labels;
-  if (!value) {
-    return [];
-  }
-  return value
-    .split(",")
-    .map((label) => label.trim().replace(/^"|"$/g, ""))
-    .filter((label) => label.length > 0);
-};
-
-const extractReleaseCategoryLabels = (source: string): string[] => {
-  const labelsPattern = /^      labels: \[(?<labels>[^\]]*)\]/gm;
-  return [...source.matchAll(labelsPattern)]
-    .flatMap((match) => (match.groups?.labels ?? "").split(","))
-    .map((label) => label.trim().replace(/^"|"$/g, ""))
-    .filter((label) => label.length > 0 && label !== "*");
-};
-
-const extractLabelerLabels = (source: string): string[] => {
-  const labelPattern = /^(?<label>[A-Za-z0-9_/-]+):$/gm;
-  return [...source.matchAll(labelPattern)].map((match) => match.groups?.label ?? "");
-};
 
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
@@ -231,10 +214,10 @@ describe("release repository contract", () => {
   it("keeps release note category labels covered by issue and PR label contracts", () => {
     const issueTemplateLabels = readdirSync(".github/ISSUE_TEMPLATE")
       .filter((fileName) => fileName.endsWith(".yml"))
-      .flatMap((fileName) => extractYamlListLabels(readText(`.github/ISSUE_TEMPLATE/${fileName}`), "labels"));
-    const contractLabels = new Set([...extractLabelerLabels(labelerConfig), ...issueTemplateLabels]);
+      .flatMap((fileName) => extractYamlInlineListValues(readText(`.github/ISSUE_TEMPLATE/${fileName}`), "labels"));
+    const contractLabels = new Set([...extractYamlTopLevelKeys(labelerConfig), ...issueTemplateLabels]);
 
-    for (const label of extractReleaseCategoryLabels(releaseConfig)) {
+    for (const label of extractYamlLabelsFields(releaseConfig)) {
       expect(contractLabels.has(label), `${label} is not covered by issue templates or .github/labeler.yml`).toBe(true);
     }
   });
