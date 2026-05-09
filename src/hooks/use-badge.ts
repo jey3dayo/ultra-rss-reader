@@ -7,22 +7,12 @@ import type { UnreadBadgePreference } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-function unreadCountToBadgeCount(
-  count: number | undefined,
-): number | undefined {
-  return count !== undefined && Number.isFinite(count) && count > 0
-    ? count
-    : undefined;
+function unreadCountToBadgeCount(count: number | undefined): number | undefined {
+  return count !== undefined && Number.isFinite(count) && count > 0 ? count : undefined;
 }
 
-function resolveUnreadBadgePreference(
-  value: string | undefined,
-): UnreadBadgePreference {
-  if (
-    value === "all_unread" ||
-    value === "only_inbox" ||
-    value === "dont_display"
-  ) {
+function resolveUnreadBadgePreference(value: string | undefined): UnreadBadgePreference {
+  if (value === "all_unread" || value === "only_inbox" || value === "dont_display") {
     return value;
   }
 
@@ -48,8 +38,7 @@ function resolveBadgeCount({
     return unreadCountToBadgeCount(accountUnreadCount);
   }
 
-  const totalUnread =
-    feeds?.reduce((sum, feed) => sum + feed.unread_count, 0) ?? 0;
+  const totalUnread = feeds?.reduce((sum, feed) => sum + feed.unread_count, 0) ?? 0;
   return unreadCountToBadgeCount(totalUnread);
 }
 
@@ -76,11 +65,7 @@ async function applyBadgeCountCommand(
     await currentWindow.setBadgeCount(count);
     return "applied";
   } catch (error: unknown) {
-    logRuntimeDiagnostic(
-      "unread-badge",
-      "Failed to apply unread badge count:",
-      error,
-    );
+    logRuntimeDiagnostic("unread-badge", "Failed to apply unread badge count:", error);
     return "unavailable";
   }
 }
@@ -90,9 +75,7 @@ export function useBadge() {
   const latestBadgeCountRef = useRef<number | undefined>(undefined);
   const mountedRef = useRef(true);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const badgePref = usePreferencesStore((s) =>
-    resolveUnreadBadgePreference(s.prefs.unread_badge),
-  );
+  const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
   const { data: feeds } = useFeeds(feedAccountId);
   const { data: accountUnreadCount } = useAccountUnreadCount(
@@ -120,44 +103,28 @@ export function useBadge() {
     badgeRequestSeqRef.current += 1;
     const requestSeq = badgeRequestSeqRef.current;
     latestBadgeCountRef.current = badgeCount;
-    const shouldApplyRequest = (seq: number) =>
-      mountedRef.current && badgeRequestSeqRef.current === seq;
+    const shouldApplyRequest = (seq: number) => mountedRef.current && badgeRequestSeqRef.current === seq;
 
-    const replayLatestBadgeRequest = async (
-      appliedRequestSeq: number,
-    ): Promise<void> => {
-      if (
-        !mountedRef.current ||
-        appliedRequestSeq === badgeRequestSeqRef.current
-      ) {
+    const replayLatestBadgeRequest = async (appliedRequestSeq: number): Promise<void> => {
+      if (!mountedRef.current || appliedRequestSeq === badgeRequestSeqRef.current) {
         return;
       }
 
       const latestRequestSeq = badgeRequestSeqRef.current;
-      return applyBadgeCountCommand(latestBadgeCountRef.current, () =>
-        shouldApplyRequest(latestRequestSeq),
-      ).then(() => replayLatestBadgeRequest(latestRequestSeq));
+      return applyBadgeCountCommand(latestBadgeCountRef.current, () => shouldApplyRequest(latestRequestSeq)).then(() =>
+        replayLatestBadgeRequest(latestRequestSeq),
+      );
     };
 
-    void applyBadgeCountCommand(badgeCount, () =>
-      shouldApplyRequest(requestSeq),
-    )
+    void applyBadgeCountCommand(badgeCount, () => shouldApplyRequest(requestSeq))
       .then(
         () => replayLatestBadgeRequest(requestSeq),
         (error: unknown) => {
-          logRuntimeDiagnostic(
-            "unread-badge",
-            "Failed to apply unread badge count:",
-            error,
-          );
+          logRuntimeDiagnostic("unread-badge", "Failed to apply unread badge count:", error);
         },
       )
       .catch((error: unknown) => {
-        logRuntimeDiagnostic(
-          "unread-badge",
-          "Failed to apply unread badge count:",
-          error,
-        );
+        logRuntimeDiagnostic("unread-badge", "Failed to apply unread badge count:", error);
       });
   }, [badgeCount]);
 }

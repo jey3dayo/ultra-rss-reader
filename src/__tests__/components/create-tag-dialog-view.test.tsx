@@ -34,9 +34,7 @@ describe("CreateTagDialogView", () => {
     const selectSpy = vi.spyOn(input, "select");
 
     if (pendingFrames.length === 0) {
-      throw new Error(
-        "expected requestAnimationFrame callback to be scheduled",
-      );
+      throw new Error("expected requestAnimationFrame callback to be scheduled");
     }
     for (const scheduledFrame of pendingFrames) {
       scheduledFrame(0);
@@ -86,9 +84,7 @@ describe("CreateTagDialogView", () => {
     expect(cancelAnimationFrame).toHaveBeenCalledWith(5);
     const scheduledFrame = scheduledFrames[0];
     if (!scheduledFrame) {
-      throw new Error(
-        "expected requestAnimationFrame callback to be scheduled",
-      );
+      throw new Error("expected requestAnimationFrame callback to be scheduled");
     }
     scheduledFrame(0);
     expect(focusSpy).not.toHaveBeenCalled();

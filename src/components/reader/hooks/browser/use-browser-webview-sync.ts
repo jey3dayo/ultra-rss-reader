@@ -1,10 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type {
-  Dispatch,
-  MutableRefObject,
-  RefObject,
-  SetStateAction,
-} from "react";
+import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { useCallback, useRef } from "react";
 import type { PlatformInfo } from "@/api/schemas";
 import {
@@ -16,18 +11,11 @@ import {
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
-import {
-  isMissingEmbeddedBrowserWebviewError,
-  setBrowserStateWithRef,
-} from "../../browser-webview-state";
-import {
-  resolveBrowserWebviewBounds,
-  shouldApplySyncedBrowserState,
-} from "../../browser-webview-sync-helpers";
+import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
+import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "../../browser-webview-sync-helpers";
 import { useAsyncCommandLifecycle } from "./use-browser-url-effect";
 
-const BROWSER_WEBVIEW_OPERATION_FAILED_MESSAGE =
-  "Webプレビューの操作に失敗しました。再試行してください。";
+const BROWSER_WEBVIEW_OPERATION_FAILED_MESSAGE = "Webプレビューの操作に失敗しました。再試行してください。";
 
 type UseBrowserWebviewSyncParams = {
   hostRef: RefObject<HTMLDivElement | null>;
@@ -41,10 +29,7 @@ type UseBrowserWebviewSyncParams = {
 
 type UseBrowserWebviewSyncResult = {
   resetBrowserWebviewSyncState: () => void;
-  syncBrowserWebview: (
-    requestedUrl: string,
-    mode: "create" | "resize",
-  ) => Promise<void>;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
 };
 
 type BrowserWebviewOperationFailure = {
@@ -64,9 +49,7 @@ function isAppError(error: unknown): error is AppError {
   );
 }
 
-function toBrowserWebviewOperationFailure(
-  error: unknown,
-): BrowserWebviewOperationFailure {
+function toBrowserWebviewOperationFailure(error: unknown): BrowserWebviewOperationFailure {
   return {
     kind: "browser-webview-operation-failure",
     error: isAppError(error)
@@ -78,9 +61,7 @@ function toBrowserWebviewOperationFailure(
   };
 }
 
-function isBrowserWebviewOperationFailure(
-  result: unknown,
-): result is BrowserWebviewOperationFailure {
+function isBrowserWebviewOperationFailure(result: unknown): result is BrowserWebviewOperationFailure {
   return (
     typeof result === "object" &&
     result !== null &&
@@ -122,15 +103,10 @@ export function useBrowserWebviewSync({
       resizeInFlightRef.current = true;
       let nextBounds: BrowserWebviewBounds | null = bounds;
       while (nextBounds) {
-        const result = await setBrowserWebviewBounds(nextBounds).catch(
-          toBrowserWebviewOperationFailure,
-        );
+        const result = await setBrowserWebviewBounds(nextBounds).catch(toBrowserWebviewOperationFailure);
         if (isBrowserWebviewOperationFailure(result)) {
           resizeInFlightRef.current = false;
-          console.error(
-            "Failed to sync embedded browser bounds:",
-            result.error,
-          );
+          console.error("Failed to sync embedded browser bounds:", result.error);
           showSurfaceFailure(result.error);
           return;
         }
@@ -153,11 +129,7 @@ export function useBrowserWebviewSync({
 
       resizeInFlightRef.current = false;
     },
-    [
-      onMissingEmbeddedBrowserWebview,
-      resetBrowserWebviewSyncState,
-      showSurfaceFailure,
-    ],
+    [onMissingEmbeddedBrowserWebview, resetBrowserWebviewSyncState, showSurfaceFailure],
   );
 
   const flushPendingBounds = useCallback(
@@ -206,18 +178,12 @@ export function useBrowserWebviewSync({
       }
 
       const createRun = createLifecycle.start();
-      const result = await createOrUpdateBrowserWebview(
-        requestedUrl,
-        bounds,
-      ).catch(toBrowserWebviewOperationFailure);
+      const result = await createOrUpdateBrowserWebview(requestedUrl, bounds).catch(toBrowserWebviewOperationFailure);
       createRun.finish();
 
       if (isBrowserWebviewOperationFailure(result)) {
         pendingBoundsRef.current = null;
-        console.error(
-          "Failed to create embedded browser webview:",
-          result.error,
-        );
+        console.error("Failed to create embedded browser webview:", result.error);
         showSurfaceFailure(result.error);
         return;
       }
@@ -228,10 +194,7 @@ export function useBrowserWebviewSync({
         return;
       }
 
-      if (
-        !createRun.isLatest() ||
-        useUiStore.getState().browserUrl !== requestedUrl
-      ) {
+      if (!createRun.isLatest() || useUiStore.getState().browserUrl !== requestedUrl) {
         pendingBoundsRef.current = null;
         return;
       }
@@ -243,14 +206,9 @@ export function useBrowserWebviewSync({
         setBrowserStateWithRef(browserStateRef, setBrowserState, state);
       }
 
-      const focusResult = await focusBrowserWebview().catch(
-        toBrowserWebviewOperationFailure,
-      );
+      const focusResult = await focusBrowserWebview().catch(toBrowserWebviewOperationFailure);
       if (isBrowserWebviewOperationFailure(focusResult)) {
-        console.error(
-          "Failed to focus embedded browser after create:",
-          focusResult.error,
-        );
+        console.error("Failed to focus embedded browser after create:", focusResult.error);
         showSurfaceFailure(focusResult.error);
         return;
       }

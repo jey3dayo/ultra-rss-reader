@@ -24,8 +24,7 @@ function isSameAppIconRequest(a: AppIconRequest, b: AppIconRequest) {
   return (
     a.theme === b.theme &&
     a.platformLoaded === b.platformLoaded &&
-    a.supportsRuntimeWindowIconReplacement ===
-      b.supportsRuntimeWindowIconReplacement
+    a.supportsRuntimeWindowIconReplacement === b.supportsRuntimeWindowIconReplacement
   );
 }
 
@@ -53,23 +52,16 @@ async function setAppIcon(
   Result.pipe(
     await setWindowIcon(APP_ICON_THEME_PATHS[theme]),
     Result.inspectError((error) => {
-      logRuntimeDiagnostic(
-        "app-icon-theme",
-        `Failed to apply ${theme} app icon theme`,
-        error,
-      );
+      logRuntimeDiagnostic("app-icon-theme", `Failed to apply ${theme} app icon theme`, error);
     }),
   );
 }
 
 export function useAppIconTheme() {
-  const theme = usePreferencesStore((s) =>
-    resolvePreferenceValue(s.prefs, "theme"),
-  );
+  const theme = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "theme"));
   const platformLoaded = usePlatformStore((state) => state.loaded);
   const supportsRuntimeWindowIconReplacement = usePlatformStore(
-    (state) =>
-      state.platform.capabilities.supports_runtime_window_icon_replacement,
+    (state) => state.platform.capabilities.supports_runtime_window_icon_replacement,
   );
   const mountedRef = useRef(false);
   const pendingRequestRef = useRef<AppIconRequest | null>(null);
@@ -103,14 +95,10 @@ export function useAppIconTheme() {
 
         await setAppIcon(request.theme, {
           platformLoaded: request.platformLoaded,
-          supportsRuntimeWindowIconReplacement:
-            request.supportsRuntimeWindowIconReplacement,
+          supportsRuntimeWindowIconReplacement: request.supportsRuntimeWindowIconReplacement,
         });
 
-        if (
-          pendingRequestRef.current !== null &&
-          isSameAppIconRequest(request, pendingRequestRef.current)
-        ) {
+        if (pendingRequestRef.current !== null && isSameAppIconRequest(request, pendingRequestRef.current)) {
           pendingRequestRef.current = null;
         }
 
@@ -134,11 +122,7 @@ export function useAppIconTheme() {
       queueMicrotask(() => {
         drainScheduledRef.current = false;
         void drainIconRequests().catch((error: unknown) => {
-          logRuntimeDiagnostic(
-            "app-icon-theme",
-            "Failed to apply app icon theme:",
-            error,
-          );
+          logRuntimeDiagnostic("app-icon-theme", "Failed to apply app icon theme:", error);
         });
       });
     },
@@ -155,10 +139,7 @@ export function useAppIconTheme() {
       return;
     }
 
-    if (
-      typeof window === "undefined" ||
-      typeof window.matchMedia !== "function"
-    ) {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
       return;
     }
 
@@ -178,10 +159,5 @@ export function useAppIconTheme() {
     };
 
     return subscribeMatchMediaChange(mediaQuery, handleChange);
-  }, [
-    theme,
-    platformLoaded,
-    supportsRuntimeWindowIconReplacement,
-    requestAppIcon,
-  ]);
+  }, [theme, platformLoaded, supportsRuntimeWindowIconReplacement, requestAppIcon]);
 }

@@ -4,11 +4,7 @@ import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
 import { useCallback, useRef } from "react";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
-import {
-  addLocalFeed,
-  discoverFeeds,
-  updateFeedFolder,
-} from "@/api/tauri-commands";
+import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import type {
   AddFeedDialogAction,
@@ -44,10 +40,7 @@ type UseAddFeedDialogActionsResult = {
 export function resolveAddFeedDiscoveryAction(
   feeds: DiscoveredFeedDto[],
   requestId: number,
-): Extract<
-  AddFeedDialogAction,
-  { type: "discover-empty" | "discover-single" | "discover-multiple" }
-> {
+): Extract<AddFeedDialogAction, { type: "discover-empty" | "discover-single" | "discover-multiple" }> {
   if (feeds.length === 0) {
     return { type: "discover-empty", requestId };
   }
@@ -87,8 +80,7 @@ export function useAddFeedDialogActions({
     const requestUrl = trimmedUrl;
     dispatch({ type: "start-discover", requestId });
 
-    const isLatestDiscovery = () =>
-      discoveryRun.isLatest() && requestUrl === latestDiscoveryUrlRef.current;
+    const isLatestDiscovery = () => discoveryRun.isLatest() && requestUrl === latestDiscoveryUrlRef.current;
 
     const handleDiscoveryError = (message: string) => {
       if (!isLatestDiscovery()) {
@@ -106,9 +98,7 @@ export function useAddFeedDialogActions({
     try {
       discoveryResult = await discoverFeeds(requestUrl);
     } catch (error) {
-      handleDiscoveryError(
-        error instanceof Error ? error.message : String(error),
-      );
+      handleDiscoveryError(error instanceof Error ? error.message : String(error));
       discoveryRun.finish();
       return;
     }
@@ -127,14 +117,7 @@ export function useAddFeedDialogActions({
       }),
     );
     discoveryRun.finish();
-  }, [
-    derived.hasManualUrl,
-    derived.isManualUrlValid,
-    dispatch,
-    discoveryLifecycle,
-    t,
-    trimmedUrl,
-  ]);
+  }, [derived.hasManualUrl, derived.isManualUrlValid, dispatch, discoveryLifecycle, t, trimmedUrl]);
 
   const handleSubmit = useCallback(async () => {
     const feedUrl = state.selectedFeedUrl ?? state.url.trim();
@@ -204,9 +187,7 @@ export function useAddFeedDialogActions({
             await updateFeedFolder(feedId, folderId),
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error);
-              showToast(
-                t("feed_added_folder_failed", { message: error.message }),
-              );
+              showToast(t("feed_added_folder_failed", { message: error.message }));
             }),
           );
         }

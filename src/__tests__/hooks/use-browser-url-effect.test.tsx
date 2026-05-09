@@ -58,23 +58,16 @@ describe("useBrowserUrlEffect", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const cleanupError = new Error("cleanup failed");
     const { unmount } = renderHook(() => {
-      useBrowserUrlEffect(
-        "https://example.com/article",
-        () => {
-          return () => {
-            throw cleanupError;
-          };
-        },
-        [],
-      );
+      useBrowserUrlEffect("https://example.com/article", () => {
+        return () => {
+          throw cleanupError;
+        };
+      }, []);
     });
 
     unmount();
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      "Failed to cleanup browser URL effect.",
-      cleanupError,
-    );
+    expect(warnSpy).toHaveBeenCalledWith("Failed to cleanup browser URL effect.", cleanupError);
     warnSpy.mockRestore();
   });
 });

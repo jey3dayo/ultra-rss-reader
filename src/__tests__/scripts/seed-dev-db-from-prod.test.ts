@@ -1,12 +1,4 @@
-import {
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Result } from "@praha/byethrow";
@@ -51,9 +43,7 @@ describe("resolveAppDataDir", () => {
           identifier: "com.jey3dayo.ultra-rss-reader",
         }),
       ),
-    ).toBe(
-      "/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader",
-    );
+    ).toBe("/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader");
   });
 
   it("resolves Windows Tauri app data directories from APPDATA", () => {
@@ -121,13 +111,11 @@ describe("resolveSeedAppDataDirs", () => {
 
 describe("buildDatabaseArtifactPaths", () => {
   it("targets the SQLite database plus WAL and SHM artifacts", () => {
-    expect(buildDatabaseArtifactPaths("/app-data").map(toPortablePath)).toEqual(
-      [
-        "/app-data/ultra-rss-reader.db",
-        "/app-data/ultra-rss-reader.db-wal",
-        "/app-data/ultra-rss-reader.db-shm",
-      ],
-    );
+    expect(buildDatabaseArtifactPaths("/app-data").map(toPortablePath)).toEqual([
+      "/app-data/ultra-rss-reader.db",
+      "/app-data/ultra-rss-reader.db-wal",
+      "/app-data/ultra-rss-reader.db-shm",
+    ]);
   });
 });
 
@@ -139,27 +127,15 @@ describe("buildSeedPlan", () => {
       timestamp: "20260501T123456",
     });
 
-    expect(toPortablePath(plan.backupDir)).toBe(
-      "/dev/backups/seed-from-prod-20260501T123456",
-    );
-    expect(toPortablePath(plan.stagingDir)).toBe(
-      "/dev/backups/seed-from-prod-20260501T123456.staging",
-    );
-    expect(plan.artifacts.map((artifact) => artifact.suffix)).toEqual([
-      "",
-      "-wal",
-      "-shm",
-    ]);
-    expect(
-      plan.artifacts.map((artifact) => toPortablePath(artifact.source)),
-    ).toEqual([
+    expect(toPortablePath(plan.backupDir)).toBe("/dev/backups/seed-from-prod-20260501T123456");
+    expect(toPortablePath(plan.stagingDir)).toBe("/dev/backups/seed-from-prod-20260501T123456.staging");
+    expect(plan.artifacts.map((artifact) => artifact.suffix)).toEqual(["", "-wal", "-shm"]);
+    expect(plan.artifacts.map((artifact) => toPortablePath(artifact.source))).toEqual([
       "/prod/ultra-rss-reader.db",
       "/prod/ultra-rss-reader.db-wal",
       "/prod/ultra-rss-reader.db-shm",
     ]);
-    expect(
-      plan.artifacts.map((artifact) => toPortablePath(artifact.destination)),
-    ).toEqual([
+    expect(plan.artifacts.map((artifact) => toPortablePath(artifact.destination))).toEqual([
       "/dev/ultra-rss-reader.db",
       "/dev/ultra-rss-reader.db-wal",
       "/dev/ultra-rss-reader.db-shm",
@@ -167,9 +143,7 @@ describe("buildSeedPlan", () => {
   });
 
   it("uses timestamped backup directory names", () => {
-    expect(resolveBackupDirName("20260501T123456")).toBe(
-      "seed-from-prod-20260501T123456",
-    );
+    expect(resolveBackupDirName("20260501T123456")).toBe("seed-from-prod-20260501T123456");
   });
 });
 
@@ -177,28 +151,21 @@ describe("seedDevDatabaseFromProdPlan", () => {
   it("rejects a Dev target that points at the packaged app data directory", async () => {
     const plan = buildSeedPlan({
       prodAppDataDir: "/prod",
-      devAppDataDir:
-        "/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader",
+      devAppDataDir: "/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader",
       timestamp: "20260501T123456",
     });
 
-    await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow(
-      "Refusing to seed a non-Dev app data directory",
-    );
+    await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Refusing to seed a non-Dev app data directory");
   });
 
   it("rejects a source target that points at the Dev app data directory", async () => {
     const plan = buildSeedPlan({
-      prodAppDataDir:
-        "/Users/alice/Library/Application Support/com.ultra-rss-reader.dev",
-      devAppDataDir:
-        "/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader.dev",
+      prodAppDataDir: "/Users/alice/Library/Application Support/com.ultra-rss-reader.dev",
+      devAppDataDir: "/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader.dev",
       timestamp: "20260501T123456",
     });
 
-    await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow(
-      "Refusing to seed from a Dev app data directory",
-    );
+    await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Refusing to seed from a Dev app data directory");
   });
 
   it("rejects artifact destinations outside the Dev app data directory before cleanup", async () => {
@@ -210,9 +177,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
     const unsafePlan = {
       ...plan,
       artifacts: plan.artifacts.map((artifact, index) =>
-        index === 0
-          ? { ...artifact, destination: "/other/ultra-rss-reader.db" }
-          : artifact,
+        index === 0 ? { ...artifact, destination: "/other/ultra-rss-reader.db" } : artifact,
       ),
     };
 
@@ -228,9 +193,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
           throw new Error("rm should not run for an invalid plan");
         },
       }),
-    ).rejects.toThrow(
-      "Refusing to clean up an artifact outside the Dev app data directory",
-    );
+    ).rejects.toThrow("Refusing to clean up an artifact outside the Dev app data directory");
   });
 
   it("rejects non-database artifacts so credentials are not copied", async () => {
@@ -247,10 +210,8 @@ describe("seedDevDatabaseFromProdPlan", () => {
           suffix: "",
           source: "/prod/credentials.json",
           destination: "/dev/credentials.json",
-          backup:
-            "/dev/backups/seed-from-prod-20260501T123456/credentials.json",
-          staging:
-            "/dev/backups/seed-from-prod-20260501T123456.staging/credentials.json",
+          backup: "/dev/backups/seed-from-prod-20260501T123456/credentials.json",
+          staging: "/dev/backups/seed-from-prod-20260501T123456.staging/credentials.json",
         },
       ],
     };
@@ -266,17 +227,12 @@ describe("seedDevDatabaseFromProdPlan", () => {
   });
 
   it("rejects symlinked source database artifacts", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
       const realProdDbPath = path.join(tempDir, "real-prod.db");
-      await Promise.all([
-        mkdir(prodDir, { recursive: true }),
-        mkdir(devDir, { recursive: true }),
-      ]);
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await writeFile(realProdDbPath, "prod-db");
       await Promise.all([
         symlink(realProdDbPath, path.join(prodDir, "ultra-rss-reader.db")),
@@ -293,18 +249,14 @@ describe("seedDevDatabaseFromProdPlan", () => {
         ),
       ).rejects.toThrow("Refusing to seed through a symlink");
 
-      await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("dev-db");
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it("does not change the Dev database when the production database is missing", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
@@ -321,26 +273,19 @@ describe("seedDevDatabaseFromProdPlan", () => {
         ),
       ).rejects.toThrow();
 
-      await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("dev-db");
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it("does not replace the Dev database when backup copy fails", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     const rmRequests: string[] = [];
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
-      await Promise.all([
-        mkdir(prodDir, { recursive: true }),
-        mkdir(devDir, { recursive: true }),
-      ]);
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await Promise.all([
         writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
@@ -356,10 +301,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
           {
             copyFileImpl: async (source, destination) => {
               if (
-                hasPortablePathSuffix(
-                  String(destination),
-                  "backups/seed-from-prod-20260501T123456/ultra-rss-reader.db",
-                )
+                hasPortablePathSuffix(String(destination), "backups/seed-from-prod-20260501T123456/ultra-rss-reader.db")
               ) {
                 throw new Error("backup failed");
               }
@@ -373,21 +315,10 @@ describe("seedDevDatabaseFromProdPlan", () => {
         ),
       ).rejects.toThrow("backup failed");
 
-      expect(rmRequests).not.toContain(
-        toPortablePath(path.join(devDir, "ultra-rss-reader.db")),
-      );
+      expect(rmRequests).not.toContain(toPortablePath(path.join(devDir, "ultra-rss-reader.db")));
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
       await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("dev-db");
-      await expect(
-        readFile(
-          path.join(
-            devDir,
-            "backups",
-            "seed-from-prod-20260501T123456.staging",
-            "ultra-rss-reader.db",
-          ),
-        ),
+        readFile(path.join(devDir, "backups", "seed-from-prod-20260501T123456.staging", "ultra-rss-reader.db")),
       ).rejects.toThrow();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
@@ -414,16 +345,8 @@ describe("seedDevDatabaseFromProdPlan", () => {
     });
 
     await expect(resultPromise).resolves.toMatchObject({
-      copied: [
-        "/dev/ultra-rss-reader.db",
-        "/dev/ultra-rss-reader.db-wal",
-        "/dev/ultra-rss-reader.db-shm",
-      ],
-      backedUp: [
-        "/dev/ultra-rss-reader.db",
-        "/dev/ultra-rss-reader.db-wal",
-        "/dev/ultra-rss-reader.db-shm",
-      ],
+      copied: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
+      backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
     });
 
     expect(accessRequests).toEqual(
@@ -433,9 +356,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
         "/prod/ultra-rss-reader.db-shm",
       ]),
     );
-    expect(
-      accessRequests.filter((request) => request.startsWith("/dev/")),
-    ).toEqual(
+    expect(accessRequests.filter((request) => request.startsWith("/dev/"))).toEqual(
       expect.arrayContaining([
         "/dev/ultra-rss-reader.db",
         "/dev/ultra-rss-reader.db-wal",
@@ -460,10 +381,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
         const sourcePath = toPortablePath(String(source));
         const destinationPath = toPortablePath(String(destination));
         copyRequests.push(`${sourcePath}->${destinationPath}`);
-        if (
-          sourcePath.startsWith("/dev/") &&
-          destinationPath.includes("/backups/seed-from-prod-20260501T123456/")
-        ) {
+        if (sourcePath.startsWith("/dev/") && destinationPath.includes("/backups/seed-from-prod-20260501T123456/")) {
           await new Promise<void>((resolve) => {
             releaseBackupCopies.set(destinationPath, resolve);
           });
@@ -476,28 +394,18 @@ describe("seedDevDatabaseFromProdPlan", () => {
     });
 
     // Polling is intentionally sequential: each tick gives the in-flight copy hooks a chance to register.
-    for (
-      let index = 0;
-      index < 10 && releaseBackupCopies.size < 3;
-      index += 1
-    ) {
+    for (let index = 0; index < 10 && releaseBackupCopies.size < 3; index += 1) {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
     expect(releaseBackupCopies.size).toBe(3);
-    expect(rmRequests).toEqual([
-      "/dev/backups/seed-from-prod-20260501T123456.staging",
-    ]);
+    expect(rmRequests).toEqual(["/dev/backups/seed-from-prod-20260501T123456.staging"]);
 
     for (const releaseBackupCopy of releaseBackupCopies.values()) {
       releaseBackupCopy();
     }
 
     await expect(resultPromise).resolves.toMatchObject({
-      backedUp: [
-        "/dev/ultra-rss-reader.db",
-        "/dev/ultra-rss-reader.db-wal",
-        "/dev/ultra-rss-reader.db-shm",
-      ],
+      backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
     });
     expect(copyRequests).toEqual(
       expect.arrayContaining([
@@ -534,11 +442,7 @@ describe("seedDevDatabaseFromProd", () => {
     });
 
     await Promise.resolve();
-    expect(requestedProcessNames).toEqual([
-      "Ultra RSS Reader",
-      "Ultra RSS Reader Dev",
-      "ultra-rss-reader",
-    ]);
+    expect(requestedProcessNames).toEqual(["Ultra RSS Reader", "Ultra RSS Reader Dev", "ultra-rss-reader"]);
 
     for (const releaseCheck of releaseChecks.values()) {
       releaseCheck();
@@ -573,16 +477,11 @@ describe("seedDevDatabaseFromProd", () => {
   });
 
   it("does not replace the Dev database when the Unix full command line guard detects a running app", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
-      await Promise.all([
-        mkdir(prodDir, { recursive: true }),
-        mkdir(devDir, { recursive: true }),
-      ]);
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await Promise.all([
         writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
@@ -611,9 +510,7 @@ describe("seedDevDatabaseFromProd", () => {
         }),
       ).rejects.toThrow("Ultra RSS Reader appears to be running");
 
-      await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("dev-db");
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
@@ -622,20 +519,14 @@ describe("seedDevDatabaseFromProd", () => {
   it("detects open Dev database handles on Unix-like platforms", async () => {
     const result = await detectOpenDevDatabaseHandles({
       platform: "darwin",
-      artifactPaths: [
-        "/dev/ultra-rss-reader.db",
-        "/dev/ultra-rss-reader.db-wal",
-      ],
+      artifactPaths: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal"],
       execFileImpl: async (_command, args) => ({
         stdout: args.join("\n"),
         stderr: "",
       }),
     });
 
-    expect(Result.unwrap(result)).toEqual([
-      "/dev/ultra-rss-reader.db",
-      "/dev/ultra-rss-reader.db-wal",
-    ]);
+    expect(Result.unwrap(result)).toEqual(["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal"]);
   });
 
   it("reports which database artifact could not be checked when lsof is unavailable", async () => {
@@ -650,20 +541,14 @@ describe("seedDevDatabaseFromProd", () => {
     });
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain(
-      "/dev/ultra-rss-reader.db",
-    );
+    expect(Result.unwrapError(result).message).toContain("/dev/ultra-rss-reader.db");
     expect(Result.unwrapError(result).message).toContain("spawn lsof ENOENT");
   });
 
   it("reports the WAL path when only the WAL artifact is open", async () => {
     const result = await detectOpenDevDatabaseHandles({
       platform: "linux",
-      artifactPaths: [
-        "/dev/ultra-rss-reader.db",
-        "/dev/ultra-rss-reader.db-wal",
-        "/dev/ultra-rss-reader.db-shm",
-      ],
+      artifactPaths: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
       execFileImpl: async (_command, args) => {
         const artifactPath = String(args[args.length - 1]);
         if (artifactPath.endsWith("-wal")) {
@@ -679,16 +564,11 @@ describe("seedDevDatabaseFromProd", () => {
   });
 
   it("does not replace the Dev database when a database handle is open", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
-      await Promise.all([
-        mkdir(prodDir, { recursive: true }),
-        mkdir(devDir, { recursive: true }),
-      ]);
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await Promise.all([
         writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
@@ -715,25 +595,18 @@ describe("seedDevDatabaseFromProd", () => {
         }),
       ).rejects.toThrow("Dev database appears to be open");
 
-      await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("dev-db");
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
   it("checks app processes and database handles concurrently before seeding", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
-      await Promise.all([
-        mkdir(prodDir, { recursive: true }),
-        mkdir(devDir, { recursive: true }),
-      ]);
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await Promise.all([
         writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
@@ -763,21 +636,12 @@ describe("seedDevDatabaseFromProd", () => {
       });
 
       // Polling is intentionally sequential: each tick observes whether the concurrent guard started.
-      for (
-        let index = 0;
-        index < 10 &&
-        ![...pendingCommands].some((key) => key.startsWith("lsof:"));
-        index += 1
-      ) {
+      for (let index = 0; index < 10 && ![...pendingCommands].some((key) => key.startsWith("lsof:")); index += 1) {
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
 
-      expect([...pendingCommands].some((key) => key.startsWith("pgrep:"))).toBe(
-        true,
-      );
-      expect([...pendingCommands].some((key) => key.startsWith("lsof:"))).toBe(
-        true,
-      );
+      expect([...pendingCommands].some((key) => key.startsWith("pgrep:"))).toBe(true);
+      expect([...pendingCommands].some((key) => key.startsWith("lsof:"))).toBe(true);
 
       for (const releaseCommand of releaseCommands.values()) {
         releaseCommand();
@@ -787,9 +651,7 @@ describe("seedDevDatabaseFromProd", () => {
         copied: [path.join(devDir, "ultra-rss-reader.db")],
         backedUp: [path.join(devDir, "ultra-rss-reader.db")],
       });
-      await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("prod-db");
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("prod-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
@@ -804,22 +666,15 @@ describe("seedDevDatabaseFromProd", () => {
     });
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain(
-      "Failed to check whether Ultra RSS Reader is running",
-    );
+    expect(Result.unwrapError(result).message).toContain("Failed to check whether Ultra RSS Reader is running");
   });
 
   it("does not replace the Dev database when Windows process detection fails", async () => {
-    const tempDir = await mkdtemp(
-      path.join(os.tmpdir(), "ultra-rss-seed-test-"),
-    );
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
       const devDir = path.join(tempDir, "dev");
-      await Promise.all([
-        mkdir(prodDir, { recursive: true }),
-        mkdir(devDir, { recursive: true }),
-      ]);
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await Promise.all([
         writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
@@ -838,9 +693,7 @@ describe("seedDevDatabaseFromProd", () => {
         }),
       ).rejects.toThrow("Failed to check whether Ultra RSS Reader is running");
 
-      await expect(
-        readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8"),
-      ).resolves.toBe("dev-db");
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }

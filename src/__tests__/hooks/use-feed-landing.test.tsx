@@ -195,7 +195,7 @@ describe("useFeedLanding", () => {
     expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
-      message: "temporary feed list failure",
+      message: "[feeds:acc-1] temporary feed list failure",
     });
     expect(useUiStore.getState().selection).toEqual({ type: "all" });
   });
