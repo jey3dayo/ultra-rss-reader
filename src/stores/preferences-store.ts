@@ -17,7 +17,10 @@ import {
   type SortSubscriptions,
   type Theme,
 } from "@/schemas/preferences";
-import type { PreferencesActions, PreferencesState } from "@/stores/preferences-store.types";
+import type {
+  PreferencesActions,
+  PreferencesState,
+} from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
@@ -34,26 +37,64 @@ let preferencesLoadPromise: Promise<void> | null = null;
 const preferencePersistRequestCounters = new Map<string, number>();
 const preferencePersistRequestIds = new Map<string, number>();
 
+function logPreferenceRuntimeFailure(message: string, error: unknown): void {
+  console.error(message, error);
+}
+
+function getDocumentRoot(): HTMLElement | null {
+  return typeof document === "undefined" ? null : document.documentElement;
+}
+
+function getMediaQueryList(query: string): MediaQueryList | null {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return null;
+  }
+
+  try {
+    return window.matchMedia(query);
+  } catch (error) {
+    logPreferenceRuntimeFailure(
+      `Failed to query media preference ${query}:`,
+      error,
+    );
+    return null;
+  }
+}
+
 function getSystemPrefersDark(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return getMediaQueryList("(prefers-color-scheme: dark)")?.matches ?? false;
 }
 
 function mirrorThemePreference(theme: Theme): void {
   try {
+    if (typeof window === "undefined") {
+      return;
+    }
     window.localStorage.setItem(STORAGE_KEYS.theme, theme);
-  } catch {
-    // Ignore storage failures; DB remains the source of truth.
+  } catch (error) {
+    // Storage mirroring is best-effort; DB remains the source of truth and optimistic UI state is retained.
+    logPreferenceRuntimeFailure("Failed to mirror theme preference:", error);
   }
 }
 
 function readMirroredThemePreference(): Theme | null {
   try {
+    if (typeof window === "undefined") {
+      return null;
+    }
     const storedTheme = window.localStorage.getItem(STORAGE_KEYS.theme);
     if (storedTheme === null) {
       return null;
     }
     return parseThemePreference(storedTheme);
-  } catch {
+  } catch (error) {
+    logPreferenceRuntimeFailure(
+      "Failed to read mirrored theme preference:",
+      error,
+    );
     return null;
   }
 }
@@ -63,7 +104,12 @@ function resolveErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
     }
-    if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "message" in error &&
+      typeof error.message === "string"
+    ) {
       return error.message;
     }
     return String(error);
@@ -75,22 +121,41 @@ function resolveErrorMessage(error: unknown): string {
 function notifyPreferencePersistFailure(key: string, error: unknown): void {
   const message = resolveErrorMessage(error);
   console.error(`Failed to persist preference ${key}:`, error);
-  useUiStore.getState().showToast(i18n.t("failed_to_save_setting", { message }));
+  useUiStore
+    .getState()
+    .showToast(i18n.t("failed_to_save_setting", { message }));
 }
 
 function getPrefersReducedMotion(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return (
+    getMediaQueryList("(prefers-reduced-motion: reduce)")?.matches ?? false
+  );
 }
 
-function updateResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark"): void {
+function updateResolvedTheme(
+  root: HTMLElement,
+  resolvedTheme: "light" | "dark",
+): void {
   root.classList.toggle("dark", resolvedTheme === "dark");
   root.style.colorScheme = resolvedTheme;
 }
 
-function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", withTransition: boolean): void {
-  const canUseViewTransition = typeof document.startViewTransition === "function";
+function applyResolvedTheme(
+  root: HTMLElement,
+  resolvedTheme: "light" | "dark",
+  withTransition: boolean,
+): void {
+  const startViewTransition =
+    typeof document === "undefined" ||
+    typeof document.startViewTransition !== "function"
+      ? null
+      : document.startViewTransition.bind(document);
 
-  if (!withTransition || !canUseViewTransition || getPrefersReducedMotion()) {
+  if (
+    !withTransition ||
+    startViewTransition === null ||
+    getPrefersReducedMotion()
+  ) {
     root.classList.remove(THEME_VIEW_TRANSITION_CLASS);
     updateResolvedTheme(root, resolvedTheme);
     return;
@@ -101,15 +166,38 @@ function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", 
   themeViewTransitionId = transitionId;
   // Tauri shell boundary: theme updates mutate documentElement outside React's tree.
   // react-doctor-disable-next-line react-doctor/no-document-start-view-transition -- React 19 ViewTransition cannot wrap document root class/color-scheme sync.
-  const transition = document.startViewTransition(() => {
-    updateResolvedTheme(root, resolvedTheme);
-  });
   const cleanupTransitionClass = () => {
     if (transitionId === themeViewTransitionId) {
       root.classList.remove(THEME_VIEW_TRANSITION_CLASS);
     }
   };
-  void transition.finished.then(cleanupTransitionClass, cleanupTransitionClass);
+  let transition: ViewTransition;
+  try {
+    transition = startViewTransition(() => {
+      updateResolvedTheme(root, resolvedTheme);
+    });
+  } catch (error) {
+    cleanupTransitionClass();
+    updateResolvedTheme(root, resolvedTheme);
+    logPreferenceRuntimeFailure(
+      "Failed to start theme view transition:",
+      error,
+    );
+    return;
+  }
+
+  try {
+    void transition.finished.then(
+      cleanupTransitionClass,
+      cleanupTransitionClass,
+    );
+  } catch (error) {
+    cleanupTransitionClass();
+    logPreferenceRuntimeFailure(
+      "Failed to observe theme view transition completion:",
+      error,
+    );
+  }
 }
 
 function tryAddSystemThemeListener(
@@ -149,26 +237,41 @@ function tryAddSystemThemeListener(
   return null;
 }
 
-function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void {
+function applyTheme(
+  theme: Theme,
+  options?: { withTransition?: boolean },
+): void {
   // Clean up previous system theme listener
   systemThemeCleanup?.();
   systemThemeCleanup = null;
 
-  const root = document.documentElement;
+  const root = getDocumentRoot();
+  if (root === null) {
+    return;
+  }
+
   const withTransition = options?.withTransition ?? true;
   if (theme === "system") {
-    applyResolvedTheme(root, getSystemPrefersDark() ? "dark" : "light", withTransition);
-    if (typeof window.matchMedia !== "function") {
+    applyResolvedTheme(
+      root,
+      getSystemPrefersDark() ? "dark" : "light",
+      withTransition,
+    );
+    const mq = getMediaQueryList("(prefers-color-scheme: dark)");
+    if (mq === null) {
       return;
     }
 
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => {
       applyResolvedTheme(root, e.matches ? "dark" : "light", true);
     };
     systemThemeCleanup = tryAddSystemThemeListener(mq, handler);
   } else {
-    applyResolvedTheme(root, theme === "dark" ? "dark" : "light", withTransition);
+    applyResolvedTheme(
+      root,
+      theme === "dark" ? "dark" : "light",
+      withTransition,
+    );
   }
 }
 
@@ -193,29 +296,62 @@ function isFontSizePreference(value: string): value is FontSizePreference {
 }
 
 function applyFontStyle(style: string): void {
-  const root = document.documentElement;
+  const root = getDocumentRoot();
+  if (root === null) {
+    return;
+  }
+
   for (const cls of Object.values(fontStyleClasses)) {
     root.classList.remove(cls);
   }
-  const cls = isFontStylePreference(style) ? fontStyleClasses[style] : fontStyleClasses.sans_serif;
+  const cls = isFontStylePreference(style)
+    ? fontStyleClasses[style]
+    : fontStyleClasses.sans_serif;
   root.classList.add(cls);
 }
 
 function applyFontSize(size: string): void {
-  const root = document.documentElement;
+  const root = getDocumentRoot();
+  if (root === null) {
+    return;
+  }
+
   for (const cls of Object.values(fontSizeClasses)) {
     root.classList.remove(cls);
   }
-  const cls = isFontSizePreference(size) ? fontSizeClasses[size] : fontSizeClasses.medium;
+  const cls = isFontSizePreference(size)
+    ? fontSizeClasses[size]
+    : fontSizeClasses.medium;
   root.classList.add(cls);
 }
 
 function getNavigatorLanguage(): string | undefined {
-  return typeof navigator === "undefined" ? undefined : navigator.language;
+  try {
+    return typeof navigator === "undefined" ? undefined : navigator.language;
+  } catch (error) {
+    logPreferenceRuntimeFailure("Failed to read navigator language:", error);
+    return undefined;
+  }
 }
 
-function applyLanguage(language: ReturnType<typeof parseLanguagePreference>): void {
-  i18n.changeLanguage(resolveUiLanguage(language, getNavigatorLanguage()));
+function applyLanguage(
+  language: ReturnType<typeof parseLanguagePreference>,
+): void {
+  try {
+    void i18n
+      .changeLanguage(resolveUiLanguage(language, getNavigatorLanguage()))
+      .catch((error: unknown) => {
+        logPreferenceRuntimeFailure(
+          "Failed to apply UI language preference:",
+          error,
+        );
+      });
+  } catch (error) {
+    logPreferenceRuntimeFailure(
+      "Failed to apply UI language preference:",
+      error,
+    );
+  }
 }
 
 function applyDefaultLoadFallback(): void {
@@ -224,7 +360,9 @@ function applyDefaultLoadFallback(): void {
   applyFontSize(resolvePreferenceValue({}, "font_size"));
 }
 
-export const usePreferencesStore = create<PreferencesState & PreferencesActions>()((set, getState) => ({
+export const usePreferencesStore = create<
+  PreferencesState & PreferencesActions
+>()((set, getState) => ({
   prefs: {},
   loaded: false,
 
@@ -242,15 +380,20 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
             const normalizedData = normalizePreferenceRecord(data);
             const theme = objectHasOwnProperty.call(normalizedData, "theme")
               ? resolvePreferenceValue(normalizedData, "theme")
-              : (readMirroredThemePreference() ?? resolvePreferenceValue(normalizedData, "theme"));
+              : (readMirroredThemePreference() ??
+                resolvePreferenceValue(normalizedData, "theme"));
             set({
-              prefs: objectHasOwnProperty.call(normalizedData, "theme") ? normalizedData : { ...normalizedData, theme },
+              prefs: objectHasOwnProperty.call(normalizedData, "theme")
+                ? normalizedData
+                : { ...normalizedData, theme },
               loaded: true,
             });
             applyTheme(theme, { withTransition: false });
             mirrorThemePreference(theme);
             applyLanguage(resolvePreferenceValue(normalizedData, "language"));
-            applyFontStyle(resolvePreferenceValue(normalizedData, "font_style"));
+            applyFontStyle(
+              resolvePreferenceValue(normalizedData, "font_style"),
+            );
             applyFontSize(resolvePreferenceValue(normalizedData, "font_size"));
           }),
           Result.inspectError((e) => {
