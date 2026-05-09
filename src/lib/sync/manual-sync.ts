@@ -11,9 +11,9 @@ let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 let manualSyncCooldownListenerSequence = 0;
 const manualSyncCooldownListeners = new Set<ManualSyncCooldownListenerEntry>();
-let manualSyncCooldownListenerDiagnosticsReporter: ((
-  reports: readonly ManualSyncCooldownListenerErrorReport[],
-) => void) | null = null;
+let manualSyncCooldownListenerDiagnosticsReporter:
+  | ((reports: readonly ManualSyncCooldownListenerErrorReport[]) => void)
+  | null = null;
 
 type ManualSyncCooldownListenerEntry = {
   id: string;
@@ -25,14 +25,8 @@ export type ManualSyncCooldownListenerErrorReport = {
   error: unknown;
 };
 
-function reportManualSyncCooldownListenerErrors(
-  reports: readonly ManualSyncCooldownListenerErrorReport[],
-) {
-  logRuntimeDiagnostic(
-    "manual-sync-cooldown-listener",
-    "Manual sync cooldown listeners failed:",
-    reports,
-  );
+function reportManualSyncCooldownListenerErrors(reports: readonly ManualSyncCooldownListenerErrorReport[]) {
+  logRuntimeDiagnostic("manual-sync-cooldown-listener", "Manual sync cooldown listeners failed:", reports);
   manualSyncCooldownListenerDiagnosticsReporter?.(reports);
 }
 

@@ -1,12 +1,33 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleAccounts, sampleArticles, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
-import { listArticlesByAccountId, listArticlesByFeedId } from "@tests/helpers/reader-fixtures";
+import {
+  sampleAccounts,
+  sampleArticles,
+  sampleFeeds,
+  sampleTags,
+} from "@tests/helpers/fixtures";
+import {
+  listSampleArticlesByAccountId,
+  listSampleArticlesByFeedId,
+  listSampleFeedsByAccountId,
+  requireSampleArticle,
+  requireSampleFeed,
+} from "@tests/helpers/reader-fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
+import {
+  ArticlePane,
+  ArticleToolbar,
+  ArticleView,
+} from "@/components/reader/article-view";
 import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
@@ -23,8 +44,8 @@ vi.mock("@/dev/use-resolved-dev-intent", () => ({
 
 const ciWaitOptions = { timeout: 20_000 };
 const readingListTestTimeout = 30_000;
-const primaryArticle = sampleArticles[0];
-const primaryFeed = sampleFeeds[0];
+const primaryArticle = requireSampleArticle("art-1");
+const primaryFeed = requireSampleFeed("feed-1");
 const autoMarkArticleReadCall = {
   cmd: "mark_article_read",
   args: { articleId: "art-1", read: true },
@@ -77,7 +98,11 @@ function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
   });
 }
 
-function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, value: string) {
+function expectSummaryMetricMotionValue(
+  summary: HTMLElement,
+  label: string,
+  value: string,
+) {
   const labelNode = within(summary).getByText(new RegExp(`^${label}$`, "i"));
   const row = labelNode.closest("div");
 
@@ -85,11 +110,19 @@ function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, val
     throw new Error(`Summary metric row was not found for ${label}`);
   }
 
-  expect(within(row).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
+  expect(within(row).getByText(value)).toHaveClass(
+    "motion-content-swap",
+    "tabular-nums",
+  );
 }
 
-function expectSummaryLeadingVisual(summary: HTMLElement, expectedClassName: string) {
-  const leadingVisual = within(summary).getByTestId("feed-detail-leading-visual");
+function expectSummaryLeadingVisual(
+  summary: HTMLElement,
+  expectedClassName: string,
+) {
+  const leadingVisual = within(summary).getByTestId(
+    "feed-detail-leading-visual",
+  );
   const visual = leadingVisual.firstElementChild;
 
   if (!(visual instanceof HTMLElement || visual instanceof SVGElement)) {
@@ -177,22 +210,14 @@ function listAccountFeedsWithFeedOneModes({
       continue;
     }
 
-    feeds.push(feed.id === "feed-1" ? { ...feed, reader_mode: readerMode, web_preview_mode: webPreviewMode } : feed);
+    feeds.push(
+      feed.id === "feed-1"
+        ? { ...feed, reader_mode: readerMode, web_preview_mode: webPreviewMode }
+        : feed,
+    );
   }
 
   return feeds;
-}
-
-function listSampleFeedsByAccountId(accountId: string | undefined) {
-  return sampleFeeds.filter((feed) => feed.account_id === accountId);
-}
-
-function listSampleArticlesByFeedId(feedId: string | undefined) {
-  return listArticlesByFeedId(sampleArticles, feedId);
-}
-
-function listSampleArticlesByAccountId(accountId: string | undefined) {
-  return listArticlesByAccountId({ articles: sampleArticles, feeds: sampleFeeds, accountId });
 }
 
 function listAccountFeedsInFolder(accountId: string, folderId: string) {
@@ -352,11 +377,16 @@ describe("ArticleView", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(screen.getByTestId("article-pane")).toBeInTheDocument(), ciWaitOptions);
+    await waitFor(
+      () => expect(screen.getByTestId("article-pane")).toBeInTheDocument(),
+      ciWaitOptions,
+    );
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(calls.filter((call) => call.cmd === "record_article_view")).toHaveLength(0);
+    expect(
+      calls.filter((call) => call.cmd === "record_article_view"),
+    ).toHaveLength(0);
   });
 
   it("opens the web preview from the article title when open_links is in_app", async () => {
@@ -410,7 +440,9 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    await user.click(await screen.findByRole("button", { name: "First Article" }));
+    await user.click(
+      await screen.findByRole("button", { name: "First Article" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
@@ -421,7 +453,9 @@ describe("ArticleView", () => {
       cmd: "open_in_browser",
       args: { url: "https://example.com/1", background: false },
     });
-    expect(calls.filter(({ cmd }) => cmd === "update_feed_display_settings")).toHaveLength(0);
+    expect(
+      calls.filter(({ cmd }) => cmd === "update_feed_display_settings"),
+    ).toHaveLength(0);
   });
 
   it("opens sanitized article links in the external browser", async () => {
@@ -446,7 +480,8 @@ describe("ArticleView", () => {
       <ArticlePane
         article={{
           ...primaryArticle,
-          content_sanitized: '<p><a href="https://example.com/from-content">Read more</a></p>',
+          content_sanitized:
+            '<p><a href="https://example.com/from-content">Read more</a></p>',
         }}
         feed={primaryFeed}
         feedName="Feed One"
@@ -454,7 +489,9 @@ describe("ArticleView", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByTestId("article-pane")).toHaveClass("typography-lane-reader");
+    expect(screen.getByTestId("article-pane")).toHaveClass(
+      "typography-lane-reader",
+    );
     calls.length = 0;
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
@@ -489,7 +526,8 @@ describe("ArticleView", () => {
         article={{
           ...primaryArticle,
           url: "https://example.com/posts/current",
-          content_sanitized: '<p><a href="../from-content?x=1#section">Read more</a></p>',
+          content_sanitized:
+            '<p><a href="../from-content?x=1#section">Read more</a></p>',
         }}
         feed={primaryFeed}
         feedName="Feed One"
@@ -532,7 +570,8 @@ describe("ArticleView", () => {
       <ArticlePane
         article={{
           ...primaryArticle,
-          content_sanitized: '<p><a href="mailto:hello@example.com">Email author</a></p>',
+          content_sanitized:
+            '<p><a href="mailto:hello@example.com">Email author</a></p>',
         }}
         feed={primaryFeed}
         feedName="Feed One"
@@ -548,7 +587,9 @@ describe("ArticleView", () => {
         message: "Only http:// and https:// URLs are supported",
       });
     });
-    expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(0);
+    expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(
+      0,
+    );
   });
 
   it("keeps the embedded browser preview toggle available when action_open_browser is false", async () => {
@@ -616,7 +657,10 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(screen.getByTestId("browser-overlay-chrome")).findByRole(
+        "button",
+        { name: "Close Web Preview" },
+      ),
     );
 
     await waitFor(() => {
@@ -625,7 +669,9 @@ describe("ArticleView", () => {
     });
 
     expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
-    expect(await screen.findByRole("button", { name: "Open Web Preview" })).toHaveAttribute("aria-pressed", "false");
+    expect(
+      await screen.findByRole("button", { name: "Open Web Preview" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("hides the article close action while web preview is open", async () => {
@@ -662,17 +708,26 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Close article" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Close article" }),
+    ).toBeInTheDocument();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open Web Preview" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(screen.queryByRole("button", { name: "Close article" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Close article" }),
+      ).not.toBeInTheDocument();
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(screen.getByTestId("browser-overlay-chrome")).findByRole(
+        "button",
+        { name: "Close Web Preview" },
+      ),
     );
 
     await waitFor(() => {
@@ -716,7 +771,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open Web Preview" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
@@ -739,13 +796,17 @@ describe("ArticleView", () => {
         name: "Web forward",
       }),
     ).toBeInTheDocument();
-    expect(within(overlayActions).getByRole("button", { name: "Reload page" })).toBeInTheDocument();
+    expect(
+      within(overlayActions).getByRole("button", { name: "Reload page" }),
+    ).toBeInTheDocument();
     expect(
       within(overlayActions).getByRole("button", {
         name: "Open in External Browser",
       }),
     ).toBeInTheDocument();
-    expect(within(overlayActions).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+    expect(
+      within(overlayActions).getByRole("button", { name: "Copy link" }),
+    ).toBeInTheDocument();
   });
 
   it("renders compact overlay toolbar actions as separate shell surfaces", async () => {
@@ -790,7 +851,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open Web Preview" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
@@ -807,7 +870,9 @@ describe("ArticleView", () => {
       .map((button) => button.closest("[data-overlay-shell='action']"));
 
     expect(customActionShells.length).toBeGreaterThan(1);
-    expect(customActionShells.every((shell) => shell?.className.includes("size-11"))).toBe(true);
+    expect(
+      customActionShells.every((shell) => shell?.className.includes("size-11")),
+    ).toBe(true);
   });
 
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
@@ -859,7 +924,10 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(screen.getByTestId("browser-overlay-chrome")).findByRole(
+        "button",
+        { name: "Close Web Preview" },
+      ),
     );
 
     await waitFor(() => {
@@ -869,8 +937,12 @@ describe("ArticleView", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByTestId("browser-overlay-shell")).not.toBeInTheDocument();
-      expect(calls.some((call) => call.cmd === "close_browser_webview")).toBe(true);
+      expect(
+        screen.queryByTestId("browser-overlay-shell"),
+      ).not.toBeInTheDocument();
+      expect(calls.some((call) => call.cmd === "close_browser_webview")).toBe(
+        true,
+      );
     });
   });
 
@@ -919,7 +991,9 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    const closeOverlayButton = await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", {
+    const closeOverlayButton = await within(
+      screen.getByTestId("browser-overlay-chrome"),
+    ).findByRole("button", {
       name: "Close Web Preview",
     });
     closeOverlayButton.focus();
@@ -930,7 +1004,9 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
-      expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveFocus();
+      expect(
+        screen.getByRole("button", { name: "Open Web Preview" }),
+      ).toHaveFocus();
     });
   });
 
@@ -987,7 +1063,9 @@ describe("ArticleView", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
-      expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveFocus();
+      expect(
+        screen.getByRole("button", { name: "Open Web Preview" }),
+      ).toHaveFocus();
     });
   });
 
@@ -1096,7 +1174,9 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    await user.click(await screen.findByRole("button", { name: "First Article" }));
+    await user.click(
+      await screen.findByRole("button", { name: "First Article" }),
+    );
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -1157,7 +1237,9 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    await user.click(await screen.findByRole("button", { name: "First Article" }));
+    await user.click(
+      await screen.findByRole("button", { name: "First Article" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
@@ -1170,7 +1252,11 @@ describe("ArticleView", () => {
       args: { url: "https://example.com/1", background: false },
     });
 
-    await user.click(within(screen.getByTestId("browser-overlay-chrome")).getAllByRole("button")[0]);
+    await user.click(
+      within(screen.getByTestId("browser-overlay-chrome")).getAllByRole(
+        "button",
+      )[0],
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -1272,7 +1358,10 @@ describe("ArticleView", () => {
       name: "First Article",
     });
     calls.length = 0;
-    fireEvent(titleButton, new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+    fireEvent(
+      titleButton,
+      new MouseEvent("auxclick", { bubbles: true, button: 1 }),
+    );
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -1316,8 +1405,12 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Copy link" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Copy link" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open in External Browser" }),
+    ).toBeInTheDocument();
   });
 
   it("opens the external browser from the toolbar button", async () => {
@@ -1359,7 +1452,9 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Open in External Browser" }),
+    );
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -1403,7 +1498,9 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Open in External Browser" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
@@ -1441,7 +1538,9 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Close article" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Close article" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("empty");
@@ -1529,7 +1628,10 @@ describe("ArticleView", () => {
 
     await waitFor(() => {
       const markCalls = calls.filter(
-        (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
+        (call) =>
+          call.cmd === "mark_article_read" &&
+          call.args.articleId === "art-1" &&
+          call.args.read === true,
       );
       expect(markCalls).toHaveLength(1);
     });
@@ -1586,9 +1688,16 @@ describe("ArticleView", () => {
       loaded: true,
     });
 
-    const { unmount } = render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-      wrapper: createWrapper(),
-    });
+    const { unmount } = render(
+      <ArticlePane
+        article={primaryArticle}
+        feed={primaryFeed}
+        feedName="Feed One"
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
     unmount();
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -1639,14 +1748,23 @@ describe("ArticleView", () => {
       loaded: true,
     });
 
-    render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-      wrapper: createWrapper(),
-    });
+    render(
+      <ArticlePane
+        article={primaryArticle}
+        feed={primaryFeed}
+        feedName="Feed One"
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
     await vi.advanceTimersByTimeAsync(1000);
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(useUiStore.getState().retainedArticleIds).toEqual(
+      new Set(["art-1"]),
+    );
     vi.useRealTimers();
   });
 
@@ -1661,7 +1779,9 @@ describe("ArticleView", () => {
       switch (cmd) {
         case "list_articles":
           return articlesState.filter(
-            (article) => article.feed_id === args.feedId && (!args.unreadOnly || !article.is_read),
+            (article) =>
+              article.feed_id === args.feedId &&
+              (!args.unreadOnly || !article.is_read),
           );
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
@@ -1674,7 +1794,9 @@ describe("ArticleView", () => {
           return [];
         case "mark_article_read":
           articlesState = articlesState.map((article) =>
-            article.id === args.articleId ? { ...article, is_read: Boolean(args.read) } : article,
+            article.id === args.articleId
+              ? { ...article, is_read: Boolean(args.read) }
+              : article,
           );
           return null;
         case "create_or_update_browser_webview":
@@ -1708,10 +1830,14 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Close Web Preview" }),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+      expect(useUiStore.getState().retainedArticleIds).toEqual(
+        new Set(["art-1"]),
+      );
       expect(useUiStore.getState().contentMode).toBe("browser");
       expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
     });
@@ -1788,7 +1914,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Close Web Preview" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().browserUrl).toBe(previewUrl);
@@ -1839,7 +1967,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Close Web Preview" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
   });
 
@@ -1850,7 +1980,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_account_articles":
-          return args.unreadOnly ? sampleArticles.filter((article) => article.id === "art-1") : offSourceArticles;
+          return args.unreadOnly
+            ? sampleArticles.filter((article) => article.id === "art-1")
+            : offSourceArticles;
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -1887,7 +2019,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Close Web Preview" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
     expect(useUiStore.getState().browserUrl).toBe(previewUrl);
   });
@@ -1924,7 +2058,9 @@ describe("ArticleView", () => {
     });
     rerender(<ArticleView />);
 
-    await userEvent.setup().click(await screen.findByRole("button", { name: "Close Web Preview" }));
+    await userEvent
+      .setup()
+      .click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("empty");
@@ -1977,14 +2113,27 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expect(summary).toHaveClass(readerPassiveCardOffsetClassName);
     expect(
-      within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }).closest('[data-surface-card="section"]'),
-    ).toHaveClass("rounded-3xl", "bg-card/38", "shadow-none", "dark:bg-card/38");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
+      within(summary)
+        .getByRole("heading", { level: 3, name: "Tech Blog" })
+        .closest('[data-surface-card="section"]'),
+    ).toHaveClass(
+      "rounded-3xl",
+      "bg-card/38",
+      "shadow-none",
+      "dark:bg-card/38",
+    );
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }),
+    ).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/^(Latest Update|latest_update)/i),
+    ).toBeInTheDocument();
     expect(within(summary).getByText("example.com")).toBeInTheDocument();
-    expect(within(summary).queryByRole("link", { name: "example.com" })).not.toBeInTheDocument();
+    expect(
+      within(summary).queryByRole("link", { name: "example.com" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2016,7 +2165,9 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }),
+    ).toBeInTheDocument();
     expect(within(summary).getAllByText("—").length).toBeGreaterThan(0);
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
@@ -2060,11 +2211,15 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: "Gaming" }),
+    ).toBeInTheDocument();
     expectSummaryLeadingVisual(summary, "size-5");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
     expectSummaryMetricMotionValue(summary, "Unread", "1");
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/^(Latest Update|latest_update)/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2098,11 +2253,15 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: "Tech" }),
+    ).toBeInTheDocument();
     expectSummaryLeadingVisual(summary, "size-3");
     expectSummaryMetricMotionValue(summary, "Articles", "2");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/^(Latest Update|latest_update)/i),
+    ).toBeInTheDocument();
   });
 
   it("renders an unread smart-view summary card when unread is selected without an article", async () => {
@@ -2117,13 +2276,17 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: /^Unread$/i })).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: /^Unread$/i }),
+    ).toBeInTheDocument();
     expectSummaryLeadingVisual(summary, "size-5");
     await waitFor(() => {
       expectSummaryMetricMotionValue(summary, "Articles", "1");
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/^(Latest Update|latest_update)/i),
+    ).toBeInTheDocument();
   });
 
   it("renders a starred smart-view summary card when starred is selected without an article", async () => {
@@ -2139,7 +2302,9 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: /^Starred$/i })).toBeInTheDocument();
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: /^Starred$/i }),
+    ).toBeInTheDocument();
     expectSummaryLeadingVisual(summary, "size-5");
     await waitFor(() => {
       expectSummaryMetricMotionValue(summary, "Articles", "1");
@@ -2164,9 +2329,17 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Add your first account")).toBeInTheDocument();
-    expect(screen.getByText("Add an account first to get subscriptions and sync ready.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add account…" })).toBeInTheDocument();
+    expect(
+      await screen.findByText("Add your first account"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Add an account first to get subscriptions and sync ready.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add account…" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2202,11 +2375,21 @@ describe("ArticleView", () => {
 
     expect(await screen.findByText("Add your first feed")).toBeInTheDocument();
     expect(
-      screen.getByText("Your account is ready. Add the first feed and the reading queue will come to life."),
+      screen.getByText(
+        "Your account is ready. Add the first feed and the reading queue will come to life.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Use the + button in the top-left to add a feed.")).toBeInTheDocument();
-    expect(screen.getByText("Paste a site URL or feed URL to discover feeds automatically.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Feed" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Use the + button in the top-left to add a feed."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Paste a site URL or feed URL to discover feeds automatically.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add Feed" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2247,7 +2430,9 @@ describe("ArticleView", () => {
 
     const articleEntry = render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Open Web Preview" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
@@ -2312,7 +2497,9 @@ describe("ArticleView", () => {
   });
 
   it("renders the reader after account articles finish loading", async () => {
-    let resolveAccountArticles: ((articles: typeof sampleArticles) => void) | undefined;
+    let resolveAccountArticles:
+      | ((articles: typeof sampleArticles) => void)
+      | undefined;
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -2345,7 +2532,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Article not found")).toHaveClass("text-foreground-soft");
+    expect(await screen.findByText("Article not found")).toHaveClass(
+      "text-foreground-soft",
+    );
     const resolveLoadedArticles = resolveAccountArticles;
     if (!resolveLoadedArticles) {
       throw new Error("account articles resolver was not set");
@@ -2354,7 +2543,9 @@ describe("ArticleView", () => {
     resolveLoadedArticles(sampleArticles);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { level: 1, name: "First Article" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { level: 1, name: "First Article" }),
+      ).toBeInTheDocument();
     });
 
     expect(useUiStore.getState().contentMode).toBe("reader");
@@ -2387,16 +2578,27 @@ describe("ArticleView", () => {
       { wrapper: createWrapper() },
     );
 
-    const warning = await screen.findByText("This article does not support web preview");
+    const warning = await screen.findByText(
+      "This article does not support web preview",
+    );
 
     expect(screen.getByTestId("article-reader-body")).toHaveClass("min-h-0");
     expect(screen.getByTestId("article-reader-body")).toHaveClass("flex-1");
-    expect(screen.getByTestId("article-reader-scroll-area")).toHaveClass("h-full");
+    expect(screen.getByTestId("article-reader-scroll-area")).toHaveClass(
+      "h-full",
+    );
     expect(
-      screen.getByRole("heading", { level: 1, name: "First Article" }).closest('[data-slot="scroll-area-content"]'),
+      screen
+        .getByRole("heading", { level: 1, name: "First Article" })
+        .closest('[data-slot="scroll-area-content"]'),
     ).toHaveClass("pr-3");
-    expect(screen.getByTestId("article-reader-body").querySelector(".border-t")).toHaveClass("border-border/20");
-    expect(warning).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
+    expect(
+      screen.getByTestId("article-reader-body").querySelector(".border-t"),
+    ).toHaveClass("border-border/20");
+    expect(warning).toHaveClass(
+      "bg-state-warning-surface",
+      "text-state-warning-foreground",
+    );
   });
 
   it("scrolls the reader viewport with arrows, Space, and Shift+Space", async () => {
@@ -2419,9 +2621,16 @@ describe("ArticleView", () => {
       ).join(""),
     };
 
-    render(<ArticlePane article={longArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
+    render(
+      <ArticlePane
+        article={longArticle}
+        feed={{ ...primaryFeed, reader_mode: "on" }}
+        feedName="Tech Blog"
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
     const viewport = getArticleReaderViewport();
@@ -2457,7 +2666,11 @@ describe("ArticleView", () => {
     });
 
     const { rerender } = render(
-      <ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />,
+      <ArticlePane
+        article={primaryArticle}
+        feed={{ ...primaryFeed, reader_mode: "on" }}
+        feedName="Tech Blog"
+      />,
       { wrapper: createWrapper() },
     );
 
@@ -2490,13 +2703,25 @@ describe("ArticleView", () => {
     });
     useUiStore.setState({ articleNavigationDirection: 1 });
 
-    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
+    render(
+      <ArticlePane
+        article={primaryArticle}
+        feed={{ ...primaryFeed, reader_mode: "on" }}
+        feedName="Tech Blog"
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
-    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "next");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass(
+      "motion-article-slide",
+    );
+    expect(screen.getByTestId("article-reader-body")).toHaveAttribute(
+      "data-motion-direction",
+      "next",
+    );
   });
 
   it("marks the reader body with the previous-article slide direction", async () => {
@@ -2512,13 +2737,25 @@ describe("ArticleView", () => {
     });
     useUiStore.setState({ articleNavigationDirection: -1 });
 
-    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
+    render(
+      <ArticlePane
+        article={primaryArticle}
+        feed={{ ...primaryFeed, reader_mode: "on" }}
+        feedName="Tech Blog"
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
-    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "prev");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass(
+      "motion-article-slide",
+    );
+    expect(screen.getByTestId("article-reader-body")).toHaveAttribute(
+      "data-motion-direction",
+      "prev",
+    );
   });
 
   it("uses the neutral article slide direction for direct selection", async () => {
@@ -2533,13 +2770,25 @@ describe("ArticleView", () => {
       }
     });
 
-    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
+    render(
+      <ArticlePane
+        article={primaryArticle}
+        feed={{ ...primaryFeed, reader_mode: "on" }}
+        feedName="Tech Blog"
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
-    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "neutral");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass(
+      "motion-article-slide",
+    );
+    expect(screen.getByTestId("article-reader-body")).toHaveAttribute(
+      "data-motion-direction",
+      "neutral",
+    );
   });
 
   it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {
@@ -2554,8 +2803,12 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("heading", { name: "Subscriptions" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { level: 1, name: "First Article" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Subscriptions" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { level: 1, name: "First Article" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the share menu button when an article is selected", async () => {
@@ -2569,10 +2822,17 @@ describe("ArticleView", () => {
       { wrapper: createWrapper() },
     );
 
-    const shareButton = (await screen.findAllByRole("button", { name: "Share" }))[0];
+    const shareButton = (
+      await screen.findAllByRole("button", { name: "Share" })
+    )[0];
     expect(shareButton).toBeInTheDocument();
     expect(shareButton).toBeEnabled();
-    expect(shareButton).toHaveClass("size-11", "md:size-8", "rounded-md", "text-foreground-soft");
+    expect(shareButton).toHaveClass(
+      "size-11",
+      "md:size-8",
+      "rounded-md",
+      "text-foreground-soft",
+    );
   });
 
   it("disables the share menu button when no article is selected", async () => {
@@ -2601,10 +2861,14 @@ describe("ArticleView", () => {
         { wrapper: createWrapper() },
       );
 
-      await user.click(await screen.findByRole("button", { name: "Share" }, ciWaitOptions));
+      await user.click(
+        await screen.findByRole("button", { name: "Share" }, ciWaitOptions),
+      );
       await screen.findByRole("menuitem", { name: "Copy link" }, ciWaitOptions);
 
-      expect(screen.queryByRole("menuitem", { name: "Add to Reading List" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("menuitem", { name: "Add to Reading List" }),
+      ).not.toBeInTheDocument();
     },
     readingListTestTimeout,
   );
@@ -2625,10 +2889,18 @@ describe("ArticleView", () => {
         { wrapper: createWrapper() },
       );
 
-      await user.click(await screen.findByRole("button", { name: "Share" }, ciWaitOptions));
+      await user.click(
+        await screen.findByRole("button", { name: "Share" }, ciWaitOptions),
+      );
       await screen.findByRole("menuitem", { name: "Copy link" }, ciWaitOptions);
 
-      expect(await screen.findByRole("menuitem", { name: "Add to Reading List" }, ciWaitOptions)).toBeInTheDocument();
+      expect(
+        await screen.findByRole(
+          "menuitem",
+          { name: "Add to Reading List" },
+          ciWaitOptions,
+        ),
+      ).toBeInTheDocument();
     },
     readingListTestTimeout,
   );
@@ -2666,9 +2938,16 @@ describe("ArticleView", () => {
         throw new Error("primaryArticle fixture is missing");
       }
 
-      render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-        wrapper: createWrapper(),
-      });
+      render(
+        <ArticlePane
+          article={primaryArticle}
+          feed={primaryFeed}
+          feedName="Feed One"
+        />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
 
       calls.length = 0;
       fireEvent(window, new Event(keyboardEvents.addToReadingList));
@@ -2715,9 +2994,16 @@ describe("ArticleView", () => {
         throw new Error("primaryArticle fixture is missing");
       }
 
-      render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-        wrapper: createWrapper(),
-      });
+      render(
+        <ArticlePane
+          article={primaryArticle}
+          feed={primaryFeed}
+          feedName="Feed One"
+        />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
 
       calls.length = 0;
       fireEvent(window, new Event(keyboardEvents.addToReadingList));

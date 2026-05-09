@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectMeasurableBox } from "./helpers/measurable-box";
 import {
   disposeRuntimeErrorGuard,
@@ -14,6 +14,10 @@ const subscriptionsReviewHeadingName = /Needs review|要確認/i;
 
 function subscriptionRows(page: Page) {
   return page.locator('[data-testid^="subscriptions-folder-tree-rail-"] button');
+}
+
+async function expectLocatorsVisibleInParallel(locators: Locator[]) {
+  await Promise.all(locators.map((locator) => expect(locator).toBeVisible()));
 }
 
 async function openSubscriptionsIndex(page: Page) {
@@ -41,8 +45,10 @@ async function openSubscriptionReview(page: Page) {
 async function openSubscriptionInventory(page: Page) {
   await openSubscriptionsIndex(page);
 
-  await expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible();
-  await expect(subscriptionRows(page).first()).toBeVisible();
+  await Promise.all([
+    expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible(),
+    expect(subscriptionRows(page).first()).toBeVisible(),
+  ]);
 }
 
 test.describe("Ultra RSS Reader - basic rendering", () => {
@@ -64,8 +70,10 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   });
 
   test("renders sidebar controls", async ({ page }) => {
-    await expect(page.getByRole("button", { name: /Sync feeds|フィードを同期/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Settings|設定/ })).toBeVisible();
+    await expectLocatorsVisibleInParallel([
+      page.getByRole("button", { name: /Sync feeds|フィードを同期/ }),
+      page.getByRole("button", { name: /Settings|設定/ }),
+    ]);
   });
 
   test("shows empty state message", async ({ page }) => {
@@ -119,16 +127,20 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.goto("/");
 
-    await expect(page.getByTestId("sliding-pane-tray")).toBeVisible();
-    await expect(page.getByTestId("wide-sidebar-shell")).toHaveCount(0);
+    await Promise.all([
+      expect(page.getByTestId("sliding-pane-tray")).toBeVisible(),
+      expect(page.getByTestId("wide-sidebar-shell")).toHaveCount(0),
+    ]);
 
     const markAllReadButton = page.getByRole("button", { name: /Mark all as read|すべて既読にする/i });
     const searchButton = page.getByRole("button", { name: /Search articles|記事を検索/i });
 
-    await expect(markAllReadButton).toBeVisible();
-    await expect(searchButton).toBeVisible();
-    await expect(markAllReadButton).not.toContainText(/Read|既読/);
-    await expect(searchButton).not.toContainText(/Search|検索/);
+    await Promise.all([
+      expect(markAllReadButton).toBeVisible(),
+      expect(searchButton).toBeVisible(),
+      expect(markAllReadButton).not.toContainText(/Read|既読/),
+      expect(searchButton).not.toContainText(/Search|検索/),
+    ]);
 
     const mobilePaneMetrics = await markAllReadButton.evaluate(() => {
       const tray = document.querySelector<HTMLElement>('[data-testid="sliding-pane-tray"]');
@@ -157,8 +169,10 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     await moreActionsButton.click();
 
-    await expect(page.getByRole("menuitem", { name: /Copy link|リンクをコピー/i })).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: /Open in External Browser|外部ブラウザで開く/i })).toBeVisible();
+    await expectLocatorsVisibleInParallel([
+      page.getByRole("menuitem", { name: /Copy link|リンクをコピー/i }),
+      page.getByRole("menuitem", { name: /Open in External Browser|外部ブラウザで開く/i }),
+    ]);
   });
 
   test("opens subscription review from the subscriptions index and shows split review controls", async ({ page }) => {
@@ -167,12 +181,14 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     await openSubscriptionReview(page);
 
-    await expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible();
-    await expect(page.getByRole("button", { name: subscriptionsReviewFilterButtonName })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(page.getByTestId("subscriptions-detail-pane")).toBeVisible();
+    await Promise.all([
+      expect(page.getByRole("heading", { name: subscriptionsReviewHeadingName })).toBeVisible(),
+      expect(page.getByRole("button", { name: subscriptionsReviewFilterButtonName })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+      expect(page.getByTestId("subscriptions-detail-pane")).toBeVisible(),
+    ]);
   });
 
   test("keeps subscription detail actions below the inventory heading on narrow screens", async ({ page }) => {
@@ -186,11 +202,12 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
       .first();
     const inventoryHeading = page.getByRole("heading", { name: subscriptionsInventoryHeadingName });
 
-    await expect(detailActions).toBeVisible();
-    await expect(inventoryHeading).toBeVisible();
+    await Promise.all([expect(detailActions).toBeVisible(), expect(inventoryHeading).toBeVisible()]);
 
-    const actionBox = await expectMeasurableBox(detailActions, "subscription detail controls");
-    const headingBox = await expectMeasurableBox(inventoryHeading, "subscription inventory heading");
+    const [actionBox, headingBox] = await Promise.all([
+      expectMeasurableBox(detailActions, "subscription detail controls"),
+      expectMeasurableBox(inventoryHeading, "subscription inventory heading"),
+    ]);
 
     expect(actionBox.y).toBeGreaterThan(headingBox.y);
   });
@@ -238,8 +255,10 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const subscriptionRail = page.locator('[data-testid^="subscriptions-folder-tree-rail-"]').first();
     const firstRow = subscriptionRows(page).first();
 
-    const railBox = await expectMeasurableBox(subscriptionRail, "subscription rail");
-    const rowBox = await expectMeasurableBox(firstRow, "subscription row");
+    const [railBox, rowBox] = await Promise.all([
+      expectMeasurableBox(subscriptionRail, "subscription rail"),
+      expectMeasurableBox(firstRow, "subscription row"),
+    ]);
 
     expect(Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(1);
   });

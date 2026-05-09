@@ -1251,7 +1251,7 @@ describe("repository static contracts", () => {
   });
 
   it("allows the embedded browser child webview to invoke its native commands", () => {
-    expect(defaultCapability.webviews).toEqual(["main", "browser-preview"]);
+    expect(defaultCapability.webviews).toEqual(["main", "browser-webview"]);
     expect(defaultCapability.permissions).toEqual(
       expect.arrayContaining([
         "core:default",

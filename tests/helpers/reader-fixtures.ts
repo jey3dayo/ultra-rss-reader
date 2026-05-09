@@ -1,4 +1,9 @@
-import type { listArticles, listFeeds, listFolders, listTags } from "@/api/tauri-commands";
+import type {
+  listArticles,
+  listFeeds,
+  listFolders,
+  listTags,
+} from "@/api/tauri-commands";
 import {
   type CommandListItem,
   cloneFixtureSeed,
@@ -103,10 +108,14 @@ export const sampleArticleTagSeeds: ReadonlyFixtureSeed<ArticleTagFixture> = [
   },
 ];
 
-export const sampleFolders: MutableTestFixture<FolderFixture> = cloneFixtureSeed(sampleFolderSeeds);
-export const sampleFeeds: MutableTestFixture<FeedFixture> = cloneFixtureSeed(sampleFeedSeeds);
-export const sampleArticles: MutableTestFixture<ArticleFixture> = cloneFixtureSeed(sampleArticleSeeds);
-export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> = cloneFixtureSeed(sampleArticleTagSeeds);
+export const sampleFolders: MutableTestFixture<FolderFixture> =
+  cloneFixtureSeed(sampleFolderSeeds);
+export const sampleFeeds: MutableTestFixture<FeedFixture> =
+  cloneFixtureSeed(sampleFeedSeeds);
+export const sampleArticles: MutableTestFixture<ArticleFixture> =
+  cloneFixtureSeed(sampleArticleSeeds);
+export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> =
+  cloneFixtureSeed(sampleArticleTagSeeds);
 
 export function createSampleFeeds(): MutableTestFixture<FeedFixture> {
   return cloneFixtureSeed(sampleFeedSeeds);
@@ -124,7 +133,68 @@ export function createSampleArticleTags(): MutableTestFixture<ArticleTagFixture>
   return cloneFixtureSeed(sampleArticleTagSeeds);
 }
 
-export function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId: string | undefined): Set<string> {
+export function requireSampleFeed(feedId: FeedFixture["id"]): FeedFixture {
+  const feed = sampleFeeds.find((sampleFeed) => sampleFeed.id === feedId);
+
+  if (!feed) {
+    throw new Error(`Expected sample feed fixture for ${feedId}`);
+  }
+
+  return feed;
+}
+
+export function requireSampleArticle(
+  articleId: ArticleFixture["id"],
+): ArticleFixture {
+  const article = sampleArticles.find(
+    (sampleArticle) => sampleArticle.id === articleId,
+  );
+
+  if (!article) {
+    throw new Error(`Expected sample article fixture for ${articleId}`);
+  }
+
+  return article;
+}
+
+export function requireSampleUnreadArticle(): ArticleFixture {
+  const article = sampleArticles.find(
+    (sampleArticle) => !sampleArticle.is_read,
+  );
+
+  if (!article) {
+    throw new Error("Expected unread sample article fixture");
+  }
+
+  return article;
+}
+
+export function requireSampleReadArticle(): ArticleFixture {
+  const article = sampleArticles.find((sampleArticle) => sampleArticle.is_read);
+
+  if (!article) {
+    throw new Error("Expected read sample article fixture");
+  }
+
+  return article;
+}
+
+export function requireSampleStarredArticle(): ArticleFixture {
+  const article = sampleArticles.find(
+    (sampleArticle) => sampleArticle.is_starred,
+  );
+
+  if (!article) {
+    throw new Error("Expected starred sample article fixture");
+  }
+
+  return article;
+}
+
+export function collectFeedIdsByAccount(
+  feeds: readonly FeedFixture[],
+  accountId: string | undefined,
+): Set<string> {
   const feedIds = new Set<string>();
 
   for (const feed of feeds) {
@@ -149,6 +219,36 @@ export function listArticlesByFeedId(
   }
 
   return selectedArticles;
+}
+
+export function listSampleFeedsByAccountId(
+  accountId: string | undefined,
+): FeedFixture[] {
+  const selectedFeeds: FeedFixture[] = [];
+
+  for (const feed of sampleFeeds) {
+    if (feed.account_id === accountId) {
+      selectedFeeds.push(feed);
+    }
+  }
+
+  return selectedFeeds;
+}
+
+export function listSampleArticlesByFeedId(
+  feedId: string | undefined,
+): ArticleFixture[] {
+  return listArticlesByFeedId(sampleArticles, feedId);
+}
+
+export function listSampleArticlesByAccountId(
+  accountId: string | undefined,
+): ArticleFixture[] {
+  return listArticlesByAccountId({
+    articles: sampleArticles,
+    feeds: sampleFeeds,
+    accountId,
+  });
 }
 
 export function listArticlesByAccountId({
