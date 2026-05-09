@@ -3,8 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import {
   UpdateDownloadProgressEventPayloadSchema,
-  UpdateReadyEventPayloadSchema,
   type UpdateInfoDto,
+  UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";

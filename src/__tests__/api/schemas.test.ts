@@ -60,7 +60,7 @@ import {
   updateFeedFolderArgs,
 } from "@/api/schemas";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
-import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
+import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
 
 function readTauriCommandsSource() {
   return readFileSync(join(process.cwd(), "src/api/tauri-commands.ts"), "utf8");
@@ -816,32 +816,71 @@ describe("DTO schemas", () => {
       body: null,
       source: "github-latest-json",
     };
-    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, channel: "beta", prerelease: false })).toThrow();
-    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, channel: "stable", prerelease: true })).toThrow();
+    expect(() =>
+      UpdateInfoDtoSchema.parse({
+        ...stableUpdate,
+        channel: "beta",
+        prerelease: false,
+      }),
+    ).toThrow();
+    expect(() =>
+      UpdateInfoDtoSchema.parse({
+        ...stableUpdate,
+        channel: "stable",
+        prerelease: true,
+      }),
+    ).toThrow();
   });
   it("accepts finite updater progress event payloads and rejects malformed values", () => {
     expect(
       UpdateDownloadProgressEventPayloadSchema.parse({
+        session_id: 1,
         percent: 42,
         loaded: 100,
       }),
     ).toEqual({
+      session_id: 1,
       percent: 42,
       loaded: 100,
     });
-    expect(UpdateDownloadProgressEventPayloadSchema.parse({ percent: null })).toEqual({ percent: null });
-    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ percent: "42" }).success).toBe(false);
+    expect(
+      UpdateDownloadProgressEventPayloadSchema.parse({
+        session_id: 1,
+        percent: null,
+      }),
+    ).toEqual({
+      session_id: 1,
+      percent: null,
+    });
     expect(
       UpdateDownloadProgressEventPayloadSchema.safeParse({
+        session_id: 1,
+        percent: "42",
+      }).success,
+    ).toBe(false);
+    expect(
+      UpdateDownloadProgressEventPayloadSchema.safeParse({
+        session_id: 1,
         percent: Number.NaN,
       }).success,
     ).toBe(false);
     expect(
       UpdateDownloadProgressEventPayloadSchema.safeParse({
+        session_id: 1,
         percent: Number.POSITIVE_INFINITY,
       }).success,
     ).toBe(false);
+    expect(
+      UpdateDownloadProgressEventPayloadSchema.safeParse({
+        session_id: 0,
+        percent: 42,
+      }).success,
+    ).toBe(false);
     expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ loaded: 100 }).success).toBe(false);
+    expect(UpdateReadyEventPayloadSchema.parse({ session_id: 1 })).toEqual({
+      session_id: 1,
+    });
+    expect(UpdateReadyEventPayloadSchema.safeParse({ session_id: 0 }).success).toBe(false);
   });
   it("rejects unknown backend DTO fields while preserving updater progress event passthrough fields", () => {
     expect(
@@ -896,7 +935,14 @@ describe("DTO schemas", () => {
         backend_added_field: "unexpected",
       }).success,
     ).toBe(false);
-    expect(UpdateDownloadProgressEventPayloadSchema.parse({ percent: 1, loaded: 100 })).toEqual({
+    expect(
+      UpdateDownloadProgressEventPayloadSchema.parse({
+        session_id: 1,
+        percent: 1,
+        loaded: 100,
+      }),
+    ).toEqual({
+      session_id: 1,
       percent: 1,
       loaded: 100,
     });

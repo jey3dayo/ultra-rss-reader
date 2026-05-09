@@ -529,8 +529,10 @@ describe("performUpdateCheck", () => {
   });
 
   it("normalizes download progress event percent before updating the toast", async () => {
+    const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
     const progressListeners: Array<(event: { payload: unknown }) => void> = [];
     mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockDownloadAndInstallUpdate.mockReturnValue(deferredDownload.promise);
     mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
       if (eventName === "update-download-progress") {
         progressListeners.push(callback);
@@ -539,7 +541,7 @@ describe("performUpdateCheck", () => {
     });
 
     const {
-      updaterModule: { useUpdater },
+      updaterModule: { showUpdateAvailableToast, useUpdater },
       useUiStore,
     } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
@@ -547,42 +549,50 @@ describe("performUpdateCheck", () => {
     renderHook(() => useUpdater());
     await flushAsyncWork();
 
-    progressListeners[0]?.({ payload: { percent: null } });
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    progressListeners[0]?.({ payload: { session_id: 1, percent: null } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中…",
       progress: null,
       variant: "update",
     });
 
-    progressListeners[0]?.({ payload: { percent: 0 } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: 0 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中… 0%",
       progress: 0,
     });
 
-    progressListeners[0]?.({ payload: { percent: 100 } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: 100 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中… 100%",
       progress: 100,
     });
 
-    progressListeners[0]?.({ payload: { percent: -12 } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: -12 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中… 0%",
       progress: 0,
     });
 
-    progressListeners[0]?.({ payload: { percent: 120 } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: 120 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中… 100%",
       progress: 100,
     });
 
-    progressListeners[0]?.({ payload: { percent: 42.4 } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: 42.4 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中… 42%",
       progress: 42,
     });
+
+    deferredDownload.resolve(Result.succeed(null));
   });
 
   it("ignores malformed download progress events", async () => {
@@ -614,9 +624,11 @@ describe("performUpdateCheck", () => {
 
     progressListeners[0]?.({ payload: null });
     progressListeners[0]?.({ payload: [] });
-    progressListeners[0]?.({ payload: { percent: "50" } });
-    progressListeners[0]?.({ payload: { percent: Number.NaN } });
-    progressListeners[0]?.({ payload: { percent: Number.POSITIVE_INFINITY } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: "50" } });
+    progressListeners[0]?.({ payload: { session_id: 1, percent: Number.NaN } });
+    progressListeners[0]?.({
+      payload: { session_id: 1, percent: Number.POSITIVE_INFINITY },
+    });
     progressListeners[0]?.({ payload: { loaded: 1 } });
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
@@ -624,5 +636,64 @@ describe("performUpdateCheck", () => {
       progress: 42,
       variant: "update",
     });
+  });
+
+  it("keeps updater progress and ready events scoped to the active download session", async () => {
+    const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    const progressListeners: Array<(event: { payload: unknown }) => void> = [];
+    const readyListeners: Array<(event: { payload: unknown }) => void> = [];
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockDownloadAndInstallUpdate.mockReturnValue(deferredDownload.promise);
+    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+      if (eventName === "update-download-progress") {
+        progressListeners.push(callback);
+      }
+      if (eventName === "update-ready") {
+        readyListeners.push(callback);
+      }
+      return () => {};
+    });
+
+    const {
+      updaterModule: { showUpdateAvailableToast, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    await flushAsyncWork();
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    progressListeners[0]?.({ payload: { session_id: 7, percent: 10 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 10%",
+      progress: 10,
+    });
+
+    progressListeners[0]?.({ payload: { session_id: 8, percent: 90 } });
+    readyListeners[0]?.({ payload: { session_id: 8 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 10%",
+      progress: 10,
+    });
+
+    readyListeners[0]?.({ payload: { session_id: 7 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "更新の準備ができました",
+      variant: "update",
+    });
+
+    progressListeners[0]?.({ payload: { session_id: 7, percent: 99 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "更新の準備ができました",
+      variant: "update",
+    });
+
+    deferredDownload.resolve(Result.succeed(null));
   });
 });
