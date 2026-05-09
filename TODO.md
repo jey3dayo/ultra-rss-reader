@@ -277,6 +277,86 @@
   - `TAURI_DEV_PORT` は blank / fractional / zero / negative を拒否し、Vite 起動ポートと既存プロセス確認が同じ値を見ることを固定する
   - Tauri CLI dispatch や app E2E scenario とは混ぜず、dev server manager の static test に限定する
 
+- [ ] article list search close stale query 候補を追加する
+  - `src/components/reader/hooks/article-list/use-article-list-search.ts` で検索 UI を閉じた時に `debouncedQuery` も即時 clear する
+  - `showSearch` が false の間は `useSearchArticles` に古い query が残らない contract を追加する
+  - whitespace-only query disable とは別に、検索 close 後の stale query / cache だけを扱う
+
+- [ ] article star toggle mode-aware cache 候補を追加する
+  - `src/hooks/use-articles.ts` の star toggle cache patch で `accountArticles` query key の `mode` を見て挿入条件を分ける
+  - read 済み記事を一時的に `unread` cache へ `insertIfMissing` しない contract を追加する
+  - query wrapper 全体の整理ではなく、`useToggleStar` の optimistic cache 更新だけに限定する
+
+- [ ] reader data selector escaping 候補を追加する
+  - `src/components/reader/hooks/article-list/use-article-list-navigation.ts` の `data-article-id` selector に ID を直接埋め込まないようにする
+  - `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts` の `data-feed-id` selector も同じ helper か DOM 走査に寄せる
+  - reader focus 復帰の広い責務整理とは分け、quote などを含む ID で selector が壊れない contract に限定する
+
+- [ ] article list primary loading naming 候補を追加する
+  - `src/components/reader/hooks/article-list/use-article-list-sources.ts` の primary source loading を `isLoadingAccountArticles` に詰め替えない形へ整理する
+  - `src/components/reader/hooks/article-list/use-article-list-view-state.ts` で folder / recent loading の意味が型名から分かる contract にする
+  - article scope matrix の再設計ではなく、loading state の命名・伝搬だけを扱う
+
+- [ ] tag deletion selection fallback 候補を追加する
+  - `src/components/reader/tag-context-menu.tsx` と `src/hooks/use-tags.ts` で現在選択中の tag 削除後に reader selection を fallback する
+  - `selection.type === "tag"` かつ削除対象 ID の時だけ `selectAll` か smart unread へ戻す contract を追加する
+  - tag section empty/open UI とは分け、削除済み selection が残らない状態整合性だけを扱う
+
+- [ ] article auto mark retained rollback 候補を追加する
+  - `src/components/reader/hooks/article/use-article-auto-mark.ts` で auto mark read 失敗時の retained article state を rollback するか現仕様を test で固定する
+  - toast 表示だけで未読 view に retained 状態が残らない contract を追加する
+  - 手動既読・スター操作の error feedback とは分け、auto mark timer 経路だけを扱う
+
+- [ ] sync provider post-write failure contract 候補を追加する
+  - `src-tauri/src/commands/sync_providers.rs` で `mark_muted_unread_as_read` / `recalculate_unread_count` の失敗を `let _ =` で捨てない
+  - local feed sync の post-write 整合性として warning 化または hard error 化する contract test を追加する
+  - scheduler retry や sidebar invalidation ではなく、provider sync 内部の count / mute 整合性だけを扱う
+
+- [ ] GReader pending mutation DB error contract 候補を追加する
+  - `src-tauri/src/commands/sync_providers.rs` の `pending_mutation_targets_provider_managed_greader_feed` で DB error と対象なしを分離する
+  - `QueryReturnedNoRows` 以外の error では pending mutation を削除しない contract を追加する
+  - provider parsing 互換性ではなく、pending mutation 削除判定の DB error handling に限定する
+
+- [ ] add local feed unread count failure 候補を追加する
+  - `src-tauri/src/commands/feed_commands.rs` の `add_local_feed` 後 unread count 再計算失敗を `.unwrap_or(0)` で成功扱いにしない
+  - 再計算失敗を command error にするか、保存済み feed の count を再読込する contract を追加する
+  - frontend add-feed race とは分け、backend command の永続化後 count contract だけを扱う
+
+- [ ] tag article list limit guard 候補を追加する
+  - `src-tauri/src/commands/tag_commands.rs` の `list_articles_by_tag` で極端な `limit` を clamp または reject する
+  - tag article list の pagination resource guard として境界値 test を追加する
+  - tag name / color validation や unknown mode error とは別に、limit 上限だけを扱う
+
+- [ ] dev credentials env truthy parsing 候補を追加する
+  - `src-tauri/src/platform/mod.rs` の `DEV_CREDENTIALS` を env 存在だけで有効化せず truthy 値だけ許可する
+  - `1` / `true` と `0` / `false` / blank の contract を追加する
+  - platform abstraction 全体ではなく、dev credential env semantics の一点修正に限定する
+
+- [ ] dev keyring file permission contract 候補を追加する
+  - `src-tauri/src/infra/keyring_store.rs` の dev credential store で `set_permissions(0600)` 失敗を無視しない
+  - Unix permission 設定失敗を `DomainError::Keychain` または warning として観測できる contract を追加する
+  - native keyring 保存・復元の広い検証ではなく、dev store file permission hardening だけを扱う
+
+- [ ] Storybook update toast runtime guard 候補を追加する
+  - `e2e/storybook/update-toast.spec.ts` の `openShellOverlayStory` に `pageerror` 収集と Storybook error 表示検出を追加する
+  - toast の表示・寸法 assertion だけでは見逃す runtime error を smoke contract として拾う
+  - app E2E runtime guard や Storybook registry drift とは別に、update toast 専用 smoke を扱う
+
+- [ ] Tauri mock unhandled command strictness 候補を追加する
+  - `tests/helpers/tauri-mocks.ts` で未対応 command が `undefined` を返さず、明示的に `Unhandled Tauri mock command` として失敗するようにする
+  - 必要なら opt-out 付き strict mode にし、mock 追加漏れを後段の曖昧な failure にしない
+  - argument coercion strictness とは別に、未mock command 検出契約だけを扱う
+
+- [ ] CI pnpm store cache 候補を追加する
+  - `.github/workflows/ci.yml` の各 job に release workflow と同じ `pnpm store path` / `actions/cache` パターンを追加できるか確認する
+  - `pnpm install --frozen-lockfile` の重複 install cost を下げる runtime improvement として扱う
+  - quality gate needs や labeler taxonomy 変更とは混ぜない
+
+- [ ] docs reader article scope matrix index 候補を追加する
+  - `docs/README.md` の Operational Docs に `docs/reader-article-scope-matrix.md` を追加する
+  - `CLAUDE.md` が source of truth として参照する文書を docs index から辿れるようにする
+  - markdown link contract や docs 全体再編とは分け、案内漏れの 1 行追加に限定する
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
