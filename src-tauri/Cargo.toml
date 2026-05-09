@@ -18,7 +18,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # `unstable` is required for the embedded browser child webview boundary:
-# `Window::add_child` creates the `browser-preview` webview and the runtime
+# `Window::add_child` creates the `browser-webview` webview and the runtime
 # navigation/focus/close commands operate on that child webview in release
 # builds. Remove this feature only after replacing those APIs with stable Tauri
 # equivalents and release-smoke the browser preview open, resize, navigation,

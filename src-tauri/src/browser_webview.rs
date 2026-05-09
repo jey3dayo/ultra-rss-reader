@@ -1349,7 +1349,7 @@ mod tests {
         should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
         BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
         BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
-        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
+        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK, BROWSER_WEBVIEW_LABEL,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1729,6 +1729,25 @@ mod tests {
             wrong_opened_external_type
         )
         .is_err());
+    }
+
+    #[test]
+    fn default_capability_includes_child_webview_for_injected_command_invokes() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../capabilities/default.json"))
+                .expect("default capability should be valid JSON");
+        let webviews = capability["webviews"]
+            .as_array()
+            .expect("default capability webviews should be an array");
+
+        assert!(
+            webviews.iter().any(|value| value == "main"),
+            "main webview must keep command/plugin permissions"
+        );
+        assert!(
+            webviews.iter().any(|value| value == BROWSER_WEBVIEW_LABEL),
+            "{BROWSER_WEBVIEW_LABEL} must share the default capability so injected browser preview scripts can invoke commands"
+        );
     }
 
     #[test]
