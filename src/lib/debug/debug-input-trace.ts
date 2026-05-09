@@ -3,24 +3,30 @@ import { formatDebugTimestamp } from "@/lib/datetime";
 
 export type DebugTraceSource = "input" | "browser_geometry" | "sync_error" | "app";
 
+function removeDebugTimestampPrefix(message: string): string {
+  return message.replace(/^\d{2}:\d{2}:\d{2}\.\d{3} /, "");
+}
+
 export function resolveDebugTraceSource(message: string): DebugTraceSource {
+  const traceMessage = removeDebugTimestampPrefix(message);
+
   if (
-    message.startsWith("raw-key ") ||
-    message.startsWith("raw-pointer ") ||
-    message.startsWith("raw-click ") ||
-    message.startsWith("window-key ") ||
-    message.startsWith("window-mouse ") ||
-    message.startsWith("list-key ") ||
-    message.startsWith("menu-action ")
+    traceMessage.startsWith("raw-key ") ||
+    traceMessage.startsWith("raw-pointer ") ||
+    traceMessage.startsWith("raw-click ") ||
+    traceMessage.startsWith("window-key ") ||
+    traceMessage.startsWith("window-mouse ") ||
+    traceMessage.startsWith("list-key ") ||
+    traceMessage.startsWith("menu-action ")
   ) {
     return "input";
   }
 
-  if (message.startsWith("browser-geometry ")) {
+  if (traceMessage.startsWith("browser-geometry ")) {
     return "browser_geometry";
   }
 
-  if (message.startsWith("sync-error ")) {
+  if (traceMessage.startsWith("sync-error ")) {
     return "sync_error";
   }
 

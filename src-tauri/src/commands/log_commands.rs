@@ -35,11 +35,16 @@ mod tests {
 
     #[test]
     fn log_dir_errors_keep_only_recovery_copy() {
-        let message = log_dir_error_message("open", "permission denied");
+        for action in ["resolve", "create", "open"] {
+            let message = log_dir_error_message(action, "permission denied");
 
-        assert_eq!(message, "Check OS permissions and try again.");
-        assert!(!message.contains("Failed to open log directory"));
-        assert!(!message.contains("permission denied"));
-        assert!(!message.contains("debug trace"));
+            assert_eq!(message, "Check OS permissions and try again.");
+            assert!(!message.contains("Failed to open log directory"));
+            assert!(!message.contains("permission denied"));
+            assert!(!message.contains("debug trace"));
+            assert!(!message.contains("raw-key"));
+            assert!(!message.contains("browser-geometry"));
+            assert!(!message.contains("sync-error"));
+        }
     }
 }
