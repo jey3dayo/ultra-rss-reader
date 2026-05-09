@@ -107,7 +107,7 @@ export function IconToolbarButton({
 
     onClick();
   };
-  const preventAriaDisabledKeyboardActivation = (event: KeyboardEvent<HTMLButtonElement>) => {
+  const handleToolbarButtonKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (ariaDisabled && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       event.stopPropagation();
@@ -118,7 +118,7 @@ export function IconToolbarButton({
     <AppTooltip label={tooltipLabel ?? label} side={tooltipSide} align={tooltipAlign} sideOffset={tooltipSideOffset}>
       <ButtonPrimitive
         onClick={handleToolbarButtonClick}
-        onKeyDown={preventAriaDisabledKeyboardActivation}
+        onKeyDown={handleToolbarButtonKeyDown}
         className={cn(iconToolbarButtonClassName, className)}
         disabled={disabled}
         aria-disabled={ariaDisabled || undefined}
