@@ -85,16 +85,6 @@
   - 元の toolbar button 等を記憶していても、選択 article row があれば先にそこへ focus するため、キーボード操作では「閉じたら元の操作ボタンへ戻る」期待とズレやすい
   - open-in-browser button から overlay open/close した時の focus return test を追加し、article row 優先か previous target 優先かを明文化する
 
-- [ ] P1 updater install/restart 中の sync・DB write gate を固定する
-  - 対象: `src/hooks/use-updater.ts`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`
-  - update download/install は restart を伴う一方、manual/automatic sync や DB maintenance が走っている時の禁止・待機・中断方針が見えにくい
-  - installing update 中の sync 開始、sync 中の update install、download failure after ready state の UI/command contract test を追加する
-
-- [ ] P1 updater manifest の channel / prerelease / downgrade policy を固定する
-  - 対象: `src-tauri/tauri.conf.json`, `src-tauri/tauri.release.conf.json`, `src/api/schemas/update-info.ts`, `src/hooks/use-updater.ts`
-  - update endpoint が `latest.json` 固定のため、prerelease、downgrade、same version、platform mismatch の扱いが曖昧だと release 運用で誤配信に気づきにくい
-  - fake update manifest で newer/same/older/prerelease/platform mismatch を固定し、UI 表示と install 可否を schema test にする
-
 - [ ] P2 article view history cleanup / retention policy を決める
   - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
@@ -120,11 +110,6 @@
   - visibilitychange や wake/startup sync が重なると、foreground 復帰時に manual sync、automatic sync、startup sync の開始条件が競合しやすい
   - hidden -> visible 連打、sleep wake、startup throttle metadata corruption の sync trigger contract を frontend/store/Rust service で固定する
 
-- [ ] P3 article action error category を locale key ベースにする
-  - 対象: `src/components/reader/article-browser-actions.ts`, `src/locales/*/reader.json`
-  - error category は作っているが toast には raw message を出すため、runtime unavailable / permission denied / invalid URL の表示が backend/OS 文字列に依存する
-  - category ごとの locale key、fallback message、unknown error の diagnostics-only 方針を component/lib test にする
-
 - [ ] P3 manual sync cooldown listener error aggregation を diagnostics に接続する
   - 対象: `src/lib/sync/manual-sync.ts`
   - cooldown listener が throw しても console error に集約されるだけなので、UI 更新が止まった時にどの subscriber が壊れたか分かりにくい
@@ -134,11 +119,6 @@
   - 対象: `src/components/app-confirm-dialog.tsx`, `src/hooks/use-delete-feed.ts`, `src/components/reader/article-list.tsx`, `src/components/settings/mute-settings.tsx`
   - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
   - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
-
-- [ ] P2 search_articles の query length / unicode / FTS escape policy を固定する
-  - 対象: `src/hooks/use-articles.ts`, `src/dev/mocks.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
-  - frontend/dev mock は title includes に近い挙動だが、backend FTS は quote、operator、絵文字、全角空白、長大 query で挙動が変わりやすい
-  - blank、quoted phrase、`OR`/`NEAR` 風文字列、combining mark、長大 query の normalize/escape/max length を schema/Rust/dev mock で揃える
 
 - [ ] P2 tag mutation の duplicate name / stale article assignment policy を固定する
   - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/tag-context-menu.tsx`
@@ -155,11 +135,6 @@
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
 
-- [ ] P1 updater progress / ready event を download session 単位で検証する
-  - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`
-  - updater event に request/session id がないため、失敗後の再試行や duplicate listener で古い `update-download-progress` / `update-ready` が現在の toast を上書きする可能性がある
-  - download generation、progress after failure、ready without in-flight、listener attach failure の contract test を追加する
-
 - [ ] P1 browser webview bounds sync の resize storm と stale native command backlog を抑える
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src-tauri/src/commands/browser_webview_commands.rs`
   - ResizeObserver と window resize が毎回 async sync を投げるため、連続 resize で古い `resize` command が後から届き、WebView bounds が過去の矩形へ戻る可能性がある
@@ -169,16 +144,6 @@
   - 対象: `src/App.tsx`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src-tauri/src/service/sync_scheduler.rs`
   - foreground 復帰時に wake sync、startup throttle、manual sync、updater install gate が近いタイミングで動くため、UI では idle に見えて native 側だけ busy になりやすい
   - app wake、manual sync click、update-ready、scheduler tick を組み合わせた integration test / manual verification checklist を作る
-
-- [ ] P2 browser theme wipe overlay の rapid theme switching / reduced motion 追従を固定する
-  - 対象: `src/components/reader/browser-view.tsx`, `src/stores/preferences-store.ts`
-  - theme を連続変更した時に wipe timer と system theme subscription が重なると、overlay key reset や reduced motion 切替が現在 preference とズレる可能性がある
-  - system light/dark change、manual rapid toggle、reduced motion enabled mid-animation の component test を追加する
-
-- [ ] P2 updater startup check と manual check の shared in-flight result の UX を固定する
-  - 対象: `src/hooks/use-updater.ts`
-  - startup silent check と manual check が同じ `checkInFlight` を共有するため、manual click が silent startup の失敗/成功結果に相乗りした時の toast 方針が分かりにくい
-  - startup in-flight 中 manual click、manual in-flight 中 startup effect、failure/success/null result の toast behavior を hook/lib test にする
 
 - [ ] P2 Tauri dev server manager が他 repo の Vite process を止める条件を厳格化する
   - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
@@ -220,55 +185,15 @@
   - auto-mark toggle は store を先に書き換えて失敗時に previous value を戻すため、ON -> OFF 連続操作で古い failure が最新設定を巻き戻す可能性がある
   - deferred mutation で ON failure / OFF success を逆順 settle させる component test を追加し、revision guard または current value compare rollback にする
 
-- [ ] P2 updater pending update handle を version/source 付きで検証する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`
-  - `check_for_update` の cached `Update` を `download_and_install_update` が再利用するため、manual check と startup check が近いタイミングで走ると、UI が見せた version と install 対象の対応が見えにくい
-  - cached version、check source、created_at を持つか fresh check mandatory にするか決め、stale cached update / newer check failure / download no update の test を追加する
-
-- [ ] P2 updater DOWNLOADING guard を panic-safe / cancellation-safe にする
-  - 対象: `src-tauri/src/commands/updater_commands.rs`
-  - `DOWNLOADING` は `do_download_and_install` の正常な `Result` 後に false へ戻す形なので、将来 panic/cancel 経路が入ると update download が永続的に in-progress 扱いになり得る
-  - RAII guard、panic catch、test-only injected panic の方針を決め、guard reset と duplicate download rejection の Rust test を追加する
-
-- [ ] P2 restart_app command の return contract と frontend toast 方針を固定する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/api/schemas/commands.ts`
-  - Rust command は `Result` を返さず即 `app.restart()` するため、frontend の schema/Result 境界では restart failure・no-op・dev runtime fallback の扱いが見えにくい
-  - restart unavailable、dev mode reload、packaged restart success の expected behavior を command schema / hook test / manual verification に分ける
-
 - [ ] P3 backup/log file path を user-facing diagnostics に出す時の redaction policy を統一する
   - 対象: `src-tauri/src/infra/db/backup.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/commands/log_commands.rs`
   - startup DB error は database path を出す一方、log dir command は generic message に閉じており、support/debug のためにどこまで local path を出すかが境界ごとに揺れている
   - user-visible path、diagnostics-only path、privacy-sensitive username redaction の基準を CLAUDE/rules か contract test にする
 
-- [ ] P1 feed discovery / local provider の DNS rebinding 対策を入れる
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/domain/error.rs`
-  - URL validation は host 文字列だけで private/loopback を判定しており、public hostname が DNS 解決後に private IP を返すケースを request 前に止められない
-  - resolved IP allow/deny、redirect 後再解決、DNS cache / TOCTOU、dev private URL 例外を Rust integration test にする
-
 - [ ] P1 GReader push mutation の partial remote success を idempotent にする
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
   - remote mutation を順番に POST するため、途中 failure の retry で既に成功した read/star/unstar が再送され、local pending state と remote state の対応が曖昧になりやすい
   - per-mutation ack、remote idempotency、retry dedupe、partial failure diagnostics の policy を決め、2件目 failure と retry の Rust test を追加する
-
-- [ ] P2 feed discovery の HTML attribute entity decode を固定する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`
-  - `<link href="/feed.xml?x=1&amp;y=2">` や title の entity を raw string のまま扱うと、候補 URL や表示 label が実ブラウザ解釈とズレる
-  - href/title/type の entity decode、invalid entity、quoted/unquoted attribute、relative URL の fixture を追加する
-
-- [ ] P2 feed discovery の `<base href>` cross-origin policy を決める
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`
-  - discovery 対象 HTML が `<base href>` を使うと、feed candidate が元ページとは別 origin へ解決され得るため、意図しない third-party feed を候補に出しやすい
-  - same-origin only、public cross-origin allow、private host rejection、protocol-relative base の policy を test で固定する
-
-- [ ] P2 local feed provider の compressed body size limit を content-encoding 込みで検証する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/http.rs`
-  - `content-length` は compressed size になり得るため、decompressed body の上限、stream chunk 上限、gzip/brotli failure の扱いが不明瞭だと memory spike を見落としやすい
-  - gzip bomb、unknown content-length、oversized decompressed body、truncated compressed body の Rust test を追加する
-
-- [ ] P2 local feed provider の 304 validator cursor contract を固定する
-  - 対象: `src-tauri/src/infra/provider/local.rs`
-  - 304 response では body/content-type を読まず previous cursor を継続するため、server が ETag / Last-Modified を落とす、弱い ETag を返す、validator が変わるケースの保持方針が曖昧
-  - 304 with/without validators、weak ETag、clock-skew Last-Modified、stale cursor retry の contract test を追加する
 
 - [ ] P2 GReader stream id pull の cardinality / memory cap を決める
   - 対象: `src-tauri/src/infra/provider/greader.rs`
@@ -284,16 +209,6 @@
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src/lib/folders`, `src/api/schemas/commands.ts`
   - remote label id を percent decode して folder name / remote id へ戻すため、invalid UTF-8、slash、blank label、case collision の扱いが曖昧だと folder sync が壊れやすい
   - invalid percent encoding、`/` を含む label、duplicate label、system label ignore の Rust test を追加する
-
-- [ ] P2 sanitizer が relative media URL を article base URL に解決するか削除するか決める
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
-  - sanitizer は relative `srcset` を保持できるため、reader body で base URL がない相対画像が broken link になるか、将来 base tag 追加時に意図しない origin へ解決される可能性がある
-  - relative img/srcset/source、protocol-relative URL、article URL missing、privacy setting enabled/disabled の fixture を追加する
-
-- [ ] P2 sanitizer_version 更新時の re-sanitize / repair policy を作る
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/service/sync_flow.rs`
-  - sanitizer rule を変えても既存 article の sanitized_html が古い policy のまま残るため、危険属性の削除や media policy 変更が過去記事へ反映されない
-  - lazy re-sanitize、migration batch、on-read repair、failure fallback のどれを採るか決め、version mismatch fixture を追加する
 
 - [ ] P2 generic sync_flow の remote subscription 保存が duplicate FeedId を作らないようにする
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`
