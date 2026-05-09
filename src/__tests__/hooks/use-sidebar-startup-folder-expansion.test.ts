@@ -378,6 +378,32 @@ describe("useSidebarStartupFolderExpansion", () => {
     });
   });
 
+  it("keeps the UI usable when localStorage reads are unavailable", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("storage unavailable", "SecurityError");
+    });
+
+    const { result } = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set());
+    });
+  });
+
   it("prunes oversized sidebar expansion storage on write", async () => {
     const folderIds = Array.from(
       { length: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT + 5 },
