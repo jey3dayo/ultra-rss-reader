@@ -105,11 +105,6 @@
   - Windows の `test:rust` が `--test integration_test` のみに絞られており、unit tests が Windows 固有の path/keyring/OS 差を拾わない可能性がある
   - 絞り込み理由を明文化するか、Windows で走らせる safe Rust unit subset を作り、path/keyring/browser geometry 周辺だけでも gate へ入れる
 
-- [ ] P2 actionlint の shellcheck 無効化を補う workflow shell gate を追加する
-  - 対象: `mise.toml`, `.github/workflows/*.yml`
-  - `actionlint -shellcheck=` で shellcheck integration を切っているため、workflow 内 shell script の引用や未定義変数の問題を拾いにくい
-  - shellcheck を導入するか、workflow script を外部 script 化して lint するか決め、CI shell の最小 gate を追加する
-
 - [ ] P3 auto mark read の同一 article 再自動既読 policy を固定する
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`
   - `autoMarkedArticleIdRef` が同じ article id を抑止し続けるため、同一セッションで手動 unread に戻した記事は再表示しても自動既読にならない可能性がある
@@ -160,11 +155,6 @@
   - clipboard/opener/updater/window permission が広く見えるため、使っていない permission が残ると Tauri capability の意図が drift する
   - frontend invoke/use site と permission list を照合し、unused permission を削るか理由をコメント/contract test に残す
 
-- [ ] P3 release notes label categories と issue/PR labels の drift を検出する
-  - 対象: `.github/release.yml`, `.github/labeler.yml`, `.github/ISSUE_TEMPLATE/*.yml`
-  - release note categories と labeler/issue template の labels がズレると、修正が release notes の想定カテゴリに乗らない
-  - labels の存在、category coverage、catch-all の順序を config contract test に追加する
-
 - [ ] P3 PR insights labeler と local labeler の source of truth を整理する
   - 対象: `.github/workflows/pr-insights-labeler.yml`, `.github/workflows/labeler.yml`, `.github/labeler.yml`
   - `risk/*` や `size/*` は PR insights、area labels は labeler という境界が崩れると、同じ PR に矛盾した label が付く
@@ -179,16 +169,6 @@
   - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
   - feed を folder A -> B -> C と連続移動した時、古い mutation failure が後から来ると `previousFeedsQueries` で最新の folder state を巻き戻し得る
   - deferred promise で逆順 settle する hook test を追加し、feedId ごとの mutation generation または現在値比較 rollback にする
-
-- [ ] P1 Reading List command の AppleScript stderr を user-facing error に直出ししない
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/components/reader/article-browser-actions.ts`
-  - `osascript` failure stderr をそのまま `UserVisible` message に含めると、URL や OS 固有の内部情報が toast/log に出る可能性がある
-  - stderr は diagnostics/log に寄せ、UI には分類済み message を出す contract test を追加する
-
-- [ ] P1 clipboard write の text category と size limit を固定する
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/clipboard.ts`, `src/components/reader/article-browser-actions.ts`
-  - clipboard command は任意 text を受けるため、巨大 text、credential-like value、multiline URL をどこで拒否するか未固定だと copy action の責務が広がる
-  - article link、server URL、debug text の category ごとに max length / multiline / secret-like pattern の扱いを分け、unit test にする
 
 - [ ] P1 debug input trace が typed key や target text を記録しすぎないようにする
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug-input-trace.ts`, `src/components/settings/debug-settings.tsx`
@@ -724,16 +704,6 @@
   - 対象: `src/lib/runtime/tauri-event-listeners.ts`, `src/components/app-shell.tsx`
   - listener failure event は module-level once flag で抑制されるため、runtime recovery 後の再失敗や test isolation で二回目以降の警告を観測しにくい
   - reset helper、diagnostics counter、runtime session id、registration failure -> cleanup failure の ordering test を追加する
-
-- [ ] P2 CI workflow の third-party action pinning を全 workflow へ広げる
-  - 対象: `.github/workflows/*.yml`, `mise.toml`
-  - release workflow だけ SHA pin check している場合、CI 側の `actions/checkout`、`jdx/mise-action`、`dtolnay/rust-toolchain`、`Swatinem/rust-cache` が tag pin のまま drift し得る
-  - all workflow action pin check、renovate/update policy、official action exception、local mise gate の test/script を追加する
-
-- [ ] P2 CI apt package install の retry / mirror failure policy を固定する
-  - 対象: `.github/workflows/ci.yml`, `mise.toml`
-  - Linux CI は `apt-get update && apt-get install` を各 job で直接実行するため、mirror timeout や package rename が lint/test/build 全体の flake になりやすい
-  - retry wrapper、package list source of truth、cache禁止方針、apt failure diagnostics、Ubuntu version pinning の workflow test/documentation を追加する
 
 - [ ] P2 Tauri dev Vite manager が SIGTERM で止まらない process を扱えるようにする
   - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
@@ -1355,16 +1325,6 @@
   - menu action emit failure は Rust 側 tracing に閉じるため、frontend action registry 側の unknown/no-op diagnostics と集約されない
   - emit failure、unknown menu id、window missing、listener missing、frontend handler throw の parity test を追加する
 
-- [ ] P2 OPML parser の malformed XML error を import command / UI toast と揃える
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/components/settings/account-detail/*`
-  - parser は文字列 error を返し、import command / UI 側でどの粒度の user-facing message にするかが曖昧になりやすい
-  - missing root、non-opml root、truncated XML、invalid encoding、huge file、duplicate URL の error category を固定する
-
-- [ ] P2 OPML export の invalid XML char replacement を feed title / folder title / account title で揃える
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
-  - OPML export は invalid control char を置換するが、head title、folder title、feed title、xmlUrl/htmlUrl のどこまで同じ policy か見えにくい
-  - control char、emoji、CJK、ampersand、empty title、very long title の round-trip test を追加する
-
 - [ ] P2 live FreshRSS tests の env prerequisite を ignored/manual test contract に分ける
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `CLAUDE.md`
   - `FRESHRSS_URL` / `FRESHRSS_USER` / `FRESHRSS_PASS` を `expect` する live test があり、通常 CI と手元検証の境界が曖昧だと secret 依存 test が混ざりやすい
@@ -1435,11 +1395,6 @@
   - feed name と同じ先頭 text node を削る処理は、記事本文が偶然 feed/title label から始まる時に意味のある本文を消す可能性がある
   - label-only wrapper、リンク/画像を含む先頭 node、同名タイトル本文、DOMParser unavailable、empty after removal の fixture を追加する
 
-- [ ] P2 clipboard fallback の error category を browser permission / insecure context で固定する
-  - 対象: `src/lib/runtime/clipboard.ts`, `src/components/app-shell.tsx`, `src/components/reader/article-browser-actions.ts`
-  - Clipboard API の reject message を文字列分類しているため、ブラウザ/WebViewごとの `NotAllowedError`、insecure context、document not focused が unknown になり toast が不親切になりやすい
-  - DOMException name/code、permission denied、runtime unavailable、empty text、large text、Tauri/browser fallback parity の unit test を追加する
-
 - [ ] P2 WorkspaceHeader の desktop drag region と interactive controls の hit test を固定する
   - 対象: `src/components/shared/workspace-header.tsx`, `src/lib/window/window-chrome.ts`
   - overlay titlebar mode は drag-region と pointer-events-none/auto の重ね合わせで成立しているため、actions/back button/title text の z-index 変更でクリック不能または drag 不能になりやすい
@@ -1464,11 +1419,6 @@
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug/debug-input-trace.ts`, `src/components/reader/focus-debug-hud-view.tsx`
   - HUD は focus/pointer/key trace と browser geometry をまとめてコピーできるため、長時間 session の巨大 text や sensitive selector/URL 断片を support 共有に載せやすい
   - max trace rows、copy redaction、password/server URL target、geometry only copy、clipboard failure の component test を追加する
-
-- [ ] P2 Dialog close label の global i18n lookup を language change に追従させる
-  - 対象: `src/components/ui/dialog.tsx`, `src/lib/i18n.ts`, `src/locales/*`
-  - close label fallback が hook ではなく global `i18n.t` に依存しているため、language change 後に既存 dialog の close label が stale になる可能性がある
-  - language switch while dialog open、explicit closeLabel、missing key fallback、SSR/browser test を追加する
 
 - [ ] P2 browser runtime unavailable 判定を dev mocks / packaged runtime / Storybook で統一する
   - 対象: `src/components/reader/browser-runtime-availability.ts`, `src/lib/window/window-chrome.ts`, `src/components/storybook/story-tauri-runtime.ts`
@@ -1505,21 +1455,6 @@
   - invalidation failure は console warn だけなので、mutation は成功したが UI が stale のままになるケースを user/support が検出しにくい
   - strict/log-only分類、queryKey redaction、toast有無、debug HUD/diagnostics counter、sync completed invalidation failure の test を追加する
 
-- [ ] P2 schema barrel public API test を自動生成寄りにして manual list drift を減らす
-  - 対象: `src/api/schemas/index.ts`, `src/__tests__/api/schema-barrel-public-api.test.ts`
-  - public export list を test 側にも手で持っているため、schema 追加時に barrel だけ/テストだけ更新されると公開 contract の意図が review で分かりにくい
-  - source file inventory、runtime export snapshot、type-only export policy、intentional private schema allowlist の test へ整理する
-
-- [ ] P2 i18n plural / count key の fallback 表示を locale contract にする
-  - 対象: `src/locales/*/*.json`, `src/lib/i18n-resources.ts`, `src/__tests__/lib/i18next-locale-contract.test.ts`
-  - `{{count}}` を含む key と `_one/_other` 系 key が混在しており、英語/日本語で plural fallback や count interpolation がズレると UI 文言だけ壊れやすい
-  - count placeholder parity、plural suffix pair、zero/one/other rendering、missing interpolation warning の locale test を追加する
-
-- [ ] P2 global `i18n.t` 利用箇所を language-change reactive / static に分類する
-  - 対象: `src/components/ui/dialog.tsx`, `src/stores/preferences-store.ts`, `src/lib/i18n.ts`
-  - hook 外の `i18n.t` は language change に再レンダー追従しない場合があるため、toastやdialog labelのような transient text と store side effect text の境界が曖昧
-  - static allowed list、reactive component は `useTranslation` へ移す方針、language switch中 toast/dialog の component test を追加する
-
 - [ ] P2 dev/runtime error console policy を user-visible diagnostics と揃える
   - 対象: `src/dev/intent.ts`, `src/App.tsx`, `src/stores/platform-store.ts`, `src/hooks/use-app-icon-theme.ts`, `src/hooks/use-badge.ts`
   - runtime failure が `console.warn/error` だけで終わる箇所が多く、dev-only noise と packaged app の user-visible failure が混在している
@@ -1529,11 +1464,6 @@
   - 対象: `src/hooks/**`, `src/dev/**`, `tests/helpers/**`
   - `Result.unwrap` は成功前提を短く書ける一方、queryFn/dev scenario/test helper に混在しており、失敗時に user-visible error・console・test failure のどれにするかが呼び出し元ごとに曖昧
   - queryFn、mutationFn、dev-only loader、test helper に分類し、production path は explicit `Result.isFailure` で message redaction を固定する
-
-- [ ] P3 repo-contracts test の regex parser を fixture-driven helper へ分ける
-  - 対象: `src/__tests__/config/repo-contracts.test.ts`
-  - workflow/mise/locale/storybook の contract を 1 ファイル内 regex で多数解析しており、設定ファイルが少し変わるたびに parser bug と本当の contract violation が切り分けにくい
-  - workflow parser、mise parser、locale parser、storybook parser を helper 化し、最小 raw fixture で parser 自体の test を追加する
 
 - [ ] P3 schema parse helper の throwing / nullable 命名を callsite policy に落とす
   - 対象: `src/schemas/parse.ts`, `src/api/tauri-commands.ts`, `tests/helpers/tauri-mocks.ts`
@@ -1589,11 +1519,6 @@
   - 対象: `src/components/settings/account-detail/query-cache.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/hooks/use-updater.ts`
   - small cache updater が large hook と高類似判定されており、低トークン関数では AST shape だけの false positive が混ざる
   - similarity report を読む時の min-lines/min-tokens 閾値、cache helper は単独管理、large hook だけ調査対象にする rule を TODO/CLAUDE へ反映する
-
-- [ ] P3 similarity 92.70%: markdown checkbox extractor の regex helper を統一する
-  - 対象: `src/__tests__/config/repo-contracts.test.ts`
-  - `extractMarkdownCheckboxLabels` と `extractIssueTemplateCheckboxLabels` がほぼ同じ regex extraction で、Issue template/TODO/PR template contract 追加時に parser variant が増えやすい
-  - section extractor、checkbox label extractor、YAML-ish field extractor を test helper 化し、raw fixture で parser test を追加する
 
 - [ ] P3 similarity 100%: deferred promise test helper を共通化する
   - 対象: `src/__tests__/hooks/use-account-detail-credentials-editor.test.tsx`, `src/__tests__/hooks/use-account-detail-name-editor.test.tsx`, `tests/helpers`
