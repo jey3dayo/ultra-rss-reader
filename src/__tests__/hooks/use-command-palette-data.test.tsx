@@ -42,9 +42,9 @@ describe("useCommandPaletteData", () => {
     vi.mocked(useTags).mockReturnValue({ data: sampleTags } as ReturnType<
       typeof useTags
     >);
-    vi.mocked(useSearchArticles).mockReturnValue({ data: [] } as ReturnType<
-      typeof useSearchArticles
-    >);
+    vi.mocked(useSearchArticles).mockReturnValue({
+      data: [],
+    } as unknown as ReturnType<typeof useSearchArticles>);
     vi.mocked(useRecentArticles).mockReturnValue({
       data: sampleArticles,
     } as ReturnType<typeof useRecentArticles>);

@@ -165,8 +165,15 @@ export function useCommandPaletteData({
     const recentFeeds: FeedDto[] = [];
     const recentTags: TagDto[] = [];
     const recentArticles: ArticleDto[] = [];
+    const projectedEntryKeys = new Set<string>();
 
     for (const entry of entries) {
+      const entryKey = `${entry.kind}:${entry.id}`;
+      if (projectedEntryKeys.has(entryKey)) {
+        continue;
+      }
+      projectedEntryKeys.add(entryKey);
+
       if (entry.kind === "action") {
         const action = actionMap.get(entry.id);
         if (action) {

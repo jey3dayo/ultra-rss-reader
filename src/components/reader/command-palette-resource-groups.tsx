@@ -50,6 +50,12 @@ export function CommandPaletteResourceGroups({
   const visibleFeeds = displayRecentResources ? items.recentFeeds : items.filteredFeeds;
   const visibleTags = displayRecentResources ? items.recentTags : items.filteredTags;
   const visibleArticles = displayRecentResources ? items.recentArticles : items.articles;
+  const feedTitleById = new Map(items.filteredFeeds.map((feed) => [feed.id, feed.title]));
+
+  function getArticleResourceDetail(article: CommandPaletteResultsProps["items"]["articles"][number]) {
+    const feedTitle = feedTitleById.get(article.feed_id);
+    return feedTitle ? `${feedTitle} - ${article.url}` : article.url;
+  }
 
   return (
     <>
@@ -78,7 +84,9 @@ export function CommandPaletteResourceGroups({
             >
               <RssIcon />
               <span>{feed.title}</span>
-              <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">{feed.site_url ?? feed.url}</span>
+              <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">
+                {feed.site_url.trim() || feed.url}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -110,7 +118,9 @@ export function CommandPaletteResourceGroups({
             >
               <NewspaperIcon />
               <span>{article.title}</span>
-              <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">{article.url}</span>
+              <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">
+                {getArticleResourceDetail(article)}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>

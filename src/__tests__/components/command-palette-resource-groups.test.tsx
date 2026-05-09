@@ -173,7 +173,7 @@ describe("CommandPaletteResourceGroups", () => {
       items: {
         filteredFeeds: [
           { ...sampleFeeds[0], title: "Daily" },
-          { ...sampleFeeds[1], title: "Daily", site_url: null },
+          { ...sampleFeeds[1], title: "Daily", site_url: "" },
         ],
         filteredTags: [{ ...sampleTags[0], name: "Daily" }],
         articles: [
@@ -203,12 +203,12 @@ describe("CommandPaletteResourceGroups", () => {
     const articlesGroup = screen.getByRole("group", { name: "Articles" });
     expect(
       within(articlesGroup).getByRole("option", {
-        name: /Daily\s*https:\/\/example\.com\/1/,
+        name: /Daily\s*Daily - https:\/\/example\.com\/1/,
       }),
     ).toBeInTheDocument();
     expect(
       within(articlesGroup).getByRole("option", {
-        name: /Daily\s*https:\/\/example\.com\/2/,
+        name: /Daily\s*Daily - https:\/\/example\.com\/2/,
       }),
     ).toBeInTheDocument();
   });
