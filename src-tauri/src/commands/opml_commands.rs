@@ -17,6 +17,10 @@ use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
+const PRIVATE_URL_VALIDATION_MESSAGE: &str =
+    "Requests to private/loopback addresses are not allowed";
+const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+
 #[tauri::command]
 pub fn import_opml(
     state: State<'_, AppState>,
@@ -137,6 +141,12 @@ fn normalize_import_opml_feeds(feeds: Vec<OpmlFeed>) -> Result<Vec<OpmlFeed>, Ap
         .into_iter()
         .map(|feed| {
             let title = validate_feed_title(&feed.title)?;
+            let xml_url = validate_opml_feed_url(&feed.xml_url)?;
+            let html_url = feed
+                .html_url
+                .as_deref()
+                .map(validate_opml_feed_url)
+                .transpose()?;
             let folder = feed
                 .folder
                 .as_deref()
@@ -144,12 +154,57 @@ fn normalize_import_opml_feeds(feeds: Vec<OpmlFeed>) -> Result<Vec<OpmlFeed>, Ap
                 .transpose()?;
             Ok(OpmlFeed {
                 title,
-                xml_url: feed.xml_url,
-                html_url: feed.html_url,
+                xml_url,
+                html_url,
                 folder,
             })
         })
         .collect()
+}
+
+fn validate_opml_feed_url(url: &str) -> Result<String, AppError> {
+    let parsed = reqwest::Url::parse(url).map_err(|_| AppError::UserVisible {
+        message: UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
+    })?;
+
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err(AppError::UserVisible {
+            message: UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
+        });
+    }
+
+    if parsed.host_str().is_some_and(is_private_host) {
+        return Err(AppError::UserVisible {
+            message: PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+        });
+    }
+
+    Ok(url.to_string())
+}
+
+fn is_private_host(host: &str) -> bool {
+    let host_lower = host.to_lowercase();
+
+    if host_lower == "localhost" {
+        return true;
+    }
+
+    let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
+        return match ip {
+            std::net::IpAddr::V4(v4) => {
+                v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
+            }
+            std::net::IpAddr::V6(v6) => {
+                v6.is_loopback()
+                    || v6.is_unspecified()
+                    || (v6.segments()[0] & 0xfe00) == 0xfc00
+                    || (v6.segments()[0] & 0xffc0) == 0xfe80
+            }
+        };
+    }
+
+    false
 }
 
 #[tauri::command]
@@ -393,6 +448,52 @@ mod tests {
             parse_import_opml(blank_folder),
             Err(AppError::UserVisible { message }) if message == "Folder name cannot be empty"
         ));
+    }
+
+    #[test]
+    fn import_parser_rejects_opml_feed_urls_with_regular_backend_scheme_policy() {
+        let unsupported_xml_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="file:///tmp/feed.xml"/>
+  </body>
+</opml>"#;
+        let unsupported_html_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="javascript:alert(1)"/>
+  </body>
+</opml>"#;
+
+        for opml in [unsupported_xml_url, unsupported_html_url] {
+            assert!(matches!(
+                parse_import_opml(opml),
+                Err(AppError::UserVisible { message }) if message == "Only http:// and https:// URLs are supported"
+            ));
+        }
+    }
+
+    #[test]
+    fn import_parser_rejects_opml_private_feed_urls_like_regular_backend_policy() {
+        let private_xml_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://127.0.0.1/feed.xml"/>
+  </body>
+</opml>"#;
+        let private_html_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="http://localhost/"/>
+  </body>
+</opml>"#;
+
+        for opml in [private_xml_url, private_html_url] {
+            assert!(matches!(
+                parse_import_opml(opml),
+                Err(AppError::UserVisible { message }) if message == "Requests to private/loopback addresses are not allowed"
+            ));
+        }
     }
 
     #[test]
