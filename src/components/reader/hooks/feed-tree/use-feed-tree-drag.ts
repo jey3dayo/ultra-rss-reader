@@ -1,25 +1,13 @@
-import {
-  type PointerEvent as ReactPointerEvent,
-  useCallback,
-  useEffect,
-  useReducer,
-  useRef,
-} from "react";
-import { useFeedTreeHandleClickSuppression } from "@/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression";
-import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useReducer, useRef } from "react";
 import type {
   UseFeedTreeDragParams,
   UseFeedTreeDragResult,
 } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
-import type {
-  ActiveDropTarget,
-  FeedTreeFeedViewModel,
-} from "../../feed-tree.types";
+import { useFeedTreeHandleClickSuppression } from "@/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression";
+import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
+import type { ActiveDropTarget, FeedTreeFeedViewModel } from "../../feed-tree.types";
 import type { FeedTreeDragOverlayPreview } from "../../feed-tree-drag-overlay";
-import {
-  createFeedTreePointerDragSession,
-  type FeedTreePointerDragSession,
-} from "../../feed-tree-drag-session";
+import { createFeedTreePointerDragSession, type FeedTreePointerDragSession } from "../../feed-tree-drag-session";
 
 type FeedTreeDragState = {
   isPointerTracking: boolean;
@@ -42,10 +30,7 @@ const initialFeedTreeDragState: FeedTreeDragState = {
   pointerHoverTarget: null,
 };
 
-function feedTreeDragReducer(
-  state: FeedTreeDragState,
-  action: FeedTreeDragAction,
-): FeedTreeDragState {
+function feedTreeDragReducer(state: FeedTreeDragState, action: FeedTreeDragAction): FeedTreeDragState {
   switch (action.type) {
     case "set-is-pointer-tracking":
       return { ...state, isPointerTracking: action.value };
@@ -79,23 +64,14 @@ export function useFeedTreeDrag({
   onDragEnd,
 }: UseFeedTreeDragParams): UseFeedTreeDragResult {
   const normalizedDraggedFeedId = draggedFeedId ?? null;
-  const [state, dispatch] = useReducer(
-    feedTreeDragReducer,
-    initialFeedTreeDragState,
-  );
+  const [state, dispatch] = useReducer(feedTreeDragReducer, initialFeedTreeDragState);
   const { isPointerTracking, pointerDragPreview, pointerHoverTarget } = state;
   const pointerDragRef = useRef<FeedTreePointerDragSession | null>(null);
-  const { consumeSuppressedHandleClick, queueSuppressHandleClickReset } =
-    useFeedTreeHandleClickSuppression();
+  const { consumeSuppressedHandleClick, queueSuppressHandleClickReset } = useFeedTreeHandleClickSuppression();
 
-  const activeVisualDropTarget = isPointerTracking
-    ? pointerHoverTarget
-    : activeDropTarget;
-  const activeUnfoldered =
-    canDragFeeds && activeVisualDropTarget?.kind === "unfoldered";
-  const showUnfolderedDropZone =
-    canDragFeeds &&
-    (normalizedDraggedFeedId !== null || pointerDragPreview !== null);
+  const activeVisualDropTarget = isPointerTracking ? pointerHoverTarget : activeDropTarget;
+  const activeUnfoldered = canDragFeeds && activeVisualDropTarget?.kind === "unfoldered";
+  const showUnfolderedDropZone = canDragFeeds && (normalizedDraggedFeedId !== null || pointerDragPreview !== null);
 
   const clearPointerTracking = useCallback(() => {
     pointerDragRef.current = null;
@@ -103,20 +79,12 @@ export function useFeedTreeDrag({
   }, []);
 
   const handlePointerDownFeed = useCallback(
-    (
-      feed: FeedTreeFeedViewModel,
-      event: ReactPointerEvent<HTMLButtonElement>,
-    ) => {
+    (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => {
       if (!canDragFeeds || event.button !== 0) {
         return;
       }
 
-      pointerDragRef.current = createFeedTreePointerDragSession(
-        feed,
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-      );
+      pointerDragRef.current = createFeedTreePointerDragSession(feed, event.pointerId, event.clientX, event.clientY);
       dispatch({ type: "set-is-pointer-tracking", value: true });
     },
     [canDragFeeds],
@@ -128,9 +96,7 @@ export function useFeedTreeDrag({
         value:
           | FeedTreeDragOverlayPreview
           | null
-          | ((
-              currentValue: FeedTreeDragOverlayPreview | null,
-            ) => FeedTreeDragOverlayPreview | null),
+          | ((currentValue: FeedTreeDragOverlayPreview | null) => FeedTreeDragOverlayPreview | null),
       ) => void = useCallback(
     (value) => {
       dispatch({
@@ -142,9 +108,7 @@ export function useFeedTreeDrag({
   );
 
   const setPointerHoverTarget: (
-    value:
-      | ActiveDropTarget
-      | ((currentValue: ActiveDropTarget) => ActiveDropTarget),
+    value: ActiveDropTarget | ((currentValue: ActiveDropTarget) => ActiveDropTarget),
   ) => void = useCallback(
     (value) => {
       dispatch({

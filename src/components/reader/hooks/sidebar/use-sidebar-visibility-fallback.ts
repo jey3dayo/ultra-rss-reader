@@ -8,12 +8,8 @@ type SidebarVisibilityFallbackDecision =
   | { type: "select-smart-view"; kind: "unread" }
   | { type: "set-view-mode"; mode: "all" };
 
-function resolveFeedOrAllFallback(
-  firstFeedId: string | null,
-): SidebarVisibilityFallbackDecision {
-  return firstFeedId
-    ? { type: "select-feed", feedId: firstFeedId }
-    : { type: "select-all" };
+function resolveFeedOrAllFallback(firstFeedId: string | null): SidebarVisibilityFallbackDecision {
+  return firstFeedId ? { type: "select-feed", feedId: firstFeedId } : { type: "select-all" };
 }
 
 export function resolveSidebarVisibilityFallback({
@@ -36,18 +32,14 @@ export function resolveSidebarVisibilityFallback({
   | "showSidebarRecentArticles"
   | "showSidebarTags"
 >): SidebarVisibilityFallbackDecision {
-  const selectedSmartViewKind =
-    selection.type === "smart" ? selection.kind : null;
+  const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
   const hasSmartUnreadSelection = selectedSmartViewKind === "unread";
   const hasSmartStarredSelection = selectedSmartViewKind === "starred";
   const hasSmartRecentSelection = selectedSmartViewKind === "recent";
   const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
-  const hasFilterOnlyStarred =
-    viewMode === "starred" && !hasSmartStarredSelection;
+  const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
   const isMissingSelectedTag =
-    selection.type === "tag" &&
-    tags !== undefined &&
-    !tags.some((tag) => tag.id === selection.tagId);
+    selection.type === "tag" && tags !== undefined && !tags.some((tag) => tag.id === selection.tagId);
 
   if (hasFilterOnlyStarred && !showSidebarStarred) {
     return { type: "set-view-mode", mode: "all" };
@@ -59,9 +51,7 @@ export function resolveSidebarVisibilityFallback({
     (selection.type === "tag" && !showSidebarTags) ||
     isMissingSelectedTag
   ) {
-    return showSidebarUnread
-      ? { type: "select-smart-view", kind: "unread" }
-      : resolveFeedOrAllFallback(firstFeedId);
+    return showSidebarUnread ? { type: "select-smart-view", kind: "unread" } : resolveFeedOrAllFallback(firstFeedId);
   }
 
   if (hasFilterOnlyUnread && !showSidebarUnread) {
@@ -128,5 +118,7 @@ export function useSidebarVisibilityFallback({
     showSidebarRecentArticles,
     showSidebarTags,
     showSidebarUnread,
+    tags,
+    viewMode,
   ]);
 }

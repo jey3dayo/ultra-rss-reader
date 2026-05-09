@@ -1,18 +1,16 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import {
+  invalidateFeedQueries,
+  isLatestFeedMutation,
   runFeedMutationWithOptimisticRollback,
   startLatestFeedMutation,
-  isLatestFeedMutation,
-  invalidateFeedQueries,
 } from "@/components/reader/feed-query-cache";
 
 describe("invalidateFeedQueries", () => {
   it("invalidates feeds and folders by default", () => {
     const queryClient = createTestQueryClient();
-    const invalidateQueries = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined);
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
     invalidateFeedQueries(queryClient);
 
@@ -25,9 +23,7 @@ describe("invalidateFeedQueries", () => {
 
   it("supports account unread count and selective feed invalidation", () => {
     const queryClient = createTestQueryClient();
-    const invalidateQueries = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined);
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
     invalidateFeedQueries(queryClient, {
       includeFeeds: false,
@@ -63,11 +59,7 @@ describe("feed mutation helper contract", () => {
     const firstRequestId = startLatestFeedMutation({ latestRequestIdRef });
     const secondRequestId = startLatestFeedMutation({ latestRequestIdRef });
 
-    expect(isLatestFeedMutation({ latestRequestIdRef }, firstRequestId)).toBe(
-      false,
-    );
-    expect(isLatestFeedMutation({ latestRequestIdRef }, secondRequestId)).toBe(
-      true,
-    );
+    expect(isLatestFeedMutation({ latestRequestIdRef }, firstRequestId)).toBe(false);
+    expect(isLatestFeedMutation({ latestRequestIdRef }, secondRequestId)).toBe(true);
   });
 });

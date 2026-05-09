@@ -3,12 +3,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
 import { useCallback, useRef } from "react";
-import {
-  addLocalFeed,
-  discoverFeeds,
-  updateFeedFolder,
-} from "@/api/tauri-commands";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
+import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import type {
   AddFeedDialogAction,
   AddFeedDialogControllerDerived,
@@ -45,10 +41,7 @@ type UseAddFeedDialogActionsResult = {
 export function resolveAddFeedDiscoveryAction(
   feeds: DiscoveredFeedDto[],
   requestId: number,
-): Extract<
-  AddFeedDialogAction,
-  { type: "discover-empty" | "discover-single" | "discover-multiple" }
-> {
+): Extract<AddFeedDialogAction, { type: "discover-empty" | "discover-single" | "discover-multiple" }> {
   if (feeds.length === 0) {
     return { type: "discover-empty", requestId };
   }
@@ -91,10 +84,7 @@ export function useAddFeedDialogActions({
 
     const handleDiscoveryError = (message: string) => {
       if (
-        !isLatestFeedMutation(
-          { latestRequestIdRef: discoveryRequestIdRef },
-          requestId,
-        ) ||
+        !isLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef }, requestId) ||
         requestUrl !== latestDiscoveryUrlRef.current
       ) {
         return;
@@ -111,9 +101,7 @@ export function useAddFeedDialogActions({
     try {
       discoveryResult = await discoverFeeds(requestUrl);
     } catch (error) {
-      handleDiscoveryError(
-        error instanceof Error ? error.message : String(error),
-      );
+      handleDiscoveryError(error instanceof Error ? error.message : String(error));
       return;
     }
 
@@ -121,10 +109,7 @@ export function useAddFeedDialogActions({
       discoveryResult,
       Result.inspect((feeds) => {
         if (
-          !isLatestFeedMutation(
-            { latestRequestIdRef: discoveryRequestIdRef },
-            requestId,
-          ) ||
+          !isLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef }, requestId) ||
           requestUrl !== latestDiscoveryUrlRef.current
         ) {
           return;
@@ -206,9 +191,7 @@ export function useAddFeedDialogActions({
             await updateFeedFolder(feedId, folderId),
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error);
-              showToast(
-                t("feed_added_folder_failed", { message: error.message }),
-              );
+              showToast(t("feed_added_folder_failed", { message: error.message }));
             }),
           );
         }

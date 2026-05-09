@@ -1,24 +1,14 @@
 import { useEffect } from "react";
-import {
-  bindWindowEvents,
-  createKeyboardEventListener,
-  createPointerEventListener,
-} from "@/lib/window/window-events";
 import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
+import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window/window-events";
 import type { ActiveDropTarget } from "../../feed-tree.types";
-import {
-  applyFeedTreePointerDropOutcome,
-  resolveFeedTreePointerDropOutcome,
-} from "../../feed-tree-drag-outcome";
+import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "../../feed-tree-drag-outcome";
 import {
   getFeedTreePointerDragSessionForPointer,
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "../../feed-tree-drag-session";
-import {
-  getFeedDropTargetAtPoint,
-  isSameFeedDropTarget,
-} from "../../feed-tree-drop-target";
+import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "../../feed-tree-drop-target";
 import { applyFeedTreeHoverTarget } from "../../feed-tree-hover-target";
 
 export function useFeedTreePointerDragEvents({
@@ -40,16 +30,9 @@ export function useFeedTreePointerDragEvents({
       return;
     }
 
-    const finishPointerDrag = (
-      target: ActiveDropTarget,
-      shouldCancel: boolean,
-    ) => {
+    const finishPointerDrag = (target: ActiveDropTarget, shouldCancel: boolean) => {
       applyFeedTreePointerDropOutcome({
-        outcome: resolveFeedTreePointerDropOutcome(
-          pointerDragRef.current,
-          target,
-          shouldCancel,
-        ),
+        outcome: resolveFeedTreePointerDropOutcome(pointerDragRef.current, target, shouldCancel),
         queueSuppressHandleClickReset,
         clearPointerTracking,
         onDragEnd,
@@ -59,24 +42,14 @@ export function useFeedTreePointerDragEvents({
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      const session = getFeedTreePointerDragSessionForPointer(
-        pointerDragRef.current,
-        event.pointerId,
-      );
+      const session = getFeedTreePointerDragSessionForPointer(pointerDragRef.current, event.pointerId);
       if (!session) {
         return;
       }
 
-      updateFeedTreePointerDragSessionPosition(
-        session,
-        event.clientX,
-        event.clientY,
-      );
+      updateFeedTreePointerDragSessionPosition(session, event.clientX, event.clientY);
 
-      if (
-        !session.isDragging &&
-        shouldStartFeedTreePointerDrag(session, event.clientX, event.clientY)
-      ) {
+      if (!session.isDragging && shouldStartFeedTreePointerDrag(session, event.clientX, event.clientY)) {
         session.isDragging = true;
         onDragStartFeed?.(session.feed);
       }
@@ -85,10 +58,7 @@ export function useFeedTreePointerDragEvents({
         return;
       }
 
-      const hoverTarget = getFeedDropTargetAtPoint(
-        event.clientX,
-        event.clientY,
-      );
+      const hoverTarget = getFeedDropTargetAtPoint(event.clientX, event.clientY);
       if (!isSameFeedDropTarget(session.hoverTarget, hoverTarget)) {
         session.hoverTarget = hoverTarget;
         applyFeedTreeHoverTarget({
@@ -107,24 +77,15 @@ export function useFeedTreePointerDragEvents({
     };
 
     const handlePointerUp = (event: PointerEvent) => {
-      const session = getFeedTreePointerDragSessionForPointer(
-        pointerDragRef.current,
-        event.pointerId,
-      );
+      const session = getFeedTreePointerDragSessionForPointer(pointerDragRef.current, event.pointerId);
       if (!session) {
         return;
       }
-      finishPointerDrag(
-        getFeedDropTargetAtPoint(event.clientX, event.clientY),
-        false,
-      );
+      finishPointerDrag(getFeedDropTargetAtPoint(event.clientX, event.clientY), false);
     };
 
     const handlePointerCancel = (event: PointerEvent) => {
-      const session = getFeedTreePointerDragSessionForPointer(
-        pointerDragRef.current,
-        event.pointerId,
-      );
+      const session = getFeedTreePointerDragSessionForPointer(pointerDragRef.current, event.pointerId);
       if (!session) {
         return;
       }

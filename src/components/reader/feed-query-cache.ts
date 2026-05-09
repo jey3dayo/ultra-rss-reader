@@ -36,9 +36,7 @@ type LatestFeedMutationGuardParams = {
   latestRequestIdRef: MutableRefObject<number>;
 };
 
-export function startLatestFeedMutation({
-  latestRequestIdRef,
-}: LatestFeedMutationGuardParams): number {
+export function startLatestFeedMutation({ latestRequestIdRef }: LatestFeedMutationGuardParams): number {
   const requestId = latestRequestIdRef.current + 1;
   latestRequestIdRef.current = requestId;
   return requestId;

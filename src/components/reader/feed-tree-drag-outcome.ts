@@ -1,9 +1,21 @@
-import type {
-  ActiveDropTarget,
-  ApplyFeedTreePointerDropOutcomeParams,
-  FeedTreePointerDropOutcome,
-} from "./feed-tree.types";
+import type { ActiveDropTarget } from "./feed-tree.types";
 import type { FeedTreePointerDragSession } from "./feed-tree-drag-session";
+
+type FeedTreePointerDropOutcome =
+  | { type: "clear" }
+  | { type: "cancel" }
+  | { type: "drop-folder"; folderId: string }
+  | { type: "drop-unfoldered" }
+  | { type: "drop-none" };
+
+type ApplyFeedTreePointerDropOutcomeParams = {
+  outcome: FeedTreePointerDropOutcome;
+  queueSuppressHandleClickReset: () => void;
+  clearPointerTracking: () => void;
+  onDragEnd?: () => void;
+  onDropToFolder?: (folderId: string) => void;
+  onDropToUnfoldered?: () => void;
+};
 
 export function resolveFeedTreePointerDropOutcome(
   session: FeedTreePointerDragSession | null,

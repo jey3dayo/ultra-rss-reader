@@ -1,9 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import {
-  createQueryWrapper,
-  createWrapper,
-} from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,20 +19,13 @@ function listAccountFeedsWithLandingMode(accountId: string | undefined) {
       continue;
     }
 
-    feeds.push(
-      feed.id === "feed-1"
-        ? { ...feed, reader_mode: "on", web_preview_mode: "on" }
-        : feed,
-    );
+    feeds.push(feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed);
   }
 
   return feeds;
 }
 
-function listFeedArticlesWithFirstArticleUrl(
-  feedId: string | undefined,
-  url: string | null,
-) {
+function listFeedArticlesWithFirstArticleUrl(feedId: string | undefined, url: string | null) {
   const articles: (typeof sampleArticles)[number][] = [];
 
   for (const article of sampleArticles) {
@@ -152,17 +142,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "missing_account",
     });
     expect(useUiStore.getState().selection).toEqual({ type: "all" });
@@ -173,17 +159,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("missing-feed");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "feed_not_found",
       feedId: "missing-feed",
     });
@@ -204,17 +186,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "temporary feed list failure",
@@ -356,10 +334,7 @@ describe("useFeedLanding", () => {
     });
 
     const { queryClient, wrapper } = createQueryWrapper();
-    queryClient.setQueryData(
-      queryKeys.articles.byFeed("feed-1", "all"),
-      listSampleArticlesByFeedId("feed-1"),
-    );
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), listSampleArticlesByFeedId("feed-1"));
 
     const { result } = renderHook(() => useFeedLanding(), { wrapper });
 
@@ -400,9 +375,7 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
@@ -418,9 +391,7 @@ describe("useFeedLanding", () => {
       expect(useUiStore.getState().focusedPane).toBe("content");
     });
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "temporary list failure",
@@ -440,9 +411,7 @@ describe("useFeedLanding", () => {
           if (args.feedId === "feed-1") {
             return firstArticles.promise;
           }
-          return [
-            { ...sampleArticles[0], id: "art-next", feed_id: "feed-next" },
-          ];
+          return [{ ...sampleArticles[0], id: "art-next", feed_id: "feed-next" }];
         default:
           return undefined;
       }
@@ -452,9 +421,7 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let firstResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let firstResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     const firstPromise = result.current("feed-1").then((value) => {
       firstResult = value;
     });
@@ -494,9 +461,7 @@ describe("useFeedLanding", () => {
         throw new Error("message getter failed");
       },
     } satisfies AppError;
-    const listArticlesSpy = vi
-      .spyOn(tauriCommands, "listArticles")
-      .mockResolvedValueOnce(Result.fail(unsafeError));
+    const listArticlesSpy = vi.spyOn(tauriCommands, "listArticles").mockResolvedValueOnce(Result.fail(unsafeError));
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
@@ -510,17 +475,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "Unknown error",
@@ -544,17 +505,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "Unknown error",

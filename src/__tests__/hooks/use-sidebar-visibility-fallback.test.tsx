@@ -8,9 +8,7 @@ import type { SidebarVisibilityFallbackParams } from "@/components/reader/sideba
 
 const tag = { id: "tag-1", name: "Important", color: "#ff0000" };
 
-function createParams(
-  overrides: Partial<SidebarVisibilityFallbackParams> = {},
-): SidebarVisibilityFallbackParams {
+function createParams(overrides: Partial<SidebarVisibilityFallbackParams> = {}): SidebarVisibilityFallbackParams {
   return {
     firstFeedId: "feed-1",
     selection: { type: "all" },
@@ -82,9 +80,7 @@ describe("useSidebarVisibilityFallback", () => {
       expected: { type: "set-view-mode", mode: "all" },
     },
   ])("resolves pure fallback decision for $name", ({ params, expected }) => {
-    expect(resolveSidebarVisibilityFallback(createParams(params))).toEqual(
-      expected,
-    );
+    expect(resolveSidebarVisibilityFallback(createParams(params))).toEqual(expected);
   });
 
   it.each([
@@ -109,22 +105,19 @@ describe("useSidebarVisibilityFallback", () => {
       visibility: {},
       tags: [tag],
     },
-  ])(
-    "falls back from $name to unread before feed or all",
-    ({ selection, visibility, tags }) => {
-      const params = createParams({
-        selection,
-        tags,
-        ...visibility,
-      });
+  ])("falls back from $name to unread before feed or all", ({ selection, visibility, tags }) => {
+    const params = createParams({
+      selection,
+      tags,
+      ...visibility,
+    });
 
-      renderHook(() => useSidebarVisibilityFallback(params));
+    renderHook(() => useSidebarVisibilityFallback(params));
 
-      expect(params.selectSmartView).toHaveBeenCalledWith("unread");
-      expect(params.selectFeed).not.toHaveBeenCalled();
-      expect(params.selectAll).not.toHaveBeenCalled();
-    },
-  );
+    expect(params.selectSmartView).toHaveBeenCalledWith("unread");
+    expect(params.selectFeed).not.toHaveBeenCalled();
+    expect(params.selectAll).not.toHaveBeenCalled();
+  });
 
   it.each([
     {
@@ -148,23 +141,20 @@ describe("useSidebarVisibilityFallback", () => {
       visibility: {},
       tags: [tag],
     },
-  ])(
-    "falls back from $name to the first visible feed when unread is hidden",
-    ({ selection, visibility, tags }) => {
-      const params = createParams({
-        selection,
-        tags,
-        showSidebarUnread: false,
-        ...visibility,
-      });
+  ])("falls back from $name to the first visible feed when unread is hidden", ({ selection, visibility, tags }) => {
+    const params = createParams({
+      selection,
+      tags,
+      showSidebarUnread: false,
+      ...visibility,
+    });
 
-      renderHook(() => useSidebarVisibilityFallback(params));
+    renderHook(() => useSidebarVisibilityFallback(params));
 
-      expect(params.selectFeed).toHaveBeenCalledWith("feed-1");
-      expect(params.selectSmartView).not.toHaveBeenCalled();
-      expect(params.selectAll).not.toHaveBeenCalled();
-    },
-  );
+    expect(params.selectFeed).toHaveBeenCalledWith("feed-1");
+    expect(params.selectSmartView).not.toHaveBeenCalled();
+    expect(params.selectAll).not.toHaveBeenCalled();
+  });
 
   it("falls back to all when unread is hidden and no feed is available", () => {
     const params = createParams({
@@ -183,21 +173,18 @@ describe("useSidebarVisibilityFallback", () => {
   it.each([
     { viewMode: "starred" as const, visibility: { showSidebarStarred: false } },
     { viewMode: "unread" as const, visibility: { showSidebarUnread: false } },
-  ])(
-    "resets hidden $viewMode filter-only state to all",
-    ({ viewMode, visibility }) => {
-      const params = createParams({
-        selection: { type: "feed", feedId: "feed-1" },
-        viewMode,
-        ...visibility,
-      });
+  ])("resets hidden $viewMode filter-only state to all", ({ viewMode, visibility }) => {
+    const params = createParams({
+      selection: { type: "feed", feedId: "feed-1" },
+      viewMode,
+      ...visibility,
+    });
 
-      renderHook(() => useSidebarVisibilityFallback(params));
+    renderHook(() => useSidebarVisibilityFallback(params));
 
-      expect(params.setViewMode).toHaveBeenCalledWith("all");
-      expect(params.selectFeed).not.toHaveBeenCalled();
-      expect(params.selectSmartView).not.toHaveBeenCalled();
-      expect(params.selectAll).not.toHaveBeenCalled();
-    },
-  );
+    expect(params.setViewMode).toHaveBeenCalledWith("all");
+    expect(params.selectFeed).not.toHaveBeenCalled();
+    expect(params.selectSmartView).not.toHaveBeenCalled();
+    expect(params.selectAll).not.toHaveBeenCalled();
+  });
 });

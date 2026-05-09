@@ -37,16 +37,10 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("pl-1.5");
     expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
-    expect(toggleButton).toHaveClass(
-      "select-none",
-      "hover:bg-[var(--sidebar-hover-surface)]",
-    );
+    expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
     expect(toggleButton).toHaveClass("h-8", "w-8");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
-    expect(screen.getByText("9,274")).toHaveClass(
-      "text-[0.72rem]",
-      "text-sidebar-foreground/54",
-    );
+    expect(screen.getByText("9,274")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/54");
   });
 
   it("keeps the folder toggle in normal row flow so the selection bar stays off the chevron rail", () => {
@@ -64,17 +58,11 @@ describe("FeedTreeFolderSection", () => {
     const folderButton = screen.getByRole("button", {
       name: "Select folder Comic",
     });
-    const selectedIndicator = document.querySelector<HTMLElement>(
-      "[data-folder-row-selected-indicator='folder-1']",
-    );
+    const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
     expect(folderButton).toHaveClass("pl-1.5");
     expect(folderButton).not.toHaveClass("pl-7");
-    expect(selectedIndicator?.parentElement).toHaveClass(
-      "flex",
-      "items-center",
-      "gap-0.5",
-    );
+    expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
   });
 
   it("does not mark a zero-unread folder read on middle click", () => {
@@ -93,10 +81,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.mouseDown(
-      screen.getByRole("button", { name: "Select folder Comic" }),
-      { button: 1 },
-    );
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Select folder Comic" }), { button: 1 });
 
     expect(onMarkFolderRead).not.toHaveBeenCalled();
     expect(onSelectFolder).not.toHaveBeenCalled();
@@ -122,9 +107,7 @@ describe("FeedTreeFolderSection", () => {
     const row = folderButton.closest("div.rounded-md");
 
     expect(row).toHaveClass("bg-[var(--feed-tree-active-folder-surface)]");
-    expect(folderButton).toHaveClass(
-      "bg-[var(--feed-tree-drop-target-surface)]",
-    );
+    expect(folderButton).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
   });
 
   it("keeps the drag drop overlay inset from the folder disclosure control", () => {
@@ -180,14 +163,10 @@ describe("FeedTreeFolderSection", () => {
     const toggleButton = screen.getByRole("button", {
       name: "Toggle folder Comic",
     });
-    const folderPanel = document.getElementById(
-      "feed-tree-folder-panel-folder-1",
-    );
+    const folderPanel = document.getElementById("feed-tree-folder-panel-folder-1");
 
     expect(toggleButton).toHaveClass("motion-disclosure-trigger");
-    expect(toggleButton.querySelector("svg")).toHaveClass(
-      "motion-disclosure-icon",
-    );
+    expect(toggleButton.querySelector("svg")).toHaveClass("motion-disclosure-icon");
     expect(folderPanel).toHaveAttribute("aria-hidden", "true");
     expect(folderPanel).toHaveClass("motion-disclosure-panel");
   });
@@ -210,10 +189,7 @@ describe("FeedTreeFolderSection", () => {
     const panelId = toggleButton.getAttribute("aria-controls");
     expect(panelId).toBe("feed-tree-folder-panel-folder-1");
     expect(toggleButton).toHaveAttribute("aria-expanded", "false");
-    expect(document.getElementById(panelId ?? "")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
+    expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("pairs the folder disclosure control with the expanded panel aria state when children exist", () => {
@@ -251,12 +227,7 @@ describe("FeedTreeFolderSection", () => {
     });
     const panelId = toggleButton.getAttribute("aria-controls");
     expect(toggleButton).toHaveAttribute("aria-expanded", "true");
-    expect(document.getElementById(panelId ?? "")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
-    expect(
-      screen.getByRole("button", { name: /Alpha/ }).closest(`#${panelId}`),
-    ).toBeInTheDocument();
+    expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "false");
+    expect(screen.getByRole("button", { name: /Alpha/ }).closest(`#${panelId}`)).toBeInTheDocument();
   });
 });
