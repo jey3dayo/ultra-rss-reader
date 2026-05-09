@@ -64,16 +64,6 @@
   - `src/__tests__/components/article-tag-chips.test.tsx` で duplicate assigned tag、duplicate allTags、blank tag id を追加し、dedupe / caller invariant / schema rejection の境界を明示する
   - article tag picker mutation failure や keyboard/focus contract とは分け、picker list projection の tag identity boundary だけを扱う
 
-- [ ] preferences system theme listener compatibility 候補を追加する
-  - `src/stores/preferences-store.ts` の `applyTheme("system")` が `MediaQueryList.addEventListener` / `removeEventListener` 前提なので、旧 API の `addListener` だけを持つ runtime や mocked WebView で落ちないか確認する
-  - `src/__tests__/stores/preferences-store.test.ts` で `addEventListener` 不在 / throw 時の fallback と cleanup 方針を固定する
-  - system theme listener cleanup contract や app icon hook の matchMedia guard とは分け、preferences store の MediaQueryList API 互換だけを扱う
-
-- [ ] preferences setPref latest-only failure surface 候補を追加する
-  - `src/stores/preferences-store.ts` の `setPref()` は rapid toggle 時に古い persist failure が後から toast を出せるため、latest request 以外の失敗通知を出すかどうかを決める
-  - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
-  - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
-
 - [ ] sidebar feed drag disabled start guard 候補を追加する
   - `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts` の `handleDragStartFeed` が `canDragFeeds` / `isFeedsSectionOpen` を見ずに一度 drag state を立てるため、disabled 時に start 自体を無視するか effect cleanup 前提にするか固定する
   - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` で folder なし / section closed / feed missing の start と active drop target の期待値を追加する
