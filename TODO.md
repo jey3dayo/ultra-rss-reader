@@ -9,6 +9,31 @@
   - 既存の `mise run app:dev:seed-from-prod` を前提に、デバッグ画面から誤操作なく呼べる UX と確認導線を設計する
   - Dev 側 DB のバックアップ場所、アプリ再起動、credentials はコピーされないことを UI 上で明示する
 
+- [ ] datetime formatter invalid locale guard 候補を追加する
+  - `src/lib/datetime.ts` の `formatHourMinute` / `formatShortDate` / `formatShortDateTime` / `formatLongDate` / `formatMediumDate` が malformed locale を受けた時の挙動を固定する
+  - `src/__tests__/lib/datetime.test.ts` で invalid locale tag は throw せず fallback locale へ落とすか、呼び出し側 validation 必須として現仕様を明示する
+  - article date locale tag guard とは分け、汎用 datetime helper の locale boundary だけを扱う
+
+- [ ] app action registry source-of-truth 候補を追加する
+  - `src/lib/app-actions.ts` の `AppAction` union と `APP_ACTIONS` 配列が二重定義なので、片方から派生できる形に寄せられるか確認する
+  - `src/__tests__/lib/actions.test.ts` か dedicated test で `APP_ACTIONS` の重複なし、`isAppAction` の runtime acceptance、shortcut/menu 呼び出しの action id drift を固定する
+  - share action target policy や command palette action UI とは分け、action id registry の型/runtime parity だけを扱う
+
+- [ ] feed landing web preview URL capability 候補を追加する
+  - `src/lib/feed/feed-landing.ts` の `hasWebPreviewUrl` が nonblank 判定だけなので、relative URL / unsupported scheme / malformed URL を preview capability として扱うか決める
+  - `src/__tests__/lib/feed-landing.test.ts` で `https://` / `http://` / whitespace / `javascript:` / relative path の期待値を固定する
+  - browser command URL schema や feed discovery URL safety とは分け、feed landing display helper の article URL capability 判定だけを扱う
+
+- [ ] folder display preset aggregate invalid policy 候補を追加する
+  - `src/lib/articles/article-display.ts` の `resolveFolderDisplayPreset` が各 feed の invalid axis を `inherit` fallback 後に比較するため、invalid child feed を aggregate に含める方針を確認する
+  - `src/__tests__/lib/article-display.test.ts` で child feed の片方だけ invalid / 両方 invalid / mixed valid preset の結果を固定する
+  - feed display override partial invalid contract とは分け、folder-level aggregate selector の invalid persisted value policy だけを扱う
+
+- [ ] utility class merge helper contract 候補を追加する
+  - `src/lib/utils.ts` の `cn` が `clsx` と `tailwind-merge` の唯一の thin wrapper なので、falsey input と Tailwind conflict resolution の最小 contract を固定する
+  - `src/__tests__/lib/utils.test.ts` を追加し、`cn("px-2", false && "hidden", "px-4")` のような代表例だけを押さえる
+  - UI primitive visual regression や semantic token cleanup とは分け、class merge helper の public behavior だけを扱う
+
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
