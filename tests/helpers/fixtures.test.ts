@@ -30,6 +30,7 @@ import {
   createSampleFolders,
   createSampleMuteKeywords,
   createSampleTags,
+  cloneFixtureSeed,
   type MutableTestFixture,
   type ReadonlyFixtureSeed,
   sampleAccountSeeds,
@@ -45,9 +46,15 @@ import {
   sampleTagSeeds,
   sampleTags,
 } from "./fixtures";
-import { renderStory, type StoryDecorator, type StoryMeta } from "./render-story";
+import {
+  renderStory,
+  type StoryDecorator,
+  type StoryMeta,
+} from "./render-story";
 
-type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
+type CommandSuccess<TCommand> = TCommand extends (
+  ...args: infer _Args
+) => Result.ResultAsync<infer Output, unknown>
   ? Output
   : never;
 
@@ -69,23 +76,40 @@ describe("test fixtures", () => {
     const accountIds = new Set(sampleAccounts.map((account) => account.id));
     const feedIds = new Set(sampleFeeds.map((feed) => feed.id));
 
-    expect(sampleFeeds.every((feed) => accountIds.has(feed.account_id))).toBe(true);
-    expect(sampleArticles.every((article) => feedIds.has(article.feed_id))).toBe(true);
+    expect(sampleFeeds.every((feed) => accountIds.has(feed.account_id))).toBe(
+      true,
+    );
+    expect(
+      sampleArticles.every((article) => feedIds.has(article.feed_id)),
+    ).toBe(true);
   });
 
   it("keeps sample feed folder references resolvable within the same account", () => {
-    const accountsById = new Map(sampleAccounts.map((account) => [account.id, account]));
-    const foldersById = new Map(sampleFolders.map((folder) => [folder.id, folder]));
+    const accountsById = new Map(
+      sampleAccounts.map((account) => [account.id, account]),
+    );
+    const foldersById = new Map(
+      sampleFolders.map((folder) => [folder.id, folder]),
+    );
     const folderedFeeds = sampleFeeds.filter((feed) => feed.folder_id !== null);
 
     expect(folderedFeeds.length).toBeGreaterThan(0);
 
     for (const feed of folderedFeeds) {
       const folder = foldersById.get(feed.folder_id ?? "");
-      expect(folder, `Missing folder ${feed.folder_id} for feed ${feed.id}`).toBeDefined();
-      expect(folder?.account_id, `Folder ${feed.folder_id} belongs to a different account`).toBe(feed.account_id);
+      expect(
+        folder,
+        `Missing folder ${feed.folder_id} for feed ${feed.id}`,
+      ).toBeDefined();
+      expect(
+        folder?.account_id,
+        `Folder ${feed.folder_id} belongs to a different account`,
+      ).toBe(feed.account_id);
       const account = accountsById.get(feed.account_id);
-      expect(account, `Missing account ${feed.account_id} for feed ${feed.id}`).toBeDefined();
+      expect(
+        account,
+        `Missing account ${feed.account_id} for feed ${feed.id}`,
+      ).toBeDefined();
       expect(
         account?.capabilities?.supports_folders,
         `Feed ${feed.id} uses a folder on an account without folder support`,
@@ -94,31 +118,59 @@ describe("test fixtures", () => {
   });
 
   it("keeps sample article to feed to account references resolvable", () => {
-    const accountsById = new Map(sampleAccounts.map((account) => [account.id, account]));
+    const accountsById = new Map(
+      sampleAccounts.map((account) => [account.id, account]),
+    );
     const feedsById = new Map(sampleFeeds.map((feed) => [feed.id, feed]));
 
     for (const article of sampleArticles) {
       const feed = feedsById.get(article.feed_id);
-      expect(feed, `Missing feed ${article.feed_id} for article ${article.id}`).toBeDefined();
-      expect(accountsById.has(feed?.account_id ?? ""), `Missing account for article ${article.id}`).toBe(true);
+      expect(
+        feed,
+        `Missing feed ${article.feed_id} for article ${article.id}`,
+      ).toBeDefined();
+      expect(
+        accountsById.has(feed?.account_id ?? ""),
+        `Missing account for article ${article.id}`,
+      ).toBe(true);
     }
   });
 
   it("keeps sample account, feed, article, mute keyword, and tag fixtures compatible with DTO schemas", () => {
-    expect(sampleAccounts.map((account) => AccountDtoSchema.parse(account))).toEqual(sampleAccounts);
-    expect(sampleFolders.map((folder) => FolderDtoSchema.parse(folder))).toEqual(sampleFolders);
-    expect(sampleFeeds.map((feed) => FeedDtoSchema.parse(feed))).toEqual(sampleFeeds);
-    expect(sampleArticles.map((article) => ArticleDtoSchema.parse(article))).toEqual(sampleArticles);
-    expect(sampleMuteKeywords.map((keyword) => MuteKeywordDtoSchema.parse(keyword))).toEqual(sampleMuteKeywords);
-    expect(sampleTags.map((tag) => TagDtoSchema.parse(tag))).toEqual(sampleTags);
+    expect(
+      sampleAccounts.map((account) => AccountDtoSchema.parse(account)),
+    ).toEqual(sampleAccounts);
+    expect(
+      sampleFolders.map((folder) => FolderDtoSchema.parse(folder)),
+    ).toEqual(sampleFolders);
+    expect(sampleFeeds.map((feed) => FeedDtoSchema.parse(feed))).toEqual(
+      sampleFeeds,
+    );
+    expect(
+      sampleArticles.map((article) => ArticleDtoSchema.parse(article)),
+    ).toEqual(sampleArticles);
+    expect(
+      sampleMuteKeywords.map((keyword) => MuteKeywordDtoSchema.parse(keyword)),
+    ).toEqual(sampleMuteKeywords);
+    expect(sampleTags.map((tag) => TagDtoSchema.parse(tag))).toEqual(
+      sampleTags,
+    );
   });
 
   it("keeps required fixture display fields populated", () => {
-    expect(sampleAccounts.every((account) => account.name.trim().length > 0)).toBe(true);
-    expect(sampleFeeds.every((feed) => feed.title.trim().length > 0 && feed.url.trim().length > 0)).toBe(true);
+    expect(
+      sampleAccounts.every((account) => account.name.trim().length > 0),
+    ).toBe(true);
+    expect(
+      sampleFeeds.every(
+        (feed) => feed.title.trim().length > 0 && feed.url.trim().length > 0,
+      ),
+    ).toBe(true);
     expect(
       sampleArticles.every(
-        (article) => article.title.trim().length > 0 && (article.url === null || article.url.trim().length > 0),
+        (article) =>
+          article.title.trim().length > 0 &&
+          (article.url === null || article.url.trim().length > 0),
       ),
     ).toBe(true);
     expect(sampleTags.every((tag) => tag.name.trim().length > 0)).toBe(true);
@@ -160,36 +212,89 @@ describe("test fixtures", () => {
       feeds[0].title = "Renamed Feed";
     }
 
+    expect(sampleAccountSeeds[0]?.name).toBe("Local");
+    expect(sampleAccountSeeds[0]?.capabilities?.supports_search).toBe(false);
+    expect(sampleFeedSeeds[0]?.title).toBe("Tech Blog");
     expect(sampleAccounts[0]?.name).toBe("Local");
     expect(sampleAccounts[0]?.capabilities?.supports_search).toBe(false);
     expect(sampleFeeds[0]?.title).toBe("Tech Blog");
   });
 
   it("exposes readonly seeds and mutable clone helpers at the type boundary", () => {
-    expectTypeOf(sampleAccounts).toEqualTypeOf<CommandSuccess<typeof listAccounts>>();
-    expectTypeOf(sampleFolders).toEqualTypeOf<CommandSuccess<typeof listFolders>>();
+    expectTypeOf(sampleAccounts).toEqualTypeOf<
+      CommandSuccess<typeof listAccounts>
+    >();
+    expectTypeOf(sampleFolders).toEqualTypeOf<
+      CommandSuccess<typeof listFolders>
+    >();
     expectTypeOf(sampleFeeds).toEqualTypeOf<CommandSuccess<typeof listFeeds>>();
-    expectTypeOf(sampleArticles).toEqualTypeOf<CommandSuccess<typeof listArticles>>();
-    expectTypeOf(sampleMuteKeywords).toEqualTypeOf<CommandSuccess<typeof listMuteKeywords>>();
+    expectTypeOf(sampleArticles).toEqualTypeOf<
+      CommandSuccess<typeof listArticles>
+    >();
+    expectTypeOf(sampleMuteKeywords).toEqualTypeOf<
+      CommandSuccess<typeof listMuteKeywords>
+    >();
     expectTypeOf(sampleTags).toEqualTypeOf<CommandSuccess<typeof listTags>>();
-    expectTypeOf(sampleAccountSeeds).toEqualTypeOf<ReadonlyFixtureSeed<AccountDto>>();
-    expectTypeOf(sampleFolderSeeds).toEqualTypeOf<ReadonlyFixtureSeed<FolderDto>>();
+    expectTypeOf(sampleAccountSeeds).toEqualTypeOf<
+      ReadonlyFixtureSeed<AccountDto>
+    >();
+    expectTypeOf(sampleFolderSeeds).toEqualTypeOf<
+      ReadonlyFixtureSeed<FolderDto>
+    >();
     expectTypeOf(sampleFeedSeeds).toEqualTypeOf<ReadonlyFixtureSeed<FeedDto>>();
-    expectTypeOf(sampleArticleSeeds).toEqualTypeOf<ReadonlyFixtureSeed<ArticleDto>>();
-    expectTypeOf(sampleMuteKeywordSeeds).toEqualTypeOf<ReadonlyFixtureSeed<MuteKeywordDto>>();
+    expectTypeOf(sampleArticleSeeds).toEqualTypeOf<
+      ReadonlyFixtureSeed<ArticleDto>
+    >();
+    expectTypeOf(sampleMuteKeywordSeeds).toEqualTypeOf<
+      ReadonlyFixtureSeed<MuteKeywordDto>
+    >();
     expectTypeOf(sampleTagSeeds).toEqualTypeOf<ReadonlyFixtureSeed<TagDto>>();
-    expectTypeOf(sampleAccounts).toEqualTypeOf<MutableTestFixture<AccountDto>>();
+    expectTypeOf(sampleAccounts).toEqualTypeOf<
+      MutableTestFixture<AccountDto>
+    >();
     expectTypeOf(sampleFolders).toEqualTypeOf<MutableTestFixture<FolderDto>>();
     expectTypeOf(sampleFeeds).toEqualTypeOf<MutableTestFixture<FeedDto>>();
-    expectTypeOf(sampleArticles).toEqualTypeOf<MutableTestFixture<ArticleDto>>();
-    expectTypeOf(sampleMuteKeywords).toEqualTypeOf<MutableTestFixture<MuteKeywordDto>>();
+    expectTypeOf(sampleArticles).toEqualTypeOf<
+      MutableTestFixture<ArticleDto>
+    >();
+    expectTypeOf(sampleMuteKeywords).toEqualTypeOf<
+      MutableTestFixture<MuteKeywordDto>
+    >();
     expectTypeOf(sampleTags).toEqualTypeOf<MutableTestFixture<TagDto>>();
-    expectTypeOf(createSampleAccounts()).toEqualTypeOf<MutableTestFixture<AccountDto>>();
-    expectTypeOf(createSampleFolders()).toEqualTypeOf<MutableTestFixture<FolderDto>>();
-    expectTypeOf(createSampleFeeds()).toEqualTypeOf<MutableTestFixture<FeedDto>>();
-    expectTypeOf(createSampleArticles()).toEqualTypeOf<MutableTestFixture<ArticleDto>>();
-    expectTypeOf(createSampleMuteKeywords()).toEqualTypeOf<MutableTestFixture<MuteKeywordDto>>();
-    expectTypeOf(createSampleTags()).toEqualTypeOf<MutableTestFixture<TagDto>>();
+    expectTypeOf(cloneFixtureSeed(sampleAccountSeeds)).toEqualTypeOf<
+      MutableTestFixture<AccountDto>
+    >();
+    expectTypeOf<
+      MutableTestFixture<{
+        readonly id: string;
+        readonly nested: { readonly enabled: boolean };
+        readonly labels: readonly string[];
+      }>
+    >().toEqualTypeOf<
+      Array<{
+        id: string;
+        nested: { enabled: boolean };
+        labels: string[];
+      }>
+    >();
+    expectTypeOf(createSampleAccounts()).toEqualTypeOf<
+      MutableTestFixture<AccountDto>
+    >();
+    expectTypeOf(createSampleFolders()).toEqualTypeOf<
+      MutableTestFixture<FolderDto>
+    >();
+    expectTypeOf(createSampleFeeds()).toEqualTypeOf<
+      MutableTestFixture<FeedDto>
+    >();
+    expectTypeOf(createSampleArticles()).toEqualTypeOf<
+      MutableTestFixture<ArticleDto>
+    >();
+    expectTypeOf(createSampleMuteKeywords()).toEqualTypeOf<
+      MutableTestFixture<MuteKeywordDto>
+    >();
+    expectTypeOf(createSampleTags()).toEqualTypeOf<
+      MutableTestFixture<TagDto>
+    >();
 
     if (Date.now() < 0) {
       const seedAccount = sampleAccountSeeds[0];
@@ -201,7 +306,6 @@ describe("test fixtures", () => {
       }
       // @ts-expect-error seed fixture collections are readonly; clone helpers return mutable arrays.
       sampleAccountSeeds.push(...createSampleAccounts());
-
       const mutableAccounts = createSampleAccounts();
       const mutableAccount = mutableAccounts[0];
       if (mutableAccount?.capabilities) {
@@ -238,7 +342,8 @@ describe("renderStory", () => {
       };
 
     const meta = {
-      component: ({ label }: { label: string; tone: string }) => createElement("span", null, label),
+      component: ({ label }: { label: string; tone: string }) =>
+        createElement("span", null, label),
       args: { label: "meta", tone: "neutral" },
       parameters: { layout: "centered", viewport: "desktop" },
       globals: { locale: "en", theme: "light" },
@@ -300,7 +405,8 @@ describe("renderStory", () => {
 
     renderStory(
       {
-        component: ({ label }: { label: string }) => createElement("span", null, label),
+        component: ({ label }: { label: string }) =>
+          createElement("span", null, label),
         args: { label: "base" },
         parameters: { layout: "centered", viewport: "desktop" },
         globals: { locale: "en", theme: "light" },
@@ -341,11 +447,17 @@ describe("renderStory", () => {
           return createElement("span", null, label);
         },
         args: { label: "meta" },
-        decorators: [createDecorator("meta-outer"), createDecorator("meta-inner")],
+        decorators: [
+          createDecorator("meta-outer"),
+          createDecorator("meta-inner"),
+        ],
       },
       {
         args: { label: "story" },
-        decorators: [createDecorator("story-outer"), createDecorator("story-inner")],
+        decorators: [
+          createDecorator("story-outer"),
+          createDecorator("story-inner"),
+        ],
       },
     );
 
@@ -360,15 +472,23 @@ describe("renderStory", () => {
       "meta-outer:after",
       "component:story",
     ]);
-    expect(contexts).toEqual([{ label: "story" }, { label: "story" }, { label: "story" }, { label: "story" }]);
+    expect(contexts).toEqual([
+      { label: "story" },
+      { label: "story" },
+      { label: "story" },
+      { label: "story" },
+    ]);
     expect(
-      Array.from(container.querySelectorAll("[data-decorator]")).map((node) => node.getAttribute("data-decorator")),
+      Array.from(container.querySelectorAll("[data-decorator]")).map((node) =>
+        node.getAttribute("data-decorator"),
+      ),
     ).toEqual(["meta-outer", "meta-inner", "story-outer", "story-inner"]);
   });
 
   it("rejects non-options values passed as the third argument", () => {
     const meta = {
-      component: ({ label }: { label: string }) => createElement("span", null, label),
+      component: ({ label }: { label: string }) =>
+        createElement("span", null, label),
       args: { label: "base" },
     };
 
@@ -381,14 +501,17 @@ describe("renderStory", () => {
         // @ts-expect-error This fixes the runtime boundary for JS or incorrectly typed callers.
         true,
       ),
-    ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");
+    ).toThrowError(
+      "renderStory third argument must be Testing Library RenderOptions.",
+    );
   });
 
   it("passes valid Testing Library options through to render", () => {
     const wrapperText = "render wrapper";
     const { baseElement } = renderStory(
       {
-        component: ({ label }: { label: string }) => createElement("span", null, label),
+        component: ({ label }: { label: string }) =>
+          createElement("span", null, label),
         args: { label: "base" },
       },
       {
@@ -396,12 +519,15 @@ describe("renderStory", () => {
       },
       {
         baseElement: document.createElement("section"),
-        wrapper: ({ children }) => createElement("div", { "aria-label": wrapperText }, children),
+        wrapper: ({ children }) =>
+          createElement("div", { "aria-label": wrapperText }, children),
       },
     );
 
     expect(baseElement.tagName).toBe("SECTION");
-    expect(baseElement.querySelector(`[aria-label="${wrapperText}"]`)).not.toBeNull();
+    expect(
+      baseElement.querySelector(`[aria-label="${wrapperText}"]`),
+    ).not.toBeNull();
     expect(baseElement).toHaveTextContent("story");
   });
 });

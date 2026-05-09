@@ -8,10 +8,13 @@ import type {
   listTags,
 } from "@/api/tauri-commands";
 
-type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
+type CommandSuccess<TCommand> = TCommand extends (
+  ...args: infer _Args
+) => Result.ResultAsync<infer Output, unknown>
   ? Output
   : never;
-type CommandListItem<TCommand> = CommandSuccess<TCommand> extends readonly (infer Item)[] ? Item : never;
+type CommandListItem<TCommand> =
+  CommandSuccess<TCommand> extends readonly (infer Item)[] ? Item : never;
 
 type AccountFixture = CommandListItem<typeof listAccounts>;
 type FolderFixture = CommandListItem<typeof listFolders>;
@@ -28,8 +31,16 @@ type DeepReadonly<T> = T extends (...args: never[]) => unknown
       ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
       : T;
 
+type DeepMutable<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends readonly (infer Item)[]
+    ? DeepMutable<Item>[]
+    : T extends object
+      ? { -readonly [Key in keyof T]: DeepMutable<T[Key]> }
+      : T;
+
 export type ReadonlyFixtureSeed<T> = readonly DeepReadonly<T>[];
-export type MutableTestFixture<T> = T[];
+export type MutableTestFixture<T> = DeepMutable<T>[];
 
 export const sampleAccountSeeds: ReadonlyFixtureSeed<AccountFixture> = [
   {
@@ -162,37 +173,45 @@ export const sampleTagSeeds: ReadonlyFixtureSeed<TagFixture> = [
   },
 ];
 
-function cloneFixture<T>(fixture: ReadonlyFixtureSeed<T>): MutableTestFixture<T> {
+export function cloneFixtureSeed<T>(
+  fixture: ReadonlyFixtureSeed<T>,
+): MutableTestFixture<T> {
   return structuredClone(fixture) as MutableTestFixture<T>;
 }
 
-export const sampleAccounts = cloneFixture(sampleAccountSeeds);
-export const sampleFolders = cloneFixture(sampleFolderSeeds);
-export const sampleFeeds = cloneFixture(sampleFeedSeeds);
-export const sampleArticles = cloneFixture(sampleArticleSeeds);
-export const sampleMuteKeywords = cloneFixture(sampleMuteKeywordSeeds);
-export const sampleTags = cloneFixture(sampleTagSeeds);
+export const sampleAccounts: MutableTestFixture<AccountFixture> =
+  cloneFixtureSeed(sampleAccountSeeds);
+export const sampleFolders: MutableTestFixture<FolderFixture> =
+  cloneFixtureSeed(sampleFolderSeeds);
+export const sampleFeeds: MutableTestFixture<FeedFixture> =
+  cloneFixtureSeed(sampleFeedSeeds);
+export const sampleArticles: MutableTestFixture<ArticleFixture> =
+  cloneFixtureSeed(sampleArticleSeeds);
+export const sampleMuteKeywords: MutableTestFixture<MuteKeywordFixture> =
+  cloneFixtureSeed(sampleMuteKeywordSeeds);
+export const sampleTags: MutableTestFixture<TagFixture> =
+  cloneFixtureSeed(sampleTagSeeds);
 
 export function createSampleAccounts(): MutableTestFixture<AccountFixture> {
-  return cloneFixture(sampleAccountSeeds);
+  return cloneFixtureSeed(sampleAccountSeeds);
 }
 
 export function createSampleFeeds(): MutableTestFixture<FeedFixture> {
-  return cloneFixture(sampleFeedSeeds);
+  return cloneFixtureSeed(sampleFeedSeeds);
 }
 
 export function createSampleFolders(): MutableTestFixture<FolderFixture> {
-  return cloneFixture(sampleFolderSeeds);
+  return cloneFixtureSeed(sampleFolderSeeds);
 }
 
 export function createSampleArticles(): MutableTestFixture<ArticleFixture> {
-  return cloneFixture(sampleArticleSeeds);
+  return cloneFixtureSeed(sampleArticleSeeds);
 }
 
 export function createSampleMuteKeywords(): MutableTestFixture<MuteKeywordFixture> {
-  return cloneFixture(sampleMuteKeywordSeeds);
+  return cloneFixtureSeed(sampleMuteKeywordSeeds);
 }
 
 export function createSampleTags(): MutableTestFixture<TagFixture> {
-  return cloneFixture(sampleTagSeeds);
+  return cloneFixtureSeed(sampleTagSeeds);
 }

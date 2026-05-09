@@ -1,3 +1,4 @@
+import type { StoryContext } from "@storybook/react-vite";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
 import { renderStory, type StoryDecorator } from "./render-story";
@@ -21,11 +22,17 @@ describe("renderStory", () => {
           return createElement("span", null, label);
         },
         args: { label: "meta" },
-        decorators: [createDecorator("meta-first"), createDecorator("meta-second")],
+        decorators: [
+          createDecorator("meta-first"),
+          createDecorator("meta-second"),
+        ],
       },
       {
         args: { label: "story" },
-        decorators: [createDecorator("story-first"), createDecorator("story-second")],
+        decorators: [
+          createDecorator("story-first"),
+          createDecorator("story-second"),
+        ],
       },
     );
 
@@ -41,7 +48,9 @@ describe("renderStory", () => {
       "component:story",
     ]);
     expect(
-      Array.from(container.querySelectorAll("[data-decorator]")).map((node) => node.getAttribute("data-decorator")),
+      Array.from(container.querySelectorAll("[data-decorator]")).map((node) =>
+        node.getAttribute("data-decorator"),
+      ),
     ).toEqual(["meta-first", "meta-second", "story-first", "story-second"]);
   });
 
@@ -51,6 +60,7 @@ describe("renderStory", () => {
       args: { label: string; tone: string };
       parameters: Record<string, unknown>;
       globals: Record<string, unknown>;
+      context: StoryContext<{ label: string; tone: string }>;
     }> = [];
     const capture =
       (source: string): StoryDecorator<{ label: string; tone: string }> =>
@@ -60,6 +70,7 @@ describe("renderStory", () => {
           args: context.args,
           parameters: context.parameters,
           globals: context.globals,
+          context,
         });
 
         return source === "story"
@@ -73,7 +84,8 @@ describe("renderStory", () => {
 
     renderStory<{ label: string; tone: string }>(
       {
-        component: ({ label }: { label: string; tone: string }) => createElement("span", null, label),
+        component: ({ label }: { label: string; tone: string }) =>
+          createElement("span", null, label),
         args: { label: "meta", tone: "neutral" },
         parameters: { layout: "centered", viewport: "desktop" },
         globals: { locale: "en", theme: "light" },
@@ -89,6 +101,7 @@ describe("renderStory", () => {
             args,
             parameters: context.parameters,
             globals: context.globals,
+            context,
           });
           return createElement("span", null, `${args.label}:${args.tone}`);
         },
@@ -102,19 +115,27 @@ describe("renderStory", () => {
         args: { label: "story", tone: "neutral" },
         parameters: { layout: "centered", viewport: "mobile" },
         globals: { locale: "en", theme: "dark" },
+        context: snapshots[0]?.context,
       },
       {
         source: "story",
         args: { label: "story", tone: "neutral" },
         parameters: { layout: "centered", viewport: "mobile" },
         globals: { locale: "en", theme: "dark" },
+        context: snapshots[0]?.context,
       },
       {
         source: "render",
         args: { label: "decorated", tone: "neutral" },
         parameters: { layout: "centered", viewport: "narrow" },
         globals: { locale: "en", theme: "contrast" },
+        context: snapshots[2]?.context,
       },
     ]);
+    expect(snapshots[2]?.context).not.toBe(snapshots[0]?.context);
+    expect(snapshots[0]?.context.args).toEqual({
+      label: "story",
+      tone: "neutral",
+    });
   });
 });
