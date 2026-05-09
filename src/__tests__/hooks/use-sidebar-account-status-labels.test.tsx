@@ -132,17 +132,20 @@ describe("useSidebarAccountStatusLabels", () => {
     ).toEqual({});
   });
 
-  it("projects duplicate account ids once with first-id wins behavior", () => {
+  it("projects scheduled retry labels only once for visible account ids", () => {
     const retryAt = "2026-04-13T03:15:00Z";
     const retryTime = formatAccountSyncRetryTime(retryAt, "en");
     const scheduledAt = vi.fn((time: string) => `scheduled:${time}`);
 
     expect(
       buildSidebarAccountStatusLabels({
-        accounts: [{ id: "acc-1" }, { id: "acc-1" }, { id: "acc-2" }],
+        accounts: [{ id: "acc-1" }, { id: "acc-1" }, { id: "acc-2" }, { id: "" }, { id: "   " }],
         accountSyncStatuses: {
+          "": { next_retry_at: retryAt },
+          "   ": { next_retry_at: retryAt },
           "acc-1": { next_retry_at: retryAt },
           "acc-2": { next_retry_at: null },
+          "acc-ghost": { next_retry_at: retryAt },
         },
         language: "en",
         labels: {
