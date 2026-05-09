@@ -85,11 +85,6 @@
   - native browser diagnostics flag が startup preference だけを読む場合、settings で Debug HUD を切り替えても native emit が即時追従しない可能性がある
   - preference update event / app restart required / frontend-only HUD のどれを正にするか決め、debug diagnostics の manual verification に残す
 
-- [ ] P1 dependency security audit gate を CI / release preflight へ入れるか決める
-  - 対象: `mise.toml`, `.github/workflows/ci.yml`, `package.json`, `src-tauri/Cargo.toml`
-  - frozen install と build はあるが、npm/Cargo の既知脆弱性 gate が未固定だと、release 直前まで supply-chain risk に気づけない
-  - `pnpm audit` / Rust audit 相当を CI、release preflight、manual only のどこで落とすか決め、許容/除外リストの運用も TODO 化する
-
 - [ ] P1 Tauri unstable feature を release build で許可する条件を棚卸しする
   - 対象: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/browser_webview.rs`
   - `tauri` に `unstable` feature が入っているため、release artifact で使ってよい API 面積と将来の breaking risk が明文化されていない
@@ -100,35 +95,10 @@
   - `content_sanitized` は Rust sanitizer 境界がある一方、`thumbnail` は provider 由来 URL を `<img src>` に渡すため、remote image privacy と scheme policy が本文 HTML と別管理になりやすい
   - http/https/relative/data/private URL policy を決め、normalizer / ArticleDtoSchema / reader rendering の contract test を追加する
 
-- [ ] P1 add feed dialog の form-level result announcement contract を追加する
-  - 対象: `src/components/reader/add-feed-dialog-view.tsx`, `src/components/reader/feed-dialog-url-section.tsx`
-  - URL field の invalid hint だけでなく、discover / submit の error と success が視覚表示だけになると支援技術へ通知されない可能性がある
-  - URL field error と form-level result を分け、`role` / `aria-live` / `aria-describedby` の方針を accessibility test で固定する
-
 - [ ] P2 Tauri CSP の external img/frame 許可面積を feed content / browser webview 境界で整理する
   - 対象: `src-tauri/tauri.conf.json`, `docs/feed-content-privacy.md`, `src/components/reader/article-content-view.tsx`
   - CSP で `img-src` / `frame-src` が `http:` / `https:` を広く許可している場合、feed content と browser webview の責務境界が security config 上で見えにくい
   - reader thumbnail、sanitized article body、Web Preview、child webview の許可面積を threat model と manual verification に分ける
-
-- [ ] P2 package / Tauri bundle metadata の release artifact 表示項目を source of truth 化する
-  - 対象: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/tauri.release.conf.json`, `src-tauri/Cargo.toml`
-  - package metadata と bundle metadata の責務が曖昧だと、配布 artifact の表示名、publisher、copyright、category が release ごとに drift する
-  - release artifact に出る metadata を一覧化し、どのファイルを source of truth にするかを schema test で固定する
-
-- [ ] P2 OPML import の feed title / folder name normalization を通常 validation と揃える
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/commands/feed_commands.rs`
-  - OPML の `title` / folder name が create/rename validation と別経路で DB に入ると、空文字、長大文字列、制御文字、重複 folder の扱いが揺れる
-  - trim、長さ、blank fallback、duplicate normalized folder の契約を決め、blank folder / long title / control char の Rust test を追加する
-
-- [ ] P2 OPML export の XML round-trip 契約を固定する
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
-  - export XML 自体の control char replacement、folder order、import round-trip が未固定だと、download UI が成功しても他 reader で壊れる OPML になり得る
-  - XML 1.0 invalid char、folder sort order、export -> parse round-trip を fixture test で固定する
-
-- [ ] P2 article list grouped listbox semantics を固定する
-  - 対象: `src/components/reader/article-list-screen-view.tsx`, `src/components/reader/article-groups-view.tsx`, `src/components/reader/article-list-item.tsx`
-  - `role="listbox"` 配下の group header / wrapper / option の関係が曖昧だと、日付グループ見出しが支援技術へ安定して伝わらない可能性がある
-  - `role="group"` / `aria-labelledby` / option 構造の方針を決め、grouped article list の accessibility contract test を追加する
 
 - [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
   - 対象: `docs/feed-content-privacy.md`, `TODO.md`
