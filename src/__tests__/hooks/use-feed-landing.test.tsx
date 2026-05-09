@@ -342,7 +342,7 @@ describe("useFeedLanding", () => {
     });
   });
 
-  it("closes the browser and returns a failure result when landing fetch fails without cached articles", async () => {
+  it("rolls back the previous selection and browser state when landing fetch fails without cached articles", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
@@ -354,8 +354,11 @@ describe("useFeedLanding", () => {
       }
     });
     useUiStore.setState({
+      selection: { type: "smart", kind: "unread" },
+      selectedArticleId: "art-previous",
       browserUrl: "https://example.com/open",
       contentMode: "browser",
+      focusedPane: "content",
     });
 
     const { result } = renderHook(() => useFeedLanding(), {
@@ -369,12 +372,13 @@ describe("useFeedLanding", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selection).toEqual({
-        type: "feed",
-        feedId: "feed-1",
+        type: "smart",
+        kind: "unread",
       });
-      expect(useUiStore.getState().selectedArticleId).toBeNull();
-      expect(useUiStore.getState().browserUrl).toBeNull();
-      expect(useUiStore.getState().contentMode).toBe("empty");
+      expect(useUiStore.getState().selectedArticleId).toBe("art-previous");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/open");
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().focusedPane).toBe("content");
     });
     expect(landingResult).toSatisfy(Result.isFailure);
     expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({

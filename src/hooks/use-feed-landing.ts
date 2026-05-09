@@ -21,6 +21,26 @@ export type FeedLandingSuccess = {
 };
 export type FeedLandingResult = Result.Result<FeedLandingSuccess, FeedLandingFailure>;
 
+type FeedLandingUiSnapshot = Pick<
+  ReturnType<typeof useUiStore.getState>,
+  "browserUrl" | "contentMode" | "focusedPane" | "selectedArticleId" | "selection" | "viewMode"
+>;
+
+function captureFeedLandingUiSnapshot(store: ReturnType<typeof useUiStore.getState>): FeedLandingUiSnapshot {
+  return {
+    browserUrl: store.browserUrl,
+    contentMode: store.contentMode,
+    focusedPane: store.focusedPane,
+    selectedArticleId: store.selectedArticleId,
+    selection: store.selection,
+    viewMode: store.viewMode,
+  };
+}
+
+function restoreFeedLandingUiSnapshot(snapshot: FeedLandingUiSnapshot) {
+  useUiStore.setState(snapshot);
+}
+
 function readErrorMessage(error: unknown): string | null {
   try {
     if (error instanceof Error) {
@@ -63,6 +83,8 @@ export function useFeedLanding() {
       }
 
       const store = useUiStore.getState();
+      const previousUiState = captureFeedLandingUiSnapshot(store);
+      let selectedFeedOptimistically = false;
       try {
         const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
         const feedList =
@@ -93,6 +115,7 @@ export function useFeedLanding() {
           store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
 
         store.selectFeedFromCurrentContext(feedId);
+        selectedFeedOptimistically = true;
 
         const articlesQueryKey = queryKeys.articles.byFeed(feedId, preserveStarredContext ? "starred" : "all");
         const articles = await queryClient
@@ -147,7 +170,11 @@ export function useFeedLanding() {
         } satisfies FeedLandingSuccess);
       } catch (error) {
         console.error("Failed to land on feed article:", error);
-        store.closeBrowser();
+        if (selectedFeedOptimistically) {
+          restoreFeedLandingUiSnapshot(previousUiState);
+        } else {
+          store.closeBrowser();
+        }
         return Result.fail({
           type: "landing_fetch_failed",
           feedId,

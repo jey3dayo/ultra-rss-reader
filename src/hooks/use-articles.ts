@@ -180,13 +180,40 @@ function indexFeedAccountIdsByFeedId(data: unknown): Map<string, string> {
   return accountIdsByFeedId;
 }
 
-function resolveAccountIdsForArticle(qc: QueryClient, feedId: string): string[] {
+function resolveArticleAccountIdFromScopedQuery(queryKey: QueryKey, data: unknown, articleId: string): string | null {
+  const accountId = queryKey[1];
+  if (typeof accountId !== "string" || !indexArticleDtosById(data).has(articleId)) {
+    return null;
+  }
+
+  return accountId;
+}
+
+function resolveAccountIdsForArticle(qc: QueryClient, article: ArticleDto): string[] {
   const accountIds = new Set<string>();
 
   for (const [, data] of qc.getQueriesData<unknown>({
     queryKey: queryKeys.feeds.root,
   })) {
-    const accountId = indexFeedAccountIdsByFeedId(data).get(feedId);
+    const accountId = indexFeedAccountIdsByFeedId(data).get(article.feed_id);
+    if (accountId) {
+      accountIds.add(accountId);
+    }
+  }
+
+  for (const [queryKey, data] of qc.getQueriesData<unknown>({
+    queryKey: queryKeys.accountArticles.root,
+  })) {
+    const accountId = resolveArticleAccountIdFromScopedQuery(queryKey, data, article.id);
+    if (accountId) {
+      accountIds.add(accountId);
+    }
+  }
+
+  for (const [queryKey, data] of qc.getQueriesData<unknown>({
+    queryKey: queryKeys.starredArticles.root,
+  })) {
+    const accountId = resolveArticleAccountIdFromScopedQuery(queryKey, data, article.id);
     if (accountId) {
       accountIds.add(accountId);
     }
@@ -238,7 +265,7 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   }
 
   const nextArticle = { ...cachedArticle, is_starred: starred };
-  const accountIds = resolveAccountIdsForArticle(qc, cachedArticle.feed_id);
+  const accountIds = resolveAccountIdsForArticle(qc, cachedArticle);
 
   qc.setQueriesData({ queryKey: queryKeys.articles.root }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: queryKeys.articlesByTag.root }, (current) =>

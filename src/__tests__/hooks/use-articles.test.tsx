@@ -277,7 +277,6 @@ describe("useToggleStar", () => {
   it("creates the matching starred cache when starring from an account-only selection", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
     queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
 
     const { result } = renderHook(() => useToggleStar(), { wrapper });
@@ -375,6 +374,35 @@ describe("useToggleStar", () => {
     });
     expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-2", { mode: "all" }])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["tagArticleCounts", "acc-2"])?.isInvalidated).toBe(true);
+  });
+
+  it("does not insert a starred article into another account when feed cache is missing", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), [sampleArticles[0]]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"), [
+      {
+        ...sampleArticles[1],
+        id: "acc-2-article",
+      },
+    ]);
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-1", starred: true });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+    });
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"))).toEqual([
+      expect.objectContaining({ id: "acc-2-article" }),
+    ]);
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toBeUndefined();
   });
 });
 
