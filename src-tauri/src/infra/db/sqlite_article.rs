@@ -2297,6 +2297,49 @@ mod tests {
     }
 
     #[test]
+    fn record_view_with_missing_article_is_repository_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        repo.record_view(&account_id, &ArticleId("missing-article".to_string()))
+            .expect("missing article view should be a no-op");
+
+        let history_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .expect("history count should succeed");
+        assert_eq!(history_count, 0);
+    }
+
+    #[test]
+    fn record_view_with_deleted_article_is_repository_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let article = make_article(&feed_id, "Deleted article");
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        repo.record_view(&account_id, &article.id).unwrap();
+
+        db.writer()
+            .execute("DELETE FROM articles WHERE id = ?1", params![article.id.0])
+            .expect("article delete should succeed");
+        repo.record_view(&account_id, &article.id)
+            .expect("deleted article view should be a no-op");
+
+        let history_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .expect("history count should succeed");
+        assert_eq!(history_count, 0);
+    }
+
+    #[test]
     fn find_recently_viewed_by_account_filters_mode_before_pagination_and_keeps_view_order() {
         let db = test_db();
         let account_id = insert_test_account(&db);

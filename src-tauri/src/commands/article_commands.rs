@@ -510,6 +510,16 @@ fn toggle_article_star_with_conn(
     Ok(())
 }
 
+fn record_article_view_with_conn(
+    conn: &rusqlite::Connection,
+    account_id: AccountId,
+    article_id: ArticleId,
+) -> Result<(), AppError> {
+    let repo = SqliteArticleRepository::new(conn);
+    repo.record_view(&account_id, &article_id)?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
     let url = crate::commands::parse_browser_http_url(&url)?;
@@ -823,9 +833,7 @@ pub fn record_article_view(
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.record_view(&AccountId(account_id), &ArticleId(article_id))?;
-    Ok(())
+    record_article_view_with_conn(db.writer(), AccountId(account_id), ArticleId(article_id))
 }
 
 #[tauri::command]
@@ -1075,10 +1083,11 @@ mod tests {
         bulk_unstar_account_articles, has_blocking_frame_ancestors, has_blocking_x_frame_options,
         mark_article_read_with_conn, mark_articles_read_with_conn, maybe_queue_mutation,
         parse_article_list_mode, recalculate_bulk_feed_unread_counts,
-        should_use_background_browser_open, supports_remote_mutations,
-        toggle_article_star_with_conn, validate_feed_article_filters, validate_older_than_days,
-        BulkArticleMutationRow, OldUnreadScope, DEFAULT_ARTICLE_LIST_LIMIT,
-        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
+        record_article_view_with_conn, should_use_background_browser_open,
+        supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
+        validate_older_than_days, BulkArticleMutationRow, OldUnreadScope,
+        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_LIMIT,
     };
     use crate::commands::dto::AppError;
     use crate::domain::types::{AccountId, ArticleId, FeedId};
@@ -1372,6 +1381,27 @@ mod tests {
             })
             .expect("pending mutation count should succeed");
         assert_eq!(pending_count, 0);
+    }
+
+    #[test]
+    fn record_article_view_missing_id_contract_is_command_noop() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+
+        record_article_view_with_conn(
+            db.writer(),
+            AccountId("acc-a".to_string()),
+            ArticleId("missing-article".to_string()),
+        )
+        .expect("missing article view should be a no-op");
+
+        let history_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .expect("history count should succeed");
+        assert_eq!(history_count, 0);
     }
 
     #[test]
