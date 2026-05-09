@@ -6,7 +6,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        この form は `test` / verification 系 issue のベースです。`manual-verification`, `release-readiness`, `size/*` などの詳細ラベルは、起票後に maintainer が補完します。
+        この form は `test` / verification 系 issue のベースです。
+        `docs`, `ci`, `frontend`, `backend` などの領域ラベルは `.github/labeler.yml` の自動付与を source of truth にします。
+        `size/*`, `risk/*` は PR insights と maintainer 確認を source of truth にします。
+        `manual-verification`, `release-readiness` などの運用ラベルは、起票後に maintainer が補完します。
   - type: textarea
     id: background
     attributes:
@@ -46,9 +49,14 @@ body:
       options:
         - label: フロントエンド (React / TypeScript)
         - label: バックエンド (Rust / Tauri)
+        - label: UI / Storybook
+        - label: テスト
         - label: updater / release flow
         - label: CI/CD
+        - label: ワークフロー / 設定 (GitHub Actions / mise / tooling)
         - label: ドキュメント
+        - label: 依存関係
+        - label: i18n / ローカライズ
   - type: checkboxes
     id: follow-up-labels
     attributes:

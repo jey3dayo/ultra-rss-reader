@@ -8,7 +8,10 @@ body:
       value: |
         既存 issue と重複していないか先に確認してください。
 
-        この form は `fix` 系 issue のベースです。`risk/*`, `size/*`, `frontend`, `backend`, `category/tests` などの詳細ラベルは、起票後に maintainer が補完します。
+        この form は `fix` 系 issue のベースです。
+        `frontend`, `backend`, `docs`, `ci`, `dependencies`, `i18n` などの領域ラベルは `.github/labeler.yml` の自動付与を source of truth にします。
+        `size/*`, `risk/*` は PR insights と maintainer 確認を source of truth にします。
+        `category/tests`, `manual-verification`, `release-readiness` などの運用ラベルは、起票後に maintainer が補完します。
   - type: textarea
     id: current-behavior
     attributes:
@@ -58,6 +61,9 @@ body:
         - label: API連携 / provider
         - label: テスト
         - label: ドキュメント
+        - label: ワークフロー / 設定 (GitHub Actions / mise / tooling)
+        - label: 依存関係
+        - label: i18n / ローカライズ
   - type: checkboxes
     id: follow-up-labels
     attributes:

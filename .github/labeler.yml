@@ -15,6 +15,7 @@ backend:
 ui:
   - changed-files:
       - any-glob-to-any-file:
+          - ".storybook/**"
           - "src/components/**"
           - "src/styles/**"
 
@@ -29,6 +30,22 @@ ci:
       - any-glob-to-any-file:
           - ".github/**"
 
+category/tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**/__tests__/**"
+          - "src/**/*.test.ts"
+          - "src/**/*.test.tsx"
+          - "tests/**"
+          - "e2e/**"
+          - "playwright*.config.ts"
+
+maintenance-family:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "scripts/**"
+          - "mise.toml"
+
 dependencies:
   - changed-files:
       - any-glob-to-any-file:
@@ -36,6 +53,36 @@ dependencies:
           - "package.json"
           - "src-tauri/Cargo.toml"
           - "src-tauri/Cargo.lock"
+
+feature:
+  - head-branch:
+      - "^feat/"
+      - "^feature/"
+
+fix:
+  - head-branch:
+      - "^fix/"
+      - "^bugfix/"
+
+bug:
+  - head-branch:
+      - "^bug/"
+
+breaking:
+  - head-branch:
+      - "^breaking/"
+
+enhancement:
+  - head-branch:
+      - "^enhancement/"
+
+chore:
+  - head-branch:
+      - "^chore/"
+
+refactor:
+  - head-branch:
+      - "^refactor/"
 
 i18n:
   - changed-files:

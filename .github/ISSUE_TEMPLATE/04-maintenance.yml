@@ -7,9 +7,9 @@ body:
     attributes:
       value: |
         この form は `chore` 系 issue のベースです。
-        `release-readiness`, `manual-verification`, `product`,
-        `dependencies`, `docs`, `ci` などの詳細ラベルは、
-        起票後に maintainer が補完します。
+        `dependencies`, `docs`, `ci`, `i18n` などの領域ラベルは `.github/labeler.yml` の自動付与を source of truth にします。
+        `size/*`, `risk/*` は PR insights と maintainer 確認を source of truth にします。
+        `release-readiness`, `manual-verification`, `product` などの運用ラベルは、起票後に maintainer が補完します。
   - type: textarea
     id: summary
     attributes:
@@ -53,9 +53,15 @@ body:
       options:
         - label: リリース運用
         - label: Product / go-to-market
+        - label: フロントエンド (React / TypeScript)
+        - label: バックエンド (Rust / Tauri)
+        - label: UI / Storybook
+        - label: テスト
         - label: dependencies
         - label: CI/CD
+        - label: ワークフロー / 設定 (GitHub Actions / mise / tooling)
         - label: ドキュメント
+        - label: i18n / ローカライズ
         - label: 実機確認
   - type: checkboxes
     id: follow-up-labels

@@ -1,7 +1,6 @@
 changelog:
   exclude:
     labels:
-      - dependencies
       - skip-changelog
   categories:
     - title: "💥 Breaking Changes"
@@ -12,6 +11,8 @@ changelog:
       labels: [bug, fix]
     - title: "📚 Documentation"
       labels: [docs]
+    - title: "📦 Dependencies"
+      labels: [dependencies]
     - title: "🔧 Maintenance"
       labels: [chore, refactor]
     - title: "Other Changes"
