@@ -53,4 +53,17 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
+
+  it("keeps local scroll behavior props ahead of shared settings context defaults", () => {
+    render(
+      <SettingsContentScrollBehaviorProvider value="always">
+        <SettingsContentLayout title="General" scrollBehavior="never">
+          <div>Body</div>
+        </SettingsContentLayout>
+      </SettingsContentScrollBehaviorProvider>,
+    );
+
+    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-content-fade-bottom")).not.toBeInTheDocument();
+  });
 });
