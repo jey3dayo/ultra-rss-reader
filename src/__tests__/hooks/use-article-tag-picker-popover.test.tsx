@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useArticleTagPickerPopover } from "@/components/reader/hooks/article/use-article-tag-picker-popover";
 
 type HookHarnessProps = {
@@ -8,7 +8,11 @@ type HookHarnessProps = {
   onParentKeyDown: () => void;
 };
 
-function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: HookHarnessProps) {
+function HookHarness({
+  availableTagCount,
+  onExpandedChange,
+  onParentKeyDown,
+}: HookHarnessProps) {
   const tags = Array.from({ length: availableTagCount }, (_, index) => ({
     id: `tag-${index + 1}`,
     name: `Tag ${index + 1}`,
@@ -23,7 +27,11 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
   return (
     <fieldset onKeyDown={onParentKeyDown}>
       <legend>Tag picker harness</legend>
-      <div role="listbox" aria-label="Available tags" onKeyDown={handleListboxKeyDown}>
+      <div
+        role="listbox"
+        aria-label="Available tags"
+        onKeyDown={handleListboxKeyDown}
+      >
         {tags.map((tag, index) => (
           <button
             key={tag.id}
@@ -42,11 +50,22 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
 }
 
 describe("useArticleTagPickerPopover", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.replaceChildren();
+  });
+
   it("owns Escape, Arrow, Home, and End listbox keyboard behavior", () => {
     const onExpandedChange = vi.fn();
     const onParentKeyDown = vi.fn();
 
-    render(<HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={onParentKeyDown} />);
+    render(
+      <HookHarness
+        availableTagCount={3}
+        onExpandedChange={onExpandedChange}
+        onParentKeyDown={onParentKeyDown}
+      />,
+    );
 
     const listbox = screen.getByRole("listbox", { name: "Available tags" });
     const firstOption = screen.getByRole("option", { name: "Tag 1" });
@@ -71,5 +90,70 @@ describe("useArticleTagPickerPopover", () => {
     expect(fireEvent.keyDown(listbox, { key: "Escape" })).toBe(false);
     expect(onExpandedChange).toHaveBeenCalledWith(false);
     expect(onParentKeyDown).not.toHaveBeenCalled();
+  });
+
+  it("keeps the popover mounted when outside-click listener binding fails", () => {
+    const error = new Error("document listener blocked");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(document, "addEventListener").mockImplementation(
+      (type, listener, options) => {
+        if (type === "mousedown") {
+          throw error;
+        }
+
+        return EventTarget.prototype.addEventListener.call(
+          document,
+          type,
+          listener,
+          options,
+        );
+      },
+    );
+
+    expect(() =>
+      render(
+        <HookHarness
+          availableTagCount={1}
+          onExpandedChange={vi.fn()}
+          onParentKeyDown={vi.fn()}
+        />,
+      ),
+    ).not.toThrow();
+
+    expect(warn).toHaveBeenCalledWith(
+      "Failed to bind article tag picker outside-click listener.",
+      error,
+    );
+  });
+
+  it("cancels the opening focus frame before it can focus a stale tag option", () => {
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 42;
+    });
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
+
+    const { unmount } = render(
+      <HookHarness
+        availableTagCount={1}
+        onExpandedChange={vi.fn()}
+        onParentKeyDown={vi.fn()}
+      />,
+    );
+    const option = screen.getByRole("option", { name: "Tag 1" });
+    const focusSpy = vi.spyOn(option, "focus");
+
+    unmount();
+    const frameCallback = scheduledCallbacks[0];
+    if (!frameCallback) {
+      throw new Error("Expected scheduled focus callback");
+    }
+    frameCallback(0);
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
+    expect(focusSpy).not.toHaveBeenCalled();
   });
 });
