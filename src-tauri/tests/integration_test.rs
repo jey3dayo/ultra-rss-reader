@@ -23,7 +23,7 @@ use ultra_rss_reader_lib::repository::account::AccountRepository;
 use ultra_rss_reader_lib::repository::article::{ArticleRepository, Pagination};
 use ultra_rss_reader_lib::repository::feed::FeedRepository;
 use ultra_rss_reader_lib::repository::pending_mutation::{
-    PendingMutation, PendingMutationRepository, PendingMutationType,
+    PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 use ultra_rss_reader_lib::service::sync_flow;
 
@@ -408,5 +408,95 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             .find_by_account(&account_id)
             .unwrap()
             .is_empty());
+    });
+}
+
+#[test]
+fn pending_mutation_remote_id_cleanup_is_account_and_axis_scoped() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let account_a_id = AccountId::new();
+    let account_b_id = AccountId::new();
+
+    with_locked_db(&db, |db_guard| {
+        let account_repo = SqliteAccountRepository::new(db_guard.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+
+        for account in [
+            Account {
+                id: account_a_id.clone(),
+                kind: ProviderKind::FreshRss,
+                name: "FreshRSS A".into(),
+                server_url: Some("https://a.example.com".into()),
+                username: Some("u".into()),
+                sync_interval_secs: 3600,
+                sync_on_startup: true,
+                sync_on_wake: false,
+                keep_read_items_days: 30,
+                connection_verification_status: ConnectionVerificationStatus::Unverified,
+                connection_verified_at: None,
+                connection_verification_error: None,
+            },
+            Account {
+                id: account_b_id.clone(),
+                kind: ProviderKind::FreshRss,
+                name: "FreshRSS B".into(),
+                server_url: Some("https://b.example.com".into()),
+                username: Some("u".into()),
+                sync_interval_secs: 3600,
+                sync_on_startup: true,
+                sync_on_wake: false,
+                keep_read_items_days: 30,
+                connection_verification_status: ConnectionVerificationStatus::Unverified,
+                connection_verified_at: None,
+                connection_verification_error: None,
+            },
+        ] {
+            account_repo.save(&account).unwrap();
+        }
+
+        for mutation in [
+            PendingMutation {
+                id: None,
+                account_id: account_a_id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "entry-shared".into(),
+                created_at: "2026-04-01T00:00:00Z".into(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_a_id.clone(),
+                mutation_type: PendingMutationType::Star,
+                remote_entry_id: "entry-shared".into(),
+                created_at: "2026-04-01T00:00:01Z".into(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_b_id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "entry-shared".into(),
+                created_at: "2026-04-01T00:00:02Z".into(),
+            },
+        ] {
+            pending_repo.save(&mutation).unwrap();
+        }
+
+        pending_repo
+            .delete_by_account_remote_entry_ids_and_axis(
+                &account_a_id,
+                &["entry-shared".to_string()],
+                PendingMutationAxis::ReadState,
+            )
+            .unwrap();
+    });
+
+    with_locked_db(&db, |db_guard| {
+        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
+        let pending_a = pending_repo.find_by_account(&account_a_id).unwrap();
+        let pending_b = pending_repo.find_by_account(&account_b_id).unwrap();
+
+        assert_eq!(pending_a.len(), 1);
+        assert_eq!(pending_a[0].mutation_type, PendingMutationType::Star);
+        assert_eq!(pending_b.len(), 1);
+        assert_eq!(pending_b[0].mutation_type, PendingMutationType::MarkRead);
     });
 }
