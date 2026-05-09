@@ -505,6 +505,31 @@
   - blank message / blank account name の reject または fallback 方針を `SyncResultSchema` test で固定する
   - sync result toast copy や retry scheduling logic とは分け、sync result DTO message boundary だけを扱う
 
+- [ ] account pane blank account id guard 候補を追加する
+  - `src/lib/account/account-pane-navigation.ts` の `selectCurrentAccountPaneTargetAndFocusSidebar` が `data-account-pane-account-id="   "` を truthy な account id として `selectAccount` へ渡せる点を固定する
+  - blank / whitespace-only attribute は選択失敗扱いにするか、trim 済み id を渡すかを `account-pane-navigation.test.ts` で決める
+  - sidebar account selection fallback や settings account navigation とは分け、account pane helper の DOM attribute 境界だけを扱う
+
+- [ ] browser viewer geometry invalid viewport guard 候補を追加する
+  - `src/lib/browser/browser-viewer-geometry.ts` の `resolveBrowserViewerGeometry` が `viewportWidth: NaN` / `Infinity` / negative を desktop non-compact 相当として扱う点を確認する
+  - invalid viewport width を fallback 幅へ丸めるか explicit contract として残すかを `browser-viewer-geometry.test.ts` で固定する
+  - WebView bounds tuning や native geometry 同期とは分け、viewer geometry pure helper の入力境界だけを扱う
+
+- [ ] browser debug geometry finite row guard 候補を追加する
+  - `src/lib/browser/browser-debug-geometry.ts` の row formatter が `NaN` / `Infinity` をそのまま HUD 文字列へ出せるため、diagnostics payload の非有限値をどう表示するか決める
+  - `getBrowserGeometryRows` で non-finite rect / scaleFactor が `n/a` になるか raw 表示を維持するかを focused test で固定する
+  - Debug HUD visual layout や geometry event payload 追加とは分け、debug row formatter の表示境界だけを扱う
+
+- [ ] browser iframe history target selection 候補を追加する
+  - `src/lib/browser/webview-history.ts` の `getIframe()` が `document.querySelector("iframe")` で最初の iframe を選ぶため、Storybook / test fixture / hidden iframe が混じる場合の対象を固定する
+  - browser preview 専用 iframe を data attribute で選ぶか、最初の iframe 前提を helper test で明示する
+  - native browser webview history や shortcut mapping とは分け、browser fallback iframe helper の target selection だけを扱う
+
+- [ ] option label blank unknown fallback 候補を追加する
+  - `src/lib/ui/options.ts` の `getOptionLabelByValue` が unknown whitespace-only value を raw fallback として返すため、設定 UI の空白 label を許すか確認する
+  - unknown `""` / `"   "` / `null` と empty option の有無を `options.test.ts` で固定し、必要なら trim 後 fallback に寄せる
+  - language option self-label や settings preference handling とは分け、generic option label helper の fallback contract だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
