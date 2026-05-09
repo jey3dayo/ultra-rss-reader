@@ -367,11 +367,6 @@
   - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
   - 既存 integration test が広い場合は、repository ごとの小さい fixture helper を先に作る
 
-- [ ] P2 dev mock / scenario runtime 整理候補を別バッチで見直す
-  - `src/dev/mock-data.ts` / `mocks.ts` / scenario registry の fixture を、reader / settings / browser / subscriptions の利用面ごとに分けられるか確認する
-  - command palette dev scenario と browser geometry scenario は実行環境依存が違うため、同じ worker に混ぜない
-  - mock data の表示文言変更は Storybook / tests に波及するため、まずは fixture boundary の整理に限定する
-
 - [ ] P1 updater / release readiness 検証候補を別バッチで見直す
   - `.github/workflows/release.yml`、`src-tauri/tauri.conf.json`、`updater_commands.rs` の updater 設定・署名・fallback を確認する
   - local test で固定できる設定検証と、実 release artifact が必要な検証を分ける
