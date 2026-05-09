@@ -55,6 +55,15 @@ describe("feedTreeDragSession", () => {
     expect(shouldStartFeedTreePointerDrag(session, 106, 100)).toBe(true);
   });
 
+  it("uses the original pointer position for the drag threshold after movement updates", () => {
+    const session = createFeedTreePointerDragSession(feed, 7, 100, 100);
+
+    updateFeedTreePointerDragSessionPosition(session, 105, 100);
+
+    expect(shouldStartFeedTreePointerDrag(session, 105, 100)).toBe(false);
+    expect(shouldStartFeedTreePointerDrag(session, 106, 100)).toBe(true);
+  });
+
   it("returns only the session for the matching pointer id", () => {
     const session = createFeedTreePointerDragSession(feed, 7, 100, 100);
 

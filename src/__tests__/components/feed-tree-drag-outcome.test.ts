@@ -37,6 +37,15 @@ describe("resolveFeedTreePointerDropOutcome", () => {
     expect(resolveFeedTreePointerDropOutcome({ ...draggingSession, isDragging: false }, null, false)).toEqual({
       type: "clear",
     });
+    expect(
+      resolveFeedTreePointerDropOutcome(
+        { ...draggingSession, isDragging: false },
+        { kind: "folder", folderId: "folder-1" },
+        false,
+      ),
+    ).toEqual({
+      type: "clear",
+    });
   });
 
   it("returns cancel when escape or pointer cancel ends an active drag", () => {
@@ -116,6 +125,7 @@ describe("applyFeedTreePointerDropOutcome", () => {
   it("dispatches folder and unfoldered drops to the matching callbacks", () => {
     const queueSuppressHandleClickReset = vi.fn();
     const clearPointerTracking = vi.fn();
+    const onDragEnd = vi.fn();
     const onDropToFolder = vi.fn();
     const onDropToUnfoldered = vi.fn();
 
@@ -123,6 +133,7 @@ describe("applyFeedTreePointerDropOutcome", () => {
       outcome: { type: "drop-folder", folderId: "folder-1" },
       queueSuppressHandleClickReset,
       clearPointerTracking,
+      onDragEnd,
       onDropToFolder,
       onDropToUnfoldered,
     });
@@ -130,10 +141,13 @@ describe("applyFeedTreePointerDropOutcome", () => {
       outcome: { type: "drop-unfoldered" },
       queueSuppressHandleClickReset,
       clearPointerTracking,
+      onDragEnd,
       onDropToFolder,
       onDropToUnfoldered,
     });
 
+    expect(queueSuppressHandleClickReset).toHaveBeenCalledTimes(2);
+    expect(onDragEnd).not.toHaveBeenCalled();
     expect(onDropToFolder).toHaveBeenCalledWith("folder-1");
     expect(onDropToUnfoldered).toHaveBeenCalledTimes(1);
     expect(clearPointerTracking).toHaveBeenCalledTimes(2);
