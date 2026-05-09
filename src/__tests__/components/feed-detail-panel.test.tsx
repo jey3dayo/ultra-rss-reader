@@ -102,6 +102,21 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("未読 0件").closest("span")).toHaveAttribute("data-label-chip", "neutral");
   });
 
+  it("uses the feed detail link label as the displayed link text", () => {
+    render(
+      <FeedDetailPanel
+        title="Example Feed"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        links={[{ href: "https://example.com/rss.xml", label: "公式サイト" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "公式サイト" })).toHaveAttribute("href", "https://example.com/rss.xml");
+    expect(screen.queryByText("https://example.com/rss.xml")).not.toBeInTheDocument();
+  });
+
   it("allows reader shells to share the detail panel surface treatment", () => {
     render(
       <FeedDetailPanel
