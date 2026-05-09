@@ -12,6 +12,38 @@ type UseBrowserOverlayFocusReturnResult = {
   rememberOverlayFocusReturnTarget: () => void;
 };
 
+const FOCUS_RETURN_SCHEDULE_WARNING =
+  "Failed to schedule browser overlay focus return.";
+
+function scheduleBrowserOverlayFocusReturn(
+  callback: FrameRequestCallback,
+): number | null {
+  if (
+    typeof window === "undefined" ||
+    typeof window.requestAnimationFrame !== "function"
+  ) {
+    return null;
+  }
+
+  try {
+    return window.requestAnimationFrame(callback);
+  } catch (error) {
+    console.warn(FOCUS_RETURN_SCHEDULE_WARNING, error);
+    return null;
+  }
+}
+
+function cancelBrowserOverlayFocusReturn(frameHandle: number): void {
+  if (
+    typeof window === "undefined" ||
+    typeof window.cancelAnimationFrame !== "function"
+  ) {
+    return;
+  }
+
+  window.cancelAnimationFrame(frameHandle);
+}
+
 export function useBrowserOverlayFocusReturn({
   articleId,
   isBrowserOpen,
@@ -26,8 +58,15 @@ export function useBrowserOverlayFocusReturn({
       return;
     }
 
-    const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
-    if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
+    const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(
+      document,
+      "data-article-id",
+      articleId,
+    );
+    if (
+      !selectedArticleTarget ||
+      selectedArticleTarget.hasAttribute("disabled")
+    ) {
       return;
     }
 
@@ -41,31 +80,47 @@ export function useBrowserOverlayFocusReturn({
     }
 
     const activeElement = document.activeElement;
-    if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
+    if (
+      !(activeElement instanceof HTMLElement) ||
+      activeElement === document.body
+    ) {
       return;
     }
 
     overlayFocusReturnTargetRef.current = activeElement;
-    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute("data-browser-overlay-return-focus");
+    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute(
+      "data-browser-overlay-return-focus",
+    );
   }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
+    if (
+      wasBrowserOpenRef.current &&
+      !isBrowserOpen &&
+      typeof document !== "undefined"
+    ) {
       const previousTarget = overlayFocusReturnTargetRef.current;
       const previousTargetKey = overlayFocusReturnTargetKeyRef.current;
       overlayFocusReturnTargetRef.current = null;
       overlayFocusReturnTargetKeyRef.current = null;
 
-      focusReturnFrameRef.current = requestAnimationFrame(() => {
+      focusReturnFrameRef.current = scheduleBrowserOverlayFocusReturn(() => {
         focusReturnFrameRef.current = null;
         if (cancelled) {
           return;
         }
 
-        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
-        if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
+        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(
+          document,
+          "data-article-id",
+          articleId,
+        );
+        if (
+          selectedArticleTarget &&
+          !selectedArticleTarget.hasAttribute("disabled")
+        ) {
           useUiStore.getState().setFocusedPane("list");
           selectedArticleTarget.focus({ preventScroll: true });
           return;
@@ -83,7 +138,10 @@ export function useBrowserOverlayFocusReturn({
           }
         }
 
-        if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
+        if (
+          previousTarget?.isConnected &&
+          !previousTarget.hasAttribute("disabled")
+        ) {
           previousTarget.focus();
           return;
         }
@@ -91,12 +149,17 @@ export function useBrowserOverlayFocusReturn({
         const openInBrowserTarget = document.querySelector<HTMLElement>(
           '[data-browser-overlay-return-focus="open-in-browser"]',
         );
-        if (openInBrowserTarget && !openInBrowserTarget.hasAttribute("disabled")) {
+        if (
+          openInBrowserTarget &&
+          !openInBrowserTarget.hasAttribute("disabled")
+        ) {
           openInBrowserTarget.focus();
           return;
         }
 
-        const fallbackTarget = document.querySelector<HTMLElement>("[data-article-list-root='true']");
+        const fallbackTarget = document.querySelector<HTMLElement>(
+          "[data-article-list-root='true']",
+        );
         if (fallbackTarget && !fallbackTarget.hasAttribute("disabled")) {
           useUiStore.getState().setFocusedPane("list");
           fallbackTarget.focus({ preventScroll: true });
@@ -109,7 +172,7 @@ export function useBrowserOverlayFocusReturn({
     return () => {
       cancelled = true;
       if (focusReturnFrameRef.current !== null) {
-        cancelAnimationFrame(focusReturnFrameRef.current);
+        cancelBrowserOverlayFocusReturn(focusReturnFrameRef.current);
         focusReturnFrameRef.current = null;
       }
     };
