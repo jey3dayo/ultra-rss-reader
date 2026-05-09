@@ -10,7 +10,7 @@ pub mod service;
 
 use std::collections::HashMap;
 #[cfg(not(test))]
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(not(test))]
 use std::sync::{Arc, Mutex};
 #[cfg(not(test))]
@@ -140,32 +140,89 @@ fn startup_focus_main_thread_warning(error: &impl std::fmt::Display) -> String {
     format!("Failed to schedule startup focus restore on the main thread: {error}")
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StartupFocusRestoreDecision {
+    Restore,
+    SkipAppUnavailable,
+    SkipMainWindowMissing,
+    SkipMainWebviewMissing,
+}
+
+fn startup_focus_restore_decision(
+    app_available: bool,
+    main_window_available: bool,
+    main_webview_available: bool,
+) -> StartupFocusRestoreDecision {
+    if !app_available {
+        StartupFocusRestoreDecision::SkipAppUnavailable
+    } else if !main_window_available {
+        StartupFocusRestoreDecision::SkipMainWindowMissing
+    } else if !main_webview_available {
+        StartupFocusRestoreDecision::SkipMainWebviewMissing
+    } else {
+        StartupFocusRestoreDecision::Restore
+    }
+}
+
 #[cfg(not(test))]
-fn focus_main_webview_on_startup<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) {
+fn mark_startup_focus_restore_stopped(active: &Arc<AtomicBool>) {
+    active.store(false, Ordering::Release);
+}
+
+#[cfg(not(test))]
+fn startup_focus_restore_is_active(active: &Arc<AtomicBool>) -> bool {
+    active.load(Ordering::Acquire)
+}
+
+#[cfg(not(test))]
+fn focus_main_webview_on_startup<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
+    active: Arc<AtomicBool>,
+) {
     tauri::async_runtime::spawn(async move {
         // On macOS overlay titlebar windows, the native webview can start unfocused
         // even though the app window is visible. Delay one tick so the window is
         // fully realized before restoring focus.
         tokio::time::sleep(Duration::from_millis(150)).await;
 
+        if !startup_focus_restore_is_active(&active) {
+            return;
+        }
+
         let app_handle_for_main_thread = app_handle.clone();
+        let active_for_main_thread = active.clone();
         if let Err(error) = app_handle.run_on_main_thread(move || {
-            if let Some(window) = app_handle_for_main_thread.get_webview_window("main") {
-                if let Err(error) = window.show() {
-                    tracing::warn!("{}", startup_main_window_show_warning(&error));
-                }
-                if let Err(error) = window.set_focus() {
-                    tracing::warn!("{}", startup_main_window_focus_warning(&error));
-                }
+            let main_window = app_handle_for_main_thread.get_webview_window("main");
+            let main_webview = app_handle_for_main_thread.get_webview("main");
+            if startup_focus_restore_decision(
+                startup_focus_restore_is_active(&active_for_main_thread),
+                main_window.is_some(),
+                main_webview.is_some(),
+            ) != StartupFocusRestoreDecision::Restore
+            {
+                return;
             }
 
-            if let Some(webview) = app_handle_for_main_thread.get_webview("main") {
-                if let Err(error) = webview.set_focus() {
-                    tracing::warn!("{}", startup_main_webview_focus_warning(&error));
-                }
+            let Some(window) = main_window else {
+                return;
+            };
+            let Some(webview) = main_webview else {
+                return;
+            };
+
+            if let Err(error) = window.show() {
+                tracing::warn!("{}", startup_main_window_show_warning(&error));
+            }
+            if let Err(error) = window.set_focus() {
+                tracing::warn!("{}", startup_main_window_focus_warning(&error));
+            }
+            if let Err(error) = webview.set_focus() {
+                tracing::warn!("{}", startup_main_webview_focus_warning(&error));
             }
         }) {
-            tracing::warn!("{}", startup_focus_main_thread_warning(&error));
+            if startup_focus_restore_is_active(&active) {
+                tracing::warn!("{}", startup_focus_main_thread_warning(&error));
+            }
         }
     });
 }
@@ -326,6 +383,7 @@ pub fn run() {
                 menu::handle_event(app_handle, event);
             });
 
+            let startup_focus_restore_active = Arc::new(AtomicBool::new(true));
             if let Some(window) = app.get_webview_window("main") {
                 window
                     .set_title(" ")
@@ -333,9 +391,21 @@ pub fn run() {
                 window
                     .set_title_bar_style(main_window_title_bar_style())
                     .expect("Failed to configure main window title bar style");
+
+                let startup_focus_restore_active_for_window = startup_focus_restore_active.clone();
+                window.on_window_event(move |event| {
+                    if matches!(
+                        event,
+                        tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
+                    ) {
+                        mark_startup_focus_restore_stopped(
+                            &startup_focus_restore_active_for_window,
+                        );
+                    }
+                });
             }
 
-            focus_main_webview_on_startup(app.handle().clone());
+            focus_main_webview_on_startup(app.handle().clone(), startup_focus_restore_active);
 
             app.manage(AppState {
                 db: Mutex::new(db),
@@ -459,9 +529,10 @@ mod tests {
         cleanup_old_logs_remove_warning, database_init_error_message, database_init_panic_message,
         main_window_title_bar_uses_overlay, redacted_path_label,
         startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
-        startup_focus_main_thread_warning, startup_main_webview_focus_warning,
-        startup_main_window_focus_warning, startup_main_window_show_warning,
-        startup_preferences_or_default, startup_preferences_read_warning_message,
+        startup_focus_main_thread_warning, startup_focus_restore_decision,
+        startup_main_webview_focus_warning, startup_main_window_focus_warning,
+        startup_main_window_show_warning, startup_preferences_or_default,
+        startup_preferences_read_warning_message, StartupFocusRestoreDecision,
     };
     use crate::domain::error::DomainError;
 
@@ -652,6 +723,26 @@ mod tests {
         assert!(webview_focus_warning.contains("webview focus denied"));
         assert!(schedule_warning.contains("Failed to schedule startup focus restore"));
         assert!(schedule_warning.contains("main thread unavailable"));
+    }
+
+    #[test]
+    fn startup_focus_restore_runs_only_when_app_window_and_webview_are_available() {
+        assert_eq!(
+            startup_focus_restore_decision(false, true, true),
+            StartupFocusRestoreDecision::SkipAppUnavailable
+        );
+        assert_eq!(
+            startup_focus_restore_decision(true, false, true),
+            StartupFocusRestoreDecision::SkipMainWindowMissing
+        );
+        assert_eq!(
+            startup_focus_restore_decision(true, true, false),
+            StartupFocusRestoreDecision::SkipMainWebviewMissing
+        );
+        assert_eq!(
+            startup_focus_restore_decision(true, true, true),
+            StartupFocusRestoreDecision::Restore
+        );
     }
 
     #[test]
