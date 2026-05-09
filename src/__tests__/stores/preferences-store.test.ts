@@ -391,6 +391,55 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("falls back when a rejected preference persist has a throwing message getter", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const error = Object.defineProperty({}, "message", {
+      get: () => {
+        throw new Error("message unavailable");
+      },
+    });
+    vi.mocked(setPreference).mockRejectedValue(error);
+
+    try {
+      usePreferencesStore.getState().setPref("theme", "dark");
+      await vi.waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "設定の保存に失敗しました: Unknown error",
+        });
+      });
+
+      expect(consoleError.mock.calls[0]?.[0]).toBe("Failed to persist preference theme:");
+      expect(consoleError.mock.calls[0]?.[1]).toBe(error);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("falls back when a rejected preference persist cannot be stringified", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const error = {
+      toString: () => {
+        throw new Error("stringify unavailable");
+      },
+    };
+    vi.mocked(setPreference).mockRejectedValue(error);
+
+    try {
+      usePreferencesStore.getState().setPref("theme", "dark");
+      await vi.waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("Failed to persist preference theme:", error);
+      });
+
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "設定の保存に失敗しました: Unknown error",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("keeps the bootstrapped theme and mirrored cache when loading preferences fails", async () => {
     vi.mocked(getPreferences).mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
     document.documentElement.classList.add("dark");

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
-  type KeyboardShortcutPrefs,
   isShortcutPreferenceKey,
+  type KeyboardShortcutPrefs,
   type ShortcutPreferenceKey,
   shortcutDefaults,
 } from "@/lib/keyboard/keyboard-shortcuts";
@@ -118,6 +118,10 @@ function isHiddenPreferenceKey(key: string): key is HiddenPreferenceKey {
 
 function isVisiblePreferenceDefaultKey(key: string): key is VisiblePreferenceDefaultKey {
   return (isKnownPreferenceKey(key) && !isHiddenPreferenceKey(key)) || isShortcutPreferenceKey(key);
+}
+
+function resolveVisiblePreferenceDefault(key: string): string | undefined {
+  return isVisiblePreferenceDefaultKey(key) ? preferenceDefaults[key] : undefined;
 }
 
 const legacyAfterReadingValueMap: Record<string, AfterReadingPreference> = {
@@ -269,8 +273,8 @@ export function resolvePreferenceValue(prefs: PreferenceRecord, key: string): st
   let fallbackValue: string | undefined;
   if (isHiddenPreferenceKey(key)) {
     fallbackValue = hiddenPreferenceDefaults[key];
-  } else if (isVisiblePreferenceDefaultKey(key)) {
-    fallbackValue = preferenceDefaults[key];
+  } else {
+    fallbackValue = resolveVisiblePreferenceDefault(key);
   }
   return normalizePreferenceValue(key, prefs[key] ?? fallbackValue ?? "");
 }

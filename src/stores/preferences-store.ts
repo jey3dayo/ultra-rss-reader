@@ -23,6 +23,7 @@ import { useUiStore } from "@/stores/ui-store";
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
 const THEME_VIEW_TRANSITION_CLASS = "vertical-wipe-transition";
+const UNKNOWN_PREFERENCE_ERROR_MESSAGE = "Unknown error";
 
 export type { AfterReadingPreference, SortSubscriptions, Theme };
 export { preferenceDefaults, resolvePreferenceValue };
@@ -56,13 +57,17 @@ function readMirroredThemePreference(): Theme | null {
 }
 
 function resolveErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
+  try {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+      return error.message;
+    }
+    return String(error);
+  } catch {
+    return UNKNOWN_PREFERENCE_ERROR_MESSAGE;
   }
-  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
-    return error.message;
-  }
-  return String(error);
 }
 
 function notifyPreferencePersistFailure(key: string, error: unknown): void {
