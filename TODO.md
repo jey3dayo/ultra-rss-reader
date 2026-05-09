@@ -1093,6 +1093,41 @@
   - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
   - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
 
+- [ ] react-doctor sync result min/max cleanup 候補を追加する
+  - `src/lib/sync/sync-result-feedback.ts` の `array.sort()[0]` による min/max 取得を `Math.min` / `Math.max` 相当へ寄せる
+  - sync result feedback test で複数 timestamp / 空配列 / 同値の出力 copy が変わらないことを固定する
+  - immutable sort cleanup とは分け、min/max 目的の sort elimination だけを扱う
+
+- [ ] react-doctor article list length-check-first 候補を追加する
+  - `src/lib/articles/article-list.ts` の `.every()` 比較に length short-circuit を追加する
+  - article list pure helper test で長さ違いの配列が早期 false になり、同長配列の順序比較 contract が変わらないことを固定する
+  - article list iterable performance とは分け、array equality guard だけを扱う
+
+- [ ] react-doctor repo contract flatMap cleanup 候補を追加する
+  - `src/__tests__/config/repo-contracts.test.ts` の `.map().filter(Boolean)` を `flatMap` に寄せる
+  - repo contract test の assertion 対象と failure message が変わらないことを確認する
+  - runtime iterable performance とは分け、test helper iteration cleanup だけを扱う
+
+- [ ] react-doctor dev mock lookup index cleanup 候補を追加する
+  - `src/dev/mocks.ts` の loop 内 `includes` / `find` を必要な箇所だけ `Set` / `Map` index に寄せる
+  - account / feed / article 削除 cascade と list 系 mock の出力順が変わらないことを dev mock test で固定する
+  - runtime hot path の iterable performance とは分け、dev mock data graph lookup だけを扱う
+
+- [ ] react-doctor tauri dispatch lookup set 候補を追加する
+  - `scripts/tauri-cli-dispatch.ts` の repeated membership check を `Set` 化する
+  - Windows / non-Windows dispatch test で許可 command と拒否 command の判定が変わらないことを固定する
+  - script async waterfall とは分け、CLI dispatch lookup performance だけを扱う
+
+- [ ] react-doctor Storybook action strip reducer 候補を追加する
+  - `src/components/storybook/ui-reference-canvas-specimens.tsx` の `ReaderHeaderActionStripSpecimen` にある関連 state を reducer 化する
+  - UI reference canvas smoke で control toggles と specimen rendering が変わらないことを確認する
+  - production reader header state とは分け、Storybook specimen の local state organization だけを扱う
+
+- [ ] react-doctor Storybook ellipsis typography 候補を追加する
+  - `src/components/storybook/ui-reference-canvas-specimens.tsx` の JSX text に残る three-period ellipsis を typographic ellipsis へ寄せる
+  - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
+  - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
+
 - [ ] keyboard listener subscription boundary 候補を追加する
   - `src/hooks/use-keyboard.ts` の `useUiStore()` 全体購読を必要な selector に分け、無関係な UI state 更新で `keydown` listener が張り替わらないようにする
   - `src/__tests__/hooks/use-keyboard.test.tsx` で toast / sidebar state など無関係更新時の `addEventListener` / `removeEventListener` 回数を固定する
