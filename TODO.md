@@ -60,11 +60,6 @@
   - `tauri` に `unstable` feature が入っているため、release artifact で使ってよい API 面積と将来の breaking risk が明文化されていない
   - unstable API の使用箇所、必要理由、代替可能性、release smoke で見るべき挙動を一覧化し、不要なら feature を外す
 
-- [ ] P1 article thumbnail URL の sanitizer/privacy 境界を固定する
-  - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/api/schemas/article.ts`, `src/components/reader/article-list-item.tsx`, `src/components/reader/article-content-view.tsx`
-  - `content_sanitized` は Rust sanitizer 境界がある一方、`thumbnail` は provider 由来 URL を `<img src>` に渡すため、remote image privacy と scheme policy が本文 HTML と別管理になりやすい
-  - http/https/relative/data/private URL policy を決め、normalizer / ArticleDtoSchema / reader rendering の contract test を追加する
-
 - [ ] P2 Tauri CSP の external img/frame 許可面積を feed content / browser webview 境界で整理する
   - 対象: `src-tauri/tauri.conf.json`, `docs/feed-content-privacy.md`, `src/components/reader/article-content-view.tsx`
   - CSP で `img-src` / `frame-src` が `http:` / `https:` を広く許可している場合、feed content と browser webview の責務境界が security config 上で見えにくい
@@ -155,11 +150,6 @@
   - update endpoint が `latest.json` 固定のため、prerelease、downgrade、same version、platform mismatch の扱いが曖昧だと release 運用で誤配信に気づきにくい
   - fake update manifest で newer/same/older/prerelease/platform mismatch を固定し、UI 表示と install 可否を schema test にする
 
-- [ ] P1 browser webview event payload の schema validation を Rust/TS で揃える
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`, `src-tauri/src/browser_webview.rs`
-  - native event payload は frontend schema と Rust emit shape がズレると malformed event warning で止まり、browser overlay の state だけ stale になり得る
-  - Rust event fixture と TS schema fixture を同じケースで照合し、unknown stage、missing URL、malformed bounds の recovery を固定する
-
 - [ ] P2 article view history cleanup / retention policy を決める
   - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
@@ -169,11 +159,6 @@
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/api/schemas/feed-integrity.ts`
   - orphan cleanup は destructive なので、dry-run と実削除の count 差、concurrent feed delete、sync 中実行の扱いが曖昧だと DB repair 操作で事故りやすい
   - dry-run直後の状態変化、sync中拒否、deleted count と orphan count の一致を Rust/TS schema test で固定する
-
-- [ ] P2 reader selection が削除済み feed/folder/tag を指す時の recovery を固定する
-  - 対象: `src/stores/ui-store.ts`, `src/lib/reader/reader-query.ts`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
-  - feed/folder/tag 削除後に selection が stale id を指すと disabled query や empty view に落ちるが、どこで all/unread へ戻すかが分かれやすい
-  - selected feed deleted、selected folder deleted、selected tag deleted、account switch の recovery を store/hook test で固定する
 
 - [ ] P2 account unread count と feed unread count の reconciliation policy を作る
   - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-account-unread-count.ts`
