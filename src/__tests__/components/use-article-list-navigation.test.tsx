@@ -150,4 +150,28 @@ describe("useArticleListNavigation", () => {
     expect(selectArticle).toHaveBeenLastCalledWith(sampleArticles[1].id, { navigationDirection: 1 });
     expect(lastButton).toHaveFocus();
   });
+
+  it("keeps empty article navigation as a local no-op", () => {
+    const selectArticle = vi.fn();
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const requestAnimationFrame = vi.fn();
+
+    vi.stubGlobal("requestAnimationFrame", requestAnimationFrame);
+
+    const { result } = renderHook(() =>
+      useArticleListNavigation({
+        filteredArticles: [],
+        selectedArticleId: null,
+        selectArticle,
+        listRef: { current: list },
+        viewportRef: { current: viewport },
+      }),
+    );
+
+    result.current(1);
+
+    expect(selectArticle).not.toHaveBeenCalled();
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+  });
 });
