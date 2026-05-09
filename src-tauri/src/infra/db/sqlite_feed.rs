@@ -17,6 +17,31 @@ impl<'a> SqliteFeedRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
     }
+
+    fn validate_folder_account(&self, feed: &Feed) -> DomainResult<()> {
+        let Some(folder_id) = &feed.folder_id else {
+            return Ok(());
+        };
+
+        let belongs_to_account: bool = self.conn.query_row(
+            "SELECT EXISTS(
+                SELECT 1
+                  FROM folders
+                 WHERE id = ?1
+                   AND account_id = ?2
+            )",
+            params![folder_id.0, feed.account_id.0],
+            |row| row.get::<_, i64>(0).map(|exists| exists != 0),
+        )?;
+
+        if !belongs_to_account {
+            return Err(DomainError::Validation(
+                "feed folder does not belong to feed account".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
@@ -92,6 +117,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     }
 
     fn save(&self, feed: &Feed) -> DomainResult<()> {
+        self.validate_folder_account(feed)?;
+
         self.conn.execute(
             "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
@@ -784,6 +811,70 @@ mod tests {
         assert_eq!(feeds[0].folder_id.as_ref(), Some(&remote_folder_id));
         assert_eq!(feeds[0].reader_mode, "on");
         assert_eq!(feeds[0].web_preview_mode, "off");
+    }
+
+    #[test]
+    fn save_rejects_account_url_upsert_when_incoming_folder_belongs_to_another_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, 'Local Folder', 0)",
+                params![folder_id.0, account_id.0],
+            )
+            .unwrap();
+
+        let existing_feed = Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: Some(folder_id.clone()),
+            remote_id: None,
+            title: "Original Feed".to_string(),
+            url: "http://example.com/rss".to_string(),
+            site_url: "http://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "on".to_string(),
+            web_preview_mode: "off".to_string(),
+        };
+        repo.save(&existing_feed).unwrap();
+
+        let other_folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, 'Other Folder', 0)",
+                params![other_folder_id.0, other_account_id.0],
+            )
+            .unwrap();
+        let conflicting_feed = Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: Some(other_folder_id),
+            remote_id: Some("feed/remote".to_string()),
+            title: "Remote Feed".to_string(),
+            url: existing_feed.url.clone(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 3,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+
+        let error = repo
+            .save(&conflicting_feed)
+            .expect_err("upsert should reject folders owned by another account");
+
+        let feeds = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].id, existing_feed.id);
+        assert_eq!(feeds[0].folder_id.as_ref(), Some(&folder_id));
+        assert_eq!(feeds[0].remote_id, None);
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == "feed folder does not belong to feed account")
+        );
     }
 
     #[test]
