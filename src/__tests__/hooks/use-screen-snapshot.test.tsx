@@ -243,4 +243,69 @@ describe("useScreenSnapshot", () => {
       { id: "article-2" },
     ]);
   });
+
+  it("keeps stale first-screen data gated from the next startup read model", () => {
+    const { result, rerender } = renderHook(
+      ({ candidate, canAdopt }: { candidate: ArticleSnapshotCandidate | null; canAdopt: boolean }) =>
+        useScreenSnapshot(candidate, canAdopt),
+      {
+        initialProps: {
+          candidate: { contextKey: "account:acc-1:unread", articles: [{ id: "article-1" }] },
+          canAdopt: true,
+        },
+      },
+    );
+
+    rerender({
+      candidate: null,
+      canAdopt: false,
+    });
+
+    expectSnapshotState(result.current, {
+      snapshot: { contextKey: "account:acc-1:unread", articles: [{ id: "article-1" }] },
+      hasResolvedSnapshot: true,
+      hasAdoptedSnapshot: true,
+    });
+    expect(adoptSnapshotByKey(result.current.snapshot, "contextKey", "account:acc-2:unread")).toBeNull();
+  });
+
+  it("lets callers show a first-screen fallback until the matching snapshot resolves", () => {
+    const { result, rerender } = renderHook(
+      ({ candidate, currentContextKey }: { candidate: ArticleSnapshotCandidate | null; currentContextKey: string }) => {
+        const screenSnapshot = useScreenSnapshot(candidate, candidate !== null);
+        const adoptedSnapshot = adoptSnapshotByKey(screenSnapshot.snapshot, "contextKey", currentContextKey);
+
+        return {
+          ...screenSnapshot,
+          adoptedSnapshot,
+          showFallback: adoptedSnapshot === null,
+        };
+      },
+      {
+        initialProps: {
+          candidate: null,
+          currentContextKey: "feed:feed-1:unread",
+        },
+      },
+    );
+
+    expect(result.current.adoptedSnapshot).toBeNull();
+    expect(result.current.showFallback).toBe(true);
+
+    rerender({
+      candidate: { contextKey: "feed:feed-1:unread", articles: [{ id: "article-1" }] },
+      currentContextKey: "feed:feed-1:unread",
+    });
+
+    expect(result.current.adoptedSnapshot?.articles).toEqual([{ id: "article-1" }]);
+    expect(result.current.showFallback).toBe(false);
+
+    rerender({
+      candidate: null,
+      currentContextKey: "feed:feed-2:unread",
+    });
+
+    expect(result.current.adoptedSnapshot).toBeNull();
+    expect(result.current.showFallback).toBe(true);
+  });
 });
