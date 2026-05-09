@@ -12,14 +12,10 @@ type SubscriptionsSectionContextMenuViewProps = {
 export function SubscriptionsSectionContextMenuView({
   expandAllFoldersLabel,
   collapseAllFoldersLabel,
-  hasFolders = true,
+  hasFolders: _hasFolders = true,
   onExpandAllFolders,
   onCollapseAllFolders,
 }: SubscriptionsSectionContextMenuViewProps) {
-  if (!hasFolders) {
-    return null;
-  }
-
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner>

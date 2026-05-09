@@ -9,6 +9,7 @@ import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
@@ -667,10 +668,18 @@ describe("Sidebar", () => {
       return undefined;
     });
 
-    render(<Sidebar />, { wrapper: createWrapper() });
+    render(
+      <>
+        <Sidebar />
+        <AppConfirmDialog />
+      </>,
+      { wrapper: createWrapper() },
+    );
 
     fireEvent.contextMenu(await screen.findByRole("button", { name: /Recently Viewed/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Clear history" }));
+    expect(screen.getAllByText("Clear history").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Clear history" }));
 
     await waitFor(() =>
       expect(commandCalls).toContainEqual({
@@ -1324,7 +1333,36 @@ describe("Sidebar", () => {
   });
 
   it("hides read feeds by default and shows them again in all view", async () => {
-    render(<Sidebar />, { wrapper: createWrapper() });
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-unread", title: "Tech Blog", account_id: args.accountId, unread_count: 5 },
+            {
+              ...sampleFeeds[1],
+              id: "feed-read",
+              title: "News",
+              account_id: args.accountId,
+              folder_id: null,
+              unread_count: 0,
+            },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    const { unmount } = render(<Sidebar />, { wrapper: createWrapper() });
 
     await waitFor(
       () => {
@@ -1334,11 +1372,17 @@ describe("Sidebar", () => {
     );
     expect(screen.queryByText("News")).not.toBeInTheDocument();
 
-    useUiStore.getState().setViewMode("all");
-
-    await waitFor(() => {
-      expect(screen.getByText("News")).toBeInTheDocument();
+    unmount();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      viewMode: "all",
     });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("News")).toBeInTheDocument();
   });
 
   it("shows unread count for feeds with unread articles", async () => {
@@ -1878,7 +1922,7 @@ describe("Sidebar", () => {
     });
   });
 
-  it("opens the account pane from the account title on wide layout even when only one account exists", async () => {
+  it("keeps the account title as static text on wide layout when only one account exists", async () => {
     const user = userEvent.setup();
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1914,14 +1958,17 @@ describe("Sidebar", () => {
     );
 
     const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
-    await user.click(await within(sidebar).findByRole("button", { name: /Local/ }));
+    const trigger = await within(sidebar).findByRole("button", { name: /Local/ });
 
-    await waitFor(() => {
-      expect(useUiStore.getState().accountPaneOpen).toBe(true);
-      expect(
-        within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", { name: /Local/ }),
-      ).toHaveFocus();
-    });
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
+    expect(trigger).not.toHaveAttribute("aria-expanded");
+
+    await user.click(trigger);
+
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
+    expect(
+      within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", { name: /Local/ }),
+    ).not.toHaveFocus();
   });
 
   it("moves focus inside the account pane with Up and Down keys", async () => {
@@ -2395,10 +2442,16 @@ describe("Sidebar", () => {
       .padStart(2, "0")}`;
     expect(syncButton).not.toBeDisabled();
 
-    fireEvent.click(syncButton);
-    await vi.advanceTimersByTimeAsync(1);
+    await act(async () => {
+      fireEvent.click(syncButton);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
     expect(syncButton).not.toBeDisabled();
     expect(syncButton).toHaveAttribute("aria-disabled", "true");
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Sync completed",
+    });
     expect(screen.getByText(new RegExp(expectedLastSyncedTimeLabel))).toBeInTheDocument();
 
     await act(async () => {

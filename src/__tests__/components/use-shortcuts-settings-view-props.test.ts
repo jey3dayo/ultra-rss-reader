@@ -119,118 +119,118 @@ describe("useShortcutsSettingsViewProps", () => {
     ).toEqual([
       {
         id: "shortcuts.category_navigation",
-        heading: "shortcuts.category_navigation",
+        heading: tReader("shortcuts.category_navigation"),
         items: [
           {
             id: "next_article",
-            label: "shortcuts.next_article",
+            label: tReader("shortcuts.next_article"),
             resetDisabled: false,
           },
           {
             id: "prev_article",
-            label: "shortcuts.prev_article",
+            label: tReader("shortcuts.prev_article"),
             resetDisabled: true,
           },
           {
             id: "next_feed",
-            label: "shortcuts.next_feed",
+            label: tReader("shortcuts.next_feed"),
             resetDisabled: true,
           },
           {
             id: "prev_feed",
-            label: "shortcuts.prev_feed",
+            label: tReader("shortcuts.prev_feed"),
             resetDisabled: true,
           },
           {
             id: "focus_sidebar",
-            label: "shortcuts.focus_sidebar",
+            label: tReader("shortcuts.focus_sidebar"),
             resetDisabled: true,
           },
           {
             id: "toggle_sidebar",
-            label: "shortcuts.toggle_sidebar",
+            label: tReader("shortcuts.toggle_sidebar"),
             resetDisabled: true,
           },
         ],
       },
       {
         id: "shortcuts.category_actions",
-        heading: "shortcuts.category_actions",
+        heading: tReader("shortcuts.category_actions"),
         items: [
           {
             id: "reload_webview",
-            label: "shortcuts.reload_webview",
+            label: tReader("shortcuts.reload_webview"),
             resetDisabled: true,
           },
           {
             id: "toggle_read",
-            label: "shortcuts.toggle_read",
+            label: tReader("shortcuts.toggle_read"),
             resetDisabled: true,
           },
           {
             id: "toggle_star",
-            label: "shortcuts.toggle_star",
+            label: tReader("shortcuts.toggle_star"),
             resetDisabled: true,
           },
           {
             id: "open_in_app_browser",
-            label: "shortcuts.view_in_browser",
+            label: tReader("shortcuts.view_in_browser"),
             resetDisabled: true,
           },
           {
             id: "open_external_browser",
-            label: "shortcuts.open_external_browser",
+            label: tReader("shortcuts.open_external_browser"),
             resetDisabled: true,
           },
           {
             id: "mark_all_read",
-            label: "shortcuts.mark_all_read",
+            label: tReader("shortcuts.mark_all_read"),
             resetDisabled: true,
           },
           {
             id: "show_unread",
-            label: "shortcuts.show_unread",
+            label: tReader("shortcuts.show_unread"),
             resetDisabled: true,
           },
           {
             id: "show_all",
-            label: "shortcuts.show_all",
+            label: tReader("shortcuts.show_all"),
             resetDisabled: true,
           },
           {
             id: "show_starred",
-            label: "shortcuts.show_starred",
+            label: tReader("shortcuts.show_starred"),
             resetDisabled: true,
           },
           {
             id: "cycle_filter",
-            label: "shortcuts.cycle_filter",
+            label: tReader("shortcuts.cycle_filter"),
             resetDisabled: true,
           },
         ],
       },
       {
         id: "shortcuts.category_global",
-        heading: "shortcuts.category_global",
+        heading: tReader("shortcuts.category_global"),
         items: [
           {
             id: "search",
-            label: "shortcuts.search",
+            label: tReader("shortcuts.search"),
             resetDisabled: true,
           },
           {
             id: "open_command_palette",
-            label: "shortcuts.open_command_palette",
+            label: tReader("shortcuts.open_command_palette"),
             resetDisabled: true,
           },
           {
             id: "close_or_clear",
-            label: "shortcuts.close_or_clear",
+            label: tReader("shortcuts.close_or_clear"),
             resetDisabled: true,
           },
           {
             id: "open_settings",
-            label: "shortcuts.open_settings",
+            label: tReader("shortcuts.open_settings"),
             resetDisabled: true,
           },
         ],

@@ -178,6 +178,7 @@ describe("sidebar section props builders", () => {
       tagSection: {
         isVisible: true,
         label: t("tags"),
+        emptyLabel: t("no_tags"),
         isOpen: false,
         onToggle: onToggleTagsSection,
         tags: [],

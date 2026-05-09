@@ -119,6 +119,7 @@ export function SidebarHeaderView({
           onClick={handleSyncClick}
           disabled={isSyncing || isSyncDisabled}
           ariaDisabled={isSyncCoolingDown}
+          allowAriaDisabledClick={true}
           className={cn(
             headerActionButtonClassName,
             isMobile ? mobileHeaderActionButtonClassName : "w-11",

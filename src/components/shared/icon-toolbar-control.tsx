@@ -17,6 +17,7 @@ type IconToolbarControlBaseProps = {
   tooltipSideOffset?: number;
   disabled?: boolean;
   ariaDisabled?: boolean;
+  allowAriaDisabledClick?: boolean;
   ariaPressed?: boolean;
   className?: string;
   children: ReactNode;
@@ -91,13 +92,14 @@ export function IconToolbarButton({
   tooltipSideOffset,
   disabled = false,
   ariaDisabled,
+  allowAriaDisabledClick = false,
   ariaPressed,
   className,
   children,
   onClick,
 }: IconToolbarButtonProps) {
   const handleToolbarButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
-    if (ariaDisabled) {
+    if (ariaDisabled && !allowAriaDisabledClick) {
       event.preventDefault();
       event.stopPropagation();
       return;

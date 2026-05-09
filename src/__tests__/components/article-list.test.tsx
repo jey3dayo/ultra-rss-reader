@@ -1246,8 +1246,8 @@ describe("ArticleList", () => {
     const commands: MockTauriCommandCall[] = [];
     const folderFeeds = [
       { ...sampleFeeds[0], id: "feed-folder-1", folder_id: "folder-1", unread_count: 3 },
-      { ...sampleFeeds[1], id: "feed-folder-2", folder_id: "folder-1", unread_count: 4 },
-      { ...sampleFeeds[1], id: "feed-other", folder_id: "folder-2", unread_count: 9 },
+      { ...sampleFeeds[0], id: "feed-folder-2", folder_id: "folder-1", unread_count: 4 },
+      { ...sampleFeeds[0], id: "feed-other", folder_id: "folder-2", unread_count: 9 },
     ];
 
     setupTauriMocks((cmd, args) => {
