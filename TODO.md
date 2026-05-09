@@ -45,11 +45,6 @@
   - DTO alias や view model が `z.output` / `z.infer` / `api/tauri-commands` の source of truth と重複していないか確認し、UI 専用 shape は `*ViewModel` / `*UiState` として意図を明確にする
   - IPC / localStorage / app-config schema の validation 変更とは分け、type source-of-truth と DTO/UI state boundary だけを扱う
 
-- [ ] P3 similarity updater/sidebar lifecycle false-positive review 候補を追加する
-  - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
-  - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
-  - updater hook state effects とは分け、lifecycle boilerplate の共通化可否判断だけを扱う
-
 - [ ] P2 react-doctor browser-view state effects 候補を追加する
   - `src/components/reader/browser-view.tsx` の cascading setState / state-only handler / trivial `useMemo` を整理する
   - reducer 化する state と `useRef` 化する render 非依存 state を分け、browser surface state test を追加する
