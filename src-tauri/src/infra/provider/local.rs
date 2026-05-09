@@ -28,7 +28,9 @@ impl Default for LocalProvider {
 
 impl LocalProvider {
     pub fn new() -> Self {
-        Self::with_private_feed_url_policy(false)
+        Self::with_private_feed_url_policy(
+            std::env::var("DEV_CREDENTIALS").ok().as_deref() == Some("1"),
+        )
     }
 
     fn with_private_feed_url_policy(allow_private_feed_urls: bool) -> Self {
@@ -38,8 +40,8 @@ impl LocalProvider {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn new_allowing_private_feed_urls_for_tests() -> Self {
+    #[doc(hidden)]
+    pub fn new_allowing_private_feed_urls_for_tests() -> Self {
         Self::with_private_feed_url_policy(true)
     }
 

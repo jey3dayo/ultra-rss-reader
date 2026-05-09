@@ -106,7 +106,7 @@ async fn local_feed_e2e() {
         .unwrap();
 
     // 3. Run sync
-    let provider = LocalProvider::new();
+    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
     let article_repo = SqliteArticleRepository::new(db.writer());
     let folder_repo = SqliteFolderRepository::new(db.writer());
     let pending_repo = SqlitePendingMutationRepository::new(db.writer());
