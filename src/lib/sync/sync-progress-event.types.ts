@@ -1,13 +1,15 @@
-import type { SyncProgressKind, SyncProgressStage } from "@/lib/sync/sync-progress.types";
+import { z } from "zod";
 
-export type SyncProgressRuntimeEventDto = {
-  stage: SyncProgressStage;
-  kind: SyncProgressKind;
-  total: number;
-  completed: number;
-  account_id?: string | null;
-  account_name?: string | null;
-  success?: boolean | null;
-};
+export const SyncProgressEventSchema = z.object({
+  stage: z.enum(["started", "account_started", "account_finished", "finished"]),
+  kind: z.enum(["manual_all", "manual_account", "automatic"]),
+  total: z.number().int().nonnegative().finite(),
+  completed: z.number().int().nonnegative().finite(),
+  account_id: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
+  success: z.boolean().nullable().optional(),
+});
+
+export type SyncProgressRuntimeEventDto = z.output<typeof SyncProgressEventSchema>;
 
 export type SyncProgressEventDto = SyncProgressRuntimeEventDto;

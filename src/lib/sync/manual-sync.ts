@@ -8,9 +8,8 @@ const MANUAL_SYNC_COOLDOWN_MS = 15_000;
 let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 const manualSyncCooldownListeners = new Set<() => void>();
-let manualSyncCooldownListenerErrorReporter: (
-  errors: readonly unknown[],
-) => void = reportManualSyncCooldownListenerErrors;
+let manualSyncCooldownListenerErrorReporter: (errors: readonly unknown[]) => void =
+  reportManualSyncCooldownListenerErrors;
 
 function reportManualSyncCooldownListenerErrors(errors: readonly unknown[]) {
   console.error("Manual sync cooldown listeners failed:", errors);
@@ -18,9 +17,7 @@ function reportManualSyncCooldownListenerErrors(errors: readonly unknown[]) {
 
 export function notifyManualSyncCooldownListeners(
   listeners: Iterable<() => void>,
-  onListenerErrors: (
-    errors: readonly unknown[],
-  ) => void = reportManualSyncCooldownListenerErrors,
+  onListenerErrors: (errors: readonly unknown[]) => void = reportManualSyncCooldownListenerErrors,
 ) {
   const errors: unknown[] = [];
 
@@ -38,10 +35,7 @@ export function notifyManualSyncCooldownListeners(
 }
 
 function emitManualSyncCooldownChanged() {
-  notifyManualSyncCooldownListeners(
-    manualSyncCooldownListeners,
-    manualSyncCooldownListenerErrorReporter,
-  );
+  notifyManualSyncCooldownListeners(manualSyncCooldownListeners, manualSyncCooldownListenerErrorReporter);
 }
 
 function setManualSyncCooldownUntil(nextCooldownUntil: number) {
@@ -83,8 +77,7 @@ export function setManualSyncCooldownListenerErrorReporterForDiagnostics(
 ) {
   manualSyncCooldownListenerErrorReporter = reporter;
   return () => {
-    manualSyncCooldownListenerErrorReporter =
-      reportManualSyncCooldownListenerErrors;
+    manualSyncCooldownListenerErrorReporter = reportManualSyncCooldownListenerErrors;
   };
 }
 
@@ -99,9 +92,14 @@ type TriggerManualSyncWithCooldownParams = {
   onError: (error: AppError) => void;
 };
 
-export type TriggerManualSyncWithCooldownError =
-  | AppError
-  | { type: "cooling_down" };
+export type TriggerManualSyncWithCooldownError = AppError | { type: "cooling_down" };
+
+function shouldStartManualSyncCooldown(result: Result.Result<SyncResultDto, AppError>) {
+  // Retryable failures still mean native sync accepted user intent and may have
+  // scheduled provider backoff. Keep cooldown aligned with successful triggers
+  // to avoid tight manual retry loops.
+  return Result.isSuccess(result) || Result.unwrapError(result).type === "Retryable";
+}
 
 export async function triggerManualSyncWithCooldownResult(
   onRequestStart?: () => void,
@@ -112,10 +110,7 @@ export async function triggerManualSyncWithCooldownResult(
 
   onRequestStart?.();
   const result = await triggerSync();
-  if (
-    Result.isSuccess(result) ||
-    Result.unwrapError(result).type === "Retryable"
-  ) {
+  if (shouldStartManualSyncCooldown(result)) {
     setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
   }
   return result;
@@ -150,6 +145,5 @@ export function resetManualSyncCooldownForTests() {
   }
   manualSyncCooldownUntil = 0;
   manualSyncCooldownListeners.clear();
-  manualSyncCooldownListenerErrorReporter =
-    reportManualSyncCooldownListenerErrors;
+  manualSyncCooldownListenerErrorReporter = reportManualSyncCooldownListenerErrors;
 }
