@@ -70,11 +70,6 @@
   - 対象候補: `playwright.storybook.config.ts` / legacy settings form files / `src/dev/scenarios/index.ts`
   - dead code type surface とは分け、file-level export/entrypoint contract と削除可否だけを扱う
 
-- [ ] P3 react-doctor knip duplicate exports cleanup 候補を追加する
-  - `knip/duplicates` の duplicate export を schema barrel / story runtime helper ごとに整理する
-  - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
-  - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
-
 - [ ] P3 similarity reader UI state hook factory 候補を追加する
   - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
   - 共通化する場合は public hook return names を保ち、article view と command palette の focused hook test で state transition が変わらないことを固定する
