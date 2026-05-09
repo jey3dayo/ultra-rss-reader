@@ -190,6 +190,8 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                                     "Background sync could not persist backoff state for account '{}': {error}",
                                     account.name
                                 );
+                                warnings_to_emit
+                                    .push(backoff_persistence_failure_warning(account, &error));
                                 RetryBackoffState {
                                     error_count: 1,
                                     next_retry_at: None,
@@ -299,6 +301,23 @@ fn scheduler_load_failure_warning(error: &DomainError) -> AccountSyncWarning {
         account_name: "Scheduler".to_string(),
         kind: AccountSyncWarningKind::Generic,
         message: format!("Scheduled sync skipped because accounts could not be loaded: {error}"),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
+fn backoff_persistence_failure_warning(
+    account: &Account,
+    error: &DomainError,
+) -> AccountSyncWarning {
+    AccountSyncWarning {
+        account_id: account.id.as_ref().to_string(),
+        account_name: account.name.clone(),
+        kind: AccountSyncWarningKind::Generic,
+        message: format!(
+            "Scheduled sync could not persist retry state for '{}': {error}",
+            account.name
+        ),
         retry_at: None,
         retry_in_seconds: None,
     }
@@ -606,6 +625,24 @@ mod tests {
         assert_eq!(
             warning.message,
             "Scheduled sync skipped because accounts could not be loaded: Persistence error: Lock error: poisoned"
+        );
+        assert_eq!(warning.retry_at, None);
+        assert_eq!(warning.retry_in_seconds, None);
+    }
+
+    #[test]
+    fn backoff_persistence_failure_warning_is_observable_as_generic_account_warning() {
+        let account = test_account(60);
+        let error = DomainError::Persistence("FOREIGN KEY constraint failed".to_string());
+
+        let warning = backoff_persistence_failure_warning(&account, &error);
+
+        assert_eq!(warning.account_id, account.id.as_ref());
+        assert_eq!(warning.account_name, account.name);
+        assert_eq!(warning.kind, AccountSyncWarningKind::Generic);
+        assert_eq!(
+            warning.message,
+            "Scheduled sync could not persist retry state for 'test': Persistence error: FOREIGN KEY constraint failed"
         );
         assert_eq!(warning.retry_at, None);
         assert_eq!(warning.retry_in_seconds, None);
