@@ -1,10 +1,18 @@
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { createUiStoreSliceHook } from "../use-ui-store-slice";
+import {
+  createUiOpenCloseToggleStateHook,
+  createUiStoreSliceHook,
+} from "../use-ui-store-slice";
+
+const useCommandPaletteOpenCloseState = createUiOpenCloseToggleStateHook(
+  (state) => ({
+    open: state.commandPaletteOpen,
+    closeCommandPalette: state.closeCommandPalette,
+  }),
+);
 
 const useCommandPaletteUiStoreSlice = createUiStoreSliceHook((state) => ({
-  open: state.commandPaletteOpen,
-  closeCommandPalette: state.closeCommandPalette,
   openShortcutsHelp: state.openShortcutsHelp,
   showToast: state.showToast,
   selectedAccountId: state.selectedAccountId,
@@ -15,11 +23,13 @@ const useCommandPaletteUiStoreSlice = createUiStoreSliceHook((state) => ({
 }));
 
 export function useCommandPaletteUiState() {
+  const openCloseState = useCommandPaletteOpenCloseState();
   const uiState = useCommandPaletteUiStoreSlice();
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
 
   return {
+    ...openCloseState,
     ...uiState,
     platformKind,
     shortcutPrefs,
