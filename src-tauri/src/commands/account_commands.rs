@@ -491,6 +491,45 @@ mod tests {
     }
 
     #[test]
+    fn update_account_credentials_keeps_existing_keyring_entry_for_empty_password() {
+        let account = fresh_rss_account();
+        let saved_passwords = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+        let updated_accounts = RefCell::new(Vec::new());
+
+        let updated = update_account_credentials_after_optional_password(
+            &account.id,
+            Some(""),
+            |_| Ok(Some(account.clone())),
+            |account_id| {
+                updated_accounts
+                    .borrow_mut()
+                    .push(account_id.as_ref().to_string());
+                Ok(())
+            },
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect("empty password draft should not block metadata credential updates");
+
+        assert_eq!(updated.id, account.id);
+        assert_eq!(
+            updated_accounts.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert!(saved_passwords.borrow().is_empty());
+        assert!(deleted_passwords.borrow().is_empty());
+    }
+
+    #[test]
     fn delete_account_does_not_delete_password_when_db_delete_fails() {
         let account = fresh_rss_account();
         let deleted_accounts = RefCell::new(Vec::new());
