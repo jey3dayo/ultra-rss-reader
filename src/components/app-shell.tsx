@@ -183,6 +183,48 @@ type FocusDebugHudProps = {
   avoidBottomRight?: boolean;
 };
 
+type DebugHudDocumentBoundary = {
+  readonly activeElement?: unknown;
+  readonly body?: unknown;
+  readonly defaultView?: Pick<Window, "HTMLElement"> | null;
+};
+
+function isDebugHudHtmlElement(value: unknown, ownerDocument: DebugHudDocumentBoundary): value is HTMLElement {
+  const HtmlElement =
+    ownerDocument.defaultView?.HTMLElement ?? (typeof HTMLElement !== "undefined" ? HTMLElement : null);
+  return HtmlElement !== null && value instanceof HtmlElement;
+}
+
+export function resolveFocusDebugHudPortalTarget(
+  ownerDocument: DebugHudDocumentBoundary | null | undefined = typeof document === "undefined" ? undefined : document,
+): HTMLElement | null {
+  if (ownerDocument == null) {
+    return null;
+  }
+
+  const { body } = ownerDocument;
+  return isDebugHudHtmlElement(body, ownerDocument) ? body : null;
+}
+
+export function getFocusDebugHudActiveElementDescription(
+  ownerDocument: DebugHudDocumentBoundary | null | undefined = typeof document === "undefined" ? undefined : document,
+): string {
+  if (ownerDocument == null) {
+    return "none";
+  }
+
+  let activeElement: unknown;
+  try {
+    activeElement = ownerDocument.activeElement;
+  } catch {
+    return "none";
+  }
+
+  return isDebugHudHtmlElement(activeElement, ownerDocument)
+    ? describeDebugHudActiveElement(activeElement)
+    : describeDebugHudActiveElement(null);
+}
+
 function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: FocusDebugHudProps) {
   const { t } = useTranslation("reader");
   const focusedPane = useUiStore((state) => state.focusedPane);
@@ -197,7 +239,7 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
 
   useEffect(() => {
     const update = () => {
-      dispatch({ type: "set-active-element", value: describeDebugHudActiveElement(document.activeElement) });
+      dispatch({ type: "set-active-element", value: getFocusDebugHudActiveElementDescription() });
     };
 
     update();
@@ -312,11 +354,12 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
     </Suspense>
   );
 
-  if (typeof document !== "undefined") {
-    return createPortal(hud, document.body);
+  const portalTarget = resolveFocusDebugHudPortalTarget();
+  if (portalTarget !== null) {
+    return createPortal(hud, portalTarget);
   }
 
-  return hud;
+  return null;
 }
 
 export function AppShell() {

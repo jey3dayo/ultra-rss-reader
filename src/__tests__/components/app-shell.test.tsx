@@ -5,7 +5,12 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AppShell, preloadSettingsModalModuleForDev } from "@/components/app-shell";
+import {
+  AppShell,
+  getFocusDebugHudActiveElementDescription,
+  preloadSettingsModalModuleForDev,
+  resolveFocusDebugHudPortalTarget,
+} from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -309,6 +314,49 @@ describe("AppShell", () => {
 
     expect(container).toHaveClass("top-4", "right-4");
     expect(container).not.toHaveClass("bottom-4");
+  });
+
+  it("treats the debug HUD portal target as a document.body-only boundary", () => {
+    expect(resolveFocusDebugHudPortalTarget()).toBe(document.body);
+    expect(resolveFocusDebugHudPortalTarget(null)).toBeNull();
+    expect(
+      resolveFocusDebugHudPortalTarget({
+        activeElement: null,
+        body: { nodeType: Node.ELEMENT_NODE },
+        defaultView: window,
+      }),
+    ).toBeNull();
+  });
+
+  it("describes malformed or unavailable debug HUD focus targets as none", () => {
+    const button = document.createElement("button");
+    button.setAttribute("aria-label", "Debug action");
+    document.body.append(button);
+
+    try {
+      button.focus();
+
+      expect(getFocusDebugHudActiveElementDescription()).toContain("label=Debug action");
+      expect(getFocusDebugHudActiveElementDescription(null)).toBe("none");
+      expect(
+        getFocusDebugHudActiveElementDescription({
+          activeElement: { nodeType: Node.ELEMENT_NODE },
+          body: document.body,
+          defaultView: window,
+        }),
+      ).toBe("none");
+      expect(
+        getFocusDebugHudActiveElementDescription({
+          get activeElement() {
+            throw new Error("activeElement unavailable");
+          },
+          body: document.body,
+          defaultView: window,
+        }),
+      ).toBe("none");
+    } finally {
+      button.remove();
+    }
   });
 
   it("keeps regular toast width content-sized", () => {
