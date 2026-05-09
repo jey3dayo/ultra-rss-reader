@@ -280,6 +280,31 @@ describe("performUpdateCheck", () => {
     );
   });
 
+  it("uses the current locale for manual update check failure and no-update toasts", async () => {
+    const { runManualUpdateCheck } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await changeTestLanguage("en");
+    mockCheckForUpdate.mockResolvedValueOnce(
+      Result.fail(testUserVisibleAppError("network down")),
+    );
+    await runManualUpdateCheck();
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "Failed to check for updates",
+    );
+
+    await changeTestLanguage("ja");
+    mockCheckForUpdate.mockResolvedValueOnce(Result.succeed(null));
+    await runManualUpdateCheck();
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "最新バージョンです",
+    );
+
+    errorSpy.mockRestore();
+  });
+
   it("ignores duplicate download clicks while one update download is pending", async () => {
     const deferred = createDeferred<ReturnType<typeof Result.succeed<null>>>();
     mockDownloadAndInstallUpdate.mockReturnValue(deferred.promise);
