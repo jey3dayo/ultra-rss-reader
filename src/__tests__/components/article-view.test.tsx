@@ -47,9 +47,9 @@ function setupAutoMarkMocks(calls: MockTauriCommandCall[]) {
 
     switch (cmd) {
       case "list_articles":
-        return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        return listSampleArticlesByFeedId(args.feedId);
       case "list_feeds":
-        return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        return listSampleFeedsByAccountId(args.accountId);
       case "list_tags":
         return [];
       case "get_article_tags":
@@ -182,6 +182,22 @@ function listAccountFeedsWithFeedOneModes({
   return feeds;
 }
 
+function listSampleFeedsByAccountId(accountId: string | undefined) {
+  return sampleFeeds.filter((feed) => feed.account_id === accountId);
+}
+
+function listSampleArticlesByFeedId(feedId: string | undefined) {
+  return sampleArticles.filter((article) => article.feed_id === feedId);
+}
+
+function listSampleArticlesByAccountId(accountId: string | undefined) {
+  const feedIds = new Set(
+    sampleFeeds.flatMap((feed) => (feed.account_id === accountId ? [feed.id] : [])),
+  );
+
+  return sampleArticles.filter((article) => feedIds.has(article.feed_id));
+}
+
 function listAccountFeedsInFolder(accountId: string, folderId: string) {
   const feeds: (typeof sampleFeeds)[number][] = [];
 
@@ -235,11 +251,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -272,11 +286,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -357,9 +369,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -464,13 +476,11 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -540,13 +550,11 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -595,13 +603,11 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -670,13 +676,11 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -731,13 +735,11 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -794,13 +796,11 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -856,13 +856,11 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -917,13 +915,11 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -988,9 +984,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -1038,13 +1034,11 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -1120,9 +1114,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1168,9 +1162,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1213,11 +1207,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -1253,11 +1245,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -1301,11 +1291,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -1346,11 +1334,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
+          return listSampleArticlesByAccountId(args.accountId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -1388,9 +1374,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1429,9 +1415,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1501,9 +1487,9 @@ describe("ArticleView", () => {
 
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1542,9 +1528,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1926,7 +1912,7 @@ describe("ArticleView", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles":
           return [];
         case "list_tags":
@@ -2008,7 +1994,7 @@ describe("ArticleView", () => {
         case "list_tags":
           return sampleTags;
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_articles_by_tag":
           return sampleArticles;
         case "get_article_tags":
@@ -2148,9 +2134,9 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
         case "get_article_tags":
           return [];
@@ -2207,7 +2193,7 @@ describe("ArticleView", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          return listSampleArticlesByFeedId(args.feedId);
         case "list_feeds":
           return listAccountFeedsWithFeedOneModes({
             accountId: args.accountId,
@@ -2253,7 +2239,7 @@ describe("ArticleView", () => {
             resolveAccountArticles = resolve;
           });
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return listSampleFeedsByAccountId(args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -2574,13 +2560,11 @@ describe("ArticleView", () => {
 
         switch (cmd) {
           case "list_articles":
-            return sampleArticles.filter((article) => article.feed_id === args.feedId);
+            return listSampleArticlesByFeedId(args.feedId);
           case "list_account_articles":
-            return sampleArticles.filter((article) =>
-              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-            );
+            return listSampleArticlesByAccountId(args.accountId);
           case "list_feeds":
-            return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+            return listSampleFeedsByAccountId(args.accountId);
           case "list_tags":
             return [
               { id: "tag-1", name: "Later", color: null },
@@ -2625,13 +2609,11 @@ describe("ArticleView", () => {
 
         switch (cmd) {
           case "list_articles":
-            return sampleArticles.filter((article) => article.feed_id === args.feedId);
+            return listSampleArticlesByFeedId(args.feedId);
           case "list_account_articles":
-            return sampleArticles.filter((article) =>
-              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-            );
+            return listSampleArticlesByAccountId(args.accountId);
           case "list_feeds":
-            return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+            return listSampleFeedsByAccountId(args.accountId);
           case "list_tags":
             return [
               { id: "tag-1", name: "Later", color: null },

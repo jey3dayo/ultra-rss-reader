@@ -19,6 +19,20 @@ function readStartupSyncStorage(): StartupSyncStorage | null {
   }
 }
 
+function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue: string): void {
+  try {
+    storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
+  } catch {
+    return;
+  }
+
+  try {
+    storage.removeItem(LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt);
+  } catch {
+    // Keep the throttling decision based on the valid legacy timestamp even if cleanup fails.
+  }
+}
+
 export function getLastStartupSyncTriggeredAt(
   storage = readStartupSyncStorage(),
   now = getCurrentTimeMs(),
@@ -35,14 +49,13 @@ export function getLastStartupSyncTriggeredAt(
       }
 
       const timestamp = Number(rawValue);
-      if (!Number.isFinite(timestamp) || timestamp > now) {
+      if (!Number.isFinite(timestamp) || timestamp < 0 || timestamp > now) {
         storage.removeItem(storageKey);
         continue;
       }
 
       if (storageKey === LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt) {
-        storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
-        storage.removeItem(LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt);
+        migrateLegacyStartupSyncTimestamp(storage, rawValue);
       }
 
       return timestamp;

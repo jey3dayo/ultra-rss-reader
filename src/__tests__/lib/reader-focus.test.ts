@@ -41,6 +41,39 @@ describe("reader-focus", () => {
     expect(fallbackTarget).toHaveFocus();
   });
 
+  it("falls back when selected reader targets are aria-disabled", () => {
+    const sidebarFallbackTarget = createButton({ [SIDEBAR_FALLBACK_TARGET_ATTRIBUTE]: "true" });
+    const sidebarSelectedTarget = createButton({
+      [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true",
+      "aria-disabled": "true",
+    });
+    document.body.append(sidebarSelectedTarget, sidebarFallbackTarget);
+
+    expect(focusSelectedSidebarTarget()).toBe(true);
+    expect(sidebarFallbackTarget).toHaveFocus();
+
+    const accountFallbackTarget = createButton({ "data-account-pane-navigation-target": "true" });
+    const accountSelectedTarget = createButton({
+      [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true",
+      "aria-disabled": "true",
+    });
+    document.body.replaceChildren(accountSelectedTarget, accountFallbackTarget);
+
+    expect(focusSelectedAccountPaneTarget()).toBe(true);
+    expect(accountFallbackTarget).toHaveFocus();
+
+    const selectedRow = createButton({
+      "data-article-id": "article-2",
+      role: "option",
+      "aria-disabled": "true",
+    });
+    const fallbackRow = createButton({ "data-article-id": "article-1", role: "option" });
+    document.body.replaceChildren(selectedRow, fallbackRow);
+
+    expect(focusArticleListTarget("article-2")).toBe(true);
+    expect(fallbackRow).toHaveFocus();
+  });
+
   it("focuses the selected account pane target before its navigation fallback", () => {
     const fallbackTarget = createButton({ "data-account-pane-navigation-target": "true" });
     const selectedTarget = createButton({ [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" });
@@ -65,6 +98,16 @@ describe("reader-focus", () => {
     const fallbackRow = createButton({ "data-article-id": "article-1", role: "option" });
     const selectedRow = createButton({ "data-article-id": "article-2", role: "option" });
     document.body.append(fallbackRow, selectedRow);
+
+    expect(focusArticleListTarget("article-2")).toBe(true);
+
+    expect(selectedRow).toHaveFocus();
+  });
+
+  it("keeps focus success when scrolling the selected article row fails", () => {
+    const selectedRow = createButton({ "data-article-id": "article-2", role: "option" });
+    setThrowingScrollIntoView(selectedRow);
+    document.body.append(selectedRow);
 
     expect(focusArticleListTarget("article-2")).toBe(true);
 
@@ -168,4 +211,13 @@ function setAttributes(element: HTMLElement, attributes: Record<string, string>)
   for (const [name, value] of Object.entries(attributes)) {
     element.setAttribute(name, value);
   }
+}
+
+function setThrowingScrollIntoView(element: HTMLElement) {
+  Object.defineProperty(element, "scrollIntoView", {
+    value: vi.fn(() => {
+      throw new Error("scroll failed");
+    }),
+    configurable: true,
+  });
 }

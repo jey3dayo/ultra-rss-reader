@@ -2,6 +2,8 @@ import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedSidebarTarget,
   focusSidebarSmartViewTargetWhenReady,
+  isReaderFocusTargetDisabled,
+  scrollReaderFocusTargetIntoView,
 } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -32,7 +34,7 @@ export function normalizePaneNavigationKey(key: string): PaneNavigationKey | nul
 function getAccountPaneNavigationTargets(): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('[data-account-pane-navigation-target="true"]'),
-  ).filter((target) => !target.disabled && !target.closest('[aria-hidden="true"]'));
+  ).filter((target) => !isReaderFocusTargetDisabled(target) && !target.closest('[aria-hidden="true"]'));
 }
 
 function getCurrentAccountPaneTarget(targets: HTMLButtonElement[]): HTMLButtonElement | null {
@@ -50,7 +52,7 @@ function getCurrentAccountPaneTarget(targets: HTMLButtonElement[]): HTMLButtonEl
 
 function focusAccountPaneTarget(target: HTMLButtonElement) {
   target.focus({ preventScroll: true });
-  target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  scrollReaderFocusTargetIntoView(target);
 }
 
 export function focusAdjacentAccountPaneTarget(direction: 1 | -1): boolean {

@@ -13,13 +13,25 @@ export type ReaderFocusTargetAttribute =
 export type SidebarSmartViewKindAttribute = typeof SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE;
 export type ReaderFocusAttribute = ReaderFocusTargetAttribute | SidebarSmartViewKindAttribute;
 
+export function isReaderFocusTargetDisabled(target: HTMLElement): boolean {
+  return target.hasAttribute("disabled") || target.getAttribute("aria-disabled") === "true";
+}
+
+export function scrollReaderFocusTargetIntoView(target: HTMLElement): void {
+  try {
+    target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  } catch {
+    // Focus already moved; scroll failures should not break keyboard recovery.
+  }
+}
+
 function focusElement(target: HTMLElement): boolean {
-  if (target.hasAttribute("disabled")) {
+  if (isReaderFocusTargetDisabled(target)) {
     return false;
   }
 
   target.focus({ preventScroll: true });
-  target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  scrollReaderFocusTargetIntoView(target);
   return true;
 }
 

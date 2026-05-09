@@ -64,6 +64,30 @@ describe("startup sync storage", () => {
     expect(shouldThrottleStartupSync(localStorage, 2_000)).toBe(false);
   });
 
+  it("removes negative startup sync timestamps before allowing startup sync", () => {
+    localStorage.setItem(key, "-1");
+
+    expect(getLastStartupSyncTriggeredAt(localStorage, 2_000)).toBeNull();
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(shouldThrottleStartupSync(localStorage, 2_000)).toBe(false);
+  });
+
+  it("removes negative infinity startup sync timestamps before allowing startup sync", () => {
+    localStorage.setItem(key, "-Infinity");
+
+    expect(getLastStartupSyncTriggeredAt(localStorage, 2_000)).toBeNull();
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(shouldThrottleStartupSync(localStorage, 2_000)).toBe(false);
+  });
+
+  it("accepts fractional startup sync timestamps inside the startup sync window", () => {
+    localStorage.setItem(key, "1000.5");
+
+    expect(getLastStartupSyncTriggeredAt(localStorage, 2_000)).toBe(1_000.5);
+    expect(localStorage.getItem(key)).toBe("1000.5");
+    expect(shouldThrottleStartupSync(localStorage, 90_999)).toBe(true);
+  });
+
   it("removes future timestamps before allowing startup sync", () => {
     localStorage.setItem(key, "3000");
     expect(getLastStartupSyncTriggeredAt(localStorage, 2_000)).toBeNull();
@@ -107,6 +131,35 @@ describe("startup sync storage", () => {
 
     expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBeNull();
     expect(shouldThrottleStartupSync(throwingStorage, 2_000)).toBe(false);
+  });
+
+  it("uses a valid legacy timestamp for throttling when migration write fails", () => {
+    const throwingStorage = {
+      getItem: (storageKey: string) => (storageKey === legacyKey ? "1000" : null),
+      removeItem: vi.fn(),
+      setItem: () => {
+        throw new Error("set failed");
+      },
+    };
+
+    expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBe(1_000);
+    expect(shouldThrottleStartupSync(throwingStorage, 90_999)).toBe(true);
+    expect(throwingStorage.removeItem).not.toHaveBeenCalled();
+  });
+
+  it("uses a valid legacy timestamp for throttling when migration cleanup fails", () => {
+    const setItem = vi.fn();
+    const throwingStorage = {
+      getItem: (storageKey: string) => (storageKey === legacyKey ? "1000" : null),
+      removeItem: () => {
+        throw new Error("remove failed");
+      },
+      setItem,
+    };
+
+    expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBe(1_000);
+    expect(shouldThrottleStartupSync(throwingStorage, 90_999)).toBe(true);
+    expect(setItem).toHaveBeenCalledWith(key, "1000");
   });
 
   it("ignores storage set failures when marking startup sync", () => {
