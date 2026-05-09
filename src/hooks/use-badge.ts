@@ -7,7 +7,7 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function unreadCountToBadgeCount(count: number | undefined): number | undefined {
-  return count && count > 0 ? count : undefined;
+  return count !== undefined && Number.isFinite(count) && count > 0 ? count : undefined;
 }
 
 function resolveUnreadBadgePreference(value: string | undefined): UnreadBadgePreference {

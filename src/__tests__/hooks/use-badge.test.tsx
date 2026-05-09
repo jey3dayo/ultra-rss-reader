@@ -12,7 +12,7 @@ const { setBadgeCountMock } = vi.hoisted(() => ({
 }));
 
 type BadgeWindowMock = {
-  setBadgeCount: typeof setBadgeCountMock;
+  setBadgeCount?: typeof setBadgeCountMock;
 };
 
 const { getCurrentWindowMock } = vi.hoisted(() => ({
@@ -117,6 +117,48 @@ describe("useBadge", () => {
     });
   });
 
+  it("normalizes negative only_inbox unread counts to a cleared badge", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    setupTauriMocks((cmd) => {
+      if (cmd === "count_account_unread_articles") {
+        return -1;
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+    expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("normalizes nonfinite all_unread feed sums to a cleared badge", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") {
+        return [{ ...sampleFeeds[0], unread_count: Number.POSITIVE_INFINITY }];
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+    expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it("keeps only_inbox badge reads on the account unread endpoint", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     setupTauriMocks((cmd, args) => {
@@ -182,6 +224,65 @@ describe("useBadge", () => {
       cmd: "count_account_unread_articles",
       args: { accountId: "acc-2" },
     });
+  });
+
+  it("keeps only_inbox badge writes latest-only when the account changes during a pending apply", async () => {
+    const pendingAccountWindow = {
+      setBadgeCount: vi.fn(),
+    };
+    const pendingAccountWindowReady = createDeferred<typeof pendingAccountWindow>();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    getCurrentWindowMock
+      .mockReturnValueOnce({
+        setBadgeCount: setBadgeCountMock,
+      })
+      .mockReturnValueOnce(pendingAccountWindowReady.promise)
+      .mockReturnValue({
+        setBadgeCount: setBadgeCountMock,
+      });
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      if (cmd === "count_account_unread_articles") {
+        return args.accountId === "acc-2" ? 9 : 2;
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getCurrentWindowMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "count_account_unread_articles",
+        args: { accountId: "acc-1" },
+      });
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "count_account_unread_articles",
+        args: { accountId: "acc-2" },
+      });
+    });
+
+    pendingAccountWindowReady.resolve(pendingAccountWindow);
+    await act(async () => {
+      await pendingAccountWindowReady.promise;
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(9);
+    });
+    expect(pendingAccountWindow.setBadgeCount).not.toHaveBeenCalled();
   });
 
   it("clears the badge without starting all_unread feed queries when no account is selected", async () => {
@@ -266,6 +367,33 @@ describe("useBadge", () => {
     firstWindowReady.resolve(firstWindow);
     await act(async () => {
       await firstWindowReady.promise;
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
+    });
+  });
+
+  it("replays the latest badge count when an older pending native window has no badge API", async () => {
+    const unavailableWindowReady = createDeferred<BadgeWindowMock>();
+    getCurrentWindowMock.mockReturnValueOnce(unavailableWindowReady.promise).mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getCurrentWindowMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+    });
+
+    unavailableWindowReady.resolve({});
+    await act(async () => {
+      await unavailableWindowReady.promise;
     });
 
     await waitFor(() => {
