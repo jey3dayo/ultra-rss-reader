@@ -276,9 +276,41 @@ describe("useBrowserWebviewEvents", () => {
       );
 
     expect(malformedPayloadMessages).toEqual([
-      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload:`,
-      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.fallback} payload:`,
-      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.diagnostics} payload:`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload: payloadType=null`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.fallback} payload: payloadType=null`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.diagnostics} payload: payloadType=null`,
     ]);
+  });
+
+  it("does not dump malformed native event payload values to console", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    listenMock.mockResolvedValue(vi.fn());
+
+    const { result } = renderHook(() =>
+      useBrowserWebviewEvents({
+        showDiagnostics: false,
+        onStateChanged: vi.fn(),
+        onFallback: vi.fn(),
+        onClosed: vi.fn(),
+        onDiagnostics: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+
+    getListener(BROWSER_WINDOW_EVENTS.stateChanged)({
+      payload: {
+        url: "https://example.com/article?token=private#section",
+      },
+    });
+
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    const serializedWarnArgs = JSON.stringify(consoleWarn.mock.calls);
+    expect(serializedWarnArgs).toContain("payloadType=object");
+    expect(serializedWarnArgs).not.toContain("https://example.com");
+    expect(serializedWarnArgs).not.toContain("token=private");
+    expect(serializedWarnArgs).not.toContain("#section");
   });
 });

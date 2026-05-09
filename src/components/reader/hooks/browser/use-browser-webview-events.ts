@@ -59,13 +59,25 @@ function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewState 
   return result.success ? result.data : null;
 }
 
+function malformedPayloadSummary(payload: unknown) {
+  if (Array.isArray(payload)) {
+    return "array";
+  }
+  if (payload === null) {
+    return "null";
+  }
+  return typeof payload;
+}
+
 function warnMalformedBrowserWebviewEvent(warnedMalformedEventNames: Set<string>, eventName: string, payload: unknown) {
   if (warnedMalformedEventNames.has(eventName)) {
     return;
   }
 
   warnedMalformedEventNames.add(eventName);
-  console.warn(`Ignored malformed embedded browser webview ${eventName} payload:`, payload);
+  console.warn(
+    `Ignored malformed embedded browser webview ${eventName} payload: payloadType=${malformedPayloadSummary(payload)}`,
+  );
 }
 
 export function useBrowserWebviewEvents({
