@@ -249,7 +249,35 @@ export type UiStoreReaderState = Pick<
   | "retainedArticleIds"
 >;
 
+export type UiStoreReaderSelectionState = Pick<
+  UiStoreState,
+  | "selectedAccountId"
+  | "selection"
+  | "selectedArticleId"
+  | "viewMode"
+  | "contentMode"
+  | "browserUrl"
+  | "browserNavigationState"
+  | "browserCloseInFlight"
+  | "pendingBrowserCloseAction"
+  | "articleNavigationDirection"
+  | "searchQuery"
+  | "expandedFolderIds"
+  | "recentlyReadIds"
+  | "retainedArticleIds"
+>;
+
 export type UiStoreSettingsState = Pick<
+  UiStoreState,
+  | "settingsOpen"
+  | "settingsCategory"
+  | "settingsAccountId"
+  | "settingsAddAccount"
+  | "settingsAddAccountInitialKind"
+  | "settingsLoading"
+>;
+
+export type UiStoreSettingsModalState = Pick<
   UiStoreState,
   | "settingsOpen"
   | "settingsCategory"
@@ -323,7 +351,52 @@ export type UiStoreReaderActions = Pick<
   | "clearRetainedArticles"
 >;
 
+export type UiStoreReaderSelectionActions = Pick<
+  UiStoreState,
+  | "selectAccount"
+  | "handleAccountDeleted"
+  | "restoreAccountSelection"
+  | "clearSelectedAccount"
+  | "selectFeed"
+  | "selectFeedFromCurrentContext"
+  | "selectFolder"
+  | "selectFolderFromCurrentContext"
+  | "selectSmartView"
+  | "selectTag"
+  | "selectTagFromCurrentContext"
+  | "selectAll"
+  | "selectArticle"
+  | "clearArticle"
+  | "openBrowser"
+  | "closeBrowser"
+  | "setBrowserNavigationState"
+  | "setBrowserCloseInFlight"
+  | "setPendingBrowserCloseAction"
+  | "setViewMode"
+  | "setSearchQuery"
+  | "toggleFolder"
+  | "setExpandedFolders"
+  | "addRecentlyRead"
+  | "removeRecentlyRead"
+  | "clearRecentlyRead"
+  | "retainArticle"
+  | "clearRetainedArticles"
+>;
+
 export type UiStoreSettingsActions = Pick<
+  UiStoreState,
+  | "openSettings"
+  | "closeSettings"
+  | "setSettingsCategory"
+  | "openSettingsAccount"
+  | "openSettingsAddAccount"
+  | "setSettingsAccountId"
+  | "setSettingsAddAccount"
+  | "setSettingsAccountsView"
+  | "setSettingsLoading"
+>;
+
+export type UiStoreSettingsModalActions = Pick<
   UiStoreState,
   | "openSettings"
   | "closeSettings"

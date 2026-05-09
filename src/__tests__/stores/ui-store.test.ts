@@ -11,8 +11,12 @@ import type {
   UiStoreLayoutActions,
   UiStoreLayoutState,
   UiStoreReaderActions,
+  UiStoreReaderSelectionActions,
+  UiStoreReaderSelectionState,
   UiStoreReaderState,
   UiStoreSettingsActions,
+  UiStoreSettingsModalActions,
+  UiStoreSettingsModalState,
   UiStoreSettingsState,
   UiStoreShellState,
   UiStoreSyncProgressActions,
@@ -112,6 +116,60 @@ describe("useUiStore", () => {
         | "setSettingsLoading"
       >
     >();
+    expectTypeOf<UiStoreReaderSelectionState>().toEqualTypeOf<
+      Pick<
+        UiStoreState,
+        | "selectedAccountId"
+        | "selection"
+        | "selectedArticleId"
+        | "viewMode"
+        | "contentMode"
+        | "browserUrl"
+        | "browserNavigationState"
+        | "browserCloseInFlight"
+        | "pendingBrowserCloseAction"
+        | "articleNavigationDirection"
+        | "searchQuery"
+        | "expandedFolderIds"
+        | "recentlyReadIds"
+        | "retainedArticleIds"
+      >
+    >();
+    expectTypeOf<UiStoreReaderSelectionActions>().toEqualTypeOf<
+      Pick<
+        UiStoreState,
+        | "selectAccount"
+        | "handleAccountDeleted"
+        | "restoreAccountSelection"
+        | "clearSelectedAccount"
+        | "selectFeed"
+        | "selectFeedFromCurrentContext"
+        | "selectFolder"
+        | "selectFolderFromCurrentContext"
+        | "selectSmartView"
+        | "selectTag"
+        | "selectTagFromCurrentContext"
+        | "selectAll"
+        | "selectArticle"
+        | "clearArticle"
+        | "openBrowser"
+        | "closeBrowser"
+        | "setBrowserNavigationState"
+        | "setBrowserCloseInFlight"
+        | "setPendingBrowserCloseAction"
+        | "setViewMode"
+        | "setSearchQuery"
+        | "toggleFolder"
+        | "setExpandedFolders"
+        | "addRecentlyRead"
+        | "removeRecentlyRead"
+        | "clearRecentlyRead"
+        | "retainArticle"
+        | "clearRetainedArticles"
+      >
+    >();
+    expectTypeOf<UiStoreSettingsModalState>().toEqualTypeOf<UiStoreSettingsState>();
+    expectTypeOf<UiStoreSettingsModalActions>().toEqualTypeOf<UiStoreSettingsActions>();
     expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
     expectTypeOf<UiStoreState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
 
@@ -119,14 +177,18 @@ describe("useUiStore", () => {
     const shellState: UiStoreShellState = state;
     const layoutState: UiStoreLayoutState = state;
     const readerState: UiStoreReaderState = state;
+    const readerSelectionState: UiStoreReaderSelectionState = state;
     const settingsState: UiStoreSettingsState = state;
+    const settingsModalState: UiStoreSettingsModalState = state;
     const dialogState: UiStoreDialogState = state;
     const syncProgressState: UiStoreSyncProgressState = state;
     const accountSetupState: UiStoreAccountSetupState = state;
     const toastState: UiStoreToastState = state;
     const layoutActions: UiStoreLayoutActions = state;
     const readerActions: UiStoreReaderActions = state;
+    const readerSelectionActions: UiStoreReaderSelectionActions = state;
     const settingsActions: UiStoreSettingsActions = state;
+    const settingsModalActions: UiStoreSettingsModalActions = state;
     const dialogActions: UiStoreDialogActions = state;
     const syncProgressActions: UiStoreSyncProgressActions = state;
     const accountSetupActions: UiStoreAccountSetupActions = state;
@@ -135,14 +197,18 @@ describe("useUiStore", () => {
     expect(shellState.sidebarOpen).toBe(true);
     expect(layoutState.focusedPane).toBe("sidebar");
     expect(readerState.selection).toEqual({ type: "all" });
+    expect(readerSelectionState.selection).toEqual({ type: "all" });
     expect(settingsState.settingsOpen).toBe(false);
+    expect(settingsModalState.settingsOpen).toBe(false);
     expect(dialogState.confirmDialog.open).toBe(false);
     expect(syncProgressState.syncProgress.active).toBe(false);
     expect(accountSetupState.accountSetupSession).toBeNull();
     expect(toastState.toastMessage).toBeNull();
     expect(layoutActions.setFocusedPane).toBe(state.setFocusedPane);
     expect(readerActions.selectFeed).toBe(state.selectFeed);
+    expect(readerSelectionActions.selectFeed).toBe(state.selectFeed);
     expect(settingsActions.openSettings).toBe(state.openSettings);
+    expect(settingsModalActions.openSettings).toBe(state.openSettings);
     expect(dialogActions.showConfirm).toBe(state.showConfirm);
     expect(syncProgressActions.applySyncProgress).toBe(state.applySyncProgress);
     expect(accountSetupActions.startAccountSetup).toBe(state.startAccountSetup);
