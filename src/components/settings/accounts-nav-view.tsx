@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./add-account/services";
 import type { AccountsNavViewProps } from "./settings-nav.types";
 
-export type { AccountNavItem, AccountsNavViewProps } from "./settings-nav.types";
+export type {
+  AccountNavItem,
+  AccountsNavViewProps,
+} from "./settings-nav.types";
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),
@@ -89,11 +92,11 @@ export function AccountsNavView({
             leading={
               <span
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full",
+                  "flex size-7 items-center justify-center rounded-full",
                   ACCOUNT_ICON_BG[kindKey] ?? "bg-surface-1/72",
                 )}
               >
-                <Rss className="h-[15px] w-[15px] text-white" />
+                <Rss className="size-[15px] text-white" />
               </span>
             }
             title={account.name}
@@ -120,8 +123,8 @@ export function AccountsNavView({
           isAddAccountActive && ACCOUNT_SELECTED_CLASS_NAME,
         )}
         leading={
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-1/72">
-            <Plus className="h-[15px] w-[15px]" />
+          <span className="flex size-7 items-center justify-center rounded-full bg-surface-1/72">
+            <Plus className="size-[15px]" />
           </span>
         }
         title={addAccountLabel}

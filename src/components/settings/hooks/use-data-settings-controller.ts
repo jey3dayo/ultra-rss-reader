@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } from "@/constants/data-size";
 
@@ -59,7 +59,14 @@ function dataSettingsControllerReducer(
   }
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return "0 B";
+  }
   if (bytes < BYTES_PER_KIBIBYTE) {
     return `${bytes} B`;
   }
@@ -76,39 +83,76 @@ export function useDataSettingsController({
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
   const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
   const { databaseSizeStatus, totalSize, vacuuming, openingLogDir } = state;
+  const vacuumingRef = useRef(false);
+  const openingLogDirRef = useRef(false);
+  const databaseSizeRequestRevisionRef = useRef(0);
+  const mountedRef = useRef(false);
 
-  const fetchDbInfo = useCallback(async () => {
-    Result.pipe(
-      await getDatabaseInfo(),
-      Result.inspect((info) =>
-        dispatch({
-          type: "set-database-size-ready",
-          value: info.total_size_bytes,
-        }),
-      ),
-      Result.inspectError((error) => {
-        console.error("Failed to get database info:", error);
-        dispatch({ type: "set-database-size-error" });
-      }),
-    );
+  const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
+    return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
   }, []);
 
+  const fetchDbInfo = useCallback(async () => {
+    databaseSizeRequestRevisionRef.current += 1;
+    const requestRevision = databaseSizeRequestRevisionRef.current;
+    try {
+      Result.pipe(
+        await getDatabaseInfo(),
+        Result.inspect((info) => {
+          if (!isActiveDatabaseSizeRequest(requestRevision)) {
+            return;
+          }
+          dispatch({
+            type: "set-database-size-ready",
+            value: info.total_size_bytes,
+          });
+        }),
+        Result.inspectError((error) => {
+          if (!isActiveDatabaseSizeRequest(requestRevision)) {
+            return;
+          }
+          console.error("Failed to get database info:", error);
+          dispatch({ type: "set-database-size-error" });
+        }),
+      );
+    } catch (error) {
+      if (!isActiveDatabaseSizeRequest(requestRevision)) {
+        return;
+      }
+      console.error("Failed to get database info:", error);
+      dispatch({ type: "set-database-size-error" });
+    }
+  }, [isActiveDatabaseSizeRequest]);
+
   useEffect(() => {
+    mountedRef.current = true;
     void fetchDbInfo();
+    return () => {
+      mountedRef.current = false;
+      databaseSizeRequestRevisionRef.current += 1;
+      vacuumingRef.current = false;
+      openingLogDirRef.current = false;
+    };
   }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
-    if (vacuuming || openingLogDir) {
+    if (!mountedRef.current || vacuumingRef.current || openingLogDirRef.current) {
       return;
     }
 
+    vacuumingRef.current = true;
     const sizeBefore = totalSize;
+    databaseSizeRequestRevisionRef.current += 1;
+    const requestRevision = databaseSizeRequestRevisionRef.current;
     dispatch({ type: "set-vacuuming", value: true });
     setSettingsLoading(true);
     try {
       Result.pipe(
         await vacuumDatabase(),
         Result.inspect((info) => {
+          if (!isActiveDatabaseSizeRequest(requestRevision)) {
+            return;
+          }
           dispatch({
             type: "set-database-size-ready",
             value: info.total_size_bytes,
@@ -121,34 +165,57 @@ export function useDataSettingsController({
           );
         }),
         Result.inspectError((error) => {
+          if (!mountedRef.current) {
+            return;
+          }
           console.error("VACUUM failed:", error);
           showToast(t("data.vacuum_failed", { message: error.message }));
         }),
       );
+    } catch (error) {
+      if (mountedRef.current) {
+        console.error("VACUUM failed:", error);
+        showToast(t("data.vacuum_failed", { message: getErrorMessage(error) }));
+      }
     } finally {
-      dispatch({ type: "set-vacuuming", value: false });
-      setSettingsLoading(false);
+      vacuumingRef.current = false;
+      if (mountedRef.current) {
+        dispatch({ type: "set-vacuuming", value: false });
+        setSettingsLoading(false);
+      }
     }
   };
 
   const handleOpenLogDir = async () => {
-    if (openingLogDir || vacuuming) {
+    if (!mountedRef.current || openingLogDirRef.current || vacuumingRef.current) {
       return;
     }
 
+    openingLogDirRef.current = true;
     dispatch({ type: "set-opening-log-dir", value: true });
     setSettingsLoading(true);
     try {
       Result.pipe(
         await openLogDir(),
         Result.inspectError((error) => {
+          if (!mountedRef.current) {
+            return;
+          }
           console.error("Failed to open log directory:", error);
           showToast(t("data.open_log_dir_failed", { message: error.message }));
         }),
       );
+    } catch (error) {
+      if (mountedRef.current) {
+        console.error("Failed to open log directory:", error);
+        showToast(t("data.open_log_dir_failed", { message: getErrorMessage(error) }));
+      }
     } finally {
-      dispatch({ type: "set-opening-log-dir", value: false });
-      setSettingsLoading(false);
+      openingLogDirRef.current = false;
+      if (mountedRef.current) {
+        dispatch({ type: "set-opening-log-dir", value: false });
+        setSettingsLoading(false);
+      }
     }
   };
 

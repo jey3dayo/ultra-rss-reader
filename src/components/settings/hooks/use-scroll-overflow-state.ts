@@ -46,7 +46,10 @@ export function useScrollOverflowState(dependency: unknown) {
     }
 
     const updateOverflow = () => {
-      dispatch({ type: "set-has-overflow", value: viewport.scrollHeight > viewport.clientHeight + 1 });
+      dispatch({
+        type: "set-has-overflow",
+        value: viewport.scrollHeight > viewport.clientHeight + 1,
+      });
     };
 
     updateOverflow();
@@ -62,22 +65,33 @@ export function useScrollOverflowState(dependency: unknown) {
       };
     }
 
-    const resizeObserver = new ResizeObserver(() => {
+    let resizeObserver: ResizeObserver;
+    let observedContentElement: HTMLElement | null = null;
+    const observeContentElement = () => {
+      const content = viewport.firstElementChild;
+      if (!(content instanceof HTMLElement) || content === observedContentElement) {
+        return;
+      }
+      if (observedContentElement) {
+        resizeObserver.unobserve(observedContentElement);
+      }
+      observedContentElement = content;
+      resizeObserver.observe(content);
+    };
+    resizeObserver = new ResizeObserver(() => {
+      observeContentElement();
       updateOverflow();
     });
     const mutationObserver =
       typeof MutationObserver === "undefined"
         ? null
         : new MutationObserver(() => {
+            observeContentElement();
             updateOverflow();
           });
 
     resizeObserver.observe(viewport);
-
-    const content = viewport.firstElementChild;
-    if (content instanceof HTMLElement) {
-      resizeObserver.observe(content);
-    }
+    observeContentElement();
     mutationObserver?.observe(viewport, {
       childList: true,
       subtree: true,

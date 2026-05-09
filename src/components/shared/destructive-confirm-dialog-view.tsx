@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type DestructiveConfirmDialogViewProps = {
+export type DestructiveConfirmDialogViewProps = {
   open: boolean;
   title: string;
   description: ReactNode;
@@ -23,8 +23,15 @@ export function DestructiveConfirmDialogView({
   onOpenChange,
   onConfirm,
 }: DestructiveConfirmDialogViewProps) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (pending && !nextOpen) {
+      return;
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

@@ -1,17 +1,14 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { useId } from "react";
+import { type FormEvent, useId } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { Input } from "@/components/ui/input";
+import type { TagViewItem } from "@/lib/tags.types";
 
-type TagsSettingsListItem = {
-  id: string;
-  name: string;
-  color: string | null;
-};
+type TagsSettingsListItem = TagViewItem;
 
 type TagsSettingsViewProps = {
   title: string;
@@ -70,42 +67,51 @@ export function TagsSettingsView({
 }: TagsSettingsViewProps) {
   const nameInputId = useId();
 
+  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!createDisabled) {
+      onCreate();
+    }
+  };
+
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
-      <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow
-          label={nameLabel}
-          htmlFor={nameInputId}
-          className="items-start sm:items-center"
-          labelClassName="sm:w-40 sm:shrink-0"
-        >
-          <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
-            <Input
-              id={nameInputId}
-              name="tag_name"
-              value={nameValue}
-              placeholder={namePlaceholder}
-              onChange={(event) => onNameChange(event.target.value)}
-              className="h-10 flex-1"
-              aria-label={nameLabel}
-            />
-            <SettingsActionButton type="button" size="compact" onClick={onCreate} disabled={createDisabled}>
-              {createLabel}
-            </SettingsActionButton>
-          </div>
-        </LabeledControlRow>
-        <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
-          <div className="w-full sm:max-w-[400px]">
-            <TagColorPicker
-              color={colorValue}
-              colorOptions={colorOptions}
-              noColorLabel={noColorLabel}
-              optionAriaLabel={colorOptionAriaLabel}
-              onChange={onColorChange}
-            />
-          </div>
-        </LabeledControlRow>
-      </SettingsSection>
+      <form onSubmit={handleCreateSubmit}>
+        <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
+          <LabeledControlRow
+            label={nameLabel}
+            htmlFor={nameInputId}
+            className="items-start sm:items-center"
+            labelClassName="sm:w-40 sm:shrink-0"
+          >
+            <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
+              <Input
+                id={nameInputId}
+                name="tag_name"
+                value={nameValue}
+                placeholder={namePlaceholder}
+                onChange={(event) => onNameChange(event.target.value)}
+                className="h-10 flex-1"
+                aria-label={nameLabel}
+              />
+              <SettingsActionButton type="submit" size="compact" disabled={createDisabled}>
+                {createLabel}
+              </SettingsActionButton>
+            </div>
+          </LabeledControlRow>
+          <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
+            <div className="w-full sm:max-w-[400px]">
+              <TagColorPicker
+                color={colorValue}
+                colorOptions={colorOptions}
+                noColorLabel={noColorLabel}
+                optionAriaLabel={colorOptionAriaLabel}
+                onChange={onColorChange}
+              />
+            </div>
+          </LabeledControlRow>
+        </SettingsSection>
+      </form>
 
       <SettingsSection heading={savedHeading} surface="flat">
         {tags.length === 0 ? (
@@ -123,7 +129,7 @@ export function TagsSettingsView({
                     <span
                       aria-hidden="true"
                       data-testid={`tags-settings-color-dot-${tag.id}`}
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      className="inline-block size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: tag.color }}
                     />
                   ) : null}
@@ -141,7 +147,7 @@ export function TagsSettingsView({
                     aria-label={editAriaLabel(tag.name)}
                     onClick={() => onEdit(tag.id)}
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="size-4" />
                   </SettingsActionButton>
                   <SettingsActionButton
                     type="button"
@@ -151,7 +157,7 @@ export function TagsSettingsView({
                     aria-label={deleteAriaLabel(tag.name)}
                     onClick={() => onDelete(tag.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="size-4" />
                   </SettingsActionButton>
                 </div>
               </div>

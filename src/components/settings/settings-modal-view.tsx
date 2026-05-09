@@ -59,7 +59,7 @@ export function SettingsModalView({
               disabled={isCloseDisabled}
               aria-label={closeLabel}
             >
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </SettingsActionButton>
             <div className="min-w-0">
               <DialogTitle className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
@@ -95,7 +95,9 @@ export function SettingsModalView({
               <div
                 data-testid="settings-mobile-accounts-section"
                 className="mx-3 mb-3 overflow-hidden rounded-md border border-border/60 shadow-none sm:hidden"
-                style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
+                style={{
+                  backgroundColor: "var(--settings-shell-account-surface)",
+                }}
               >
                 <ScrollArea
                   data-testid="settings-mobile-accounts-scroll-area"
@@ -112,14 +114,16 @@ export function SettingsModalView({
                 data-testid="settings-nav-fade-bottom"
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6"
-                style={{ backgroundImage: "var(--settings-shell-rail-fade-reverse)" }}
+                style={{
+                  backgroundImage: "var(--settings-shell-rail-fade-reverse)",
+                }}
               />
             ) : null}
           </div>
 
           <div
             data-testid="settings-accounts-section"
-            className="mx-3 mb-3 hidden rounded-md border border-border/60 px-3 py-3 shadow-none sm:block"
+            className="mx-3 mb-3 hidden rounded-md border border-border/60 p-3 shadow-none sm:block"
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}

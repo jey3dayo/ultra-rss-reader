@@ -73,6 +73,59 @@ type SettingsContentProps = {
   onAccountDeleted: (accountId: string) => void;
 };
 
+type SettingsAccountsTransitionParams = {
+  activeSetupAccountId: string | null;
+  hasSelectedVisibleAccount: boolean;
+  resolvedSettingsAccountId: string | null;
+  settingsAccountId: string | null;
+  settingsAddAccount: boolean;
+  settingsCategory: SettingsCategory;
+  visibleAccounts: AccountDto[] | undefined;
+};
+
+type SettingsAccountsViewTransition = {
+  accountId: string | null;
+  addAccount: boolean;
+} | null;
+
+function getSettingsAccountsViewTransition({
+  activeSetupAccountId,
+  hasSelectedVisibleAccount,
+  resolvedSettingsAccountId,
+  settingsAccountId,
+  settingsAddAccount,
+  settingsCategory,
+  visibleAccounts,
+}: SettingsAccountsTransitionParams): SettingsAccountsViewTransition {
+  if (settingsCategory !== "accounts" || !visibleAccounts) {
+    return null;
+  }
+
+  if (activeSetupAccountId) {
+    return settingsAccountId !== activeSetupAccountId || settingsAddAccount
+      ? { accountId: activeSetupAccountId, addAccount: false }
+      : null;
+  }
+
+  if (settingsAccountId && !hasSelectedVisibleAccount) {
+    return resolvedSettingsAccountId
+      ? { accountId: resolvedSettingsAccountId, addAccount: false }
+      : { accountId: null, addAccount: true };
+  }
+
+  if (settingsAddAccount) {
+    return null;
+  }
+
+  if (resolvedSettingsAccountId) {
+    return settingsAccountId !== resolvedSettingsAccountId
+      ? { accountId: resolvedSettingsAccountId, addAccount: false }
+      : null;
+  }
+
+  return { accountId: null, addAccount: true };
+}
+
 function SettingsContent({
   devBuild,
   settingsAddAccount,
@@ -138,7 +191,9 @@ export function SettingsModal() {
   );
   const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !deletedAccountIds.includes(account.id));
   const activeSetupAccountId =
-    accountSetupSession !== null && (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed")
+    accountSetupSession !== null &&
+    accountSetupSession.state !== "verifying" &&
+    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed")
       ? accountSetupSession.accountId
       : null;
   const setupVisibleAccount =
@@ -163,9 +218,22 @@ export function SettingsModal() {
       : undefined);
   const isSetupLocked =
     accountSetupSession !== null &&
-    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
-    (selectedVisibleAccount?.id === accountSetupSession.accountId ||
-      settingsAccountId === accountSetupSession.accountId);
+    (accountSetupSession.state === "verifying"
+      ? settingsCategory === "accounts" && settingsAddAccount
+      : (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
+        (selectedVisibleAccount?.id === accountSetupSession.accountId ||
+          settingsAccountId === accountSetupSession.accountId));
+  const settingsAccountsViewTransition = getSettingsAccountsViewTransition({
+    activeSetupAccountId,
+    hasSelectedVisibleAccount,
+    resolvedSettingsAccountId,
+    settingsAccountId,
+    settingsAddAccount,
+    settingsCategory,
+    visibleAccounts,
+  });
+  const transitionAccountId = settingsAccountsViewTransition?.accountId;
+  const transitionAddAccount = settingsAccountsViewTransition?.addAccount;
 
   useEffect(() => {
     if (deletedAccountIds.length === 0 || accounts === undefined) {
@@ -188,50 +256,12 @@ export function SettingsModal() {
   }, [setSettingsCategory, settingsCategory]);
 
   useEffect(() => {
-    if (settingsCategory !== "accounts" || !visibleAccounts) {
+    if (transitionAddAccount === undefined) {
       return;
     }
 
-    if (activeSetupAccountId) {
-      if (settingsAccountId !== activeSetupAccountId || settingsAddAccount) {
-        setSettingsAccountsView(activeSetupAccountId, false);
-      }
-      return;
-    }
-
-    if (settingsAccountId && !hasSelectedVisibleAccount) {
-      if (resolvedSettingsAccountId) {
-        setSettingsAccountsView(resolvedSettingsAccountId, false);
-      } else {
-        setSettingsAccountsView(null, true);
-      }
-      return;
-    }
-
-    if (settingsAddAccount) {
-      return;
-    }
-
-    if (resolvedSettingsAccountId) {
-      if (settingsAccountId !== resolvedSettingsAccountId) {
-        setSettingsAccountsView(resolvedSettingsAccountId, false);
-      }
-      return;
-    }
-
-    if (settingsAccountId || !settingsAddAccount) {
-      setSettingsAccountsView(null, true);
-    }
-  }, [
-    settingsCategory,
-    settingsAccountId,
-    settingsAddAccount,
-    visibleAccounts,
-    activeSetupAccountId,
-    hasSelectedVisibleAccount,
-    resolvedSettingsAccountId,
-    setSettingsAccountsView,
-  ]);
+    setSettingsAccountsView(transitionAccountId ?? null, transitionAddAccount);
+  }, [transitionAccountId, transitionAddAccount, setSettingsAccountsView]);
 
   const handleAccountDeleted = (accountId: string) => {
     setDeletedAccountIds((current) => (current.includes(accountId) ? current : [...current, accountId]));

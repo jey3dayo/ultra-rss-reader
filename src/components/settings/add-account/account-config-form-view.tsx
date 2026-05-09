@@ -6,26 +6,10 @@ import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { cn } from "@/lib/utils";
+import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view.types";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";
-
-type AccountConfigInputControl = {
-  label: string;
-  name: string;
-  value: string;
-  placeholder?: string;
-  type?: string;
-  onChange: (value: string) => void;
-  disabled: boolean;
-};
-
-type AccountConfigCredentialsSection = {
-  heading: string;
-  serverUrl?: AccountConfigInputControl;
-  credential: AccountConfigInputControl;
-  password: AccountConfigInputControl;
-};
 
 type AccountConfigServiceSummary = {
   name: string;
@@ -34,14 +18,14 @@ type AccountConfigServiceSummary = {
   iconBg: string;
 };
 
-export type AccountConfigFormViewProps = {
+type AccountConfigFormViewProps = {
   title: string;
   backLabel: string;
   backAriaLabel: string;
   serviceSummary?: AccountConfigServiceSummary;
   accountHeading: string;
-  accountName: AccountConfigInputControl;
-  credentialsSection?: AccountConfigCredentialsSection;
+  accountName: AddAccountInputControl;
+  credentialsSection?: AddAccountCredentialsSection;
   errorMessage?: string | null;
   cancelLabel: string;
   submitLabel: string;
@@ -52,7 +36,7 @@ export type AccountConfigFormViewProps = {
   onSubmit: () => void;
 };
 
-function AccountConfigInputRow({ control }: { control: AccountConfigInputControl }) {
+function AccountConfigInputRow({ control }: { control: AddAccountInputControl }) {
   return (
     <LabeledInputRow
       label={control.label}
@@ -97,20 +81,18 @@ export function AccountConfigFormView({
           aria-label={backAriaLabel}
           className="h-8 gap-0.5 justify-self-start bg-transparent px-1 text-sm shadow-none"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="size-4" />
           {backLabel}
         </SettingsActionButton>
         <h2 className="text-center font-sans text-[19px] font-medium tracking-[-0.02em] text-foreground">{title}</h2>
-        <div aria-hidden="true" className="h-8 w-8 justify-self-end" />
+        <div aria-hidden="true" className="size-8 justify-self-end" />
       </div>
 
       {serviceSummary && (
         <SurfaceCard variant="info" tone="subtle" padding="compact" className="mb-4">
           <div className="flex items-center gap-3">
-            <div
-              className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceSummary.iconBg)}
-            >
-              <serviceSummary.icon className="h-5 w-5 text-white" />
+            <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", serviceSummary.iconBg)}>
+              <serviceSummary.icon className="size-5 text-white" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">

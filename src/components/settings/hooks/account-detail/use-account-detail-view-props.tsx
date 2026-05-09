@@ -5,9 +5,9 @@ import { AccountCredentialsSectionView } from "@/components/settings/account-det
 import type {
   AccountDetailAccount,
   AccountDetailSyncProgress,
-  AccountDetailViewProps,
   AccountSyncStatusRow,
 } from "@/components/settings/account-detail/types";
+import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";

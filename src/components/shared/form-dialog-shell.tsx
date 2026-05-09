@@ -52,11 +52,19 @@ export function FormDialogShell({
   onOpenChange,
   onSubmit,
 }: FormDialogShellProps) {
+  const submitBlocked = loading || submitDisabled;
+
+  const submitWithGuard = () => {
+    if (submitBlocked) {
+      return;
+    }
+
+    onSubmit();
+  };
+
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
-    if (!submitDisabled) {
-      onSubmit();
-    }
+    submitWithGuard();
   };
 
   return (
@@ -86,10 +94,10 @@ export function FormDialogShell({
             submitLabel={submitLabel}
             submittingLabel={submittingLabel}
             loading={loading}
-            submitDisabled={submitDisabled}
+            submitDisabled={submitBlocked}
             cancelDisabled={cancelDisabled}
             onCancel={() => onOpenChange(false)}
-            onSubmit={onSubmit}
+            onSubmit={submitWithGuard}
           />
         </DialogFooter>
       </DialogContent>

@@ -78,14 +78,16 @@ export function LabeledInputRow({
   const isInsideIconAction = hasInsideAction && Boolean(actionIcon);
   const resolvedActionVariant = actionVariant ?? (hasInsideAction ? "ghost" : "outline");
   const resolvedActionSize = actionSize ?? (hasInsideAction ? (isInsideIconAction ? "icon-sm" : "sm") : "default");
+  const resolvedActionDisabled = actionDisabled ?? disabled;
   const actionButton =
     actionLabel && onAction ? (
       <Button
         type="button"
         variant={resolvedActionVariant}
         size={resolvedActionSize}
+        onMouseDown={actionPlacement === "inside" ? (event) => event.preventDefault() : undefined}
         onClick={onAction}
-        disabled={actionDisabled}
+        disabled={resolvedActionDisabled}
         aria-label={actionAriaLabel ?? `${actionLabel}: ${label}`}
         className={cn(
           actionPlacement === "inside" &&

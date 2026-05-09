@@ -20,6 +20,7 @@ export function DebugSettings() {
   const showToast = useUiStore((s) => s.showToast);
   const loadPlatformInfo = usePlatformStore((s) => s.loadPlatformInfo);
   const platformLoaded = usePlatformStore((s) => s.loaded);
+  const platformLoadError = usePlatformStore((s) => s.loadError);
   const usesDevFileCredentials = usePlatformStore((s) => s.platform.capabilities.uses_dev_file_credentials);
 
   useEffect(() => {
@@ -30,6 +31,12 @@ export function DebugSettings() {
     const url = resolvePreferenceValue(usePreferencesStore.getState().prefs, "debug_web_preview_url").trim();
     if (!url) {
       showToast(t("debug.web_preview_url_required"));
+      return;
+    }
+    try {
+      new URL(url);
+    } catch {
+      showToast(t("debug.web_preview_url_invalid"));
       return;
     }
 
@@ -64,11 +71,13 @@ export function DebugSettings() {
     [closeSettings, showToast, t],
   );
 
-  const credentialsBackendValue = !platformLoaded
-    ? t("debug.credentials_backend_detecting")
-    : usesDevFileCredentials
-      ? t("debug.credentials_backend_dev")
-      : t("debug.credentials_backend_native");
+  const credentialsBackendValue = platformLoadError
+    ? t("debug.credentials_backend_load_failed")
+    : !platformLoaded
+      ? t("debug.credentials_backend_detecting")
+      : usesDevFileCredentials
+        ? t("debug.credentials_backend_dev")
+        : t("debug.credentials_backend_native");
 
   const viewProps = useDebugSettingsViewProps({
     t,

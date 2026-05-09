@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BookOpen, Palette, Settings } from "lucide-react";
 import { fn } from "storybook/test";
+import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import { AccountsNavView } from "./accounts-nav-view";
 import { SettingsModalView } from "./settings-modal-view";
 import { SettingsNavView } from "./settings-nav-view";
@@ -85,11 +86,7 @@ export const Loading: Story = {
 };
 
 export const DenseNarrowViewport: Story = {
-  parameters: {
-    viewport: {
-      defaultViewport: "mobile2",
-    },
-  },
+  parameters: denseNarrowViewportParameters,
   decorators: [
     (Story) => (
       <div className="min-h-screen bg-background p-2">

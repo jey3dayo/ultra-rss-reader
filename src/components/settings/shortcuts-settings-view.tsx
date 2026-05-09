@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, forwardRef, type ReactNode, useEffect, useRef } from "react";
+import { type ComponentPropsWithoutRef, type ReactNode, type Ref, useEffect, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
@@ -13,6 +13,7 @@ type ShortcutsSettingsItem = {
   isRecording: boolean;
   isLocked?: boolean;
   resetDisabled?: boolean;
+  resetAriaLabel?: string;
   conflictLabel?: string | null;
   onReset?: () => void;
   onStartRecording?: () => void;
@@ -39,11 +40,13 @@ type ShortcutKeyBadgeProps = {
   item: ShortcutsSettingsItem;
   pressAKeyLabel: string;
   resetLabel: string;
+  resetDisabled?: boolean;
 };
 
-type ShortcutKeyButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type ShortcutKeyButtonProps = ComponentPropsWithoutRef<"button"> & {
   children: ReactNode;
   conflict?: boolean;
+  ref?: Ref<HTMLButtonElement>;
   recording?: boolean;
 };
 
@@ -62,15 +65,23 @@ function ShortcutResetButton({
       className="rounded-md border border-border/60 bg-surface-1 px-2 py-1 text-[12px] font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-border-strong hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none"
       disabled={disabled}
       onClick={item.onReset}
-      aria-label={`${resetLabel}: ${item.label}`}
+      aria-label={item.resetAriaLabel}
     >
       {resetLabel}
     </button>
   );
 }
 
-export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButtonProps>(
-  ({ children, className, conflict = false, recording = false, type = "button", ...props }, ref) => (
+export function ShortcutKeyButton({
+  children,
+  className,
+  conflict = false,
+  ref,
+  recording = false,
+  type = "button",
+  ...props
+}: ShortcutKeyButtonProps) {
+  return (
     <button
       ref={ref}
       type={type}
@@ -88,12 +99,10 @@ export const ShortcutKeyButton = forwardRef<HTMLButtonElement, ShortcutKeyButton
     >
       {children}
     </button>
-  ),
-);
+  );
+}
 
-ShortcutKeyButton.displayName = "ShortcutKeyButton";
-
-function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel }: ShortcutKeyBadgeProps) {
+function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel, resetDisabled }: ShortcutKeyBadgeProps) {
   const badgeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -120,7 +129,7 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel }: ShortcutKeyBadge
         >
           {item.isRecording ? pressAKeyLabel : item.displayKey}
         </ShortcutKeyButton>
-        <ShortcutResetButton item={item} resetLabel={resetLabel} />
+        <ShortcutResetButton item={item} resetLabel={resetLabel} disabled={resetDisabled} />
       </div>
       {item.conflictLabel && !item.isRecording && (
         <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
@@ -138,10 +147,12 @@ export function ShortcutsSettingsView({
   resetDisabled,
   onResetAll,
 }: ShortcutsSettingsViewProps) {
+  const hasRecordingShortcut = categories.some((category) => category.items.some((item) => item.isRecording));
+
   return (
     <SettingsContentLayout title={title} outerTestId="shortcuts-settings-root">
       <div className="mb-5 flex justify-end sm:mb-6">
-        <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled}>
+        <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled || hasRecordingShortcut}>
           {resetLabel}
         </SettingsActionButton>
       </div>
@@ -167,7 +178,12 @@ export function ShortcutsSettingsView({
                   <ShortcutResetButton item={item} resetLabel={resetLabel} disabled />
                 </div>
               ) : (
-                <ShortcutKeyBadge item={item} pressAKeyLabel={pressAKeyLabel} resetLabel={resetLabel} />
+                <ShortcutKeyBadge
+                  item={item}
+                  pressAKeyLabel={pressAKeyLabel}
+                  resetLabel={resetLabel}
+                  resetDisabled={hasRecordingShortcut || item.resetDisabled}
+                />
               )}
             </LabeledControlRow>
           ))}

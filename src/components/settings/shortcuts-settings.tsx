@@ -10,12 +10,15 @@ import { useShortcutsSettingsViewProps } from "./hooks/use-shortcuts-settings-vi
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
-  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "preventDefault" | "stopPropagation"
+  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "preventDefault" | "stopPropagation"
 >;
 
-function normalizeRecordedKey(e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">): string | null {
+function normalizeRecordedKey(
+  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey">,
+): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
+  if (e.altKey) return null;
 
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");

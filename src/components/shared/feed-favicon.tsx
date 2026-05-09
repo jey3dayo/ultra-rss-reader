@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useState } from "react";
+import { useReducer, useRef } from "react";
 import { extractSiteHost } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 
@@ -38,18 +38,23 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
 };
 
 export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
-  const [failed, setFailed] = useState(false);
-  let host: string | null = null;
+  const failedFaviconSrcRef = useRef<string | null>(null);
+  const [, rerenderAfterFaviconFailure] = useReducer((count: number) => count + 1, 0);
+  let resolvedHost: string | null = null;
   Result.pipe(
     extractSiteHost(siteUrl, url),
-    Result.inspect((resolvedHost) => {
-      host = resolvedHost;
+    Result.inspect((host) => {
+      resolvedHost = host;
     }),
   );
   const sizeClassName = faviconSizeClassNames[size];
   const fallbackLabel = title.trim().charAt(0).toUpperCase() || "?";
+  const faviconSrc = resolvedHost
+    ? `https://www.google.com/s2/favicons?domain=${resolvedHost}&sz=${sizeClassName.requestSize}`
+    : null;
+  const failed = faviconSrc !== null && failedFaviconSrcRef.current === faviconSrc;
 
-  if (!host || failed) {
+  if (faviconSrc === null || failed) {
     return (
       <span
         aria-hidden="true"
@@ -63,12 +68,21 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
     );
   }
 
+  const imageSrc = faviconSrc;
+
   return (
     <img
-      src={`https://www.google.com/s2/favicons?domain=${host}&sz=${sizeClassName.requestSize}`}
+      src={imageSrc}
       alt=""
       className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (failedFaviconSrcRef.current === imageSrc) {
+          return;
+        }
+
+        failedFaviconSrcRef.current = imageSrc;
+        rerenderAfterFaviconFailure();
+      }}
     />
   );
 }

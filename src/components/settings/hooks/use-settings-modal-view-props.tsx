@@ -30,7 +30,7 @@ type UseSettingsModalViewPropsParams = {
   setupLockReason?: string | null;
 };
 
-const settingsCategoryByNavId: Record<string, SettingsCategory> = {
+const settingsCategoryByNavId: Record<SettingsNavItemId, SettingsCategory> = {
   general: "general",
   reading: "reading",
   appearance: "appearance",
@@ -65,49 +65,49 @@ export function useSettingsModalViewProps({
     {
       id: "general",
       label: t("nav.general"),
-      icon: <Settings className="h-5 w-5" />,
+      icon: <Settings className="size-5" />,
       isActive: settingsCategory === "general" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "reading",
       label: t("nav.reading"),
-      icon: <BookOpen className="h-5 w-5" />,
+      icon: <BookOpen className="size-5" />,
       isActive: settingsCategory === "reading" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "appearance",
       label: t("nav.appearance"),
-      icon: <Palette className="h-5 w-5" />,
+      icon: <Palette className="size-5" />,
       isActive: settingsCategory === "appearance" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "mute",
       label: t("nav.mute"),
-      icon: <BellOff className="h-5 w-5" />,
+      icon: <BellOff className="size-5" />,
       isActive: settingsCategory === "mute" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "tags",
       label: t("nav.tags"),
-      icon: <Tag className="h-5 w-5" />,
+      icon: <Tag className="size-5" />,
       isActive: settingsCategory === "tags" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "shortcuts",
       label: t("nav.shortcuts"),
-      icon: <Command className="h-5 w-5" />,
+      icon: <Command className="size-5" />,
       isActive: settingsCategory === "shortcuts" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "actions",
       label: t("nav.actions"),
-      icon: <Share2 className="h-5 w-5" />,
+      icon: <Share2 className="size-5" />,
       isActive: settingsCategory === "actions" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "data",
       label: t("nav.data"),
-      icon: <Database className="h-5 w-5" />,
+      icon: <Database className="size-5" />,
       isActive: settingsCategory === "data" && !settingsAccountId && !settingsAddAccount,
     },
   ];
@@ -116,7 +116,7 @@ export function useSettingsModalViewProps({
     navItems.push({
       id: "debug",
       label: t("nav.debug"),
-      icon: <Bug className="h-5 w-5" />,
+      icon: <Bug className="size-5" />,
       isActive: settingsCategory === "debug" && !settingsAccountId && !settingsAddAccount,
     });
   }
@@ -134,12 +134,8 @@ export function useSettingsModalViewProps({
     if (setupLocked) {
       return;
     }
-    const nextCategory = settingsCategoryByNavId[categoryId];
-    if (!nextCategory) {
-      return;
-    }
 
-    setSettingsCategory(nextCategory);
+    setSettingsCategory(settingsCategoryByNavId[categoryId]);
   };
 
   const handleSelectAccount = (accountId: string) => {

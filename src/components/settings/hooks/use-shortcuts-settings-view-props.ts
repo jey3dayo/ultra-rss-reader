@@ -8,6 +8,10 @@ import {
 } from "@/lib/keyboard/keyboard-shortcuts";
 import type { ShortcutsSettingsViewProps } from "../shortcuts-settings-view";
 
+type ShortcutDefinition = (typeof shortcutDefinitions)[number];
+type ShortcutCategory = ShortcutsSettingsViewProps["categories"][number];
+type ShortcutCategoryItem = ShortcutCategory["items"][number];
+
 type UseShortcutsSettingsViewPropsParams = {
   t: TFunction<"settings">;
   tReader: TFunction<"reader">;
@@ -24,9 +28,48 @@ type UseShortcutsSettingsViewPropsParams = {
 };
 
 export function buildShortcutCategoryOrder(
-  definitions: readonly Pick<(typeof shortcutDefinitions)[number], "categoryKey">[],
+  definitions: readonly Pick<ShortcutDefinition, "categoryKey">[],
 ): ShortcutCategoryKey[] {
-  return [...new Set(definitions.map((definition) => definition.categoryKey))];
+  const categories: ShortcutCategoryKey[] = [];
+  const seenCategories = new Set<ShortcutCategoryKey>();
+
+  for (const definition of definitions) {
+    if (seenCategories.has(definition.categoryKey)) {
+      continue;
+    }
+
+    seenCategories.add(definition.categoryKey);
+    categories.push(definition.categoryKey);
+  }
+
+  return categories;
+}
+
+function buildShortcutCategories(
+  definitions: readonly ShortcutDefinition[],
+  buildItem: (definition: ShortcutDefinition) => ShortcutCategoryItem,
+  getHeading: (category: ShortcutCategoryKey) => string,
+): ShortcutCategory[] {
+  const categoryIndexes = new Map<ShortcutCategoryKey, number>();
+  const categories: ShortcutCategory[] = [];
+
+  for (const definition of definitions) {
+    let categoryIndex = categoryIndexes.get(definition.categoryKey);
+
+    if (categoryIndex === undefined) {
+      categoryIndex = categories.length;
+      categoryIndexes.set(definition.categoryKey, categoryIndex);
+      categories.push({
+        id: definition.categoryKey,
+        heading: getHeading(definition.categoryKey),
+        items: [],
+      });
+    }
+
+    categories[categoryIndex].items.push(buildItem(definition));
+  }
+
+  return categories;
 }
 
 export function useShortcutsSettingsViewProps({
@@ -43,8 +86,6 @@ export function useShortcutsSettingsViewProps({
   onStartRecording,
   onBadgeKeyDown,
 }: UseShortcutsSettingsViewPropsParams): ShortcutsSettingsViewProps {
-  const categories = buildShortcutCategoryOrder(shortcutDefinitions);
-
   return {
     title: t("shortcuts.heading"),
     conflictMessage,
@@ -52,29 +93,31 @@ export function useShortcutsSettingsViewProps({
     resetLabel: t("shortcuts.reset_to_defaults"),
     resetDisabled: !hasCustomBindings,
     onResetAll,
-    categories: categories.map((category) => ({
-      id: category,
-      heading: tReader(category),
-      items: shortcutDefinitions
-        .filter((definition) => definition.categoryKey === category)
-        .map((definition) => {
-          const currentKey = getKey(definition.id);
-          const conflict = findConflict(definition.id, currentKey);
-          const isLocked = definition.id === "open_settings";
+    categories: buildShortcutCategories(
+      shortcutDefinitions,
+      (definition) => {
+        const currentKey = getKey(definition.id);
+        const conflict = findConflict(definition.id, currentKey);
+        const isLocked = definition.id === "open_settings";
+        const label = tReader(definition.labelKey);
 
-          return {
-            id: definition.id,
-            label: tReader(definition.labelKey),
-            displayKey: formatKeyForDisplay(currentKey, platformKind),
-            isLocked,
-            isRecording: recordingId === definition.id,
-            resetDisabled: isLocked || currentKey === definition.defaultKey,
-            conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
-            onReset: () => onResetShortcut(definition.id),
-            onStartRecording: () => onStartRecording(definition.id),
-            onKeyDown: (event: globalThis.KeyboardEvent) => onBadgeKeyDown(definition.id, event),
-          };
-        }),
-    })),
+        return {
+          id: definition.id,
+          label,
+          displayKey: formatKeyForDisplay(currentKey, platformKind),
+          isLocked,
+          isRecording: recordingId === definition.id,
+          resetDisabled: isLocked || currentKey === definition.defaultKey,
+          resetAriaLabel: t("shortcuts.reset_shortcut_aria_label", {
+            name: label,
+          }),
+          conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
+          onReset: () => onResetShortcut(definition.id),
+          onStartRecording: () => onStartRecording(definition.id),
+          onKeyDown: (event: globalThis.KeyboardEvent) => onBadgeKeyDown(definition.id, event),
+        };
+      },
+      (category) => tReader(category),
+    ),
   };
 }

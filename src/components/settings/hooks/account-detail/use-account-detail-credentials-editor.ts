@@ -3,12 +3,14 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { type RefObject, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
+import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
+import { focusFirstAccountDetailInput } from "./account-detail-editor-focus";
 
-export type AccountDetailCredentialsEditorParams = {
+type AccountDetailCredentialsEditorParams = {
   account: AccountDetailAccount;
   queryClient: QueryClient;
   t: TFunction<"settings">;
@@ -33,6 +35,15 @@ export type AccountDetailCredentialsEditorResult = {
 };
 
 const MASKED_PASSWORD_VALUE = "••••••••";
+
+function isValidServerUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 type AccountDetailCredentialsEditorState = {
   credServerUrl: string | null;
@@ -116,6 +127,13 @@ export function useAccountDetailCredentialsEditor({
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
+  const showCopyServerUrlError = (error: { message: string }) => {
+    const message =
+      i18n.language === "ja"
+        ? `サーバーURLのコピーに失敗しました: ${error.message}`
+        : `Failed to copy server URL: ${error.message}`;
+    useUiStore.getState().showToast(message);
+  };
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
 
   const commitCredentials = async (): Promise<boolean> => {
@@ -134,6 +152,11 @@ export function useAccountDetailCredentialsEditor({
       const serverUrlChanged = credServerUrl !== null && serverUrl !== ((account.server_url ?? "").trim() || undefined);
       const usernameChanged = credUsername !== null && username !== ((account.username ?? "").trim() || undefined);
       const passwordChanged = credPassword !== null && credPassword !== "";
+
+      if (serverUrl && !isValidServerUrl(serverUrl)) {
+        useUiStore.getState().showToast(t("account.error_server_url_invalid"));
+        return false;
+      }
 
       if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
         dispatch({ type: "clear-password-input" });
@@ -194,7 +217,7 @@ export function useAccountDetailCredentialsEditor({
   };
 
   const handleCopyServerUrl = async () => {
-    const value = credServerUrl ?? account.server_url ?? "";
+    const value = (credServerUrl ?? account.server_url ?? "").trim();
     if (!value) {
       return;
     }
@@ -204,9 +227,7 @@ export function useAccountDetailCredentialsEditor({
       Result.inspect(() => {
         useUiStore.getState().showToast(t("account.copied_to_clipboard"));
       }),
-      Result.inspectError((error) => {
-        useUiStore.getState().showToast(error.message);
-      }),
+      Result.inspectError(showCopyServerUrlError),
     );
   };
 
@@ -217,16 +238,7 @@ export function useAccountDetailCredentialsEditor({
   };
 
   const focusCredentialsEditor = () => {
-    if (serverUrlInputRef.current) {
-      serverUrlInputRef.current.focus();
-      serverUrlInputRef.current.select();
-      return;
-    }
-
-    if (usernameInputRef.current) {
-      usernameInputRef.current.focus();
-      usernameInputRef.current.select();
-    }
+    focusFirstAccountDetailInput([serverUrlInputRef, usernameInputRef]);
   };
 
   return {

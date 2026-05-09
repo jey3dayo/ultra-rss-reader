@@ -1,10 +1,15 @@
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
-import type { SettingsNavViewProps } from "./settings-nav.types";
+import type { SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
 export type { SettingsNavItem, SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
-export function SettingsNavView({ ariaLabel, items, onSelectCategory, disabled = false }: SettingsNavViewProps) {
+export function SettingsNavView<TItemId extends string = SettingsNavItemId>({
+  ariaLabel,
+  items,
+  onSelectCategory,
+  disabled = false,
+}: SettingsNavViewProps<TItemId>) {
   return (
     <nav
       aria-label={ariaLabel}

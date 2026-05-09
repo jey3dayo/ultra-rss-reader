@@ -1,10 +1,20 @@
 import { Copy } from "lucide-react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, RefObject } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import type { AccountCredentialInputRow } from "./types";
+
+type AccountCredentialInputRow = {
+  label: string;
+  value: string;
+  placeholder?: string;
+  type?: "text" | "password" | "url";
+  onChange: (value: string) => void;
+  onBlur: () => void;
+  onFocus?: () => void;
+  inputRef?: RefObject<HTMLInputElement | null>;
+};
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";

@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+type SettingsModalContentScrollBehavior = "auto" | "always" | "never";
+type SettingsModalOpenChangeHandler = (open: boolean) => void;
+
 export type SettingsModalViewProps = {
   open: boolean;
   title: string;
@@ -9,10 +12,10 @@ export type SettingsModalViewProps = {
   accountsNavigation: ReactNode;
   content: ReactNode;
   contentResetKey?: string;
-  contentScrollBehavior?: "auto" | "always" | "never";
+  contentScrollBehavior?: SettingsModalContentScrollBehavior;
   isLoading?: boolean;
   isCloseDisabled?: boolean;
   lockMessage?: string;
   onClose: () => void;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: SettingsModalOpenChangeHandler;
 };

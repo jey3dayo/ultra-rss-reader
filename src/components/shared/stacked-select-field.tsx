@@ -17,6 +17,21 @@ type StackedSelectFieldProps = {
   triggerClassName?: string;
 };
 
+type StackedSelectFieldChangeHandlerParams = {
+  disabled?: boolean;
+  onChange: (value: string) => void;
+};
+
+export function createStackedSelectFieldChangeHandler({ disabled, onChange }: StackedSelectFieldChangeHandlerParams) {
+  return (next: string | null) => {
+    if (disabled || next === null) {
+      return;
+    }
+
+    onChange(next);
+  };
+}
+
 export function StackedSelectField({
   labelId,
   label,
@@ -31,13 +46,14 @@ export function StackedSelectField({
 }: StackedSelectFieldProps) {
   const generatedLabelId = useId();
   const resolvedLabelId = labelId ?? generatedLabelId;
+  const handleValueChange = createStackedSelectFieldChangeHandler({ disabled, onChange });
 
   return (
     <div className={cn("block text-sm text-foreground-soft", className)}>
       <span id={resolvedLabelId} className={cn("mb-1 block", labelClassName)}>
         {label}
       </span>
-      <Select name={name} value={value} onValueChange={(next) => next !== null && onChange(next)} disabled={disabled}>
+      <Select name={name} value={value} onValueChange={handleValueChange} disabled={disabled}>
         <SelectTrigger aria-labelledby={resolvedLabelId} className={triggerClassName}>
           <SelectOptionValue options={options} />
         </SelectTrigger>

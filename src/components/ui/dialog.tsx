@@ -5,6 +5,7 @@ import { XIcon } from "lucide-react";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
 import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
+import i18n from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type DialogProps = DialogPrimitive.Root.Props;
@@ -15,12 +16,14 @@ export type DialogOverlayProps = DialogPrimitive.Backdrop.Props;
 export type DialogOverlayPreset = "modal" | "readable";
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
+  closeLabel?: string;
   overlayPreset?: DialogOverlayPreset;
   overlayClassName?: string;
 };
 export type DialogHeaderProps = React.ComponentProps<"div">;
 export type DialogFooterProps = React.ComponentProps<"div"> & {
   showCloseButton?: boolean;
+  closeLabel?: string;
 };
 export type DialogTitleProps = DialogPrimitive.Title.Props;
 export type DialogDescriptionProps = DialogPrimitive.Description.Props;
@@ -62,6 +65,7 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeLabel,
   overlayPreset = "modal",
   overlayClassName,
   ...props
@@ -89,7 +93,7 @@ function DialogContent({
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{closeLabel ?? i18n.t("close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -101,7 +105,7 @@ function DialogHeader({ className, ...props }: DialogHeaderProps) {
   return <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />;
 }
 
-function DialogFooter({ className, showCloseButton = false, children, ...props }: DialogFooterProps) {
+function DialogFooter({ className, showCloseButton = false, closeLabel, children, ...props }: DialogFooterProps) {
   return (
     <div
       data-slot="dialog-footer"
@@ -112,7 +116,11 @@ function DialogFooter({ className, showCloseButton = false, children, ...props }
       {...props}
     >
       {children}
-      {showCloseButton && <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>}
+      {showCloseButton && (
+        <DialogPrimitive.Close render={<Button variant="outline" />}>
+          {closeLabel ?? i18n.t("close")}
+        </DialogPrimitive.Close>
+      )}
     </div>
   );
 }

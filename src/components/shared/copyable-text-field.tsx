@@ -15,7 +15,7 @@ type CopyableTextFieldProps = {
   placeholder?: string;
   className?: string;
   type?: CopyableTextFieldType;
-  onCopy?: () => void;
+  onCopy?: (value: string) => void;
   onChange?: (value: string) => void;
   onBlur?: () => void;
   onFocus?: () => void;
@@ -36,6 +36,8 @@ export function CopyableTextField({
   onBlur,
   onFocus,
 }: CopyableTextFieldProps) {
+  const canCopy = value.trim().length > 0;
+
   return (
     <div className="block text-sm text-foreground-soft">
       <span className="mb-1 block text-foreground-soft">{label}</span>
@@ -65,12 +67,12 @@ export function CopyableTextField({
               variant="ghost"
               size="icon-sm"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={onCopy}
-              disabled={disabled || !value}
+              onClick={() => onCopy(value)}
+              disabled={disabled || !canCopy}
               aria-label={copyLabel}
               className="absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2 motion-reduce:transition-none"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="size-3.5" />
             </Button>
           </AppTooltip>
         ) : null}

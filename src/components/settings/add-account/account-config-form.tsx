@@ -95,7 +95,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     const payloadResult = buildAddAccountPayload(form);
 
     if (Result.isFailure(payloadResult)) {
-      const message = formatAddAccountValidationError(form.kind, Result.unwrapError(payloadResult));
+      const message = t(formatAddAccountValidationError(form.kind, Result.unwrapError(payloadResult)));
       dispatchUi({ type: "set-error-message", value: message });
       useUiStore.getState().showToast(message);
       return;
@@ -109,6 +109,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     const payload = Result.unwrap(payloadResult);
     submittingRef.current = true;
     dispatchUi({ type: "set-submitting", value: true });
+    useUiStore.getState().startAccountSetupVerification();
     try {
       Result.pipe(
         await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
@@ -126,6 +127,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           }
           dispatchUi({ type: "set-error-message", value: message });
           useUiStore.getState().showToast(message);
+          useUiStore.getState().clearAccountSetup();
         }),
         Result.inspect((account) => {
           upsertCachedAccount(qc, account);
@@ -138,6 +140,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
             accountId: account.id,
             queryClient: qc,
             t,
+            owner: "add-account",
           });
         }),
       );

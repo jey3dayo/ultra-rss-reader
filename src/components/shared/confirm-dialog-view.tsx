@@ -76,9 +76,9 @@ export function ConfirmDialogView({
         <div className="flex flex-col items-center gap-4 py-2 text-center">
           <div
             data-testid="confirm-dialog-icon"
-            className={cn("flex h-11 w-11 items-center justify-center rounded-md", tone.iconContainerClassName)}
+            className={cn("flex size-11 items-center justify-center rounded-md", tone.iconContainerClassName)}
           >
-            <Icon data-testid="confirm-dialog-icon-svg" className={cn("h-5 w-5", tone.iconClassName)} />
+            <Icon data-testid="confirm-dialog-icon-svg" className={cn("size-5", tone.iconClassName)} />
           </div>
           <p className="text-sm text-foreground" aria-hidden="true">
             {message}

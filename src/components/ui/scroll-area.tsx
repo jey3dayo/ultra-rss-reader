@@ -7,6 +7,11 @@ type ScrollBarProps = ScrollAreaPrimitive.Scrollbar.Props & {
   thumbClassName?: string;
 };
 
+const scrollBarOrientationClassNames = {
+  horizontal: "h-2.5 flex-col border-t border-t-transparent",
+  vertical: "h-full w-2.5 border-l border-l-transparent",
+} satisfies Record<NonNullable<ScrollBarProps["orientation"]>, string>;
+
 function ScrollArea({
   className,
   children,
@@ -44,7 +49,8 @@ function ScrollBar({ className, thumbClassName, orientation = "vertical", ...pro
       data-orientation={orientation}
       orientation={orientation}
       className={cn(
-        "flex touch-none p-px transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent motion-reduce:transition-none",
+        "flex touch-none p-px transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] select-none motion-reduce:transition-none",
+        scrollBarOrientationClassNames[orientation],
         className,
       )}
       {...props}
@@ -57,4 +63,5 @@ function ScrollBar({ className, thumbClassName, orientation = "vertical", ...pro
   );
 }
 
+export type { ScrollAreaProps } from "./scroll-area.types";
 export { ScrollArea, ScrollBar };

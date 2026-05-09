@@ -115,7 +115,7 @@ export function FeedDetailPanel({
           {leadingVisual ? (
             <div
               data-testid="feed-detail-leading-visual"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border/65 bg-surface-1/88 text-foreground shadow-none"
+              className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border/65 bg-surface-1/88 text-foreground shadow-none"
             >
               {leadingVisual}
             </div>
@@ -130,7 +130,7 @@ export function FeedDetailPanel({
                   className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
                 >
                   <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-                  <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
+                  <ExternalLink aria-hidden="true" className="mt-1 size-4 shrink-0" />
                 </a>
               ) : (
                 <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
@@ -197,8 +197,8 @@ export function FeedDetailPanel({
             <div className="grid gap-2 text-sm">
               {links.map((link) => (
                 <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className={detailLinkClassName}>
-                  <ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />
-                  <span className="underline decoration-border underline-offset-4">{link.href}</span>
+                  <ExternalLink aria-hidden="true" className="size-4 shrink-0" />
+                  <span className="underline decoration-border underline-offset-4">{link.label}</span>
                 </a>
               ))}
             </div>
@@ -227,7 +227,7 @@ export function FeedDetailPanel({
                           <span className="font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                             {article.title}
                           </span>
-                          <ExternalLink aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
                         </a>
                       ) : (
                         <span className="line-clamp-2 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
@@ -256,7 +256,7 @@ export function FeedDetailPanel({
                 )}
                 onClick={primaryAction.onClick}
               >
-                <List className="h-4 w-4" />
+                <List className="size-4" />
                 {primaryAction.label}
               </Button>
             ) : null}

@@ -4,8 +4,20 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { cn } from "@/lib/utils";
 
 type AccountDetailSettingsRowProps =
-  | { label: string; labelClassName?: string; valueClassName?: string; type: "switch"; checked?: boolean }
-  | { label: string; labelClassName?: string; valueClassName?: string; type: "select"; value?: string }
+  | {
+      label: string;
+      labelClassName?: string;
+      valueClassName?: string;
+      type: "switch";
+      checked?: boolean;
+    }
+  | {
+      label: string;
+      labelClassName?: string;
+      valueClassName?: string;
+      type: "select";
+      value?: string;
+    }
   | {
       label: string;
       labelClassName?: string;
@@ -26,7 +38,7 @@ export function AccountDetailSettingsRow(props: AccountDetailSettingsRowProps) {
         <div className={valueRailClassName}>
           <span className={cn(valueTextClassName, "inline-flex justify-between gap-2", props.valueClassName)}>
             <span>{props.value}</span>
-            <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
+            <ChevronDownIcon className="size-4 opacity-50" aria-hidden="true" />
           </span>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import type { FormEvent } from "react";
 import type { MuteKeywordScope } from "@/api/schemas";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
@@ -97,6 +98,13 @@ export function MuteSettingsView({
   onConfirmDelete,
   onCancelDelete,
 }: MuteSettingsViewProps) {
+  const handleAddSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!addDisabled) {
+      onAdd();
+    }
+  };
+
   return (
     <>
       <SettingsContentLayout title={title} outerTestId="mute-settings-root">
@@ -106,9 +114,10 @@ export function MuteSettingsView({
             className="items-start sm:items-center"
             labelClassName="sm:w-40 sm:shrink-0"
           >
-            <div
+            <form
               data-testid="mute-settings-add-row"
               className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[30rem] sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end"
+              onSubmit={handleAddSubmit}
             >
               <Input
                 name="mute_keyword"
@@ -132,10 +141,10 @@ export function MuteSettingsView({
                   ))}
                 </SelectPopup>
               </Select>
-              <SettingsActionButton size="compact" onClick={onAdd} disabled={addDisabled}>
+              <SettingsActionButton type="submit" size="compact" disabled={addDisabled}>
                 {addLabel}
               </SettingsActionButton>
-            </div>
+            </form>
           </LabeledControlRow>
         </SettingsSection>
 

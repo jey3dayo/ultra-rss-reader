@@ -17,6 +17,21 @@ type LabeledSelectRowProps = {
   triggerClassName?: string;
 };
 
+type LabeledSelectRowChangeHandlerParams = {
+  disabled?: boolean;
+  onChange: (value: string) => void;
+};
+
+export function createLabeledSelectRowChangeHandler({ disabled, onChange }: LabeledSelectRowChangeHandlerParams) {
+  return (next: string | null) => {
+    if (disabled || next === null) {
+      return;
+    }
+
+    onChange(next);
+  };
+}
+
 export function LabeledSelectRow({
   label,
   name,
@@ -29,16 +44,11 @@ export function LabeledSelectRow({
   triggerClassName,
 }: LabeledSelectRowProps) {
   const labelId = useId();
+  const handleValueChange = createLabeledSelectRowChangeHandler({ disabled, onChange });
 
   return (
     <LabeledControlRow label={label} labelId={labelId} className={rowClassName}>
-      <Select
-        name={name}
-        value={value}
-        onValueChange={(next) => next !== null && onChange(next)}
-        disabled={disabled}
-        open={open}
-      >
+      <Select name={name} value={value} onValueChange={handleValueChange} disabled={disabled} open={open}>
         <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
           <SelectOptionValue options={options} />
         </SelectTrigger>

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import { type PlatformKind, SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import type { DevIntent } from "@/dev/intent";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import { useClearArticleViewHistory } from "@/hooks/use-articles";
@@ -15,7 +15,7 @@ import type { SettingsPageSwitchControl, SettingsPreferenceViewPropsParams } fro
 
 type UseReadingSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devIntent: DevIntent;
-  platformKind: keyof typeof SHORTCUT_MODIFIER_BY_PLATFORM;
+  platformKind: PlatformKind;
   supportsBackgroundBrowserOpen: boolean;
 };
 
@@ -58,7 +58,12 @@ export function useReadingSettingsViewProps({
       () => {
         clearHistory.mutate(selectedAccountId, {
           onSuccess: () => showToast(t("reading.clear_recent_articles_success")),
-          onError: (error) => showToast(t("reading.clear_recent_articles_failed", { message: error.message })),
+          onError: (error) =>
+            showToast(
+              t("reading.clear_recent_articles_failed", {
+                message: error.message,
+              }),
+            ),
         });
       },
       { actionLabel: t("reading.clear_recent_articles") },
@@ -157,6 +162,7 @@ export function useReadingSettingsViewProps({
             type: "action",
             label: t("reading.recent_articles_history"),
             actionLabel: t("reading.clear_recent_articles"),
+            actionAriaLabel: t("reading.clear_recent_articles_aria_label"),
             onAction: handleClearRecentArticles,
             disabled: !selectedAccountId || clearHistory.isPending,
           },
@@ -218,7 +224,9 @@ export function useReadingSettingsViewProps({
           {
             id: "cmd-click-browser",
             type: "switch",
-            label: t("reading.cmd_click_browser", { modifier: browserShortcutModifier }),
+            label: t("reading.cmd_click_browser", {
+              modifier: browserShortcutModifier,
+            }),
             checked: resolvePreferenceValue(prefs, "cmd_click_browser") === "true",
             onChange: (checked) => setPref("cmd_click_browser", String(checked)),
           },

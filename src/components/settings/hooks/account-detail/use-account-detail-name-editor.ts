@@ -6,8 +6,9 @@ import { renameAccount } from "@/api/tauri-commands";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
+import { scheduleAccountDetailInputFocus } from "./account-detail-editor-focus";
 
-export type AccountDetailNameEditorParams = {
+type AccountDetailNameEditorParams = {
   account: AccountDetailAccount;
   queryClient: QueryClient;
   t: TFunction<"settings">;
@@ -75,13 +76,14 @@ export function useAccountDetailNameEditor({
 
   const startEditingName = () => {
     dispatch({ type: "start-edit", value: account.name });
-    requestAnimationFrame(() => {
-      nameInputRef.current?.focus();
-      nameInputRef.current?.select();
-    });
+    scheduleAccountDetailInputFocus(nameInputRef);
   };
 
   const commitRename = async () => {
+    if (!editingName) {
+      return;
+    }
+
     const trimmed = nameDraft.trim();
     if (!trimmed || trimmed === account.name) {
       dispatch({ type: "finish-edit", value: account.name });

@@ -4,9 +4,18 @@ import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/acco
 import { useAccountDetailViewProps } from "@/components/settings/hooks/account-detail/use-account-detail-view-props";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
+import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { useUiStore } from "@/stores/ui-store";
-import type { AccountDetailContentProps } from "./types";
+import type { AccountDetailAccount, AccountDetailSyncProgress } from "./types";
 import { AccountDetailView } from "./view";
+
+type AccountDetailContentProps = {
+  account: AccountDetailAccount;
+  isSyncing: boolean;
+  syncProgress?: AccountDetailSyncProgress;
+  accountSetupState: AccountSetupSessionState | null;
+  accountSetupErrorMessage?: string | null;
+};
 
 function AccountDetailContent({
   account,
@@ -62,9 +71,14 @@ export function AccountDetail() {
 
   const isSyncing =
     syncProgress.active && (syncProgress.kind !== "manual_account" || syncProgress.activeAccountIds.has(account.id));
-  const accountSetupState = accountSetupSession?.accountId === account.id ? accountSetupSession.state : null;
+  const accountSetupState =
+    accountSetupSession && accountSetupSession.state !== "verifying" && accountSetupSession.accountId === account.id
+      ? accountSetupSession.state
+      : null;
   const accountSetupErrorMessage =
-    accountSetupSession?.accountId === account.id ? accountSetupSession.errorMessage : null;
+    accountSetupSession?.state === "failed" && accountSetupSession.accountId === account.id
+      ? accountSetupSession.errorMessage
+      : null;
 
   return (
     <AccountDetailContent

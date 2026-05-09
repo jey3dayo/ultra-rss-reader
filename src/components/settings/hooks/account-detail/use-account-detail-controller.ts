@@ -10,7 +10,7 @@ import { type AccountDetailDangerZoneResult, useAccountDetailDangerZone } from "
 import { type AccountDetailNameEditorResult, useAccountDetailNameEditor } from "./use-account-detail-name-editor";
 import { type AccountDetailSyncControlsResult, useAccountDetailSyncControls } from "./use-account-detail-sync-controls";
 
-export type AccountDetailControllerParams = {
+type AccountDetailControllerParams = {
   account: AccountDetailAccount;
   t: TFunction<"settings">;
   onAccountDeleted: () => void;

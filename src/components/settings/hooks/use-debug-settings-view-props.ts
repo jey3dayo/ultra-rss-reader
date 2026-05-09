@@ -70,6 +70,31 @@ export function useDebugSettingsViewProps({
         ],
       },
       {
+        id: "debug-dev-data",
+        heading: t("debug.dev_data"),
+        note: t("debug.dev_data_note"),
+        controls: [
+          {
+            id: "debug-dev-data-command",
+            type: "info",
+            label: t("debug.dev_data_command"),
+            value: "mise run app:dev:seed-from-prod",
+          },
+          {
+            id: "debug-dev-data-backup",
+            type: "info",
+            label: t("debug.dev_data_backup"),
+            value: t("debug.dev_data_backup_value"),
+          },
+          {
+            id: "debug-dev-data-credentials",
+            type: "info",
+            label: t("debug.dev_data_credentials"),
+            value: t("debug.dev_data_credentials_value"),
+          },
+        ],
+      },
+      {
         id: "debug-scenarios",
         heading: t("debug.scenarios"),
         note: t("debug.scenarios_note"),

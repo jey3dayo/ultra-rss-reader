@@ -3,7 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useRef, useState } from "react";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
-import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
+import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
@@ -11,7 +11,7 @@ import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount, AccountSelectOption, UpdateAccountSyncParams } from "../../account-detail/types";
 
-export type AccountDetailSyncControlsParams = {
+type AccountDetailSyncControlsParams = {
   account: AccountDetailAccount;
   queryClient: QueryClient;
   t: TFunction<"settings">;
@@ -33,6 +33,7 @@ type RunAccountSetupSyncParams = {
   queryClient: QueryClient;
   t: TFunction<"settings">;
   onSyncStatusChanged?: () => void;
+  owner?: AccountSetupSessionOwner;
 };
 
 function resolveSetupFailureMessage(t: TFunction<"settings">, syncResult: Awaited<ReturnType<typeof syncAccount>>) {
@@ -55,8 +56,9 @@ export async function runAccountSetupSync({
   queryClient,
   t,
   onSyncStatusChanged,
+  owner,
 }: RunAccountSetupSyncParams) {
-  useUiStore.getState().startAccountSetup(accountId);
+  useUiStore.getState().startAccountSetup(accountId, { owner });
 
   const syncResult = await syncAccount(accountId);
   onSyncStatusChanged?.();
@@ -95,9 +97,13 @@ export function useAccountDetailSyncControls({
   const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed");
   const syncActionInFlightRef = useRef(false);
+  const syncUpdateRevisionRef = useRef(0);
   const [syncActionInFlight, setSyncActionInFlight] = useState(false);
 
   const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
+    const revision = syncUpdateRevisionRef.current + 1;
+    syncUpdateRevisionRef.current = revision;
+
     Result.pipe(
       await updateAccountSync(
         account.id,
@@ -108,6 +114,9 @@ export function useAccountDetailSyncControls({
       ),
       Result.inspectError(showSyncUpdateError),
       Result.inspect((updated) => {
+        if (revision !== syncUpdateRevisionRef.current) {
+          return;
+        }
         updateCachedAccount(queryClient, updated);
       }),
     );

@@ -17,27 +17,11 @@ import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type SettingsPageSelectRowProps = {
-  control: SettingsPageSelectControl;
+type SettingsPageControlRowProps<Control> = {
+  control: Control;
 };
 
-type SettingsPageSwitchRowProps = {
-  control: SettingsPageSwitchControl;
-};
-
-type SettingsPageTextRowProps = {
-  control: SettingsPageTextControl;
-};
-
-type SettingsPageActionRowProps = {
-  control: SettingsPageActionControl;
-};
-
-type SettingsPageInfoRowProps = {
-  control: SettingsPageInfoControl;
-};
-
-function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
+function SettingsPageSelectRow({ control }: SettingsPageControlRowProps<SettingsPageSelectControl>) {
   return (
     <LabeledSelectRow
       label={control.label}
@@ -52,7 +36,7 @@ function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
   );
 }
 
-function SettingsPageSwitchRow({ control }: SettingsPageSwitchRowProps) {
+function SettingsPageSwitchRow({ control }: SettingsPageControlRowProps<SettingsPageSwitchControl>) {
   return (
     <LabeledSwitchRow
       label={control.label}
@@ -63,7 +47,7 @@ function SettingsPageSwitchRow({ control }: SettingsPageSwitchRowProps) {
   );
 }
 
-function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
+function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPageTextControl>) {
   const inputId = useId();
 
   if (control.actionLabel && control.onAction) {
@@ -84,8 +68,8 @@ function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
             type="button"
             size={control.actionSize ?? "compact"}
             onClick={control.onAction}
-            disabled={control.actionDisabled}
-            aria-label={control.actionAriaLabel ?? `${control.actionLabel}: ${control.label}`}
+            disabled={control.disabled || control.actionDisabled}
+            aria-label={control.actionAriaLabel}
           >
             {control.actionLabel}
           </SettingsActionButton>
@@ -110,7 +94,7 @@ function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
   );
 }
 
-function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
+function SettingsPageActionRow({ control }: SettingsPageControlRowProps<SettingsPageActionControl>) {
   return (
     <LabeledControlRow
       label={control.label}
@@ -122,7 +106,7 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
         size={control.actionSize ?? "compact"}
         onClick={control.onAction}
         disabled={control.disabled}
-        aria-label={`${control.actionLabel}: ${control.label}`}
+        aria-label={control.actionAriaLabel}
       >
         {control.actionLabel}
       </SettingsActionButton>
@@ -130,7 +114,7 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
   );
 }
 
-function SettingsPageInfoRow({ control }: SettingsPageInfoRowProps) {
+function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPageInfoControl>) {
   return (
     <LabeledControlRow label={control.label} className="gap-4">
       <span

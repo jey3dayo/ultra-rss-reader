@@ -1,7 +1,30 @@
+import type { KeyboardEvent, RefObject } from "react";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import type { AccountGeneralSectionViewProps } from "./types";
+
+type AccountGeneralInfoRow = {
+  label: string;
+  value: string;
+  truncate?: boolean;
+};
+
+type AccountGeneralSectionViewProps = {
+  heading: string;
+  nameLabel: string;
+  nameValue: string;
+  editNameTitle: string;
+  isEditingName: boolean;
+  isSavingName?: boolean;
+  nameDraft: string;
+  infoRows: AccountGeneralInfoRow[];
+  nameInputRef?: RefObject<HTMLInputElement | null>;
+  onStartEditingName: () => void;
+  onNameDraftChange: (value: string) => void;
+  onCommitName: () => void;
+  onNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+};
 
 export function AccountGeneralSectionView({
   heading,

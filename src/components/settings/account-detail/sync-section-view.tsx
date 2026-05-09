@@ -4,9 +4,48 @@ import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { cn } from "@/lib/utils";
-import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "./types";
+import type { AccountSelectOption, AccountSyncStatusRow } from "./types";
 
 const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
+
+type AccountSelectControl = {
+  name: string;
+  label: string;
+  value: string;
+  options: AccountSelectOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+};
+
+type AccountSwitchControl = {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+};
+
+type AccountSyncSectionViewProps = {
+  heading: string;
+  note?: string;
+  progressLabel?: string;
+  progressValue?: number | null;
+  progressCurrentLabel?: string;
+  syncInterval: AccountSelectControl;
+  syncOnStartup: AccountSwitchControl;
+  syncOnWake: AccountSwitchControl;
+  keepReadItems: AccountSelectControl;
+  statusRows?: AccountSyncStatusRow[];
+  syncNowLabel?: string;
+  syncingLabel?: string;
+  onSyncNow?: () => void;
+  isSyncing?: boolean;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
+};
+
+type AccountSelectRowProps = {
+  control: AccountSelectControl;
+};
 
 export function AccountSyncSectionView({
   heading,

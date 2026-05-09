@@ -25,12 +25,22 @@ export function FormActionButtons({
   cancelType = "button",
   submitType = "button",
 }: FormActionButtonsProps) {
+  const submitBlocked = loading || submitDisabled;
+
+  const handleSubmit = () => {
+    if (submitBlocked) {
+      return;
+    }
+
+    onSubmit?.();
+  };
+
   return (
     <>
       <Button type={cancelType} variant="outline" onClick={onCancel} disabled={cancelDisabled} className="min-h-11">
         {cancelLabel}
       </Button>
-      <Button type={submitType} onClick={onSubmit} disabled={submitDisabled} className="min-h-11">
+      <Button type={submitType} onClick={handleSubmit} disabled={submitBlocked} className="min-h-11">
         {loading && submittingLabel ? submittingLabel : submitLabel}
       </Button>
     </>

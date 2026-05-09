@@ -178,7 +178,7 @@ export function WorkspaceHeader({
             {hasBackAction ? (
               isBrowserPreview ? (
                 <WorkspaceHeaderActionButton aria-label={backLabel} onClick={onBack}>
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="size-4" />
                 </WorkspaceHeaderActionButton>
               ) : null
             ) : null}
@@ -191,7 +191,7 @@ export function WorkspaceHeader({
           <div data-testid="workspace-header-actions" className="relative z-30 flex shrink-0 items-center gap-2">
             {actions}
             <WorkspaceHeaderActionButton aria-label={closeLabel} onClick={onClose}>
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </WorkspaceHeaderActionButton>
           </div>
         </div>
@@ -239,7 +239,7 @@ export function WorkspaceHeader({
                   aria-label={backLabel}
                   onClick={onBack}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="size-4" />
                 </WorkspaceHeaderActionButton>
               ) : null}
               <div

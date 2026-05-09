@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
@@ -58,15 +58,17 @@ export function MuteSettings() {
   const deleteMuteKeyword = useDeleteMuteKeyword();
   const setMuteAutoMarkRead = useSetMuteAutoMarkRead();
   const updateMuteKeyword = useUpdateMuteKeyword();
+  const ruleScopeUpdateRevisionRef = useRef<Record<string, number>>({});
   const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
   const { keyword, scope, confirmRule } = state;
   const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
   const keywordLength = Array.from(keyword.trim()).length;
 
   const handleAdd = async () => {
+    const trimmedKeyword = keyword.trim();
     try {
       await createMuteKeyword.mutateAsync({
-        keyword,
+        keyword: trimmedKeyword,
         scope,
       });
       dispatch({ type: "reset-keyword" });
@@ -103,13 +105,25 @@ export function MuteSettings() {
       return;
     }
 
+    const revision = (ruleScopeUpdateRevisionRef.current[ruleId] ?? 0) + 1;
+    ruleScopeUpdateRevisionRef.current = {
+      ...ruleScopeUpdateRevisionRef.current,
+      [ruleId]: revision,
+    };
+
     try {
       await updateMuteKeyword.mutateAsync({
         muteKeywordId: ruleId,
         scope: nextScope,
       });
+      if (ruleScopeUpdateRevisionRef.current[ruleId] !== revision) {
+        return;
+      }
       showToast(t("mute.update_success"));
     } catch (error) {
+      if (ruleScopeUpdateRevisionRef.current[ruleId] !== revision) {
+        return;
+      }
       showToast(t("mute.update_failed", { message: getErrorMessage(error) }));
     }
   };

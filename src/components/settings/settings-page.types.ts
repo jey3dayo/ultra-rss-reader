@@ -1,9 +1,12 @@
 import type { TFunction } from "i18next";
+import type { KnownPreferenceKey } from "@/schemas/preferences";
+
+export type SettingsPreferenceSetPref = <K extends KnownPreferenceKey>(key: K, value: string) => void;
 
 export type SettingsPreferenceViewPropsParams = {
   t: TFunction<"settings">;
   prefs: Record<string, string>;
-  setPref: (key: string, value: string) => void;
+  setPref: SettingsPreferenceSetPref;
 };
 
 export type SettingsPageOption = {
@@ -11,59 +14,71 @@ export type SettingsPageOption = {
   label: string;
 };
 
-export type SettingsPageSelectControl = {
+type SettingsPageControlIdentity = {
   id: string;
-  type: "select";
-  name: string;
-  label: string;
-  value: string;
-  options: SettingsPageOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  open?: boolean;
 };
 
-export type SettingsPageSwitchControl = {
-  id: string;
-  type: "switch";
+type SettingsPageFieldIdentity = {
+  name: string;
+};
+
+type SettingsPageControlHeader<Type extends string> = SettingsPageControlIdentity & {
   label: string;
+  type: Type;
+  disabled?: boolean;
+};
+
+type SettingsPageActionSize = "text" | "compact";
+
+type SettingsPageInlineAction = {
+  actionLabel: string;
+  actionAriaLabel?: string;
+  onAction: () => void;
+  actionSize?: SettingsPageActionSize;
+};
+
+type SettingsPageTextAction = SettingsPageInlineAction & {
+  actionDisabled?: boolean;
+};
+
+type SettingsPageTextWithoutAction = {
+  actionLabel?: never;
+  actionAriaLabel?: never;
+  onAction?: never;
+  actionDisabled?: never;
+  actionSize?: never;
+};
+
+export type SettingsPageSelectControl = SettingsPageControlHeader<"select"> &
+  SettingsPageFieldIdentity & {
+    value: string;
+    options: SettingsPageOption[];
+    onChange: (value: string) => void;
+    open?: boolean;
+  };
+
+export type SettingsPageSwitchControl = SettingsPageControlHeader<"switch"> & {
   checked: boolean;
   onChange: (checked: boolean) => void;
-  disabled?: boolean;
 };
 
-export type SettingsPageTextControl = {
-  id: string;
-  type: "text";
-  name: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  actionLabel?: string;
-  actionAriaLabel?: string;
-  onAction?: () => void;
-  actionDisabled?: boolean;
-  actionSize?: "text" | "compact";
-};
+type SettingsPageTextFieldControl = SettingsPageControlHeader<"text"> &
+  SettingsPageFieldIdentity & {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+  };
 
-export type SettingsPageActionControl = {
-  id: string;
-  type: "action";
-  label: string;
-  actionLabel: string;
-  onAction: () => void;
-  disabled?: boolean;
-  actionSize?: "text" | "compact";
-  rowClassName?: string;
-  labelClassName?: string;
-};
+export type SettingsPageTextControl = SettingsPageTextFieldControl &
+  (SettingsPageTextAction | SettingsPageTextWithoutAction);
 
-export type SettingsPageInfoControl = {
-  id: string;
-  type: "info";
-  label: string;
+export type SettingsPageActionControl = SettingsPageControlHeader<"action"> &
+  SettingsPageInlineAction & {
+    rowClassName?: string;
+    labelClassName?: string;
+  };
+
+export type SettingsPageInfoControl = SettingsPageControlHeader<"info"> & {
   value: string;
   valueClassName?: string;
 };

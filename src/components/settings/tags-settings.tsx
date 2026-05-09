@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
@@ -77,15 +77,24 @@ export function TagsSettings() {
   const deleteTag = useDeleteTag();
   const showToast = useUiStore((state) => state.showToast);
   const [state, dispatch] = useReducer(tagsSettingsReducer, initialTagsSettingsState);
+  const createInFlightRef = useRef(false);
   const { name, color, editingTag, deletingTag, renameName, renameColor } = state;
 
   const handleCreate = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName || createInFlightRef.current) {
+      return;
+    }
+
+    createInFlightRef.current = true;
     try {
-      await createTag.mutateAsync({ name: name.trim(), color: color ?? undefined });
+      await createTag.mutateAsync({ name: trimmedName, color: color ?? undefined });
       dispatch({ type: "reset-create" });
       showToast(t("tags.create_success"));
     } catch (error) {
       showToast(t("tags.create_failed", { message: getErrorMessage(error) }));
+    } finally {
+      createInFlightRef.current = false;
     }
   };
 

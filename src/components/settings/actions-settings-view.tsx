@@ -33,7 +33,7 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
             className={`${MOTION_CONTENT_SWAP_CLASS_NAME} ${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} flex min-h-[56px] items-center gap-3 border-b border-border py-3`}
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
+            <span className="flex size-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
               {service.icon}
             </span>
             <span className="flex-1 text-sm text-foreground">{service.label}</span>

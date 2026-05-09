@@ -2,7 +2,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { cva } from "class-variance-authority";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { OverlayActionSurface } from "./overlay-action-surface";
@@ -96,10 +96,27 @@ export function IconToolbarButton({
   children,
   onClick,
 }: IconToolbarButtonProps) {
+  const handleToolbarButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (ariaDisabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    onClick();
+  };
+  const preventAriaDisabledKeyboardActivation = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (ariaDisabled && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
   return (
     <AppTooltip label={tooltipLabel ?? label} side={tooltipSide} align={tooltipAlign} sideOffset={tooltipSideOffset}>
       <ButtonPrimitive
-        onClick={onClick}
+        onClick={handleToolbarButtonClick}
+        onKeyDown={preventAriaDisabledKeyboardActivation}
         className={cn(iconToolbarButtonClassName, className)}
         disabled={disabled}
         aria-disabled={ariaDisabled || undefined}

@@ -1,7 +1,16 @@
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { DeleteButton } from "@/components/shared/delete-button";
-import type { AccountDangerZoneViewProps } from "./types";
+
+type AccountDangerZoneViewProps = {
+  dataHeading: string;
+  dangerHeading: string;
+  exportLabel: string;
+  deleteLabel: string;
+  onExport: () => void;
+  onRequestDelete: () => void;
+  disabled?: boolean;
+};
 
 export function AccountDangerZoneView({
   dataHeading,

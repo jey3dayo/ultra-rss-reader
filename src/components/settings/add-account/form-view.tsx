@@ -5,6 +5,7 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import type { OptionWithLabel } from "@/lib/ui/options";
+import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view.types";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";
@@ -18,36 +19,19 @@ type AddAccountFormSelectControl = {
   disabled: boolean;
 };
 
-type AddAccountFormInputControl = {
-  label: string;
-  name: string;
-  value: string;
-  placeholder?: string;
-  type?: string;
-  onChange: (value: string) => void;
-  disabled: boolean;
-};
-
-type AddAccountCredentialsSection = {
-  heading: string;
-  serverUrl?: AddAccountFormInputControl;
-  credential: AddAccountFormInputControl;
-  password: AddAccountFormInputControl;
-};
-
 type AddAccountFormSelectRowProps = {
   control: AddAccountFormSelectControl;
 };
 
 type AddAccountFormInputRowProps = {
-  control: AddAccountFormInputControl;
+  control: AddAccountInputControl;
 };
 
 type AddAccountFormViewProps = {
   title: string;
   accountHeading: string;
   accountType: AddAccountFormSelectControl;
-  accountName: AddAccountFormInputControl;
+  accountName: AddAccountInputControl;
   credentialsSection?: AddAccountCredentialsSection;
   errorMessage?: string | null;
   submitLabel: string;

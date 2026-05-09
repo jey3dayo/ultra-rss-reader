@@ -1,31 +1,56 @@
 import { ChevronRight } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import type { ComponentType } from "react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
-import { SERVICE_CATEGORIES } from "./services";
+import type { ServiceKind } from "./services.types";
+
+type ServicePickerServiceBase = {
+  icon: ComponentType<{ className?: string }>;
+  iconBg: string;
+  name: string;
+  description: string;
+};
+
+export type ServicePickerService =
+  | (ServicePickerServiceBase & {
+      kind: AddAccountProviderKind;
+      disabled?: false;
+      disabledLabel?: never;
+    })
+  | (ServicePickerServiceBase & {
+      kind: Exclude<ServiceKind, AddAccountProviderKind>;
+      disabled: true;
+      disabledLabel?: string;
+    });
+
+export type ServicePickerCategory = {
+  id: string;
+  label: string;
+  services: ServicePickerService[];
+};
 
 type ServicePickerProps = {
+  title: string;
+  categories: ServicePickerCategory[];
   onSelect: (kind: AddAccountProviderKind) => void;
 };
 
-export function ServicePicker({ onSelect }: ServicePickerProps) {
-  const { t } = useTranslation("settings");
-
+export function ServicePicker({ title, categories, onSelect }: ServicePickerProps) {
   return (
     <div
       data-testid="service-picker-surface"
       className="rounded-lg border border-border bg-surface-1 p-6 shadow-elevation-1"
     >
-      <h2 className="mb-6 text-center text-lg font-semibold">{t("account.heading")}…</h2>
+      <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
       <div className="space-y-4">
-        {SERVICE_CATEGORIES.map((category) => {
-          const labelId = `service-category-${category.labelKey}`;
+        {categories.map((category) => {
+          const labelId = `service-category-${category.id}`;
           return (
-            <fieldset key={category.labelKey} aria-labelledby={labelId}>
+            <fieldset key={category.id} aria-labelledby={labelId}>
               <legend id={labelId}>
-                <SectionHeading>{t(category.labelKey)}</SectionHeading>
+                <SectionHeading>{category.label}</SectionHeading>
               </legend>
               <ul className="space-y-0.5">
                 {category.services.map((service) => (
@@ -40,18 +65,25 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                       className={cn("items-center rounded-md px-3 py-2.5")}
                       leading={
                         <div
-                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}
+                          className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}
                         >
-                          <service.icon className="h-[18px] w-[18px] text-white" />
+                          <service.icon className="size-[18px] text-white" />
                         </div>
                       }
                       title={
                         <div className="flex items-center gap-2">
-                          <span>{t(service.nameKey)}</span>
+                          <span>{service.name}</span>
                         </div>
                       }
-                      description={<div>{t(service.descKey)}</div>}
-                      trailing={service.disabled ? null : <ChevronRight className="h-4 w-4 text-foreground-soft" />}
+                      description={
+                        <div>
+                          <span>{service.description}</span>
+                          {service.disabled && service.disabledLabel ? (
+                            <span className="ml-2">{service.disabledLabel}</span>
+                          ) : null}
+                        </div>
+                      }
+                      trailing={service.disabled ? null : <ChevronRight className="size-4 text-foreground-soft" />}
                     />
                   </li>
                 ))}

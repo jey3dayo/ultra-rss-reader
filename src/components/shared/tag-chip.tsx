@@ -17,9 +17,7 @@ export function TagChip({ label, color, onRemove, removeLabel, className }: TagC
         className,
       )}
     >
-      {color ? (
-        <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      ) : null}
+      {color ? <span className="inline-block size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} /> : null}
       <span className="truncate">{label}</span>
       {onRemove && removeLabel ? (
         <button
@@ -28,7 +26,7 @@ export function TagChip({ label, color, onRemove, removeLabel, className }: TagC
           className="inline-flex size-4 items-center justify-center rounded-full text-foreground-soft opacity-55 transition-[opacity,color,background-color,box-shadow] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/tag-chip:opacity-100 group-focus-within/tag-chip:opacity-100 hover:bg-surface-1/72 hover:text-foreground hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:opacity-100 motion-reduce:transition-none"
           aria-label={removeLabel}
         >
-          <X className="h-3 w-3" aria-hidden="true" />
+          <X className="size-3" aria-hidden="true" />
         </button>
       ) : null}
     </span>
