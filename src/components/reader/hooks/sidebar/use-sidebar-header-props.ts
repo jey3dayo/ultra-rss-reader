@@ -44,5 +44,8 @@ export function useSidebarHeaderProps({
     syncState: {
       status: syncStatus,
     },
+    actionAvailability: {
+      addFeed: "available",
+    },
   };
 }

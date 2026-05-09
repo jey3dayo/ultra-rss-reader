@@ -50,6 +50,9 @@ describe("useSidebarHeaderProps", () => {
       syncState: {
         status: "syncing",
       },
+      actionAvailability: {
+        addFeed: "available",
+      },
     });
   });
 

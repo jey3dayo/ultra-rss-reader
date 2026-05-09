@@ -18,6 +18,9 @@ const defaultProps = {
   syncState: {
     status: "idle",
   },
+  actionAvailability: {
+    addFeed: "available",
+  },
 } satisfies SidebarHeaderProps;
 
 describe("SidebarHeaderView", () => {
@@ -159,5 +162,28 @@ describe("SidebarHeaderView", () => {
       await vi.advanceTimersByTimeAsync(450);
     });
     expect(icon).not.toHaveClass("animate-spin");
+  });
+
+  it("disables add feed through the action availability boundary", async () => {
+    const user = userEvent.setup();
+    const onAddFeed = vi.fn();
+
+    render(
+      <SidebarHeaderView
+        {...defaultProps}
+        onAddFeed={onAddFeed}
+        actionAvailability={{
+          addFeed: "disabled",
+        }}
+      />,
+    );
+
+    const addFeedButton = screen.getByRole("button", { name: "Add feed" });
+
+    expect(addFeedButton).toBeDisabled();
+
+    await user.click(addFeedButton);
+
+    expect(onAddFeed).not.toHaveBeenCalled();
   });
 });
