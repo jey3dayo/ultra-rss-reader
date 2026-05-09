@@ -144,6 +144,32 @@ describe("useAppIconTheme", () => {
     });
   });
 
+  it("coalesces rapid system theme changes before starting the icon side effect", async () => {
+    const mql = createMatchMedia(true);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => mql),
+    );
+    setIconMock.mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+    mql.dispatch(false);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledTimes(1);
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
+    });
+
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(1);
+  });
+
   it("removes the system theme listener when switching to an explicit theme", async () => {
     const mql = createMatchMedia(true);
     vi.stubGlobal(

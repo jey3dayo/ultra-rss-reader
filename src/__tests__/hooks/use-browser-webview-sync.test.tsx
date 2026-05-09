@@ -130,6 +130,49 @@ describe("useBrowserWebviewSync", () => {
     expect(focusBrowserWebviewMock).toHaveBeenCalledTimes(1);
   });
 
+  it("surfaces focus failures after creating the webview", async () => {
+    const error = { type: "UserVisible" as const, message: "focus failed" };
+    const showSurfaceFailure = vi.fn();
+    focusBrowserWebviewMock.mockResolvedValue(Result.fail(error));
+    const { element } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "create");
+    });
+
+    expect(showSurfaceFailure).toHaveBeenCalledWith(error);
+  });
+
+  it("surfaces rejected native create calls without leaking the requested URL and allows retry", async () => {
+    const requestedUrl = "https://example.com/private-token";
+    const showSurfaceFailure = vi.fn();
+    createOrUpdateBrowserWebviewMock.mockRejectedValueOnce(new Error(`failed to open ${requestedUrl}`));
+    useUiStore.setState({ ...useUiStore.getInitialState(), browserUrl: requestedUrl });
+    const { element } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(requestedUrl, "create");
+    });
+
+    expect(showSurfaceFailure).toHaveBeenCalledWith({
+      type: "UserVisible",
+      message: "Webプレビューの操作に失敗しました。再試行してください。",
+    });
+    expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
+
+    createOrUpdateBrowserWebviewMock.mockResolvedValueOnce(Result.succeed(createBrowserState({ url: requestedUrl })));
+    showSurfaceFailure.mockClear();
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(requestedUrl, "create");
+    });
+
+    expect(createOrUpdateBrowserWebviewMock).toHaveBeenCalledTimes(2);
+    expect(showSurfaceFailure).not.toHaveBeenCalled();
+  });
+
   it("queues resize bounds while create is in flight and flushes only the latest bounds after create succeeds", async () => {
     const createDeferredResult = createDeferred<ReturnType<typeof Result.succeed<BrowserWebviewState>>>();
     createOrUpdateBrowserWebviewMock.mockReturnValue(createDeferredResult.promise);
@@ -279,5 +322,31 @@ describe("useBrowserWebviewSync", () => {
     await vi.waitFor(() => {
       expect(showSurfaceFailure).toHaveBeenCalledWith(error);
     });
+  });
+
+  it("surfaces rejected browser sync calls from layout observers", async () => {
+    const requestedUrl = "https://example.com/private-token";
+    const showSurfaceFailure = vi.fn();
+    const { element } = createHostElement();
+
+    renderHook(() => {
+      const hostRef = useRef<HTMLDivElement | null>(element);
+
+      useBrowserWebviewBoundsSync({
+        browserUrl,
+        hostRef,
+        waitForBrowserWebviewListeners: async () => {},
+        syncBrowserWebview: () => Promise.reject(new Error(`sync failed for ${requestedUrl}`)),
+        showSurfaceFailure,
+      });
+    });
+
+    await vi.waitFor(() => {
+      expect(showSurfaceFailure).toHaveBeenCalledWith({
+        type: "UserVisible",
+        message: "Webプレビューの表示位置を更新できませんでした。再試行してください。",
+      });
+    });
+    expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
   });
 });

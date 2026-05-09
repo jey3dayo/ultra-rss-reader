@@ -56,6 +56,7 @@ async function setBadgeCount(count: number | undefined, isLatestRequest: () => b
 
 export function useBadge() {
   const badgeRequestSeqRef = useRef(0);
+  const latestBadgeCountRef = useRef<number | undefined>(undefined);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
@@ -78,6 +79,19 @@ export function useBadge() {
   useEffect(() => {
     badgeRequestSeqRef.current += 1;
     const requestSeq = badgeRequestSeqRef.current;
-    void setBadgeCount(badgeCount, () => badgeRequestSeqRef.current === requestSeq);
+    latestBadgeCountRef.current = badgeCount;
+
+    void (async () => {
+      await setBadgeCount(badgeCount, () => badgeRequestSeqRef.current === requestSeq);
+
+      let appliedRequestSeq = requestSeq;
+      while (appliedRequestSeq !== badgeRequestSeqRef.current) {
+        const latestRequestSeq = badgeRequestSeqRef.current;
+        const latestBadgeCount = latestBadgeCountRef.current;
+
+        await setBadgeCount(latestBadgeCount, () => badgeRequestSeqRef.current === latestRequestSeq);
+        appliedRequestSeq = latestRequestSeq;
+      }
+    })();
   }, [badgeCount]);
 }

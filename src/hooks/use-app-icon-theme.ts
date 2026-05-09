@@ -54,12 +54,14 @@ export function useAppIconTheme() {
   const mountedRef = useRef(false);
   const pendingRequestRef = useRef<AppIconRequest | null>(null);
   const applyingRef = useRef(false);
+  const drainScheduledRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       pendingRequestRef.current = null;
+      drainScheduledRef.current = false;
     };
   }, []);
 
@@ -88,7 +90,15 @@ export function useAppIconTheme() {
   const requestAppIcon = useCallback(
     (request: AppIconRequest) => {
       pendingRequestRef.current = request;
-      void drainIconRequests();
+      if (drainScheduledRef.current) {
+        return;
+      }
+
+      drainScheduledRef.current = true;
+      queueMicrotask(() => {
+        drainScheduledRef.current = false;
+        void drainIconRequests();
+      });
     },
     [drainIconRequests],
   );

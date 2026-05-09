@@ -14,6 +14,8 @@ import { useUiStore } from "@/stores/ui-store";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
 import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "../../browser-webview-sync-helpers";
 
+const BROWSER_WEBVIEW_OPERATION_FAILED_MESSAGE = "Webプレビューの操作に失敗しました。再試行してください。";
+
 type UseBrowserWebviewSyncParams = {
   hostRef: RefObject<HTMLDivElement | null>;
   platformKind: PlatformInfo["kind"];
@@ -28,6 +30,46 @@ type UseBrowserWebviewSyncResult = {
   resetBrowserWebviewSyncState: () => void;
   syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
 };
+
+type BrowserWebviewOperationFailure = {
+  kind: "browser-webview-operation-failure";
+  error: AppError;
+};
+
+function isAppError(error: unknown): error is AppError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "type" in error &&
+    "message" in error &&
+    (error.type === "UserVisible" || error.type === "Retryable") &&
+    typeof error.message === "string" &&
+    error.message.trim().length > 0
+  );
+}
+
+function toBrowserWebviewOperationFailure(error: unknown): BrowserWebviewOperationFailure {
+  return {
+    kind: "browser-webview-operation-failure",
+    error: isAppError(error)
+      ? error
+      : {
+          type: "UserVisible",
+          message: BROWSER_WEBVIEW_OPERATION_FAILED_MESSAGE,
+        },
+  };
+}
+
+function isBrowserWebviewOperationFailure(result: unknown): result is BrowserWebviewOperationFailure {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    "kind" in result &&
+    result.kind === "browser-webview-operation-failure" &&
+    "error" in result &&
+    isAppError(result.error)
+  );
+}
 
 export function useBrowserWebviewSync({
   hostRef,
@@ -50,7 +92,12 @@ export function useBrowserWebviewSync({
 
   const syncBrowserBounds = useCallback(
     async (bounds: BrowserWebviewBounds) => {
-      const result = await setBrowserWebviewBounds(bounds);
+      const result = await setBrowserWebviewBounds(bounds).catch(toBrowserWebviewOperationFailure);
+      if (isBrowserWebviewOperationFailure(result)) {
+        console.error("Failed to sync embedded browser bounds:", result.error);
+        showSurfaceFailure(result.error);
+        return;
+      }
       if (Result.isFailure(result)) {
         const error = Result.unwrapError(result);
         console.error("Failed to sync embedded browser bounds:", error);
@@ -111,8 +158,15 @@ export function useBrowserWebviewSync({
       }
 
       createInFlightRef.current = true;
-      const result = await createOrUpdateBrowserWebview(requestedUrl, bounds);
+      const result = await createOrUpdateBrowserWebview(requestedUrl, bounds).catch(toBrowserWebviewOperationFailure);
       createInFlightRef.current = false;
+
+      if (isBrowserWebviewOperationFailure(result)) {
+        pendingBoundsRef.current = null;
+        console.error("Failed to create embedded browser webview:", result.error);
+        showSurfaceFailure(result.error);
+        return;
+      }
 
       if (Result.isFailure(result)) {
         pendingBoundsRef.current = null;
@@ -132,9 +186,16 @@ export function useBrowserWebviewSync({
         setBrowserStateWithRef(browserStateRef, setBrowserState, state);
       }
 
-      const focusResult = await focusBrowserWebview();
+      const focusResult = await focusBrowserWebview().catch(toBrowserWebviewOperationFailure);
+      if (isBrowserWebviewOperationFailure(focusResult)) {
+        console.error("Failed to focus embedded browser after create:", focusResult.error);
+        showSurfaceFailure(focusResult.error);
+        return;
+      }
       if (Result.isFailure(focusResult)) {
-        console.error("Failed to focus embedded browser after create:", Result.unwrapError(focusResult));
+        const error = Result.unwrapError(focusResult);
+        console.error("Failed to focus embedded browser after create:", error);
+        showSurfaceFailure(error);
       }
 
       await flushPendingBounds(requestedUrl);

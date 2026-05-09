@@ -63,7 +63,7 @@ describe("useBadge", () => {
   });
 
   it("uses the selected account feed unread sum for all_unread", async () => {
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
@@ -107,7 +107,7 @@ describe("useBadge", () => {
   });
 
   it("uses account unread count query result for only_inbox", async () => {
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
@@ -263,17 +263,46 @@ describe("useBadge", () => {
       usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
     });
 
-    await waitFor(() => {
-      expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
-    });
-
     firstWindowReady.resolve(firstWindow);
     await act(async () => {
       await firstWindowReady.promise;
     });
 
-    expect(firstWindow.setBadgeCount).not.toHaveBeenCalled();
-    expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
+    });
+  });
+
+  it("reapplies the latest badge count after an older native badge write settles", async () => {
+    const firstBadgeWrite = createDeferred<void>();
+    setBadgeCountMock.mockReturnValueOnce(firstBadgeWrite.promise).mockResolvedValue(undefined);
+    useUiStore.setState({ selectedAccountId: "acc-2" });
+    usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(undefined);
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
+    });
+    expect(setBadgeCountMock).toHaveBeenCalledTimes(2);
+
+    firstBadgeWrite.resolve();
+    await act(async () => {
+      await firstBadgeWrite.promise;
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
+    });
+    expect(setBadgeCountMock).toHaveBeenCalledTimes(3);
   });
 
   it("clears selected account only_inbox badge after a zero unread query result", async () => {

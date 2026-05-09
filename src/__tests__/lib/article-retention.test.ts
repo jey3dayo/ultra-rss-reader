@@ -60,9 +60,9 @@ describe("article retention", () => {
     expect(retainedArticleIds).toEqual(new Set(["art-1"]));
   });
 
-  it("ignores blank article ids when adding retained articles directly", () => {
+  it("ignores blank or whitespace article ids when adding retained articles directly", () => {
     const previousRetainedArticleIds = new Set(["art-1"]);
-    const retainedArticleIds = addRetainedArticle(previousRetainedArticleIds, "");
+    const retainedArticleIds = addRetainedArticle(previousRetainedArticleIds, "   ");
 
     expect(previousRetainedArticleIds).toEqual(new Set(["art-1"]));
     expect(retainedArticleIds).toEqual(new Set(["art-1"]));

@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { countOldUnreadArticles, type OldUnreadScopeKind } from "@/api/tauri-commands";
 import { useMarkOldUnreadRead } from "@/hooks/use-articles";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import type { OldUnreadDayPreset } from "../../old-unread-context-menu-items";
 
@@ -15,7 +16,14 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
 
   return useCallback(
     async (olderThanDays: OldUnreadDayPreset) => {
-      const countResult = await countOldUnreadArticles(scopeKind, targetId, olderThanDays);
+      const countResult = await countOldUnreadArticles(scopeKind, targetId, olderThanDays).catch((error: unknown) => {
+        showToast(getErrorMessage(error));
+        return null;
+      });
+      if (countResult === null) {
+        return;
+      }
+
       if (Result.isFailure(countResult)) {
         showToast(Result.unwrapError(countResult).message);
         return;

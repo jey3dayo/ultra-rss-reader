@@ -3,6 +3,9 @@ import type { AppError } from "@/api/tauri-commands";
 import { useBrowserUrlLayoutEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { bindWindowEvents } from "@/lib/window/window-events";
 
+const BROWSER_WEBVIEW_BOUNDS_SYNC_FAILED_MESSAGE =
+  "Webプレビューの表示位置を更新できませんでした。再試行してください。";
+
 type UseBrowserWebviewBoundsSyncParams = {
   browserUrl: string | null;
   hostRef: RefObject<HTMLDivElement | null>;
@@ -10,6 +13,29 @@ type UseBrowserWebviewBoundsSyncParams = {
   syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
   showSurfaceFailure: (error: AppError) => void;
 };
+
+function isAppError(error: unknown): error is AppError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "type" in error &&
+    "message" in error &&
+    (error.type === "UserVisible" || error.type === "Retryable") &&
+    typeof error.message === "string" &&
+    error.message.trim().length > 0
+  );
+}
+
+function toBrowserWebviewBoundsSyncError(error: unknown): AppError {
+  if (isAppError(error)) {
+    return error;
+  }
+
+  return {
+    type: "UserVisible",
+    message: BROWSER_WEBVIEW_BOUNDS_SYNC_FAILED_MESSAGE,
+  };
+}
 
 export function useBrowserWebviewBoundsSync({
   browserUrl,
@@ -30,22 +56,22 @@ export function useBrowserWebviewBoundsSync({
       let cancelled = false;
 
       const syncBounds = (mode: "create" | "resize") => {
-        void waitForBrowserWebviewListeners()
-          .then(() => {
-            if (cancelled || !isCurrent()) {
-              return;
-            }
+        void (async () => {
+          await waitForBrowserWebviewListeners();
+          if (cancelled || !isCurrent()) {
+            return;
+          }
 
-            void syncBrowserWebview(activeBrowserUrl, mode);
-          })
-          .catch((error: AppError) => {
-            if (cancelled || !isCurrent()) {
-              return;
-            }
+          await syncBrowserWebview(activeBrowserUrl, mode);
+        })().catch((caughtError: unknown) => {
+          if (cancelled || !isCurrent()) {
+            return;
+          }
 
-            console.error("Failed to initialize embedded browser listeners:", error);
-            showSurfaceFailure(error);
-          });
+          const error = toBrowserWebviewBoundsSyncError(caughtError);
+          console.error("Failed to sync embedded browser bounds:", error);
+          showSurfaceFailure(error);
+        });
       };
 
       syncBounds("create");

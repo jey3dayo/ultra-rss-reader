@@ -21,6 +21,19 @@ describe("useAccountUnreadCount", () => {
     expect(recorder.calls).toEqual([]);
   });
 
+  it("throws an explicit error when a trim-empty account id queryFn is executed directly", async () => {
+    const recorder = createTauriMockCallRecorder();
+    setupTauriMocks(recorder.handler);
+    const { wrapper } = createQueryWrapper();
+
+    const { result } = renderHook(() => useAccountUnreadCount(" \n\t ", true), { wrapper });
+
+    await expect(result.current.refetch({ throwOnError: true })).rejects.toThrow(
+      "Account unread count requires a non-empty account id.",
+    );
+    expect(recorder.calls).toEqual([]);
+  });
+
   it("trims account ids before calling the unread count command", async () => {
     const recorder = createTauriMockCallRecorder((cmd) => {
       if (cmd === "count_account_unread_articles") {

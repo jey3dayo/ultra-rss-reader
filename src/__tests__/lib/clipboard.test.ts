@@ -72,10 +72,20 @@ describe("clipboard", () => {
     expect(resolveClipboardErrorCategory("Clipboard write not allowed")).toBe("permission_denied");
   });
 
-  it("classifies invalid text errors without matching incidental substrings", async () => {
-    expect(resolveClipboardErrorCategory("Invalid clipboard text")).toBe("invalid_text");
-    expect(resolveClipboardErrorCategory("Clipboard text validation failed")).toBe("invalid_text");
-    expect(resolveClipboardErrorCategory("clipboard context failed")).toBe("unknown");
+  it.each([
+    "Invalid clipboard text",
+    "Clipboard text validation failed",
+    "clipboard text is empty",
+  ])("classifies known invalid text clipboard errors: %j", (message) => {
+    expect(resolveClipboardErrorCategory(message)).toBe("invalid_text");
+  });
+
+  it.each([
+    "clipboard context failed",
+    "clipboard pretext failed",
+    "clipboard textual content failed",
+  ])("does not classify incidental text substrings as invalid text: %j", (message) => {
+    expect(resolveClipboardErrorCategory(message)).toBe("unknown");
   });
 
   it.each([

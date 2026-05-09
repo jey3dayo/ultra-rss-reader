@@ -2,6 +2,11 @@ import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 type TauriEventCleanup = () => void;
 type TauriEventSubscription = Promise<TauriEventCleanup>;
+type TauriListenerErrorHandler = (error: unknown) => void;
+type TauriListenerOptions = {
+  onError?: TauriListenerErrorHandler;
+  onUnavailable?: TauriListenerErrorHandler;
+};
 type TauriListenerGroup = {
   ready: Promise<void>;
   dispose: () => void;
@@ -15,7 +20,25 @@ function defaultTauriListenerErrorHandler(error: unknown) {
   console.warn("[tauri-event-listeners] Failed to register or cleanup Tauri event listener.", error);
 }
 
-function runCleanup(cleanup: TauriEventCleanup, onError: (error: unknown) => void) {
+function defaultTauriUnavailableHandler() {}
+
+function resolveTauriListenerOptions(
+  options: TauriListenerErrorHandler | TauriListenerOptions | undefined,
+): Required<TauriListenerOptions> {
+  if (typeof options === "function") {
+    return {
+      onError: options,
+      onUnavailable: options,
+    };
+  }
+
+  return {
+    onError: options?.onError ?? defaultTauriListenerErrorHandler,
+    onUnavailable: options?.onUnavailable ?? defaultTauriUnavailableHandler,
+  };
+}
+
+function runCleanup(cleanup: TauriEventCleanup, onError: TauriListenerErrorHandler) {
   try {
     cleanup();
   } catch (error) {
@@ -23,10 +46,20 @@ function runCleanup(cleanup: TauriEventCleanup, onError: (error: unknown) => voi
   }
 }
 
+function handleSubscriptionError(error: unknown, options: Required<TauriListenerOptions>) {
+  if (hasTauriRuntime()) {
+    options.onError(error);
+    return;
+  }
+
+  options.onUnavailable(error);
+}
+
 export function createTauriListenerGroup(
   subscriptions: readonly TauriEventSubscription[],
-  onError: (error: unknown) => void = defaultTauriListenerErrorHandler,
+  listenerOptions?: TauriListenerErrorHandler | TauriListenerOptions,
 ): TauriListenerGroup {
+  const options = resolveTauriListenerOptions(listenerOptions);
   let disposed = false;
   const cleanups: TauriEventCleanup[] = [];
   const ready = Promise.all(
@@ -34,12 +67,14 @@ export function createTauriListenerGroup(
       subscription
         .then((cleanup) => {
           if (disposed) {
-            runCleanup(cleanup, onError);
+            runCleanup(cleanup, options.onError);
             return;
           }
           cleanups.push(cleanup);
         })
-        .catch(onError),
+        .catch((error: unknown) => {
+          handleSubscriptionError(error, options);
+        }),
     ),
   ).then(() => {});
 
@@ -50,7 +85,7 @@ export function createTauriListenerGroup(
       while (cleanups.length > 0) {
         const cleanup = cleanups.pop();
         if (cleanup) {
-          runCleanup(cleanup, onError);
+          runCleanup(cleanup, options.onError);
         }
       }
     },
@@ -59,7 +94,7 @@ export function createTauriListenerGroup(
 
 export function attachTauriListeners(
   subscriptions: readonly TauriEventSubscription[],
-  onError: (error: unknown) => void = defaultTauriListenerErrorHandler,
+  listenerOptions?: TauriListenerErrorHandler | TauriListenerOptions,
 ) {
-  return createTauriListenerGroup(subscriptions, onError).dispose;
+  return createTauriListenerGroup(subscriptions, listenerOptions).dispose;
 }

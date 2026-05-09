@@ -261,7 +261,7 @@ export function useUpdater(): void {
           showRestartToast();
         }),
       ],
-      () => {},
+      { onUnavailable: () => {} },
     );
 
     return () => {

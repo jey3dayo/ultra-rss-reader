@@ -10,7 +10,13 @@ describe("data-attribute", () => {
     second.setAttribute("data-article-id", "article-2");
     root.append(first, second);
 
-    expect(queryElementByDataAttribute<HTMLButtonElement>(root, "data-article-id", "article-2")).toBe(second);
+    expect(
+      queryElementByDataAttribute<HTMLButtonElement>(
+        root,
+        "data-article-id",
+        "article-2",
+      ),
+    ).toBe(second);
   });
 
   it("returns null for non data attribute names", () => {
@@ -19,13 +25,26 @@ describe("data-attribute", () => {
     button.setAttribute("aria-label", "article-1");
     root.append(button);
 
-    expect(queryElementByDataAttribute(root, "aria-label", "article-1")).toBeNull();
+    expect(
+      queryElementByDataAttribute(root, "aria-label", "article-1"),
+    ).toBeNull();
   });
 
   it("returns null for unexpected data attribute names without leaking selector errors", () => {
     const root = document.createElement("div");
     root.append(document.createElement("button"));
 
-    expect(queryElementByDataAttribute(root, "data-article-id]", "article-1")).toBeNull();
+    expect(
+      queryElementByDataAttribute(root, "data-article-id]", "article-1"),
+    ).toBeNull();
+    expect(
+      queryElementByDataAttribute(root, 'data-article-id"', "article-1"),
+    ).toBeNull();
+    expect(
+      queryElementByDataAttribute(root, "data-article id", "article-1"),
+    ).toBeNull();
+    expect(
+      queryElementByDataAttribute(root, "data-Article-id", "article-1"),
+    ).toBeNull();
   });
 });

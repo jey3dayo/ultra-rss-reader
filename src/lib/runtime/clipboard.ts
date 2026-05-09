@@ -13,6 +13,10 @@ type CopyValueToClipboardCallbacks = {
   onError: (message: string, error: ClipboardCopyError) => void;
 };
 
+function hasClipboardErrorToken(message: string, token: string): boolean {
+  return message.split(/[^a-z0-9]+/).includes(token);
+}
+
 export function resolveClipboardErrorCategory(message: string): ClipboardErrorCategory {
   const normalized = message.toLowerCase();
   if (normalized.includes("permission") || normalized.includes("denied") || normalized.includes("not allowed")) {
@@ -26,7 +30,11 @@ export function resolveClipboardErrorCategory(message: string): ClipboardErrorCa
   ) {
     return "runtime_unavailable";
   }
-  if (normalized.includes("invalid") || normalized.includes("validation") || /\btext\b/.test(normalized)) {
+  if (
+    normalized.includes("invalid") ||
+    normalized.includes("validation") ||
+    hasClipboardErrorToken(normalized, "text")
+  ) {
     return "invalid_text";
   }
   return "unknown";

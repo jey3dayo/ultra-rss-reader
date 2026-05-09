@@ -45,6 +45,24 @@ describe("useOldUnreadReadAction", () => {
     useUiStore.setState(useUiStore.getInitialState());
   });
 
+  it("shows a toast and does not mutate when old unread count rejects", async () => {
+    const showToast = vi.fn();
+    countOldUnreadArticlesMock.mockRejectedValue(new Error("Failed to count old unread"));
+    useUiStore.setState({
+      showConfirm: vi.fn(),
+      showToast,
+    });
+
+    const { result } = renderHook(() => useOldUnreadReadAction("feed", "feed-1"));
+
+    await act(async () => {
+      await result.current(30);
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Failed to count old unread");
+    expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
+  });
+
   it("shows a toast when markOldUnreadRead fails after count succeeds", async () => {
     const showToast = vi.fn();
     markOldUnreadReadMutate.mockImplementation(

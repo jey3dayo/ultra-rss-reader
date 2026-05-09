@@ -248,8 +248,10 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
           dispatch({ type: "append-browser-trace", value: event.payload });
         }),
       ],
-      () => {
-        // browser mode / non-tauri
+      {
+        onUnavailable: () => {
+          // browser mode / non-tauri
+        },
       },
     );
   }, []);

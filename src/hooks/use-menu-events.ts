@@ -19,8 +19,11 @@ export function useMenuEvents(): void {
           }
         }),
       ],
-      () => {
-        // Non-Tauri context (browser dev mode) — no-op
+      {
+        onUnavailable: (error) => {
+          emitDebugInputTrace(`${APP_EVENTS.menuAction} listener unavailable`);
+          console.debug("[menu-events] Tauri menu listener unavailable.", error);
+        },
       },
     );
   }, []);

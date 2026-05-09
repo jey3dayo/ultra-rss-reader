@@ -2,6 +2,8 @@ import { Result } from "@praha/byethrow";
 import { useQuery } from "@tanstack/react-query";
 import { countAccountUnreadArticles } from "@/api/tauri-commands";
 
+const ACCOUNT_UNREAD_COUNT_ACCOUNT_ID_REQUIRED = "Account unread count requires a non-empty account id.";
+
 export function useAccountUnreadCount(accountId: string | null, enabled: boolean) {
   const normalizedAccountId = accountId?.trim() || null;
 
@@ -9,7 +11,7 @@ export function useAccountUnreadCount(accountId: string | null, enabled: boolean
     queryKey: ["accountUnreadCount", normalizedAccountId],
     queryFn: () => {
       if (!normalizedAccountId) {
-        throw new Error("accountId is required");
+        throw new Error(ACCOUNT_UNREAD_COUNT_ACCOUNT_ID_REQUIRED);
       }
       return countAccountUnreadArticles(normalizedAccountId).then(Result.unwrap());
     },
