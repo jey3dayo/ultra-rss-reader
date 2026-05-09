@@ -110,20 +110,10 @@
   - background open は `open -g` を spawn してすぐ成功扱いにするため、`open` command の終了失敗や LaunchServices error が toast/diagnostics に残らない
   - spawn failure、non-zero exit、stderr redaction、foreground fallback、unsupported platform の Rust command test / manual verification を追加する
 
-- [ ] P3 matchMedia listener fallback の duplicate registration / cleanup drift を fixture 化する
-  - 対象: `src/lib/runtime/match-media-listener.ts`, `src/stores/preferences-store.ts`, `src/hooks/use-app-icon-theme.ts`
-  - modern `addEventListener` が throw して legacy `addListener` へ fallback する WebView では、cleanup 側の API 差で duplicate listener が残っても検出しにくい
-  - addEventListener throw、removeEventListener throw、legacy add/remove、listener double-fire の unit test を追加する
-
 - [ ] P3 native menu action id と frontend action registry の drift を snapshot で検出する
   - 対象: `src-tauri/src/menu.rs`, `src/lib/actions.ts`, `src/hooks/use-menu-events.ts`
   - menu id、action id、keyboard shortcut hint が Rust と TS に分散しており、片側だけ追加されると native menu 経由だけ no-op になりやすい
   - action id list snapshot、unknown menu action diagnostics、shortcut hint parity、locale label existence の test を追加する
-
-- [ ] P1 React Doctor の `role-has-required-aria-props` error を test harness から潰す
-  - 対象: `src/__tests__/hooks/use-article-tag-picker-popover.test.tsx`, `src/components/reader/hooks/article/use-article-tag-picker-popover.ts`
-  - test 内の `role="option"` に `aria-selected` がなく、React Doctor が error 扱いしているため、実 component 側の listbox contract も同じ抜けを見落としやすい
-  - test harness と実 view の option selected state、roving focus、screen reader label を揃え、React Doctor 再実行で error 0 を確認する
 
 - [ ] P1 React Doctor の mutation invalidation warning を実バグ / false positive に分類する
   - 対象: `src/hooks/use-articles.ts`, `src/hooks/use-delete-feed.ts`, `src/hooks/use-tags.ts`, `src/hooks/create-mutation.ts`
@@ -259,11 +249,6 @@
   - 対象: `CLAUDE.md`, `.claude/rules/*`, `TODO.md`
   - `no-prevent-default` のように Tauri app では意図的な warning と、mutation invalidation のような実バグ候補が同じ TODO に積まれると優先度がぼやける
   - suppress / false-positive / accepted-risk / must-fix の分類、コメントを書く場所、再スキャン時の更新手順を決める
-
-- [ ] P2 reader-type-surface test の import scan を type surface helper へ切り出す
-  - 対象: `src/__tests__/components/reader-type-surface.test.ts`, `src/components/reader/*.types.ts`
-  - React Doctor が `js-combine-iterations` と `.toSorted()` warning を reader type surface test に検出しており、type placement 追加のたびに同じ import list を複数回走査している可能性がある
-  - type file list、view-local props blacklist、public contract allowlist、sorted diagnostics を helper 化し、CLAUDE.md の Type Surface Policy と同じ語彙で失敗するようにする
 
 - [ ] P2 use-article-list-sources test の source extraction を single-pass 化する
   - 対象: `src/__tests__/components/use-article-list-sources.test.tsx`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
