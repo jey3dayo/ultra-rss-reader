@@ -119,7 +119,9 @@ describe("preference contract", () => {
     expectTypeOf<HiddenPreferenceKey>().toEqualTypeOf<"sort_subscriptions">();
     expectTypeOf<Extract<VisiblePreferenceDefaultKey, "sort_subscriptions">>().toEqualTypeOf<never>();
     expectTypeOf<Extract<VisiblePreferenceDefaultKey, "after_reading">>().toEqualTypeOf<"after_reading">();
-    expectTypeOf<Extract<VisiblePreferenceDefaultKey, "shortcut_next_article">>().toEqualTypeOf<"shortcut_next_article">();
+    expectTypeOf<
+      Extract<VisiblePreferenceDefaultKey, "shortcut_next_article">
+    >().toEqualTypeOf<"shortcut_next_article">();
     expectTypeOf<Extract<keyof PreferenceDefaultsRecord, "selected_account_id">>().toEqualTypeOf<never>();
   });
 

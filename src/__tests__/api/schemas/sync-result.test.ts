@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  AccountSyncWarningSchema,
-  SyncResultSchema,
-} from "@/api/schemas/sync-result";
+import { AccountSyncWarningSchema, SyncResultSchema } from "@/api/schemas/sync-result";
 
 const retryScheduledWarning = {
   account_id: "acc-1",
@@ -13,9 +10,7 @@ const retryScheduledWarning = {
 
 describe("AccountSyncWarningSchema", () => {
   it("accepts missing retry seconds and rejects fractional values", () => {
-    expect(
-      AccountSyncWarningSchema.safeParse(retryScheduledWarning).success,
-    ).toBe(true);
+    expect(AccountSyncWarningSchema.safeParse(retryScheduledWarning).success).toBe(true);
     expect(
       AccountSyncWarningSchema.safeParse({
         ...retryScheduledWarning,
@@ -66,36 +61,30 @@ describe("SyncResultSchema", () => {
     ["failed", "message", "   "],
     ["warnings", "message", ""],
     ["warnings", "message", "   "],
-  ] as const)(
-    "rejects blank %s account %s before display",
-    (collection, field, value) => {
-      expect(
-        SyncResultSchema.safeParse({
-          ...syncResult,
-          [collection]: [{ ...syncResult[collection][0], [field]: value }],
-        }).success,
-      ).toBe(false);
-    },
-  );
+  ] as const)("rejects blank %s account %s before display", (collection, field, value) => {
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        [collection]: [{ ...syncResult[collection][0], [field]: value }],
+      }).success,
+    ).toBe(false);
+  });
 
   it.each([
     ["failed", ""],
     ["failed", "   "],
     ["warnings", ""],
     ["warnings", "   "],
-  ] as const)(
-    "accepts blank %s account names so display can fall back to account id",
-    (collection, value) => {
-      const result = SyncResultSchema.safeParse({
-        ...syncResult,
-        [collection]: [{ ...syncResult[collection][0], account_name: value }],
-      });
+  ] as const)("accepts blank %s account names so display can fall back to account id", (collection, value) => {
+    const result = SyncResultSchema.safeParse({
+      ...syncResult,
+      [collection]: [{ ...syncResult[collection][0], account_name: value }],
+    });
 
-      expect(result.success).toBe(true);
-      if (!result.success) {
-        throw new Error("Expected blank account names to parse");
-      }
-      expect(result.data[collection][0]?.account_name).toBe("");
-    },
-  );
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected blank account names to parse");
+    }
+    expect(result.data[collection][0]?.account_name).toBe("");
+  });
 });

@@ -13,9 +13,9 @@ import {
   BooleanResponseSchema,
   BrowserWebviewStateSchema,
   browserWebviewBoundsArgs,
-  commandArgsSchemas,
   type CommandWithArgs,
   CountResponseSchema,
+  commandArgsSchemas,
   countAccountStarredArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
@@ -27,8 +27,8 @@ import {
   FeedDtoSchema,
   FolderDtoSchema,
   getCommandArgsSchema,
-  isCommandWithArgs,
   IntResponseSchema,
+  isCommandWithArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
@@ -38,9 +38,9 @@ import {
   listStarredArticlesArgs,
   MAX_IPC_PAGINATION_LIMIT,
   MuteKeywordDtoSchema,
-  NonnegativeIntResponseSchema,
   markArticleReadArgs,
   markArticlesReadArgs,
+  NonnegativeIntResponseSchema,
   NullResponseSchema,
   oldUnreadArticlesArgs,
   openExternalUrlArgs,
@@ -58,8 +58,8 @@ import {
   updateAccountSyncArgs,
   updateFeedFolderArgs,
 } from "@/api/schemas";
-import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
+import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
 
 function readTauriCommandsSource() {
   return readFileSync(join(process.cwd(), "src/api/tauri-commands.ts"), "utf8");
