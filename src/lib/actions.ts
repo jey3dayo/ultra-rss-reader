@@ -32,6 +32,12 @@ function emitArticleShareEvent(
   emitEvent(name);
 }
 
+function runGlobalActionBoundary(action: AppAction, operation: () => Promise<void>): void {
+  void operation().catch((error: unknown) => {
+    console.error(`[actions] ${action} failed:`, error);
+  });
+}
+
 /** Emit a navigation event with a direction detail. */
 function emitNavigationEvent(name: string, direction: 1 | -1): void {
   window.dispatchEvent(new CustomEvent(name, { detail: direction }));
@@ -193,7 +199,7 @@ export function executeAction(action: AppAction): void {
 
     // --- Window ---
     case "toggle-fullscreen":
-      toggleFullscreen();
+      runGlobalActionBoundary(action, toggleFullscreen);
       break;
 
     // --- Sync ---

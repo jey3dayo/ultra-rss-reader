@@ -663,6 +663,33 @@ describe("executeAction", () => {
         expect(setWindowFullscreenMock).toHaveBeenCalledWith(true);
       });
     });
+
+    it("absorbs rejected fullscreen reads at the global action boundary", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("fullscreen read rejected");
+      isWindowFullscreenMock.mockRejectedValueOnce(error);
+
+      executeAction("toggle-fullscreen");
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("[actions] toggle-fullscreen failed:", error);
+      });
+      expect(setWindowFullscreenMock).not.toHaveBeenCalled();
+      consoleError.mockRestore();
+    });
+
+    it("absorbs rejected fullscreen writes at the global action boundary", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("fullscreen write rejected");
+      setWindowFullscreenMock.mockRejectedValueOnce(error);
+
+      executeAction("toggle-fullscreen");
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("[actions] toggle-fullscreen failed:", error);
+      });
+      consoleError.mockRestore();
+    });
   });
 
   describe("placeholder actions", () => {
