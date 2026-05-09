@@ -19,6 +19,11 @@ export function subscribeMatchMediaChange(mediaQuery: MediaQueryList, listener: 
         }
       };
     } catch {
+      try {
+        legacyMediaQuery.removeEventListener?.("change", listener);
+      } catch {
+        return () => {};
+      }
       // Fall through to the legacy listener API below.
     }
   }

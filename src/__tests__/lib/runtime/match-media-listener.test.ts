@@ -51,6 +51,24 @@ describe("match-media-listener", () => {
     expect(removeListener).toHaveBeenCalledWith(listener);
   });
 
+  it("uses legacy add and remove when modern listeners are unavailable", () => {
+    const addListener = vi.fn();
+    const removeListener = vi.fn();
+    const mediaQuery = createMediaQueryList({
+      addEventListener: undefined,
+      removeEventListener: undefined,
+      addListener,
+      removeListener,
+    });
+    const listener = vi.fn();
+
+    const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
+    cleanup();
+
+    expect(addListener).toHaveBeenCalledWith(listener);
+    expect(removeListener).toHaveBeenCalledWith(listener);
+  });
+
   it("keeps cleanup non-fatal when modern listener removal throws", () => {
     const listener = vi.fn();
     const mediaQuery = createMediaQueryList({
@@ -62,5 +80,57 @@ describe("match-media-listener", () => {
     const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
 
     expect(() => cleanup()).not.toThrow();
+  });
+
+  it("does not register a duplicate legacy listener after modern registration partially succeeds", () => {
+    const modernListeners = new Set<(event: MediaQueryListEvent) => void>();
+    const legacyListeners = new Set<(event: MediaQueryListEvent) => void>();
+    const listener = vi.fn();
+    const mediaQuery = createMediaQueryList({
+      addEventListener: vi.fn((_: string, nextListener: (event: MediaQueryListEvent) => void) => {
+        modernListeners.add(nextListener);
+        throw new Error("modern listener unavailable after registration");
+      }),
+      removeEventListener: vi.fn((_: string, nextListener: (event: MediaQueryListEvent) => void) => {
+        modernListeners.delete(nextListener);
+      }),
+      addListener: vi.fn((nextListener: (event: MediaQueryListEvent) => void) => {
+        legacyListeners.add(nextListener);
+      }),
+      removeListener: vi.fn((nextListener: (event: MediaQueryListEvent) => void) => {
+        legacyListeners.delete(nextListener);
+      }),
+    });
+
+    const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
+    const event = { matches: true } as MediaQueryListEvent;
+    modernListeners.forEach((nextListener) => nextListener(event));
+    legacyListeners.forEach((nextListener) => nextListener(event));
+    cleanup();
+
+    expect(listener).toHaveBeenCalledOnce();
+    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", listener);
+    expect(mediaQuery.addListener).toHaveBeenCalledWith(listener);
+    expect(mediaQuery.removeListener).toHaveBeenCalledWith(listener);
+  });
+
+  it("does not add a legacy listener when partial modern registration cannot be cleaned up", () => {
+    const listener = vi.fn();
+    const mediaQuery = createMediaQueryList({
+      addEventListener: vi.fn(() => {
+        throw new Error("modern listener unavailable after registration");
+      }),
+      removeEventListener: vi.fn(() => {
+        throw new Error("modern cleanup failed");
+      }),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    });
+
+    const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
+
+    expect(() => cleanup()).not.toThrow();
+    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", listener);
+    expect(mediaQuery.addListener).not.toHaveBeenCalled();
   });
 });
