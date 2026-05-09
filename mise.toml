@@ -87,6 +87,7 @@ depends = [
   "lint:md",
   "lint:yaml",
   "lint:actions",
+  "lint:release-workflow-pins",
 ]
 
 [tasks."lint:types"]
@@ -116,6 +117,40 @@ run = "yamllint -c .yamllint .github/ .yamllint"
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
 run = "actionlint -shellcheck="
+
+[tasks."lint:release-workflow-pins"]
+description = "Release workflow action references must be pinned to commit SHAs"
+run = '''
+node <<'NODE'
+const fs = require("node:fs");
+
+const workflowPath = ".github/workflows/release.yml";
+const workflow = fs.readFileSync(workflowPath, "utf8");
+const usesPattern = /^\s*-\s+uses:\s+([^\s#]+)$/gm;
+const errors = [];
+
+for (const match of workflow.matchAll(usesPattern)) {
+  const usesValue = match[1];
+  const line = workflow.slice(0, match.index).split("\n").length;
+  const atIndex = usesValue.lastIndexOf("@");
+  const ref = atIndex === -1 ? "" : usesValue.slice(atIndex + 1);
+
+  if (!/^[0-9a-f]{40}$/i.test(ref)) {
+    errors.push(`${workflowPath}:${line}: ${usesValue} must use a 40-character commit SHA`);
+  }
+}
+
+if (errors.length > 0) {
+  for (const error of errors) {
+    console.error(error);
+  }
+  process.exit(1);
+}
+NODE
+'''
+run_windows = '''
+node -e "const fs=require('node:fs');const p='.github/workflows/release.yml';const w=fs.readFileSync(p,'utf8');const r=/^\s*-\s+uses:\s+([^\s#]+)$/gm;const e=[];for(const m of w.matchAll(r)){const v=m[1];const l=w.slice(0,m.index).split('\\n').length;const i=v.lastIndexOf('@');const ref=i===-1?'':v.slice(i+1);if(!/^[0-9a-f]{40}$/i.test(ref)){e.push(`${p}:${l}: ${v} must use a 40-character commit SHA`);}}if(e.length){console.error(e.join('\\n'));process.exit(1);}">
+'''
 
 [tasks."audit:deps"]
 description = "Manual dependency security audit; not part of CI or release preflight until advisory policy is defined"
