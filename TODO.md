@@ -105,11 +105,6 @@
   - feed unread_count は denormalized で、article mutation や sync failure 後に account total とズレる可能性がある
   - recalculation command、startup repair、sync completion のどこで count consistency を保証するか決め、mismatch fixture の repair test を追加する
 
-- [ ] P2 Reader Query key と invalidation key の source of truth を照合する
-  - 対象: `src/lib/reader/reader-query.ts`, `src/lib/query/query-invalidation.ts`, `src/hooks/use-articles.ts`
-  - query key が hook ごとに手書きされる箇所が残ると、mode/account/tag の invalidation 漏れが UI stale data につながる
-  - query key factory を棚卸しし、mark read/star/tag/feed delete/add feed 後に必要 key が invalidated される contract test を追加する
-
 - [ ] P2 capabilities/default.json の permission 最小化を feature matrix と照合する
   - 対象: `src-tauri/capabilities/default.json`, `src-tauri/src/commands/*.rs`, `src/hooks/*.ts`
   - clipboard/opener/updater/window permission が広く見えるため、使っていない permission が残ると Tauri capability の意図が drift する
@@ -195,11 +190,6 @@
   - ResizeObserver と window resize が毎回 async sync を投げるため、連続 resize で古い `resize` command が後から届き、WebView bounds が過去の矩形へ戻る可能性がある
   - request generation、latest-only resize、throttle/debounce、native side idempotence を hook/native test と実機計測に分ける
 
-- [ ] P1 sync scheduler panic recovery を backoff / warning と同じ経路に乗せる
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/commands/sync_commands.rs`
-  - `sync_account` panic は catch されるが backoff persistence や user-visible warning が通常 error と別経路なので、同じ account が短周期で panic を繰り返す可能性がある
-  - panic account の next_sync、warning emit、sync-completed/succeeded 条件、purge 実行有無を scheduler test で固定する
-
 - [ ] P1 startup/update/manual sync の foreground 復帰時 concurrency を system test 化する
   - 対象: `src/App.tsx`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src-tauri/src/service/sync_scheduler.rs`
   - foreground 復帰時に wake sync、startup throttle、manual sync、updater install gate が近いタイミングで動くため、UI では idle に見えて native 側だけ busy になりやすい
@@ -214,11 +204,6 @@
   - 対象: `src/components/reader/browser-view.tsx`, `src/stores/preferences-store.ts`
   - theme を連続変更した時に wipe timer と system theme subscription が重なると、overlay key reset や reduced motion 切替が現在 preference とズレる可能性がある
   - system light/dark change、manual rapid toggle、reduced motion enabled mid-animation の component test を追加する
-
-- [ ] P2 sync scheduler backoff の invalid `next_retry_at` cleanup policy を固定する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/infra/db/sqlite_sync_state.rs`
-  - `next_retry_at` が壊れた文字列だと backoff を無視するが、壊れた state を修復しないため、破損 DB で scheduler の挙動が毎 tick 変わりにくい
-  - invalid timestamp、future timestamp、past timestamp、negative error_count の cleanup/ignore policy を Rust test にする
 
 - [ ] P2 updater startup check と manual check の shared in-flight result の UX を固定する
   - 対象: `src/hooks/use-updater.ts`
@@ -265,11 +250,6 @@
   - frontend schema は nonnegative count を期待するが DB column は破損や migration drift で negative/large value を返し得るため、DTO 化時の責務が曖昧
   - negative unread_count、large count、recalculate failure、muted unread exclusion の Rust/TS schema test を追加する
 
-- [ ] P2 provider Retry-After / rate limit を sync warning と scheduler backoff に反映する
-  - 対象: `src-tauri/src/domain/error.rs`, `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_scheduler.rs`
-  - rate limit error はあるが provider の `Retry-After` を scheduler の `next_retry_at` と UI warning へどう渡すか未固定だと、過剰 retry や短すぎる cooldown になりやすい
-  - 429 with Retry-After seconds/date、missing header、invalid header、account sync/manual sync の warning表示を test にする
-
 - [ ] P2 update_feed_display_settings の `inherit` / default preference 解決を account/feed context で固定する
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
   - feed の reader/web preview mode と account/default preference が別経路で解決されるため、`inherit` 表示と実際の article/browser behavior がズレやすい
@@ -279,11 +259,6 @@
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
-
-- [ ] P1 fullscreen toggle の unhandled rejection を global action boundary で吸収する
-  - 対象: `src/lib/actions.ts`, `src/lib/window/windows.ts`, `src/hooks/use-keyboard.ts`, `src/hooks/use-menu-events.ts`
-  - `toggleFullscreen()` を fire-and-forget で呼び、`setWindowFullscreen` reject を catch していないため、native menu / keyboard 経由で unhandled rejection が出ても toast や diagnostics に残らない
-  - isFullscreen failure、setFullscreen failure、runtime unavailable、rapid toggle の Result/diagnostics policy を lib test にする
 
 - [ ] P1 native injected browser bridge の global EventTarget monkey patch を互換性検証する
   - 対象: `src-tauri/src/browser_webview.rs`
@@ -845,16 +820,6 @@
   - React Doctor / Knip が reader query helper の unused type を検出しており、query key factory、query option builder、view model helper の境界が曖昧になっている
   - article list、article detail、feed landing、tag filtered query の参照を確認し、public query contract だけを残す
 
-- [ ] P2 query-invalidation helper の unused export を mutation owner ごとに棚卸しする
-  - 対象: `src/lib/query/query-invalidation.ts`, `src/hooks/create-mutation.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`, `src/hooks/use-delete-feed.ts`
-  - React Doctor / Knip が query invalidation helper の unused export を検出しており、mutation warning の修正時に dead helper を再利用してしまう可能性がある
-  - article、feed、tag、account sync の invalidation owner を決め、使う helper は mutation test へ明示し、使わない helper は削除する
-
-- [ ] P2 use-feed-landing unused type を feed dialog / command palette navigation contract と照合する
-  - 対象: `src/hooks/use-feed-landing.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts`
-  - React Doctor / Knip が `use-feed-landing` 周辺の unused type を検出しており、feed 作成後の navigation owner が hook / dialog / command palette に分散している
-  - added feed landing、duplicate feed、folder selection、command palette add flow、settings transition の contract を確認して dead type を削る
-
 - [ ] P2 account pane navigation type を settings detail / reader focus boundary として整理する
   - 対象: `src/lib/account/account-pane-navigation.ts`, `src/components/settings/account-detail/*`, `src/lib/reader-focus.ts`
   - React Doctor / Knip が account pane navigation helper の unused type を検出しており、settings account detail と reader focus restore の境界が見えにくい
@@ -1084,11 +1049,6 @@
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
   - z-index や pointer-events の数値が component 内に分散しており、overlay 追加のたびにどの layer が上に来るべきか review で判断する必要がある
   - semantic layer constants、CSS custom property、component snapshot、DESIGN/CLAUDE rule 化のどれで固定するか決める
-
-- [ ] P2 query key object segment の stable serialization contract を固定する
-  - 対象: `src/lib/query/query-invalidation.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`
-  - reader mode を `{ mode }` object segment として query key に入れているため、hashing は安定しても partial invalidation、snapshot、manual key比較で array/string segment と扱いが揺れやすい
-  - object segment を続ける/tuple literalへ寄せる判断、partial match、invalidate root、devtools display、query key snapshot test を追加する
 
 - [ ] P2 dev/runtime error console policy を user-visible diagnostics と揃える
   - 対象: `src/dev/intent.ts`, `src/App.tsx`, `src/stores/platform-store.ts`, `src/hooks/use-app-icon-theme.ts`, `src/hooks/use-badge.ts`
