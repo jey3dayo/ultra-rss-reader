@@ -932,6 +932,7 @@ pub async fn trigger_sync_feed(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::start_database_maintenance;
     use crate::domain::account::ConnectionVerificationStatus;
     use crate::domain::feed::Feed;
     use crate::domain::provider::ProviderKind;
@@ -952,6 +953,21 @@ mod tests {
         assert!(result.is_ok());
         let sync_result = result.unwrap();
         assert!(!sync_result.synced, "should skip when sync in progress");
+    }
+
+    #[tokio::test]
+    async fn run_full_sync_skips_while_database_maintenance_is_reserved() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+        let _maintenance_guard =
+            start_database_maintenance(&syncing).expect("maintenance should reserve sync guard");
+
+        let result = run_full_sync(&db, &syncing)
+            .await
+            .expect("sync should skip instead of failing");
+
+        assert!(!result.synced);
+        assert_eq!(result.total, 0);
     }
 
     #[tokio::test]

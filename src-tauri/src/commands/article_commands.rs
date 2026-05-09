@@ -1,6 +1,8 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use rusqlite::OptionalExtension;
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 use tauri::State;
 
 use crate::commands::dto::{
@@ -8,6 +10,7 @@ use crate::commands::dto::{
     FeedIntegrityReportDto,
 };
 use crate::commands::AppState;
+use crate::commands::{start_database_maintenance, try_lock_db};
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
@@ -857,9 +860,16 @@ pub fn cleanup_feed_integrity_orphans(
     state: State<'_, AppState>,
     dry_run: bool,
 ) -> Result<FeedIntegrityCleanupDto, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    cleanup_feed_integrity_orphans_inner(&state.db, &state.syncing, dry_run)
+}
+
+fn cleanup_feed_integrity_orphans_inner(
+    db: &Mutex<crate::infra::db::connection::DbManager>,
+    syncing: &AtomicBool,
+    dry_run: bool,
+) -> Result<FeedIntegrityCleanupDto, AppError> {
+    let _maintenance_guard = start_database_maintenance(syncing)?;
+    let db = try_lock_db(db)?;
     let repo = SqliteArticleRepository::new(db.writer());
     let orphaned_article_count = repo.count_orphaned_articles()?;
     let deleted_article_count = if dry_run {
@@ -1065,6 +1075,7 @@ pub fn search_articles(
 #[cfg(test)]
 mod tests {
     use super::check_browser_embed_support;
+    use super::cleanup_feed_integrity_orphans_inner;
     use super::{
         article_command_pagination, bulk_mark_account_read, bulk_mark_account_starred_read,
         bulk_mark_old_unread_read, bulk_unstar_account_articles, has_blocking_frame_ancestors,
@@ -1078,14 +1089,18 @@ mod tests {
         MAX_ARTICLE_COMMAND_LIST_LIMIT,
     };
     use crate::commands::dto::AppError;
+    use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_article::SqliteArticleRepository;
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::platform::{platform_info_for_kind, PlatformKind};
-    use crate::repository::article::ArticleListMode;
+    use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
     use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
     use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Mutex;
 
     #[test]
     fn x_frame_options_blocks_embedding() {
@@ -1412,6 +1427,85 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn cleanup_feed_integrity_orphans_dry_run_does_not_delete_orphans() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(false);
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_orphaned_article(&db_guard, "orphan-dry-run", "missing-feed");
+        }
+
+        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, true)
+            .expect("dry-run cleanup should succeed");
+        let remaining = {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            SqliteArticleRepository::new(db_guard.reader())
+                .count_orphaned_articles()
+                .expect("orphan count should succeed")
+        };
+
+        assert!(result.dry_run);
+        assert_eq!(result.orphaned_article_count, 1);
+        assert_eq!(result.deleted_article_count, 0);
+        assert_eq!(remaining, 1);
+    }
+
+    #[test]
+    fn cleanup_feed_integrity_orphans_deletes_counted_orphans() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(false);
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_bulk_account(&db_guard, "acc-cleanup", "Local");
+            insert_bulk_feed(&db_guard, "feed-cleanup", "acc-cleanup", None, None);
+            insert_bulk_article(
+                &db_guard,
+                "healthy-cleanup",
+                "feed-cleanup",
+                None,
+                "2026-04-01T00:00:00Z",
+                false,
+                false,
+            );
+            insert_orphaned_article(&db_guard, "orphan-cleanup", "missing-feed");
+        }
+
+        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, false)
+            .expect("destructive cleanup should succeed");
+        let (remaining_orphans, healthy_articles) = {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            let repo = SqliteArticleRepository::new(db_guard.reader());
+            (
+                repo.count_orphaned_articles()
+                    .expect("orphan count should succeed"),
+                repo.find_by_feed(&FeedId("feed-cleanup".to_string()), &Pagination::default())
+                    .expect("healthy feed query should succeed")
+                    .len(),
+            )
+        };
+
+        assert!(!result.dry_run);
+        assert_eq!(result.orphaned_article_count, 1);
+        assert_eq!(result.deleted_article_count, 1);
+        assert_eq!(remaining_orphans, 0);
+        assert_eq!(healthy_articles, 1);
+    }
+
+    #[test]
+    fn cleanup_feed_integrity_orphans_rejects_while_syncing() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(true);
+
+        let error = cleanup_feed_integrity_orphans_inner(&db, &syncing, false)
+            .expect_err("syncing should block cleanup");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == DATABASE_MAINTENANCE_BUSY_ERROR
+        ));
+    }
+
     fn insert_bulk_account(db: &DbManager, id: &str, kind: &str) {
         db.writer()
             .execute(
@@ -1461,6 +1555,28 @@ mod tests {
                 rusqlite::params![id, feed_id, remote_id, id, published_at, is_read, is_starred],
             )
             .expect("article insert should succeed");
+    }
+
+    fn insert_orphaned_article(db: &DbManager, id: &str, missing_feed_id: &str) {
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = OFF;")
+            .expect("foreign key disable should succeed");
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, '', '', 1, ?5, ?5)",
+                rusqlite::params![
+                    id,
+                    missing_feed_id,
+                    Option::<String>::None,
+                    id,
+                    "2026-04-01T00:00:00Z",
+                ],
+            )
+            .expect("orphaned article insert should succeed");
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign key enable should succeed");
     }
 
     fn feed_unread_count(db: &DbManager, feed_id: &str) -> i64 {

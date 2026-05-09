@@ -1,9 +1,10 @@
 use serde::Serialize;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 use tauri::State;
 
 use crate::commands::dto::AppError;
+use crate::commands::start_database_maintenance;
 use crate::commands::try_lock_db;
 use crate::commands::AppState;
 use crate::infra::db::connection::{DatabaseInfo, DbManager};
@@ -14,7 +15,9 @@ pub struct DatabaseInfoDto {
     pub db_size_bytes: u64,
     /// WAL file size in bytes (0 if not present)
     pub wal_size_bytes: u64,
-    /// Total size (db + wal, excluding shm) in bytes
+    /// SHM file size in bytes (0 if not present or unavailable)
+    pub shm_size_bytes: u64,
+    /// Display total size (db + wal + shm) in bytes
     pub total_size_bytes: u64,
 }
 
@@ -23,31 +26,10 @@ impl From<DatabaseInfo> for DatabaseInfoDto {
         Self {
             db_size_bytes: info.db_size_bytes,
             wal_size_bytes: info.wal_size_bytes,
+            shm_size_bytes: 0,
             total_size_bytes: info.total_size_bytes,
         }
     }
-}
-
-#[derive(Debug)]
-struct DatabaseMaintenanceGuard<'a>(&'a AtomicBool);
-
-impl Drop for DatabaseMaintenanceGuard<'_> {
-    fn drop(&mut self) {
-        self.0.store(false, Ordering::SeqCst);
-    }
-}
-
-fn start_database_maintenance(
-    syncing: &AtomicBool,
-) -> Result<DatabaseMaintenanceGuard<'_>, AppError> {
-    syncing
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .map(|_| DatabaseMaintenanceGuard(syncing))
-        .map_err(|_| AppError::UserVisible {
-            message:
-                "Database optimization is unavailable while syncing. Try again after sync completes."
-                    .to_string(),
-        })
 }
 
 #[tauri::command]
@@ -80,10 +62,10 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
-    use crate::commands::database_commands::{
-        get_database_info_inner, start_database_maintenance, vacuum_database_inner,
-    };
+    use crate::commands::database_commands::{get_database_info_inner, vacuum_database_inner};
     use crate::commands::dto::AppError;
+    use crate::commands::start_database_maintenance;
+    use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use crate::infra::db::connection::DbManager;
 
     #[test]
@@ -96,10 +78,7 @@ mod tests {
 
         match error {
             AppError::UserVisible { message } => {
-                assert_eq!(
-                    message,
-                    "Database optimization is unavailable while syncing. Try again after sync completes."
-                );
+                assert_eq!(message, DATABASE_MAINTENANCE_BUSY_ERROR);
             }
             other => panic!("expected user-visible syncing error, got {other:?}"),
         }
@@ -176,10 +155,7 @@ mod tests {
 
         match error {
             AppError::UserVisible { message } => {
-                assert_eq!(
-                    message,
-                    "Database optimization is unavailable while syncing. Try again after sync completes."
-                );
+                assert_eq!(message, DATABASE_MAINTENANCE_BUSY_ERROR);
             }
             other => panic!("expected user-visible syncing error, got {other:?}"),
         }

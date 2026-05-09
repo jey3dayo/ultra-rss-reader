@@ -23,7 +23,25 @@ export const FeedIntegrityCleanupDtoSchema = z
     orphaned_article_count: NonnegativeIntegerSchema,
     deleted_article_count: NonnegativeIntegerSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.dry_run && value.deleted_article_count !== 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["deleted_article_count"],
+        message: "Dry-run cleanup must not delete articles",
+      });
+      return;
+    }
+
+    if (!value.dry_run && value.deleted_article_count > value.orphaned_article_count) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["deleted_article_count"],
+        message: "Deleted article count must not exceed the counted orphaned articles",
+      });
+    }
+  });
 
 export type FeedIntegrityReportDto = z.output<typeof FeedIntegrityReportDtoSchema>;
 export type FeedIntegrityCleanupDto = z.output<typeof FeedIntegrityCleanupDtoSchema>;

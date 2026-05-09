@@ -15,7 +15,7 @@ mod sync_providers;
 pub mod tag_commands;
 pub mod updater_commands;
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 
 use dto::AppError;
@@ -27,6 +27,28 @@ use crate::infra::db::connection::DbManager;
 const BROWSER_URL_SCHEME_ERROR: &str = "Only http:// and https:// URLs are supported";
 const DATABASE_BUSY_ERROR: &str =
     "Database is busy. Wait for the current operation to finish and try again.";
+pub(crate) const DATABASE_MAINTENANCE_BUSY_ERROR: &str =
+    "Database maintenance is unavailable while syncing. Try again after sync completes.";
+
+#[derive(Debug)]
+pub(crate) struct DatabaseMaintenanceGuard<'a>(&'a AtomicBool);
+
+impl Drop for DatabaseMaintenanceGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+pub(crate) fn start_database_maintenance(
+    syncing: &AtomicBool,
+) -> Result<DatabaseMaintenanceGuard<'_>, AppError> {
+    syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .map(|_| DatabaseMaintenanceGuard(syncing))
+        .map_err(|_| AppError::UserVisible {
+            message: DATABASE_MAINTENANCE_BUSY_ERROR.to_string(),
+        })
+}
 
 pub(crate) fn parse_browser_http_url(url: &str) -> Result<Url, AppError> {
     let parsed: Url = url.parse().map_err(|_| AppError::UserVisible {

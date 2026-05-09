@@ -916,6 +916,7 @@ describe("safeInvoke response validation", () => {
         return {
           db_size_bytes: 100,
           wal_size_bytes: 20,
+          shm_size_bytes: 0,
           total_size_bytes: 10,
         };
       }
