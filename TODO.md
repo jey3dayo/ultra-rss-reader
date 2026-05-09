@@ -430,6 +430,31 @@
   - valid date を invalid date より優先し、同じ valid date は入力順 / id tie-break のどちらにするかを focused test で固定する
   - subscriptions detail invalid date display とは分け、detail preview articles の ordering contract だけを扱う
 
+- [ ] reader query selected account blank guard 候補を追加する
+  - `src/lib/reader/reader-query.ts` の `resolveReaderQuery` が whitespace-only `selectedAccountId` でも account scoped query を作るため、未選択扱いにするか raw id として許可するか固定する
+  - `"   "` / `"\n"` の selected account id では `query: null` になるか、trim 後 id を使うかを `reader-query.test.ts` に追加する
+  - account unread count query id boundary とは分け、reader source resolver の selected account boundary だけを扱う
+
+- [ ] reader query scope id blank guard 候補を追加する
+  - `resolveReaderQuery` が `feedId` / `folderId` / `tagId` の blank id でも query と `sourceKey` を作れるため、invalid selection を disabled plan へ落とすか確認する
+  - feed / folder / tag selection の whitespace id で `sourceKind: "none"` になるか、明示 error にするかを pure helper test で固定する
+  - article scope matrix 再設計や selection fallback とは分け、scope id の最小 invariant だけを扱う
+
+- [ ] article view feed summary latest scope 候補を追加する
+  - `buildArticleViewSummaryResult` の feed summary が `allFeedArticles` をそのまま `findLatestArticle` に渡すため、別 feed の記事が混じった場合に latest title/date がずれないか確認する
+  - pure helper 側で `selection.feedId` に filter するか、caller が selected feed article だけを渡す contract として test 名で固定する
+  - article list source scope や feed landing failure とは分け、empty article pane の feed summary latest 表示だけを扱う
+
+- [ ] article date locale tag guard 候補を追加する
+  - `formatArticleDate` が `locale` をそのまま `toLocaleDateString` / `toLocaleString` に渡すため、`en_US` など不正 BCP 47 tag で RangeError が漏れないか確認する
+  - `resolveArticleDateLocale` と `formatArticleDate` のどちらで fallback するかを決め、invalid locale は `en-US` 相当へ落ちることを `article-view.test.ts` で固定する
+  - locale copy cleanup とは分け、article date formatter の runtime locale boundary だけを扱う
+
+- [ ] account sync last success clock injection 候補を追加する
+  - `formatAccountLastSuccessLabel` が `getCurrentDate()` を直接読むため、今日判定の test が実行日に依存しやすく、timezone 境界も固定しづらい
+  - optional `now` param か small helper extraction で `isToday` 判定を注入可能にし、同日 / 前日 / invalid timestamp を `account-sync-status-format.test.ts` で固定する
+  - account detail status row copy や retry formatting とは分け、last success label の clock dependency だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
