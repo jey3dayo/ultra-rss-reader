@@ -62,23 +62,26 @@ describe("useGeneralSettingsViewProps", () => {
       supportedLanguages: ["en", "ja", "fr"],
     }));
 
-    const { useGeneralSettingsViewProps } = await import("@/components/settings/hooks/use-general-settings-view-props");
-    const props = useGeneralSettingsViewProps({
-      t,
-      prefs: {},
-      setPref: vi.fn(),
-    });
-    const languageControl = props.sections
-      .flatMap((section) => section.controls)
-      .find((candidate) => candidate.id === "language");
+    try {
+      const { useGeneralSettingsViewProps } = await import("@/components/settings/hooks/use-general-settings-view-props");
+      const props = useGeneralSettingsViewProps({
+        t,
+        prefs: {},
+        setPref: vi.fn(),
+      });
+      const languageControl = props.sections
+        .flatMap((section) => section.controls)
+        .find((candidate) => candidate.id === "language");
 
-    if (languageControl?.type !== "select") {
-      throw new Error("Expected language select control");
+      if (languageControl?.type !== "select") {
+        throw new Error("Expected language select control");
+      }
+
+      expect(languageControl.options.map((option) => option.value)).toEqual(["system", "en", "ja", "fr"]);
+    } finally {
+      vi.doUnmock("@/lib/i18n");
+      vi.resetModules();
     }
-
-    expect(languageControl.options.map((option) => option.value)).toEqual(["system", "en", "ja", "fr"]);
-
-    vi.doUnmock("@/lib/i18n");
   });
 
   it("writes app startup sync from the general sync section", () => {
