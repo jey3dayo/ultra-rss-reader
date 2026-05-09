@@ -22,6 +22,10 @@ type FeedFixture = CommandListItem<typeof listFeeds>;
 type ArticleFixture = CommandListItem<typeof listArticles>;
 type MuteKeywordFixture = CommandListItem<typeof listMuteKeywords>;
 type TagFixture = CommandListItem<typeof listTags>;
+type ArticleTagFixture = {
+  article_id: ArticleFixture["id"];
+  tag_id: TagFixture["id"];
+};
 
 type DeepReadonly<T> = T extends (...args: never[]) => unknown
   ? T
@@ -173,6 +177,17 @@ export const sampleTagSeeds: ReadonlyFixtureSeed<TagFixture> = [
   },
 ];
 
+export const sampleArticleTagSeeds: ReadonlyFixtureSeed<ArticleTagFixture> = [
+  {
+    article_id: "art-1",
+    tag_id: "tag-1",
+  },
+  {
+    article_id: "art-2",
+    tag_id: "tag-2",
+  },
+];
+
 export function cloneFixtureSeed<T>(
   fixture: ReadonlyFixtureSeed<T>,
 ): MutableTestFixture<T> {
@@ -191,6 +206,8 @@ export const sampleMuteKeywords: MutableTestFixture<MuteKeywordFixture> =
   cloneFixtureSeed(sampleMuteKeywordSeeds);
 export const sampleTags: MutableTestFixture<TagFixture> =
   cloneFixtureSeed(sampleTagSeeds);
+export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> =
+  cloneFixtureSeed(sampleArticleTagSeeds);
 
 export function createSampleAccounts(): MutableTestFixture<AccountFixture> {
   return cloneFixtureSeed(sampleAccountSeeds);
@@ -214,4 +231,8 @@ export function createSampleMuteKeywords(): MutableTestFixture<MuteKeywordFixtur
 
 export function createSampleTags(): MutableTestFixture<TagFixture> {
   return cloneFixtureSeed(sampleTagSeeds);
+}
+
+export function createSampleArticleTags(): MutableTestFixture<ArticleTagFixture> {
+  return cloneFixtureSeed(sampleArticleTagSeeds);
 }
