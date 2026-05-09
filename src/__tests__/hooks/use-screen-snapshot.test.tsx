@@ -245,14 +245,19 @@ describe("useScreenSnapshot", () => {
   });
 
   it("keeps stale first-screen data gated from the next startup read model", () => {
+    type StartupReadModelProps = {
+      candidate: ArticleSnapshotCandidate | null;
+      canAdopt: boolean;
+    };
+    const initialProps: StartupReadModelProps = {
+      candidate: { contextKey: "account:acc-1:unread", articles: [{ id: "article-1" }] },
+      canAdopt: true,
+    };
+
     const { result, rerender } = renderHook(
-      ({ candidate, canAdopt }: { candidate: ArticleSnapshotCandidate | null; canAdopt: boolean }) =>
-        useScreenSnapshot(candidate, canAdopt),
+      ({ candidate, canAdopt }: StartupReadModelProps) => useScreenSnapshot(candidate, canAdopt),
       {
-        initialProps: {
-          candidate: { contextKey: "account:acc-1:unread", articles: [{ id: "article-1" }] },
-          canAdopt: true,
-        },
+        initialProps,
       },
     );
 
@@ -270,8 +275,17 @@ describe("useScreenSnapshot", () => {
   });
 
   it("lets callers show a first-screen fallback until the matching snapshot resolves", () => {
+    type SnapshotFallbackProps = {
+      candidate: ArticleSnapshotCandidate | null;
+      currentContextKey: string;
+    };
+    const initialProps: SnapshotFallbackProps = {
+      candidate: null,
+      currentContextKey: "feed:feed-1:unread",
+    };
+
     const { result, rerender } = renderHook(
-      ({ candidate, currentContextKey }: { candidate: ArticleSnapshotCandidate | null; currentContextKey: string }) => {
+      ({ candidate, currentContextKey }: SnapshotFallbackProps) => {
         const screenSnapshot = useScreenSnapshot(candidate, candidate !== null);
         const adoptedSnapshot = adoptSnapshotByKey(screenSnapshot.snapshot, "contextKey", currentContextKey);
 
@@ -282,10 +296,7 @@ describe("useScreenSnapshot", () => {
         };
       },
       {
-        initialProps: {
-          candidate: null,
-          currentContextKey: "feed:feed-1:unread",
-        },
+        initialProps,
       },
     );
 
