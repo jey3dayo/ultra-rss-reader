@@ -41,13 +41,17 @@ describe("pickWindowsEnvOverrides", () => {
     expect(
       pickWindowsEnvOverrides({
         DEV_CREDENTIALS: "1",
+        DEV_DIAGNOSTIC_FLAG: "1",
         VITE_DEV_INTENT: "open-subscriptions-index",
         VITE_DEV_WEB_URL: "https://example.com/debug",
         RUST_LOG: "info",
+        RUSTFLAGS: "-Awarnings",
         TAURI_DEV_PORT: "1420",
+        TAURI_TRACE_CONTEXT: "debug",
         TAURI_SIGNING_PRIVATE_KEY: "secret-key",
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "secret-password",
         TAURI_UPDATE_SECRET: "secret-value",
+        VITE_PUBLIC_DEBUG_TOKENLESS: "github_pat_1234567890abcdef",
         VITE_API_TOKEN: "secret-token",
         VITE_DEV_CREDENTIALS: "secret-credentials",
         RUST_REGISTRY_TOKEN: "secret-token",
@@ -333,6 +337,7 @@ describe("buildWslTauriSpawnSpec", () => {
     expect(powerShellScript).not.toContain("TAURI_SIGNING_PRIVATE_KEY");
     expect(powerShellScript).not.toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD");
     expect(powerShellScript).not.toContain("TAURI_UPDATE_SECRET");
+    expect(powerShellScript).not.toContain("VITE_PUBLIC_DEBUG_TOKENLESS");
     expect(powerShellScript).not.toContain("VITE_API_TOKEN");
     expect(powerShellScript).not.toContain("VITE_DEV_CREDENTIALS");
     expect(powerShellScript).not.toContain("key'part");

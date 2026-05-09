@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildWindowsDispatchSpawnFailureMessage } from "../../../scripts/lib/windows-dispatch.ts";
+import {
+  buildWindowsDispatchSpawnFailureMessage,
+  buildWindowsPathConversionFailureMessage,
+  isSecretLikeEnvValue,
+} from "../../../scripts/lib/windows-dispatch.ts";
 import {
   buildLocalCommandSpawnSpec,
   buildWslWindowsCommandSpawnSpec,
@@ -34,13 +38,19 @@ describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
     expect(
       pickWindowsEnvOverrides({
         DEV_CREDENTIALS: "1",
+        DEV_DIAGNOSTIC_FLAG: "1",
         RUST_LOG: "info",
+        RUSTFLAGS: "-Awarnings",
         TAURI_DEV_PORT: "1420",
+        TAURI_TRACE_CONTEXT: "debug",
         TAURI_SIGNING_PRIVATE_KEY: "secret-key",
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "secret-password",
         TAURI_UPDATE_SECRET: "secret-value",
+        VITE_PUBLIC_DEBUG_TOKENLESS: "github_pat_1234567890abcdef",
         VITE_API_TOKEN: "secret-token",
         VITE_DEV_CREDENTIALS: "secret-credentials",
+        VITE_DEV_INTENT: "open-subscriptions-index",
+        VITE_DEV_WEB_URL: "https://example.com/debug",
         PATH: "/usr/bin",
         HOME: "/home/dev",
       }),
@@ -48,7 +58,29 @@ describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
       DEV_CREDENTIALS: "1",
       RUST_LOG: "info",
       TAURI_DEV_PORT: "1420",
+      VITE_DEV_INTENT: "open-subscriptions-index",
+      VITE_DEV_WEB_URL: "https://example.com/debug",
     });
+  });
+
+  it("keeps DEV_CREDENTIALS as the only credentials-suffixed exception", () => {
+    expect(
+      pickWindowsEnvOverrides({
+        DEV_CREDENTIALS: "github_pat_1234567890abcdef",
+        VITE_DEV_CREDENTIALS: "1",
+      }),
+    ).toEqual({
+      DEV_CREDENTIALS: "github_pat_1234567890abcdef",
+    });
+  });
+});
+
+describe("windows-dispatch secret-like env values", () => {
+  it("detects token-shaped values independent of env key suffixes", () => {
+    expect(isSecretLikeEnvValue("github_pat_1234567890abcdef")).toBe(true);
+    expect(isSecretLikeEnvValue("ghp_1234567890abcdef")).toBe(true);
+    expect(isSecretLikeEnvValue("open-subscriptions-index")).toBe(false);
+    expect(isSecretLikeEnvValue("https://example.com/debug")).toBe(false);
   });
 });
 
@@ -87,6 +119,20 @@ describe("buildWindowsDispatchSpawnFailureMessage", () => {
     expect(message).toContain("code: EACCES");
     expect(message).toContain("path: powershell.exe");
     expect(message).toContain("accessible");
+  });
+});
+
+describe("buildWindowsPathConversionFailureMessage", () => {
+  it("reports WSL cwd conversion failures without env diagnostics", () => {
+    const message = buildWindowsPathConversionFailureMessage("/home/dev/repo", new Error("wslpath failed"));
+
+    expect(message).toContain("Failed to convert WSL cwd to a Windows path");
+    expect(message).toContain("cwd: /home/dev/repo");
+    expect(message).toContain("wslpath is installed");
+    expect(message).toContain("accessible from Windows");
+    expect(message).toContain("wslpath failed");
+    expect(message).not.toContain("SECRET");
+    expect(message).not.toContain("TOKEN");
   });
 });
 

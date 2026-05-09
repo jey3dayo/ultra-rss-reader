@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
+import type { Stats } from "node:fs";
 import { constants as fsConstants } from "node:fs";
-import { access, copyFile, mkdir, rm } from "node:fs/promises";
+import { access, copyFile, lstat, mkdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -18,6 +19,8 @@ type AccessImpl = (targetPath: string, mode?: number) => Promise<void>;
 type CopyFileImpl = (source: string, destination: string) => Promise<void>;
 type MkdirImpl = (targetPath: string, options: { recursive: true }) => Promise<string | undefined>;
 type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
+type SymlinkStats = Pick<Stats, "isSymbolicLink">;
+type LstatImpl = (targetPath: string) => Promise<SymlinkStats>;
 
 export type SeedArtifact = {
   source: string;
@@ -292,9 +295,62 @@ export async function detectOpenDevDatabaseHandles(options: {
 }
 
 function assertSafeDevTarget(plan: SeedPlan): void {
-  if (path.basename(path.resolve(plan.devAppDataDir)) === PROD_APP_IDENTIFIER) {
+  const prodBaseName = path.basename(path.resolve(plan.prodAppDataDir));
+  const devBaseName = path.basename(path.resolve(plan.devAppDataDir));
+
+  if (prodBaseName === DEV_APP_IDENTIFIER) {
+    throw new Error("Refusing to seed from a Dev app data directory.");
+  }
+
+  if (devBaseName === PROD_APP_IDENTIFIER) {
     throw new Error("Refusing to seed a non-Dev app data directory.");
   }
+
+  if (plan.artifacts.some((artifact) => artifact.destination === artifact.source)) {
+    throw new Error("Refusing to seed when source and destination artifacts overlap.");
+  }
+
+  for (const artifact of plan.artifacts) {
+    if (path.dirname(path.resolve(artifact.source)) !== path.resolve(plan.prodAppDataDir)) {
+      throw new Error("Refusing to seed from an artifact outside the production app data directory.");
+    }
+
+    if (path.dirname(path.resolve(artifact.destination)) !== path.resolve(plan.devAppDataDir)) {
+      throw new Error("Refusing to clean up an artifact outside the Dev app data directory.");
+    }
+
+    if (!artifact.source.endsWith(`${DATABASE_FILE_NAME}${artifact.suffix}`)) {
+      throw new Error("Refusing to copy a non-database source artifact.");
+    }
+
+    if (!artifact.destination.endsWith(`${DATABASE_FILE_NAME}${artifact.suffix}`)) {
+      throw new Error("Refusing to replace a non-database Dev artifact.");
+    }
+  }
+}
+
+async function assertNotSymlink(targetPath: string, accessImpl: AccessImpl, lstatImpl: LstatImpl): Promise<void> {
+  if (!(await fileExists(targetPath, accessImpl))) {
+    return;
+  }
+
+  let stats: SymlinkStats;
+  try {
+    stats = await lstatImpl(targetPath);
+  } catch (error) {
+    if (isFileNotFoundError(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  if (stats.isSymbolicLink()) {
+    throw new Error(`Refusing to seed through a symlink: ${targetPath}`);
+  }
+}
+
+function isFileNotFoundError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 
 export async function seedDevDatabaseFromProdPlan(
@@ -302,12 +358,14 @@ export async function seedDevDatabaseFromProdPlan(
   options: {
     accessImpl?: AccessImpl;
     copyFileImpl?: CopyFileImpl;
+    lstatImpl?: LstatImpl;
     mkdirImpl?: MkdirImpl;
     rmImpl?: RmImpl;
   } = {},
 ): Promise<{ copied: string[]; backedUp: string[]; backupDir: string }> {
   const accessImpl = options.accessImpl ?? access;
   const copyFileImpl = options.copyFileImpl ?? copyFile;
+  const lstatImpl = options.lstatImpl ?? lstat;
   const mkdirImpl = options.mkdirImpl ?? mkdir;
   const rmImpl = options.rmImpl ?? rm;
   const mainArtifact = plan.artifacts[0];
@@ -322,7 +380,8 @@ export async function seedDevDatabaseFromProdPlan(
 
   assertSafeDevTarget(plan);
 
-  await accessImpl(mainArtifact.source, fsConstants.R_OK);
+  await assertNotSymlink(plan.prodAppDataDir, accessImpl, lstatImpl);
+  await assertNotSymlink(plan.devAppDataDir, accessImpl, lstatImpl);
 
   const sourceArtifacts = (
     await Promise.all(
@@ -330,11 +389,16 @@ export async function seedDevDatabaseFromProdPlan(
         if (!(await fileExists(artifact.source, accessImpl))) {
           return null;
         }
+        await assertNotSymlink(artifact.source, accessImpl, lstatImpl);
         await accessImpl(artifact.source, fsConstants.R_OK);
         return artifact;
       }),
     )
   ).filter((artifact): artifact is SeedArtifact => artifact !== null);
+
+  if (!sourceArtifacts.includes(mainArtifact)) {
+    await accessImpl(mainArtifact.source, fsConstants.R_OK);
+  }
 
   await rmImpl(plan.stagingDir, { recursive: true, force: true });
   await mkdirImpl(plan.stagingDir, { recursive: true });
@@ -351,6 +415,7 @@ export async function seedDevDatabaseFromProdPlan(
             return null;
           }
 
+          await assertNotSymlink(artifact.destination, accessImpl, lstatImpl);
           await accessImpl(artifact.destination, fsConstants.R_OK);
           await copyFileImpl(artifact.destination, artifact.backup);
           return artifact.destination;

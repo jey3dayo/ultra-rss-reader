@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Result } from "@praha/byethrow";
@@ -22,6 +22,10 @@ function toPortablePath(value: string) {
 
 function hasPortablePathSuffix(value: string, suffix: string) {
   return toPortablePath(value).endsWith(suffix);
+}
+
+function createNonSymlinkStats(): { isSymbolicLink: () => boolean } {
+  return { isSymbolicLink: () => false };
 }
 
 describe("resolveAppDataDir", () => {
@@ -150,6 +154,101 @@ describe("seedDevDatabaseFromProdPlan", () => {
     await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Refusing to seed a non-Dev app data directory");
   });
 
+  it("rejects a source target that points at the Dev app data directory", async () => {
+    const plan = buildSeedPlan({
+      prodAppDataDir: "/Users/alice/Library/Application Support/com.ultra-rss-reader.dev",
+      devAppDataDir: "/Users/alice/Library/Application Support/com.jey3dayo.ultra-rss-reader.dev",
+      timestamp: "20260501T123456",
+    });
+
+    await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Refusing to seed from a Dev app data directory");
+  });
+
+  it("rejects artifact destinations outside the Dev app data directory before cleanup", async () => {
+    const plan = buildSeedPlan({
+      prodAppDataDir: "/prod",
+      devAppDataDir: "/dev",
+      timestamp: "20260501T123456",
+    });
+    const unsafePlan = {
+      ...plan,
+      artifacts: plan.artifacts.map((artifact, index) =>
+        index === 0 ? { ...artifact, destination: "/other/ultra-rss-reader.db" } : artifact,
+      ),
+    };
+
+    await expect(
+      seedDevDatabaseFromProdPlan(unsafePlan, {
+        accessImpl: async () => {},
+        copyFileImpl: async () => {},
+        lstatImpl: async () => {
+          throw new Error("lstat should not run for an invalid plan");
+        },
+        mkdirImpl: async () => {},
+        rmImpl: async () => {
+          throw new Error("rm should not run for an invalid plan");
+        },
+      }),
+    ).rejects.toThrow("Refusing to clean up an artifact outside the Dev app data directory");
+  });
+
+  it("rejects non-database artifacts so credentials are not copied", async () => {
+    const plan = buildSeedPlan({
+      prodAppDataDir: "/prod",
+      devAppDataDir: "/dev",
+      timestamp: "20260501T123456",
+    });
+    const unsafePlan = {
+      ...plan,
+      artifacts: [
+        ...plan.artifacts,
+        {
+          suffix: "",
+          source: "/prod/credentials.json",
+          destination: "/dev/credentials.json",
+          backup: "/dev/backups/seed-from-prod-20260501T123456/credentials.json",
+          staging: "/dev/backups/seed-from-prod-20260501T123456.staging/credentials.json",
+        },
+      ],
+    };
+
+    await expect(
+      seedDevDatabaseFromProdPlan(unsafePlan, {
+        accessImpl: async () => {},
+        copyFileImpl: async () => {},
+        mkdirImpl: async () => {},
+        rmImpl: async () => {},
+      }),
+    ).rejects.toThrow("Refusing to copy a non-database source artifact");
+  });
+
+  it("rejects symlinked source database artifacts", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      await mkdir(prodDir, { recursive: true });
+      await mkdir(devDir, { recursive: true });
+      await writeFile(path.join(tempDir, "real-prod.db"), "prod-db");
+      await symlink(path.join(tempDir, "real-prod.db"), path.join(prodDir, "ultra-rss-reader.db"));
+      await writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db");
+
+      await expect(
+        seedDevDatabaseFromProdPlan(
+          buildSeedPlan({
+            prodAppDataDir: prodDir,
+            devAppDataDir: devDir,
+            timestamp: "20260501T123456",
+          }),
+        ),
+      ).rejects.toThrow("Refusing to seed through a symlink");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("does not change the Dev database when the production database is missing", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
@@ -241,6 +340,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
           });
         }
       },
+      lstatImpl: async () => createNonSymlinkStats(),
       copyFileImpl: async () => {},
       mkdirImpl: async () => {},
       rmImpl: async () => {},

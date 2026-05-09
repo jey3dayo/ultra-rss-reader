@@ -5,9 +5,16 @@ import process from "node:process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const FORWARDED_ENV_PREFIXES = ["DEV_", "VITE_", "TAURI_", "RUST_"];
 const SECRET_ENV_SUFFIXES = ["_KEY", "_TOKEN", "_PASSWORD", "_SECRET", "_CREDENTIALS"];
-const EXPLICIT_FORWARDED_ENV_KEYS = new Set(["DEV_CREDENTIALS"]);
+const EXPLICIT_FORWARDED_ENV_KEYS = new Set([
+  "DEV_CREDENTIALS",
+  "RUST_BACKTRACE",
+  "RUST_LOG",
+  "TAURI_DEV_PORT",
+  "VITE_DEV_INTENT",
+  "VITE_DEV_WEB_URL",
+]);
+const SECRET_LIKE_VALUE_PATTERN = /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs]|AKIA)[a-z0-9_-]{8,}/i;
 
 export type SpawnSpec = {
   command: string;
@@ -35,14 +42,19 @@ export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): R
   for (const [key, value] of Object.entries(env)) {
     if (
       typeof value === "string" &&
-      FORWARDED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
-      (EXPLICIT_FORWARDED_ENV_KEYS.has(key) || !SECRET_ENV_SUFFIXES.some((suffix) => key.endsWith(suffix)))
+      EXPLICIT_FORWARDED_ENV_KEYS.has(key) &&
+      (key === "DEV_CREDENTIALS" ||
+        (!SECRET_ENV_SUFFIXES.some((suffix) => key.endsWith(suffix)) && !isSecretLikeEnvValue(value)))
     ) {
       overrides[key] = value;
     }
   }
 
   return overrides;
+}
+
+export function isSecretLikeEnvValue(value: string): boolean {
+  return SECRET_LIKE_VALUE_PATTERN.test(value);
 }
 
 function getErrorField(error: unknown, field: "code" | "path"): string | undefined {
@@ -66,6 +78,16 @@ export function buildWindowsDispatchSpawnFailureMessage(command: string, error: 
   ].filter((item): item is string => item !== null);
 
   return `Failed to start Windows dispatch command (${diagnostics.join("; ")}): ${detail}`;
+}
+
+export function buildWindowsPathConversionFailureMessage(currentDirectory: string, error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error);
+  const diagnostics = [
+    `cwd: ${currentDirectory}`,
+    "next action: verify wslpath is installed and the current directory is accessible from Windows",
+  ];
+
+  return `Failed to convert WSL cwd to a Windows path (${diagnostics.join("; ")}): ${detail}`;
 }
 
 function quotePowerShellLiteral(value: string): string {
@@ -116,8 +138,12 @@ export function buildWslWindowsSpawnSpec(
 }
 
 export async function convertWslPathToWindows(currentDirectory: string): Promise<string> {
-  const { stdout } = await execFileAsync("wslpath", ["-w", currentDirectory], { encoding: "utf8" });
-  return stdout.trim();
+  try {
+    const { stdout } = await execFileAsync("wslpath", ["-w", currentDirectory], { encoding: "utf8" });
+    return stdout.trim();
+  } catch (error) {
+    throw new Error(buildWindowsPathConversionFailureMessage(currentDirectory, error));
+  }
 }
 
 export async function canUseWindowsInterop(): Promise<boolean> {
