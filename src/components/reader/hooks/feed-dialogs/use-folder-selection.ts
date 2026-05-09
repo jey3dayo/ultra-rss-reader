@@ -50,10 +50,19 @@ export function buildFolderOptions(
   folders: FolderOptionSource[] | undefined,
   emptyOptionLabel: string,
 ): FolderSelectOption[] {
-  return [
-    { value: "", label: emptyOptionLabel },
-    ...(folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })),
-  ];
+  const seenFolderIds = new Set<string>();
+  const folderOptions = (folders ?? []).flatMap((folder) => {
+    const folderId = folder.id.trim();
+    if (folderId === "" || seenFolderIds.has(folderId)) {
+      return [];
+    }
+
+    seenFolderIds.add(folderId);
+    const folderName = folder.name.trim();
+    return [{ value: folderId, label: folderName || folderId }];
+  });
+
+  return [{ value: "", label: emptyOptionLabel }, ...folderOptions];
 }
 
 export function useFolderSelection(initialFolderId: string | null) {
