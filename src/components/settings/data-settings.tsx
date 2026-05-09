@@ -6,11 +6,9 @@ import { useDataSettingsController } from "./hooks/use-data-settings-controller"
 export function DataSettings() {
   const { t } = useTranslation("settings");
   const showToast = useUiStore((s) => s.showToast);
-  const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
   const controller = useDataSettingsController({
     t,
     showToast,
-    setSettingsLoading,
   });
 
   return (

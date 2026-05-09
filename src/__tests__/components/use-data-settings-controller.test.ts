@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import { formatBytes, useDataSettingsController } from "@/components/settings/hooks/use-data-settings-controller";
 
@@ -9,6 +10,7 @@ vi.mock("@/api/tauri-commands", () => ({
     Result.succeed({
       db_size_bytes: 1024,
       wal_size_bytes: 0,
+      shm_size_bytes: 0,
       total_size_bytes: 1024,
     }),
   ),
@@ -17,6 +19,7 @@ vi.mock("@/api/tauri-commands", () => ({
     Result.succeed({
       db_size_bytes: 512,
       wal_size_bytes: 0,
+      shm_size_bytes: 0,
       total_size_bytes: 512,
     }),
   ),
@@ -28,6 +31,7 @@ beforeEach(() => {
     Result.succeed({
       db_size_bytes: 1024,
       wal_size_bytes: 0,
+      shm_size_bytes: 0,
       total_size_bytes: 1024,
     }),
   );
@@ -75,6 +79,43 @@ describe("useDataSettingsController", () => {
     });
 
     expect(result.current.databaseSizeValue).toBe("1.0 KB");
+  });
+
+  it("uses schema-validated total size including WAL and SHM for display and vacuum saved copy", async () => {
+    const initialInfo = DatabaseInfoDtoSchema.parse({
+      db_size_bytes: 1024,
+      wal_size_bytes: 256,
+      shm_size_bytes: 128,
+      total_size_bytes: 1408,
+    });
+    const vacuumedInfo = DatabaseInfoDtoSchema.parse({
+      db_size_bytes: 768,
+      wal_size_bytes: 256,
+      shm_size_bytes: 0,
+      total_size_bytes: 1024,
+    });
+    vi.mocked(getDatabaseInfo).mockResolvedValue(Result.succeed(initialInfo));
+    vi.mocked(vacuumDatabase).mockResolvedValue(Result.succeed(vacuumedInfo));
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string, options?: { saved?: string }) =>
+          key === "data.vacuum_success" ? `Saved ${options?.saved ?? ""}` : key) as never,
+        showToast,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+    expect(result.current.databaseSizeValue).toBe("1.4 KB");
+
+    await act(async () => {
+      await result.current.handleVacuum();
+    });
+
+    expect(result.current.databaseSizeValue).toBe("1.0 KB");
+    expect(showToast).toHaveBeenCalledWith("Saved -384 B");
   });
 
   it("reports database size failures separately from loading", async () => {
@@ -164,6 +205,7 @@ describe("useDataSettingsController", () => {
             Result.succeed({
               db_size_bytes: 512,
               wal_size_bytes: 0,
+              shm_size_bytes: 0,
               total_size_bytes: 512,
             }),
           );
@@ -195,6 +237,7 @@ describe("useDataSettingsController", () => {
       Result.succeed({
         db_size_bytes: 512,
         wal_size_bytes: 0,
+        shm_size_bytes: 0,
         total_size_bytes: 512,
       }),
     );
@@ -212,6 +255,7 @@ describe("useDataSettingsController", () => {
         Result.succeed({
           db_size_bytes: 4096,
           wal_size_bytes: 0,
+          shm_size_bytes: 0,
           total_size_bytes: 4096,
         }),
       );
@@ -260,6 +304,7 @@ describe("useDataSettingsController", () => {
         Result.succeed({
           db_size_bytes: 4096,
           wal_size_bytes: 0,
+          shm_size_bytes: 0,
           total_size_bytes: 4096,
         }),
       );
@@ -289,7 +334,7 @@ describe("useDataSettingsController", () => {
     consoleError.mockRestore();
   });
 
-  it("clears settings loading when vacuum is still pending during unmount", async () => {
+  it("keeps vacuum loading local when vacuum is still pending during unmount", async () => {
     let resolveVacuum: (() => void) | undefined;
     vi.mocked(vacuumDatabase).mockReturnValue(
       new Promise((resolve) => {
@@ -298,6 +343,7 @@ describe("useDataSettingsController", () => {
             Result.succeed({
               db_size_bytes: 512,
               wal_size_bytes: 0,
+              shm_size_bytes: 0,
               total_size_bytes: 512,
             }),
           );
@@ -311,20 +357,21 @@ describe("useDataSettingsController", () => {
     await act(async () => {
       void result.current.handleVacuum();
     });
-    expect(setSettingsLoading).toHaveBeenCalledWith(true);
+    expect(result.current.vacuuming).toBe(true);
+    expect(setSettingsLoading).not.toHaveBeenCalled();
 
     unmount();
 
-    expect(setSettingsLoading).toHaveBeenCalledWith(false);
+    expect(setSettingsLoading).not.toHaveBeenCalled();
 
     await act(async () => {
       resolveVacuum?.();
     });
 
-    expect(setSettingsLoading).toHaveBeenCalledTimes(2);
+    expect(setSettingsLoading).not.toHaveBeenCalled();
   });
 
-  it("clears settings loading and suppresses errors when open log directory rejects post-unmount", async () => {
+  it("keeps open log loading local and suppresses errors when open log directory rejects post-unmount", async () => {
     let rejectOpenLogDir: ((error: Error) => void) | undefined;
     vi.mocked(openLogDir).mockReturnValue(
       new Promise((_, reject) => {
@@ -342,17 +389,18 @@ describe("useDataSettingsController", () => {
     await act(async () => {
       void result.current.handleOpenLogDir();
     });
-    expect(setSettingsLoading).toHaveBeenCalledWith(true);
+    expect(result.current.openingLogDir).toBe(true);
+    expect(setSettingsLoading).not.toHaveBeenCalled();
 
     unmount();
 
-    expect(setSettingsLoading).toHaveBeenCalledWith(false);
+    expect(setSettingsLoading).not.toHaveBeenCalled();
 
     await act(async () => {
       rejectOpenLogDir?.(new Error("open log failed"));
     });
 
-    expect(setSettingsLoading).toHaveBeenCalledTimes(2);
+    expect(setSettingsLoading).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();

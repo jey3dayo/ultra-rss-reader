@@ -7,7 +7,7 @@ import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } fro
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
   showToast: (message: string) => void;
-  setSettingsLoading: (loading: boolean) => void;
+  setSettingsLoading?: (loading: boolean) => void;
 };
 
 type UseDataSettingsControllerResult = {
@@ -79,7 +79,6 @@ export function formatBytes(bytes: number): string {
 export function useDataSettingsController({
   t,
   showToast,
-  setSettingsLoading,
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
   const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
   const { databaseSizeStatus, totalSize, vacuuming, openingLogDir } = state;
@@ -87,11 +86,6 @@ export function useDataSettingsController({
   const openingLogDirRef = useRef(false);
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
-  const setSettingsLoadingRef = useRef(setSettingsLoading);
-
-  useEffect(() => {
-    setSettingsLoadingRef.current = setSettingsLoading;
-  }, [setSettingsLoading]);
 
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
     return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
@@ -133,14 +127,10 @@ export function useDataSettingsController({
     mountedRef.current = true;
     void fetchDbInfo();
     return () => {
-      const shouldClearSettingsLoading = vacuumingRef.current || openingLogDirRef.current;
       mountedRef.current = false;
       databaseSizeRequestRevisionRef.current += 1;
       vacuumingRef.current = false;
       openingLogDirRef.current = false;
-      if (shouldClearSettingsLoading) {
-        setSettingsLoadingRef.current(false);
-      }
     };
   }, [fetchDbInfo]);
 
@@ -154,7 +144,6 @@ export function useDataSettingsController({
     databaseSizeRequestRevisionRef.current += 1;
     const requestRevision = databaseSizeRequestRevisionRef.current;
     dispatch({ type: "set-vacuuming", value: true });
-    setSettingsLoading(true);
     try {
       Result.pipe(
         await vacuumDatabase(),
@@ -190,7 +179,6 @@ export function useDataSettingsController({
       vacuumingRef.current = false;
       if (mountedRef.current) {
         dispatch({ type: "set-vacuuming", value: false });
-        setSettingsLoading(false);
       }
     }
   };
@@ -202,7 +190,6 @@ export function useDataSettingsController({
 
     openingLogDirRef.current = true;
     dispatch({ type: "set-opening-log-dir", value: true });
-    setSettingsLoading(true);
     try {
       Result.pipe(
         await openLogDir(),
@@ -223,7 +210,6 @@ export function useDataSettingsController({
       openingLogDirRef.current = false;
       if (mountedRef.current) {
         dispatch({ type: "set-opening-log-dir", value: false });
-        setSettingsLoading(false);
       }
     }
   };

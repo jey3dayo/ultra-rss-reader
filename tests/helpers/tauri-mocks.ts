@@ -298,6 +298,7 @@ function createDefaultHandler(): MockHandler {
         return {
           db_size_bytes: 1024,
           wal_size_bytes: 256,
+          shm_size_bytes: 0,
           total_size_bytes: 1280,
         } satisfies DatabaseInfoDto;
       case "get_dev_runtime_options":
