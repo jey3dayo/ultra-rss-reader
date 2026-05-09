@@ -64,11 +64,6 @@
   - `src/__tests__/components/article-tag-chips.test.tsx` で duplicate assigned tag、duplicate allTags、blank tag id を追加し、dedupe / caller invariant / schema rejection の境界を明示する
   - article tag picker mutation failure や keyboard/focus contract とは分け、picker list projection の tag identity boundary だけを扱う
 
-- [ ] dom target shadow boundary contract 候補を追加する
-  - `src/components/reader/dom-target.ts` の `isOutsideElement()` が `element.contains(target)` だけで判定するため、Shadow DOM 内 target や composed event path を outside と扱うか確認する
-  - `src/__tests__/components/dom-target.test.ts` で open shadow root 内の button、detached node、host element を追加し、click-outside helper の DOM boundary を固定する
-  - article tag picker close focus cleanup や dialog outside click behavior とは分け、shared DOM target helper の containment contract だけを扱う
-
 - [ ] preferences system theme listener compatibility 候補を追加する
   - `src/stores/preferences-store.ts` の `applyTheme("system")` が `MediaQueryList.addEventListener` / `removeEventListener` 前提なので、旧 API の `addListener` だけを持つ runtime や mocked WebView で落ちないか確認する
   - `src/__tests__/stores/preferences-store.test.ts` で `addEventListener` 不在 / throw 時の fallback と cleanup 方針を固定する
@@ -78,16 +73,6 @@
   - `src/stores/preferences-store.ts` の `setPref()` は rapid toggle 時に古い persist failure が後から toast を出せるため、latest request 以外の失敗通知を出すかどうかを決める
   - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
   - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
-
-- [ ] breakpoint layout preference normalization 候補を追加する
-  - `src/hooks/use-breakpoint.ts` の `resolvePreferredLayoutMode()` が `" compact "` や uppercase 値を invalid として wide 扱いするため、preferences schema default と同じ正規化方針に寄せるか確認する
-  - `src/__tests__/hooks/use-breakpoint.test.ts` で whitespace / uppercase / unknown layout preference の期待値を固定する
-  - responsive breakpoint 数値や mobile layout recovery とは分け、layout preference string の入力正規化だけを扱う
-
-- [ ] confirm mark all read count boundary 候補を追加する
-  - `src/hooks/use-confirm-mark-all-read.ts` が `count === 0` だけを no-op にするため、negative / `NaN` / `Infinity` count で confirm copy や `onConfirm` が走らないか固定する
-  - `src/__tests__/hooks/use-confirm-mark-all-read.test.tsx` を追加し、nonpositive / nonfinite count は no-op、positive count だけが confirm または direct confirm になることを確認する
-  - mark-all-read command schema や feed/folder unread count affordance とは分け、confirmation hook の count boundary だけを扱う
 
 - [ ] menu event unknown payload formatting guard 候補を追加する
   - `src/hooks/use-menu-events.ts` の debug trace / warn が unknown payload を template literal へ直接入れるため、Symbol や throwing `toString` で handler が落ちないか確認する
