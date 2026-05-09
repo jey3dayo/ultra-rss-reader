@@ -12,6 +12,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     useUiStore.setState({ browserUrl: null });
   });
 
@@ -132,5 +133,49 @@ describe("useBrowserWebviewLoadTimeout", () => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
     });
     expect(showSurfaceFailure).not.toHaveBeenCalled();
+  });
+
+  it("keeps loading state quiet when timeout scheduling fails", () => {
+    const error = new Error("timer unavailable");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(window, "setTimeout").mockImplementation(() => {
+      throw error;
+    });
+    const showSurfaceFailure = vi.fn();
+
+    expect(() => {
+      renderHook(() =>
+        useBrowserWebviewLoadTimeout({
+          browserUrl: "https://example.com/article",
+          isLoading: true,
+          isStillLoading: () => true,
+          showSurfaceFailure,
+        }),
+      );
+    }).not.toThrow();
+
+    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith("Failed to schedule browser webview load timeout.", error);
+  });
+
+  it("logs timeout cleanup failures without throwing on unmount", () => {
+    const error = new Error("clear failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(window, "clearTimeout").mockImplementation(() => {
+      throw error;
+    });
+    const showSurfaceFailure = vi.fn();
+
+    const { unmount } = renderHook(() =>
+      useBrowserWebviewLoadTimeout({
+        browserUrl: "https://example.com/article",
+        isLoading: true,
+        isStillLoading: () => true,
+        showSurfaceFailure,
+      }),
+    );
+
+    expect(() => unmount()).not.toThrow();
+    expect(warn).toHaveBeenCalledWith("Failed to clear browser webview load timeout.", error);
   });
 });
