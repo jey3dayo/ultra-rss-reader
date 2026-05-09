@@ -352,6 +352,7 @@ describe("tauri-commands with mockIPC", () => {
     it("rejects negative count-style responses", async () => {
       const countCommandCases = [
         ["count_account_unread_articles", () => countAccountUnreadArticles("acc-1")],
+        ["count_account_starred_articles", () => countAccountStarredArticles("acc-1")],
         ["count_old_unread_articles", () => countOldUnreadArticles("feed", "feed-1", 30)],
       ] as const;
 

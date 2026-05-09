@@ -9,5 +9,6 @@ export const NullableStarredArticlesSchema = z
 export const NullableStarredCountSchema = z
   .number()
   .int()
+  .nonnegative()
   .nullable()
   .transform((value) => value ?? 0);

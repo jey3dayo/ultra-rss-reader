@@ -41,6 +41,7 @@ import {
   markArticleReadArgs,
   markArticlesReadArgs,
   NonnegativeIntResponseSchema,
+  NullableStarredCountSchema,
   NullResponseSchema,
   oldUnreadArticlesArgs,
   openExternalUrlArgs,
@@ -171,6 +172,34 @@ describe("DTO schemas", () => {
       AccountSyncStatusSchema.parse({
         ...data,
         error_count: Number.POSITIVE_INFINITY,
+      }),
+    ).toThrow();
+  });
+  it("keeps account sync status datetimes as offset ISO strings when present", () => {
+    const data = {
+      last_success_at: "2026-04-15T01:00:00+09:00",
+      last_error: null,
+      error_count: 0,
+      next_retry_at: "2026-04-15T02:00:00Z",
+    };
+
+    expect(AccountSyncStatusSchema.parse(data)).toEqual(data);
+    expect(() =>
+      AccountSyncStatusSchema.parse({
+        ...data,
+        last_success_at: "2026-04-15",
+      }),
+    ).toThrow();
+    expect(() =>
+      AccountSyncStatusSchema.parse({
+        ...data,
+        next_retry_at: "2026-04-15T02:00:00",
+      }),
+    ).toThrow();
+    expect(() =>
+      AccountSyncStatusSchema.parse({
+        ...data,
+        next_retry_at: "not-a-date",
       }),
     ).toThrow();
   });
@@ -717,6 +746,16 @@ describe("primitive command result schemas", () => {
     expect(CountResponseSchema.parse(0)).toBe(0);
     expect(NonnegativeIntResponseSchema.parse(0)).toBe(0);
     expect(CountResponseSchema).not.toBe(NonnegativeIntResponseSchema);
+  });
+  it("normalizes nullable starred counts and rejects invalid count values", () => {
+    expect(NullableStarredCountSchema.parse(null)).toBe(0);
+    expect(NullableStarredCountSchema.parse(0)).toBe(0);
+    expect(NullableStarredCountSchema.parse(2)).toBe(2);
+
+    expect(() => NullableStarredCountSchema.parse(-1)).toThrow();
+    expect(() => NullableStarredCountSchema.parse(1.5)).toThrow();
+    expect(() => NullableStarredCountSchema.parse(Number.NaN)).toThrow();
+    expect(() => NullableStarredCountSchema.parse(Number.POSITIVE_INFINITY)).toThrow();
   });
 });
 
