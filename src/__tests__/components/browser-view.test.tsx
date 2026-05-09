@@ -499,6 +499,37 @@ describe("BrowserView", () => {
     });
   });
 
+  it("cancels the pending open frame when browser close starts", () => {
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockReturnValue(12345);
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+
+    try {
+      mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+      useUiStore.setState({
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+      });
+
+      render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+      const shell = screen.getByTestId("browser-overlay-shell");
+      expect(shell).toHaveAttribute("data-open", "false");
+      expect(requestAnimationFrameSpy).toHaveBeenCalled();
+
+      act(() => {
+        useUiStore.getState().setBrowserCloseInFlight(true);
+      });
+
+      expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(12345);
+      expect(shell).toHaveAttribute("data-open", "false");
+    } finally {
+      requestAnimationFrameSpy.mockRestore();
+      cancelAnimationFrameSpy.mockRestore();
+    }
+  });
+
   it("masks the browser overlay surface with a vertical wipe when the app theme changes", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
