@@ -225,6 +225,26 @@ export function listSampleArticlesByAccountId(accountId: string | undefined): Ar
   });
 }
 
+export function listSampleArticlesByTagId(tagId: TagFixture["id"] | undefined): ArticleFixture[] {
+  const articleIds = new Set<string>();
+
+  for (const articleTag of sampleArticleTags) {
+    if (articleTag.tag_id === tagId) {
+      articleIds.add(articleTag.article_id);
+    }
+  }
+
+  const selectedArticles: ArticleFixture[] = [];
+
+  for (const article of sampleArticles) {
+    if (articleIds.has(article.id)) {
+      selectedArticles.push(article);
+    }
+  }
+
+  return selectedArticles;
+}
+
 export function listArticlesByAccountId({
   articles,
   feeds,

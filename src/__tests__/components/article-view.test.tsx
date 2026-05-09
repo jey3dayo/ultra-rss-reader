@@ -5,6 +5,7 @@ import { sampleAccounts, sampleArticles, sampleFeeds, sampleTags } from "@tests/
 import {
   listSampleArticlesByAccountId,
   listSampleArticlesByFeedId,
+  listSampleArticlesByTagId,
   listSampleFeedsByAccountId,
   requireSampleArticle,
   requireSampleFeed,
@@ -2072,7 +2073,7 @@ describe("ArticleView", () => {
         case "list_feeds":
           return listSampleFeedsByAccountId(args.accountId);
         case "list_articles_by_tag":
-          return sampleArticles;
+          return listSampleArticlesByTagId(args.tagId);
         case "get_article_tags":
           return [];
         default:
@@ -2094,7 +2095,7 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
     expectSummaryLeadingVisual(summary, "size-3");
-    expectSummaryMetricMotionValue(summary, "Articles", "2");
+    expectSummaryMetricMotionValue(summary, "Articles", "1");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
     expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
   });

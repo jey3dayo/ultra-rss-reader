@@ -5,6 +5,7 @@ export {
   createSampleFolders,
   listSampleArticlesByAccountId,
   listSampleArticlesByFeedId,
+  listSampleArticlesByTagId,
   listSampleFeedsByAccountId,
   requireSampleArticle,
   requireSampleFeed,
