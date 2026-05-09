@@ -721,6 +721,25 @@ describe("article-list utils", () => {
     ).toBe(2);
   });
 
+  it("uses selected source unread totals for feed and folder mark-all-read even when visible rows are empty", () => {
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "feed", feedId: "feed-1" },
+        selectedFeedUnreadCount: 7,
+        folderUnreadCount: 13,
+        filteredArticles: [],
+      }),
+    ).toBe(7);
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "folder", folderId: "folder-1" },
+        selectedFeedUnreadCount: 7,
+        folderUnreadCount: 13,
+        filteredArticles: [],
+      }),
+    ).toBe(13);
+  });
+
   it("retains the selected starred smart-view row in all mode", () => {
     const retainedArticleIds = new Set(["art-1"]);
     const result = resolveEffectiveRetainedArticleIds({
