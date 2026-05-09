@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
@@ -31,50 +32,45 @@ describe("Design-themed shared components", () => {
   });
 
   it("reserves space for mac traffic lights before platform info resolves", () => {
-    const originalPlatform = window.navigator.platform;
+    const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });
     setTauriRuntimePresent();
-    Object.defineProperty(window.navigator, "platform", {
-      configurable: true,
-      value: "MacIntel",
-    });
 
-    usePlatformStore.setState({
-      platform: {
-        kind: "unknown",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: false,
-          supports_native_browser_navigation: false,
-          uses_dev_file_credentials: false,
+    try {
+      usePlatformStore.setState({
+        platform: {
+          kind: "unknown",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: false,
+            supports_native_browser_navigation: false,
+            uses_dev_file_credentials: false,
+          },
         },
-      },
-      loaded: false,
-      loadError: false,
-      inFlightLoad: null,
-    });
+        loaded: false,
+        loadError: false,
+        inFlightLoad: null,
+      });
 
-    render(
-      <WorkspaceHeader
-        eyebrow="Workspace"
-        title="購読一覧"
-        subtitle="subtitle"
-        backLabel="戻る"
-        onBack={() => {}}
-        closeLabel="閉じる"
-        onClose={() => {}}
-      />,
-    );
+      render(
+        <WorkspaceHeader
+          eyebrow="Workspace"
+          title="購読一覧"
+          subtitle="subtitle"
+          backLabel="戻る"
+          onBack={() => {}}
+          closeLabel="閉じる"
+          onClose={() => {}}
+        />,
+      );
 
-    expect(screen.getByTestId("workspace-header-body").parentElement).toHaveStyle({
-      backgroundColor: "var(--workspace-header-surface)",
-    });
-    expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
-
-    Object.defineProperty(window.navigator, "platform", {
-      configurable: true,
-      value: originalPlatform,
-    });
+      expect(screen.getByTestId("workspace-header-body").parentElement).toHaveStyle({
+        backgroundColor: "var(--workspace-header-surface)",
+      });
+      expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
+    } finally {
+      restorePlatform();
+    }
   });
 
   it("applies warm editorial styling to section headings", () => {

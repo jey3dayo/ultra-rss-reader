@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
@@ -135,21 +136,17 @@ describe("App", () => {
       }),
     ).toBe(false);
 
-    const originalPlatform = window.navigator.platform;
-    Object.defineProperty(window.navigator, "platform", {
-      configurable: true,
-      value: "MacIntel",
-    });
-    expect(
-      shouldUseDesktopOverlayTitlebar({
-        platformKind: "unknown",
-        hasTauriRuntime: true,
-      }),
-    ).toBe(true);
-    Object.defineProperty(window.navigator, "platform", {
-      configurable: true,
-      value: originalPlatform,
-    });
+    const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });
+    try {
+      expect(
+        shouldUseDesktopOverlayTitlebar({
+          platformKind: "unknown",
+          hasTauriRuntime: true,
+        }),
+      ).toBe(true);
+    } finally {
+      restorePlatform();
+    }
 
     usePlatformStore.setState({
       platform: {

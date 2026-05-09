@@ -1,29 +1,11 @@
+import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 
-const originalUserAgentDataDescriptor = Object.getOwnPropertyDescriptor(navigator, "userAgentData");
-
-function stubUserAgentDataPlatform(platform: string) {
-  Object.defineProperty(navigator, "userAgentData", {
-    configurable: true,
-    get: () => ({ platform }),
-  });
-}
-
-function restoreUserAgentDataPlatform() {
-  if (originalUserAgentDataDescriptor == null) {
-    Reflect.deleteProperty(navigator, "userAgentData");
-    return;
-  }
-
-  Object.defineProperty(navigator, "userAgentData", originalUserAgentDataDescriptor);
-}
-
 describe("window-chrome", () => {
   afterEach(() => {
     resetTauriRuntimeFlags();
-    restoreUserAgentDataPlatform();
     vi.restoreAllMocks();
   });
 
@@ -55,20 +37,24 @@ describe("window-chrome", () => {
 
   it("uses the macOS user agent fallback only when runtime is present and platform info is unknown", () => {
     setTauriRuntimePresent();
-    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });
 
-    expect(
-      shouldUseDesktopOverlayTitlebar({
-        platformKind: "unknown",
-        hasTauriRuntime: true,
-      }),
-    ).toBe(true);
-    expect(
-      shouldUseDesktopOverlayTitlebar({
-        platformKind: "unknown",
-        hasTauriRuntime: false,
-      }),
-    ).toBe(false);
+    try {
+      expect(
+        shouldUseDesktopOverlayTitlebar({
+          platformKind: "unknown",
+          hasTauriRuntime: true,
+        }),
+      ).toBe(true);
+      expect(
+        shouldUseDesktopOverlayTitlebar({
+          platformKind: "unknown",
+          hasTauriRuntime: false,
+        }),
+      ).toBe(false);
+    } finally {
+      restorePlatform();
+    }
   });
 
   it.each([
@@ -77,14 +63,53 @@ describe("window-chrome", () => {
     ["", "MacIntel", false],
   ])("keeps unknown-platform Tauri chrome fallback deterministic when userAgentData platform is %s and navigator platform is %s", (userAgentDataPlatform, navigatorPlatform, expected) => {
     setTauriRuntimePresent();
-    vi.spyOn(navigator, "platform", "get").mockReturnValue(navigatorPlatform);
-    stubUserAgentDataPlatform(userAgentDataPlatform);
+    const restorePlatform = stubNavigatorPlatform({ platform: navigatorPlatform, userAgentDataPlatform });
 
-    expect(
-      shouldUseDesktopOverlayTitlebar({
-        platformKind: "unknown",
-        hasTauriRuntime: hasTauriRuntime(),
-      }),
-    ).toBe(expected);
+    try {
+      expect(
+        shouldUseDesktopOverlayTitlebar({
+          platformKind: "unknown",
+          hasTauriRuntime: hasTauriRuntime(),
+        }),
+      ).toBe(expected);
+    } finally {
+      restorePlatform();
+    }
+  });
+
+  it.each([
+    ["Win32", false],
+    ["Linux x86_64", false],
+  ])("keeps the unknown-platform Tauri fallback off for %s navigator platform", (platform, expected) => {
+    setTauriRuntimePresent();
+    const restorePlatform = stubNavigatorPlatform({ platform });
+
+    try {
+      expect(
+        shouldUseDesktopOverlayTitlebar({
+          platformKind: "unknown",
+          hasTauriRuntime: hasTauriRuntime(),
+        }),
+      ).toBe(expected);
+    } finally {
+      restorePlatform();
+    }
+  });
+
+  it("reports navigator platform stub restore failures", () => {
+    const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });
+    const deleteProperty = Reflect.deleteProperty;
+    const deletePropertySpy = vi.spyOn(Reflect, "deleteProperty").mockImplementation((target, property) => {
+      if (target === window.navigator && property === "platform") {
+        throw new TypeError("restore failed");
+      }
+
+      return deleteProperty(target, property);
+    });
+
+    expect(() => restorePlatform()).toThrow("Failed to restore navigator platform stub.");
+
+    deletePropertySpy.mockRestore();
+    restorePlatform();
   });
 });

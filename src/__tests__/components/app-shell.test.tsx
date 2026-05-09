@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -240,14 +241,10 @@ describe("AppShell", () => {
 
   it("uses overlay titlebar helper classes on first render when tauri is available and mac platform info is still unknown", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
-    const originalPlatform = window.navigator.platform;
+    const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });
 
     try {
       setTauriRuntimePresent();
-      Object.defineProperty(window.navigator, "platform", {
-        configurable: true,
-        value: "MacIntel",
-      });
       usePlatformStore.setState({
         platform: {
           kind: "unknown",
@@ -270,10 +267,7 @@ describe("AppShell", () => {
       expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
     } finally {
-      Object.defineProperty(window.navigator, "platform", {
-        configurable: true,
-        value: originalPlatform,
-      });
+      restorePlatform();
       if (originalTauriInternalsDescriptor) {
         Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
       } else {
