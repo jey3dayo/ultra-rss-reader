@@ -12,16 +12,10 @@ type UseBrowserOverlayFocusReturnResult = {
   rememberOverlayFocusReturnTarget: () => void;
 };
 
-const FOCUS_RETURN_SCHEDULE_WARNING =
-  "Failed to schedule browser overlay focus return.";
+const FOCUS_RETURN_SCHEDULE_WARNING = "Failed to schedule browser overlay focus return.";
 
-function scheduleBrowserOverlayFocusReturn(
-  callback: FrameRequestCallback,
-): number | null {
-  if (
-    typeof window === "undefined" ||
-    typeof window.requestAnimationFrame !== "function"
-  ) {
+function scheduleBrowserOverlayFocusReturn(callback: FrameRequestCallback): number | null {
+  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
     return null;
   }
 
@@ -34,10 +28,7 @@ function scheduleBrowserOverlayFocusReturn(
 }
 
 function cancelBrowserOverlayFocusReturn(frameHandle: number): void {
-  if (
-    typeof window === "undefined" ||
-    typeof window.cancelAnimationFrame !== "function"
-  ) {
+  if (typeof window === "undefined" || typeof window.cancelAnimationFrame !== "function") {
     return;
   }
 
@@ -58,15 +49,8 @@ export function useBrowserOverlayFocusReturn({
       return;
     }
 
-    const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(
-      document,
-      "data-article-id",
-      articleId,
-    );
-    if (
-      !selectedArticleTarget ||
-      selectedArticleTarget.hasAttribute("disabled")
-    ) {
+    const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
+    if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
       return;
     }
 
@@ -80,27 +64,18 @@ export function useBrowserOverlayFocusReturn({
     }
 
     const activeElement = document.activeElement;
-    if (
-      !(activeElement instanceof HTMLElement) ||
-      activeElement === document.body
-    ) {
+    if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
       return;
     }
 
     overlayFocusReturnTargetRef.current = activeElement;
-    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute(
-      "data-browser-overlay-return-focus",
-    );
+    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute("data-browser-overlay-return-focus");
   }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (
-      wasBrowserOpenRef.current &&
-      !isBrowserOpen &&
-      typeof document !== "undefined"
-    ) {
+    if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
       const previousTarget = overlayFocusReturnTargetRef.current;
       const previousTargetKey = overlayFocusReturnTargetKeyRef.current;
       overlayFocusReturnTargetRef.current = null;
@@ -112,15 +87,8 @@ export function useBrowserOverlayFocusReturn({
           return;
         }
 
-        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(
-          document,
-          "data-article-id",
-          articleId,
-        );
-        if (
-          selectedArticleTarget &&
-          !selectedArticleTarget.hasAttribute("disabled")
-        ) {
+        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
+        if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
           useUiStore.getState().setFocusedPane("list");
           selectedArticleTarget.focus({ preventScroll: true });
           return;
@@ -138,10 +106,7 @@ export function useBrowserOverlayFocusReturn({
           }
         }
 
-        if (
-          previousTarget?.isConnected &&
-          !previousTarget.hasAttribute("disabled")
-        ) {
+        if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
           previousTarget.focus();
           return;
         }
@@ -149,17 +114,12 @@ export function useBrowserOverlayFocusReturn({
         const openInBrowserTarget = document.querySelector<HTMLElement>(
           '[data-browser-overlay-return-focus="open-in-browser"]',
         );
-        if (
-          openInBrowserTarget &&
-          !openInBrowserTarget.hasAttribute("disabled")
-        ) {
+        if (openInBrowserTarget && !openInBrowserTarget.hasAttribute("disabled")) {
           openInBrowserTarget.focus();
           return;
         }
 
-        const fallbackTarget = document.querySelector<HTMLElement>(
-          "[data-article-list-root='true']",
-        );
+        const fallbackTarget = document.querySelector<HTMLElement>("[data-article-list-root='true']");
         if (fallbackTarget && !fallbackTarget.hasAttribute("disabled")) {
           useUiStore.getState().setFocusedPane("list");
           fallbackTarget.focus({ preventScroll: true });

@@ -176,9 +176,7 @@ describe("useBrowserOverlayFocusReturn", () => {
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => {
       throw requestError;
     });
-    const warnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     const articleButton = document.createElement("button");
     articleButton.dataset.articleId = "article-1";
@@ -194,10 +192,7 @@ describe("useBrowserOverlayFocusReturn", () => {
     );
 
     expect(() => rerender({ isBrowserOpen: false })).not.toThrow();
-    expect(warnSpy).toHaveBeenCalledWith(
-      "Failed to schedule browser overlay focus return.",
-      requestError,
-    );
+    expect(warnSpy).toHaveBeenCalledWith("Failed to schedule browser overlay focus return.", requestError);
     expect(document.activeElement).not.toBe(articleButton);
     expect(useUiStore.getState().focusedPane).not.toBe("list");
   });
@@ -227,9 +222,7 @@ describe("useBrowserOverlayFocusReturn", () => {
     unmount();
     const scheduledFrame = scheduledCallbacks[0];
     if (!scheduledFrame) {
-      throw new Error(
-        "expected requestAnimationFrame callback to be scheduled",
-      );
+      throw new Error("expected requestAnimationFrame callback to be scheduled");
     }
     scheduledFrame(0);
 
