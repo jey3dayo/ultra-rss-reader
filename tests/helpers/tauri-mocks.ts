@@ -14,9 +14,9 @@ import {
   createSampleAccounts,
   createSampleArticles,
   createSampleFeeds,
+  createSampleFolders,
   createSampleMuteKeywords,
   createSampleTags,
-  sampleFolders,
 } from "./fixtures";
 import type {
   RawMockTauriCommandArgs,
@@ -80,7 +80,7 @@ function createDefaultHandler(): MockHandler {
       case "list_feeds":
         return createSampleFeeds().filter((f) => f.account_id === args.accountId);
       case "list_folders":
-        return structuredClone(sampleFolders.filter((folder) => folder.account_id === args.accountId));
+        return createSampleFolders().filter((folder) => folder.account_id === args.accountId);
       case "list_articles":
         return createSampleArticles().filter(
           (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read) && (!args.starredOnly || a.is_starred),

@@ -1,5 +1,4 @@
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
-import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
 function readStorage(): Storage | null {
@@ -11,6 +10,19 @@ function readStorage(): Storage | null {
     return window.localStorage;
   } catch {
     return null;
+  }
+}
+
+function writeNormalizedHistory(storage: Storage, raw: string, history: readonly string[]): void {
+  const normalized = JSON.stringify(history);
+  if (raw === normalized) {
+    return;
+  }
+
+  try {
+    storage.setItem(STORAGE_KEYS.commandHistory, normalized);
+  } catch {
+    // Ignore cleanup write failures; callers can still use the normalized in-memory history.
   }
 }
 
@@ -26,7 +38,14 @@ export function getHistory(): string[] {
       return [];
     }
 
-    return parseJsonWithSchemaOrNull(raw, CommandHistoryStorageSchema) ?? [];
+    const result = CommandHistoryStorageSchema.safeParse(JSON.parse(raw) as unknown);
+    if (!result.success) {
+      return [];
+    }
+
+    const history = result.data;
+    writeNormalizedHistory(storage, raw, history);
+    return history;
   } catch {
     return [];
   }

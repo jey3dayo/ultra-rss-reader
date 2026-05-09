@@ -74,6 +74,16 @@ describe("use-command-history", () => {
     expect(getHistory()).toEqual(["feed:feed-2", "feed:feed-1", "tag:tag-1"]);
   });
 
+  it("cleans corrupted stored history during read", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify(["feed:feed-1", null, "", "   ", "tag:tag-1", { id: "feed-2" }]),
+    );
+
+    expect(getHistory()).toEqual(["feed:feed-1", "tag:tag-1"]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["feed:feed-1", "tag:tag-1"]));
+  });
+
   it("does not add blank history ids and cleans existing blank entries", () => {
     localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["feed:feed-1", "", "tag:tag-1"]));
 
