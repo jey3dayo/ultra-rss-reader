@@ -110,6 +110,23 @@ function extractReferencedSpecimens(source: string) {
   return [...source.matchAll(/<([A-Z]\w*Specimen)\b/g)].map((match) => match[1] ?? "");
 }
 
+function extractCategorySpecimenExports() {
+  const exportNames: string[] = [];
+  const emptyExportFiles: { fileName: string; exports: string[] }[] = [];
+
+  for (const fileName of CATEGORY_SPECIMENS_SOURCE_FILE_NAMES) {
+    const exports = extractSpecimenExports(readFileSync(join(STORYBOOK_COMPONENTS_DIR, fileName), "utf8"));
+
+    exportNames.push(...exports);
+
+    if (exports.length === 0) {
+      emptyExportFiles.push({ fileName, exports });
+    }
+  }
+
+  return { emptyExportFiles, exportNames };
+}
+
 describe("UI Reference specimen registry", () => {
   it("keeps UI Reference story sections explicitly registered without duplicate ids", () => {
     const sectionIds = uiReferenceSections.map((section) => section.sectionId);
@@ -176,15 +193,10 @@ describe("UI Reference specimen registry", () => {
       join(STORYBOOK_COMPONENTS_DIR, "ui-reference-canvas-specimens.tsx"),
       "utf8",
     );
-    const categorySpecimenExports = CATEGORY_SPECIMENS_SOURCE_FILE_NAMES.map((fileName) => ({
-      fileName,
-      exports: extractSpecimenExports(readFileSync(join(STORYBOOK_COMPONENTS_DIR, fileName), "utf8")),
-    }));
+    const categorySpecimenExports = extractCategorySpecimenExports();
 
     expect(extractSpecimenExports(canvasSpecimensSource)).toEqual([]);
-    expect(categorySpecimenExports.flatMap(({ exports }) => exports).sort()).toEqual(
-      extractSpecimenExports(specimensSource).sort(),
-    );
-    expect(categorySpecimenExports.filter(({ exports }) => exports.length === 0)).toEqual([]);
+    expect(categorySpecimenExports.exportNames.sort()).toEqual(extractSpecimenExports(specimensSource).sort());
+    expect(categorySpecimenExports.emptyExportFiles).toEqual([]);
   });
 });
