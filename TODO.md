@@ -1168,6 +1168,76 @@
   - `src/__tests__/scripts/seed-dev-db-from-prod.test.ts` で長い app name / `ultra-rss-reader` process 検出時に DB 置換へ進まないことを固定する
   - seed cleanup contract とは分け、running app guard の検出境界だけを扱う
 
+- [ ] updater toast locale boundary 候補を追加する
+  - `src/hooks/use-updater.ts` の manual update check toast 日本語直書きを locale key 経由に寄せる
+  - `src/__tests__/hooks/use-updater.test.ts` で update check 失敗時 / no-update 時の toast が `ja` / `en` の言語設定に従うことを固定する
+  - updater startup unmount guard や progress payload schema とは分け、manual updater toast copy だけを扱う
+
+- [ ] command palette message translation fallback 候補を追加する
+  - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` の `enReader` / `jaReader` 直接 import fallback を pure helper へ切り出す
+  - missing resource fallback、`{{feedId}}` / `{{message}}` 補間、`ja` 以外は `en` へ落ちることを focused test で固定する
+  - command palette resource ranking とは分け、message translation fallback だけを扱う
+
+- [ ] shared dialog close label locale 候補を追加する
+  - `src/components/ui/dialog.tsx` の `Close` 直書きを props または common locale key 経由に寄せる
+  - dialog wrapper test で `showCloseButton` の accessible name が props 由来になり、未指定時 fallback が locale と一致することを確認する
+  - feature dialog copy 変更とは分け、shared dialog primitive の close label だけを扱う
+
+- [ ] sidebar landmark locale 候補を追加する
+  - `src/components/reader/sidebar.tsx` の `aria-label="Sidebar"` 直書きを reader/sidebar locale key へ寄せる
+  - sidebar rendering test で `en` は `Sidebar`、`ja` は日本語 landmark 名になることを固定する
+  - sidebar header runtime prop boundary とは分け、navigation landmark copy だけを扱う
+
+- [ ] provider normalizer URL trim 候補を追加する
+  - `src-tauri/src/infra/provider/normalizer.rs` の article URL 選択で `href.trim()` 判定後に未 trim の URL を返さないようにする
+  - Rust test で前後空白付き article link が `RemoteEntry.url == Some("https://example.com/article")` になることを固定する
+  - local provider private URL guard とは分け、feed entry URL normalization だけを扱う
+
+- [ ] provider normalizer media type params 候補を追加する
+  - `src-tauri/src/infra/provider/normalizer.rs` の HTML link 判定で `text/html; charset=utf-8` など media type parameter 付き値を扱えるようにする
+  - Rust test で `rel=self` feed URL より `rel=alternate type="text/html; charset=utf-8"` article URL が優先されることを固定する
+  - provider URL trim とは分け、article link media type parsing だけを扱う
+
+- [ ] provider thumbnail href normalization 候補を追加する
+  - `src-tauri/src/infra/provider/normalizer.rs` の thumbnail fallback で blank image href を skip し、採用 href を trim する
+  - Rust test で空の `image/png` enclosure の次にある空白付き `image/webp` URL が trim 済みで採用されることを固定する
+  - article responsive media styling とは分け、provider thumbnail URL normalization だけを扱う
+
+- [ ] local subscription site URL preference 候補を追加する
+  - `src-tauri/src/infra/provider/local.rs` の `create_subscription` で Atom self feed link より alternate HTML site link を優先する
+  - Rust test で self atom link と alternate HTML link が並ぶ feed から `subscription.site_url` が alternate HTML になることを固定する
+  - feed discovery site URL scoring とは分け、local provider subscription site URL selection だけを扱う
+
+- [ ] GReader missing categories fallback 候補を追加する
+  - `src-tauri/src/infra/provider/greader.rs` の `GReaderItem.categories` に default を持たせ、互換 API の categories 省略で stream parse が落ちないようにする
+  - Rust test で categories 省略 item が unread / unstarred として parse されることを固定する
+  - GReader item id pagination limit とは分け、item state category fallback だけを扱う
+
+- [ ] GReader published fallback 候補を追加する
+  - `src-tauri/src/infra/provider/greader.rs` の `map_item_to_entry` で `published` なし `updated` ありの記事が sync 時刻依存の `Utc::now()` にならないようにする
+  - Rust test で `published=None`, `updated=1700000100` の item が `published_at` / `updated_at` とも updated timestamp になることを固定する
+  - GReader categories fallback とは分け、entry timestamp fallback だけを扱う
+
+- [ ] dev mock account cascade delete 候補を追加する
+  - `src/dev/mocks.ts` の `delete_account` mock で account 本体だけでなく feeds / folders / articles / recent history を掃除する
+  - `src/__tests__/dev/dev-mocks.test.ts` で account 削除後の `listFeeds` / `listRecentArticles` / account scoped count が空または 0 になることを固定する
+  - backend account deletion keyring order とは分け、browser dev mock data graph cleanup だけを扱う
+
+- [ ] dev mock feed delete article cleanup 候補を追加する
+  - `src/dev/mocks.ts` の `delete_feed` mock で削除記事に紐づく `mockArticleTags` と `mockArticleViewHistory` も掃除する
+  - `src/__tests__/dev/dev-mocks.test.ts` で feed 削除後の `getArticleTags(deletedArticleId)` が空になり、recent articles に削除記事が戻らないことを固定する
+  - dev mock account cascade delete とは分け、feed delete の article-related cleanup だけを扱う
+
+- [ ] dev mock unknown command failure 候補を追加する
+  - `src/dev/mocks.ts` の browser-only unknown command が `null` 成功にならないよう、test helper と同じく明示 reject にする
+  - `src/__tests__/dev/dev-mocks.test.ts` で `invoke("unknown_dev_command")` が reject し、既知 command coverage は維持されることを固定する
+  - Tauri default mock command coverage とは分け、browser dev mock unknown command policy だけを扱う
+
+- [ ] Storybook runtime flag reset 候補を追加する
+  - `src/components/storybook/story-tauri-runtime.ts` の runtime present / missing 切替時に `__TAURI_INTERNALS__` と browser mock flags の残り方を統一する
+  - story runtime tests で missing 時は property descriptor も消え、present 時は `__DEV_BROWSER_MOCKS__` / `__ULTRA_RSS_BROWSER_MOCKS__` が false になることを固定する
+  - Storybook stale server health check とは分け、Storybook runtime global state cleanup だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
