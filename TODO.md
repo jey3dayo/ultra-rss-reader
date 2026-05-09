@@ -84,11 +84,6 @@
   - React Doctor / Knip が account pane navigation helper の unused type を検出しており、settings account detail と reader focus restore の境界が見えにくい
   - account id selection、missing account、add-account complete、detail close、reader return focus の navigation contract を固定する
 
-- [ ] P2 sidebar-sources type surface を account/feed/tag source model に分割する
-  - 対象: `src/components/reader/sidebar-sources.types.ts`, `src/components/reader/sidebar-view.tsx`, `src/components/reader/feed-tree-view.tsx`
-  - React Doctor / Knip が sidebar source types に unused type を検出しており、account source、smart view、feed tree source、tag source の model が広がりやすい
-  - external contract と view-local props を分け、sidebar source model は row rendering / command palette / unread count の参照元だけ残す
-
 - [ ] P2 feed-tree-view unused type を drag/drop hook contract と view props に分離する
   - 対象: `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree.types.ts`, `src/components/reader/hooks/feed-tree/*`
   - React Doctor / Knip が feed tree view の unused type を検出しており、drag hook params、row props、folder section props の境界がまた太りやすい
