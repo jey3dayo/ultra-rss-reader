@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P0 article auto mark stale mutation contract を固定する
-  - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`
-  - delayed auto mark の timeout と `setRead.mutate` callback が article switch / unmount / unread view retention と重なる時の state rollback が事故りやすい
-  - article A timer pending -> article B selected -> A mutation fail の順序で retained article / recently read / toast が正しいことを focused test で固定する
-
 - [ ] P1 browser injected bridge listener lifecycle を検証する
   - 対象: `src-tauri/src/browser_webview.rs`
   - injected script が `window.addEventListener` と focus override を入れるため、navigation / reload / recreate 時に listener が重複しないか実機寄りに確認する
@@ -55,11 +50,6 @@
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
   - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
 
-- [ ] P2 feed tree click suppression timer cleanup を補強する
-  - 対象: `src/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression.ts`
-  - drag handle click suppression は timer 依存で、drag cancel / drop / unmount の順序によって suppress flag が残る可能性がある
-  - drag start -> cancel -> click、drag start -> unmount の timer cleanup を focused test にする
-
 - [ ] P2 app foreground window show/focus error policy を整理する
   - 対象: `src-tauri/src/lib.rs`
   - second instance / foreground handling で `let _ = window.show(); let _ = window.set_focus();` と error を捨てており、packaged app の復帰失敗を追跡しにくい
@@ -70,16 +60,6 @@
   - `createMutation()` は `onSuccess` で invalidate callback を await する設計だが、多くの callback は内部で fire-and-forget しており成功/失敗の扱いが hook ごとに揺れている
   - `await invalidate` が mutation status を failed にしてよいケースと log-only にするケースを分け、shared helper の戻り値 contract を固定する
 
-- [ ] P1 shortcut duplicate override conflict visibility を追加する
-  - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/keyboard-shortcuts-settings.tsx`
-  - `buildKeyToActionMap()` は duplicate key を first wins で黙って捨てるため、settings で複数 action が同じ shortcut になってもユーザーが気づきにくい
-  - duplicate custom shortcut、native menu owned shortcut、platform modifier 表示の conflict detection を pure helper と settings validation で固定する
-
-- [ ] P1 unread badge count normalization contract を補強する
-  - 対象: `src/hooks/use-badge.ts`, `src/hooks/use-account-unread-count.ts`, `src/hooks/use-feeds.ts`
-  - badge count は feed unread sum / account unread count をそのまま native command に渡すため、negative / nonfinite / stale selected account の時の表示契約が未固定
-  - negative unread count、account switch during pending badge apply、native `setBadgeCount` unavailable の latest-only contract を hook test にする
-
 - [ ] P1 browser webview native emit failure diagnostics を補強する
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
   - browser state / close / fallback / diagnostics event の `app_handle.emit(...)` failure が `let _ =` で捨てられ、frontend listener 不在や payload serialization failure を追跡しづらい
@@ -89,11 +69,6 @@
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
   - `webview.set_focus()` / Windows foreground API の戻り値を複数箇所で無視しており、overlay open 後に focus が戻らない packaged app 問題の原因が残らない
   - focus failure を UI に出すか diagnostics-only にするか決め、platform 別に expected failure と unexpected failure の log policy を固定する
-
-- [ ] P1 sync progress event clamp / malformed payload contract を補強する
-  - 対象: `src/stores/ui-store.ts`, `src/components/settings/account-detail/sync-section-view.tsx`, `src/api/schemas/commands.ts`
-  - sync progress は `total` / `completed` / `stage` を store にそのまま取り込み、view 側で一部 clamp しているため、negative count や completed > total の source-of-truth が曖昧
-  - malformed native event、completed overflow、account_finished without account_id の store normalization と UI 表示を contract test で固定する
 
 - [ ] P2 article list retained snapshot duplicate identity contract を固定する
   - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`
@@ -268,14 +243,9 @@
   - runtime behavior は変えず、feature 内 consumer が多い型の責務分割と name clarity だけを扱う
 
 - [ ] P3 TypeScript local-only exported Props/Params/Result 候補を追加する
-  - local-only 候補: `src/components/settings/add-account/form-view.types.ts`、`src/components/reader/account-switcher.types.ts`、`article-view.types.ts`、`sidebar-sync.types.ts`、`sidebar-controller.types.ts`、`sidebar-runtime.types.ts`、`sidebar-sources.types.ts`、`sidebar-tag-items.types.ts`、`article-actions.types.ts`
+  - local-only 候補: `src/components/settings/add-account/form-view.types.ts`、`src/components/reader/sidebar-runtime.types.ts`、`sidebar-sources.types.ts`、`article-actions.types.ts`
   - exported `*Props` / `Use*Params` / `Use*Result` の consumer が 1 runtime component / 1 hook group / story-only に閉じるものを owner file へ戻せるか確認する
   - public contract 候補とは分け、localized type の export 削減だけを扱う
-
-- [ ] P2 TypeScript schema-derived DTO boundary 候補を追加する
-  - schema-derived 候補: `AccountDto` / `ArticleDto` / `FeedDto` / `FolderDto` / `TagDto` / `MuteKeywordDto` / `PreferencesDto` / `BrowserWebviewState` を import する reader/settings/lib/store types と、手書き `SyncProgressEventDto`
-  - DTO alias や view model が `z.output` / `z.infer` / `api/tauri-commands` の source of truth と重複していないか確認し、UI 専用 shape は `*ViewModel` / `*UiState` として意図を明確にする
-  - IPC / localStorage / app-config schema の validation 変更とは分け、type source-of-truth と DTO/UI state boundary だけを扱う
 
 - [ ] P3 react-doctor dead code type surface 候補を追加する
   - `knip/types` / `knip/exports` の unused type/export を feature ごとに棚卸しする
@@ -288,11 +258,6 @@
   - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
-
-- [ ] P3 参照範囲が広い settings 配置候補を別バッチで見直す
-  - `settings-nav.types.ts` は settings rail contract として `SettingsNavView` / `AccountsNavView` / Storybook specimen / view tests にまたがるため、settings nav 境界が増えた時に再評価する
-  - `settings-page.types.ts` は public page/control contract に絞る。control union が肥大化した時は page/control contract 自体の分割を検討する
-  - `settings-modal.types.ts` は modal view contract に絞る。新しい settings surface が増えて content routing props が再び肥大化した時に分離する
 
 - [ ] P3 参照範囲が広い root-level type を別バッチで分割する
   - reader selection は `src/lib/reader/reader-selection.types.ts` を source of truth にする。新しい `UiSelection` alias は増やさない
@@ -307,11 +272,6 @@
   - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`dialog.types.ts` の `ConfirmDialogVariant` のように store / view にまたがるものは、呼び出し境界が変わる時に見直す
   - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
 
-- [ ] P3 subscriptions index view contract 整理候補を別バッチで見直す
-  - `subscriptions-index-page-view.tsx` / list pane / detail pane / overview summary の props を、view file local と shared page contract に分ける
-  - `src/lib/subscriptions/subscriptions-index.types.ts` は list row / summary card / detail metrics の共有モデルとして扱い、UI props と混ぜない
-  - keep / defer / delete の decision flow は状態更新と toast にまたがるため、型整理とは別バッチにする
-
 - [ ] P2 app shell / keyboard boundary 整理候補を別バッチで見直す
   - global keyboard handling に reader pane 固有の分岐が増えていないか、pane helper へ戻せるものを棚卸しする
   - focus return / selected sidebar target / selected article row の復帰処理は、reader focus helper と hook の責務境界を先に整理する
@@ -321,16 +281,6 @@
   - `ui-store.ts` の reader selection / layout state / settings modal / toast / sync progress / account setup session を、参照範囲ごとに slice 化できるか確認する
   - `preferences-store.ts` は schema と永続化 contract があるため、UI store 分割とは同じバッチに混ぜない
   - store selector の import 先が多いため、まずは type alias / action group の棚卸しだけ行い、挙動変更は避ける
-
-- [ ] P2 subscriptions index state hook 整理候補を別バッチで見直す
-  - `use-subscriptions-index-state.ts` の selected row / summary filter / kept-deferred state / return state を、page state と list state に分けられるか確認する
-  - `SubscriptionsWorkspaceReturnState` は navigation return contract なので、内部 state 整理とは別扱いにする
-  - keep / defer / delete 後の選択維持は UX 挙動に直結するため、型整理より先に existing tests を確認する
-
-- [ ] P3 subscriptions component props local 化候補を別バッチで見直す
-  - `subscriptions-index-page-view.tsx`、`subscriptions-list-pane.tsx`、`subscription-detail-pane.tsx`、`subscriptions-overview-summary.tsx` の view props を component-local に寄せられるか確認する
-  - `subscriptions-index.types.ts` の row / summary / detail model は lib 共有 contract として残し、component props と混ぜない
-  - Storybook stories と component tests の fixture 型が参照している場合は、fixture helper 側へ型境界を寄せる
 
 - [ ] P3 Storybook UI reference 分割候補を別バッチで見直す
   - `ui-reference-canvas-specimens.tsx` が大きくなっているため、foundations / controls / workspace / settings / navigation の specimen 群へ分割できるか確認する
@@ -342,20 +292,10 @@
   - layout token や CSS class の変更は visual impact があるため、まずは型・helper配置と tests の責務整理に限定する
   - app shell の overlay / debug HUD / modal collision とは別バッチにする
 
-- [ ] P1 Tauri command/schema contract 整理候補を別バッチで見直す
-  - `src/api/tauri-commands.ts` と `src/api/schemas/*` の command response validation を、command group 単位で棚卸しする
-  - Rust command DTO と frontend schema のズレを検出する contract test を優先し、UI 側の fallback copy 変更とは混ぜない
-  - database / account / feed / browser webview command は失敗時の戻り値契約が違うため、worker scope を分ける
-
 - [ ] P1 Tauri menu / shortcut contract 整理候補を別バッチで見直す
   - `src-tauri/src/menu.rs` / `menu_i18n.rs` と frontend shortcut handling の action id 対応を一覧化する
   - menu label の i18n と frontend shortcut 表示は別レイヤーなので、まずは action id と emitted event の contract test を優先する
   - native menu の checked state と UI preference state の同期は挙動影響があるため、型・テスト整理とは分ける
-
-- [ ] P1 Rust DB repository test 候補を別バッチで追加する
-  - sqlite account / feed / folder / article / tag / sync state repository の境界値を、migration 適用済み DB fixture で固定する
-  - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
-  - 既存 integration test が広い場合は、repository ごとの小さい fixture helper を先に作る
 
 - [ ] P1 updater / release readiness 検証候補を別バッチで見直す
   - `.github/workflows/release.yml`、`src-tauri/tauri.conf.json`、`updater_commands.rs` の updater 設定・署名・fallback を確認する
