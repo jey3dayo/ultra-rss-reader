@@ -99,6 +99,24 @@ describe("ShortcutsHelpModal", () => {
     });
   });
 
+  it("keeps search text during unrelated parent updates while open", async () => {
+    const user = userEvent.setup();
+
+    function RerenderingShortcutsHelpModal({ rerenderCount }: { rerenderCount: number }) {
+      return <ShortcutsHelpModal open={rerenderCount > -1} onOpenChange={() => {}} />;
+    }
+
+    const { rerender } = renderShortcutsHelpModal(<RerenderingShortcutsHelpModal rerenderCount={0} />);
+
+    const input = await screen.findByPlaceholderText("Search shortcuts…");
+    await user.type(input, "settings");
+    expect(input).toHaveValue("settings");
+
+    rerender(<RerenderingShortcutsHelpModal rerenderCount={1} />);
+
+    expect(await screen.findByPlaceholderText("Search shortcuts…")).toHaveValue("settings");
+  });
+
   it("resets search while preserving open focus and selected shortcut behavior after reopen", async () => {
     const user = userEvent.setup();
     const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView);
