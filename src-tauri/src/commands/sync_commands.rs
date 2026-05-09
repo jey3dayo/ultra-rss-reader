@@ -585,7 +585,7 @@ pub fn purge_old_articles(db: &Mutex<DbManager>) {
         match lock_db(db) {
             Ok(g) => {
                 let repo = SqliteArticleRepository::new(g.writer());
-                match repo.purge_old_read(cutoff) {
+                match repo.purge_old_read(&account.id, cutoff) {
                     Ok(n) if n > 0 => {
                         tracing::info!(
                             "Purged {n} old read articles for account '{}'",

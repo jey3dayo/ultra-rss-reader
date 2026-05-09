@@ -108,7 +108,7 @@ pub trait ArticleRepository {
     fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64>;
     fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;
-    fn purge_old_read(&self, before: DateTime<Utc>) -> DomainResult<u64>;
+    fn purge_old_read(&self, account_id: &AccountId, before: DateTime<Utc>) -> DomainResult<u64>;
     fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()>;
     fn find_by_sanitizer_version_below(
         &self,

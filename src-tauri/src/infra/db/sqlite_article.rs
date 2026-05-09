@@ -981,10 +981,14 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(())
     }
 
-    fn purge_old_read(&self, before: DateTime<Utc>) -> DomainResult<u64> {
+    fn purge_old_read(&self, account_id: &AccountId, before: DateTime<Utc>) -> DomainResult<u64> {
         let deleted = self.conn.execute(
-            "DELETE FROM articles WHERE is_read = 1 AND is_starred = 0 AND fetched_at < ?1",
-            params![before.to_rfc3339()],
+            "DELETE FROM articles
+             WHERE is_read = 1
+               AND is_starred = 0
+               AND fetched_at < ?1
+               AND feed_id IN (SELECT id FROM feeds WHERE account_id = ?2)",
+            params![before.to_rfc3339(), account_id.0],
         )?;
         Ok(deleted as u64)
     }
@@ -2451,7 +2455,7 @@ mod tests {
 
         repo.upsert(&[a1, a2, a3, a4]).unwrap();
 
-        let deleted = repo.purge_old_read(cutoff).unwrap();
+        let deleted = repo.purge_old_read(&account_id, cutoff).unwrap();
         assert_eq!(deleted, 1);
 
         let remaining = repo
@@ -2464,6 +2468,37 @@ mod tests {
             )
             .unwrap();
         assert_eq!(remaining.len(), 3);
+    }
+
+    #[test]
+    fn purge_old_read_is_scoped_to_account() {
+        let db = test_db();
+        let target_account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        let target_feed_id = insert_test_feed(&db, &target_account_id);
+        let other_feed_id = insert_test_feed(&db, &other_account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let cutoff = Utc::now();
+        let old_time = cutoff - chrono::Duration::days(1);
+
+        let mut target_article = make_article(&target_feed_id, "Target Old Read");
+        target_article.is_read = true;
+        target_article.fetched_at = old_time;
+
+        let mut other_article = make_article(&other_feed_id, "Other Old Read");
+        other_article.is_read = true;
+        other_article.fetched_at = old_time;
+
+        repo.upsert(&[target_article, other_article]).unwrap();
+
+        let deleted = repo.purge_old_read(&target_account_id, cutoff).unwrap();
+        assert_eq!(deleted, 1);
+
+        let other_remaining = repo
+            .find_by_feed(&other_feed_id, &Pagination::default())
+            .unwrap();
+        assert_eq!(other_remaining.len(), 1);
     }
 
     #[test]

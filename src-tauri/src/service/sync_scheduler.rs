@@ -23,7 +23,6 @@ use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateSco
 
 const SCHEDULER_TICK_INTERVAL_SECS: u64 = 10;
 const DEFAULT_SYNC_INTERVAL_SECS: u64 = 3_600;
-const BACKOFF_BASE_SECS: u64 = 60;
 const MAX_BACKOFF_SHIFT_BITS: u32 = 10;
 const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
 
@@ -33,6 +32,7 @@ const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
 /// Per-account scheduling state kept in memory.
 struct AccountSchedule {
     next_sync: Instant,
+    interval: Duration,
 }
 
 #[derive(Debug)]
@@ -46,6 +46,14 @@ struct AccountSyncCompletion {
     account_finished_success: bool,
     scheduler_succeeded: bool,
     next_sync: Instant,
+}
+
+struct SchedulerSyncGuard<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for SchedulerSyncGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
 }
 
 /// Start a background task that periodically syncs accounts based on their
@@ -94,15 +102,11 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
 
             prune_deleted_account_schedules(&mut schedules, &accounts);
 
-            // Ensure every account has a schedule entry
+            // Ensure every account has a schedule entry and keep existing
+            // entries aligned with account setting changes.
             for account in &accounts {
                 let id = account.id.as_ref().to_string();
-                schedules.entry(id).or_insert_with(|| {
-                    let interval = account_interval(account);
-                    AccountSchedule {
-                        next_sync: now + interval,
-                    }
-                });
+                upsert_account_schedule(&mut schedules, id, account, now);
             }
 
             // Check which accounts are due and not in backoff
@@ -123,10 +127,14 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
 
             // Skip if another sync (manual) is already in progress
-            if state.syncing.load(Ordering::SeqCst) {
-                tracing::debug!("Skipping scheduled sync: manual sync in progress");
-                continue;
-            }
+            let sync_guard = match acquire_scheduler_sync_guard(state.syncing.as_ref()) {
+                Some(guard) => guard,
+                None => {
+                    tracing::debug!("Skipping scheduled sync: manual sync in progress");
+                    continue;
+                }
+            };
+            let _sync_guard = sync_guard;
 
             let mut any_synced = false;
             let mut all_succeeded = true;
@@ -182,8 +190,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             account.name
                         );
                         reporter.emit_account_finished(account, false);
-                        let backoff_state = match increment_error_count(&state.db, &account.id, &e)
-                        {
+                        let backoff_state = match increment_error_count(&state.db, account, &e) {
                             Ok(backoff_state) => backoff_state,
                             Err(error) => {
                                 tracing::warn!(
@@ -195,7 +202,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                                 RetryBackoffState {
                                     error_count: 1,
                                     next_retry_at: None,
-                                    retry_in_seconds: calculate_backoff_secs(1),
+                                    retry_in_seconds: calculate_backoff_secs(account, 1),
                                 }
                             }
                         };
@@ -271,6 +278,44 @@ fn account_interval(account: &Account) -> Duration {
     Duration::from_secs(secs)
 }
 
+fn acquire_scheduler_sync_guard(
+    syncing: &std::sync::atomic::AtomicBool,
+) -> Option<SchedulerSyncGuard<'_>> {
+    syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .ok()
+        .map(|_| SchedulerSyncGuard(syncing))
+}
+
+fn upsert_account_schedule(
+    schedules: &mut HashMap<String, AccountSchedule>,
+    account_id: String,
+    account: &Account,
+    now: Instant,
+) {
+    let interval = account_interval(account);
+    let next_sync = now + interval;
+    match schedules.get_mut(&account_id) {
+        Some(schedule) if schedule.interval != interval => {
+            schedule.interval = interval;
+            schedule.next_sync = next_sync;
+        }
+        Some(schedule) if schedule.next_sync > next_sync => {
+            schedule.next_sync = next_sync;
+        }
+        Some(_) => {}
+        None => {
+            schedules.insert(
+                account_id,
+                AccountSchedule {
+                    next_sync,
+                    interval,
+                },
+            );
+        }
+    }
+}
+
 fn complete_panicked_account_sync(account: &Account) -> AccountSyncCompletion {
     AccountSyncCompletion {
         account_finished_success: false,
@@ -324,13 +369,16 @@ fn backoff_persistence_failure_warning(
 }
 
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
-    let base = account_interval(account);
+    Duration::from_secs(calculate_backoff_secs(account, error_count))
+}
+
+fn calculate_backoff_secs(account: &Account, error_count: i32) -> u64 {
+    let base = account_interval(account).as_secs();
     let error_count = clamped_backoff_error_count(error_count);
     let multiplier = 1u64
         .checked_shl(error_count)
         .unwrap_or(MAX_BACKOFF_MULTIPLIER);
-    let backoff = base.saturating_mul(multiplier as u32);
-    backoff.min(MAX_BACKOFF)
+    base.saturating_mul(multiplier).min(MAX_BACKOFF.as_secs())
 }
 
 fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bool {
@@ -383,7 +431,7 @@ fn reset_error_count(db: &Mutex<DbManager>, account_id: &AccountId) -> DomainRes
 
 fn increment_error_count(
     db: &Mutex<DbManager>,
-    account_id: &AccountId,
+    account: &Account,
     error: &crate::commands::dto::AppError,
 ) -> DomainResult<RetryBackoffState> {
     let db_guard = db
@@ -392,9 +440,9 @@ fn increment_error_count(
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
     let scope_key = SyncStateScopeKey::scheduler();
     let mut state = repo
-        .get(account_id, &scope_key)?
+        .get(&account.id, &scope_key)?
         .unwrap_or_else(|| SyncState {
-            account_id: account_id.clone(),
+            account_id: account.id.clone(),
             scope_key: scope_key.as_string(),
             timestamp_usec: None,
             continuation: None,
@@ -407,8 +455,7 @@ fn increment_error_count(
         });
     state.error_count = (clamped_backoff_error_count(state.error_count) as i32).saturating_add(1);
     state.last_error = Some(error.to_string());
-    // Set next_retry_at for the backoff check
-    let backoff_secs = calculate_backoff_secs(state.error_count);
+    let backoff_secs = calculate_backoff_secs(account, state.error_count);
     let next_retry = chrono::Utc::now() + chrono::Duration::seconds(backoff_secs as i64);
     let next_retry_at = next_retry.to_rfc3339();
     state.next_retry_at = Some(next_retry_at.clone());
@@ -418,14 +465,6 @@ fn increment_error_count(
         next_retry_at: Some(next_retry_at),
         retry_in_seconds: backoff_secs,
     })
-}
-
-fn calculate_backoff_secs(error_count: i32) -> u64 {
-    let error_count = clamped_backoff_error_count(error_count);
-    let multiplier = 1u64
-        .checked_shl(error_count)
-        .unwrap_or(MAX_BACKOFF_MULTIPLIER);
-    (BACKOFF_BASE_SECS * multiplier).min(MAX_BACKOFF.as_secs())
 }
 
 fn clamped_backoff_error_count(error_count: i32) -> u32 {
@@ -564,12 +603,14 @@ mod tests {
                 retained.id.as_ref().to_string(),
                 AccountSchedule {
                     next_sync: Instant::now(),
+                    interval: Duration::from_secs(60),
                 },
             ),
             (
                 "deleted-account".to_string(),
                 AccountSchedule {
                     next_sync: Instant::now(),
+                    interval: Duration::from_secs(60),
                 },
             ),
         ]);
@@ -578,6 +619,53 @@ mod tests {
 
         assert!(schedules.contains_key("retained-account"));
         assert!(!schedules.contains_key("deleted-account"));
+    }
+
+    #[test]
+    fn upsert_account_schedule_recalculates_existing_entry_when_interval_changes() {
+        let mut account = test_account(3_600);
+        account.id = AccountId("rescheduled-account".to_string());
+        let now = Instant::now();
+        let old_next_sync = now + Duration::from_secs(3_600);
+        let mut schedules = HashMap::from([(
+            account.id.as_ref().to_string(),
+            AccountSchedule {
+                next_sync: old_next_sync,
+                interval: Duration::from_secs(3_600),
+            },
+        )]);
+
+        account.sync_interval_secs = 60;
+        upsert_account_schedule(
+            &mut schedules,
+            account.id.as_ref().to_string(),
+            &account,
+            now,
+        );
+
+        let schedule = schedules
+            .get(account.id.as_ref())
+            .expect("existing schedule should remain");
+        assert_eq!(schedule.interval, Duration::from_secs(60));
+        assert_eq!(schedule.next_sync, now + Duration::from_secs(60));
+    }
+
+    #[test]
+    fn scheduler_sync_guard_sets_and_releases_syncing_flag() {
+        let syncing = AtomicBool::new(false);
+
+        {
+            let guard = acquire_scheduler_sync_guard(&syncing)
+                .expect("scheduler should acquire an idle sync flag");
+            assert!(syncing.load(Ordering::SeqCst));
+            assert!(
+                acquire_scheduler_sync_guard(&syncing).is_none(),
+                "scheduler guard should exclude overlapping sync and vacuum work"
+            );
+            drop(guard);
+        }
+
+        assert!(!syncing.load(Ordering::SeqCst));
     }
 
     #[test]
@@ -662,22 +750,31 @@ mod tests {
         let account = test_account(60);
 
         assert_eq!(calculate_backoff(&account, -1), Duration::from_secs(60));
-        assert_eq!(calculate_backoff_secs(-1), BACKOFF_BASE_SECS);
+        assert_eq!(calculate_backoff_secs(&account, -1), 60);
+    }
+
+    #[test]
+    fn calculate_backoff_secs_uses_account_interval_as_single_source_of_truth() {
+        let account = test_account(900);
+
+        assert_eq!(calculate_backoff(&account, 1).as_secs(), 1_800);
+        assert_eq!(calculate_backoff_secs(&account, 1), 1_800);
     }
 
     #[test]
     fn increment_error_count_clamps_negative_stored_error_count_to_first_retry() {
         let db = std::sync::Mutex::new(test_db());
-        let account_id = AccountId::new();
+        let mut account = test_account(60);
         {
             let db_guard = db.lock().unwrap();
-            insert_test_account(&db_guard, &account_id);
-            insert_sync_state_error_count(&db_guard, &account_id, -5);
+            insert_test_account(&db_guard, &account.id);
+            insert_sync_state_error_count(&db_guard, &account.id, -5);
         }
 
+        account.sync_interval_secs = 900;
         let backoff_state = increment_error_count(
             &db,
-            &account_id,
+            &account,
             &AppError::UserVisible {
                 message: "sync failed".to_string(),
             },
@@ -685,7 +782,10 @@ mod tests {
         .expect("negative stored error count should be clamped before increment");
 
         assert_eq!(backoff_state.error_count, 1);
-        assert_eq!(backoff_state.retry_in_seconds, calculate_backoff_secs(1));
+        assert_eq!(
+            backoff_state.retry_in_seconds,
+            calculate_backoff_secs(&account, 1)
+        );
     }
 
     #[test]
@@ -696,22 +796,27 @@ mod tests {
 
     #[test]
     fn calculate_backoff_secs_caps_abnormal_high_values_at_max() {
-        assert!(calculate_backoff_secs(20) <= MAX_BACKOFF.as_secs());
-        assert_eq!(calculate_backoff_secs(i32::MAX), MAX_BACKOFF.as_secs());
+        let account = test_account(60);
+
+        assert!(calculate_backoff_secs(&account, 20) <= MAX_BACKOFF.as_secs());
+        assert_eq!(
+            calculate_backoff_secs(&account, i32::MAX),
+            MAX_BACKOFF.as_secs()
+        );
     }
 
     #[test]
     fn increment_error_count_persists_backoff_state_and_is_in_backoff() {
         let db = std::sync::Mutex::new(test_db());
-        let account_id = AccountId::new();
+        let account = test_account(60);
         {
             let db_guard = db.lock().unwrap();
-            insert_test_account(&db_guard, &account_id);
+            insert_test_account(&db_guard, &account.id);
         }
 
         let backoff_state = increment_error_count(
             &db,
-            &account_id,
+            &account,
             &AppError::UserVisible {
                 message: "sync failed".to_string(),
             },
@@ -719,19 +824,22 @@ mod tests {
         .expect("backoff state should save");
 
         assert_eq!(backoff_state.error_count, 1);
-        assert_eq!(backoff_state.retry_in_seconds, calculate_backoff_secs(1));
+        assert_eq!(
+            backoff_state.retry_in_seconds,
+            calculate_backoff_secs(&account, 1)
+        );
         assert!(backoff_state.next_retry_at.is_some());
-        assert!(is_in_backoff(&db, &account_id));
+        assert!(is_in_backoff(&db, &account.id));
     }
 
     #[test]
     fn increment_error_count_surfaces_save_errors() {
         let db = std::sync::Mutex::new(test_db());
-        let account_id = AccountId::new();
+        let account = test_account(60);
 
         let error = increment_error_count(
             &db,
-            &account_id,
+            &account,
             &AppError::UserVisible {
                 message: "sync failed".to_string(),
             },
