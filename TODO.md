@@ -85,6 +85,31 @@
   - `APP_EVENTS.browserDebugGeometry` の detail shape が `null` または snapshot であることを test helper 側で明示する
   - browser debug event production hook は変えず、test listener の narrowing と assertion locality だけを扱う
 
+- [ ] TypeScript toast/display state type boundary 候補を追加する
+  - `src/lib/ui/toast.types.ts` と `src/lib/ui/display-state.types.ts` の `message` / `title` / `action` shape を共有すべきか、意図的に別 contract として残すか確認する
+  - 共通化する場合は action label/callback の最小型だけに限定し、toast severity / progress / update variant は toast 専用に残す
+  - not-found display type review とは分け、shared UI feedback action shape の型境界だけを扱う
+
+- [ ] TypeScript account setup session union cleanup 候補を追加する
+  - `src/lib/account/account-setup-session.types.ts` の `AccountSetupSessionOwner` / `AccountSetupSessionState` / verifying vs account session union を、discriminated union として読みやすい名前へ整理する
+  - add-account と account-detail の setup session lock が `accountId` 必須/不要を型で表現できているか focused test と store usage で確認する
+  - account setup flow behavior は変えず、session type name と state narrowing だけを扱う
+
+- [ ] TypeScript sync progress event boundary 候補を追加する
+  - `src/lib/sync/sync-progress.types.ts` の event payload が Rust/Tauri 由来の snake_case と UI state の camelCase を同じ file で扱っている点を整理する
+  - `SyncProgressEvent` は runtime event DTO、`SyncProgressState` は UI store state として名前や file placement を分けられるか確認する
+  - sync progress UI copy や scheduler behavior とは分け、event DTO / UI state type boundary だけを扱う
+
+- [ ] TypeScript UI wrapper props public API 候補を追加する
+  - `src/components/ui/scroll-area.types.ts` と `src/components/shared/dialog.types.ts` が public wrapper contract として十分小さいか、component file local へ戻すべきか判断する
+  - Base UI wrapper props は public API として残す方針に沿い、`ScrollAreaProps` の extra props と `ConfirmDialogVariant` の reuse consumer を確認する
+  - primitive migration とは分け、UI wrapper/shared dialog の type surface 明文化だけを扱う
+
+- [ ] TypeScript tauri mock recorder type boundary 候補を追加する
+  - `tests/helpers/tauri-types.ts` の `MockTauriCommandCall.args: Record<string, unknown>` を schema validation 後 args と raw args のどちらとして扱うか明確化する
+  - `createTauriMockCallRecorder` の handler fallback と args validation order を helper test で固定し、必要なら `ValidatedMockTauriCommandCall` のような別名へ分ける
+  - tauri mock call recorder helper の挙動追加とは分け、test helper type boundary だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
