@@ -7,6 +7,48 @@ export const STORAGE_KEYS = {
 export type StorageKeyName = keyof typeof STORAGE_KEYS;
 export type StorageKey = (typeof STORAGE_KEYS)[StorageKeyName];
 
+export type StorageKeySchemaPolicy =
+  | "theme-preference"
+  | "command-history-json"
+  | "sidebar-expanded-folders-json"
+  | "startup-sync-timestamp";
+export type StorageKeyCleanupPolicy = "mirror-retained" | "user-clearable" | "startup-window-expiring";
+export type StorageKeyOwner =
+  | "preferences-store"
+  | "command-palette-history"
+  | "sidebar-startup-folder-expansion"
+  | "startup-sync-storage";
+
+export const STORAGE_KEY_POLICIES = {
+  theme: {
+    owner: "preferences-store",
+    schema: "theme-preference",
+    cleanup: "mirror-retained",
+  },
+  commandHistory: {
+    owner: "command-palette-history",
+    schema: "command-history-json",
+    cleanup: "user-clearable",
+  },
+  sidebarExpandedFolders: {
+    owner: "sidebar-startup-folder-expansion",
+    schema: "sidebar-expanded-folders-json",
+    cleanup: "user-clearable",
+  },
+  startupSyncLastTriggeredAt: {
+    owner: "startup-sync-storage",
+    schema: "startup-sync-timestamp",
+    cleanup: "startup-window-expiring",
+  },
+} as const satisfies Record<
+  StorageKeyName,
+  {
+    owner: StorageKeyOwner;
+    schema: StorageKeySchemaPolicy;
+    cleanup: StorageKeyCleanupPolicy;
+  }
+>;
+
 export const LEGACY_STORAGE_KEYS = {
   startupSyncLastTriggeredAt: "startup-sync-last-triggered-at",
 } as const;

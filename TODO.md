@@ -165,11 +165,6 @@
   - `INSERT OR IGNORE` / `DELETE` の affected row を user-visible にしない場合、missing article/tag や concurrent delete が成功扱いになり、UI cache と DB がズレたまま見える可能性がある
   - missing article、missing tag、already tagged、already untagged の no-op / error 方針を決め、tag picker の optimistic update contract と合わせて test する
 
-- [ ] P3 frontend localStorage key registry の coverage contract を追加する
-  - 対象: `src/constants/storage.ts`, `src/schemas/storage.ts`, `src/__tests__/constants/storage.test.ts`, `src/__tests__/schemas/storage.test.ts`
-  - storage key が増えても schema / owner / cleanup 方針の対応表がないと、localStorage 境界の追加時に validation 漏れが起きやすい
-  - `STORAGE_KEYS` の各 key に schema、owner、cleanup 方針があるかを fixture で照合し、新規 key 追加時に境界未定義を検出する
-
 - [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
   - 対象: `docs/feed-content-privacy.md`, `TODO.md`
   - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
