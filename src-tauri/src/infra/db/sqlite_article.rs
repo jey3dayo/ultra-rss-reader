@@ -3228,6 +3228,45 @@ mod tests {
     }
 
     #[test]
+    fn search_applies_pagination_in_sql_after_deduped_ordering() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let articles = (0..5)
+            .map(|index| {
+                let mut article = make_article(&feed_id, &format!("Rust page article {index}"));
+                article.id = ArticleId(format!("article-{index}"));
+                article.published_at =
+                    DateTime::parse_from_rfc3339(&format!("2026-04-14T00:0{index}:00Z"))
+                        .unwrap()
+                        .with_timezone(&Utc);
+                article.fetched_at = article.published_at;
+                article
+            })
+            .collect::<Vec<_>>();
+        repo.upsert(&articles).unwrap();
+
+        let results = repo
+            .search(
+                &account_id,
+                "Rust",
+                &Pagination {
+                    offset: 1,
+                    limit: 2,
+                },
+            )
+            .unwrap();
+        let ids = results
+            .into_iter()
+            .map(|article| article.id.0)
+            .collect::<Vec<_>>();
+
+        assert_eq!(ids, vec!["article-3", "article-2"]);
+    }
+
+    #[test]
     fn count_orphaned_articles_detects_missing_feed_references() {
         let db = test_db();
         let account_id = insert_test_account(&db);
