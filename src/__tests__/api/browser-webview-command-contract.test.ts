@@ -82,12 +82,12 @@ function extractRustStructFields(source: string, structName: string) {
     );
   }
 
-  return fields.sort();
+  return fields.toSorted();
 }
 
 describe("browser webview command contract", () => {
   it("keeps BrowserWebviewState schema fields aligned with the Rust DTO", () => {
-    expect(Object.keys(BrowserWebviewStateSchema.shape).sort()).toEqual(
+    expect(Object.keys(BrowserWebviewStateSchema.shape).toSorted()).toEqual(
       extractRustStructFields(readRustBrowserWebviewSource(), "BrowserWebviewState"),
     );
   });
@@ -95,10 +95,10 @@ describe("browser webview command contract", () => {
   it("keeps browser webview event payload schemas aligned with the Rust DTOs", () => {
     const source = readRustBrowserWebviewSource();
 
-    expect(Object.keys(BrowserWebviewFallbackPayloadSchema.shape).sort()).toEqual(
+    expect(Object.keys(BrowserWebviewFallbackPayloadSchema.shape).toSorted()).toEqual(
       extractRustStructFields(source, "BrowserWebviewFallbackPayload"),
     );
-    expect(Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).sort()).toEqual(
+    expect(Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).toSorted()).toEqual(
       extractRustStructFields(source, "BrowserWebviewDiagnosticsPayload"),
     );
   });

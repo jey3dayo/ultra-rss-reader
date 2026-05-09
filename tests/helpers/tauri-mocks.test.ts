@@ -307,7 +307,7 @@ describe("setupTauriMocks fixture isolation", () => {
       "update_feed_display_settings",
       "update_feed_folder",
       "vacuum_database",
-    ].sort();
+    ].toSorted();
 
     expect(orderedCommandDifference(frontendCommandIndex, mockedCommandIndex)).toEqual(intentionallyUnhandledCommands);
     expect(orderedCommandDifference(mockedCommandIndex, frontendCommandIndex)).toEqual([

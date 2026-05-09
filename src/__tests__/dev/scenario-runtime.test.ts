@@ -57,7 +57,7 @@ describe("dev-scenario-runtime", () => {
   });
 
   it("keeps the static import registry aligned with every dev scenario id", () => {
-    expect(Object.keys(DEV_SCENARIO_MODULE_IMPORTERS).sort()).toEqual([...DEV_SCENARIO_IDS].sort());
+    expect(Object.keys(DEV_SCENARIO_MODULE_IMPORTERS).toSorted()).toEqual([...DEV_SCENARIO_IDS].toSorted());
   });
 
   it("returns a typed failure outside dev builds", async () => {

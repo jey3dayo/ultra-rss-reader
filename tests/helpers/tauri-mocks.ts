@@ -123,7 +123,7 @@ function createDefaultHandler(): MockHandler {
                   articles
                     .filter((article) => article.feed_id === feed.id)
                     .map((article) => article.published_at)
-                    .sort()
+                    .toSorted()
                     .slice(-1)[0] ?? null,
                 starred_count: articles.filter((article) => article.feed_id === feed.id && article.is_starred).length,
               }) satisfies FeedArticleSummaryDto,

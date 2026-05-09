@@ -2,11 +2,7 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { MuteKeywordScope } from "@/api/schemas";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { useMuteSettingsViewProps as buildMuteSettingsViewProps } from "@/components/settings/hooks/use-mute-settings-view-props";
-import type {
-  MuteSettingsKeywordRow,
-  MuteSettingsScopeOption,
-  MuteSettingsViewProps,
-} from "@/components/settings/mute-settings-view";
+import type { MuteSettingsViewProps } from "@/components/settings/mute-settings-view";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");
@@ -19,7 +15,9 @@ const rule: MuteKeywordDto = {
   updated_at: "2026-04-30T00:00:00.000Z",
 };
 
-function createProps(overrides: Partial<Parameters<typeof buildMuteSettingsViewProps>[0]> = {}) {
+function createProps(
+  overrides: Partial<Parameters<typeof buildMuteSettingsViewProps>[0]> = {},
+) {
   return buildMuteSettingsViewProps({
     t,
     keyword: "spoiler",
@@ -43,13 +41,17 @@ function createProps(overrides: Partial<Parameters<typeof buildMuteSettingsViewP
 
 describe("useMuteSettingsViewProps", () => {
   it("keeps mute option and keyword row models view-local", () => {
-    expectTypeOf<MuteSettingsScopeOption>().toEqualTypeOf<{ value: MuteKeywordScope; label: string }>();
-    expectTypeOf<MuteSettingsKeywordRow>().toEqualTypeOf<{
+    expectTypeOf<
+      MuteSettingsViewProps["scopeOptions"][number]
+    >().toEqualTypeOf<{
+      value: MuteKeywordScope;
+      label: string;
+    }>();
+    expectTypeOf<MuteSettingsViewProps["rules"][number]>().toEqualTypeOf<{
       id: string;
       keyword: string;
       scope: MuteKeywordScope;
     }>();
-    expectTypeOf<MuteSettingsViewProps>().toHaveProperty("rules").toEqualTypeOf<MuteSettingsKeywordRow[]>();
   });
 
   it("maps scope options and saved rules", () => {
@@ -60,7 +62,9 @@ describe("useMuteSettingsViewProps", () => {
       { value: "body", label: "Body" },
       { value: "title_and_body", label: "Title and body" },
     ]);
-    expect(props.rules).toEqual([{ id: "mute-1", keyword: "spoiler", scope: "title_and_body" }]);
+    expect(props.rules).toEqual([
+      { id: "mute-1", keyword: "spoiler", scope: "title_and_body" },
+    ]);
     expect(props.savedScopeAriaLabel("spoiler")).toBe("Scope for spoiler");
   });
 

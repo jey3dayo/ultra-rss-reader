@@ -56,7 +56,7 @@ function flattenLocale(tree: LocaleTree, prefix = ""): Map<string, string> {
 
 function extractPlaceholders(value: string): string[] {
   const parsed = parseInterpolationTokens(value);
-  return [...new Set(parsed.tokens.map((token) => token.name))].sort();
+  return [...new Set(parsed.tokens.map((token) => token.name))].toSorted();
 }
 
 function extractPlaceholderSet(value: string): ReadonlySet<string> {
@@ -64,7 +64,7 @@ function extractPlaceholderSet(value: string): ReadonlySet<string> {
 }
 
 function formatPlaceholderSet(placeholders: ReadonlySet<string>): string {
-  return [...placeholders].sort().join("|");
+  return [...placeholders].toSorted().join("|");
 }
 
 function areSetsEqual<T>(left: ReadonlySet<T>, right: ReadonlySet<T>): boolean {
@@ -113,7 +113,7 @@ function parseInterpolationTokens(value: string): {
   }
 
   return {
-    tokens: tokens.sort((a, b) => a.raw.localeCompare(b.raw) || a.name.localeCompare(b.name)),
+    tokens: tokens.toSorted((a, b) => a.raw.localeCompare(b.raw) || a.name.localeCompare(b.name)),
     problems,
   };
 }
@@ -129,11 +129,11 @@ function formatPlaceholderNames(tokens: readonly InterpolationToken[]): string {
 const pluralSuffixPattern = /_(zero|one|two|few|many|other)$/;
 
 function collectPluralKeys(entries: Map<string, string>): string[] {
-  return [...entries.keys()].filter((key) => pluralSuffixPattern.test(key)).sort();
+  return [...entries.keys()].filter((key) => pluralSuffixPattern.test(key)).toSorted();
 }
 
 function difference(left: Iterable<string>, right: ReadonlySet<string>): string[] {
-  return [...left].filter((key) => !right.has(key)).sort();
+  return [...left].filter((key) => !right.has(key)).toSorted();
 }
 
 function collectNamespaceLocaleContract(namespace: string, en: LocaleTree, ja: LocaleTree) {
@@ -162,7 +162,7 @@ function collectNamespaceLocaleContract(namespace: string, en: LocaleTree, ja: L
   return {
     missingInEn: difference(jaKeys, new Set([...enKeys, ...localeOnlyKeys])),
     missingInJa: difference(enKeys, new Set([...jaKeys, ...localeOnlyKeys])),
-    placeholderMismatches: placeholderMismatches.sort(),
+    placeholderMismatches: placeholderMismatches.toSorted(),
   };
 }
 
@@ -266,7 +266,7 @@ function collectRichTextLocaleMismatches(
   const mismatches: string[] = [];
   const keys = new Set([...enEntries.keys(), ...jaEntries.keys()]);
 
-  for (const key of [...keys].sort()) {
+  for (const key of [...keys].toSorted()) {
     const enValue = enEntries.get(key);
     const jaValue = jaEntries.get(key);
     if (enValue === undefined || jaValue === undefined) {

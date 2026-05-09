@@ -77,12 +77,12 @@ describe("ArticleToolbarView", () => {
       hideBrowserOverlayActions: false,
       layoutMode: "mobile",
     });
-    const contractResultKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap((action) => action.resultKeys).sort();
+    const contractResultKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap((action) => action.resultKeys).toSorted();
     const contractActionOptionKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap(
       (action) => action.actionOptionKeys,
-    ).sort();
+    ).toSorted();
 
-    expect(Object.keys(resolved).sort()).toEqual(contractResultKeys);
+    expect(Object.keys(resolved).toSorted()).toEqual(contractResultKeys);
     expect(contractActionOptionKeys).toEqual([
       "canCopyLink",
       "canOpenInBrowser",

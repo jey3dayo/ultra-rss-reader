@@ -137,7 +137,7 @@ function extractRustTauriCommandNames(source: string) {
     }
   }
 
-  return [...commands].sort();
+  return [...commands].toSorted();
 }
 
 function extractRustUsizeConst(source: string, constName: string) {
@@ -156,7 +156,7 @@ function extractRustStructFields(source: string, structName: string) {
   const structMatch = source.match(new RegExp(`pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`));
   expect(structMatch, `${structName} should exist in Rust command DTOs`).not.toBeNull();
 
-  return [...(structMatch?.[1] ?? "").matchAll(/^ {4}pub ([a-zA-Z0-9_]+):/gm)].map((match) => match[1]).sort();
+  return [...(structMatch?.[1] ?? "").matchAll(/^ {4}pub ([a-zA-Z0-9_]+):/gm)].map((match) => match[1]).toSorted();
 }
 
 function expectPaginationArgsSchema(schema: { parse: (value: unknown) => unknown }, base: Record<string, unknown>) {
@@ -478,12 +478,12 @@ describe("DTO schemas", () => {
     expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "not-a-date" })).toThrow();
   });
   it("keeps AccountDto schema fields aligned with Rust DTO fields", () => {
-    expect(Object.keys(AccountDtoSchema.shape).sort()).toEqual(
+    expect(Object.keys(AccountDtoSchema.shape).toSorted()).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountDto"),
     );
   });
   it("keeps AccountSyncStatus schema fields aligned with Rust DTO fields", () => {
-    expect(Object.keys(AccountSyncStatusSchema.shape).sort()).toEqual(
+    expect(Object.keys(AccountSyncStatusSchema.shape).toSorted()).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountSyncStatus"),
     );
   });
@@ -598,7 +598,7 @@ describe("DTO schemas", () => {
     expect(() => FeedDtoSchema.parse({ ...data, site_url: "ftp://example.com" })).toThrow();
   });
   it("keeps FeedDto schema fields aligned with Rust DTO fields", () => {
-    expect(Object.keys(FeedDtoSchema.shape).sort()).toEqual(
+    expect(Object.keys(FeedDtoSchema.shape).toSorted()).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "FeedDto"),
     );
   });

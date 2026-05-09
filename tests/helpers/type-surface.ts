@@ -71,7 +71,7 @@ export function createTypeSurfaceHelper({
   return {
     assertTypeFileList({ typeFileList }: TypeSurfaceContract) {
       expect(typeFileList.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-      expect(typeFileList).toEqual([...typeFileList].sort());
+      expect(typeFileList).toEqual([...typeFileList].toSorted());
     },
     collectPublicContractDiagnostics({ label, typeFileList }: TypeSurfaceContract) {
       const diagnostics: string[] = [];
@@ -97,7 +97,7 @@ export function createTypeSurfaceHelper({
         }
       }
 
-      return diagnostics.sort();
+      return diagnostics.toSorted();
     },
   };
 }

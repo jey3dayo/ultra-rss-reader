@@ -86,7 +86,7 @@ function workflowFilesUnderGithub() {
   return readdirSync(join(repoRoot, ".github/workflows"))
     .filter((entry) => entry.endsWith(".yml"))
     .map((entry) => `.github/workflows/${entry}`)
-    .sort();
+    .toSorted();
 }
 
 function extractTopLevelWorkflowPermissions(source: string) {
@@ -94,7 +94,7 @@ function extractTopLevelWorkflowPermissions(source: string) {
   const permissions = Object.fromEntries(
     [...permissionsSection.matchAll(/^ {2}([A-Za-z-]+):\s+(\S+)$/gm)]
       .map((match) => [match[1] ?? "", match[2] ?? ""])
-      .sort(([leftPermission], [rightPermission]) => leftPermission.localeCompare(rightPermission)),
+      .toSorted(([leftPermission], [rightPermission]) => leftPermission.localeCompare(rightPermission)),
   );
 
   return permissions;
@@ -105,7 +105,7 @@ function extractTopLevelWorkflowConcurrency(source: string) {
   return Object.fromEntries(
     [...concurrencySection.matchAll(/^ {2}([A-Za-z-]+):\s+(.+)$/gm)]
       .map((match) => [match[1] ?? "", match[2] ?? ""])
-      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey)),
+      .toSorted(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey)),
   );
 }
 
@@ -141,7 +141,7 @@ function extractQualityGateNeeds(source: string) {
       const trimmedValue = value.trim();
       return trimmedValue ? [trimmedValue] : [];
     })
-    .sort();
+    .toSorted();
 }
 
 function extractWorkflowCheckJobSections(source: string) {
@@ -198,7 +198,7 @@ function extractUrlPort(url: string) {
 function extractStorybookDevCommandPorts(source: string) {
   return [...source.matchAll(/\bstorybook(?:\.ps1)?\s+dev\s+-p\s+(\d+)/g)]
     .map((match) => Number(match[1]))
-    .sort((left, right) => left - right);
+    .toSorted((left, right) => left - right);
 }
 
 function extractPnpmScriptName(command: string) {
@@ -230,7 +230,7 @@ function extractStorybookCanvasIds(source: string) {
           .replaceAll(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "")}--default`,
     )
-    .sort();
+    .toSorted();
 }
 
 function extractConfigAliases(source: string, configPath: string) {
@@ -243,7 +243,7 @@ function extractConfigAliases(source: string, configPath: string) {
     aliases.set(alias, normalize(join(configDir, target)));
   }
 
-  return Object.fromEntries([...aliases.entries()].sort());
+  return Object.fromEntries([...aliases.entries()].toSorted());
 }
 
 function extractCargoPackageVersion(source: string) {
@@ -266,7 +266,7 @@ function markdownFilesUnderDocs() {
     return statSync(fullPath).isFile() && path.endsWith(".md") ? [path] : [];
   });
 
-  return [...new Set([...topLevelDocs, ...docsFiles, ...ruleFiles])].sort();
+  return [...new Set([...topLevelDocs, ...docsFiles, ...ruleFiles])].toSorted();
 }
 
 function storyFilesUnderSrc() {
@@ -274,7 +274,7 @@ function storyFilesUnderSrc() {
     .filter((entry): entry is string => typeof entry === "string")
     .filter((entry) => /\.stories\.(ts|tsx)$/.test(entry))
     .map((entry) => normalize(join("src", entry)))
-    .sort();
+    .toSorted();
 }
 
 function extractStoryFileNamedExports(source: string) {
@@ -309,7 +309,7 @@ function migrationVersionsFromFiles() {
       const version = entry.match(/^V(\d+)__.+\.sql$/)?.[1];
       return version ? [Number(version)] : [];
     })
-    .sort((a, b) => a - b);
+    .toSorted((a, b) => a - b);
 }
 
 function extractRustLatestMigrationVersion(source: string) {
@@ -395,7 +395,7 @@ function extractLabelerLabelsForPath(source: string, path: string) {
     }
   }
 
-  return [...labels].sort();
+  return [...labels].toSorted();
 }
 
 function extractLabelerRuleLabels(source: string) {
@@ -408,12 +408,12 @@ function extractReleaseNoteCategoryLabels(source: string) {
     .flatMap((match) => match[1]?.split(",") ?? [])
     .map((label) => label.trim().replace(/^"|"$/g, ""))
     .filter((label) => label !== "*")
-    .sort();
+    .toSorted();
 }
 
 function extractReleaseNoteExcludedLabels(source: string) {
   const excludeLabelsSection = source.match(/^\s+exclude:\n\s+labels:\n((?:\s+- .+\n)+)/m)?.[1] ?? "";
-  return [...excludeLabelsSection.matchAll(/^\s+- "?([^"\n]+)"?$/gm)].map((match) => match[1]).sort();
+  return [...excludeLabelsSection.matchAll(/^\s+- "?([^"\n]+)"?$/gm)].map((match) => match[1]).toSorted();
 }
 
 const issueTemplates = [issueFeatureTemplate, issueBugTemplate, issueTestTemplate, issueMaintenanceTemplate] as const;
@@ -839,7 +839,7 @@ describe("repository static contracts", () => {
     const misePnpmVersion = extractMiseToolVersion(miseSource, "npm:pnpm");
 
     expect(packageJson.engines.node).toBe("24");
-    expect(Object.keys(packageJson.engines).sort()).toEqual(["node", "pnpm"]);
+    expect(Object.keys(packageJson.engines).toSorted()).toEqual(["node", "pnpm"]);
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
     expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
@@ -950,7 +950,7 @@ describe("repository static contracts", () => {
     const miseTasks = extractMiseTaskNames(readRepoFile("mise.toml"));
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
-    expect([...new Set(ciTasks)].sort()).toEqual(["app:build:debug", "build", "format:check", "lint", "test:ci"]);
+    expect([...new Set(ciTasks)].toSorted()).toEqual(["app:build:debug", "build", "format:check", "lint", "test:ci"]);
     expect(ciTasks.filter((task) => !miseTasks.has(task))).toEqual([]);
   });
 
@@ -963,7 +963,7 @@ describe("repository static contracts", () => {
   it("keeps CI quality gate waiting on every check job", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
-    expect(extractQualityGateNeeds(ciWorkflow)).toEqual(extractWorkflowCheckJobIds(ciWorkflow).sort());
+    expect(extractQualityGateNeeds(ciWorkflow)).toEqual(extractWorkflowCheckJobIds(ciWorkflow).toSorted());
   });
 
   it("keeps CI check jobs caching the pnpm store before install", () => {
@@ -1116,14 +1116,14 @@ describe("repository static contracts", () => {
     expect(storybookWebServerUrl).toBe(storybookBaseUrl);
     expect(extractUrlPort(storybookWebServerUrl)).toBe(storybookPort);
     expect(storybookReuseExistingServer).toBe("false");
-    expect([...uiReferenceCanvasStoryIds].sort()).toEqual(storySources.flatMap(extractStorybookCanvasIds).sort());
+    expect([...uiReferenceCanvasStoryIds].toSorted()).toEqual(storySources.flatMap(extractStorybookCanvasIds).toSorted());
   });
 
   it("keeps repository-relative documentation links pointing at existing files", () => {
     const ruleMarkdownFiles = readdirSync(join(repoRoot, ".claude/rules"))
       .filter((entry) => entry.endsWith(".md"))
       .map((entry) => normalize(join(".claude/rules", entry)))
-      .sort();
+      .toSorted();
 
     expect(markdownFilesUnderDocs()).toEqual(expect.arrayContaining(ruleMarkdownFiles));
 
@@ -1148,7 +1148,7 @@ describe("repository static contracts", () => {
     const ruleFiles = readdirSync(join(repoRoot, ".claude/rules"))
       .filter((entry) => entry.endsWith(".md") && entry !== "README.md")
       .map((entry) => normalize(`./${entry}`))
-      .sort();
+      .toSorted();
     const missingRuleLinks = ruleFiles.filter((ruleFile) => !indexedRuleLinks.has(ruleFile));
 
     expect(missingRuleLinks).toEqual([]);
@@ -1537,8 +1537,8 @@ describe("repository static contracts", () => {
     ];
 
     expect(inventoryPaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-    expect(inventoryPaths).toEqual([...inventoryPaths].sort());
-    expect([...inventoryClassifications].sort()).toEqual([...typeSurfaceInventoryClassifications].sort());
+    expect(inventoryPaths).toEqual([...inventoryPaths].toSorted());
+    expect([...inventoryClassifications].toSorted()).toEqual([...typeSurfaceInventoryClassifications].toSorted());
     expect(typeSurfaceInventory.map(({ path, owner }) => `${path}:${owner}`)).toEqual([
       "src/components/reader/article-list.types.ts:components/reader/article-list",
       "src/components/reader/browser-view.types.ts:components/reader/browser-view",

@@ -137,7 +137,7 @@ export function collectStorybookStoryExportRegistry(storyModulesByPath: Record<s
   const registry: StorybookStoryExportRegistryEntry[] = [];
   const issues: string[] = [];
 
-  for (const [filePath, storyModule] of Object.entries(storyModulesByPath).sort(([left], [right]) =>
+  for (const [filePath, storyModule] of Object.entries(storyModulesByPath).toSorted(([left], [right]) =>
     left.localeCompare(right),
   )) {
     if (!isStorybookStoryModuleWithMeta(storyModule)) {
@@ -149,7 +149,7 @@ export function collectStorybookStoryExportRegistry(storyModulesByPath: Record<s
     const storyExportNames: string[] = [];
     const allowedNonStoryExportNames: string[] = [];
 
-    for (const [exportName, exportValue] of Object.entries(storyModule).sort(([left], [right]) =>
+    for (const [exportName, exportValue] of Object.entries(storyModule).toSorted(([left], [right]) =>
       left.localeCompare(right),
     )) {
       if (exportName === "default") {

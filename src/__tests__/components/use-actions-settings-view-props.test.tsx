@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { ActionsSettingsActionRow, ActionsSettingsViewProps } from "@/components/settings/actions-settings-view";
+import type { ActionsSettingsViewProps } from "@/components/settings/actions-settings-view";
 import { useActionsSettingsViewProps as buildActionsSettingsViewProps } from "@/components/settings/hooks/use-actions-settings-view-props";
 import i18n from "@/lib/i18n";
 
@@ -7,8 +7,7 @@ const t = i18n.getFixedT("en", "settings");
 
 describe("useActionsSettingsViewProps", () => {
   it("keeps action row models as view options, not schema contracts", () => {
-    expectTypeOf<ActionsSettingsViewProps>().toHaveProperty("services").toEqualTypeOf<ActionsSettingsActionRow[]>();
-    expectTypeOf<ActionsSettingsActionRow>()
+    expectTypeOf<ActionsSettingsViewProps["services"][number]>()
       .toHaveProperty("onCheckedChange")
       .toEqualTypeOf<(checked: boolean) => void>();
   });

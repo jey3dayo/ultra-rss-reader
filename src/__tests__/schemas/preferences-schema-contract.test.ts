@@ -73,7 +73,7 @@ function collectDuplicates(keys: string[]): string[] {
     seen.add(key);
   }
 
-  return [...duplicates].sort();
+  return [...duplicates].toSorted();
 }
 
 const backendOnlyPreferenceKeys = ["selected_account_id"];

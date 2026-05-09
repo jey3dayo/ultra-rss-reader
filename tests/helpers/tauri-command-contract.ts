@@ -8,7 +8,7 @@ export function extractCommandNames(source: string, commandPattern: RegExp): str
     }
   }
 
-  return [...commands].sort();
+  return [...commands].toSorted();
 }
 
 export function extractSafeInvokeCommandsWithArgs(source: string): string[] {
@@ -46,7 +46,7 @@ export function extractSafeInvokeCommandsWithArgs(source: string): string[] {
     searchFrom = end + 1;
   }
 
-  return [...commands].sort();
+  return [...commands].toSorted();
 }
 
 export type CommandIndex = {

@@ -1,5 +1,5 @@
 export function sortedRegistryValues<T>(items: Iterable<T>, compareFn?: (left: T, right: T) => number): T[] {
-  return [...items].sort(compareFn);
+  return [...items].toSorted(compareFn);
 }
 
 export function extractSortedUniqueRegistryMatches(source: string, pattern: RegExp): string[] {

@@ -132,7 +132,7 @@ function escapeRegExp(value: string): string {
 
 describe("Storybook Explorer organization", () => {
   it("keeps Storybook index payload public helpers explicit", () => {
-    expect(Object.keys(storybookIndexPayload).sort()).toEqual([
+    expect(Object.keys(storybookIndexPayload).toSorted()).toEqual([
       "createStorybookStoryIdIndex",
       "getDuplicateStorybookStoryIdDiagnostics",
       "getStorybookIframeStoryId",

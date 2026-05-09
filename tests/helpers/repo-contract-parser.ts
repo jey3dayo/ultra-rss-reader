@@ -5,7 +5,7 @@ export function expectSortedKeysForTarget(
   actualKeys: Iterable<string>,
   expectedKeys: Iterable<string>,
 ): void {
-  expect([...actualKeys].sort(), `${target} sorted keys`).toEqual([...expectedKeys].sort());
+  expect([...actualKeys].toSorted(), `${target} sorted keys`).toEqual([...expectedKeys].toSorted());
 }
 
 export function extractMarkdownSection(source: string, heading: string): string {

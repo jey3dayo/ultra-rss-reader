@@ -108,7 +108,7 @@ function localeResourceBasenamesByLocale() {
     basenamesByLocale.set(match.groups.locale, basenames);
   }
 
-  return Object.fromEntries([...basenamesByLocale].map(([locale, basenames]) => [locale, basenames.sort()]));
+  return Object.fromEntries([...basenamesByLocale].map(([locale, basenames]) => [locale, basenames.toSorted()]));
 }
 
 describe("i18next locale contract", () => {
@@ -140,13 +140,13 @@ describe("i18next locale contract", () => {
   });
 
   it("keeps resource namespace maps aligned with locale JSON file inventory", () => {
-    const namespaces = [...i18nResourceNamespaces].sort();
+    const namespaces = [...i18nResourceNamespaces].toSorted();
     const basenamesByLocale = localeResourceBasenamesByLocale();
 
-    expect(Object.keys(basenamesByLocale).sort()).toEqual([...i18nResourceLocales].sort());
+    expect(Object.keys(basenamesByLocale).toSorted()).toEqual([...i18nResourceLocales].toSorted());
 
     for (const locale of i18nResourceLocales) {
-      expect(Object.keys(i18nResources[locale]).sort()).toEqual(namespaces);
+      expect(Object.keys(i18nResources[locale]).toSorted()).toEqual(namespaces);
       expect(basenamesByLocale[locale]).toEqual(namespaces);
     }
   });

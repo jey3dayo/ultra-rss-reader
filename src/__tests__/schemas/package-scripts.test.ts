@@ -115,7 +115,7 @@ function extractPackageManagerVersion(packageManager: string | undefined, manage
 function extractReadmeMiseCommands(readme: string): string[] {
   return [...new Set([...readme.matchAll(/mise run ([a-z0-9:_-]+)/g)].map((match) => match[1] ?? ""))]
     .filter(Boolean)
-    .sort();
+    .toSorted();
 }
 
 describe("package scripts", () => {

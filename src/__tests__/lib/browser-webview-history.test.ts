@@ -15,7 +15,7 @@ describe("browser webview history helpers", () => {
   });
 
   it("keeps the frontend fallback helper limited to history navigation and reload", () => {
-    expect(Object.keys(webviewHistory).sort()).toEqual(["goBackInWebview", "goForwardInWebview", "reloadWebview"]);
+    expect(Object.keys(webviewHistory).toSorted()).toEqual(["goBackInWebview", "goForwardInWebview", "reloadWebview"]);
   });
 
   it("uses the iframe history stack for back and forward availability fallback", async () => {
