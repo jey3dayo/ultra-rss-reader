@@ -50,16 +50,6 @@
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
 
-- [ ] P2 old unread read action stale count contract を補強する
-  - 対象: `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`, feed/folder/smart context menus
-  - old unread count fetch と confirm action の間で unread count が変わった時、confirm message と実行結果のズレが起き得る
-  - count fetch failure / count becomes zero / action reject の user feedback を focused test で固定する
-
-- [ ] P2 feed URL normalization failure copy を整理する
-  - 対象: `src/lib/feed/feed.ts`, `src/components/reader/feed-context-menu.tsx`, add feed dialog actions
-  - URL parsing failure が helper / context menu / add feed flow で別々に処理され、invalid URL の user-facing copy と log policy が揺れやすい
-  - malformed URL / protocol-relative URL / throwing URL constructor 相当の contract test を追加する
-
 - [ ] P3 story/runtime mock window global cleanup を追加する
   - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
@@ -70,30 +60,15 @@
   - drag handle click suppression は timer 依存で、drag cancel / drop / unmount の順序によって suppress flag が残る可能性がある
   - drag start -> cancel -> click、drag start -> unmount の timer cleanup を focused test にする
 
-- [ ] P2 article action fire-and-forget parity を整理する
-  - 対象: `src/components/reader/hooks/article/use-article-actions.ts`, `src/components/reader/article-browser-actions.ts`
-  - open external / copy link / add to reading list は fire-and-forget 入口だが、toast と log の粒度が action ごとに揺れる可能性がある
-  - invalid URL、native reject、clipboard unavailable、reading list unsupported の user feedback を同じ contract へ寄せる
-
 - [ ] P2 app foreground window show/focus error policy を整理する
   - 対象: `src-tauri/src/lib.rs`
   - second instance / foreground handling で `let _ = window.show(); let _ = window.set_focus();` と error を捨てており、packaged app の復帰失敗を追跡しにくい
   - expected unsupported と unexpected error を分けて log するか、manual verification に残すか決める
 
-- [ ] P1 query key raw string usage を整理する
-  - 対象: `src/hooks/use-accounts.ts`, `src/hooks/use-account-unread-count.ts`, `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/account-detail/query-cache.ts`, `src/lib/query/query-invalidation.ts`
-  - `queryKeys` helper と raw `["accounts"]` / `["feeds"]` / `["accountUnreadCount"]` が混在し、root key rename や account scoped invalidation で漏れが出やすい
-  - account / feeds / folders / unread count の root key を source of truth に寄せ、raw key を残す場合は compatibility test を追加する
-
 - [ ] P1 createMutation invalidation policy を明文化する
   - 対象: `src/hooks/create-mutation.ts`, `src/lib/query/query-invalidation.ts`, generated mutation hooks
   - `createMutation()` は `onSuccess` で invalidate callback を await する設計だが、多くの callback は内部で fire-and-forget しており成功/失敗の扱いが hook ごとに揺れている
   - `await invalidate` が mutation status を failed にしてよいケースと log-only にするケースを分け、shared helper の戻り値 contract を固定する
-
-- [ ] P1 preferences persist latest-only request map cleanup を補強する
-  - 対象: `src/stores/preferences-store.ts`
-  - preference persist の request counter map が key ごとの latest-only 制御を持つ一方、unknown / removed preference key や repeated failure 後の cleanup 方針が見えにくい
-  - rapid toggle、unknown backend passthrough key、persist reject 後 retry の map cleanup と toast 重複抑制を store test で固定する
 
 - [ ] P1 shortcut duplicate override conflict visibility を追加する
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/keyboard-shortcuts-settings.tsx`
@@ -124,11 +99,6 @@
   - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`
   - retained article snapshot は Map で id 重複を後勝ち merge するため、same id with stale read/star state が source 間で競合した時の表示が未固定
   - retained snapshot stale、current source duplicate、search/tag/source切替の merge order を pure helper test にする
-
-- [ ] P2 preferences unknown passthrough typo detection を追加する
-  - 対象: `src/schemas/preferences.ts`, `src/stores/preferences-store.ts`, Rust preferences command boundary
-  - unknown preference key は passthrough として残せるが、typo や retired key が silent fallback になり、settings UI と backend state の不一致を見逃しやすい
-  - known retired key allowlist / dev warning / backend passthrough の分類を作り、schema-derived preference defaults と合わせて test する
 
 - [ ] P2 Rust app startup filesystem failure diagnostics を補強する
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/build.rs`
@@ -164,31 +134,6 @@
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/preference_commands.rs`
   - native browser diagnostics flag が startup preference だけを読む場合、settings で Debug HUD を切り替えても native emit が即時追従しない可能性がある
   - preference update event / app restart required / frontend-only HUD のどれを正にするか決め、debug diagnostics の manual verification に残す
-
-- [ ] P1 tag query account-id normalization を揃える
-  - 対象: `src/hooks/use-tags.ts`, `src/dev/scenarios/helpers.ts`, `src/lib/query/query-invalidation.ts`
-  - `articlesByTag` / `tagArticleCounts` の query key で `undefined`、`null`、未 trim account id が混ざると、同一条件の cache entry が分裂しやすい
-  - account id blank / null / undefined / whitespace の key normalization を helper に寄せ、dev scenario seed と hook query key の一致を test で固定する
-
-- [ ] P1 search article query account-id normalization を固定する
-  - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`
-  - search query は trim しているが account id の blank/whitespace normalization が揃わないと、enabled 判定や cache key が実 account とズレる可能性がある
-  - blank account id、trimmed query、account switch 中の search cache reuse を focused hook test にする
-
-- [ ] P2 query client global default policy を明文化する
-  - 対象: `src/lib/query/query-client.ts`, query hook tests
-  - QueryClient の `retry` / `staleTime` / `gcTime` / foreground refetch policy が app shell と tests で揺れると、Tauri desktop と browser preview の挙動差が増える
-  - desktop app としての default policy を CLAUDE.md / query helper に寄せ、hook tests は必要な default だけを明示 override する
-
-- [ ] P2 preference store module-level reset contract を追加する
-  - 対象: `src/stores/preferences-store.ts`, `src/__tests__/stores/preferences-store.test.ts`
-  - `preferencesLoadPromise` と persist request maps が module global なので、store reset だけでは test/dev scenario の状態が完全に戻らない可能性がある
-  - test-only reset helper または explicit cleanup policy を作り、load failure cache / persist latest-only maps / system theme listener を同時に検証する
-
-- [ ] P2 UI toast timer clear contract を固定する
-  - 対象: `src/stores/ui-store.ts`, `src/__tests__/stores/ui-store.test.ts`
-  - `clearToast()` は pending auto-dismiss timer を clear しないため、手動 clear や store reset 後に古い timer が再度 `toastMessage` を触る余地がある
-  - show persistent -> clear -> non-persistent timer settle、store reset 後 timer settle の contract を fake timer test にする
 
 - [ ] P2 WSL Windows env forwarding secret suffix を補強する
   - 対象: `scripts/lib/windows-dispatch.ts`, `scripts/tauri-cli-dispatch.ts`, `src/__tests__/scripts/tauri-cli-dispatch.test.ts`
