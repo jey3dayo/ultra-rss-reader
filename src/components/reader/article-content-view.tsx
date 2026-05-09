@@ -4,6 +4,12 @@ import { normalizeArticleBodyHtml } from "@/lib/content/html";
 
 declare const sanitizedArticleHtmlBrand: unique symbol;
 
+/**
+ * HTML that has crossed the Rust sanitizer boundary as `content_sanitized`.
+ *
+ * ArticleContentView intentionally does not sanitize again in React; callers must
+ * brand only Rust-sanitized article bodies before passing them to this danger boundary.
+ */
 export type SanitizedArticleHtml = string & {
   readonly [sanitizedArticleHtmlBrand]: true;
 };

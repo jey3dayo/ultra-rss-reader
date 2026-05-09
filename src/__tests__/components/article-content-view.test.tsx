@@ -83,4 +83,17 @@ describe("ArticleContentView", () => {
 
     expect(fromSanitizedArticleHtml(sanitizedHtml)).toBe(sanitizedHtml);
   });
+
+  it("does not re-sanitize content at the React danger boundary", () => {
+    const rustSanitizedHtml = fromSanitizedArticleHtml(
+      "<p>Safe body</p><a href='https://example.com/article' rel='noopener noreferrer'>Read more</a>",
+    );
+
+    const { container } = render(<ArticleContentView contentHtml={rustSanitizedHtml} />);
+
+    expect(screen.getByText("Safe body")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Read more" })).toHaveAttribute("href", "https://example.com/article");
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("[onclick]")).toBeNull();
+  });
 });
