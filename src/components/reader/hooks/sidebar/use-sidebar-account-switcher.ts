@@ -100,11 +100,11 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
       eventName: "pointerdown" | "mousedown" | "touchstart" | "focusout";
       handler: EventListener;
     }> = [
-      ["pointerdown", handlePointerOutside],
-      ["mousedown", handlePointerOutside],
-      ["touchstart", handlePointerOutside],
-      ["focusout", handleFocusOutside],
-    ].map(([eventName, handler]) => ({ eventName, handler }));
+      { eventName: "pointerdown", handler: handlePointerOutside },
+      { eventName: "mousedown", handler: handlePointerOutside },
+      { eventName: "touchstart", handler: handlePointerOutside },
+      { eventName: "focusout", handler: handleFocusOutside },
+    ];
 
     try {
       for (const { eventName, handler } of listenerEntries) {
