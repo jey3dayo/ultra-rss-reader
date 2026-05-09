@@ -11,7 +11,7 @@ import type {
   AddFeedDialogState,
 } from "../../add-feed-dialog.types";
 import { createFolderIfNeededResult } from "../../feed-folder-flow";
-import { invalidateFeedQueries } from "../../feed-query-cache";
+import { invalidateArticleQueries, invalidateFeedQueries } from "../../feed-query-cache";
 
 type UseAddFeedDialogActionsParams = {
   accountId: string;
@@ -156,6 +156,10 @@ export function useAddFeedDialogActions({
       }
 
       invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
+      invalidateArticleQueries(queryClient, {
+        includeAccountUnreadCount: false,
+        includeFeeds: false,
+      });
       onOpenChange(false);
     } finally {
       submitInFlightRef.current = false;

@@ -41,7 +41,10 @@ describe("useDeleteFeed", () => {
     await waitFor(() => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["articles"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["search"] });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["recentArticles"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
         queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex("acc-1"),
       });

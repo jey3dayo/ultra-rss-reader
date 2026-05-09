@@ -309,6 +309,7 @@ describe("useAddFeedDialogActions", () => {
     const dispatch = vi.fn();
     const onOpenChange = vi.fn();
     const queryClient = new QueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
 
     const { result } = renderHook(() =>
       useAddFeedDialogActions({
@@ -358,6 +359,12 @@ describe("useAddFeedDialogActions", () => {
 
     expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/atom.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["articles"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["search"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["recentArticles"] });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
