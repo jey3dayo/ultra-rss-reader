@@ -45,11 +45,6 @@
   - DTO alias や view model が `z.output` / `z.infer` / `api/tauri-commands` の source of truth と重複していないか確認し、UI 専用 shape は `*ViewModel` / `*UiState` として意図を明確にする
   - IPC / localStorage / app-config schema の validation 変更とは分け、type source-of-truth と DTO/UI state boundary だけを扱う
 
-- [ ] P2 react-doctor browser-view state effects 候補を追加する
-  - `src/components/reader/browser-view.tsx` の cascading setState / state-only handler / trivial `useMemo` を整理する
-  - reducer 化する state と `useRef` 化する render 非依存 state を分け、browser surface state test を追加する
-  - Browser WebView geometry 数値や native bounds 挙動は触らず、React state/effect の形だけを扱う
-
 - [ ] P3 react-doctor dead code type surface 候補を追加する
   - `knip/types` / `knip/exports` の unused type/export を feature ごとに棚卸しする
   - `article-list.types.ts` / `browser-view.types.ts` / `command-palette.types.ts` など広い contract は一括削除せず参照範囲ごとに分ける
@@ -59,11 +54,6 @@
   - `react-doctor/no-many-boolean-props` の対象 component を action group / named variant / discriminated props へ分割できるか確認する
   - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
   - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
-
-- [ ] P3 react-doctor knip unused files cleanup 候補を追加する
-  - `knip/files` の unused file 指摘を実 unused / config entrypoint / Storybook or Playwright entrypoint に分類する
-  - 対象候補: `playwright.storybook.config.ts` / legacy settings form files / `src/dev/scenarios/index.ts`
-  - dead code type surface とは分け、file-level export/entrypoint contract と削除可否だけを扱う
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
