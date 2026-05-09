@@ -105,11 +105,6 @@
   - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
   - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
 
-- [ ] P2 tag mutation の duplicate name / stale article assignment policy を固定する
-  - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/tag-context-menu.tsx`
-  - tag create/rename/assign が複数 UI から実行できるため、duplicate name や article deletion 後の assign/unassign が stale success として見えやすい
-  - duplicate name normalization、deleted article/tag、invalidation failure の user-visible message と rollback 方針を hook/component test で固定する
-
 - [ ] P2 feed favicon remote image failure / mixed content policy を固定する
   - 対象: `src/components/shared/feed-favicon.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/feed-tree-row.tsx`
   - favicon/thumbnail と本文 sanitizer は別境界なので、http image、tracking query、broken image、SVG data をどこで許可/拒否するかがズレやすい
@@ -149,11 +144,6 @@
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
-
-- [ ] P2 mute settings auto-mark optimistic rollback を latest-only にする
-  - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`
-  - auto-mark toggle は store を先に書き換えて失敗時に previous value を戻すため、ON -> OFF 連続操作で古い failure が最新設定を巻き戻す可能性がある
-  - deferred mutation で ON failure / OFF success を逆順 settle させる component test を追加し、revision guard または current value compare rollback にする
 
 - [ ] P3 backup/log file path を user-facing diagnostics に出す時の redaction policy を統一する
   - 対象: `src-tauri/src/infra/db/backup.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/commands/log_commands.rs`
@@ -214,16 +204,6 @@
   - 対象: `src/hooks/use-badge.ts`, `src/hooks/use-app-icon-theme.ts`, `src/components/reader/hooks/command-palette/use-command-palette-runtime.ts`
   - React Doctor は sequential await を警告しているが、badge/icon は最新 request だけ適用する queue と絡むため、単純な `Promise.all` 化で ordering を壊しやすい
   - independent な await だけ並列化し、latest-only queue が必要な箇所はコメントと test で sequential contract を固定する
-
-- [ ] P2 article tag picker outside-click を pointer / touch / portal owner document で固定する
-  - 対象: `src/components/reader/hooks/article/use-article-tag-picker-popover.ts`, `src/components/reader/article-tag-picker-view.tsx`
-  - outside close が `mousedown` の document listener だけに依存しており、touch/pointer、portal、iframe/WebView ownerDocument 差で閉じない・閉じすぎる挙動が出やすい
-  - pointerdown/touchstart、ownerDocument cleanup failure、inside click、trigger click、Escape close の component test を追加する
-
-- [ ] P2 article reader body の anchor listener を delegation 化する候補を検証する
-  - 対象: `src/components/reader/article-reader-body.tsx`, `src/components/reader/article-content-view.tsx`
-  - sanitized HTML 内の全 anchor へ個別 listener を張るため、長文記事や頻繁な article 切替で listener attach/detach のコストと stale anchor cleanup が増えやすい
-  - container-level click delegation、nested element click、modifier key、relative URL、article切替時 cleanup の component test を追加する
 
 - [ ] P3 React 19 deprecated API warning を context wrapper 単位で移行判断する
   - 対象: `src/components/settings/shared/settings-content-layout.tsx`, `src/components/settings/**`
