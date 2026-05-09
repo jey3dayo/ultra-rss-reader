@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P2 article list retained snapshot duplicate identity contract を固定する
-  - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`
-  - retained article snapshot は Map で id 重複を後勝ち merge するため、same id with stale read/star state が source 間で競合した時の表示が未固定
-  - retained snapshot stale、current source duplicate、search/tag/source切替の merge order を pure helper test にする
-
 - [ ] P2 Rust app startup filesystem failure diagnostics を補強する
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/build.rs`
   - app data dir 作成 / DB init / log cleanup で `expect` / `panic` / silent remove failure が混在しており、packaged startup failure の user-facing message が揺れやすい
@@ -80,20 +75,10 @@
   - articles/count は保存済みだが validator `sync_state` 保存だけ失敗すると、次回同じ feed を再取得し、逆方向の不整合も将来 refactor で入りやすい
   - `sync_state` table failure test で記事保存済み時の state 方針を固定し、article upsert、mute auto-read、count、state を service transaction へまとめる
 
-- [ ] P2 account sync 設定更新の stale error toast を revision guard する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts`
-  - 成功側は revision guard があるが失敗側は常に `showSyncUpdateError` するため、古い request の失敗が後続成功後にエラー表示だけ出せる
-  - 連続設定変更で先行失敗/後続成功を逆順 settle させ、error path も revision guard する
-
 - [ ] P2 provider article URL の credential / fragment / control char normalization を固定する
   - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/api/schemas/article.ts`, `src/components/reader/article-toolbar-view.tsx`
   - feed item の article URL は open/copy/browser preview に流れるため、`https://user:pass@host`、fragment token、control char をどこで落とすか未固定だと privacy と UI 表示が揺れる
   - normalizer、ArticleDtoSchema、open/copy action のどこで sanitize するか決め、credential-in-URL と invalid URL の fixture を追加する
-
-- [ ] P2 Windows Rust test scope が integration_test だけになっている理由を固定する
-  - 対象: `mise.toml`, `.github/workflows/ci.yml`
-  - Windows の `test:rust` が `--test integration_test` のみに絞られており、unit tests が Windows 固有の path/keyring/OS 差を拾わない可能性がある
-  - 絞り込み理由を明文化するか、Windows で走らせる safe Rust unit subset を作り、path/keyring/browser geometry 周辺だけでも gate へ入れる
 
 - [ ] P3 auto mark read の同一 article 再自動既読 policy を固定する
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`
@@ -414,11 +399,6 @@
   - 対象: `src/components/app-shell.tsx`
   - settings modal preload が failure を console に出すだけだと、chunk outage や asset path 破損時に hover/focus のたびに同じ preload が失敗し続け、原因が diagnostics に残りにくい
   - preload failure cache、manual retry、reload action、production/dev logging の behavior を app shell test にする
-
-- [ ] P3 command history warning once cache を test/runtime reset できるようにする
-  - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`
-  - module-level warned set は HMR/test isolation と別 lifecycle なので、一度 warning が出ると後続の storage recovery/failure を同じ session で観測しにくい
-  - reset helper を test-only export するか diagnostics counter へ寄せ、unavailable -> recovered -> failed again の behavior を unit test にする
 
 - [ ] P3 native browser bridge JS source を fixture snapshot で最小限固定する
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/browser_webview/*`
