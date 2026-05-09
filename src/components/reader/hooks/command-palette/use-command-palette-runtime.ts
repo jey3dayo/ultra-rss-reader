@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from "react";
 import { useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
-import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
+import type { DevScenarioRuntimeError, RuntimeDevScenario } from "@/dev/scenario-runtime";
 
 type UseCommandPaletteRuntimeParams = {
   open: boolean;
@@ -10,6 +10,7 @@ type UseCommandPaletteRuntimeResult = {
   input: string;
   setInput: (value: string) => void;
   devScenarios: RuntimeDevScenario[];
+  devScenarioLoadError: DevScenarioRuntimeError | null;
   prefix: string | null;
   query: string;
   deferredQuery: string;
@@ -18,25 +19,39 @@ type UseCommandPaletteRuntimeResult = {
 type CommandPaletteRuntimeState = {
   input: string;
   devScenarios: RuntimeDevScenario[];
+  devScenarioLoadError: DevScenarioRuntimeError | null;
 };
 
 type CommandPaletteRuntimeAction =
   | { type: "set-input"; value: string }
   | { type: "reset-input" }
-  | { type: "set-dev-scenarios"; value: RuntimeDevScenario[] };
+  | { type: "set-dev-scenarios"; value: RuntimeDevScenario[] }
+  | { type: "set-dev-scenario-load-error"; value: DevScenarioRuntimeError };
 
 const initialCommandPaletteRuntimeState: CommandPaletteRuntimeState = {
   input: "",
   devScenarios: [],
+  devScenarioLoadError: null,
 };
 
-async function loadCommandPaletteRuntimeDevScenarios(): Promise<RuntimeDevScenario[]> {
+type CommandPaletteRuntimeDevScenarioLoadResult =
+  | { ok: true; scenarios: RuntimeDevScenario[] }
+  | { ok: false; error: DevScenarioRuntimeError };
+
+async function loadCommandPaletteRuntimeDevScenarios(): Promise<CommandPaletteRuntimeDevScenarioLoadResult> {
   if (!import.meta.env.DEV) {
-    return [];
+    return { ok: true, scenarios: [] };
   }
 
-  const { loadRuntimeDevScenarios } = await import("@/dev/scenario-runtime");
-  return loadRuntimeDevScenarios();
+  const [{ Result }, { loadRuntimeDevScenariosResult }] = await Promise.all([
+    import("@praha/byethrow"),
+    import("@/dev/scenario-runtime"),
+  ]);
+  const result = await loadRuntimeDevScenariosResult();
+  if (Result.isFailure(result)) {
+    return { ok: false, error: Result.unwrapError(result) };
+  }
+  return { ok: true, scenarios: Result.unwrap(result) };
 }
 
 function commandPaletteRuntimeReducer(
@@ -49,7 +64,9 @@ function commandPaletteRuntimeReducer(
     case "reset-input":
       return { ...state, input: "" };
     case "set-dev-scenarios":
-      return { ...state, devScenarios: action.value };
+      return { ...state, devScenarios: action.value, devScenarioLoadError: null };
+    case "set-dev-scenario-load-error":
+      return { ...state, devScenarios: [], devScenarioLoadError: action.value };
     default:
       return state;
   }
@@ -57,7 +74,7 @@ function commandPaletteRuntimeReducer(
 
 export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParams): UseCommandPaletteRuntimeResult {
   const [state, dispatch] = useReducer(commandPaletteRuntimeReducer, initialCommandPaletteRuntimeState);
-  const { input, devScenarios } = state;
+  const { input, devScenarios, devScenarioLoadError } = state;
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
   useEffect(() => {
@@ -74,15 +91,33 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
     let cancelled = false;
 
     void loadCommandPaletteRuntimeDevScenarios()
-      .then((scenarios) => {
-        if (!cancelled) {
-          dispatch({ type: "set-dev-scenarios", value: scenarios });
+      .then((loadResult) => {
+        if (cancelled) {
+          return;
         }
+
+        if (loadResult.ok) {
+          dispatch({ type: "set-dev-scenarios", value: loadResult.scenarios });
+          return;
+        }
+
+        console.warn("Command palette dev scenario loader failed.", loadResult.error);
+        dispatch({ type: "set-dev-scenario-load-error", value: loadResult.error });
       })
-      .catch(() => {
-        if (!cancelled) {
-          dispatch({ type: "set-dev-scenarios", value: [] });
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
         }
+
+        const loadError: DevScenarioRuntimeError = {
+          type: "module_load_failed",
+          message:
+            error instanceof Error && error.message.trim().length > 0
+              ? error.message
+              : "Unknown dev scenario runtime error.",
+        };
+        console.warn("Command palette dev scenario loader failed.", loadError);
+        dispatch({ type: "set-dev-scenario-load-error", value: loadError });
       });
 
     return () => {
@@ -94,6 +129,7 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
     input,
     setInput: (value) => dispatch({ type: "set-input", value }),
     devScenarios,
+    devScenarioLoadError,
     prefix,
     query,
     deferredQuery,

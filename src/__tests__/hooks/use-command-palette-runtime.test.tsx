@@ -1,14 +1,15 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteRuntime } from "@/components/reader/hooks/command-palette/use-command-palette-runtime";
-import type { loadRuntimeDevScenarios } from "@/dev/scenario-runtime";
+import type { loadRuntimeDevScenariosResult } from "@/dev/scenario-runtime";
 
-const { loadRuntimeDevScenariosMock } = vi.hoisted(() => ({
-  loadRuntimeDevScenariosMock: vi.fn<() => ReturnType<typeof loadRuntimeDevScenarios>>(),
+const { loadRuntimeDevScenariosResultMock } = vi.hoisted(() => ({
+  loadRuntimeDevScenariosResultMock: vi.fn<() => ReturnType<typeof loadRuntimeDevScenariosResult>>(),
 }));
 
 vi.mock("@/dev/scenario-runtime", () => ({
-  loadRuntimeDevScenarios: loadRuntimeDevScenariosMock,
+  loadRuntimeDevScenariosResult: loadRuntimeDevScenariosResultMock,
 }));
 
 function createDeferred<T>() {
@@ -25,13 +26,15 @@ function createDeferred<T>() {
 describe("useCommandPaletteRuntime", () => {
   beforeEach(() => {
     vi.stubEnv("DEV", true);
-    loadRuntimeDevScenariosMock.mockResolvedValue([
-      {
-        id: "open-add-feed-dialog",
-        title: "Open add feed dialog",
-        keywords: ["add", "feed"],
-      },
-    ]);
+    loadRuntimeDevScenariosResultMock.mockResolvedValue(
+      Result.succeed([
+        {
+          id: "open-add-feed-dialog",
+          title: "Open add feed dialog",
+          keywords: ["add", "feed"],
+        },
+      ]),
+    );
   });
 
   afterEach(() => {
@@ -91,13 +94,14 @@ describe("useCommandPaletteRuntime", () => {
 
     const { result } = renderHook(() => useCommandPaletteRuntime({ open: true }));
 
-    expect(loadRuntimeDevScenariosMock).not.toHaveBeenCalled();
+    expect(loadRuntimeDevScenariosResultMock).not.toHaveBeenCalled();
     expect(result.current.devScenarios).toEqual([]);
+    expect(result.current.devScenarioLoadError).toBeNull();
   });
 
   it("ignores a successful dev scenario load after unmount", async () => {
-    const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenarios>>>();
-    loadRuntimeDevScenariosMock.mockReturnValueOnce(deferred.promise);
+    const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenariosResult>>>();
+    loadRuntimeDevScenariosResultMock.mockReturnValueOnce(deferred.promise);
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { result, unmount } = renderHook(() => useCommandPaletteRuntime({ open: true }));
@@ -106,13 +110,15 @@ describe("useCommandPaletteRuntime", () => {
     unmount();
 
     await act(async () => {
-      deferred.resolve([
-        {
-          id: "open-add-feed-dialog",
-          title: "Open add feed dialog",
-          keywords: ["add", "feed"],
-        },
-      ]);
+      deferred.resolve(
+        Result.succeed([
+          {
+            id: "open-add-feed-dialog",
+            title: "Open add feed dialog",
+            keywords: ["add", "feed"],
+          },
+        ]),
+      );
       await deferred.promise;
     });
 
@@ -121,9 +127,10 @@ describe("useCommandPaletteRuntime", () => {
   });
 
   it("ignores a failed dev scenario load after unmount", async () => {
-    const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenarios>>>();
-    loadRuntimeDevScenariosMock.mockReturnValueOnce(deferred.promise);
+    const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenariosResult>>>();
+    loadRuntimeDevScenariosResultMock.mockReturnValueOnce(deferred.promise);
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const { result, unmount } = renderHook(() => useCommandPaletteRuntime({ open: true }));
 
@@ -136,6 +143,34 @@ describe("useCommandPaletteRuntime", () => {
     });
 
     expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("exposes and warns about dev scenario load failures without treating them as empty results", async () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    loadRuntimeDevScenariosResultMock.mockResolvedValueOnce(
+      Result.fail({
+        type: "module_load_failed",
+        message: "Temporary import failure",
+      }),
+    );
+
+    const { result } = renderHook(() => useCommandPaletteRuntime({ open: true }));
+
+    await waitFor(() => {
+      expect(result.current.devScenarioLoadError).toEqual({
+        type: "module_load_failed",
+        message: "Temporary import failure",
+      });
+    });
+    expect(result.current.devScenarios).toEqual([]);
+    expect(consoleWarnSpy).toHaveBeenCalledWith("Command palette dev scenario loader failed.", {
+      type: "module_load_failed",
+      message: "Temporary import failure",
+    });
+
+    consoleWarnSpy.mockRestore();
   });
 });
