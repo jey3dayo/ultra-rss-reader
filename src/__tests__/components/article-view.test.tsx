@@ -16,7 +16,7 @@ import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
-import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
+import { BROWSER_OVERLAY_CLOSE_DELAY_MS, MOTION_ARTICLE_SLIDE_CLASS_NAME } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -2491,8 +2491,36 @@ describe("ArticleView", () => {
     });
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
     expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "next");
+  });
+
+  it("keeps article detail switching limited to the reader body slide contract", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+    useUiStore.setState({ articleNavigationDirection: 1 });
+
+    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    const readerBody = screen.getByTestId("article-reader-body");
+    expect(readerBody).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
+    expect(readerBody).not.toHaveClass(
+      "motion-content-swap",
+      "motion-contextual-surface",
+      "motion-interactive-surface",
+      "motion-static-hover-surface",
+    );
   });
 
   it("marks the reader body with the previous-article slide direction", async () => {
@@ -2513,7 +2541,7 @@ describe("ArticleView", () => {
     });
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
     expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "prev");
   });
 
@@ -2534,7 +2562,7 @@ describe("ArticleView", () => {
     });
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass("motion-article-slide");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
     expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "neutral");
   });
 

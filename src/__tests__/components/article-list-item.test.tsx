@@ -157,6 +157,33 @@ describe("ArticleListItem", () => {
     expect(container.querySelector("img")).toHaveAttribute("referrerpolicy", "no-referrer");
   });
 
+  it("keeps high-frequency row selection and hover out of shared transform motion", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Tech Blog"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const row = screen.getByRole("option", { name: /First Article/ });
+    expect(row).toHaveClass("transition-[background-color,border-color,box-shadow,color,opacity]");
+    expect(row).not.toHaveClass(
+      "motion-static-hover-surface",
+      "motion-contextual-surface",
+      "motion-interactive-surface",
+      "motion-content-swap",
+      "motion-article-slide",
+    );
+  });
+
   it("normalizes title whitespace for row labels and display", () => {
     expect(
       resolvePresentation({
