@@ -280,8 +280,19 @@ describe("dev-intent helpers", () => {
   });
 
   it("clears a failed runtime option promise so the next request can refresh dev intent", async () => {
-    let resolveFirstRequest: ((result: Result.Result<never, { type: "UserVisible"; message: string }>) => void) | null =
-      null;
+    let resolveFirstRequest:
+      | ((
+          result: Result.Result<
+            {
+              dev_intent: null;
+              dev_web_url: null;
+              dev_window_width: null;
+              dev_window_height: null;
+            },
+            { type: "UserVisible"; message: string }
+          >,
+        ) => void)
+      | null = null;
     getDevRuntimeOptionsMock.mockReturnValueOnce(
       new Promise((resolve) => {
         resolveFirstRequest = resolve;
@@ -290,7 +301,20 @@ describe("dev-intent helpers", () => {
 
     const firstLoad = loadDevRuntimeOptionsResult();
     const sharedLoad = loadDevRuntimeOptionsResult();
-    resolveFirstRequest?.(Result.fail({ type: "UserVisible", message: "boom" }));
+    if (!resolveFirstRequest) {
+      throw new Error("Expected runtime options request to be captured");
+    }
+    (
+      resolveFirstRequest as (result: Result.Result<
+        {
+          dev_intent: null;
+          dev_web_url: null;
+          dev_window_width: null;
+          dev_window_height: null;
+        },
+        { type: "UserVisible"; message: string }
+      >) => void
+    )(Result.fail({ type: "UserVisible", message: "boom" }));
 
     expect(Result.unwrapError(await firstLoad)).toBe("request_failed");
     expect(Result.unwrapError(await sharedLoad)).toBe("request_failed");

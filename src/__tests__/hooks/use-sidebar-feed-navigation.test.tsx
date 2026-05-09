@@ -1,9 +1,14 @@
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSidebarFeedNavigation } from "@/components/reader/hooks/sidebar/use-sidebar-feed-navigation";
 import { APP_EVENTS } from "@/constants/events";
 
 describe("useSidebarFeedNavigation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   it("uses the latest selected feed when keyboard navigation repeats before state rerenders", () => {
     const setExpandedFolders = vi.fn();
     const selectFeed = vi.fn();
@@ -162,5 +167,102 @@ describe("useSidebarFeedNavigation", () => {
     button.remove();
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();
+  });
+
+  it("recalculates the next feed from the latest account feed list after a pending focus is cancelled", () => {
+    const setExpandedFolders = vi.fn();
+    const selectFeed = vi.fn();
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return scheduledCallbacks.length;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+
+    const { rerender, unmount } = renderHook(
+      ({
+        orderedFeedIds,
+        selectedFeedId,
+      }: {
+        orderedFeedIds: string[];
+        selectedFeedId: string;
+      }) =>
+        useSidebarFeedNavigation({
+          orderedFeedIds,
+          selectedFeedId,
+          expandedFolderIds: new Set(),
+          getFeedFolderId: () => null,
+          setExpandedFolders,
+          selectFeed,
+        }),
+      { initialProps: { orderedFeedIds: ["account-a-feed-1", "account-a-feed-2"], selectedFeedId: "account-a-feed-1" } },
+    );
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }));
+    rerender({
+      orderedFeedIds: ["account-b-feed-1", "account-b-feed-2"],
+      selectedFeedId: "account-b-feed-1",
+    });
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }));
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(1);
+    expect(selectFeed).toHaveBeenNthCalledWith(1, "account-a-feed-2");
+    expect(selectFeed).toHaveBeenNthCalledWith(2, "account-b-feed-2");
+    expect(scheduledCallbacks).toHaveLength(2);
+
+    unmount();
+    requestAnimationFrameSpy.mockRestore();
+    cancelAnimationFrameSpy.mockRestore();
+  });
+
+  it("selects the next feed without scheduling focus when requestAnimationFrame is unavailable", () => {
+    const setExpandedFolders = vi.fn();
+    const selectFeed = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", undefined);
+
+    const { unmount } = renderHook(() =>
+      useSidebarFeedNavigation({
+        orderedFeedIds: ["feed-1", "feed-2"],
+        selectedFeedId: "feed-1",
+        expandedFolderIds: new Set(),
+        getFeedFolderId: () => null,
+        setExpandedFolders,
+        selectFeed,
+      }),
+    );
+
+    expect(() => window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }))).not.toThrow();
+    expect(selectFeed).toHaveBeenCalledWith("feed-2");
+
+    unmount();
+  });
+
+  it("warns and selects the next feed without scheduling focus when requestAnimationFrame throws", () => {
+    const setExpandedFolders = vi.fn();
+    const selectFeed = vi.fn();
+    const requestError = new Error("requestAnimationFrame unavailable");
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => {
+      throw requestError;
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { unmount } = renderHook(() =>
+      useSidebarFeedNavigation({
+        orderedFeedIds: ["feed-1", "feed-2"],
+        selectedFeedId: "feed-1",
+        expandedFolderIds: new Set(),
+        getFeedFolderId: () => null,
+        setExpandedFolders,
+        selectFeed,
+      }),
+    );
+
+    expect(() => window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }))).not.toThrow();
+    expect(selectFeed).toHaveBeenCalledWith("feed-2");
+    expect(warnSpy).toHaveBeenCalledWith("Failed to schedule sidebar feed focus.", requestError);
+
+    unmount();
+    requestAnimationFrameSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 });
