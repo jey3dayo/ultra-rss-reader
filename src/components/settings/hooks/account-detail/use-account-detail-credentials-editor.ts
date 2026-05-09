@@ -3,7 +3,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { type RefObject, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
-import i18n from "@/lib/i18n";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
@@ -128,13 +127,7 @@ export function useAccountDetailCredentialsEditor({
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
-  const showCopyServerUrlError = (error: { message: string }) => {
-    const message =
-      i18n.language === "ja"
-        ? `サーバーURLのコピーに失敗しました: ${error.message}`
-        : `Failed to copy server URL: ${error.message}`;
-    useUiStore.getState().showToast(message);
-  };
+  const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
 
   const commitCredentials = async (): Promise<boolean> => {
