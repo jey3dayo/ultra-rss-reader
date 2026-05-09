@@ -35,11 +35,6 @@
   - unused type 67 件、unused export 58 件が出ており、公開 contract と dead surface が混ざると型配置整理や import 移動のたびに判断コストが増える
   - public API、test helper、storybook/dev-only、real dead code に分類し、worker 単位で削除または contract test へ明示する
 
-- [ ] P3 React 19 deprecated API warning を context wrapper 単位で移行判断する
-  - 対象: `src/components/settings/shared/settings-content-layout.tsx`, `src/components/settings/**`
-  - React Doctor は `useContext` を React 19 の `use()` 移行候補として検出しているが、現時点で全体方針がないまま局所移行すると style が揺れる
-  - React 19 API adoption policy、compiler有無、library compatibility、context read test を整理し、移行するなら settings shared から小さく始める
-
 - [ ] P2 React Doctor unused type を settings view contract 単位で整理する
   - 対象: `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/actions-settings-view.tsx`, `src/components/settings/mute-settings-view.tsx`, `src/components/settings/settings-preference.types.ts`, `src/components/settings/add-account/services.types.ts`
   - unused type warning が settings view と add-account contract に散っており、view-local props と public settings contract が混ざったまま残りやすい
@@ -49,16 +44,6 @@
   - 対象: `src/components/reader/article-toolbar-view.tsx`, `src/components/reader/feed-tree-view.tsx`, `src/components/reader/rename-feed-dialog-view.tsx`, `src/components/reader/article-tag-picker.types.ts`, `src/components/reader/sidebar-sources.types.ts`, `src/lib/reader/reader-query.ts`, `src/lib/query/query-invalidation.ts`
   - reader 側の unused type は view-local props、query helper contract、hook result が混在しており、一括削除すると public surface を壊しやすい
   - component-local props は colocate、query/helper の export は参照元を確認し、barrel / contract test で必要なものだけ残す
-
-- [ ] P2 React Doctor unused export を test helper / Storybook / runtime helper に分類する
-  - 対象: `tests/helpers/i18n-setup.ts`, `tests/helpers/fixtures.ts`, `e2e/storybook/storybook-index-payload.ts`, `src/components/settings/shared/settings-action-button.tsx`, `src/components/shared/icon-toolbar-control.tsx`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/browser/use-browser-url-effect.ts`
-  - unused export 58 件は public API、test fixture、Storybook helper、実 dead code が混ざっており、機械削除だけだと外部 entrypoint を壊す可能性がある
-  - entrypoint として必要な export は contract test へ明示し、不要な helper export はファイル内 private 化または削除する
-
-- [ ] P2 React Doctor async-await-in-loop を test contract と runtime hook で分けて処理する
-  - 対象: `src/__tests__/api/tauri-commands.test.ts`, `src/__tests__/api/browser-webview-command-contract.test.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`, `src/hooks/use-badge.ts`, `src/hooks/use-app-icon-theme.ts`, `scripts/tauri-dev-vite-manager.ts`
-  - sequential await warning 25 件は order-dependent contract test と独立処理の performance issue が混在している
-  - order が必要な test は理由を明示し、独立 command / fixture setup は `Promise.all` / `Promise.allSettled` 化して flake と実行時間を下げる
 
 - [ ] P2 e2e app sequential await を test isolation と並列化可否で分類する
   - 対象: `e2e/app.spec.ts`, `src/__tests__/dev/scenario-runtime.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
