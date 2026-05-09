@@ -1,8 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { sampleAccounts } from "@tests/helpers/fixtures";
+import { renderStory } from "@tests/helpers/render-story";
 import { createRef, type RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
+import accountSwitcherStories, {
+  Expanded as AccountSwitcherExpanded,
+  SingleAccount as AccountSwitcherSingleAccount,
+} from "@/components/reader/account-switcher-view.stories";
 import { AccountSwitcherView } from "@/components/reader/account-switcher-view";
 
 function createAccountItemRefs(): RefObject<Array<HTMLButtonElement | null>> {
@@ -232,5 +237,17 @@ describe("AccountSwitcherView", () => {
     expect(trigger).not.toHaveAttribute("aria-controls");
     await user.click(trigger);
     expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("keeps Storybook refs isolated from shared args", () => {
+    expect(accountSwitcherStories.args).not.toHaveProperty("triggerRef");
+    expect(accountSwitcherStories.args).not.toHaveProperty("itemRefs");
+
+    renderStory(accountSwitcherStories, AccountSwitcherExpanded);
+    expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
+
+    cleanup();
+    renderStory(accountSwitcherStories, AccountSwitcherSingleAccount);
+    expect(screen.queryByRole("menu", { name: "Accounts" })).not.toBeInTheDocument();
   });
 });
