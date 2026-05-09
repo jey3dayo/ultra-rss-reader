@@ -291,16 +291,26 @@ fn focus_browser_host_window(_window: &Window) -> Result<(), AppError> {
     Ok(())
 }
 
-fn schedule_browser_webview_timeout(app_handle: tauri::AppHandle, url: String) {
+fn browser_host_focus_failure_warning(phase: &str, error: &impl std::fmt::Display) -> String {
+    format!(
+        "Failed to restore focus to browser host window {phase} closing embedded browser; continuing close flow: {error}"
+    )
+}
+
+fn schedule_browser_webview_timeout(
+    app_handle: tauri::AppHandle,
+    url: String,
+    load_generation: u64,
+) {
     tauri::async_runtime::spawn(async move {
         let log_url = browser_webview_log_url(&url);
-        tracing::info!("embedded-browser timeout armed url={log_url}");
+        tracing::info!("embedded-browser timeout armed url={log_url} generation={load_generation}");
         sleep(Duration::from_millis(BROWSER_WEBVIEW_LOAD_TIMEOUT_MS)).await;
 
         let should_fallback = {
             let app_state = app_handle.state::<AppState>();
             let decision = if let Ok(tracker) = app_state.browser_webview.lock() {
-                should_trigger_timeout_fallback(tracker.snapshot().as_ref(), &url)
+                should_trigger_timeout_fallback(tracker.snapshot().as_ref(), &url, load_generation)
             } else {
                 false
             };
@@ -308,11 +318,15 @@ fn schedule_browser_webview_timeout(app_handle: tauri::AppHandle, url: String) {
         };
 
         if !should_fallback {
-            tracing::info!("embedded-browser timeout skipped url={log_url}");
+            tracing::info!(
+                "embedded-browser timeout skipped url={log_url} generation={load_generation}"
+            );
             return;
         }
 
-        tracing::warn!("embedded-browser timeout triggered url={log_url}");
+        tracing::warn!(
+            "embedded-browser timeout triggered url={log_url} generation={load_generation}"
+        );
 
         let payload = BrowserWebviewFallbackPayload {
             url: url.clone(),
@@ -358,6 +372,10 @@ fn timeout_fallback_emissions(
     emissions
 }
 
+fn should_accept_page_load_finish(snapshot: Option<&BrowserWebviewState>) -> bool {
+    snapshot.is_some()
+}
+
 fn external_url(url: &str) -> Result<Url, AppError> {
     crate::commands::parse_browser_http_url(url)
 }
@@ -375,7 +393,11 @@ fn tracker_start(
         })?
         .start(url);
     emit_browser_webview_state(app_handle, &next_state);
-    schedule_browser_webview_timeout(app_handle.clone(), next_state.url.clone());
+    schedule_browser_webview_timeout(
+        app_handle.clone(),
+        next_state.url.clone(),
+        next_state.load_generation,
+    );
     Ok(next_state)
 }
 
@@ -388,6 +410,9 @@ fn tracker_finish(
     let mut tracker = state.browser_webview.lock().map_err(|error| {
         browser_webview_error(format!("Browser webview state lock error: {error}"))
     })?;
+    if !should_accept_page_load_finish(tracker.snapshot().as_ref()) {
+        return Err(browser_webview_not_open_error());
+    }
     let next_state = tracker.finish(url, availability);
     emit_browser_webview_state(app_handle, &next_state);
     Ok(next_state)
@@ -703,9 +728,7 @@ pub fn reload_browser_webview(
 pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Result<(), AppError> {
     if let Some(browser_webview) = browser_webview(&window) {
         if let Err(error) = focus_browser_host_window(&window) {
-            tracing::warn!(
-                "Failed to restore focus to browser host window before closing embedded browser: {error}"
-            );
+            tracing::warn!("{}", browser_host_focus_failure_warning("before", &error));
         }
         browser_webview.close().map_err(|error| {
             browser_webview_error(format!("Failed to close embedded browser webview: {error}"))
@@ -713,7 +736,7 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
     }
 
     if let Err(error) = focus_browser_host_window(&window) {
-        tracing::warn!("Failed to restore focus to browser host window after closing embedded browser: {error}");
+        tracing::warn!("{}", browser_host_focus_failure_warning("after", &error));
     }
 
     emit_closed_if_tracked(window.app_handle(), state.inner())
@@ -722,15 +745,16 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 #[cfg(test)]
 mod tests {
     use super::{
-        browser_webview_bounds_diagnostics_payload, browser_webview_initial_url,
-        browser_webview_log_url, browser_webview_not_open_error,
+        browser_host_focus_failure_warning, browser_webview_bounds_diagnostics_payload,
+        browser_webview_initial_url, browser_webview_log_url, browser_webview_not_open_error,
         child_webview_rect_from_browser_bounds, empty_reload_source_error, external_url,
-        is_placeholder_browser_webview_url, should_navigate_existing_browser_webview,
-        should_use_placeholder_browser_webview_url, timeout_fallback_emissions,
-        tracker_navigation_availability, validate_browser_webview_fallback_url, validated_bounds,
-        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
-        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR,
-        BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
+        is_placeholder_browser_webview_url, should_accept_page_load_finish,
+        should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
+        timeout_fallback_emissions, tracker_navigation_availability,
+        validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
+        BrowserWebviewBounds, BrowserWebviewBoundsUnit, BrowserWebviewTimeoutFallbackEmission,
+        BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
+        INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::browser_webview::{
         set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect, BrowserWebviewState,
@@ -823,6 +847,15 @@ mod tests {
             }
             other => panic!("expected user-visible missing webview error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn close_host_focus_failure_warning_documents_diagnostics_only_policy() {
+        let warning = browser_host_focus_failure_warning("after", &"native focus failed");
+
+        assert!(warning.contains("Failed to restore focus to browser host window after closing"));
+        assert!(warning.contains("continuing close flow"));
+        assert!(warning.contains("native focus failed"));
     }
 
     #[test]
@@ -1042,6 +1075,20 @@ mod tests {
     }
 
     #[test]
+    fn page_load_finish_is_ignored_after_timeout_clears_tracker() {
+        let loading = BrowserWebviewState {
+            url: "https://example.com/article".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+            load_generation: 1,
+        };
+
+        assert!(should_accept_page_load_finish(Some(&loading)));
+        assert!(!should_accept_page_load_finish(None));
+    }
+
+    #[test]
     fn browser_webview_log_url_redacts_query_fragment_and_userinfo() {
         let redacted = browser_webview_log_url(
             "https://user:secret@example.com/articles/1?token=abc&private=true#read",
@@ -1154,6 +1201,7 @@ mod tests {
             can_go_back: false,
             can_go_forward: false,
             is_loading: false,
+            load_generation: 1,
         };
 
         assert!(!should_navigate_existing_browser_webview(

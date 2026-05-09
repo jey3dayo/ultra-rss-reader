@@ -104,6 +104,8 @@ pub struct BrowserWebviewState {
     pub can_go_back: bool,
     pub can_go_forward: bool,
     pub is_loading: bool,
+    #[serde(skip)]
+    pub load_generation: u64,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -144,6 +146,7 @@ pub struct BrowserWebviewTracker {
     history: Vec<String>,
     history_index: usize,
     pending_navigation: PendingNavigation,
+    load_generation: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -169,6 +172,7 @@ impl BrowserWebviewTracker {
     }
 
     pub fn start(&mut self, url: String) -> BrowserWebviewState {
+        self.load_generation = self.load_generation.saturating_add(1);
         if self.history.is_empty() {
             self.history.push(url.clone());
             self.history_index = 0;
@@ -191,6 +195,7 @@ impl BrowserWebviewTracker {
             can_go_back: availability.can_go_back,
             can_go_forward: availability.can_go_forward,
             is_loading: true,
+            load_generation: self.load_generation,
         };
         self.current = Some(state.clone());
         state
@@ -240,11 +245,17 @@ impl BrowserWebviewTracker {
         }
         self.pending_navigation = PendingNavigation::None;
         let next_availability = availability.unwrap_or_else(|| self.flags_from_history());
+        let load_generation = self
+            .current
+            .as_ref()
+            .map(|state| state.load_generation)
+            .unwrap_or(self.load_generation);
         let state = BrowserWebviewState {
             url,
             can_go_back: next_availability.can_go_back,
             can_go_forward: next_availability.can_go_forward,
             is_loading: false,
+            load_generation,
         };
         self.current = Some(state.clone());
         state
@@ -568,6 +579,12 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     Some(format!(
         r#"
 (() => {{
+  if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;
+  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {{
+    configurable: false,
+    value: true,
+  }});
+
   const closeBinding = {close_binding_json};
   let closeInFlight = false;
   let mouseNavigationInFlight = false;
@@ -711,6 +728,12 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     Some(format!(
         r#"
 (() => {{
+  if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;
+  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {{
+    configurable: false,
+    value: true,
+  }});
+
   const bindings = {bindings_json};
   const isEditableTarget = (target) => {{
     if (!(target instanceof Element)) return false;
@@ -1097,8 +1120,11 @@ pub fn set_browser_webview_diagnostics_enabled(enabled: bool) {
 pub fn should_trigger_timeout_fallback(
     snapshot: Option<&BrowserWebviewState>,
     expected_url: &str,
+    expected_load_generation: u64,
 ) -> bool {
-    matches!(snapshot, Some(state) if state.is_loading && state.url == expected_url)
+    matches!(snapshot, Some(state) if state.is_loading
+        && state.url == expected_url
+        && state.load_generation == expected_load_generation)
 }
 
 fn supports_native_navigation(info: &crate::platform::PlatformInfo) -> bool {
@@ -1472,6 +1498,7 @@ mod tests {
             can_go_back: false,
             can_go_forward: false,
             is_loading: true,
+            load_generation: 1,
         };
         let finished = BrowserWebviewState {
             is_loading: false,
@@ -1480,19 +1507,72 @@ mod tests {
 
         assert!(should_trigger_timeout_fallback(
             Some(&loading),
-            "https://example.com/article"
+            "https://example.com/article",
+            1
         ));
         assert!(!should_trigger_timeout_fallback(
             Some(&loading),
-            "https://example.com/other"
+            "https://example.com/other",
+            1
+        ));
+        assert!(!should_trigger_timeout_fallback(
+            Some(&loading),
+            "https://example.com/article",
+            2
         ));
         assert!(!should_trigger_timeout_fallback(
             Some(&finished),
-            "https://example.com/article"
+            "https://example.com/article",
+            1
         ));
         assert!(!should_trigger_timeout_fallback(
             None,
-            "https://example.com/article"
+            "https://example.com/article",
+            1
+        ));
+    }
+
+    #[test]
+    fn timeout_fallback_generation_advances_for_same_url_reload() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        let first_load = tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+        let reload = tracker.start("https://example.com/article".to_string());
+
+        assert_eq!(first_load.url, reload.url);
+        assert!(reload.load_generation > first_load.load_generation);
+        assert!(!should_trigger_timeout_fallback(
+            tracker.snapshot().as_ref(),
+            &first_load.url,
+            first_load.load_generation
+        ));
+        assert!(should_trigger_timeout_fallback(
+            tracker.snapshot().as_ref(),
+            &reload.url,
+            reload.load_generation
+        ));
+    }
+
+    #[test]
+    fn timeout_fallback_generation_advances_for_same_url_reopen_after_clear() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        let first_load = tracker.start("https://example.com/article".to_string());
+        tracker.clear();
+        let reopened = tracker.start("https://example.com/article".to_string());
+
+        assert_eq!(first_load.url, reopened.url);
+        assert!(reopened.load_generation > first_load.load_generation);
+        assert!(!should_trigger_timeout_fallback(
+            tracker.snapshot().as_ref(),
+            &first_load.url,
+            first_load.load_generation
+        ));
+        assert!(should_trigger_timeout_fallback(
+            tracker.snapshot().as_ref(),
+            &reopened.url,
+            reopened.load_generation
         ));
     }
 
@@ -1691,6 +1771,18 @@ mod tests {
         assert!(script.contains("window.innerHeight * 0.8"));
         assert!(script.contains("event.button === 3"));
         assert!(script.contains("event.button !== 4"));
+    }
+
+    #[test]
+    fn browser_preview_close_bridge_guards_against_duplicate_listener_installation() {
+        let prefs = HashMap::new();
+
+        let script = browser_preview_close_bridge_source(&prefs)
+            .expect("default close bridge script should exist");
+
+        assert!(script.contains("__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__"));
+        assert!(script.contains("if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;"));
+        assert!(script.contains("configurable: false"));
     }
 
     #[test]
