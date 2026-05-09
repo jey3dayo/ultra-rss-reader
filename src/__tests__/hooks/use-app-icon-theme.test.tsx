@@ -1,6 +1,7 @@
+import { existsSync } from "node:fs";
 import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useAppIconTheme } from "@/hooks/use-app-icon-theme";
+import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -148,6 +149,12 @@ describe("useAppIconTheme", () => {
     await waitFor(() => {
       expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
     });
+  });
+
+  it("keeps runtime app icon paths backed by public assets", () => {
+    for (const iconPath of Object.values(APP_ICON_THEME_PATHS)) {
+      expect(existsSync(`${process.cwd()}/public${iconPath}`), iconPath).toBe(true);
+    }
   });
 
   it("tracks system theme changes", async () => {
@@ -351,6 +358,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("treats runtime icon replacement failures as no-op and reflects the next theme state", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => createMatchMedia(false)),
@@ -375,6 +383,10 @@ describe("useAppIconTheme", () => {
     await waitFor(() => {
       expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
     });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to apply light app icon theme",
+      new Error("runtime icon unavailable"),
+    );
   });
 
   it("applies only the latest queued icon request after rapid theme changes", async () => {

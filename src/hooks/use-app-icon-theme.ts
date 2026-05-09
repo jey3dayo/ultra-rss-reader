@@ -6,10 +6,12 @@ import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
-const DARK_ICON_PATH = "/icons/app-icon-dark.png";
-const LIGHT_ICON_PATH = "/icons/app-icon-light.png";
-
 type AppIconTheme = "light" | "dark";
+
+export const APP_ICON_THEME_PATHS = {
+  dark: "/icons/app-icon-dark.png",
+  light: "/icons/app-icon-light.png",
+} as const satisfies Record<AppIconTheme, string>;
 
 type AppIconRequest = {
   theme: AppIconTheme;
@@ -47,9 +49,9 @@ async function setAppIcon(
   }
 
   Result.pipe(
-    await setWindowIcon(theme === "light" ? LIGHT_ICON_PATH : DARK_ICON_PATH),
-    Result.inspectError(() => {
-      // Browser dev mode or unsupported platform: no-op
+    await setWindowIcon(APP_ICON_THEME_PATHS[theme]),
+    Result.inspectError((error) => {
+      console.error(`Failed to apply ${theme} app icon theme`, error);
     }),
   );
 }
