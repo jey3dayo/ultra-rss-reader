@@ -1078,6 +1078,21 @@
   - 対象候補: `src/lib/articles/article-list.ts` / `src/lib/subscriptions/subscriptions-index.ts` / `src/components/reader/hooks/command-palette/use-command-palette-data.ts`
   - test-only fixture や dev mock は後回しにし、同一入力で出力順が変わらない pure helper test を追加する
 
+- [ ] react-doctor use-articles index map cleanup 候補を追加する
+  - `src/hooks/use-articles.ts` の loop 内 `find` を事前 `Map` 化し、article mutation / tag mutation の出力順と cache update が変わらないようにする
+  - `src/__tests__/hooks/use-articles.test.tsx` で同一入力時の article/tag association と invalidation side effect を固定する
+  - mutation invalidation 候補とは分け、`useArticles` 周辺の lookup complexity だけを扱う
+
+- [ ] react-doctor test fixture combine-iterations 候補を追加する
+  - `article-view.test.tsx` / `use-feed-landing.test.tsx` / `ui-reference-specimen-registry.test.ts` の `.filter().map()` / `.map().filter()` を test helper 単位で整理する
+  - test readability を壊さない範囲に限定し、assertion message と fixture order が変わらないことを確認する
+  - runtime iterable performance とは分け、test-only fixture iteration cleanup だけを扱う
+
+- [ ] react-doctor repo contract lookup cleanup 候補を追加する
+  - `src/__tests__/config/repo-contracts.test.ts` / `src/__tests__/api/schemas.test.ts` / `src/__tests__/lib/i18next-locale-contract.test.ts` の repeated membership check を `Set` 化する
+  - contract test の failure message と検証対象 glob/order が変わらないことを確認する
+  - tauri dispatch lookup set とは分け、test contract lookup cleanup だけを扱う
+
 - [ ] react-doctor immutable sort cleanup 候補を追加する
   - `js-tosorted-immutable` の `[...array].sort()` を runtime file から `toSorted()` へ寄せる
   - 対象候補: `src/lib/sidebar/sidebar.ts` / `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` / `src/lib/subscriptions/subscriptions-index.ts`
@@ -1097,6 +1112,11 @@
   - `react-doctor/no-many-boolean-props` の対象 component を action group / named variant / discriminated props へ分割できるか確認する
   - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
   - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
+
+- [ ] react-doctor icon toolbar handler naming 候補を追加する
+  - `src/components/shared/icon-toolbar-control.tsx` の non-descriptive `handleClick` を、実際の動作を表す handler name へ変更する
+  - `icon-toolbar-control` focused test で click / ariaDisabled / tooltip behavior が変わらないことを確認する
+  - icon toolbar ariaDisabled activation guard とは分け、handler naming と readability だけを扱う
 
 - [ ] react-doctor settings modal state effects 候補を追加する
   - `src/components/settings/settings-modal.tsx` の cascading setState を reducer または derived state に寄せる
