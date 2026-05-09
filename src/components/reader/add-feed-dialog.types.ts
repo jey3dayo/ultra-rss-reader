@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import type { DiscoveredFeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDialogControllerFolderSelectProps } from "./feed-dialog-form.types";
 
-export type AddFeedDialogSuccessMessage = "feed_url_ready" | "feed_detected";
+type AddFeedDialogSuccessMessage = "feed_url_ready" | "feed_detected";
 
 export type AddFeedDialogState = {
   url: string;

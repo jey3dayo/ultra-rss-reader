@@ -1,4 +1,4 @@
-export type SettingsPageOption = {
+type SettingsPageOption = {
   value: string;
   label: string;
 };
@@ -79,7 +79,7 @@ export type SettingsPageControl =
   | SettingsPageActionControl
   | SettingsPageInfoControl;
 
-export type SettingsPageSection = {
+type SettingsPageSection = {
   id: string;
   heading: string;
   controls: SettingsPageControl[];

@@ -6,11 +6,11 @@ import type { FeedDialogControllerFolderSelectProps, FeedDialogSelectOption } fr
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
 
-export type FeedEditErrorLike = {
+type FeedEditErrorLike = {
   message: string;
 };
 
-export type FeedEditFolderSelectionParams = {
+type FeedEditFolderSelectionParams = {
   selectedFolderId: string | null;
   isCreatingFolder: boolean;
   newFolderName: string;
