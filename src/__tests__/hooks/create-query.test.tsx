@@ -24,6 +24,7 @@ describe("createQuery", () => {
     });
 
     expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.failureCount).toBe(0);
     expect(fetcher).not.toHaveBeenCalled();
 
     rerender({ id: "item-1" });
@@ -32,6 +33,22 @@ describe("createQuery", () => {
       expect(result.current.data).toEqual({ id: "item-1" });
     });
     expect(fetcher).toHaveBeenCalledWith("item-1");
+  });
+
+  it("keeps generated query retry disabled at the hook boundary", async () => {
+    const fetcher = vi.fn(async () => Result.fail({ message: "temporary load failure" }));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(() => useGeneratedQuery("item-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(result.current.failureCount).toBe(1);
   });
 
   it("unwraps Result.fail into a query error", async () => {

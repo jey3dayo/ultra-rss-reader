@@ -118,6 +118,7 @@ import {
   updateMuteKeywordArgs,
 } from "@/api/schemas";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
+import { createSchemaParseAppError, RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
 import { parseWithSchema } from "@/schemas/parse";
 
 // Re-export types so existing consumers don't break
@@ -162,7 +163,6 @@ type GenericInvokeOptions = InvokeArgsOptions;
 const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
 const VALIDATION_ISSUE_LIMIT = 3;
 const VALIDATION_DETAIL_MAX_LENGTH = 240;
-const RESPONSE_VALIDATION_MESSAGE = "Response validation failed. See diagnostics for details.";
 
 class ResponseValidationError extends Error {
   readonly cause: z.ZodError;
@@ -232,19 +232,13 @@ function toAppError(cmd: string, error: unknown): AppError {
   if (error instanceof ResponseValidationError) {
     const detail = formatZodIssues(error.cause);
     console.error(`[tauri-commands] ${cmd} response validation failed:`, detail);
-    return {
-      type: "Diagnostics",
-      message: RESPONSE_VALIDATION_MESSAGE,
-    };
+    return createSchemaParseAppError("response", detail);
   }
 
   if (error instanceof z.ZodError) {
     const detail = formatZodIssues(error);
     console.error(`[tauri-commands] ${cmd} args validation failed:`, detail);
-    return {
-      type: "UserVisible",
-      message: `Command validation failed: ${detail}`,
-    };
+    return createSchemaParseAppError("args", detail);
   }
   const result = AppErrorSchema.safeParse(error);
   if (result.success) {

@@ -27,6 +27,7 @@ export function createQuery<TData, TId extends string | null>(
         return fetcher(queryId).then(Result.unwrap());
       },
       enabled: queryId !== null,
+      retry: false,
     });
   };
 }

@@ -1,6 +1,6 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it } from "vitest";
-import { queryClient, queryClientDefaultOptions } from "@/lib/query/query-client";
+import { getQueryFailureUx, queryClient, queryClientDefaultOptions } from "@/lib/query/query-client";
 
 describe("query client retry policy", () => {
   it("keeps local IPC read queries non-retrying in production and tests", () => {
@@ -40,5 +40,29 @@ describe("query client retry policy", () => {
         defaultOptions: { mutations: { retry: 2 } },
       }).getDefaultOptions().mutations?.retry,
     ).toBe(2);
+  });
+
+  it("classifies transient command failures for manual retry UX without enabling global query retries", () => {
+    expect(getQueryFailureUx({ type: "Retryable", message: "network timeout" })).toEqual({
+      retry: false,
+      transientFailure: "manual-retry",
+    });
+    expect(
+      getQueryFailureUx({
+        type: "UserVisible",
+        message: "Database is busy. Wait for the current operation to finish and try again.",
+      }),
+    ).toEqual({
+      retry: false,
+      transientFailure: "manual-retry",
+    });
+    expect(getQueryFailureUx({ type: "Diagnostics", message: "Response validation failed." })).toEqual({
+      retry: false,
+      transientFailure: "diagnostics",
+    });
+    expect(getQueryFailureUx({ type: "UserVisible", message: "Feed not found" })).toEqual({
+      retry: false,
+      transientFailure: "none",
+    });
   });
 });

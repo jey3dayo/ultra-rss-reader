@@ -1200,6 +1200,25 @@ describe("safeInvoke response validation", () => {
 });
 
 describe("safeInvoke args validation", () => {
+  it("keeps args schema parse errors user-facing while response schema parse errors stay diagnostics-only", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") return [{ id: "acc-1" }];
+      return null;
+    });
+
+    const argsResult = await listFeeds("   ");
+    const responseResult = await listAccounts();
+
+    expect(Result.unwrapError(argsResult)).toMatchObject({
+      type: "UserVisible",
+      message: expect.stringContaining("Command validation failed:"),
+    });
+    expect(Result.unwrapError(responseResult)).toEqual({
+      type: "Diagnostics",
+      message: "Response validation failed. See diagnostics for details.",
+    });
+  });
+
   it("rejects blank command ids before invoking Tauri", async () => {
     let invoked = false;
     setupTauriMocks((cmd) => {

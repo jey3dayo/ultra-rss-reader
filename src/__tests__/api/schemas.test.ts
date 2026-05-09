@@ -84,6 +84,40 @@ function readRustPlatformCommandSource() {
   return readFileSync(join(process.cwd(), "src-tauri/src/commands/platform_commands.rs"), "utf8");
 }
 
+function readRustCommandSources() {
+  return [
+    "account_commands.rs",
+    "article_commands.rs",
+    "browser_webview_commands.rs",
+    "database_commands.rs",
+    "feed_commands.rs",
+    "log_commands.rs",
+    "mute_keyword_commands.rs",
+    "opml_commands.rs",
+    "platform_commands.rs",
+    "preference_commands.rs",
+    "share_commands.rs",
+    "sync_commands.rs",
+    "tag_commands.rs",
+    "updater_commands.rs",
+  ]
+    .map((fileName) => readFileSync(join(process.cwd(), "src-tauri/src/commands", fileName), "utf8"))
+    .join("\n");
+}
+
+function extractRustTauriCommandNames(source: string) {
+  const commands = new Set<string>();
+
+  for (const match of source.matchAll(/#\[tauri::command\]\s+(?:pub\s+)?(?:async\s+)?fn\s+([a-zA-Z0-9_]+)/g)) {
+    const command = match[1];
+    if (command) {
+      commands.add(command);
+    }
+  }
+
+  return [...commands].sort();
+}
+
 function extractRustUsizeConst(source: string, constName: string) {
   const match = source.match(new RegExp(`const ${constName}: usize = (\\d+);`));
   expect(match, `${constName} should exist`).not.toBeNull();
@@ -1978,6 +2012,15 @@ describe("command args schemas", () => {
     expect(Object.keys(commandArgsSchemas).sort()).toEqual(commandsWithArgs);
   });
 
+  it("keeps generated command args schemas backed by Rust command names", () => {
+    const rustCommands = new Set(extractRustTauriCommandNames(readRustCommandSources()));
+    const pluginCommandExceptions = new Set(["plugin:opener|open_url"]);
+    const schemaCommands = Object.keys(commandArgsSchemas).filter((command) => !pluginCommandExceptions.has(command));
+    const missingRustCommands = schemaCommands.filter((command) => !rustCommands.has(command));
+
+    expect(missingRustCommands).toEqual([]);
+  });
+
   it("extracts safeInvoke args commands with stable sorting and duplicate removal", () => {
     expect(
       extractSafeInvokeCommandsWithArgs(`
@@ -1991,5 +2034,20 @@ describe("command args schemas", () => {
         });
       `),
     ).toEqual(["alpha_command", "zeta_command"]);
+  });
+
+  it("extracts Rust Tauri command names with stable sorting and duplicate removal", () => {
+    expect(
+      extractRustTauriCommandNames(`
+        #[tauri::command]
+        pub fn beta_command() {}
+
+        #[tauri::command]
+        pub async fn alpha_command() {}
+
+        #[tauri::command]
+        pub async fn alpha_command() {}
+      `),
+    ).toEqual(["alpha_command", "beta_command"]);
   });
 });

@@ -1,5 +1,14 @@
 import type { DefaultOptions } from "@tanstack/react-query";
 import { QueryClient } from "@tanstack/react-query";
+import type { AppError } from "@/api/schemas/error";
+import { classifyQueryTransientFailureUx } from "@/lib/ui-errors";
+
+export function getQueryFailureUx(error: AppError) {
+  return {
+    retry: false,
+    transientFailure: classifyQueryTransientFailureUx(error),
+  } as const;
+}
 
 export const queryClientDefaultOptions = {
   queries: {
