@@ -218,7 +218,20 @@ describe("subscriptions index helpers", () => {
     };
     const candidateMap = buildSubscriptionReviewCandidateMap([firstCandidate, secondCandidate]);
 
+    expect(candidateMap.size).toBe(1);
     expect(candidateMap).toEqual(new Map([["feed-stale", secondCandidate]]));
+    expect(
+      resolveSelectedSubscriptionCandidate({
+        selectedRow: {
+          feed: feeds[0],
+          folderName: "Work",
+          latestArticleAt: firstCandidate.latestArticleAt,
+          starredCount: firstCandidate.starredCount,
+          status: { tone: "medium", labelKey: "stale_90d" },
+        },
+        candidateMap,
+      }),
+    ).toBe(secondCandidate);
     expect(resolveSelectedSubscriptionCandidate({ selectedRow: null, candidateMap })).toBeNull();
     expect(
       buildSubscriptionsIndexSummary({

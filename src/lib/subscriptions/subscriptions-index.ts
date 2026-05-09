@@ -315,7 +315,11 @@ export function buildSubscriptionDetailCandidate(params: {
 export function buildSubscriptionReviewCandidateMap(
   candidates: SubscriptionReviewCandidate[],
 ): Map<string, SubscriptionReviewCandidate> {
-  return new Map(candidates.map((candidate) => [candidate.feedId, candidate]));
+  const candidateMap = new Map<string, SubscriptionReviewCandidate>();
+  for (const candidate of candidates) {
+    candidateMap.set(candidate.feedId, candidate);
+  }
+  return candidateMap;
 }
 
 export function buildFeedArticleSummaryMap(summaries: FeedArticleSummaryDto[]): Map<string, FeedArticleSummaryDto> {
