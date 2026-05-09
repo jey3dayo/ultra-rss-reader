@@ -131,6 +131,17 @@ const publicSchemaRuntimeExports = [
   "updateMuteKeywordArgs",
 ] as const satisfies readonly (keyof typeof apiSchemas)[];
 
+const publicTauriCommandSchemaBoundaryExports = [
+  "DevRuntimeOptionsSchema",
+  "FeedIntegrityCleanupDtoSchema",
+  "FeedIntegrityReportDtoSchema",
+  "MAX_IPC_PAGINATION_LIMIT",
+  "PlatformInfoSchema",
+  "commandArgsSchemas",
+  "getCommandArgsSchema",
+  "isCommandWithArgs",
+] as const satisfies readonly (typeof publicSchemaRuntimeExports)[number][];
+
 type PublicSchemaTypeContracts = readonly [
   AccountDto,
   AccountSyncError,
@@ -160,6 +171,10 @@ type PublicSchemaTypeContracts = readonly [
 describe("schema barrel public API", () => {
   it("keeps runtime exports intentionally public through the schema barrel", () => {
     expect(Object.keys(apiSchemas).sort()).toEqual([...publicSchemaRuntimeExports].sort());
+  });
+
+  it("keeps Tauri command schema boundary exports intentionally public", () => {
+    expect(publicTauriCommandSchemaBoundaryExports.every((exportName) => exportName in apiSchemas)).toBe(true);
   });
 
   it("keeps DTO and command helper type exports intentionally public through the schema barrel", () => {
