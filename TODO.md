@@ -160,6 +160,31 @@
   - fixture mutation isolation test を維持しつつ、test 側が seed を直接 mutate しにくい API へ寄せる
   - fixture entity 追加や参照整合性 test の拡張とは分け、fixture helper の type contract だけを扱う
 
+- [ ] dev runtime options failed-cache retry 候補を追加する
+  - `src/dev/intent.ts` の `loadDevRuntimeOptionsResult` が request failure を `runtimeDevOptionsCache = null` として固定するため、同一 session で再試行できるか確認する
+  - `request_failed` / `tauri_unavailable` / `not_dev_build` のうち retry 可能な失敗だけを再読込対象にする contract を focused test で固定する
+  - dev intent ID coverage や runtime option env precedence とは分け、runtime options cache の failure policy だけを扱う
+
+- [ ] dev scenario module load cache failure 候補を追加する
+  - `src/dev/scenario-runtime.ts` の `devScenariosModulePromise ??=` が rejected promise を保持し続ける場合の retry / reset 方針を決める
+  - invalid module と transient import failure を同じ cache policy にするか分けるかを runtime test で固定する
+  - dynamic import registry 化とは分け、scenario module load failure 後の再試行 contract だけを扱う
+
+- [ ] Playwright measurable box helper 候補を追加する
+  - `e2e/app.spec.ts` の repeated `boundingBox()` null check と error message を `expectMeasurableBox` helper へ寄せる
+  - subscription detail / row / rail geometry test の assertion message を揃え、locator が非表示の時に failure が読みやすいようにする
+  - runtime error guard や artifact path contract とは分け、E2E geometry assertion helper だけを扱う
+
+- [ ] Storybook index payload guard 候補を追加する
+  - `e2e/storybook/ui-reference-canvas-smoke.spec.ts` の Storybook index payload `entries` guard を helper 化し、unknown payload の failure message を安定させる
+  - iframe URL id extraction と story id allowlist の契約を分け、Storybook index format change 時に落ちる箇所を明確にする
+  - story export registry allowlist や server freshness とは分け、E2E Storybook index payload narrowing だけを扱う
+
+- [ ] dev scenario window resize verification helper 候補を追加する
+  - `src/dev/scenarios/helpers.ts` の `applyDevWindowSize` 内で current size 読み取り、target size 解決、tolerance 判定が inline になっている箇所を helper 化できるか確認する
+  - maximize 解除、retry delay、center 呼び出しの順序が変わらないことを scenario runner test で固定する
+  - Browser WebView geometry や dev intent window size parsing とは分け、dev scenario の window resize verification だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
