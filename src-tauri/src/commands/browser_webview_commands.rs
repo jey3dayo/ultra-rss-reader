@@ -144,6 +144,19 @@ fn child_webview_rect_from_browser_bounds(bounds: BrowserWebviewBounds) -> Rect 
     bounds.rect()
 }
 
+fn browser_webview_log_url(url: &str) -> String {
+    match Url::parse(url) {
+        Ok(mut parsed) => {
+            let _ = parsed.set_username("");
+            let _ = parsed.set_password(None);
+            parsed.set_query(None);
+            parsed.set_fragment(None);
+            parsed.to_string()
+        }
+        Err(_) => "<invalid-url>".to_string(),
+    }
+}
+
 fn browser_webview_bounds_diagnostics_payload(
     action: &str,
     bounds: BrowserWebviewBounds,
@@ -280,7 +293,8 @@ fn focus_browser_host_window(_window: &Window) -> Result<(), AppError> {
 
 fn schedule_browser_webview_timeout(app_handle: tauri::AppHandle, url: String) {
     tauri::async_runtime::spawn(async move {
-        tracing::info!("embedded-browser timeout armed url={url}");
+        let log_url = browser_webview_log_url(&url);
+        tracing::info!("embedded-browser timeout armed url={log_url}");
         sleep(Duration::from_millis(BROWSER_WEBVIEW_LOAD_TIMEOUT_MS)).await;
 
         let should_fallback = {
@@ -294,11 +308,11 @@ fn schedule_browser_webview_timeout(app_handle: tauri::AppHandle, url: String) {
         };
 
         if !should_fallback {
-            tracing::info!("embedded-browser timeout skipped url={url}");
+            tracing::info!("embedded-browser timeout skipped url={log_url}");
             return;
         }
 
-        tracing::warn!("embedded-browser timeout triggered url={url}");
+        tracing::warn!("embedded-browser timeout triggered url={log_url}");
 
         let payload = BrowserWebviewFallbackPayload {
             url: url.clone(),
@@ -709,14 +723,14 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 mod tests {
     use super::{
         browser_webview_bounds_diagnostics_payload, browser_webview_initial_url,
-        browser_webview_not_open_error, child_webview_rect_from_browser_bounds,
-        empty_reload_source_error, external_url, is_placeholder_browser_webview_url,
-        should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
-        timeout_fallback_emissions, tracker_navigation_availability,
-        validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
-        BrowserWebviewBounds, BrowserWebviewBoundsUnit, BrowserWebviewTimeoutFallbackEmission,
-        BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
-        INVALID_BROWSER_BOUNDS_ERROR,
+        browser_webview_log_url, browser_webview_not_open_error,
+        child_webview_rect_from_browser_bounds, empty_reload_source_error, external_url,
+        is_placeholder_browser_webview_url, should_navigate_existing_browser_webview,
+        should_use_placeholder_browser_webview_url, timeout_fallback_emissions,
+        tracker_navigation_availability, validate_browser_webview_fallback_url, validated_bounds,
+        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
+        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR,
+        BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::browser_webview::{
         set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect, BrowserWebviewState,
@@ -1025,6 +1039,24 @@ mod tests {
     #[test]
     fn timeout_fallback_emits_nothing_when_timeout_is_stale() {
         assert_eq!(timeout_fallback_emissions(false, true), vec![]);
+    }
+
+    #[test]
+    fn browser_webview_log_url_redacts_query_fragment_and_userinfo() {
+        let redacted = browser_webview_log_url(
+            "https://user:secret@example.com/articles/1?token=abc&private=true#read",
+        );
+
+        assert_eq!(redacted, "https://example.com/articles/1");
+        assert!(!redacted.contains("user"));
+        assert!(!redacted.contains("secret"));
+        assert!(!redacted.contains("token"));
+        assert!(!redacted.contains("read"));
+    }
+
+    #[test]
+    fn browser_webview_log_url_does_not_log_malformed_input() {
+        assert_eq!(browser_webview_log_url("https://\u{7f}"), "<invalid-url>");
     }
 
     #[test]
