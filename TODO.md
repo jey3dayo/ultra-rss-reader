@@ -45,25 +45,10 @@
   - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
   - `docs/feed-content-privacy.md` の checklist と TODO の実行単位を対応させ、manual verification を reader thumbnail / sanitized body / Web Preview に分割する
 
-- [ ] P1 sanitizer で許可した media/source/link attribute の privacy policy を固定する
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
-  - sanitizer が `source` の `srcset` / `sizes` / `media` などを許可するため、将来 article body rendering が media を増やした時に remote request 面積が広がりやすい
-  - reader body で実際に描画される tag/attribute と CSP/privacy doc を照合し、media tag を残す/落とす/手動検証へ分ける
-
-- [ ] P1 debug input trace が typed key や target text を記録しすぎないようにする
-  - 対象: `src/components/app-shell.tsx`, `src/lib/debug-input-trace.ts`, `src/components/settings/debug-settings.tsx`
-  - Debug HUD の raw keyboard/pointer trace は入力欄や URL/credential field の target description を扱うため、debug log 上に sensitive interaction が残る可能性がある
-  - password/server URL/input/textarea/contenteditable では key value を redact し、trace retention と copy/export 可否を test にする
-
 - [ ] P3 manual sync cooldown listener error aggregation を diagnostics に接続する
   - 対象: `src/lib/sync/manual-sync.ts`
   - cooldown listener が throw しても console error に集約されるだけなので、UI 更新が止まった時にどの subscriber が壊れたか分かりにくい
   - listener id を持つか diagnostics-only に留めるか決め、複数 listener failure の report format を unit test にする
-
-- [ ] P1 destructive action confirmation の対象 snapshot と二重実行 policy を統一する
-  - 対象: `src/components/app-confirm-dialog.tsx`, `src/hooks/use-delete-feed.ts`, `src/components/reader/article-list.tsx`, `src/components/settings/mute-settings.tsx`
-  - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
-  - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
 
 - [ ] P2 feed favicon remote image failure / mixed content policy を固定する
   - 対象: `src/components/shared/feed-favicon.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/feed-tree-row.tsx`
@@ -278,31 +263,6 @@
   - Rust tests には `unwrap` / `expect` が多く、fixture setup と production behavior assertion が混ざると panic message が調査しづらい
   - fixture-only unwrap 許容、production boundary は error assertion、panic message naming、helper `expect_ok` の採用可否を決める
 
-- [ ] P1 browser overlay root の pointer-events が stale URL で app 全体を塞がないようにする
-  - 対象: `src/components/app-shell.tsx`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/stores/ui-store.ts`
-  - `browserUrl` が残っている間は overlay root が画面全体で pointer-events を受けるため、native webview close/error event 欠落時に reader/settings 操作ができない stuck state になりやすい
-  - native close missing、browserUrl stale、overlay root click-through、Escape close、settings open 中の pointer routing を component/e2e test にする
-
-- [ ] P2 DOMParser fallback の HTML text extraction を sanitizer / search contract と揃える
-  - 対象: `src/lib/content/html.ts`, `src-tauri/src/infra/sanitizer.rs`, `src/lib/articles/article-view.ts`
-  - browser では DOMParser、非 DOM 環境では regex fallback で text extraction するため、malformed HTML、entity、script/style、CDATA、nested block の結果が環境でズレやすい
-  - DOMParserあり/なし、malformed tag、numeric entity、style/script partial tag、CJK whitespace の unit test を追加する
-
-- [ ] P2 normalizeArticleBodyHtml の leading label removal が本文を削りすぎないようにする
-  - 対象: `src/lib/content/html.ts`, `src/components/reader/article-content-view.tsx`
-  - feed name と同じ先頭 text node を削る処理は、記事本文が偶然 feed/title label から始まる時に意味のある本文を消す可能性がある
-  - label-only wrapper、リンク/画像を含む先頭 node、同名タイトル本文、DOMParser unavailable、empty after removal の fixture を追加する
-
-- [ ] P2 WorkspaceHeader の desktop drag region と interactive controls の hit test を固定する
-  - 対象: `src/components/shared/workspace-header.tsx`, `src/lib/window/window-chrome.ts`
-  - overlay titlebar mode は drag-region と pointer-events-none/auto の重ね合わせで成立しているため、actions/back button/title text の z-index 変更でクリック不能または drag 不能になりやすい
-  - mac overlay、browser preview、compact desktop、actions click、back click、empty header drag region の component/e2e test を追加する
-
-- [ ] P2 Dialog / browser overlay / toast / command palette の z-index stack contract を作る
-  - 対象: `src/components/ui/dialog.tsx`, `src/components/app-shell.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/ui/command.tsx`
-  - dialog は z-50、browser overlay root は z-40、toast は z-[100] など局所定義で、複数 overlay が重なる時の表示・pointer・focus 優先順位が暗黙になっている
-  - confirm over settings、command palette over browser overlay、toast over dialog、shortcuts modal over reader の stack snapshot/e2e test を追加する
-
 - [ ] P2 FeedTree drag drop overlay が folder row controls を過剰に覆わないようにする
   - 対象: `src/components/reader/feed-tree-folder-section.tsx`, `src/components/reader/feed-tree-selectable-row.tsx`, `src/components/reader/hooks/feed-tree/*`
   - drag 中の absolute overlay button が folder row 全体を覆うため、toggle/context/menu/focus target と drop target の責務が重なり、keyboard と pointer の挙動が壊れやすい
@@ -312,11 +272,6 @@
   - 対象: `src/components/app-layout.tsx`, `src/__tests__/app.test.tsx`, `e2e/app.spec.ts`
   - hidden pane は `inert` と `aria-hidden` に依存するため、WebView 互換や test environment 差で focusable descendant が残ると keyboard navigation が背後 paneへ入る
   - inert unsupported fallback、programmatic focus、Tab navigation、compact/mobile/wide layout、subscriptions workspace open の e2e test を追加する
-
-- [ ] P2 Debug HUD copy が巨大 trace / sensitive target description を clipboard へ出しすぎないようにする
-  - 対象: `src/components/app-shell.tsx`, `src/lib/debug/debug-input-trace.ts`, `src/components/reader/focus-debug-hud-view.tsx`
-  - HUD は focus/pointer/key trace と browser geometry をまとめてコピーできるため、長時間 session の巨大 text や sensitive selector/URL 断片を support 共有に載せやすい
-  - max trace rows、copy redaction、password/server URL target、geometry only copy、clipboard failure の component test を追加する
 
 - [ ] P3 overlay / drag / inert の CSS token を scattered z-index から semantic layer へ寄せる
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
