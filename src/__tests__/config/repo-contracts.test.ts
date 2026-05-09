@@ -287,6 +287,10 @@ function extractMarkdownLinks(source: string) {
   return [...source.matchAll(/(?<!!)\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1]);
 }
 
+function extractMarkdownRelativeLinks(source: string) {
+  return [...source.matchAll(/(?<!!)\[[^\]]+\]\((\.\/[^)#]+)(?:#[^)]+)?\)/g)].map((match) => match[1] ?? "");
+}
+
 function isRepositoryRelativeLink(link: string) {
   return (
     !link.startsWith("http://") && !link.startsWith("https://") && !link.startsWith("mailto:") && !link.startsWith("#")
@@ -1083,6 +1087,19 @@ describe("repository static contracts", () => {
     });
 
     expect(brokenLinks).toEqual([]);
+  });
+
+  it("keeps the .claude/rules index complete for every project rule", () => {
+    const ruleIndex = readRepoFile(".claude/rules/README.md");
+    const indexedRuleLinks = new Set(extractMarkdownRelativeLinks(ruleIndex).map((link) => normalize(link)));
+    const ruleFiles = readdirSync(join(repoRoot, ".claude/rules"))
+      .filter((entry) => entry.endsWith(".md") && entry !== "README.md")
+      .map((entry) => normalize(`./${entry}`))
+      .sort();
+    const missingRuleLinks = ruleFiles.filter((ruleFile) => !indexedRuleLinks.has(ruleFile));
+
+    expect(missingRuleLinks).toEqual([]);
+    expect(readRepoFile("CLAUDE.md")).toContain("[.claude/rules/README.md](.claude/rules/README.md)");
   });
 
   it("keeps the docs index linked to top-level RTK guidance", () => {
