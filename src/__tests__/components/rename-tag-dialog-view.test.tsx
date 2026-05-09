@@ -66,9 +66,13 @@ describe("RenameTagDialogView", () => {
   });
 
   it("cleans up the pending autofocus frame when the dialog closes", () => {
+    let scheduledFrame: FrameRequestCallback | null = null;
     vi.stubGlobal(
       "requestAnimationFrame",
-      vi.fn((_callback: FrameRequestCallback) => 7),
+      vi.fn((callback: FrameRequestCallback) => {
+        scheduledFrame = callback;
+        return 7;
+      }),
     );
     const cancelAnimationFrame = vi.fn();
     vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
@@ -87,6 +91,9 @@ describe("RenameTagDialogView", () => {
         onSubmit={vi.fn()}
       />,
     );
+    const input = screen.getByLabelText("Name") as HTMLInputElement;
+    const focusSpy = vi.spyOn(input, "focus");
+    const selectSpy = vi.spyOn(input, "select");
 
     rerender(
       <RenameTagDialogView
@@ -104,5 +111,11 @@ describe("RenameTagDialogView", () => {
     );
 
     expect(cancelAnimationFrame).toHaveBeenCalledWith(7);
+    if (scheduledFrame === null) {
+      throw new Error("expected requestAnimationFrame callback to be scheduled");
+    }
+    scheduledFrame(0);
+    expect(focusSpy).not.toHaveBeenCalled();
+    expect(selectSpy).not.toHaveBeenCalled();
   });
 });

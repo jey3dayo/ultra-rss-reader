@@ -108,4 +108,34 @@ describe("use-folder-selection", () => {
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();
   });
+
+  it("cancels pending new folder input focus after reset", () => {
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 24;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const input = document.createElement("input");
+    const focusSpy = vi.spyOn(input, "focus");
+    const { result } = renderHook(() => useFolderSelection(null));
+
+    act(() => {
+      result.current.handleFolderChange(NEW_FOLDER_VALUE);
+    });
+    result.current.newFolderInputRef.current = input;
+    act(() => {
+      result.current.resetFolderSelection("folder-reset");
+    });
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(24);
+    if (scheduledCallbacks[0] === undefined) {
+      throw new Error("Expected scheduled focus callback");
+    }
+    scheduledCallbacks[0](0);
+    expect(focusSpy).not.toHaveBeenCalled();
+
+    requestAnimationFrameSpy.mockRestore();
+    cancelAnimationFrameSpy.mockRestore();
+  });
 });

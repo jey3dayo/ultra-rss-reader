@@ -42,4 +42,50 @@ describe("CreateTagDialogView", () => {
     expect(input).toHaveFocus();
     expect(selectSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("cleans up the pending autofocus frame when the dialog closes", () => {
+    let scheduledFrame: FrameRequestCallback | null = null;
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn((callback: FrameRequestCallback) => {
+        scheduledFrame = callback;
+        return 5;
+      }),
+    );
+    const cancelAnimationFrame = vi.fn();
+    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+
+    const { rerender } = render(
+      <CreateTagDialogView
+        open={true}
+        name="Review"
+        loading={false}
+        onOpenChange={vi.fn()}
+        onNameChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+    const input = screen.getByLabelText("Name") as HTMLInputElement;
+    const focusSpy = vi.spyOn(input, "focus");
+    const selectSpy = vi.spyOn(input, "select");
+
+    rerender(
+      <CreateTagDialogView
+        open={false}
+        name="Review"
+        loading={false}
+        onOpenChange={vi.fn()}
+        onNameChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(5);
+    if (scheduledFrame === null) {
+      throw new Error("expected requestAnimationFrame callback to be scheduled");
+    }
+    scheduledFrame(0);
+    expect(focusSpy).not.toHaveBeenCalled();
+    expect(selectSpy).not.toHaveBeenCalled();
+  });
 });

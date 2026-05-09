@@ -95,7 +95,11 @@ export function useFolderSelection(initialFolderId: string | null) {
     }
 
     cancelPendingFocusFrame();
-    pendingFocusFrameRef.current = requestAnimationFrame(() => {
+    const focusFrame = requestAnimationFrame(() => {
+      if (pendingFocusFrameRef.current !== focusFrame) {
+        return;
+      }
+
       pendingFocusFrameRef.current = null;
       if (!isMountedRef.current) {
         return;
@@ -103,6 +107,7 @@ export function useFolderSelection(initialFolderId: string | null) {
 
       newFolderInputRef.current?.focus();
     });
+    pendingFocusFrameRef.current = focusFrame;
   }, [cancelPendingFocusFrame, isCreatingFolder]);
 
   const resetFolderSelection = useCallback((folderId: string | null) => {
