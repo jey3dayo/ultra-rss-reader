@@ -357,6 +357,81 @@
   - `CLAUDE.md` が source of truth として参照する文書を docs index から辿れるようにする
   - markdown link contract や docs 全体再編とは分け、案内漏れの 1 行追加に限定する
 
+- [ ] destructive confirm pending close guard 候補を追加する
+  - `src/components/shared/destructive-confirm-dialog-view.tsx` で `pending` 中の Escape / outside click close を抑止する
+  - `pending && !open` の `onOpenChange` を無視する wrapper を追加し、既存 view test で固定する
+  - subscriptions nested Escape 伝播とは別に、shared destructive dialog の pending close 経路だけを扱う
+
+- [ ] unsubscribe dialog pending guard 候補を追加する
+  - `src/components/reader/unsubscribe-feed-dialog.tsx` と view に `pending` prop を通し、削除確定の連打を止める
+  - `src/components/subscriptions-index/subscriptions-index-page.tsx` と feed context menu から mutation pending を渡す
+  - subscriptions pane 表示 contract とは分け、delete mutation 中の confirm UI guard に限定する
+
+- [ ] shortcut recording Alt key contract 候補を追加する
+  - `src/components/settings/shortcuts-settings.tsx` の recorded key event に `altKey` を含める
+  - `Alt+K` が plain `k` として保存されないよう、Alt 系を無視するか表示形式に含める契約を test 化する
+  - shortcut 表示 copy や native menu shortcut 同期とは混ぜない
+
+- [ ] account detail sync controls race guard 候補を追加する
+  - `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts` の sync interval / startup / wake / retention 更新に revision guard を追加する
+  - 連続変更時に古い response が後勝ちで cache 更新しない hook contract を追加する
+  - account detail name / credentials editor validation とは分け、sync controls の更新 race だけを扱う
+
+- [ ] settings tag / mute input submit 候補を追加する
+  - `src/components/settings/tags-settings-view.tsx` の tag 追加行を form 化し、入力中 Enter で追加できるようにする
+  - `src/components/settings/mute-settings-view.tsx` の mute keyword 追加行も同じ submit contract に揃える
+  - reader tag section や mute reducer とは分け、settings 入力行の submit / disabled contract だけを扱う
+
+- [ ] settings nav id narrowing 候補を追加する
+  - `src/components/settings/settings-nav.types.ts` の `SettingsNavItemId = string` を、modal category nav と reusable specimen の境界に合わせて narrow する
+  - `SettingsNavViewProps<T extends string>` か modal 側 `SettingsCategory` へ寄せる型 contract を検討する
+  - navigation disabled click contract とは別に、nav item id の型境界だけを扱う
+
+- [ ] browser embed support URL validation 候補を追加する
+  - `src-tauri/src/commands/article_commands.rs` の `check_browser_embed_support` で `parse_browser_http_url` を通す
+  - `open_in_browser` / browser webview と同じ非 http(s) URL error contract を unit test で固定する
+  - browser webview bounds / timeout surface とは分け、embed support command の URL validation だけを扱う
+
+- [ ] mailto share command boundary 候補を追加する
+  - `src/components/reader/article-share-menu.tsx` の mail share が http(s) 専用 `open_in_browser` に `mailto:` を渡さないようにする
+  - `open_external_url` か share email 専用 command / schema を分け、既存 share menu test を成功契約へ更新する
+  - clipboard share や browser open behavior の再設計とは分け、mailto share の command 境界だけを扱う
+
+- [ ] release log cleanup observability 候補を追加する
+  - `src-tauri/src/lib.rs` の release log cleanup で `read_dir` / `metadata` / `remove_file` 失敗を完全に silent drop しない
+  - cleanup は継続しつつ、失敗ファイルと理由を `tracing::warn!` か `debug!` で観測できるようにする
+  - log directory open や release verification とは分け、rotation cleanup の観測性だけを扱う
+
+- [ ] startup preferences read warning 候補を追加する
+  - `src-tauri/src/lib.rs` の起動時 preference 読み込みで `unwrap_or_default()` による DB read error の握りつぶしをやめる
+  - 起動継続方針は維持しつつ、失敗時は warn 付き default にして menu state / diagnostics の初期化理由を残す
+  - DB busy recovery や scheduler warning とは別に、app setup preference read の一点修正に限定する
+
+- [ ] article sanitizer responsive media contract 候補を追加する
+  - `src-tauri/src/infra/sanitizer.rs` で `picture` / `source` / `img` と responsive image attributes の保持方針を fixture test で固定する
+  - 必要なら安全に保存できる属性だけを追加し、広い sanitizer 再設計はしない
+  - feed discovery parser ではなく、記事本文 sanitizer の media preserve contract として扱う
+
+- [ ] add feed command schema URL trim 候補を追加する
+  - `src/api/schemas/commands.ts` の `discoverFeedsArgs` / `addLocalFeedArgs` で blank / whitespace-only URL を弾く
+  - `trim().min(1)` 相当の schema contract を `src/__tests__/api/schemas.test.ts` に追加する
+  - add feed async race や backend count contract とは分け、frontend IPC schema の入力境界だけを扱う
+
+- [ ] dev intent scenario id coverage 候補を追加する
+  - `src/__tests__/dev/intent.test.ts` の `parseDevIntent` 既知 ID test を手書き列挙から `DEV_SCENARIO_IDS` loop に寄せる
+  - `DEV_SCENARIO_ID.syncAllSmoke` など新規 ID が個別 assertion から漏れない contract にする
+  - dev scenario runtime error surface とは分け、intent parser の ID coverage だけを扱う
+
+- [ ] Storybook UI reference pageerror retry hygiene 候補を追加する
+  - `e2e/storybook/ui-reference-canvas-smoke.spec.ts` の `pageErrors` を `toPass()` retry 間で持ち越さない
+  - 各 `page.goto` 前に error buffer を clear するか、retry 外/内の責務を分けて flaky failure を防ぐ
+  - update toast runtime guard とは別に、UI reference smoke matrix の retry hygiene だけを扱う
+
+- [ ] sidebar expanded folder storage dedupe 候補を追加する
+  - `src/schemas/storage.ts` の `StoredSidebarExpandedFoldersSchema` で同一 account 内の duplicate folder id を order-preserving dedupe する
+  - 非 string filter 後の重複ケースを `src/__tests__/schemas/storage.test.ts` に追加する
+  - startup folder expansion UI ではなく、localStorage 復元 schema の正規化だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
