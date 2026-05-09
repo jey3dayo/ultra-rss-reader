@@ -228,6 +228,39 @@ describe("App", () => {
     dateNowSpy.mockRestore();
   });
 
+  it("logs startup sync Result.fail without reverting the startup throttle marker", async () => {
+    const now = new Date("2026-04-18T03:00:00+09:00").getTime();
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    preferencesState.prefs = { sync_on_startup: "true" };
+    triggerStartupSyncMock.mockResolvedValueOnce(Result.fail(testUserVisibleAppError("sync failed")));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Startup sync failed:", testUserVisibleAppError("sync failed"));
+    });
+    expect(Number(localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt))).toBe(now);
+    dateNowSpy.mockRestore();
+  });
+
+  it("logs rejected startup sync promises without reverting the startup throttle marker", async () => {
+    const now = new Date("2026-04-18T03:00:00+09:00").getTime();
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const error = new Error("runtime rejected");
+    preferencesState.prefs = { sync_on_startup: "true" };
+    triggerStartupSyncMock.mockRejectedValueOnce(error);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Startup sync rejected:", error);
+    });
+    expect(Number(localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt))).toBe(now);
+    dateNowSpy.mockRestore();
+  });
+
   it("keeps sync-on-wake account selection scoped to active sync-on-wake accounts after the hidden threshold", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
     uiState.selectedAccountId = "acc-active";

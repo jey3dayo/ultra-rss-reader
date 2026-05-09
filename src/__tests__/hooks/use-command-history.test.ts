@@ -139,24 +139,29 @@ describe("use-command-history", () => {
   });
 
   it("fails safely when storage write throws", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("storage unavailable");
     });
 
     expect(() => addToHistory("feed-1")).not.toThrow();
     expect(getHistory()).toEqual([]);
+    expect(warn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Error));
   });
 
   it("fails safely when storage read throws", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("storage unavailable");
     });
 
     expect(() => getHistory()).not.toThrow();
     expect(getHistory()).toEqual([]);
+    expect(warn).toHaveBeenCalledWith("Failed to read command history from localStorage.", expect.any(Error));
   });
 
   it("fails safely when the localStorage getter throws", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
       throw new Error("storage getter unavailable");
     });
@@ -164,15 +169,18 @@ describe("use-command-history", () => {
     expect(getHistory()).toEqual([]);
     expect(() => addToHistory("feed-1")).not.toThrow();
     expect(() => clearHistory()).not.toThrow();
+    expect(warn).toHaveBeenCalledWith("Command history localStorage is unavailable.", expect.any(Error));
   });
 
   it("fails safely when storage clear throws", () => {
     addToHistory("feed-1");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
       throw new Error("storage unavailable");
     });
 
     expect(() => clearHistory()).not.toThrow();
     expect(getHistory()).toEqual(["feed-1"]);
+    expect(warn).toHaveBeenCalledWith("Failed to clear command history from localStorage.", expect.any(Error));
   });
 });

@@ -1,6 +1,10 @@
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
+function logCommandHistoryStorageFailure(message: string, error: unknown): void {
+  console.warn(message, error);
+}
+
 function readStorage(): Storage | null {
   if (typeof window === "undefined") {
     return null;
@@ -8,7 +12,8 @@ function readStorage(): Storage | null {
 
   try {
     return window.localStorage;
-  } catch {
+  } catch (error) {
+    logCommandHistoryStorageFailure("Command history localStorage is unavailable.", error);
     return null;
   }
 }
@@ -21,7 +26,8 @@ function writeNormalizedHistory(storage: Storage, raw: string, history: readonly
 
   try {
     storage.setItem(STORAGE_KEYS.commandHistory, normalized);
-  } catch {
+  } catch (error) {
+    logCommandHistoryStorageFailure("Failed to normalize command history in localStorage.", error);
     // Ignore cleanup write failures; callers can still use the normalized in-memory history.
   }
 }
@@ -46,7 +52,8 @@ export function getHistory(): string[] {
     const history = result.data;
     writeNormalizedHistory(storage, raw, history);
     return history;
-  } catch {
+  } catch (error) {
+    logCommandHistoryStorageFailure("Failed to read command history from localStorage.", error);
     return [];
   }
 }
@@ -69,7 +76,8 @@ export function addToHistory(id: string): void {
   try {
     const next = compactCommandHistory(getHistory(), id);
     storage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(next));
-  } catch {
+  } catch (error) {
+    logCommandHistoryStorageFailure("Failed to write command history to localStorage.", error);
     // Ignore storage failures so the palette still works in constrained environments.
   }
 }
@@ -82,7 +90,8 @@ export function clearHistory(): void {
 
   try {
     storage.removeItem(STORAGE_KEYS.commandHistory);
-  } catch {
+  } catch (error) {
+    logCommandHistoryStorageFailure("Failed to clear command history from localStorage.", error);
     // Ignore storage failures so callers do not need to handle persistence errors.
   }
 }

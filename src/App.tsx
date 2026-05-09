@@ -51,14 +51,18 @@ function AppInner() {
 
     startupSyncRequested.current = true;
     markStartupSyncTriggered();
-    triggerStartupSync(selectedAccountId ?? undefined).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspectError((error) => {
-          console.warn("Startup sync failed:", error);
-        }),
-      ),
-    );
+    void triggerStartupSync(selectedAccountId ?? undefined)
+      .then((result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            console.warn("Startup sync failed:", error);
+          }),
+        ),
+      )
+      .catch((error: unknown) => {
+        console.warn("Startup sync rejected:", error);
+      });
   }, [activeDevIntent, devIntentReady, preferencesLoaded, selectedAccountId]);
 
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled

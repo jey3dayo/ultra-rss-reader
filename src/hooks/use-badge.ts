@@ -107,6 +107,8 @@ export function useBadge() {
         await applyBadgeCountCommand(latestBadgeCount, () => shouldApplyRequest(latestRequestSeq));
         appliedRequestSeq = latestRequestSeq;
       }
-    })();
+    })().catch((error: unknown) => {
+      console.error("Failed to apply unread badge count:", error);
+    });
   }, [badgeCount]);
 }

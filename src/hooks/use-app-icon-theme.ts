@@ -109,7 +109,9 @@ export function useAppIconTheme() {
       drainScheduledRef.current = true;
       queueMicrotask(() => {
         drainScheduledRef.current = false;
-        void drainIconRequests();
+        void drainIconRequests().catch((error: unknown) => {
+          console.error("Failed to apply app icon theme:", error);
+        });
       });
     },
     [drainIconRequests],

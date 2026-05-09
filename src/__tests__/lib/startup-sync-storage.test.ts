@@ -102,6 +102,7 @@ describe("startup sync storage", () => {
   });
 
   it("treats storage get failures as missing timestamps", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const throwingStorage = {
       getItem: () => {
         throw new Error("get failed");
@@ -116,9 +117,11 @@ describe("startup sync storage", () => {
 
     expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBeNull();
     expect(shouldThrottleStartupSync(throwingStorage, 2_000)).toBe(false);
+    expect(warn).toHaveBeenCalledWith("Failed to read startup sync metadata from localStorage.", expect.any(Error));
   });
 
   it("treats storage remove failures during cleanup as a startup sync no-op", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const throwingStorage = {
       getItem: () => "not-a-number",
       removeItem: () => {
@@ -131,9 +134,14 @@ describe("startup sync storage", () => {
 
     expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBeNull();
     expect(shouldThrottleStartupSync(throwingStorage, 2_000)).toBe(false);
+    expect(warn).toHaveBeenCalledWith(
+      "Failed to remove invalid startup sync metadata from localStorage.",
+      expect.any(Error),
+    );
   });
 
   it("uses a valid legacy timestamp for throttling when migration write fails", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const throwingStorage = {
       getItem: (storageKey: string) => (storageKey === legacyKey ? "1000" : null),
       removeItem: vi.fn(),
@@ -145,9 +153,11 @@ describe("startup sync storage", () => {
     expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBe(1_000);
     expect(shouldThrottleStartupSync(throwingStorage, 90_999)).toBe(true);
     expect(throwingStorage.removeItem).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith("Failed to migrate startup sync metadata to localStorage.", expect.any(Error));
   });
 
   it("uses a valid legacy timestamp for throttling when migration cleanup fails", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const setItem = vi.fn();
     const throwingStorage = {
       getItem: (storageKey: string) => (storageKey === legacyKey ? "1000" : null),
@@ -160,9 +170,14 @@ describe("startup sync storage", () => {
     expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBe(1_000);
     expect(shouldThrottleStartupSync(throwingStorage, 90_999)).toBe(true);
     expect(setItem).toHaveBeenCalledWith(key, "1000");
+    expect(warn).toHaveBeenCalledWith(
+      "Failed to remove legacy startup sync metadata from localStorage.",
+      expect.any(Error),
+    );
   });
 
   it("ignores storage set failures when marking startup sync", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const throwingStorage = {
       getItem: () => null,
       removeItem: () => {
@@ -174,9 +189,11 @@ describe("startup sync storage", () => {
     };
 
     expect(() => markStartupSyncTriggered(throwingStorage, 12_345)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith("Failed to write startup sync metadata to localStorage.", expect.any(Error));
   });
 
   it("treats localStorage getter failures as missing startup sync storage", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
       throw new DOMException("localStorage blocked", "SecurityError");
     });
@@ -184,5 +201,6 @@ describe("startup sync storage", () => {
     expect(getLastStartupSyncTriggeredAt(undefined, 2_000)).toBeNull();
     expect(shouldThrottleStartupSync(undefined, 2_000)).toBe(false);
     expect(() => markStartupSyncTriggered(undefined, 12_345)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith("Startup sync localStorage is unavailable.", expect.any(DOMException));
   });
 });

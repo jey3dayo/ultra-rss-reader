@@ -8,13 +8,18 @@ const startupSyncStorageKeys = [
   LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt,
 ] as const;
 
+function logStartupSyncStorageFailure(message: string, error: unknown): void {
+  console.warn(message, error);
+}
+
 function readStartupSyncStorage(): StartupSyncStorage | null {
   if (typeof window === "undefined") {
     return null;
   }
   try {
     return window.localStorage;
-  } catch {
+  } catch (error) {
+    logStartupSyncStorageFailure("Startup sync localStorage is unavailable.", error);
     return null;
   }
 }
@@ -22,13 +27,15 @@ function readStartupSyncStorage(): StartupSyncStorage | null {
 function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue: string): void {
   try {
     storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
-  } catch {
+  } catch (error) {
+    logStartupSyncStorageFailure("Failed to migrate startup sync metadata to localStorage.", error);
     return;
   }
 
   try {
     storage.removeItem(LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt);
-  } catch {
+  } catch (error) {
+    logStartupSyncStorageFailure("Failed to remove legacy startup sync metadata from localStorage.", error);
     // Keep the throttling decision based on the valid legacy timestamp even if cleanup fails.
   }
 }
@@ -50,7 +57,11 @@ export function getLastStartupSyncTriggeredAt(
 
       const timestamp = Number(rawValue);
       if (!Number.isFinite(timestamp) || timestamp < 0 || timestamp > now) {
-        storage.removeItem(storageKey);
+        try {
+          storage.removeItem(storageKey);
+        } catch (error) {
+          logStartupSyncStorageFailure("Failed to remove invalid startup sync metadata from localStorage.", error);
+        }
         continue;
       }
 
@@ -62,7 +73,8 @@ export function getLastStartupSyncTriggeredAt(
     }
 
     return null;
-  } catch {
+  } catch (error) {
+    logStartupSyncStorageFailure("Failed to read startup sync metadata from localStorage.", error);
     return null;
   }
 }
@@ -79,7 +91,8 @@ export function markStartupSyncTriggered(storage = readStartupSyncStorage(), now
 
   try {
     storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now));
-  } catch {
+  } catch (error) {
+    logStartupSyncStorageFailure("Failed to write startup sync metadata to localStorage.", error);
     // Ignore storage failures and fall back to process-local guarding only.
   }
 }
