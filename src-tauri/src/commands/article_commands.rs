@@ -1,6 +1,7 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use rusqlite::OptionalExtension;
+use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 use tauri::State;
@@ -32,14 +33,7 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
     let platform_info = crate::platform::PlatformInfo::current();
 
     if should_use_background_browser_open(background.unwrap_or(false), &platform_info) {
-        // macOS: use `open -g` to open in background
-        std::process::Command::new("open")
-            .arg("-g")
-            .arg(&url)
-            .spawn()
-            .map_err(|e| AppError::UserVisible {
-                message: format!("Failed to open browser: {e}"),
-            })?;
+        open_browser_in_background(&url)?;
     } else {
         open::that(&url).map_err(|e| AppError::UserVisible {
             message: format!("Failed to open browser: {e}"),
@@ -53,6 +47,44 @@ fn should_use_background_browser_open(
     info: &crate::platform::PlatformInfo,
 ) -> bool {
     background_requested && info.capabilities.supports_background_browser_open
+}
+
+fn background_browser_open_failure_message(error: impl std::fmt::Display) -> String {
+    format!("Failed to open browser in background: {error}")
+}
+
+fn background_browser_open_status_failure_message(
+    status: std::process::ExitStatus,
+    stderr: &[u8],
+) -> String {
+    let details = String::from_utf8_lossy(stderr).trim().to_string();
+    if details.is_empty() {
+        background_browser_open_failure_message(format!("open exited with status {status}"))
+    } else {
+        background_browser_open_failure_message(format!(
+            "open exited with status {status}: {details}"
+        ))
+    }
+}
+
+fn open_browser_in_background_with_command(command: &mut Command) -> Result<(), AppError> {
+    let output = command.output().map_err(|e| AppError::UserVisible {
+        message: background_browser_open_failure_message(e),
+    })?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    Err(AppError::UserVisible {
+        message: background_browser_open_status_failure_message(output.status, &output.stderr),
+    })
+}
+
+fn open_browser_in_background(url: &str) -> Result<(), AppError> {
+    // macOS: use `open -g` to open in background while still observing
+    // LaunchServices failures from the child process.
+    open_browser_in_background_with_command(Command::new("open").arg("-g").arg(url))
 }
 
 fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {
@@ -1086,16 +1118,18 @@ mod tests {
     use super::check_browser_embed_support;
     use super::cleanup_feed_integrity_orphans_inner;
     use super::{
-        article_command_pagination, bulk_mark_account_read, bulk_mark_account_starred_read,
-        bulk_mark_old_unread_read, bulk_unstar_account_articles, has_blocking_frame_ancestors,
-        has_blocking_x_frame_options, mark_article_read_with_conn, mark_articles_read_with_conn,
-        mark_feed_read_with_conn, mark_folder_read_with_conn, maybe_queue_mutation,
-        parse_article_list_mode, recalculate_bulk_feed_unread_counts,
-        record_article_view_with_conn, should_use_background_browser_open,
-        supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
-        validate_older_than_days, BulkArticleMutationRow, OldUnreadScope,
-        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
+        article_command_pagination, background_browser_open_failure_message,
+        background_browser_open_status_failure_message, bulk_mark_account_read,
+        bulk_mark_account_starred_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
+        has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
+        mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
+        maybe_queue_mutation, open_browser_in_background_with_command, parse_article_list_mode,
+        recalculate_bulk_feed_unread_counts, record_article_view_with_conn,
+        should_use_background_browser_open, supports_remote_mutations,
+        toggle_article_star_with_conn, validate_feed_article_filters, validate_older_than_days,
+        BulkArticleMutationRow, OldUnreadScope, DEFAULT_ARTICLE_LIST_LIMIT,
+        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -1217,6 +1251,60 @@ mod tests {
         let info = platform_info_for_kind(PlatformKind::Windows);
 
         assert!(!should_use_background_browser_open(true, &info));
+    }
+
+    #[test]
+    fn background_open_reports_child_process_spawn_failure_as_user_visible() {
+        let message = background_browser_open_failure_message("No such file or directory");
+
+        assert_eq!(
+            message,
+            "Failed to open browser in background: No such file or directory"
+        );
+    }
+
+    #[test]
+    fn background_open_reports_child_process_exit_failure_as_user_visible() {
+        let mut command = std::process::Command::new("sh");
+        command
+            .arg("-c")
+            .arg("printf 'LaunchServices denied' >&2; exit 7");
+
+        match open_browser_in_background_with_command(&mut command) {
+            Err(AppError::UserVisible { message }) => {
+                assert!(message.contains("Failed to open browser in background"));
+                assert!(message.contains("LaunchServices denied"));
+            }
+            other => panic!("expected user-visible background open failure, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn background_open_exit_failure_includes_status_without_stderr() {
+        let mut command = std::process::Command::new("sh");
+        command.arg("-c").arg("exit 9");
+
+        match open_browser_in_background_with_command(&mut command) {
+            Err(AppError::UserVisible { message }) => {
+                assert!(message.contains("Failed to open browser in background"));
+                assert!(message.contains("open exited with status"));
+            }
+            other => panic!("expected user-visible background open failure, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn background_open_exit_failure_message_trims_stderr() {
+        let mut command = std::process::Command::new("sh");
+        command
+            .arg("-c")
+            .arg("printf '\\nLaunchServices denied\\n' >&2; exit 7");
+        let output = command.output().expect("test shell should run");
+
+        let message = background_browser_open_status_failure_message(output.status, &output.stderr);
+
+        assert!(message.ends_with("LaunchServices denied"));
+        assert!(!message.ends_with('\n'));
     }
 
     #[test]

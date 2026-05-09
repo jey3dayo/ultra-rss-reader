@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main app webview",
-  "webviews": ["main"],
+  "webviews": ["main", "browser-preview"],
   "permissions": [
     "core:default",
     "opener:allow-default-urls",

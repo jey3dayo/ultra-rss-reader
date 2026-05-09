@@ -14,6 +14,7 @@ import appE2eSpec from "../../../e2e/app.spec.ts?raw";
 import runtimeErrorGuardHelper from "../../../e2e/helpers/runtime-error-guard.ts?raw";
 import { uiReferenceCanvasStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 import packageJson from "../../../package.json";
+import defaultCapability from "../../../src-tauri/capabilities/default.json";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
 
@@ -1247,6 +1248,27 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("platform: windows-latest");
     expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json --ci");
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
+  });
+
+  it("allows the embedded browser child webview to invoke its native commands", () => {
+    expect(defaultCapability.webviews).toEqual(["main", "browser-preview"]);
+    expect(defaultCapability.permissions).toEqual(
+      expect.arrayContaining([
+        "core:default",
+        "core:window:allow-center",
+        "core:window:allow-is-fullscreen",
+        "core:window:allow-set-size",
+      ]),
+    );
+    expect(tauriConfig.app.security.csp).toContain("connect-src ipc: http://ipc.localhost");
+  });
+
+  it("documents the release-build condition for Tauri unstable child webview APIs", () => {
+    const cargoToml = readRepoFile("src-tauri/Cargo.toml");
+
+    expect(cargoToml).toContain('features = ["image-png", "unstable"]');
+    expect(cargoToml).toContain("required for the embedded browser child webview boundary");
+    expect(cargoToml).toContain("release-smoke the browser preview open, resize, navigation");
   });
 
   it("keeps manual release dispatch pinned to explicit version tags", () => {
