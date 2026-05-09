@@ -16,7 +16,15 @@ export function useFeedTreeHandleClickSuppression(): FeedTreeHandleClickSuppress
     }
   }, []);
 
-  const consumeSuppressedHandleClick = useCallback(() => suppressHandleClickRef.current, []);
+  const consumeSuppressedHandleClick = useCallback(() => {
+    if (!suppressHandleClickRef.current) {
+      return false;
+    }
+
+    clearSuppressHandleClickTimer();
+    suppressHandleClickRef.current = false;
+    return true;
+  }, [clearSuppressHandleClickTimer]);
 
   const queueSuppressHandleClickReset = useCallback(() => {
     clearSuppressHandleClickTimer();

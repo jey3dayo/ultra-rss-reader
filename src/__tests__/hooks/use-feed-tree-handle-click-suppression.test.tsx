@@ -38,7 +38,6 @@ describe("useFeedTreeHandleClickSuppression", () => {
       result.current.queueSuppressHandleClickReset();
     });
 
-    expect(result.current.consumeSuppressedHandleClick()).toBe(true);
     expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(1);
 
@@ -46,6 +45,20 @@ describe("useFeedTreeHandleClickSuppression", () => {
       vi.advanceTimersByTime(0);
     });
 
+    expect(result.current.consumeSuppressedHandleClick()).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("consumes a queued cancel suppression on the next handle click", () => {
+    vi.useFakeTimers();
+
+    const { result } = renderHook(() => useFeedTreeHandleClickSuppression());
+
+    act(() => {
+      result.current.queueSuppressHandleClickReset();
+    });
+
+    expect(result.current.consumeSuppressedHandleClick()).toBe(true);
     expect(result.current.consumeSuppressedHandleClick()).toBe(false);
     expect(vi.getTimerCount()).toBe(0);
   });
