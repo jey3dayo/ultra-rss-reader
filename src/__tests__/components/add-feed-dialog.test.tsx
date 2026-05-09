@@ -154,7 +154,7 @@ describe("AddFeedDialog", () => {
 
     await user.type(screen.getByLabelText("Feed URL"), "example.com");
 
-    expect(screen.getByText("feed_url_help_invalid")).toBeInTheDocument();
+    expect(screen.getByText("Use a full URL like https://example.com")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Discover" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });

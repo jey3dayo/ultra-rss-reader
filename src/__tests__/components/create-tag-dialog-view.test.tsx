@@ -29,14 +29,15 @@ describe("CreateTagDialogView", () => {
       />,
     );
 
-    const input = screen.getByLabelText("name") as HTMLInputElement;
+    const input = screen.getByLabelText("Name") as HTMLInputElement;
     const selectSpy = vi.spyOn(input, "select");
 
-    const scheduledFrame = pendingFrames[0];
-    if (!scheduledFrame) {
+    if (pendingFrames.length === 0) {
       throw new Error("expected requestAnimationFrame callback to be scheduled");
     }
-    scheduledFrame(0);
+    for (const scheduledFrame of pendingFrames) {
+      scheduledFrame(0);
+    }
 
     expect(input).toHaveFocus();
     expect(selectSpy).toHaveBeenCalledTimes(1);

@@ -3,27 +3,32 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 
-vi.mock("react-i18next", () => ({
-  Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
-  useTranslation: (namespace?: string) => ({
-    t: (key: string) => {
-      const common = {
-        cancel: "Cancel",
-        delete: "Delete",
-      };
-      const reader = {
-        delete_tag: "Delete Tag",
-        unsubscribe: "Unsubscribe",
-      };
-      const dictionaries: Record<string, Record<string, string>> = {
-        common,
-        reader,
-      };
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
 
-      return dictionaries[namespace ?? ""]?.[key] ?? key;
-    },
-  }),
-}));
+  return {
+    ...actual,
+    Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
+    useTranslation: (namespace?: string) => ({
+      t: (key: string) => {
+        const common = {
+          cancel: "Cancel",
+          delete: "Delete",
+        };
+        const reader = {
+          delete_tag: "Delete Tag",
+          unsubscribe: "Unsubscribe",
+        };
+        const dictionaries: Record<string, Record<string, string>> = {
+          common,
+          reader,
+        };
+
+        return dictionaries[namespace ?? ""]?.[key] ?? key;
+      },
+    }),
+  };
+});
 
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";

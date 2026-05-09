@@ -30,15 +30,15 @@ describe("RenameTagDialogView", () => {
     );
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByLabelText("name")).toHaveValue("Work");
-    expect(screen.getByRole("button", { name: "save" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("button", { name: "cancel" })).toHaveClass("min-h-11");
+    expect(screen.getByLabelText("Name")).toHaveValue("Work");
+    expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
-    fireEvent.change(screen.getByLabelText("name"), {
+    fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Fresh" },
     });
-    await user.click(screen.getByRole("button", { name: "save" }));
-    await user.click(screen.getByRole("button", { name: "cancel" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onNameChange).toHaveBeenLastCalledWith("Fresh");
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -61,7 +61,7 @@ describe("RenameTagDialogView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(screen.queryByText("Tag already exists")).not.toBeInTheDocument();
   });
 
