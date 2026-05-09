@@ -195,6 +195,9 @@ describe("release repository contract", () => {
     expect(rustTestTask).toContain(
       'run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
     );
+    expect(extractTaskBlock(miseToml, "test:ci")).toContain('depends = ["test:rust", "test:unit:ci"]');
+    expect(ciWorkflow).toContain("mise run test:ci");
+    expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
   });
 
   it("keeps release artifact display metadata source-of-truth explicit", () => {
