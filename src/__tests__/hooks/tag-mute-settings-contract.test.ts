@@ -69,6 +69,15 @@ describe("tag settings and reader tag contracts", () => {
     expect(() => TagArticleCountsSchema.parse({ "tag-1": -1 })).toThrow();
   });
 
+  it("keeps tag response names non-blank while preserving the nullable color contract", () => {
+    expect(TagDtoSchema.parse({ id: "tag-1", name: "  Review  ", color: null })).toEqual({
+      id: "tag-1",
+      name: "Review",
+      color: null,
+    });
+    expect(() => TagDtoSchema.parse({ id: "tag-1", name: "   ", color: null })).toThrow();
+  });
+
   it("separates tag metadata and article assignment cache updates", () => {
     expect(resolveTagMutationInvalidationQueryKeys("create")).toEqual([["tags"]]);
     expect(resolveTagMutationInvalidationQueryKeys("articleAssignment")).toEqual([
@@ -111,6 +120,7 @@ describe("mute settings contracts", () => {
 
   it("keeps mute keyword response schemas independent from tag visual contracts", () => {
     expect(MuteKeywordScopeSchema.parse("body")).toBe("body");
+    expect(MuteKeywordScopeSchema.options).toEqual(["title", "body", "title_and_body"]);
     expect(
       MuteKeywordDtoSchema.parse({
         id: "mute-1",
@@ -126,6 +136,33 @@ describe("mute settings contracts", () => {
       created_at: "2026-05-09T00:00:00Z",
       updated_at: "2026-05-09T00:05:00Z",
     });
+  });
+
+  it("keeps mute keyword response text non-blank and trims backend payloads", () => {
+    expect(
+      MuteKeywordDtoSchema.parse({
+        id: "mute-1",
+        keyword: "  spoiler  ",
+        scope: "title",
+        created_at: "2026-05-09T00:00:00Z",
+        updated_at: "2026-05-09T00:05:00Z",
+      }),
+    ).toEqual({
+      id: "mute-1",
+      keyword: "spoiler",
+      scope: "title",
+      created_at: "2026-05-09T00:00:00Z",
+      updated_at: "2026-05-09T00:05:00Z",
+    });
+    expect(() =>
+      MuteKeywordDtoSchema.parse({
+        id: "mute-1",
+        keyword: "   ",
+        scope: "title",
+        created_at: "2026-05-09T00:00:00Z",
+        updated_at: "2026-05-09T00:05:00Z",
+      }),
+    ).toThrow();
   });
 
   it("invalidates mute settings and article-derived views without changing scope semantics", () => {
