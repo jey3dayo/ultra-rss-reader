@@ -14,7 +14,7 @@ export type FeedLandingFailure =
   | { type: "feed_not_found"; feedId: string }
   | { type: "landing_fetch_failed"; feedId: string; message: string };
 
-export type FeedLandingSuccess = {
+type FeedLandingSuccess = {
   type: "feed_selected";
   feedId: string;
   articleId: string | null;

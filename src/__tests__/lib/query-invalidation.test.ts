@@ -1,3 +1,4 @@
+import { hashKey } from "@tanstack/react-query";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -48,6 +49,24 @@ describe("query-invalidation", () => {
     expect(queryKeys.tagArticleCounts.byAccount("acc-1")).toEqual(["tagArticleCounts", "acc-1"]);
     expect(queryKeys.tagArticleCounts.byAccount(null)).toEqual(["tagArticleCounts", null]);
     expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual(["search", "acc-1", "fresh"]);
+  });
+
+  it("keeps reader article query key object segments stable for hashing and root matching", () => {
+    const queryClient = createTestQueryClient();
+    const articleKey = queryKeys.articles.byFeed("feed-1", "unread");
+    const accountKey = queryKeys.accountArticles.byAccount("acc-1", "all");
+    const tagKey = queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "starred");
+
+    queryClient.setQueryData(articleKey, ["feed article"]);
+    queryClient.setQueryData(accountKey, ["account article"]);
+    queryClient.setQueryData(tagKey, ["tag article"]);
+
+    expect(hashKey(articleKey)).toBe(hashKey(["articles", "feed-1", { mode: "unread" }]));
+    expect(hashKey(accountKey)).toBe(hashKey(["accountArticles", "acc-1", { mode: "all" }]));
+    expect(hashKey(tagKey)).toBe(hashKey(["articlesByTag", "tag-1", "acc-1", { mode: "starred" }]));
+    expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.articles.root })).toHaveLength(1);
+    expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.accountArticles.root })).toHaveLength(1);
+    expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.articlesByTag.root })).toHaveLength(1);
   });
 
   it("normalizes account ids used in query keys", () => {
@@ -118,6 +137,43 @@ describe("query-invalidation", () => {
         includeFeedArticleSummaries: false,
       }),
     ).toEqual([["tagArticleCounts"], ["feedIntegrityReport"]]);
+  });
+
+  it("documents mutation owner invalidation query key sets", () => {
+    expect(resolveArticleInvalidationQueryKeys({ includeTagArticleCounts: true })).toEqual([
+      ["articles"],
+      ["accountArticles"],
+      ["folderArticles"],
+      ["starredArticles"],
+      ["accountUnreadCount"],
+      ["accountStarredCount"],
+      ["feeds"],
+      ["articlesByTag"],
+      ["tagArticleCounts"],
+      ["search"],
+      ["recentArticles"],
+      ["feedArticleSummaries"],
+    ]);
+    expect(
+      resolveArticleInvalidationQueryKeys({
+        includeAccountUnreadCount: false,
+        includeFeeds: false,
+      }),
+    ).toEqual([
+      ["articles"],
+      ["accountArticles"],
+      ["folderArticles"],
+      ["starredArticles"],
+      ["accountStarredCount"],
+      ["articlesByTag"],
+      ["search"],
+      ["recentArticles"],
+      ["feedArticleSummaries"],
+    ]);
+    expect(resolveFeedInvalidationQueryKeys({ includeFolders: false, includeAccountUnreadCount: true })).toEqual([
+      ["feeds"],
+      ["accountUnreadCount"],
+    ]);
   });
 
   it("invalidates feed query keys with opt-in account unread count", () => {

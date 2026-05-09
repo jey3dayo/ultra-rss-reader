@@ -150,28 +150,6 @@ export const ARTICLE_CACHE_QUERY_ROOTS = [
   queryKeys.recentArticles.root,
 ] as const satisfies ReadonlyArray<QueryInvalidationKey>;
 
-export type FeedQueryKey = typeof queryKeys.feeds.root | ReturnType<typeof queryKeys.feeds.byAccount>;
-export type ArticleQueryKey = typeof queryKeys.articles.root | ReturnType<typeof queryKeys.articles.byFeed>;
-export type AccountArticlesQueryKey =
-  | typeof queryKeys.accountArticles.root
-  | ReturnType<typeof queryKeys.accountArticles.byAccountPrefix>
-  | ReturnType<typeof queryKeys.accountArticles.byAccount>;
-export type FolderArticlesQueryKey =
-  | typeof queryKeys.folderArticles.root
-  | ReturnType<typeof queryKeys.folderArticles.byFolder>;
-export type RecentArticlesQueryKey =
-  | typeof queryKeys.recentArticles.root
-  | ReturnType<typeof queryKeys.recentArticles.byAccount>;
-export type SearchArticlesQueryKey =
-  | typeof queryKeys.search.root
-  | ReturnType<typeof queryKeys.search.byAccountAndQuery>;
-
-export type ReaderArticleModeQueryKey =
-  | ReturnType<typeof queryKeys.articles.byFeed>
-  | ReturnType<typeof queryKeys.accountArticles.byAccount>
-  | ReturnType<typeof queryKeys.folderArticles.byFolder>
-  | ReturnType<typeof queryKeys.recentArticles.byAccount>;
-
 export function getReaderArticleQueryMode(queryKey: QueryKey): ReaderFilter | null {
   const options = queryKey[2];
   if (options && typeof options === "object" && "mode" in options) {
