@@ -123,6 +123,8 @@ mod tests {
             "file:///tmp/article.html",
             "javascript:alert(1)",
             "mailto:test@example.com",
+            "localhost:1420",
+            "/relative/path",
         ];
 
         for value in cases {

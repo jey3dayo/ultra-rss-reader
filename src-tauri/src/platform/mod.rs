@@ -165,48 +165,36 @@ mod tests {
 
     #[test]
     fn dev_file_credentials_flag_is_enabled_only_for_truthy_env_values() {
-        let enabled = uses_dev_file_credentials_from_env(|key| {
-            if key == "DEV_CREDENTIALS" {
-                Some("1".to_string())
-            } else {
-                None
-            }
-        });
+        for value in ["1", "true", " TRUE ", "yes", "on"] {
+            let enabled = uses_dev_file_credentials_from_env(|key| {
+                if key == "DEV_CREDENTIALS" {
+                    Some(value.to_string())
+                } else {
+                    None
+                }
+            });
+            assert!(enabled, "DEV_CREDENTIALS={value:?} should be enabled");
+        }
+
+        for value in ["0", "false", " FALSE ", "", " ", "no", "off"] {
+            let disabled = uses_dev_file_credentials_from_env(|key| {
+                if key == "DEV_CREDENTIALS" {
+                    Some(value.to_string())
+                } else {
+                    None
+                }
+            });
+            assert!(!disabled, "DEV_CREDENTIALS={value:?} should be disabled");
+        }
+
         let legacy_enabled = uses_dev_file_credentials_from_env(|key| {
             if key == "ULTRA_RSS_DEV_CREDENTIALS" {
-                Some("1".to_string())
+                Some("true".to_string())
             } else {
                 None
             }
         });
-        let disabled = uses_dev_file_credentials_from_env(|_| None);
-        let false_value_disabled = uses_dev_file_credentials_from_env(|key| {
-            if key == "DEV_CREDENTIALS" {
-                Some("false".to_string())
-            } else {
-                None
-            }
-        });
-        let zero_value_disabled = uses_dev_file_credentials_from_env(|key| {
-            if key == "DEV_CREDENTIALS" {
-                Some("0".to_string())
-            } else {
-                None
-            }
-        });
-        let blank_value_disabled = uses_dev_file_credentials_from_env(|key| {
-            if key == "DEV_CREDENTIALS" {
-                Some(" ".to_string())
-            } else {
-                None
-            }
-        });
-
-        assert!(enabled);
         assert!(legacy_enabled);
-        assert!(!disabled);
-        assert!(!false_value_disabled);
-        assert!(!zero_value_disabled);
-        assert!(!blank_value_disabled);
+        assert!(!uses_dev_file_credentials_from_env(|_| None));
     }
 }

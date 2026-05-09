@@ -1165,15 +1165,22 @@ mod tests {
 
     #[tokio::test]
     async fn embed_support_rejects_non_http_urls_before_requesting() {
-        let error = check_browser_embed_support("mailto:hello@example.com".to_string())
-            .await
-            .expect_err("non-http URLs should use the browser URL validation contract");
+        for url in [
+            "mailto:hello@example.com",
+            "file:///tmp/article.html",
+            "javascript:alert(1)",
+            "localhost:1420",
+        ] {
+            let error = check_browser_embed_support(url.to_string())
+                .await
+                .expect_err("non-http URLs should use the browser URL validation contract");
 
-        assert!(matches!(
-            error,
-            AppError::UserVisible { ref message }
-                if message == "Only http:// and https:// URLs are supported"
-        ));
+            assert!(matches!(
+                error,
+                AppError::UserVisible { ref message }
+                    if message == "Only http:// and https:// URLs are supported"
+            ));
+        }
     }
 
     #[test]
