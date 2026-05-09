@@ -5,7 +5,15 @@ import {
   MOBILE_LAYOUT_BREAKPOINT_PX,
   SIDEBAR_PANE_WIDTH_PX,
 } from "@/constants/ui-layout";
-import { computeTranslateX, isPaneVisible, resolveLayout, resolveResponsiveLayoutMode } from "../../hooks/use-layout";
+import {
+  computeTranslateX,
+  isPaneVisible,
+  resolveLayout,
+  resolveResponsiveLayoutMode,
+  resolveVisiblePane,
+} from "../../hooks/use-layout";
+
+const CONTENT_MODES = ["empty", "reader", "browser", "loading"] as const;
 
 describe("resolveLayout", () => {
   it("wide: 3 panes", () => {
@@ -26,6 +34,13 @@ describe("resolveLayout", () => {
 
   it("mobile: single pane", () => {
     expect(resolveLayout("mobile", "list", "reader")).toEqual(["list"]);
+  });
+
+  it.each(CONTENT_MODES)("keeps pane selection independent from %s content mode", (contentMode) => {
+    expect(resolveLayout("wide", "sidebar", contentMode)).toEqual(["sidebar", "list", "content"]);
+    expect(resolveLayout("compact", "sidebar", contentMode)).toEqual(["sidebar", "list"]);
+    expect(resolveLayout("compact", "content", contentMode)).toEqual(["list", "content"]);
+    expect(resolveLayout("mobile", "content", contentMode)).toEqual(["content"]);
   });
 });
 
@@ -111,5 +126,25 @@ describe("resolveResponsiveLayoutMode", () => {
   it("uses the shared pane width constants for the desktop layout contract", () => {
     expect(SIDEBAR_PANE_WIDTH_PX).toBe(280);
     expect(ARTICLE_LIST_PANE_WIDTH_PX).toBe(380);
+  });
+});
+
+describe("resolveVisiblePane", () => {
+  it("falls back to the sidebar on mobile when no account is selected", () => {
+    expect(resolveVisiblePane("mobile", "list", null)).toBe("sidebar");
+  });
+
+  it("keeps content visible on mobile when content is focused", () => {
+    expect(resolveVisiblePane("mobile", "content", "acc-1")).toBe("content");
+  });
+
+  it("defaults to the list on mobile during normal account usage", () => {
+    expect(resolveVisiblePane("mobile", "sidebar", "acc-1")).toBe("list");
+    expect(resolveVisiblePane("mobile", "list", "acc-1")).toBe("list");
+  });
+
+  it("passes through non-mobile layout modes", () => {
+    expect(resolveVisiblePane("compact", "sidebar", "acc-1")).toBe("sidebar");
+    expect(resolveVisiblePane("wide", "content", "acc-1")).toBe("content");
   });
 });

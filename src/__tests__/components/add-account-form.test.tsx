@@ -3,14 +3,109 @@ import { join } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
+import { sampleAccounts } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { ReactNode } from "react";
+import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AddAccountForm } from "@/components/settings/add-account/controller";
+import { AddAccountForm, buildServicePickerCategories } from "@/components/settings/add-account/controller";
+import { ServicePicker } from "@/components/settings/add-account/service-picker";
+import i18n from "@/lib/i18n";
+import enSettings from "@/locales/en/settings.json";
+import jaSettings from "@/locales/ja/settings.json";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+const localeMockState = vi.hoisted(() => ({ language: "en" as "en" | "ja" }));
+
+vi.mock("react-i18next", () => {
+  const settingsAccountTranslations: Record<"en" | "ja", Record<string, string>> = {
+    en: {
+      "account.heading": "Add Account",
+      "account.category_local": "Local",
+      "account.category_self_hosted": "Self-Hosted",
+      "account.category_services": "Services",
+      "account.local_feeds": "Local Feeds",
+      "account.local_desc": "On My Mac",
+      "account.freshrss": "FreshRSS",
+      "account.freshrss_desc": "freshrss.org",
+      "account.fever": "Fever",
+      "account.fever_desc": "Deprecated. Not recommended.",
+      "account.feedly": "Feedly",
+      "account.feedly_hold_desc": "On hold due to enterprise-only API access",
+      "account.coming_soon": "Coming soon",
+      "account.back_to_services": "Back to services",
+      "account.account": "Account",
+      "account.name": "Name",
+      "account.server_url": "Server URL",
+      "account.server_url_placeholder": "https://example.com",
+      "account.username": "Username",
+      "account.password": "Password",
+      "account.error_server_url_required": "Server URL is required",
+      "account.error_network": "Cannot connect to server. Please check the URL",
+      "account.error_auth": "Authentication failed. Please check your username and API password",
+      "account.error_auth_hint_freshrss": "You need to set an API password in FreshRSS Profile settings",
+      "account.failed_to_add": "Failed to add account: {{message}}",
+    },
+    ja: {
+      "account.heading": "アカウントを追加",
+      "account.category_local": "ローカル",
+      "account.category_self_hosted": "セルフホスト",
+      "account.category_services": "サービス",
+      "account.local_feeds": "ローカルフィード",
+      "account.local_desc": "この端末",
+      "account.freshrss": "FreshRSS",
+      "account.freshrss_desc": "FreshRSS サーバー",
+      "account.fever": "Fever",
+      "account.fever_desc": "非推奨",
+      "account.feedly": "Feedly",
+      "account.feedly_hold_desc": "法人向けAPIのため保留",
+      "account.coming_soon": "準備中",
+      "account.back_to_services": "サービス一覧に戻る",
+      "account.account": "アカウント",
+      "account.name": "名前",
+      "account.server_url": "サーバーURL",
+      "account.server_url_placeholder": "https://example.com",
+      "account.username": "ユーザー名",
+      "account.password": "パスワード",
+      "account.error_server_url_required": "サーバーURLを入力してください",
+      "account.error_network": "サーバーに接続できません。URLを確認してください",
+      "account.error_auth": "認証に失敗しました。ユーザー名とAPIパスワードを確認してください",
+      "account.error_auth_hint_freshrss": "FreshRSSのプロフィール設定でAPIパスワードを設定してください",
+      "account.failed_to_add": "アカウントの追加に失敗しました: {{message}}",
+    },
+  };
+  const commonTranslations: Record<string, string> = {
+    back: "Back",
+    cancel: "Cancel",
+    add: "Add",
+    adding: "Adding…",
+    connection_testing: "Testing connection…",
+  };
+
+  return {
+    I18nextProvider: ({ children }: { children: ReactNode }) => children,
+    initReactI18next: {
+      type: "3rdParty",
+      init: () => undefined,
+    },
+    useTranslation: (namespace?: string) => ({
+      t: (key: string, options?: Record<string, string>) =>
+        namespace === "common" && key in commonTranslations
+          ? commonTranslations[key]
+          : namespace === "settings" && key in settingsAccountTranslations[localeMockState.language]
+            ? settingsAccountTranslations[localeMockState.language][key].replace("{{message}}", options?.message ?? "")
+            : key,
+    }),
+  };
+});
+
 const servicePickerSource = readFileSync(
   join(process.cwd(), "src/components/settings/add-account/service-picker.tsx"),
+  "utf8",
+);
+const addAccountControllerSource = readFileSync(
+  join(process.cwd(), "src/components/settings/add-account/controller.tsx"),
   "utf8",
 );
 const accountConfigFormSource = readFileSync(
@@ -51,14 +146,29 @@ function setupPendingAddAccount(onArgs?: (args: Record<string, unknown>) => void
   };
 }
 
+function createI18nWrapper() {
+  const QueryWrapper = createWrapper();
+
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <I18nextProvider i18n={i18n}>
+        <QueryWrapper>{children}</QueryWrapper>
+      </I18nextProvider>
+    );
+  }
+
+  return Wrapper;
+}
+
 describe("AddAccountForm", () => {
   beforeEach(() => {
+    localeMockState.language = "en";
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
 
   it("renders the service picker with categories", () => {
-    render(<AddAccountForm />, { wrapper: createWrapper() });
+    render(<AddAccountForm />, { wrapper: createI18nWrapper() });
 
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
@@ -66,10 +176,98 @@ describe("AddAccountForm", () => {
     expect(screen.getByText("Fever")).toBeInTheDocument();
   });
 
+  it("renders the service picker from service and description props", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const TestIcon = ({ className }: { className?: string }) => <span className={className} data-testid="test-icon" />;
+
+    render(
+      <ServicePicker
+        title="Choose a service"
+        categories={[
+          {
+            id: "custom",
+            label: "Custom category",
+            services: [
+              {
+                kind: "Local",
+                icon: TestIcon,
+                iconBg: "bg-state-success",
+                name: "Custom Local",
+                description: "Custom local description",
+              },
+              {
+                kind: "Feedly",
+                icon: TestIcon,
+                iconBg: "bg-state-warning",
+                name: "Custom Feedly",
+                description: "Custom feedly description",
+                disabled: true,
+                disabledLabel: "Unavailable",
+              },
+            ],
+          },
+        ]}
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Choose a service" })).toBeInTheDocument();
+    expect(screen.getByText("Custom category")).toBeInTheDocument();
+    expect(screen.getByText("Custom local description")).toBeInTheDocument();
+    expect(screen.getByText("Custom feedly description")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Custom Local/ }));
+    await user.click(screen.getByRole("button", { name: /Custom Feedly/ }));
+
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(onSelect).toHaveBeenCalledWith("Local");
+  });
+
+  it("derives service picker copy from settings translations in the controller", () => {
+    const translations: Record<string, string> = {
+      "account.category_local": jaSettings.account.category_local,
+      "account.category_self_hosted": jaSettings.account.category_self_hosted,
+      "account.category_services": jaSettings.account.category_services,
+      "account.local_feeds": jaSettings.account.local_feeds,
+      "account.local_desc": jaSettings.account.local_desc,
+      "account.freshrss": jaSettings.account.freshrss,
+      "account.freshrss_desc": jaSettings.account.freshrss_desc,
+      "account.fever": jaSettings.account.fever,
+      "account.fever_desc": jaSettings.account.fever_desc,
+      "account.feedly": jaSettings.account.feedly,
+      "account.feedly_hold_desc": jaSettings.account.feedly_hold_desc,
+      "account.coming_soon": jaSettings.account.coming_soon,
+    };
+    const categories = buildServicePickerCategories((key) => {
+      return translations[key] ?? key;
+    });
+
+    expect(categories[0]).toEqual(
+      expect.objectContaining({
+        id: "account.category_local",
+        label: jaSettings.account.category_local,
+      }),
+    );
+    expect(categories.flatMap((category) => category.services)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "Feedly",
+          name: jaSettings.account.feedly,
+          description: jaSettings.account.feedly_hold_desc,
+          disabledLabel: jaSettings.account.coming_soon,
+        }),
+      ]),
+    );
+  });
+
   it("can start directly on the provider config screen for debugging", async () => {
     const user = userEvent.setup();
 
-    render(<AddAccountForm initialKind="FreshRss" />, { wrapper: createWrapper() });
+    render(<AddAccountForm initialKind="FreshRss" />, {
+      wrapper: createWrapper(),
+    });
 
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
@@ -136,16 +334,37 @@ describe("AddAccountForm", () => {
     expect(screen.getByText("Storybook preview only")).toBeInTheDocument();
   });
 
-  it("shows planned services as disabled with a coming-soon label", () => {
-    render(<AddAccountForm />, { wrapper: createWrapper() });
+  it.each([
+    ["en", "Coming soon"],
+    ["ja", "準備中"],
+  ] as const)("shows planned services as disabled with the %s coming-soon label", async (language, comingSoonLabel) => {
+    localeMockState.language = language;
+    await i18n.changeLanguage(language);
 
-    const feverButton = screen.getByRole("button", { name: /Fever/ });
-    const feedlyButton = screen.getByRole("button", { name: /Feedly/ });
+    render(<AddAccountForm />, { wrapper: createI18nWrapper() });
+
+    const feverButton = screen.getByRole("button", {
+      name: /Fever|account\.fever/,
+    });
+    const feedlyButton = screen.getByRole("button", {
+      name: /Feedly|account\.feedly/,
+    });
+    const comingSoonLabels = screen.getAllByText(comingSoonLabel);
 
     expect(feverButton).toBeDisabled();
     expect(feedlyButton).toBeDisabled();
-    expect(screen.getByText("Deprecated. Not recommended.")).toBeInTheDocument();
-    expect(screen.getByText("On hold due to enterprise-only API access")).toBeInTheDocument();
+    expect(enSettings.account.coming_soon).toBe("Coming soon");
+    expect(jaSettings.account.coming_soon).toBe("準備中");
+    expect(comingSoonLabels).toHaveLength(2);
+    expect(screen.queryByText("工事中")).not.toBeInTheDocument();
+    expect(screen.queryByText("account.coming_soon")).not.toBeInTheDocument();
+  });
+
+  it("keeps service picker free of translation and service catalog dependencies", () => {
+    expect(servicePickerSource).not.toContain("useTranslation");
+    expect(servicePickerSource).not.toContain("SERVICE_CATEGORIES");
+    expect(addAccountControllerSource).toContain("useTranslation");
+    expect(addAccountControllerSource).toContain("SERVICE_CATEGORIES");
   });
 
   it("delegates hover styling to the shared nav row button", () => {
@@ -174,12 +393,13 @@ describe("AddAccountForm", () => {
 
   it("keeps the service row and icon badge on the rounded-md baseline", () => {
     expect(servicePickerSource).toContain('className={cn("items-center rounded-md px-3 py-2.5")}');
-    expect(servicePickerSource).toContain(
-      'className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}',
-    );
+    expect(servicePickerSource).toContain('"flex size-9 shrink-0 items-center justify-center rounded-md"');
+    expect(servicePickerSource).toContain("size-[18px]");
+    expect(servicePickerSource).toContain("service.iconBg");
     expect(accountConfigFormViewSource).toContain(
-      'className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceSummary.iconBg)}',
+      'className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", serviceSummary.iconBg)}',
     );
+    expect(accountConfigFormViewSource).toContain("size-5");
   });
 
   it("keeps the config controller focused on view props and submit effects", () => {
@@ -222,7 +442,7 @@ describe("AddAccountForm", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
-  it("shows a toast and skips the IPC call when FreshRSS fields are missing", async () => {
+  it("keeps provider selection, config form, and validation state unchanged when FreshRSS fields are missing", async () => {
     let addAccountCalls = 0;
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
@@ -235,10 +455,18 @@ describe("AddAccountForm", () => {
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
     await selectService(user, "FreshRSS");
+    expect(screen.queryByText("Local Feeds")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
+    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({ message: "Server URL is required" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Server URL is required",
+      });
     });
     expect(addAccountCalls).toBe(0);
   });
@@ -246,7 +474,10 @@ describe("AddAccountForm", () => {
   it("shows network error toast when connection to FreshRSS server fails", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
-        throw { type: "Retryable", message: "Network error: connection refused" };
+        throw {
+          type: "Retryable",
+          message: "Network error: connection refused",
+        };
       }
       return null;
     });
@@ -264,13 +495,17 @@ describe("AddAccountForm", () => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Cannot connect to server. Please check the URL",
       });
+      expect(useUiStore.getState().accountSetupSession).toBeNull();
     });
   });
 
   it("shows auth error with FreshRSS API password hint when authentication fails", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
-        throw { type: "UserVisible", message: "Auth error: Authentication failed: 403" };
+        throw {
+          type: "UserVisible",
+          message: "Auth error: Authentication failed: 403",
+        };
       }
       return null;
     });
@@ -303,9 +538,16 @@ describe("AddAccountForm", () => {
     await user.type(screen.getByLabelText("Password"), "secret");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        owner: "add-account",
+        state: "verifying",
+      });
+    });
     expect(screen.getByRole("button", { name: "Testing connection…" })).toBeDisabled();
 
     addAccount.resolve({
+      ...sampleAccounts[1],
       id: "acc-new",
       kind: "FreshRss",
       name: "FreshRSS",
@@ -339,6 +581,7 @@ describe("AddAccountForm", () => {
     expect(screen.getByLabelText("Name")).toBeDisabled();
 
     addAccount.resolve({
+      ...sampleAccounts[0],
       id: "acc-new",
       kind: "Local",
       name: "Work RSS",
@@ -368,6 +611,7 @@ describe("AddAccountForm", () => {
     expect(addAccountCalls).toHaveBeenCalledTimes(1);
 
     addAccount.resolve({
+      ...sampleAccounts[0],
       id: "acc-new",
       kind: "Local",
       name: "Work RSS",
@@ -385,6 +629,7 @@ describe("AddAccountForm", () => {
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
         return {
+          ...sampleAccounts[1],
           id: "acc-new",
           kind: "FreshRss",
           name: "FreshRSS",
@@ -398,7 +643,14 @@ describe("AddAccountForm", () => {
       }
       if (cmd === "trigger_sync_account") {
         return new Promise((resolve) => {
-          releaseSync = () => resolve({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+          releaseSync = () =>
+            resolve({
+              synced: true,
+              total: 1,
+              succeeded: 1,
+              failed: [],
+              warnings: [],
+            });
         });
       }
       return null;
@@ -417,6 +669,7 @@ describe("AddAccountForm", () => {
       expect(useUiStore.getState().settingsAccountId).toBe("acc-new");
       expect(useUiStore.getState().accountSetupSession).toEqual({
         accountId: "acc-new",
+        owner: "add-account",
         state: "syncing",
       });
     });
@@ -431,6 +684,7 @@ describe("AddAccountForm", () => {
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
         return {
+          ...sampleAccounts[1],
           id: "acc-new",
           kind: "FreshRss",
           name: "FreshRSS",

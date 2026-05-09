@@ -20,6 +20,8 @@ export function useBrowserWebviewRequestState({
   setBrowserState,
   setSurfaceIssue,
 }: UseBrowserWebviewRequestStateParams) {
+  // Keep this separate from the similar lifecycle hooks: it resets request
+  // state synchronously and intentionally has no async cleanup.
   useEffect(() => {
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();

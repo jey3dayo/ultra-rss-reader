@@ -1,5 +1,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useSidebarController } from "@/components/reader/hooks/sidebar/use-sidebar-controller";
+import i18n from "@/lib/i18n";
 import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { SidebarAccountSection } from "./sidebar-account-section";
@@ -75,13 +76,19 @@ function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAcc
   focusSidebarNavigationTarget(nextTarget);
 }
 
+const sidebarLandmarkLabels = {
+  en: "Sidebar",
+  ja: "サイドバー",
+} as const;
+
 export function Sidebar() {
   const { sidebarClassName, headerProps, accountSectionProps, smartViewsProps, contentSectionsProps } =
     useSidebarController();
+  const sidebarLandmarkLabel = i18n.language === "ja" ? sidebarLandmarkLabels.ja : sidebarLandmarkLabels.en;
 
   return (
     <nav
-      aria-label="Sidebar"
+      aria-label={sidebarLandmarkLabel}
       className={sidebarClassName}
       data-sidebar-pane="true"
       onKeyDown={(event) => handleSidebarKeyDown(event, contentSectionsProps.onFocusAccountList)}

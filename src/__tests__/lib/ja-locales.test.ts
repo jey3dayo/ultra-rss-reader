@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import jaReader from "@/locales/ja/reader.json";
 import jaSettings from "@/locales/ja/settings.json";
 import jaSubscriptions from "@/locales/ja/subscriptions.json";
 
@@ -39,5 +40,25 @@ describe("Japanese feed management labels", () => {
     expect(jaSettings.appearance.unread_list).toBe("未読数");
     expect(jaSettings.appearance.starred_list).toBe("スター数");
     expect(jaSettings.mute.behavior).toBe("ミュート時の動作");
+  });
+
+  it("keeps reader and browser actions distinguishable", () => {
+    expect(jaReader.back_to_reader).toBe("記事に戻る");
+    expect(jaReader.view_in_browser).toBe("Webプレビューを開く");
+    expect(jaReader.open_in_external_browser).toBe("外部ブラウザで開く");
+    expect(jaReader.open_in_browser).toBe(jaReader.view_in_browser);
+    expect(jaReader.shortcuts.view_in_browser).toBe("Webプレビューを開く");
+    expect(jaReader.shortcuts.open_external_browser).toBe("外部ブラウザで開く");
+    expect(jaSettings.reading.standard).toBe("本文のみ");
+    expect(jaSettings.reading.preview).toBe("本文 + Webプレビュー");
+    expect(jaSettings.reading.in_app_browser).toBe("Webプレビュー");
+    expect(jaSettings.reading.default_browser).toBe("既定のブラウザ");
+    expect(jaSettings.debug.browser).toBe(jaSettings.reading.in_app_browser);
+
+    expect(jaReader.back_to_reader).not.toContain("Webプレビュー");
+    expect(jaReader.view_in_browser).not.toContain("外部ブラウザ");
+    expect(jaReader.open_in_external_browser).not.toContain("Webプレビュー");
+    expect(jaSettings.reading.standard).not.toContain("Webプレビュー");
+    expect(jaSettings.reading.default_browser).not.toBe(jaSettings.reading.in_app_browser);
   });
 });

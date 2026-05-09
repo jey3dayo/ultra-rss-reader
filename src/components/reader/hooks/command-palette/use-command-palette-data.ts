@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { getHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
-import { useSearchArticles } from "@/hooks/use-articles";
+import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { PaletteAction } from "../../command-palette.types";
@@ -24,8 +24,12 @@ type UseCommandPaletteDataResult = {
   filteredDevScenarios: RuntimeDevScenario[];
   filteredFeeds: FeedDto[];
   filteredTags: TagDto[];
+  recentFeeds: FeedDto[];
+  recentTags: TagDto[];
+  recentArticles: ArticleDto[];
   recentActions: PaletteAction[];
   showRecentActions: boolean;
+  showRecentResources: boolean;
   showActions: boolean;
   showDevScenarios: boolean;
   showFeeds: boolean;
@@ -38,13 +42,16 @@ function normalize(text: string): string {
   return text.trim().toLowerCase();
 }
 
-function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
-  if (!query) {
+function matchesNormalizedQuery(label: string, keywords: readonly string[], normalizedQuery: string): boolean {
+  if (!normalizedQuery) {
     return true;
   }
 
-  const needle = normalize(query);
-  return [label, ...keywords].some((value) => normalize(value).includes(needle));
+  if (normalize(label).includes(normalizedQuery)) {
+    return true;
+  }
+
+  return keywords.some((value) => normalize(value).includes(normalizedQuery));
 }
 
 function filterByQuery<T>(
@@ -55,7 +62,10 @@ function filterByQuery<T>(
     keywords: (item: T) => readonly string[];
   },
 ): T[] {
-  return items.filter((item) => matchesQuery(selectors.label(item), selectors.keywords(item), query));
+  const normalizedQuery = normalize(query);
+  return items.filter((item) =>
+    matchesNormalizedQuery(selectors.label(item), selectors.keywords(item), normalizedQuery),
+  );
 }
 
 function resolveHasVisiblePaletteResults(params: {
@@ -71,6 +81,8 @@ function resolveHasVisiblePaletteResults(params: {
   filteredTagsCount: number;
   showArticles: boolean;
   articlesCount: number;
+  showRecentResources: boolean;
+  recentResourcesCount: number;
 }): boolean {
   const {
     showRecentActions,
@@ -85,16 +97,25 @@ function resolveHasVisiblePaletteResults(params: {
     filteredTagsCount,
     showArticles,
     articlesCount,
+    showRecentResources,
+    recentResourcesCount,
   } = params;
 
-  return [
-    showRecentActions && recentActionsCount > 0,
-    !showRecentActions && showActions && filteredActionsCount > 0,
-    !showRecentActions && showDevScenarios && filteredDevScenariosCount > 0,
-    !showRecentActions && showFeeds && filteredFeedsCount > 0,
-    !showRecentActions && showTags && filteredTagsCount > 0,
-    !showRecentActions && showArticles && articlesCount > 0,
-  ].some(Boolean);
+  if (showRecentActions) {
+    return recentActionsCount > 0 || recentResourcesCount > 0;
+  }
+
+  if (showRecentResources) {
+    return recentResourcesCount > 0;
+  }
+
+  return (
+    (showActions && filteredActionsCount > 0) ||
+    (showDevScenarios && filteredDevScenariosCount > 0) ||
+    (showFeeds && filteredFeedsCount > 0) ||
+    (showTags && filteredTagsCount > 0) ||
+    (showArticles && articlesCount > 0)
+  );
 }
 
 export function useCommandPaletteData({
@@ -108,6 +129,7 @@ export function useCommandPaletteData({
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const { data: tags = [] } = useTags();
   const { data: articles = [] } = useSearchArticles(selectedAccountId, prefix === null ? deferredQuery : "");
+  const { data: recentArticleCandidates = [] } = useRecentArticles(selectedAccountId);
 
   const filteredActions = useMemo(
     () => filterByQuery(actions, query, { label: (action) => action.label, keywords: (action) => action.keywords }),
@@ -130,16 +152,57 @@ export function useCommandPaletteData({
     [tags, query],
   );
 
-  const recentActions = useMemo(() => {
+  const { recentActions, recentFeeds, recentTags, recentArticles } = useMemo(() => {
     const actionMap = new Map(actions.map((action) => [action.id, action]));
-    return getHistory()
+    const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
+    const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
+    const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
+    const entries = getHistory()
       .map(parseCommandPaletteHistoryEntry)
-      .filter((entry): entry is Extract<CommandPaletteHistoryEntry, { kind: "action" }> => entry?.kind === "action")
-      .map((entry) => actionMap.get(entry.id))
-      .filter((action): action is PaletteAction => action != null);
-  }, [actions]);
+      .filter((entry): entry is CommandPaletteHistoryEntry => entry != null);
+
+    const recentActions: PaletteAction[] = [];
+    const recentFeeds: FeedDto[] = [];
+    const recentTags: TagDto[] = [];
+    const recentArticles: ArticleDto[] = [];
+
+    for (const entry of entries) {
+      if (entry.kind === "action") {
+        const action = actionMap.get(entry.id);
+        if (action) {
+          recentActions.push(action);
+        }
+        continue;
+      }
+
+      if (entry.kind === "feed") {
+        const feed = feedMap.get(entry.id);
+        if (feed) {
+          recentFeeds.push(feed);
+        }
+        continue;
+      }
+
+      if (entry.kind === "tag") {
+        const tag = tagMap.get(entry.id);
+        if (tag) {
+          recentTags.push(tag);
+        }
+        continue;
+      }
+
+      const article = articleMap.get(entry.id);
+      if (article) {
+        recentArticles.push(article);
+      }
+    }
+
+    return { recentActions, recentFeeds, recentTags, recentArticles };
+  }, [actions, feeds, recentArticleCandidates, tags]);
 
   const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
+  const recentResourcesCount = recentFeeds.length + recentTags.length + recentArticles.length;
+  const showRecentResources = prefix === null && query.length === 0 && recentResourcesCount > 0;
   const showActions = prefix === null || prefix === ">";
   const showDevScenarios = import.meta.env.DEV && prefix === null;
   const showFeeds = prefix === null || prefix === "@";
@@ -159,6 +222,8 @@ export function useCommandPaletteData({
     filteredTagsCount: filteredTags.length,
     showArticles,
     articlesCount: articles.length,
+    showRecentResources,
+    recentResourcesCount,
   });
 
   return {
@@ -167,8 +232,12 @@ export function useCommandPaletteData({
     filteredDevScenarios,
     filteredFeeds,
     filteredTags,
+    recentFeeds,
+    recentTags,
+    recentArticles,
     recentActions,
     showRecentActions,
+    showRecentResources,
     showActions,
     showDevScenarios,
     showFeeds,

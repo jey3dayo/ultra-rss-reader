@@ -106,13 +106,13 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
       onCloseOverlay: handleCloseBrowserOverlay,
       showBrowserView: isBrowserOpen,
     },
-    browserOverlayToolbarActions: actionStripProps.canCopyLink
+    browserOverlayToolbarActions: actionStripProps.actionOptions.canCopyLink
       ? [
           {
             key: "copy-link",
             label: actionStripProps.labels.copyLink,
             onClick: actionStripProps.onCopyLink,
-            disabled: !actionStripProps.canCopyLink,
+            disabled: !actionStripProps.actionOptions.canCopyLink,
             icon: <Copy aria-hidden="true" className="size-4" />,
           },
         ]

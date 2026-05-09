@@ -11,11 +11,19 @@ import {
   useAccountStarredCount,
   useArticles,
   useClearArticleViewHistory,
+  useFolderArticles,
+  useRecentArticles,
   useRecordArticleView,
   useSearchArticles,
   useSetRead,
   useToggleStar,
 } from "@/hooks/use-articles";
+import { queryKeys } from "@/lib/query/query-invalidation";
+
+const sampleFeedsForAccountOne = sampleFeeds.map((feed) => ({
+  ...feed,
+  account_id: "acc-1",
+}));
 
 describe("useToggleStar", () => {
   let queryClient: QueryClient;
@@ -46,8 +54,13 @@ describe("useToggleStar", () => {
       .spyOn(tauriCommands, "searchArticles")
       .mockResolvedValue(Result.succeed(sampleArticles));
     const initialArticlesProps: { feedId: string | null } = { feedId: null };
-    const initialAccountProps: { accountId: string | null } = { accountId: null };
-    const initialSearchProps: { accountId: string | null; query: string } = { accountId: null, query: "fresh" };
+    const initialAccountProps: { accountId: string | null } = {
+      accountId: null,
+    };
+    const initialSearchProps: { accountId: string | null; query: string } = {
+      accountId: null,
+      query: "fresh",
+    };
 
     const articles = renderHook(({ feedId }: { feedId: string | null }) => useArticles(feedId), {
       initialProps: initialArticlesProps,
@@ -90,12 +103,62 @@ describe("useToggleStar", () => {
     });
   });
 
+  it("keeps article search disabled for whitespace-only queries", () => {
+    const searchArticlesSpy = vi
+      .spyOn(tauriCommands, "searchArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+
+    renderHook(() => useSearchArticles("acc-1", "   \n\t  "), { wrapper });
+
+    expect(searchArticlesSpy).not.toHaveBeenCalled();
+  });
+
+  it("treats whitespace-only manual article query ids as null-equivalent disabled ids", () => {
+    const listArticlesSpy = vi.spyOn(tauriCommands, "listArticles").mockResolvedValue(Result.succeed(sampleArticles));
+    const listAccountArticlesSpy = vi
+      .spyOn(tauriCommands, "listAccountArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const listFolderArticlesSpy = vi
+      .spyOn(tauriCommands, "listFolderArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const listRecentArticlesSpy = vi
+      .spyOn(tauriCommands, "listRecentArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const countAccountStarredArticlesSpy = vi
+      .spyOn(tauriCommands, "countAccountStarredArticles")
+      .mockResolvedValue(Result.succeed(1));
+
+    renderHook(() => useArticles("   "), { wrapper });
+    renderHook(() => useAccountArticles("\n\t"), { wrapper });
+    renderHook(() => useFolderArticles("   "), { wrapper });
+    renderHook(() => useRecentArticles("\n"), { wrapper });
+    renderHook(() => useAccountStarredCount("   "), { wrapper });
+
+    expect(listArticlesSpy).not.toHaveBeenCalled();
+    expect(listAccountArticlesSpy).not.toHaveBeenCalled();
+    expect(listFolderArticlesSpy).not.toHaveBeenCalled();
+    expect(listRecentArticlesSpy).not.toHaveBeenCalled();
+    expect(countAccountStarredArticlesSpy).not.toHaveBeenCalled();
+
+    expect(queryClient.getQueryState(queryKeys.articles.byFeed(null, "all"))).toBeDefined();
+    expect(queryClient.getQueryState(queryKeys.accountArticles.byAccount(null, "all"))).toBeDefined();
+    expect(queryClient.getQueryState(queryKeys.folderArticles.byFolder(null, "all"))).toBeDefined();
+    expect(queryClient.getQueryState(queryKeys.recentArticles.byAccount(null, "all"))).toBeDefined();
+    expect(queryClient.getQueryState(queryKeys.accountStarredCount.byAccount(null))).toBeDefined();
+
+    expect(queryClient.getQueryState(queryKeys.articles.byFeed("   ", "all"))).toBeUndefined();
+    expect(queryClient.getQueryState(queryKeys.accountArticles.byAccount("\n\t", "all"))).toBeUndefined();
+    expect(queryClient.getQueryState(queryKeys.folderArticles.byFolder("   ", "all"))).toBeUndefined();
+    expect(queryClient.getQueryState(queryKeys.recentArticles.byAccount("\n", "all"))).toBeUndefined();
+    expect(queryClient.getQueryState(queryKeys.accountStarredCount.byAccount("   "))).toBeUndefined();
+  });
+
   it("patches cached account and starred article data immediately when starring an article", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(["accountArticles", "acc-1", { mode: "all" }], sampleArticles);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
     queryClient.setQueryData(
-      ["starredArticles", "acc-1"],
+      queryKeys.starredArticles.byAccount("acc-1"),
       sampleArticles.filter((article) => article.is_starred),
     );
 
@@ -104,10 +167,10 @@ describe("useToggleStar", () => {
     await result.current.mutateAsync({ id: "art-1", starred: true });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "all" }])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
       );
-      expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
       );
     });
@@ -116,9 +179,9 @@ describe("useToggleStar", () => {
   it("patches cached account data and removes the article from starred caches when unstarring", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(["accountArticles", "acc-1", { mode: "all" }], sampleArticles);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
     queryClient.setQueryData(
-      ["starredArticles", "acc-1"],
+      queryKeys.starredArticles.byAccount("acc-1"),
       sampleArticles.filter((article) => article.is_starred),
     );
 
@@ -127,10 +190,10 @@ describe("useToggleStar", () => {
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "all" }])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-2", is_starred: false })]),
       );
-      expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
     });
   });
 
@@ -138,11 +201,15 @@ describe("useToggleStar", () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
     queryClient.setQueryData(
-      ["accountArticles", "acc-1", { mode: "all" }],
+      queryKeys.accountArticles.byAccount("acc-1", "all"),
       sampleArticles.filter((article) => article.id !== "art-2"),
     );
     queryClient.setQueryData(
-      ["starredArticles", "acc-1"],
+      queryKeys.accountArticles.byAccount("acc-1", "unread"),
+      sampleArticles.filter((article) => !article.is_read),
+    );
+    queryClient.setQueryData(
+      queryKeys.starredArticles.byAccount("acc-1"),
       sampleArticles.filter((article) => article.id === "art-2"),
     );
 
@@ -151,46 +218,49 @@ describe("useToggleStar", () => {
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "all" }])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-2", is_starred: false })]),
       );
-      expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-2" })]),
+      );
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
     });
   });
 
   it("creates the matching account cache when unstarring from a starred-only selection", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(["feeds", "acc-1"], sampleFeeds);
-    queryClient.setQueryData(["starredArticles", "acc-1"], [sampleArticles[1]]);
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-1"), [sampleArticles[1]]);
 
     const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "all" }])).toEqual([
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual([
         expect.objectContaining({ id: "art-2", is_starred: false }),
       ]);
-      expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
     });
   });
 
   it("creates the matching starred cache when starring from an account-only selection", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(["feeds", "acc-1"], sampleFeeds);
-    queryClient.setQueryData(["accountArticles", "acc-1", { mode: "all" }], sampleArticles);
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
 
     const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-1", starred: true });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "all" }])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
       );
-      expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([
         expect.objectContaining({ id: "art-1", is_starred: true }),
       ]);
     });
@@ -199,10 +269,10 @@ describe("useToggleStar", () => {
   it("patches mode-aware account article caches without creating an unscoped cache key", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(["feeds", "acc-1"], sampleFeeds);
-    queryClient.setQueryData(["accountArticles", "acc-1", { mode: "all" }], sampleArticles);
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
     queryClient.setQueryData(
-      ["accountArticles", "acc-1", { mode: "unread" }],
+      queryKeys.accountArticles.byAccount("acc-1", "unread"),
       sampleArticles.filter((article) => !article.is_read),
     );
 
@@ -211,17 +281,35 @@ describe("useToggleStar", () => {
     await result.current.mutateAsync({ id: "art-1", starred: true });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "all" }])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
       );
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "unread" }])).toEqual(
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
       );
     });
-    expect(queryClient.getQueryData(["accountArticles", "acc-1"])).toBeUndefined();
-    expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccountPrefix("acc-1"))).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([
       expect.objectContaining({ id: "art-1", is_starred: true }),
     ]);
+  });
+
+  it("patches tag article caches without changing their article order", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(["articlesByTag", "tag-1"], [sampleArticles[1], sampleArticles[0]]);
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-1", starred: true });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(["articlesByTag", "tag-1"])).toEqual([
+        expect.objectContaining({ id: "art-2" }),
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+    });
   });
 });
 
@@ -246,7 +334,7 @@ describe("useSetRead", () => {
     vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
 
     queryClient.setQueryData(
-      ["accountArticles", "acc-1", { mode: "unread" }],
+      queryKeys.accountArticles.byAccount("acc-1", "unread"),
       sampleArticles.filter((article) => !article.is_read),
     );
 
@@ -255,10 +343,22 @@ describe("useSetRead", () => {
     await result.current.mutateAsync({ id: "art-1", read: true });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["accountArticles", "acc-1", { mode: "unread" }])).toEqual([
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([
         expect.objectContaining({ id: "art-1", is_read: true }),
       ]);
     });
+  });
+
+  it("marks tag article counts stale after changing article read state", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(["tagArticleCounts", "acc-1"], { "tag-1": 1 });
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-1", read: true });
+
+    expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
   });
 });
 
@@ -285,24 +385,70 @@ describe("recent article history mutations", () => {
 
     const { result } = renderHook(() => useRecordArticleView(), { wrapper });
 
-    await result.current.mutateAsync({ accountId: "acc-1", articleId: "art-1" });
+    await result.current.mutateAsync({
+      accountId: "acc-1",
+      articleId: "art-1",
+    });
 
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["recentArticles"] });
-    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ["articles"] });
-    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
-    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.root,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.articles.root,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.accountArticles.root,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: ["accountUnreadCount"],
+    });
+  });
+
+  it("treats blank article view ids as no-op success without invalidating recent articles", async () => {
+    const recordArticleViewSpy = vi.spyOn(tauriCommands, "recordArticleView");
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useRecordArticleView(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        accountId: "   ",
+        articleId: "art-1",
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      result.current.mutateAsync({
+        accountId: "acc-1",
+        articleId: "\n\t",
+      }),
+    ).resolves.toBeNull();
+
+    expect(recordArticleViewSpy).not.toHaveBeenCalled();
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.root,
+    });
   });
 
   it("invalidates recent articles only after clearing article view history", async () => {
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useClearArticleViewHistory(), { wrapper });
+    const { result } = renderHook(() => useClearArticleViewHistory(), {
+      wrapper,
+    });
 
     await result.current.mutateAsync("acc-1");
 
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["recentArticles"] });
-    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ["articles"] });
-    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
-    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.root,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.articles.root,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.accountArticles.root,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: ["accountUnreadCount"],
+    });
   });
 });

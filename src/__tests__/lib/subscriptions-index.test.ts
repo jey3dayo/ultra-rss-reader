@@ -30,6 +30,7 @@ const feeds: FeedDto[] = [
     id: "feed-stale",
     account_id: "acc-1",
     folder_id: "folder-work",
+    remote_id: null,
     title: "Old Product Blog",
     url: "https://example.com/old.xml",
     site_url: "https://example.com/old",
@@ -41,6 +42,7 @@ const feeds: FeedDto[] = [
     id: "feed-active",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Active Feed",
     url: "https://example.com/active.xml",
     site_url: "https://example.com/active",
@@ -52,6 +54,7 @@ const feeds: FeedDto[] = [
     id: "feed-mid",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Quiet Feed",
     url: "https://example.com/quiet.xml",
     site_url: "https://example.com/quiet",
@@ -63,6 +66,7 @@ const feeds: FeedDto[] = [
     id: "feed-dormant",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Dormant Feed",
     url: "https://example.com/dormant.xml",
     site_url: "https://example.com/dormant",
@@ -265,6 +269,49 @@ describe("subscriptions index helpers", () => {
         { ...articles[1], published_at: "2025-10-15T10:00:00Z" },
       ]),
     ).toBe("2025-10-15T10:00:00Z");
+  });
+
+  it("orders detail preview articles by valid dates before invalid dates with stable equal-date ties", () => {
+    const invalidArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-invalid-date",
+      title: "Invalid date post",
+      published_at: "not-a-date",
+    };
+    const firstEqualDateArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-equal-date-1",
+      title: "First equal date post",
+      published_at: "2026-04-02T10:00:00Z",
+    };
+    const secondEqualDateArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-equal-date-2",
+      title: "Second equal date post",
+      published_at: "2026-04-02T10:00:00Z",
+    };
+    const newerValidArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-newer-valid",
+      title: "Newer valid post",
+      published_at: "2026-04-03T10:00:00Z",
+    };
+
+    expect(
+      buildSubscriptionDetailMetrics({
+        feed: feeds[0],
+        articles: [invalidArticle, newerValidArticle],
+        feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
+      }).previewArticles.map((article) => article.id),
+    ).toEqual([newerValidArticle.id, invalidArticle.id]);
+
+    expect(
+      buildSubscriptionDetailMetrics({
+        feed: feeds[0],
+        articles: [firstEqualDateArticle, secondEqualDateArticle],
+        feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
+      }).previewArticles.map((article) => article.id),
+    ).toEqual([firstEqualDateArticle.id, secondEqualDateArticle.id]);
   });
 
   it("falls back to articles for missing detail summaries and preserves summary priority when present", () => {
@@ -788,13 +835,13 @@ describe("subscriptions index helpers", () => {
 
     expect(buildSubscriptionListGroups(rows, "No Folder")).toMatchObject([
       {
-        key: "__ungrouped__",
+        key: "subscription-list:0-sentinel:no-folder",
         label: "No Folder",
         rows: [rows[1], rows[2], rows[3]],
         folderId: null,
       },
       {
-        key: "folder-work",
+        key: "subscription-list:1-folder:folder-work",
         label: "Work",
         rows: [rows[0]],
         folderId: "folder-work",
@@ -841,7 +888,10 @@ describe("subscriptions index helpers", () => {
 
     const groups = buildSubscriptionListGroups(rows, "No Folder");
 
-    expect(groups.map((group) => group.key)).toEqual(["folder-a", "folder-z"]);
+    expect(groups.map((group) => group.key)).toEqual([
+      "subscription-list:1-folder:folder-a",
+      "subscription-list:1-folder:folder-z",
+    ]);
   });
 
   it("keeps the no-folder group stable when its label matches a folder label", () => {
@@ -868,7 +918,51 @@ describe("subscriptions index helpers", () => {
 
     const groups = buildSubscriptionListGroups(rows, "Archive");
 
-    expect(groups.map((group) => group.key)).toEqual(["__ungrouped__", "folder-archive"]);
+    expect(groups.map((group) => group.key)).toEqual([
+      "subscription-list:0-sentinel:no-folder",
+      "subscription-list:1-folder:folder-archive",
+    ]);
+  });
+
+  it("keeps no-folder and real folder ids in separate group key namespaces", () => {
+    const collidingFeeds: FeedDto[] = [
+      {
+        ...feeds[0],
+        id: "feed-real-folder",
+        folder_id: "__ungrouped__",
+        title: "Real folder feed",
+      },
+      {
+        ...feeds[1],
+        id: "feed-no-folder",
+        folder_id: null,
+        title: "No folder feed",
+      },
+    ];
+    const rows = buildSubscriptionListRows({
+      feeds: collidingFeeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map(),
+      folderNameById: new Map([["__ungrouped__", "Real Ungrouped"]]),
+    });
+
+    const groups = buildSubscriptionListGroups(rows, "No Folder");
+
+    expect(groups).toHaveLength(2);
+    expect(groups).toMatchObject([
+      {
+        key: "subscription-list:0-sentinel:no-folder",
+        label: "No Folder",
+        rows: [rows[1]],
+        folderId: null,
+      },
+      {
+        key: "subscription-list:1-folder:__ungrouped__",
+        label: "Real Ungrouped",
+        rows: [rows[0]],
+        folderId: "__ungrouped__",
+      },
+    ]);
   });
 
   it("formats subscription dates with an invalid fallback", () => {

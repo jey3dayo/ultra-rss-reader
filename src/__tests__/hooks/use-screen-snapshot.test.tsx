@@ -1,13 +1,18 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { ScreenSnapshotResult } from "@/hooks/use-screen-snapshot";
-import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
+import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 
 type SnapshotCandidate = { value: string };
 
 type ScreenSnapshotHookProps = {
   candidate: SnapshotCandidate | null;
   canAdopt: boolean;
+};
+
+type ArticleSnapshotCandidate = {
+  contextKey: string;
+  articles: Array<{ id: string }>;
 };
 
 function renderScreenSnapshotHook(initialProps: ScreenSnapshotHookProps) {
@@ -183,5 +188,59 @@ describe("useScreenSnapshot", () => {
       hasResolvedSnapshot: true,
       hasAdoptedSnapshot: true,
     });
+  });
+
+  it("adopts keyed snapshots only for the current first-screen context", () => {
+    const snapshot = {
+      accountId: "acc-1",
+      feeds: [{ id: "feed-1" }],
+    };
+
+    expect(adoptSnapshotByKey(snapshot, "accountId", "acc-1")).toBe(snapshot);
+    expect(adoptSnapshotByKey(snapshot, "accountId", "acc-2")).toBeNull();
+    expect(adoptSnapshotByKey(snapshot, "accountId", null)).toBeNull();
+    expect(adoptSnapshotByKey(null, "accountId", "acc-1")).toBeNull();
+  });
+
+  it("does not reuse a SQLite first-screen snapshot after the feed context changes", () => {
+    const { result, rerender } = renderHook(
+      ({
+        candidate,
+        canAdopt,
+      }: {
+        candidate: { contextKey: string; articles: Array<{ id: string }> } | null;
+        canAdopt: boolean;
+      }) => useScreenSnapshot(candidate, canAdopt),
+      {
+        initialProps: {
+          candidate: { contextKey: "feed:feed-1:unread", articles: [{ id: "article-1" }] } as ArticleSnapshotCandidate,
+          canAdopt: true,
+        },
+      },
+    );
+    const rerenderWithSnapshot = rerender as (props: {
+      candidate: { contextKey: string; articles: Array<{ id: string }> } | null;
+      canAdopt: boolean;
+    }) => void;
+
+    expect(adoptSnapshotByKey(result.current.snapshot, "contextKey", "feed:feed-1:unread")?.articles).toEqual([
+      { id: "article-1" },
+    ]);
+
+    rerenderWithSnapshot({
+      candidate: null,
+      canAdopt: false,
+    });
+
+    expect(adoptSnapshotByKey(result.current.snapshot, "contextKey", "feed:feed-2:unread")).toBeNull();
+
+    rerenderWithSnapshot({
+      candidate: { contextKey: "feed:feed-2:unread", articles: [{ id: "article-2" }] },
+      canAdopt: true,
+    });
+
+    expect(adoptSnapshotByKey(result.current.snapshot, "contextKey", "feed:feed-2:unread")?.articles).toEqual([
+      { id: "article-2" },
+    ]);
   });
 });

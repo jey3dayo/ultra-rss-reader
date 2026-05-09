@@ -1,40 +1,83 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import type { FeedDto } from "@/api/schemas/feed";
 import { useAccountUnreadCount } from "@/hooks/use-account-unread-count";
 import { useFeeds } from "@/hooks/use-feeds";
+import type { UnreadBadgePreference } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-async function setBadgeCount(count: number | undefined): Promise<void> {
+function unreadCountToBadgeCount(count: number | undefined): number | undefined {
+  return count && count > 0 ? count : undefined;
+}
+
+function resolveUnreadBadgePreference(value: string | undefined): UnreadBadgePreference {
+  if (value === "all_unread" || value === "only_inbox" || value === "dont_display") {
+    return value;
+  }
+
+  return "dont_display";
+}
+
+function resolveBadgeCount({
+  accountUnreadCount,
+  badgePref,
+  feeds,
+  selectedAccountId,
+}: {
+  accountUnreadCount: number | undefined;
+  badgePref: UnreadBadgePreference;
+  feeds: FeedDto[] | undefined;
+  selectedAccountId: string | null;
+}): number | undefined {
+  if (badgePref === "dont_display" || selectedAccountId === null) {
+    return undefined;
+  }
+
+  if (badgePref === "only_inbox") {
+    return unreadCountToBadgeCount(accountUnreadCount);
+  }
+
+  const totalUnread = feeds?.reduce((sum, feed) => sum + feed.unread_count, 0) ?? 0;
+  return unreadCountToBadgeCount(totalUnread);
+}
+
+async function setBadgeCount(count: number | undefined, isLatestRequest: () => boolean): Promise<void> {
   try {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().setBadgeCount(count);
+    const currentWindow = await getCurrentWindow();
+    if (!isLatestRequest()) {
+      return;
+    }
+    await currentWindow.setBadgeCount(count);
   } catch {
     // Non-Tauri context (browser dev mode) — no-op
   }
 }
 
 export function useBadge() {
+  const badgeRequestSeqRef = useRef(0);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const badgePref = usePreferencesStore((s) => s.prefs.unread_badge ?? "dont_display");
+  const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
   const { data: feeds } = useFeeds(feedAccountId);
   const { data: accountUnreadCount } = useAccountUnreadCount(
     selectedAccountId,
     badgePref === "only_inbox" && selectedAccountId !== null,
   );
+  const badgeCount = useMemo(
+    () =>
+      resolveBadgeCount({
+        accountUnreadCount,
+        badgePref,
+        feeds,
+        selectedAccountId,
+      }),
+    [accountUnreadCount, badgePref, feeds, selectedAccountId],
+  );
 
   useEffect(() => {
-    if (badgePref === "dont_display" || selectedAccountId === null) {
-      setBadgeCount(undefined);
-      return;
-    }
-
-    if (badgePref === "only_inbox") {
-      setBadgeCount(accountUnreadCount && accountUnreadCount > 0 ? accountUnreadCount : undefined);
-      return;
-    }
-
-    const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
-    setBadgeCount(totalUnread > 0 ? totalUnread : undefined);
-  }, [accountUnreadCount, badgePref, feeds, selectedAccountId]);
+    badgeRequestSeqRef.current += 1;
+    const requestSeq = badgeRequestSeqRef.current;
+    void setBadgeCount(badgeCount, () => badgeRequestSeqRef.current === requestSeq);
+  }, [badgeCount]);
 }

@@ -110,4 +110,27 @@ describe("resolveAddFeedDialogDerived", () => {
       { value: "https://example.com/releases.xml", label: "Release Notes", description: undefined },
     ]);
   });
+
+  it("uses the URL as the discovered feed option label when discovery returns no title", () => {
+    const derived = resolveAddFeedDialogDerived({
+      state: {
+        ...createInitialAddFeedDialogState(),
+        discoveredFeeds: [{ title: "", url: "https://example.com/feed.xml" }],
+      },
+      folderSelection: {
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
+      invalidUrlHint: "Invalid URL",
+      exampleUrlHint: "Example URL",
+    });
+
+    expect(derived.discoveredFeedOptions).toEqual([
+      {
+        value: "https://example.com/feed.xml",
+        label: "https://example.com/feed.xml",
+        description: undefined,
+      },
+    ]);
+  });
 });

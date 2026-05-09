@@ -1,4 +1,5 @@
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
+import { queryElementByDataAttribute } from "./dom/data-attribute";
 
 export const SIDEBAR_SELECTED_TARGET_ATTRIBUTE = "data-sidebar-selected-target";
 export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";
@@ -22,6 +23,40 @@ function focusElement(target: HTMLElement): boolean {
   return true;
 }
 
+function focusFirstAvailableTarget(targets: Array<HTMLElement | null>): boolean {
+  return targets.some((target) => (target ? focusElement(target) : false));
+}
+
+function focusTargetWhenReady(params: {
+  focusTarget: () => boolean;
+  focusFallback: () => void;
+  retry: () => void;
+  attemptsRemaining: number;
+}) {
+  if (params.focusTarget()) {
+    return;
+  }
+
+  if (params.attemptsRemaining <= 1) {
+    params.focusFallback();
+    return;
+  }
+
+  window.setTimeout(params.retry, 50);
+}
+
+export function isSidebarPaneTarget(target: Element | null): boolean {
+  return Boolean(target?.closest('[data-sidebar-pane="true"]'));
+}
+
+export function isArticleListPaneTarget(target: Element | null): boolean {
+  return Boolean(target?.closest('[data-article-list-pane="true"]'));
+}
+
+export function isArticleListRowTarget(target: Element | null): boolean {
+  return Boolean(target?.closest('[role="option"][data-article-id]'));
+}
+
 export function focusArticleListTarget(selectedArticleId: string | null): boolean {
   if (typeof document === "undefined") {
     return false;
@@ -41,14 +76,20 @@ export function focusArticleListRowTarget(selectedArticleId: string | null): boo
   }
 
   if (selectedArticleId) {
-    const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${selectedArticleId}"]`);
+    const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(
+      document,
+      "data-article-id",
+      selectedArticleId,
+    );
     if (selectedArticleTarget && focusElement(selectedArticleTarget)) {
       return true;
     }
   }
 
-  const firstArticleTarget = document.querySelector<HTMLElement>('[data-article-id][role="option"]');
-  if (firstArticleTarget && focusElement(firstArticleTarget)) {
+  const firstArticleTarget = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-article-id][role="option"]'),
+  ).find((target) => focusElement(target));
+  if (firstArticleTarget) {
     return true;
   }
 
@@ -56,16 +97,14 @@ export function focusArticleListRowTarget(selectedArticleId: string | null): boo
 }
 
 export function focusArticleListRowTargetWhenReady(selectedArticleId: string | null, attemptsRemaining = 12): void {
-  if (focusArticleListRowTarget(selectedArticleId)) {
-    return;
-  }
-
-  if (attemptsRemaining <= 1) {
-    focusArticleListTarget(selectedArticleId);
-    return;
-  }
-
-  window.setTimeout(() => focusArticleListRowTargetWhenReady(selectedArticleId, attemptsRemaining - 1), 50);
+  focusTargetWhenReady({
+    focusTarget: () => focusArticleListRowTarget(selectedArticleId),
+    focusFallback: () => {
+      focusArticleListTarget(selectedArticleId);
+    },
+    retry: () => focusArticleListRowTargetWhenReady(selectedArticleId, attemptsRemaining - 1),
+    attemptsRemaining,
+  });
 }
 
 export function focusArticleContentTarget(): boolean {
@@ -82,11 +121,10 @@ export function focusSelectedSidebarTarget(): boolean {
     return false;
   }
 
-  const selectedTarget =
-    document.querySelector<HTMLElement>(`[${SIDEBAR_SELECTED_TARGET_ATTRIBUTE}="true"]`) ??
-    document.querySelector<HTMLElement>(`[${SIDEBAR_FALLBACK_TARGET_ATTRIBUTE}="true"]`);
-
-  return selectedTarget ? focusElement(selectedTarget) : false;
+  return focusFirstAvailableTarget([
+    document.querySelector<HTMLElement>(`[${SIDEBAR_SELECTED_TARGET_ATTRIBUTE}="true"]`),
+    document.querySelector<HTMLElement>(`[${SIDEBAR_FALLBACK_TARGET_ATTRIBUTE}="true"]`),
+  ]);
 }
 
 export function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
@@ -99,16 +137,12 @@ export function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
 }
 
 export function focusSidebarSmartViewTargetWhenReady(kind: SmartViewKind, attemptsRemaining = 12): void {
-  if (focusSidebarSmartViewTarget(kind)) {
-    return;
-  }
-
-  if (attemptsRemaining <= 1) {
-    focusSelectedSidebarTarget();
-    return;
-  }
-
-  window.setTimeout(() => focusSidebarSmartViewTargetWhenReady(kind, attemptsRemaining - 1), 50);
+  focusTargetWhenReady({
+    focusTarget: () => focusSidebarSmartViewTarget(kind),
+    focusFallback: focusSelectedSidebarTarget,
+    retry: () => focusSidebarSmartViewTargetWhenReady(kind, attemptsRemaining - 1),
+    attemptsRemaining,
+  });
 }
 
 export function focusSelectedAccountPaneTarget(): boolean {
@@ -116,9 +150,8 @@ export function focusSelectedAccountPaneTarget(): boolean {
     return false;
   }
 
-  const selectedTarget =
-    document.querySelector<HTMLElement>(`[${ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE}="true"]`) ??
-    document.querySelector<HTMLElement>("[data-account-pane-navigation-target='true']");
-
-  return selectedTarget ? focusElement(selectedTarget) : false;
+  return focusFirstAvailableTarget([
+    document.querySelector<HTMLElement>(`[${ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE}="true"]`),
+    document.querySelector<HTMLElement>("[data-account-pane-navigation-target='true']"),
+  ]);
 }

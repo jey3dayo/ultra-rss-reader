@@ -1,6 +1,32 @@
 import { APP_EVENTS } from "@/constants/events";
 import { formatDebugTimestamp } from "@/lib/datetime";
 
+export type DebugTraceSource = "input" | "browser_geometry" | "sync_error" | "app";
+
+export function resolveDebugTraceSource(message: string): DebugTraceSource {
+  if (
+    message.startsWith("raw-key ") ||
+    message.startsWith("raw-pointer ") ||
+    message.startsWith("raw-click ") ||
+    message.startsWith("window-key ") ||
+    message.startsWith("window-mouse ") ||
+    message.startsWith("list-key ") ||
+    message.startsWith("menu-action ")
+  ) {
+    return "input";
+  }
+
+  if (message.startsWith("browser-geometry ")) {
+    return "browser_geometry";
+  }
+
+  if (message.startsWith("sync-error ")) {
+    return "sync_error";
+  }
+
+  return "app";
+}
+
 export function emitDebugInputTrace(message: string): void {
   if (typeof window === "undefined") {
     return;

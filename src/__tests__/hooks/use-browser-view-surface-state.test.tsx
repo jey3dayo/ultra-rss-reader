@@ -186,8 +186,13 @@ describe("useBrowserViewSurfaceState", () => {
 
     expect(result.current.browserState).toBeNull();
     expect(result.current.fallbackInFlightRef.current).toBe(false);
+    expect(result.current.surfaceIssue).toBeNull();
     expect(result.current.activeSurfaceIssue).toBeNull();
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledWith(
+      "Embedded browser webview disappeared while overlay was open:",
+      "Embedded browser webview is not open",
+    );
   });
 
   it("turns fallback payloads into surface issues and stops the loading state", () => {

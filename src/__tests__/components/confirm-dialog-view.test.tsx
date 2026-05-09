@@ -86,4 +86,31 @@ describe("ConfirmDialogView", () => {
       unmount();
     });
   });
+
+  it("delegates dialog close separately from cancel and confirm actions", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Confirm action"
+        message="Run this action?"
+        actionLabel="Run"
+        cancelLabel="Cancel"
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    await user.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
+    expect(onOpenChange.mock.calls[0]?.[0]).toBe(false);
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

@@ -1,12 +1,21 @@
 import type { ReactNode, RefObject } from "react";
-import { useTranslation } from "react-i18next";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
+
+export type ArticleListHeaderLabels = {
+  markAllReadLabel: string;
+  markAllReadButtonText: string;
+  searchArticlesLabel: string;
+  searchArticlesButtonText: string;
+  closeSearchLabel: string;
+  searchArticlesPlaceholder: string;
+};
 
 export type ArticleListHeaderProps = {
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  labels: ArticleListHeaderLabels;
   showSidebarButton: boolean;
   sidebarButtonLabel: string;
   sidebarButtonText?: string;
@@ -23,6 +32,7 @@ export function ArticleListHeader({
   showSearch,
   searchQuery,
   searchInputRef,
+  labels,
   showSidebarButton,
   sidebarButtonLabel,
   sidebarButtonText,
@@ -34,13 +44,6 @@ export function ArticleListHeader({
   onCloseSearch,
   onSearchQueryChange,
 }: ArticleListHeaderProps) {
-  const { t } = useTranslation("reader");
-  const markAllReadLabel = t("mark_all_as_read");
-  const markAllReadButtonText = t("mark_all_read_short");
-  const searchArticlesLabel = t("search_articles");
-  const searchArticlesButtonText = t("search_short");
-  const closeSearchLabel = t("close_search");
-  const searchArticlesPlaceholder = t("search_articles_placeholder");
   return (
     <>
       <div className="flex h-12 items-center border-b border-border/70 bg-[var(--workspace-header-surface)] px-3 backdrop-blur-sm">
@@ -55,11 +58,11 @@ export function ArticleListHeader({
           onToggleSidebar={onToggleSidebar}
           onToggleSearch={onToggleSearch}
           onCloseSearch={onCloseSearch}
-          markAllReadLabel={markAllReadLabel}
-          markAllReadButtonText={markAllReadButtonText}
-          searchArticlesLabel={searchArticlesLabel}
-          searchArticlesButtonText={searchArticlesButtonText}
-          closeSearchLabel={closeSearchLabel}
+          markAllReadLabel={labels.markAllReadLabel}
+          markAllReadButtonText={labels.markAllReadButtonText}
+          searchArticlesLabel={labels.searchArticlesLabel}
+          searchArticlesButtonText={labels.searchArticlesButtonText}
+          closeSearchLabel={labels.closeSearchLabel}
         />
       </div>
 
@@ -67,8 +70,8 @@ export function ArticleListHeader({
         <ArticleListHeaderSearch
           searchInputRef={searchInputRef}
           searchQuery={searchQuery}
-          searchArticlesLabel={searchArticlesLabel}
-          searchArticlesPlaceholder={searchArticlesPlaceholder}
+          searchArticlesLabel={labels.searchArticlesLabel}
+          searchArticlesPlaceholder={labels.searchArticlesPlaceholder}
           onSearchQueryChange={onSearchQueryChange}
           onCloseSearch={onCloseSearch}
         />

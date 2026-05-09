@@ -1,5 +1,8 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render as renderTestingLibrary, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import i18n from "@tests/helpers/i18n-setup";
+import type { ReactElement } from "react";
+import { I18nextProvider } from "react-i18next";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BrowserOverlayChrome } from "@/components/reader/browser-overlay-chrome";
 import type {
@@ -92,6 +95,10 @@ const shareToolbarActions: BrowserOverlayToolbarAction[] = [
     icon: <span aria-hidden="true">S</span>,
   },
 ];
+
+function render(ui: ReactElement) {
+  return renderTestingLibrary(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>);
+}
 
 describe("BrowserOverlayChrome", () => {
   afterEach(() => {
@@ -196,9 +203,10 @@ describe("BrowserOverlayChrome", () => {
     );
 
     const backButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
-      name: "Web back",
+      name: "Back to Reader",
     });
     expect(backButton).toBeEnabled();
+    expect(within(screen.getByTestId("browser-overlay-chrome")).queryByRole("button", { name: "Web back" })).toBeNull();
 
     await user.click(backButton);
 

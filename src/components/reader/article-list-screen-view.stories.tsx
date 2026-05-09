@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties, ReactNode } from "react";
 import { fn } from "storybook/test";
+import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import { ArticleListScreenView } from "./article-list-screen-view";
 
 type CssVariableProperties = CSSProperties & Record<`--${string}`, string | number>;
@@ -180,11 +181,7 @@ export const SelectedJapaneseUnreadWithScrollbarDark: Story = {
 };
 
 export const DenseNarrowViewport: Story = {
-  parameters: {
-    viewport: {
-      defaultViewport: "mobile2",
-    },
-  },
+  parameters: denseNarrowViewportParameters,
   args: {
     listAriaLabel: "記事一覧",
     groups: [

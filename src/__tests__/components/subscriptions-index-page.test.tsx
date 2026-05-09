@@ -2,9 +2,22 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it } from "vitest";
+import type { ComponentProps } from "react";
+import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
+import type {
+  SubscriptionsIndexPageView,
+  SubscriptionsIndexPageViewProps,
+} from "@/components/subscriptions-index/subscriptions-index-page-view";
 import i18n from "@/lib/i18n";
+import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
+import type {
+  SubscriptionDetailCandidate,
+  SubscriptionDetailMetrics,
+  SubscriptionListGroup,
+  SubscriptionListRow,
+  SubscriptionSummaryCard,
+} from "@/lib/subscriptions/subscriptions-index.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -33,6 +46,7 @@ describe("SubscriptionsIndexPage", () => {
               id: "feed-1",
               account_id: "acc-1",
               folder_id: "folder-1",
+              remote_id: null,
               title: "Example Feed",
               url: "https://example.com/feed.xml",
               site_url: "https://example.com",
@@ -44,6 +58,7 @@ describe("SubscriptionsIndexPage", () => {
               id: "feed-2",
               account_id: "acc-1",
               folder_id: "folder-2",
+              remote_id: null,
               title: "Fresh Feed",
               url: "https://example.com/fresh.xml",
               site_url: "https://example.com/fresh",
@@ -55,6 +70,7 @@ describe("SubscriptionsIndexPage", () => {
               id: "feed-3",
               account_id: "acc-1",
               folder_id: null,
+              remote_id: null,
               title: "Loose Feed",
               url: "https://example.com/loose.xml",
               site_url: "https://example.com/loose",
@@ -190,6 +206,22 @@ describe("SubscriptionsIndexPage", () => {
       "motion-content-swap",
       "rounded-md",
     );
+  });
+
+  it("keeps the page view props as the shared subscriptions index contract", () => {
+    expectTypeOf<ComponentProps<typeof SubscriptionsIndexPageView>>().toEqualTypeOf<SubscriptionsIndexPageViewProps>();
+    expectTypeOf<SubscriptionsIndexPageViewProps["summaryCards"][number]>().toEqualTypeOf<SubscriptionSummaryCard>();
+    expectTypeOf<SubscriptionsIndexPageViewProps["groups"][number]>().toEqualTypeOf<SubscriptionListGroup>();
+    expectTypeOf<SubscriptionsIndexPageViewProps["selectedRow"]>().toEqualTypeOf<SubscriptionListRow | null>();
+    expectTypeOf<
+      SubscriptionsIndexPageViewProps["selectedMetrics"]
+    >().toEqualTypeOf<SubscriptionDetailMetrics | null>();
+    expectTypeOf<
+      SubscriptionsIndexPageViewProps["selectedDetailCandidate"]
+    >().toEqualTypeOf<SubscriptionDetailCandidate | null>();
+    expectTypeOf<
+      NonNullable<SubscriptionsIndexPageViewProps["decisionActions"]>
+    >().toEqualTypeOf<SubscriptionDecisionActions>();
   });
 
   it("renders lightweight feed rows and only highlights the selected feed", async () => {
@@ -329,7 +361,7 @@ describe("SubscriptionsIndexPage", () => {
 
     const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    const firstGroupPanel = document.getElementById("subscriptions-group-panel-folder-1");
+    const firstGroupPanel = document.getElementById("subscriptions-group-panel-subscription-list:1-folder:folder-1");
 
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
@@ -430,32 +462,41 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = await screen.findByTestId("subscriptions-detail-pane");
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
 
-    expect(await within(detailPane).findByTestId("subscriptions-detail-decision-bar")).toBeInTheDocument();
-    expect(within(detailPane).getByRole("button", { name: "残す" })).toBeInTheDocument();
-    expect(within(detailPane).getByRole("button", { name: "あとで" })).toBeInTheDocument();
-    expect(within(detailPane).getByRole("button", { name: "削除" })).toBeInTheDocument();
+    const decisionBar = await within(detailPane).findByTestId("subscriptions-detail-decision-bar");
+    expect(decisionBar).toBeVisible();
+    const keepButton = within(detailPane).getByRole("button", { name: /^(残す|decision_keep)$/ });
+    const deferButton = within(detailPane).getByRole("button", { name: /^(あとで|decision_defer)$/ });
+    const deleteButton = within(detailPane).getByRole("button", { name: /^(削除|delete)$/ });
+    expect(keepButton).toBeVisible();
+    expect(deferButton).toBeVisible();
+    expect(deleteButton).toBeVisible();
+    expect(keepButton.querySelector("svg")).toHaveClass("size-4");
+    expect(deferButton.querySelector("svg")).toHaveClass("size-4");
+    expect(deleteButton.querySelector("svg")).toHaveClass("size-4");
 
-    await user.click(within(detailPane).getByRole("button", { name: "残す" }));
-    expect(useUiStore.getState().toastMessage?.message).toBe("Example Feed を残すにしました");
-    await user.click(within(detailPane).getByRole("button", { name: "あとで" }));
-    expect(useUiStore.getState().toastMessage?.message).toBe("Example Feed をあとで確認にしました");
-    await user.click(within(detailPane).getByRole("button", { name: "削除" }));
+    await user.click(keepButton);
+    expect(useUiStore.getState().toastMessage?.message).toMatch(/^(Example Feed を残すにしました|decision_kept)$/);
+    await user.click(deferButton);
+    expect(useUiStore.getState().toastMessage?.message).toMatch(
+      /^(Example Feed をあとで確認にしました|decision_deferred)$/,
+    );
+    await user.click(deleteButton);
     const unsubscribeDialog = await screen.findByRole("dialog");
     expect(unsubscribeDialog).toBeInTheDocument();
     expect(within(unsubscribeDialog).getByText("Example Feed")).toBeInTheDocument();
-    await user.click(within(unsubscribeDialog).getByRole("button", { name: "キャンセル" }));
+    await user.click(within(unsubscribeDialog).getByRole("button", { name: /^(キャンセル|cancel)$/ }));
 
     await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
 
     expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
     expect(within(detailPane).getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
-    await user.click(within(detailPane).getByRole("button", { name: "編集" }));
+    await user.click(within(detailPane).getByRole("button", { name: /^(編集|edit)$/ }));
     const editDialog = await screen.findByRole("dialog", {
-      name: "フィードを編集",
+      name: /^(フィードを編集|edit_feed)$/,
     });
     expect(within(editDialog).getByDisplayValue("Fresh Feed")).toBeInTheDocument();
-    await user.click(within(editDialog).getByRole("button", { name: "キャンセル" }));
-    expect(within(detailPane).getByRole("button", { name: "削除" })).toBeInTheDocument();
+    await user.click(within(editDialog).getByRole("button", { name: /^(キャンセル|cancel)$/ }));
+    expect(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ })).toBeInTheDocument();
   });
 
   it("removes deferred feeds from the active review filter and clears the detail pane", async () => {
@@ -505,9 +546,9 @@ describe("SubscriptionsIndexPage", () => {
           activeSummaryFilter: "stale",
           selectedFeedId: "feed-1",
           expandedGroups: {
-            "folder-1": false,
-            "folder-2": true,
-            __ungrouped__: true,
+            "subscription-list:1-folder:folder-1": false,
+            "subscription-list:1-folder:folder-2": true,
+            "subscription-list:0-sentinel:no-folder": true,
           },
           listScrollTop: 18,
           keptFeedIds: [],
@@ -519,7 +560,7 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
-    const firstGroupPanel = document.getElementById("subscriptions-group-panel-folder-1");
+    const firstGroupPanel = document.getElementById("subscriptions-group-panel-subscription-list:1-folder:folder-1");
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     const workspaceShell = screen.getByTestId("subscriptions-workspace-shell");
     const listPane = workspaceShell.querySelector("section");
@@ -541,9 +582,9 @@ describe("SubscriptionsIndexPage", () => {
           activeSummaryFilter: "review",
           selectedFeedId: "feed-1",
           expandedGroups: {
-            "folder-1": true,
-            "folder-2": true,
-            __ungrouped__: true,
+            "subscription-list:1-folder:folder-1": true,
+            "subscription-list:1-folder:folder-2": true,
+            "subscription-list:0-sentinel:no-folder": true,
           },
           listScrollTop: 0,
           keptFeedIds: ["feed-1"],
@@ -715,5 +756,30 @@ describe("SubscriptionsIndexPage", () => {
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().focusedPane).toBe("content");
+  });
+
+  it("does not close the subscriptions workspace when Escape closes nested edit and delete dialogs", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Fresh Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+
+    await user.click(within(detailPane).getByRole("button", { name: /^(編集|edit)$/ }));
+    expect(await screen.findByRole("dialog", { name: /^(フィードを編集|edit_feed)$/ })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /^(フィードを編集|edit_feed)$/ })).not.toBeInTheDocument();
+    });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+
+    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
   });
 });

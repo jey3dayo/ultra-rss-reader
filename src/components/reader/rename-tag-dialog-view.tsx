@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
+import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
 
 const EMPTY_COLOR_OPTIONS: string[] = [];
 const NO_OP_COLOR_CHANGE = () => {};
@@ -34,18 +34,7 @@ export function RenameTagDialogView({
 }: RenameTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-  }, [open]);
+  const inputRef = useTagDialogAutofocus(open);
 
   return (
     <FormDialogShell

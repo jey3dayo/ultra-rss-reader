@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useArticleBrowserOverlayDisplay } from "@/components/reader/hooks/article/use-article-browser-overlay-display";
 import { APP_EVENTS } from "@/constants/events";
@@ -59,5 +60,34 @@ describe("useArticleBrowserOverlayDisplay", () => {
 
     expect(result.current.shouldShowBrowserOverlay).toBe(false);
     expect(result.current.resolvedDisplay.webPreviewMode).toBe(false);
+  });
+
+  it("keeps whitespace-only article URLs in missing web preview fallback", () => {
+    usePreferencesStore.setState({
+      prefs: {
+        reader_mode_default: "true",
+        web_preview_mode_default: "true",
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useArticleBrowserOverlayDisplay({
+        articleId: "art-blank-url",
+        articleUrl: " \n\t ",
+        feed: { ...sampleFeeds[0], reader_mode: "on", web_preview_mode: "on" },
+      }),
+    );
+
+    expect(result.current.shouldShowBrowserOverlay).toBe(false);
+    expect(result.current.resolvedDisplay.webPreviewMode).toBe(false);
+    expect(result.current.resolvedDisplay.fallbackReason).toBe("missing_web_preview");
+
+    act(() => {
+      result.current.setBrowserOverlayOpenPreference();
+    });
+
+    expect(result.current.shouldShowBrowserOverlay).toBe(false);
+    expect(result.current.resolvedDisplay.webPreviewMode).toBe(false);
+    expect(result.current.resolvedDisplay.fallbackReason).toBe("missing_web_preview");
   });
 });

@@ -1,7 +1,18 @@
 import { Result } from "@praha/byethrow";
 import { useCallback } from "react";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/articles/article-list";
-import type { UseArticleListNavigationParams } from "../../article-list.types";
+import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
+import type { ArticleNavigationDirection } from "@/lib/layout/layout-state.types";
+import type { ArticleListBodyProps } from "../../article-list-body";
+
+type UseArticleListNavigationParams = {
+  filteredArticles: ArticleDto[];
+  selectedArticleId: string | null;
+  selectArticle: (articleId: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
+  listRef: ArticleListBodyProps["listRef"];
+  viewportRef: ArticleListBodyProps["viewportRef"];
+};
 
 export function useArticleListNavigation({
   filteredArticles,
@@ -10,21 +21,15 @@ export function useArticleListNavigation({
   listRef,
   viewportRef,
 }: UseArticleListNavigationParams) {
-  return useCallback(
-    (direction: 1 | -1) => {
-      const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
-      if (Result.isFailure(nextArticleId)) {
-        return;
-      }
-
-      const articleId = Result.unwrap(nextArticleId);
+  const focusArticleRow = useCallback(
+    (articleId: string, direction: 1 | -1) => {
       const viewport = viewportRef.current;
-      const button = listRef.current?.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
-
-      selectArticle(articleId, { navigationDirection: direction });
+      const button = listRef.current
+        ? queryElementByDataAttribute<HTMLElement>(listRef.current, "data-article-id", articleId)
+        : null;
 
       if (!viewport || !button) {
-        return;
+        return false;
       }
 
       const stickyHeaderHeight =
@@ -47,7 +52,34 @@ export function useArticleListNavigation({
       }
 
       button.focus({ preventScroll: true });
+      return true;
     },
-    [filteredArticles, listRef, selectArticle, selectedArticleId, viewportRef],
+    [listRef, viewportRef],
+  );
+
+  return useCallback(
+    (direction: 1 | -1) => {
+      const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
+      if (Result.isFailure(nextArticleId)) {
+        return;
+      }
+
+      const articleId = Result.unwrap(nextArticleId);
+
+      selectArticle(articleId, { navigationDirection: direction });
+
+      if (focusArticleRow(articleId, direction)) {
+        return;
+      }
+
+      if (typeof window.requestAnimationFrame !== "function") {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        focusArticleRow(articleId, direction);
+      });
+    },
+    [filteredArticles, focusArticleRow, selectArticle, selectedArticleId],
   );
 }

@@ -57,10 +57,12 @@ export function useBrowserWebviewSync({
         if (isMissingEmbeddedBrowserWebviewError(error)) {
           resetBrowserWebviewSyncState();
           onMissingEmbeddedBrowserWebview(error);
+          return;
         }
+        showSurfaceFailure(error);
       }
     },
-    [onMissingEmbeddedBrowserWebview, resetBrowserWebviewSyncState],
+    [onMissingEmbeddedBrowserWebview, resetBrowserWebviewSyncState, showSurfaceFailure],
   );
 
   const flushPendingBounds = useCallback(

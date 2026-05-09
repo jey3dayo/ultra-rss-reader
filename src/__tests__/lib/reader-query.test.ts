@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { resolveReaderQuery, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
+import {
+  type ReaderFilter,
+  type ReaderQuerySelection,
+  resolveReaderQuery,
+  resolveReaderSourcePlan,
+} from "@/lib/reader/reader-query";
 
 describe("resolveReaderQuery", () => {
   it("normalizes smart views to account-scoped reader queries", () => {
@@ -81,9 +86,182 @@ describe("resolveReaderQuery", () => {
     expect(resolveReaderQuery({ type: "all" }, "unread", null)).toBeNull();
     expect(resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", null)).toBeNull();
   });
+
+  it("treats blank selected account ids as unresolved", () => {
+    expect(resolveReaderQuery({ type: "all" }, "unread", "   ")).toBeNull();
+    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "\n")).toBeNull();
+    expect(resolveReaderQuery({ type: "all" }, "unread", " acc-1 ")).toEqual({
+      source: "articles",
+      scope: { type: "account", accountId: "acc-1" },
+      filter: "unread",
+    });
+  });
+
+  it("treats blank feed, folder, and tag scope ids as unresolved", () => {
+    expect(resolveReaderQuery({ type: "feed", feedId: " " }, "unread", "acc-1")).toBeNull();
+    expect(resolveReaderQuery({ type: "folder", folderId: "\n" }, "unread", "acc-1")).toBeNull();
+    expect(resolveReaderQuery({ type: "tag", tagId: "" }, "unread", "acc-1")).toBeNull();
+    expect(resolveReaderQuery({ type: "feed", feedId: " feed-1 " }, "unread", "acc-1")).toEqual({
+      source: "articles",
+      scope: { type: "feed", feedId: "feed-1" },
+      filter: "unread",
+    });
+  });
 });
 
 describe("resolveReaderSourcePlan", () => {
+  it("matches the reader article scope matrix for every source and filter", () => {
+    const cases: Array<{
+      selection: ReaderQuerySelection;
+      viewMode: ReaderFilter;
+      expected: {
+        sourceKind: string;
+        sourceKey: string;
+        accountId: string | null;
+        folderId: string | null;
+        feedId: string | null;
+        tagId: string | null;
+        accountMode: ReaderFilter;
+        folderMode: ReaderFilter;
+        feedMode: ReaderFilter;
+        tagMode: ReaderFilter;
+        recentMode: ReaderFilter;
+        preservesRecentOrder: boolean;
+      };
+    }> = [
+      {
+        selection: { type: "smart", kind: "unread" },
+        viewMode: "all",
+        expected: {
+          sourceKind: "account",
+          sourceKey: "account:acc-1:articles:unread",
+          accountId: "acc-1",
+          folderId: null,
+          feedId: null,
+          tagId: null,
+          accountMode: "unread",
+          folderMode: "all",
+          feedMode: "all",
+          tagMode: "all",
+          recentMode: "all",
+          preservesRecentOrder: false,
+        },
+      },
+      {
+        selection: { type: "all" },
+        viewMode: "all",
+        expected: {
+          sourceKind: "account",
+          sourceKey: "account:acc-1:articles:all",
+          accountId: "acc-1",
+          folderId: null,
+          feedId: null,
+          tagId: null,
+          accountMode: "all",
+          folderMode: "all",
+          feedMode: "all",
+          tagMode: "all",
+          recentMode: "all",
+          preservesRecentOrder: false,
+        },
+      },
+      {
+        selection: { type: "smart", kind: "starred" },
+        viewMode: "all",
+        expected: {
+          sourceKind: "account",
+          sourceKey: "account:acc-1:articles:starred",
+          accountId: "acc-1",
+          folderId: null,
+          feedId: null,
+          tagId: null,
+          accountMode: "starred",
+          folderMode: "all",
+          feedMode: "all",
+          tagMode: "all",
+          recentMode: "all",
+          preservesRecentOrder: false,
+        },
+      },
+      ...(["unread", "all", "starred"] as const).map((viewMode) => ({
+        selection: { type: "folder", folderId: "folder-1" } as const,
+        viewMode,
+        expected: {
+          sourceKind: "folder",
+          sourceKey: `folder:folder-1:${viewMode}`,
+          accountId: null,
+          folderId: "folder-1",
+          feedId: null,
+          tagId: null,
+          accountMode: "all" as const,
+          folderMode: viewMode,
+          feedMode: "all" as const,
+          tagMode: "all" as const,
+          recentMode: "all" as const,
+          preservesRecentOrder: false,
+        },
+      })),
+      ...(["unread", "all", "starred"] as const).map((viewMode) => ({
+        selection: { type: "feed", feedId: "feed-1" } as const,
+        viewMode,
+        expected: {
+          sourceKind: "feed",
+          sourceKey: `feed:feed-1:${viewMode}`,
+          accountId: null,
+          folderId: null,
+          feedId: "feed-1",
+          tagId: null,
+          accountMode: "all" as const,
+          folderMode: "all" as const,
+          feedMode: viewMode,
+          tagMode: "all" as const,
+          recentMode: "all" as const,
+          preservesRecentOrder: false,
+        },
+      })),
+      ...(["unread", "all", "starred"] as const).map((viewMode) => ({
+        selection: { type: "tag", tagId: "tag-1" } as const,
+        viewMode,
+        expected: {
+          sourceKind: "tag",
+          sourceKey: `tag:tag-1:${viewMode}`,
+          accountId: null,
+          folderId: null,
+          feedId: null,
+          tagId: "tag-1",
+          accountMode: "all" as const,
+          folderMode: "all" as const,
+          feedMode: "all" as const,
+          tagMode: viewMode,
+          recentMode: "all" as const,
+          preservesRecentOrder: false,
+        },
+      })),
+      ...(["unread", "all", "starred"] as const).map((viewMode) => ({
+        selection: { type: "smart", kind: "recent" } as const,
+        viewMode,
+        expected: {
+          sourceKind: "recent",
+          sourceKey: `recent:acc-1:${viewMode}`,
+          accountId: "acc-1",
+          folderId: null,
+          feedId: null,
+          tagId: null,
+          accountMode: "all" as const,
+          folderMode: "all" as const,
+          feedMode: "all" as const,
+          tagMode: "all" as const,
+          recentMode: viewMode,
+          preservesRecentOrder: true,
+        },
+      })),
+    ];
+
+    for (const { selection, viewMode, expected } of cases) {
+      expect(resolveReaderSourcePlan(selection, viewMode, "acc-1")).toMatchObject(expected);
+    }
+  });
+
   it("builds a non-colliding source plan for each reader scope", () => {
     const cases = [
       {
@@ -200,6 +378,28 @@ describe("resolveReaderSourcePlan", () => {
       tagId: null,
       effectiveViewMode: "unread",
       preservesRecentOrder: false,
+    });
+    expect(resolveReaderSourcePlan({ type: "all" }, "unread", "   ")).toMatchObject({
+      query: null,
+      sourceKind: "none",
+      sourceKey: "none",
+    });
+    expect(resolveReaderSourcePlan({ type: "feed", feedId: "   " }, "unread", "acc-1")).toMatchObject({
+      query: null,
+      sourceKind: "none",
+      sourceKey: "none",
+    });
+    expect(resolveReaderSourcePlan({ type: "folder", folderId: "\n\t" }, "starred", "acc-1")).toMatchObject({
+      query: null,
+      sourceKind: "none",
+      sourceKey: "none",
+      effectiveViewMode: "starred",
+    });
+    expect(resolveReaderSourcePlan({ type: "tag", tagId: "" }, "all", "acc-1")).toMatchObject({
+      query: null,
+      sourceKind: "none",
+      sourceKey: "none",
+      effectiveViewMode: "all",
     });
   });
 

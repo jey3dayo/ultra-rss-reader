@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArticleAutoMark } from "@/components/reader/hooks/article/use-article-auto-mark";
+import { useUiStore } from "@/stores/ui-store";
 
 type UseArticleAutoMarkParams = Parameters<typeof useArticleAutoMark>[0];
 type AutoMarkMutate = UseArticleAutoMarkParams["setRead"]["mutate"];
@@ -33,6 +34,10 @@ function createParams(overrides: Partial<UseArticleAutoMarkParams> = {}): UseArt
 describe("useArticleAutoMark", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    useUiStore.setState({
+      retainedArticleIds: new Set(),
+      recentlyReadIds: new Set(),
+    });
   });
 
   afterEach(() => {
@@ -220,6 +225,54 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(2);
     expect(showToast).toHaveBeenCalledTimes(2);
+  });
+
+  it("rolls back auto-retained unread articles when auto mark mutation fails", () => {
+    const showToast = vi.fn();
+    const mutate: AutoMarkMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          afterReading: "immediately",
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          showToast,
+        }),
+      );
+    });
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+    expect(showToast).toHaveBeenCalledWith("Failed to mark read");
+  });
+
+  it("keeps pre-existing retained unread articles when auto mark mutation fails", () => {
+    useUiStore.getState().retainArticle("art-1");
+    const mutate: AutoMarkMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          afterReading: "immediately",
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+        }),
+      );
+    });
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
   });
 
   it("does not block the next article after a failed auto mark mutation", () => {

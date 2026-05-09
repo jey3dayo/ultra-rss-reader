@@ -60,12 +60,41 @@ export function useFolderSelection(initialFolderId: string | null) {
   const [state, dispatch] = useReducer(folderSelectionReducer, initialFolderId, createInitialFolderSelectionState);
   const { selectedFolderId, newFolderName, isCreatingFolder } = state;
   const newFolderInputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusFrameRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+
+  const cancelPendingFocusFrame = useCallback(() => {
+    if (pendingFocusFrameRef.current !== null) {
+      cancelAnimationFrame(pendingFocusFrameRef.current);
+      pendingFocusFrameRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    if (isCreatingFolder) {
-      requestAnimationFrame(() => newFolderInputRef.current?.focus());
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      cancelPendingFocusFrame();
+    };
+  }, [cancelPendingFocusFrame]);
+
+  useEffect(() => {
+    if (!isCreatingFolder) {
+      cancelPendingFocusFrame();
+      return;
     }
-  }, [isCreatingFolder]);
+
+    cancelPendingFocusFrame();
+    pendingFocusFrameRef.current = requestAnimationFrame(() => {
+      pendingFocusFrameRef.current = null;
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      newFolderInputRef.current?.focus();
+    });
+  }, [cancelPendingFocusFrame, isCreatingFolder]);
 
   const resetFolderSelection = useCallback((folderId: string | null) => {
     dispatch({ type: "reset", folderId });

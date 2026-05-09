@@ -18,6 +18,7 @@ const feeds: FeedDto[] = [
     id: "feed-a",
     account_id: "acc-1",
     folder_id: "folder-1",
+    remote_id: null,
     title: "Feed A",
     url: "https://example.com/a.xml",
     site_url: "https://example.com/a",
@@ -29,6 +30,7 @@ const feeds: FeedDto[] = [
     id: "feed-b",
     account_id: "acc-1",
     folder_id: "folder-1",
+    remote_id: null,
     title: "Feed B",
     url: "https://example.com/b.xml",
     site_url: "https://example.com/b",
@@ -40,6 +42,7 @@ const feeds: FeedDto[] = [
     id: "feed-c",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Feed C",
     url: "https://example.com/c.xml",
     site_url: "https://example.com/c",
@@ -220,6 +223,40 @@ describe("getVisibleSidebarFeedTreeData", () => {
         feeds: [],
       },
     ]);
+  });
+
+  it("preserves folder order, unfoldered feeds, and selected empty folder visibility", () => {
+    const sortedFolders: FolderDto[] = [
+      { id: "folder-2", account_id: "acc-1", name: "Folder 2", sort_order: 0 },
+      { id: "folder-1", account_id: "acc-1", name: "Folder 1", sort_order: 1 },
+      { id: "folder-3", account_id: "acc-1", name: "Folder 3", sort_order: 2 },
+    ];
+    const visibleTreeData = getVisibleSidebarFeedTreeData({
+      sortedFolderList: sortedFolders,
+      feedsByFolder,
+      unfolderedFeeds: feeds.filter((feed) => feed.folder_id === null),
+      getVisibleFeeds: (candidateFeeds) => candidateFeeds.filter((feed) => feed.unread_count > 0),
+    });
+
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: sortedFolders,
+      feedsByFolder,
+      visibleFolderFeedsById: visibleTreeData.visibleFolderFeedsById,
+      expandedFolderIds: new Set(),
+      selectedFolderId: "folder-2",
+      selectedFeedId: null,
+      grayscaleFavicons: false,
+      viewMode: "unread",
+      starredCountByFeedId: new Map(),
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels.map((folder) => ({ id: folder.id, feedIds: folder.feeds.map((feed) => feed.id) }))).toEqual([
+      { id: "folder-2", feedIds: [] },
+      { id: "folder-1", feedIds: ["feed-a"] },
+    ]);
+    expect(visibleTreeData.visibleUnfolderedFeeds.map((feed) => feed.id)).toEqual(["feed-c"]);
+    expect(visibleTreeData.orderedFeedIds).toEqual(["feed-a", "feed-c"]);
   });
 
   it("uses visible feed count as folder badge in starred mode", () => {

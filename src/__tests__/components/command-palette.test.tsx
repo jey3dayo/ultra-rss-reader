@@ -93,6 +93,8 @@ describe("CommandPalette", () => {
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_recent_articles":
+          return sampleArticles;
         case "list_tags":
           return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
         case "search_articles":
@@ -238,6 +240,29 @@ describe("CommandPalette", () => {
     await user.type(input, "zzzzzz");
 
     expect(await screen.findByText("No results found")).toHaveClass("text-foreground-soft");
+  });
+
+  it("removes the no-results live region when command palette results are visible", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await screen.findByRole("option", { name: /open[-_ ]settings/i });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    const input = await screen.findByPlaceholderText(/search commands|command_palette\.placeholder/i);
+    await user.type(input, "zzzzzz");
+
+    const emptyStatus = await screen.findByRole("status");
+    expect(emptyStatus).toHaveAttribute("aria-live", "polite");
+    expect(emptyStatus).toHaveTextContent(/No results found|command_palette\.no_results/);
+
+    await user.clear(input);
+    await user.type(input, ">settings");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
   });
 
   it("exposes result groups, shortcuts, and empty state with stable accessibility semantics", async () => {

@@ -11,11 +11,12 @@ import {
   type RetainedArticlesSnapshot,
 } from "@/lib/articles/article-list";
 import { type ReaderSourceKind, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
-import type {
-  ArticleListPrimarySourceSnapshot,
-  UseArticleListSourcesParams,
-  UseArticleListSourcesResult,
-} from "../../article-list.types";
+import type { UseArticleListSourcesParams, UseArticleListSourcesResult } from "../../article-list.types";
+
+type ArticleListPrimarySourceSnapshot = {
+  contextKey: string;
+  articles: ArticleDto[] | undefined;
+};
 
 function resolvePrimarySourceArticles(params: {
   sourceKind: ReaderSourceKind;
@@ -85,8 +86,12 @@ export function useArticleListSources({
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
   const sourcePlan = resolveReaderSourcePlan(selection, viewMode, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
-  const { data: allFeedArticles } = useArticles(sourcePlan.feedId, { mode: "all" });
-  const { data: articles, isLoading } = useArticles(sourcePlan.feedId, { mode: sourcePlan.feedMode });
+  const { data: allFeedArticles } = useArticles(sourcePlan.feedId, {
+    mode: "all",
+  });
+  const { data: articles, isLoading } = useArticles(sourcePlan.feedId, {
+    mode: sourcePlan.feedMode,
+  });
   const { data: allAccountArticles } = useAccountArticles(sourcePlan.accountId, { mode: "all" });
   const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(sourcePlan.accountId, {
     mode: sourcePlan.accountMode,
@@ -211,10 +216,9 @@ export function useArticleListSources({
         : accountArticles,
     tagArticles: sourcePlan.sourceKind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
     isLoading: sourcePlan.sourceKind === "feed" ? isPrimarySourceLoading : isLoading,
-    isLoadingAccountArticles:
-      sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
-        ? isPrimarySourceLoading
-        : isLoadingAccountArticles,
+    isLoadingAccountArticles: sourcePlan.sourceKind === "account" ? isPrimarySourceLoading : isLoadingAccountArticles,
+    isLoadingFolderArticles: sourcePlan.sourceKind === "folder" ? isPrimarySourceLoading : isLoadingFolderArticles,
+    isLoadingRecentArticles: sourcePlan.sourceKind === "recent" ? isPrimarySourceLoading : isLoadingRecentArticles,
     isLoadingTagArticles: sourcePlan.sourceKind === "tag" ? isPrimarySourceLoading : isLoadingTagArticles,
   };
 }

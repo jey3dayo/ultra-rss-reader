@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
+import { useKeyboard } from "@/hooks/use-keyboard";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -109,6 +110,69 @@ describe("useKeyboard", () => {
         args: { articleId: "art-1", read: true },
       });
     });
+  });
+
+  it("keeps the global keydown listener stable when unrelated UI state changes", () => {
+    const addEventListener = vi.spyOn(window, "addEventListener");
+    const removeEventListener = vi.spyOn(window, "removeEventListener");
+
+    try {
+      const getKeydownAddCount = () => addEventListener.mock.calls.filter(([type]) => type === "keydown").length;
+      const getKeydownRemoveCount = () => removeEventListener.mock.calls.filter(([type]) => type === "keydown").length;
+
+      const { unmount } = renderHook(() => useKeyboard());
+
+      expect(getKeydownAddCount()).toBe(1);
+      expect(getKeydownRemoveCount()).toBe(0);
+
+      act(() => {
+        useUiStore.getState().showToast({ message: "Background sync finished", persistent: true });
+      });
+
+      expect(getKeydownAddCount()).toBe(1);
+      expect(getKeydownRemoveCount()).toBe(0);
+
+      unmount();
+      expect(getKeydownRemoveCount()).toBe(1);
+    } finally {
+      addEventListener.mockRestore();
+      removeEventListener.mockRestore();
+    }
+  });
+
+  it("cleans up the previous global keydown listener before resubscribing to state-dependent shortcuts", () => {
+    const addEventListener = vi.spyOn(window, "addEventListener");
+    const removeEventListener = vi.spyOn(window, "removeEventListener");
+
+    try {
+      const getKeydownAdds = () => addEventListener.mock.calls.filter(([type]) => type === "keydown");
+      const getKeydownRemoves = () => removeEventListener.mock.calls.filter(([type]) => type === "keydown");
+
+      const { unmount } = renderHook(() => useKeyboard());
+
+      const firstAdd = getKeydownAdds()[0];
+      expect(firstAdd).toBeDefined();
+
+      act(() => {
+        useUiStore.setState({ selectedArticleId: "art-1" });
+      });
+
+      const keydownAdds = getKeydownAdds();
+      const keydownRemoves = getKeydownRemoves();
+      expect(keydownAdds).toHaveLength(2);
+      expect(keydownRemoves).toHaveLength(1);
+      expect(keydownRemoves[0]).toEqual(firstAdd);
+      expect(removeEventListener.mock.invocationCallOrder[0]).toBeLessThan(
+        addEventListener.mock.invocationCallOrder[1],
+      );
+
+      unmount();
+      expect(getKeydownRemoves()).toHaveLength(2);
+      expect(getKeydownRemoves()[1]).toEqual(keydownAdds[1]);
+    } finally {
+      addEventListener.mockRestore();
+      removeEventListener.mockRestore();
+    }
   });
 
   it("pressing Escape closes the subscriptions workspace instead of clearing the selected article", async () => {

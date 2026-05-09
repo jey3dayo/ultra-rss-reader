@@ -24,4 +24,27 @@ describe("DeleteTagDialogView", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("keeps confirm and cancel state transitions separate", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    const { rerender } = render(
+      <DeleteTagDialogView open={true} tagName="Work" onOpenChange={onOpenChange} onConfirm={onConfirm} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    onConfirm.mockClear();
+    rerender(<DeleteTagDialogView open={true} tagName="Work" onOpenChange={onOpenChange} onConfirm={onConfirm} />);
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

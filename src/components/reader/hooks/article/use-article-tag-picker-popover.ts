@@ -1,19 +1,37 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
-import type { UseArticleTagPickerPopoverParams } from "../../article-tag-picker.types";
+import type { ArticleTagPickerViewProps } from "../../article-tag-picker.types";
 import { isOutsideElement } from "../../dom-target";
 import { focusRovingButton, getActiveRovingButtonIndex } from "../../roving-focus";
+
+type UseArticleTagPickerPopoverParams = {
+  isExpanded: boolean;
+  availableTagCount: number;
+  onExpandedChange: ArticleTagPickerViewProps["onExpandedChange"];
+  onNewTagNameChange: ArticleTagPickerViewProps["onNewTagNameChange"];
+};
 
 export function useArticleTagPickerPopover({
   isExpanded,
   availableTagCount,
   onExpandedChange,
+  onNewTagNameChange,
 }: UseArticleTagPickerPopoverParams) {
   const pickerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const newTagInputRef = useRef<HTMLInputElement>(null);
   const tagOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const restoreFocusOnCloseRef = useRef(false);
+  const restoreFocusFrameRef = useRef<number | null>(null);
   const hasFocusedOnOpenRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const wasExpandedRef = useRef(isExpanded);
+
+  const cancelRestoreFocusFrame = useCallback(() => {
+    if (restoreFocusFrameRef.current !== null) {
+      cancelAnimationFrame(restoreFocusFrameRef.current);
+      restoreFocusFrameRef.current = null;
+    }
+  }, []);
 
   const closePicker = useCallback(
     (restoreFocus = false) => {
@@ -23,14 +41,40 @@ export function useArticleTagPickerPopover({
     [onExpandedChange],
   );
 
+  const requestFocusRestoreOnClose = useCallback(() => {
+    restoreFocusOnCloseRef.current = true;
+  }, []);
+
   useEffect(() => {
-    if (isExpanded || !restoreFocusOnCloseRef.current) {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      cancelRestoreFocusFrame();
+    };
+  }, [cancelRestoreFocusFrame]);
+
+  useEffect(() => {
+    if (isExpanded) {
+      cancelRestoreFocusFrame();
+      return;
+    }
+
+    if (!restoreFocusOnCloseRef.current) {
       return;
     }
 
     restoreFocusOnCloseRef.current = false;
-    requestAnimationFrame(() => triggerRef.current?.focus());
-  }, [isExpanded]);
+    cancelRestoreFocusFrame();
+    restoreFocusFrameRef.current = requestAnimationFrame(() => {
+      restoreFocusFrameRef.current = null;
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      triggerRef.current?.focus();
+    });
+  }, [cancelRestoreFocusFrame, isExpanded]);
 
   useEffect(() => {
     if (!isExpanded) {
@@ -82,6 +126,14 @@ export function useArticleTagPickerPopover({
     }
   }, [isExpanded]);
 
+  useEffect(() => {
+    if (wasExpandedRef.current && !isExpanded) {
+      onNewTagNameChange("");
+    }
+
+    wasExpandedRef.current = isExpanded;
+  }, [isExpanded, onNewTagNameChange]);
+
   const handleTriggerKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key === "ArrowDown" && !isExpanded) {
@@ -124,6 +176,18 @@ export function useArticleTagPickerPopover({
           currentIndex >= 0 ? currentIndex - 1 : availableTagCount - 1,
         );
       }
+
+      if (event.key === "Home" && availableTagCount > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        focusRovingButton(tagOptionRefs, availableTagCount, 0);
+      }
+
+      if (event.key === "End" && availableTagCount > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        focusRovingButton(tagOptionRefs, availableTagCount, availableTagCount - 1);
+      }
     },
     [availableTagCount, closePicker],
   );
@@ -134,6 +198,7 @@ export function useArticleTagPickerPopover({
     newTagInputRef,
     tagOptionRefs,
     closePicker,
+    requestFocusRestoreOnClose,
     handleTriggerKeyDown,
     handleListboxKeyDown,
   };

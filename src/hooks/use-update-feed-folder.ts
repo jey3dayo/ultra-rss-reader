@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { updateFeedFolder } from "@/api/tauri-commands";
-import { invalidateFeedQueries } from "@/lib/query/query-invalidation";
+import { invalidateFeedQueries, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 type UpdateFeedFolderArgs = {
@@ -26,10 +26,10 @@ export function useUpdateFeedFolder() {
       return Result.unwrap(result);
     },
     onMutate: async ({ feedId, folderId }) => {
-      await qc.cancelQueries({ queryKey: ["feeds"] });
-      const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: ["feeds"] });
+      await qc.cancelQueries({ queryKey: queryKeys.feeds.root });
+      const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: queryKeys.feeds.root });
 
-      qc.setQueriesData<FeedDto[]>({ queryKey: ["feeds"] }, (previousFeeds) =>
+      qc.setQueriesData<FeedDto[]>({ queryKey: queryKeys.feeds.root }, (previousFeeds) =>
         previousFeeds?.map((feed) => (feed.id === feedId ? { ...feed, folder_id: folderId } : feed)),
       );
 

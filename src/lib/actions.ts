@@ -23,6 +23,15 @@ function emitEvent(name: string): void {
   window.dispatchEvent(new Event(name));
 }
 
+function emitArticleShareEvent(
+  name:
+    | typeof keyboardEvents.copyLink
+    | typeof keyboardEvents.openExternalBrowser
+    | typeof keyboardEvents.addToReadingList,
+): void {
+  emitEvent(name);
+}
+
 /** Emit a navigation event with a direction detail. */
 function emitNavigationEvent(name: string, direction: 1 | -1): void {
   window.dispatchEvent(new CustomEvent(name, { detail: direction }));
@@ -338,13 +347,13 @@ export function executeAction(action: AppAction): void {
 
     // --- Share actions ---
     case "copy-link":
-      emitEvent(keyboardEvents.copyLink);
+      emitArticleShareEvent(keyboardEvents.copyLink);
       break;
     case "open-in-default-browser":
-      emitEvent(keyboardEvents.openExternalBrowser);
+      emitArticleShareEvent(keyboardEvents.openExternalBrowser);
       break;
     case "add-to-reading-list":
-      emitEvent(keyboardEvents.addToReadingList);
+      emitArticleShareEvent(keyboardEvents.addToReadingList);
       break;
 
     // --- Updater ---

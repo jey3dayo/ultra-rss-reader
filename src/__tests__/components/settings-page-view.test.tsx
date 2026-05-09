@@ -127,6 +127,7 @@ describe("SettingsPageView", () => {
                 placeholder: "Main reader",
                 onChange,
                 actionLabel: "Reset",
+                actionAriaLabel: "Reset display name",
                 onAction,
               },
             ],
@@ -142,7 +143,7 @@ describe("SettingsPageView", () => {
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Display name");
 
-    const action = screen.getByRole("button", { name: "Reset: Display name" });
+    const action = screen.getByRole("button", { name: "Reset display name" });
     expect(action).toHaveClass("h-10", "px-4");
     expectNoButtonMinWidth(action);
 
@@ -152,5 +153,122 @@ describe("SettingsPageView", () => {
 
     expect(onChange).toHaveBeenCalled();
     expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("prefers explicit inline text action aria labels", () => {
+    render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "profile",
+            heading: "Profile",
+            controls: [
+              {
+                id: "display-name",
+                type: "text",
+                name: "display_name",
+                label: "Display name",
+                value: "Main reader",
+                onChange: vi.fn(),
+                actionLabel: "Reset",
+                actionAriaLabel: "Reset reader display name",
+                onAction: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset reader display name" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset: Display name" })).toBeNull();
+  });
+
+  it("prefers explicit action row aria labels", () => {
+    render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "history",
+            heading: "History",
+            controls: [
+              {
+                id: "clear-history",
+                type: "action",
+                label: "Recent history",
+                actionLabel: "Clear",
+                actionAriaLabel: "Clear recent history",
+                onAction: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Clear recent history" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear: Recent history" })).toBeNull();
+  });
+
+  it("disables inline text actions when the input or action is disabled", () => {
+    const onAction = vi.fn();
+    const baseControl = {
+      id: "display-name",
+      type: "text" as const,
+      name: "display_name",
+      label: "Display name",
+      value: "Main reader",
+      onChange: vi.fn(),
+      actionLabel: "Reset",
+      actionAriaLabel: "Reset display name",
+      onAction,
+    };
+
+    const { rerender } = render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "profile",
+            heading: "Profile",
+            controls: [{ ...baseControl, disabled: true, actionDisabled: false }],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset display name" })).toBeDisabled();
+
+    rerender(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "profile",
+            heading: "Profile",
+            controls: [{ ...baseControl, disabled: false, actionDisabled: true }],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset display name" })).toBeDisabled();
+
+    rerender(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "profile",
+            heading: "Profile",
+            controls: [{ ...baseControl, disabled: false, actionDisabled: false }],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset display name" })).not.toBeDisabled();
   });
 });

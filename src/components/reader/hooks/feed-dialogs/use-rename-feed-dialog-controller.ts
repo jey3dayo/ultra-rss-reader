@@ -97,7 +97,7 @@ export function useRenameFeedDialogController({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      onOpenChange(false);
+      showToast(t("title_required", { defaultValue: "Title is required" }));
       return;
     }
 

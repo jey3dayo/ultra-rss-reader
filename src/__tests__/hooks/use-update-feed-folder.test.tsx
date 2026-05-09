@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -29,22 +30,20 @@ describe("useUpdateFeedFolder", () => {
   });
 
   function seedFeeds() {
-    queryClient.setQueryData<FeedDto[]>(
-      ["feeds", "acc-1"],
-      [
-        {
-          id: "feed-1",
-          account_id: "acc-1",
-          folder_id: null,
-          title: "Tech Blog",
-          url: "https://example.com/feed.xml",
-          site_url: "https://example.com",
-          unread_count: 5,
-          reader_mode: "inherit",
-          web_preview_mode: "inherit",
-        },
-      ],
-    );
+    queryClient.setQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"), [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Tech Blog",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 5,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ]);
   }
 
   it("invalidates feeds after a successful folder update", async () => {
@@ -58,8 +57,8 @@ describe("useUpdateFeedFolder", () => {
 
     expect(updateFeedFolderSpy).toHaveBeenCalledWith("feed-1", "folder-1");
     await waitFor(() => {
-      expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+      expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
     });
   });
 
@@ -74,7 +73,7 @@ describe("useUpdateFeedFolder", () => {
     });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
         expect.objectContaining({
           id: "feed-1",
           folder_id: "folder-1",
@@ -115,7 +114,7 @@ describe("useUpdateFeedFolder", () => {
     });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
         expect.objectContaining({
           id: "feed-1",
           folder_id: "folder-1",
@@ -137,7 +136,7 @@ describe("useUpdateFeedFolder", () => {
     });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
         expect.objectContaining({
           id: "feed-1",
           folder_id: null,

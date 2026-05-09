@@ -61,7 +61,7 @@ function createHostElement(initialRect = createDomRect({ x: 12, y: 34, width: 60
   return { element, getBoundingClientRect };
 }
 
-function renderBrowserWebviewSync(hostElement: HTMLDivElement) {
+function renderBrowserWebviewSync(hostElement: HTMLDivElement, showSurfaceFailure = vi.fn()) {
   return renderHook(() => {
     const hostRef = useRef<HTMLDivElement | null>(hostElement);
     const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
@@ -75,7 +75,7 @@ function renderBrowserWebviewSync(hostElement: HTMLDivElement) {
       captureLayoutDiagnostics: vi.fn(),
       setBrowserState,
       onMissingEmbeddedBrowserWebview: vi.fn(),
-      showSurfaceFailure: vi.fn(),
+      showSurfaceFailure,
     });
   });
 }
@@ -93,6 +93,20 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("focuses the webview after creating it even when focus retention is disabled", async () => {
+    usePreferencesStore.setState({ prefs: { web_preview_keep_focus: "false" }, loaded: true });
+    const { element } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element);
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "create");
+    });
+
+    expect(createOrUpdateBrowserWebviewMock).toHaveBeenCalledTimes(1);
+    expect(focusBrowserWebviewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("focuses the webview after creating it when focus retention is enabled", async () => {
+    usePreferencesStore.setState({ prefs: { web_preview_keep_focus: "true" }, loaded: true });
     const { element } = createHostElement();
     const { result } = renderBrowserWebviewSync(element);
 
@@ -154,6 +168,23 @@ describe("useBrowserWebviewSync", () => {
     });
   });
 
+  it("surfaces resize bounds failures through the browser surface issue path", async () => {
+    const error = { type: "UserVisible" as const, message: "resize failed" };
+    const showSurfaceFailure = vi.fn();
+    setBrowserWebviewBoundsMock.mockResolvedValue(Result.fail(error));
+    const { element } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "create");
+    });
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "resize");
+    });
+
+    expect(showSurfaceFailure).toHaveBeenCalledWith(error);
+  });
+
   it("queues ResizeObserver bounds while create is in flight and flushes only the latest bounds after create succeeds", async () => {
     let resizeObserverCallback: ResizeObserverCallback | null = null;
     class TestResizeObserver {
@@ -191,6 +222,7 @@ describe("useBrowserWebviewSync", () => {
         hostRef,
         waitForBrowserWebviewListeners: async () => {},
         syncBrowserWebview: webviewSync.syncBrowserWebview,
+        showSurfaceFailure: vi.fn(),
       });
 
       return webviewSync;
@@ -224,6 +256,28 @@ describe("useBrowserWebviewSync", () => {
       width: 700,
       height: 460,
       unit: "physical",
+    });
+  });
+
+  it("surfaces browser listener initialization failures instead of leaving them console-only", async () => {
+    const error = { type: "UserVisible" as const, message: "listener failed" };
+    const showSurfaceFailure = vi.fn();
+    const { element } = createHostElement();
+
+    renderHook(() => {
+      const hostRef = useRef<HTMLDivElement | null>(element);
+
+      useBrowserWebviewBoundsSync({
+        browserUrl,
+        hostRef,
+        waitForBrowserWebviewListeners: () => Promise.reject(error),
+        syncBrowserWebview: vi.fn(),
+        showSurfaceFailure,
+      });
+    });
+
+    await vi.waitFor(() => {
+      expect(showSurfaceFailure).toHaveBeenCalledWith(error);
     });
   });
 });

@@ -1,6 +1,18 @@
+import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
+function renderScrollBar(orientation?: "horizontal" | "vertical") {
+  render(
+    <ScrollAreaPrimitive.Root>
+      <ScrollAreaPrimitive.Viewport>
+        <div>Scrollable content</div>
+      </ScrollAreaPrimitive.Viewport>
+      <ScrollBar data-testid="scrollbar" keepMounted orientation={orientation} />
+    </ScrollAreaPrimitive.Root>,
+  );
+}
 
 describe("ScrollArea", () => {
   it("applies shrink-safe root sizing by default", () => {
@@ -28,6 +40,23 @@ describe("ScrollArea", () => {
     expect(viewport).not.toHaveClass("focus-visible:ring-ring/50");
   });
 
+  it("passes scrollbar and thumb class overrides to the primitive slots", () => {
+    render(
+      <ScrollAreaPrimitive.Root>
+        <ScrollAreaPrimitive.Viewport>
+          <div>Scrollable content</div>
+        </ScrollAreaPrimitive.Viewport>
+        <ScrollBar className="custom-scrollbar" thumbClassName="custom-thumb" keepMounted />
+      </ScrollAreaPrimitive.Root>,
+    );
+
+    const scrollbar = document.querySelector('[data-slot="scroll-area-scrollbar"]');
+    const thumb = document.querySelector('[data-slot="scroll-area-thumb"]');
+
+    expect(scrollbar).toHaveClass("custom-scrollbar");
+    expect(thumb).toHaveClass("custom-thumb");
+  });
+
   it("can render a shared scroll content lane wrapper", () => {
     render(
       <ScrollArea data-testid="scroll-area" contentClassName="pb-4 pr-3">
@@ -39,5 +68,29 @@ describe("ScrollArea", () => {
 
     expect(content).toHaveClass("pb-4");
     expect(content).toHaveClass("pr-3");
+  });
+
+  it("keeps vertical scrollbar orientation attributes and classes by default", () => {
+    renderScrollBar();
+
+    expect(screen.getByTestId("scrollbar")).toHaveAttribute("data-orientation", "vertical");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("h-full");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("w-2.5");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("border-l");
+    expect(screen.getByTestId("scrollbar")).not.toHaveClass("h-2.5");
+    expect(screen.getByTestId("scrollbar")).not.toHaveClass("flex-col");
+    expect(screen.getByTestId("scrollbar")).not.toHaveClass("border-t");
+  });
+
+  it("switches horizontal scrollbar orientation attributes and classes", () => {
+    renderScrollBar("horizontal");
+
+    expect(screen.getByTestId("scrollbar")).toHaveAttribute("data-orientation", "horizontal");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("h-2.5");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("flex-col");
+    expect(screen.getByTestId("scrollbar")).toHaveClass("border-t");
+    expect(screen.getByTestId("scrollbar")).not.toHaveClass("h-full");
+    expect(screen.getByTestId("scrollbar")).not.toHaveClass("w-2.5");
+    expect(screen.getByTestId("scrollbar")).not.toHaveClass("border-l");
   });
 });

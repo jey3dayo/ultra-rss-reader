@@ -32,7 +32,7 @@ function getFeedItemClassName(isSelected: boolean) {
 function getFeedItemButtonProps({ feed, displayFavicons, grayscaleFavicons }: FeedItemContentProps) {
   return {
     leading: displayFavicons ? (
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+      <span className="flex size-5 shrink-0 items-center justify-center">
         <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} grayscale={grayscaleFavicons} />
       </span>
     ) : undefined,

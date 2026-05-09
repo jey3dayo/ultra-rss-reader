@@ -23,6 +23,7 @@ vi.mock("@/api/tauri-commands", () => ({
 }));
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(getDatabaseInfo).mockResolvedValue(
     Result.succeed({
       db_size_bytes: 1024,
@@ -39,17 +40,32 @@ describe("formatBytes", () => {
     expect(formatBytes(1536)).toBe("1.5 KB");
     expect(formatBytes(1024 * 1024)).toBe("1.0 MB");
   });
+
+  it("falls back to 0 B for invalid database size DTO values", () => {
+    expect(formatBytes(-1)).toBe("0 B");
+    expect(formatBytes(Number.NaN)).toBe("0 B");
+    expect(formatBytes(Number.POSITIVE_INFINITY)).toBe("0 B");
+  });
 });
 
 describe("useDataSettingsController", () => {
-  it("reports loading and ready database size states without using placeholder text as state", async () => {
-    const { result } = renderHook(() =>
+  const renderDataSettingsController = ({
+    setSettingsLoading = vi.fn(),
+    showToast = vi.fn(),
+  }: {
+    setSettingsLoading?: (loading: boolean) => void;
+    showToast?: (message: string) => void;
+  } = {}) =>
+    renderHook(() =>
       useDataSettingsController({
         t: ((key: string) => key) as never,
-        showToast: vi.fn(),
-        setSettingsLoading: vi.fn(),
+        showToast,
+        setSettingsLoading,
       }),
     );
+
+  it("reports loading and ready database size states without using placeholder text as state", async () => {
+    const { result } = renderDataSettingsController();
 
     expect(result.current.databaseSizeStatus).toBe("loading");
     expect(result.current.databaseSizeValue).toBe("");
@@ -64,13 +80,7 @@ describe("useDataSettingsController", () => {
   it("reports database size failures separately from loading", async () => {
     vi.mocked(getDatabaseInfo).mockResolvedValue(Result.fail({ type: "UserVisible", message: "db unavailable" }));
 
-    const { result } = renderHook(() =>
-      useDataSettingsController({
-        t: ((key: string) => key) as never,
-        showToast: vi.fn(),
-        setSettingsLoading: vi.fn(),
-      }),
-    );
+    const { result } = renderDataSettingsController();
 
     await waitFor(() => {
       expect(result.current.databaseSizeStatus).toBe("error");
@@ -81,13 +91,7 @@ describe("useDataSettingsController", () => {
 
   it("delegates log directory opening to the native command", async () => {
     const showToast = vi.fn();
-    const { result } = renderHook(() =>
-      useDataSettingsController({
-        t: ((key: string) => key) as never,
-        showToast,
-        setSettingsLoading: vi.fn(),
-      }),
-    );
+    const { result } = renderDataSettingsController({ showToast });
 
     await act(async () => {
       await result.current.handleOpenLogDir();
@@ -104,13 +108,7 @@ describe("useDataSettingsController", () => {
         resolveOpenLogDir = () => resolve(Result.succeed(null));
       }),
     );
-    const { result } = renderHook(() =>
-      useDataSettingsController({
-        t: ((key: string) => key) as never,
-        showToast: vi.fn(),
-        setSettingsLoading: vi.fn(),
-      }),
-    );
+    const { result } = renderDataSettingsController();
 
     await act(async () => {
       void result.current.handleOpenLogDir();
@@ -131,5 +129,204 @@ describe("useDataSettingsController", () => {
     });
 
     expect(result.current.openingLogDir).toBe(false);
+  });
+
+  it("suppresses duplicate vacuum commands from the same render closure", async () => {
+    let resolveVacuum: (() => void) | undefined;
+    vi.mocked(vacuumDatabase).mockReturnValue(
+      new Promise((resolve) => {
+        resolveVacuum = () =>
+          resolve(
+            Result.succeed({
+              db_size_bytes: 512,
+              wal_size_bytes: 0,
+              total_size_bytes: 512,
+            }),
+          );
+      }),
+    );
+    const { result } = renderDataSettingsController();
+    const { handleVacuum } = result.current;
+
+    await act(async () => {
+      void handleVacuum();
+      void handleVacuum();
+    });
+
+    expect(vacuumDatabase).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveVacuum?.();
+    });
+  });
+
+  it("ignores stale database size fetch responses after cleanup updates the size", async () => {
+    let resolveDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    vi.mocked(getDatabaseInfo).mockReturnValue(
+      new Promise((resolve) => {
+        resolveDatabaseInfo = resolve;
+      }),
+    );
+    vi.mocked(vacuumDatabase).mockResolvedValue(
+      Result.succeed({
+        db_size_bytes: 512,
+        wal_size_bytes: 0,
+        total_size_bytes: 512,
+      }),
+    );
+    const { result } = renderDataSettingsController();
+
+    await act(async () => {
+      await result.current.handleVacuum();
+    });
+
+    expect(result.current.databaseSizeStatus).toBe("ready");
+    expect(result.current.databaseSizeValue).toBe("512 B");
+
+    await act(async () => {
+      resolveDatabaseInfo?.(
+        Result.succeed({
+          db_size_bytes: 4096,
+          wal_size_bytes: 0,
+          total_size_bytes: 4096,
+        }),
+      );
+    });
+
+    expect(result.current.databaseSizeStatus).toBe("ready");
+    expect(result.current.databaseSizeValue).toBe("512 B");
+  });
+
+  it("suppresses duplicate open log directory commands from the same render closure", async () => {
+    let resolveOpenLogDir: (() => void) | undefined;
+    vi.mocked(openLogDir).mockReturnValue(
+      new Promise((resolve) => {
+        resolveOpenLogDir = () => resolve(Result.succeed(null));
+      }),
+    );
+    const { result } = renderDataSettingsController();
+    const { handleOpenLogDir } = result.current;
+
+    await act(async () => {
+      void handleOpenLogDir();
+      void handleOpenLogDir();
+    });
+
+    expect(openLogDir).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveOpenLogDir?.();
+    });
+  });
+
+  it("ignores initial database info resolution after unmount", async () => {
+    let resolveDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    vi.mocked(getDatabaseInfo).mockReturnValue(
+      new Promise((resolve) => {
+        resolveDatabaseInfo = resolve;
+      }),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { unmount } = renderDataSettingsController();
+
+    unmount();
+
+    await act(async () => {
+      resolveDatabaseInfo?.(
+        Result.succeed({
+          db_size_bytes: 4096,
+          wal_size_bytes: 0,
+          total_size_bytes: 4096,
+        }),
+      );
+    });
+
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("ignores initial database info rejection after unmount", async () => {
+    let rejectDatabaseInfo: ((error: Error) => void) | undefined;
+    vi.mocked(getDatabaseInfo).mockReturnValue(
+      new Promise((_, reject) => {
+        rejectDatabaseInfo = reject;
+      }),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { unmount } = renderDataSettingsController();
+
+    unmount();
+
+    await act(async () => {
+      rejectDatabaseInfo?.(new Error("db transport failed"));
+    });
+
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("does not reset settings loading after vacuum resolves post-unmount", async () => {
+    let resolveVacuum: (() => void) | undefined;
+    vi.mocked(vacuumDatabase).mockReturnValue(
+      new Promise((resolve) => {
+        resolveVacuum = () =>
+          resolve(
+            Result.succeed({
+              db_size_bytes: 512,
+              wal_size_bytes: 0,
+              total_size_bytes: 512,
+            }),
+          );
+      }),
+    );
+    const setSettingsLoading = vi.fn();
+    const { result, unmount } = renderDataSettingsController({
+      setSettingsLoading,
+    });
+
+    await act(async () => {
+      void result.current.handleVacuum();
+    });
+    expect(setSettingsLoading).toHaveBeenCalledWith(true);
+
+    unmount();
+
+    await act(async () => {
+      resolveVacuum?.();
+    });
+
+    expect(setSettingsLoading).not.toHaveBeenCalledWith(false);
+  });
+
+  it("does not reset settings loading or report errors after open log directory rejects post-unmount", async () => {
+    let rejectOpenLogDir: ((error: Error) => void) | undefined;
+    vi.mocked(openLogDir).mockReturnValue(
+      new Promise((_, reject) => {
+        rejectOpenLogDir = reject;
+      }),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const setSettingsLoading = vi.fn();
+    const showToast = vi.fn();
+    const { result, unmount } = renderDataSettingsController({
+      setSettingsLoading,
+      showToast,
+    });
+
+    await act(async () => {
+      void result.current.handleOpenLogDir();
+    });
+    expect(setSettingsLoading).toHaveBeenCalledWith(true);
+
+    unmount();
+
+    await act(async () => {
+      rejectOpenLogDir?.(new Error("open log failed"));
+    });
+
+    expect(setSettingsLoading).not.toHaveBeenCalledWith(false);
+    expect(showToast).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });

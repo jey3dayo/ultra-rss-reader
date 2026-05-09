@@ -8,8 +8,9 @@ import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
 import { cn } from "@/lib/utils";
-import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
+
+type ArticleToolbarLayoutMode = "wide" | "compact" | "mobile";
 
 export type ArticleToolbarViewLabels = {
   closeView: string;
@@ -26,22 +27,12 @@ export type ArticleToolbarViewLabels = {
   moreActions: string;
 };
 
-export type ArticleToolbarViewProps = {
+type ArticleToolbarViewProps = {
   showCloseButton: boolean;
   hideActionStrip?: boolean;
-  hasArticle?: boolean;
-  canToggleRead: boolean;
-  canToggleStar: boolean;
-  isRead: boolean;
-  isStarred: boolean;
-  isBrowserOpen: boolean;
-  hideBrowserOverlayActions?: boolean;
-  showCopyLinkButton: boolean;
-  canCopyLink: boolean;
-  showOpenInBrowserButton: boolean;
-  canOpenInBrowser: boolean;
-  showOpenInExternalBrowserButton: boolean;
-  canOpenInExternalBrowser: boolean;
+  layoutMode?: ArticleToolbarLayoutMode;
+  articleState: ArticleToolbarArticleState;
+  actionOptions: ArticleToolbarActionOptions;
   shareMenuControl?: ReactNode;
   labels: ArticleToolbarViewLabels;
   onCloseView: () => void;
@@ -59,7 +50,7 @@ export type ArticleToolbarActionResolverInput = {
   hasUrl: boolean;
   showCopyLinkPreference: boolean;
   hideBrowserOverlayActions: boolean;
-  layoutMode: "wide" | "compact" | "mobile";
+  layoutMode: ArticleToolbarLayoutMode;
 };
 
 export type ArticleToolbarActionResolverResult = {
@@ -73,6 +64,50 @@ export type ArticleToolbarActionResolverResult = {
   canOpenInExternalBrowser: boolean;
   showExternalBrowserInMoreMenu: boolean;
 };
+
+export type ArticleToolbarActionOptions = Omit<ArticleToolbarActionResolverResult, "showExternalBrowserInMoreMenu">;
+
+export type ArticleToolbarArticleState = {
+  hasArticle: boolean;
+  isRead: boolean;
+  isStarred: boolean;
+  isBrowserOpen: boolean;
+  hideBrowserOverlayActions?: boolean;
+};
+
+type ArticleToolbarActionResolverContract = {
+  actionId: string;
+  resultKeys: readonly (keyof ArticleToolbarActionResolverResult)[];
+  actionOptionKeys: readonly (keyof ArticleToolbarActionOptions)[];
+};
+
+export const ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT = [
+  {
+    actionId: "toggle-read",
+    resultKeys: ["canToggleRead"],
+    actionOptionKeys: ["canToggleRead"],
+  },
+  {
+    actionId: "toggle-star",
+    resultKeys: ["canToggleStar"],
+    actionOptionKeys: ["canToggleStar"],
+  },
+  {
+    actionId: "open-in-browser",
+    resultKeys: ["showOpenInBrowserButton", "canOpenInBrowser"],
+    actionOptionKeys: ["showOpenInBrowserButton", "canOpenInBrowser"],
+  },
+  {
+    actionId: "open-in-external-browser",
+    resultKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser", "showExternalBrowserInMoreMenu"],
+    actionOptionKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser"],
+  },
+  {
+    actionId: "copy-link",
+    resultKeys: ["showCopyLinkButton", "canCopyLink"],
+    actionOptionKeys: ["showCopyLinkButton", "canCopyLink"],
+  },
+] as const satisfies readonly ArticleToolbarActionResolverContract[];
 
 export function resolveArticleToolbarActions({
   hasArticle,
@@ -113,51 +148,47 @@ const articleToolbarVisualActiveClassNames: Record<ArticleToolbarVisualActiveTon
 const articleToolbarUnavailableClassName =
   "disabled:opacity-35 disabled:saturate-0 disabled:hover:bg-transparent disabled:focus-visible:bg-transparent";
 
-function ArticleToolbarMoreMenu({
-  showCopyLinkButton,
-  canCopyLink,
-  showOpenInExternalBrowserButton,
-  canOpenInExternalBrowser,
-  labels,
-  onCopyLink,
-  onOpenInExternalBrowser,
-}: Pick<
-  ArticleToolbarActionStripProps,
-  | "showCopyLinkButton"
-  | "canCopyLink"
-  | "showOpenInExternalBrowserButton"
-  | "canOpenInExternalBrowser"
-  | "labels"
-  | "onCopyLink"
-  | "onOpenInExternalBrowser"
->) {
-  const hasActions =
-    (showCopyLinkButton && canCopyLink) || (showOpenInExternalBrowserButton && canOpenInExternalBrowser);
+type ArticleToolbarMoreMenuAction =
+  | {
+      kind: "open-in-external-browser";
+      label: string;
+      onSelect: () => void;
+    }
+  | {
+      kind: "copy-link";
+      label: string;
+      onSelect: () => void;
+    };
 
-  if (!hasActions) {
+function ArticleToolbarMoreMenu({
+  actions,
+  moreActionsLabel,
+}: {
+  actions: readonly ArticleToolbarMoreMenuAction[];
+  moreActionsLabel: string;
+}) {
+  if (actions.length === 0) {
     return null;
   }
 
   return (
     <Menu.Root>
-      <IconToolbarMenuTrigger label={labels.moreActions}>
-        <Ellipsis className="h-4 w-4" />
+      <IconToolbarMenuTrigger label={moreActionsLabel}>
+        <Ellipsis className="size-4" />
       </IconToolbarMenuTrigger>
       <Menu.Portal>
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className={contextMenuStyles.popup}>
-            {showOpenInExternalBrowserButton && canOpenInExternalBrowser ? (
-              <Menu.Item className={contextMenuStyles.item} onClick={onOpenInExternalBrowser}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                {labels.openInExternalBrowser}
+            {actions.map((action) => (
+              <Menu.Item key={action.kind} className={contextMenuStyles.item} onClick={action.onSelect}>
+                {action.kind === "open-in-external-browser" ? (
+                  <ExternalLink className="mr-2 size-4" />
+                ) : (
+                  <Copy className="mr-2 size-4" />
+                )}
+                {action.label}
               </Menu.Item>
-            ) : null}
-            {showCopyLinkButton && canCopyLink ? (
-              <Menu.Item className={contextMenuStyles.item} onClick={onCopyLink}>
-                <Copy className="mr-2 h-4 w-4" />
-                {labels.copyLink}
-              </Menu.Item>
-            ) : null}
+            ))}
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
@@ -202,19 +233,9 @@ function ArticleToolbarMobilePrimaryButton({
 }
 
 export function ArticleToolbarActionStrip({
-  hasArticle = true,
-  canToggleRead,
-  canToggleStar,
-  isRead,
-  isStarred,
-  isBrowserOpen,
-  hideBrowserOverlayActions = false,
-  showCopyLinkButton,
-  canCopyLink,
-  showOpenInBrowserButton,
-  canOpenInBrowser,
-  showOpenInExternalBrowserButton,
-  canOpenInExternalBrowser,
+  layoutMode = "wide",
+  articleState,
+  actionOptions,
   shareMenuControl,
   labels,
   onToggleRead,
@@ -223,7 +244,41 @@ export function ArticleToolbarActionStrip({
   onOpenInBrowser,
   onOpenInExternalBrowser,
 }: ArticleToolbarActionStripProps) {
-  const isMobile = useUiStore((state) => state.layoutMode === "mobile");
+  const isMobile = layoutMode === "mobile";
+  const moreMenuActions: ArticleToolbarMoreMenuAction[] = [];
+  const {
+    hasArticle: resolvedHasArticle,
+    isRead: resolvedIsRead,
+    isStarred: resolvedIsStarred,
+    isBrowserOpen: resolvedIsBrowserOpen,
+  } = articleState;
+  const shouldHideBrowserOverlayActions = articleState.hideBrowserOverlayActions ?? false;
+  const {
+    canToggleRead,
+    canToggleStar,
+    showCopyLinkButton,
+    canCopyLink,
+    showOpenInBrowserButton,
+    canOpenInBrowser,
+    showOpenInExternalBrowserButton,
+    canOpenInExternalBrowser,
+  } = actionOptions;
+
+  if (showOpenInExternalBrowserButton && !shouldHideBrowserOverlayActions && canOpenInExternalBrowser) {
+    moreMenuActions.push({
+      kind: "open-in-external-browser",
+      label: labels.openInExternalBrowser,
+      onSelect: onOpenInExternalBrowser,
+    });
+  }
+
+  if (showCopyLinkButton && canCopyLink) {
+    moreMenuActions.push({
+      kind: "copy-link",
+      label: labels.copyLink,
+      onSelect: onCopyLink,
+    });
+  }
 
   return (
     <div className="flex items-center gap-1">
@@ -232,39 +287,39 @@ export function ArticleToolbarActionStrip({
           <ArticleToolbarMobilePrimaryButton
             label={labels.toggleRead}
             shortLabel={labels.toggleReadShort}
-            pressed={isRead}
+            pressed={resolvedIsRead}
             disabled={!canToggleRead}
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
-            active={hasArticle && !isRead}
+            active={resolvedHasArticle && !resolvedIsRead}
             activeTone="unread"
           >
-            <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
+            <UnreadIcon unread={resolvedHasArticle && !resolvedIsRead} className="size-3" />
           </ArticleToolbarMobilePrimaryButton>
           <ArticleToolbarMobilePrimaryButton
             label={labels.toggleStar}
             shortLabel={labels.toggleStarShort}
-            pressed={isStarred}
+            pressed={resolvedIsStarred}
             disabled={!canToggleStar}
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
-            active={isStarred}
+            active={resolvedIsStarred}
             activeTone="starred"
           >
-            <StarIcon starred={isStarred} className="h-4 w-4" />
+            <StarIcon starred={resolvedIsStarred} className="size-4" />
           </ArticleToolbarMobilePrimaryButton>
-          {showOpenInBrowserButton && !hideBrowserOverlayActions ? (
+          {showOpenInBrowserButton && !shouldHideBrowserOverlayActions ? (
             <ArticleToolbarMobilePrimaryButton
-              label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
-              shortLabel={isBrowserOpen ? labels.previewToggleOnShort : labels.previewToggleOffShort}
-              pressed={isBrowserOpen}
+              label={resolvedIsBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
+              shortLabel={resolvedIsBrowserOpen ? labels.previewToggleOnShort : labels.previewToggleOffShort}
+              pressed={resolvedIsBrowserOpen}
               disabled={!canOpenInBrowser}
               onPressedChange={() => onOpenInBrowser()}
-              active={isBrowserOpen}
+              active={resolvedIsBrowserOpen}
               activeTone="accent"
             >
               <MotionIconSwap
-                state={isBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
-                iconA={<Eye className="h-4 w-4" />}
-                iconB={<X className="h-4 w-4" />}
+                state={resolvedIsBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
+                iconA={<Eye className="size-4" />}
+                iconB={<X className="size-4" />}
               />
             </ArticleToolbarMobilePrimaryButton>
           ) : null}
@@ -273,31 +328,31 @@ export function ArticleToolbarActionStrip({
         <>
           <IconToolbarToggle
             label={labels.toggleRead}
-            pressed={isRead}
+            pressed={resolvedIsRead}
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
             disabled={!canToggleRead}
             pressedTone="none"
             className={cn(
               articleToolbarUnavailableClassName,
-              hasArticle && !isRead && articleToolbarVisualActiveClassNames.unread,
+              resolvedHasArticle && !resolvedIsRead && articleToolbarVisualActiveClassNames.unread,
             )}
           >
-            <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
+            <UnreadIcon unread={resolvedHasArticle && !resolvedIsRead} className="size-3" />
           </IconToolbarToggle>
           <IconToolbarToggle
             label={labels.toggleStar}
-            pressed={isStarred}
+            pressed={resolvedIsStarred}
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             disabled={!canToggleStar}
             pressedTone="starred"
             className={articleToolbarUnavailableClassName}
           >
-            <StarIcon starred={isStarred} className="h-4 w-4" />
+            <StarIcon starred={resolvedIsStarred} className="size-4" />
           </IconToolbarToggle>
-          {showOpenInBrowserButton && !hideBrowserOverlayActions ? (
+          {showOpenInBrowserButton && !shouldHideBrowserOverlayActions ? (
             <IconToolbarToggle
-              label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
-              pressed={isBrowserOpen}
+              label={resolvedIsBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
+              pressed={resolvedIsBrowserOpen}
               onPressedChange={() => onOpenInBrowser()}
               disabled={!canOpenInBrowser}
               pressedTone="accent"
@@ -305,22 +360,22 @@ export function ArticleToolbarActionStrip({
               className={articleToolbarUnavailableClassName}
             >
               <MotionIconSwap
-                state={isBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
-                iconA={<Eye className="h-4 w-4" />}
-                iconB={<X className="h-4 w-4" />}
+                state={resolvedIsBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
+                iconA={<Eye className="size-4" />}
+                iconB={<X className="size-4" />}
               />
             </IconToolbarToggle>
           ) : null}
         </>
       )}
-      {showOpenInExternalBrowserButton && !hideBrowserOverlayActions && !isMobile && (
+      {showOpenInExternalBrowserButton && !shouldHideBrowserOverlayActions && !isMobile && (
         <IconToolbarButton
           label={labels.openInExternalBrowser}
           onClick={onOpenInExternalBrowser}
           disabled={!canOpenInExternalBrowser}
           className={articleToolbarUnavailableClassName}
         >
-          <ExternalLink className="h-4 w-4" />
+          <ExternalLink className="size-4" />
         </IconToolbarButton>
       )}
       {showCopyLinkButton && !isMobile && (
@@ -330,20 +385,10 @@ export function ArticleToolbarActionStrip({
           disabled={!canCopyLink}
           className={articleToolbarUnavailableClassName}
         >
-          <Copy className="h-4 w-4" />
+          <Copy className="size-4" />
         </IconToolbarButton>
       )}
-      {isMobile ? (
-        <ArticleToolbarMoreMenu
-          showCopyLinkButton={showCopyLinkButton}
-          canCopyLink={canCopyLink}
-          showOpenInExternalBrowserButton={showOpenInExternalBrowserButton && !hideBrowserOverlayActions}
-          canOpenInExternalBrowser={canOpenInExternalBrowser}
-          labels={labels}
-          onCopyLink={onCopyLink}
-          onOpenInExternalBrowser={onOpenInExternalBrowser}
-        />
-      ) : null}
+      {isMobile ? <ArticleToolbarMoreMenu actions={moreMenuActions} moreActionsLabel={labels.moreActions} /> : null}
       {shareMenuControl}
     </div>
   );
@@ -364,7 +409,7 @@ export function ArticleToolbarView({
         <div className="flex items-center">
           {showCloseButton && (
             <IconToolbarButton label={labels.closeView} onClick={actionStripProps.onCloseView}>
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </IconToolbarButton>
           )}
         </div>

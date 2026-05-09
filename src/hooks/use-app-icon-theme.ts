@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { setWindowIcon } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -7,6 +7,14 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 
 const DARK_ICON_PATH = "/icons/app-icon-dark.png";
 const LIGHT_ICON_PATH = "/icons/app-icon-light.png";
+
+type AppIconTheme = "light" | "dark";
+
+type AppIconRequest = {
+  theme: AppIconTheme;
+  platformLoaded: boolean;
+  supportsRuntimeWindowIconReplacement: boolean;
+};
 
 function shouldSkipRuntimeIconReplacement({
   platformLoaded,
@@ -19,7 +27,7 @@ function shouldSkipRuntimeIconReplacement({
 }
 
 async function setAppIcon(
-  theme: "light" | "dark",
+  theme: AppIconTheme,
   options: {
     platformLoaded: boolean;
     supportsRuntimeWindowIconReplacement: boolean;
@@ -43,19 +51,66 @@ export function useAppIconTheme() {
   const supportsRuntimeWindowIconReplacement = usePlatformStore(
     (state) => state.platform.capabilities.supports_runtime_window_icon_replacement,
   );
+  const mountedRef = useRef(false);
+  const pendingRequestRef = useRef<AppIconRequest | null>(null);
+  const applyingRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      pendingRequestRef.current = null;
+    };
+  }, []);
+
+  const drainIconRequests = useCallback(async () => {
+    if (applyingRef.current) {
+      return;
+    }
+
+    applyingRef.current = true;
+
+    try {
+      while (mountedRef.current && pendingRequestRef.current !== null) {
+        const request = pendingRequestRef.current;
+        pendingRequestRef.current = null;
+
+        await setAppIcon(request.theme, {
+          platformLoaded: request.platformLoaded,
+          supportsRuntimeWindowIconReplacement: request.supportsRuntimeWindowIconReplacement,
+        });
+      }
+    } finally {
+      applyingRef.current = false;
+    }
+  }, []);
+
+  const requestAppIcon = useCallback(
+    (request: AppIconRequest) => {
+      pendingRequestRef.current = request;
+      void drainIconRequests();
+    },
+    [drainIconRequests],
+  );
 
   useEffect(() => {
     if (theme !== "system") {
-      void setAppIcon(theme === "light" ? "light" : "dark", {
+      requestAppIcon({
+        theme: theme === "light" ? "light" : "dark",
         platformLoaded,
         supportsRuntimeWindowIconReplacement,
       });
       return;
     }
 
+    if (typeof window.matchMedia !== "function") {
+      return;
+    }
+
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = (matches: boolean) => {
-      void setAppIcon(matches ? "dark" : "light", {
+      requestAppIcon({
+        theme: matches ? "dark" : "light",
         platformLoaded,
         supportsRuntimeWindowIconReplacement,
       });
@@ -69,5 +124,5 @@ export function useAppIconTheme() {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme, platformLoaded, supportsRuntimeWindowIconReplacement]);
+  }, [theme, platformLoaded, supportsRuntimeWindowIconReplacement, requestAppIcon]);
 }

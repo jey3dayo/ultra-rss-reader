@@ -8,6 +8,7 @@ import {
   workspaceSplitGridClassName,
   workspaceSplitShellClassName,
 } from "@/components/shared/workspace-pane-layout";
+import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
 
 describe("workspace-pane-layout", () => {
   it("exports the shared detail pane sizing tokens", () => {
@@ -18,11 +19,19 @@ describe("workspace-pane-layout", () => {
     expect(WORKSPACE_CHROME_SPACING_CLASS).toContain("sm:px-5");
   });
 
+  it("keeps workspace detail sizing separate from reader app shell panes", () => {
+    expect(WORKSPACE_DETAIL_PANE_WIDTH).not.toBe(ARTICLE_LIST_PANE_WIDTH_PX);
+    expect(WORKSPACE_DETAIL_PANE_GRID_CLASS).toBe(`lg:grid-cols-[minmax(0,1fr)_${WORKSPACE_DETAIL_PANE_WIDTH}px]`);
+    expect(WORKSPACE_DETAIL_PANE_GRID_CLASS_COMPACT).toBe(`grid-cols-[minmax(0,1fr)_${WORKSPACE_DETAIL_PANE_WIDTH}px]`);
+  });
+
   it("builds split shell classes with caller classes appended", () => {
     const className = workspaceSplitShellClassName("custom-shell");
 
     expect(className).toContain(WORKSPACE_DETAIL_PANE_GRID_CLASS);
     expect(className).toContain("rounded-md");
+    expect(className).toContain("overflow-visible");
+    expect(className).toContain("lg:overflow-hidden");
     expect(className).toContain("custom-shell");
   });
 

@@ -83,7 +83,11 @@ describe("AccountsNavView", () => {
     const accountButton = screen.getByRole("button", { name: /^FreshRSS$/i });
 
     expect(within(accountButton).queryByText("alice", { exact: true })).not.toBeInTheDocument();
-    expect(within(accountButton).queryByText("freshrss.example.com", { exact: true })).not.toBeInTheDocument();
+    expect(
+      within(accountButton).queryByText("freshrss.example.com", {
+        exact: true,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows account descriptions only when multiple accounts need disambiguation", () => {
@@ -121,10 +125,16 @@ describe("AccountsNavView", () => {
     );
 
     const localButton = screen.getByRole("button", { name: /^Local$/i });
-    const freshRssButton = screen.getByRole("button", { name: /^FreshRSS alice$/i });
-    const debugButton = screen.getByRole("button", { name: /^debug feeds\.example\.com$/i });
+    const freshRssButton = screen.getByRole("button", {
+      name: /^FreshRSS alice$/i,
+    });
+    const debugButton = screen.getByRole("button", {
+      name: /^debug feeds\.example\.com$/i,
+    });
     const archiveButton = screen.getByRole("button", { name: /^Archive$/i });
-    const addAccountButton = screen.getByRole("button", { name: "Add account…" });
+    const addAccountButton = screen.getByRole("button", {
+      name: "Add account…",
+    });
 
     expect(within(localButton).getAllByText("Local", { exact: true })).toHaveLength(1);
     expect(within(freshRssButton).getByText("alice", { exact: true })).toHaveClass("text-sidebar-foreground/54");
@@ -147,8 +157,8 @@ describe("AccountsNavView", () => {
     expect(localButton).toHaveAttribute("aria-pressed", "true");
     expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
     expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
-    expect(localButton.querySelector("span")?.className).toContain("h-7");
-    expect(freshRssButton.querySelector("span")?.className).toContain("w-7");
+    expect(localButton.querySelector("span")?.className).toContain("size-7");
+    expect(freshRssButton.querySelector("span")?.className).toContain("size-7");
     expect(debugButton.querySelector("span")?.className).toContain("bg-surface-1/72");
     expect(within(freshRssButton).getByText("alice")).toHaveClass("text-sidebar-foreground/54");
     expect(localButton).toHaveClass("w-auto");
@@ -169,5 +179,47 @@ describe("AccountsNavView", () => {
 
     expect(onSelectAccount).toHaveBeenCalledWith("acc-2");
     expect(onAddAccount).toHaveBeenCalledOnce();
+  });
+
+  it("does not report account selection or add account while disabled", () => {
+    const onSelectAccount = vi.fn();
+    const onAddAccount = vi.fn();
+
+    render(
+      <AccountsNavView
+        accounts={[
+          { id: "acc-1", name: "Local", kind: "local", isActive: true },
+          {
+            id: "acc-2",
+            name: "FreshRSS",
+            kind: "freshrss",
+            username: "alice",
+            serverUrl: "https://freshrss.example.com/api/greader.php",
+            isActive: false,
+          },
+        ]}
+        addAccountLabel="Add account…"
+        isAddAccountActive={false}
+        onSelectAccount={onSelectAccount}
+        onAddAccount={onAddAccount}
+        disabled
+      />,
+    );
+
+    const freshRssButton = screen.getByRole("button", {
+      name: /^FreshRSS alice$/i,
+    });
+    const addAccountButton = screen.getByRole("button", {
+      name: "Add account…",
+    });
+
+    expect(freshRssButton).toBeDisabled();
+    expect(addAccountButton).toBeDisabled();
+
+    fireEvent.click(freshRssButton);
+    fireEvent.click(addAccountButton);
+
+    expect(onSelectAccount).not.toHaveBeenCalled();
+    expect(onAddAccount).not.toHaveBeenCalled();
   });
 });

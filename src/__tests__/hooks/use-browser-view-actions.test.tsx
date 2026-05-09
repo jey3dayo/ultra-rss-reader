@@ -7,19 +7,29 @@ import { useBrowserViewActions } from "@/components/reader/hooks/browser/use-bro
 
 import { usePreferencesStore } from "@/stores/preferences-store";
 
-const { focusBrowserWebviewMock, goBackBrowserWebviewMock, goForwardBrowserWebviewMock, reloadBrowserWebviewMock } =
-  vi.hoisted(() => ({
-    focusBrowserWebviewMock: vi.fn(),
-    goBackBrowserWebviewMock: vi.fn(),
-    goForwardBrowserWebviewMock: vi.fn(),
-    reloadBrowserWebviewMock: vi.fn(),
-  }));
+const {
+  focusBrowserWebviewMock,
+  goBackBrowserWebviewMock,
+  goForwardBrowserWebviewMock,
+  openUrlInExternalBrowserMock,
+  reloadBrowserWebviewMock,
+} = vi.hoisted(() => ({
+  focusBrowserWebviewMock: vi.fn(),
+  goBackBrowserWebviewMock: vi.fn(),
+  goForwardBrowserWebviewMock: vi.fn(),
+  openUrlInExternalBrowserMock: vi.fn(),
+  reloadBrowserWebviewMock: vi.fn(),
+}));
 
 vi.mock("@/api/tauri-commands", () => ({
   focusBrowserWebview: focusBrowserWebviewMock,
   goBackBrowserWebview: goBackBrowserWebviewMock,
   goForwardBrowserWebview: goForwardBrowserWebviewMock,
   reloadBrowserWebview: reloadBrowserWebviewMock,
+}));
+
+vi.mock("@/components/reader/article-browser-actions", () => ({
+  openUrlInExternalBrowser: openUrlInExternalBrowserMock,
 }));
 
 function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWebviewState {
@@ -46,6 +56,7 @@ describe("useBrowserViewActions", () => {
     focusBrowserWebviewMock.mockReset();
     goBackBrowserWebviewMock.mockReset();
     goForwardBrowserWebviewMock.mockReset();
+    openUrlInExternalBrowserMock.mockReset();
     reloadBrowserWebviewMock.mockReset();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
@@ -315,6 +326,102 @@ describe("useBrowserViewActions", () => {
     });
 
     expect(focusBrowserWebviewMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps native back and forward commands gated by current availability", async () => {
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
+        createBrowserState({
+          can_go_back: false,
+          can_go_forward: false,
+        }),
+      );
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      return useBrowserViewActions({
+        browserUrl: "https://example.com/article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        setSurfaceIssue: vi.fn(),
+        showToast: vi.fn(),
+        syncBrowserWebview: vi.fn(async () => {}),
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleGoBack();
+      await result.current.handleGoForward();
+    });
+
+    expect(goBackBrowserWebviewMock).not.toHaveBeenCalled();
+    expect(goForwardBrowserWebviewMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps reload and open-external availability gated by the overlay browser URL", async () => {
+    const showToast = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      return useBrowserViewActions({
+        browserUrl: null,
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        setSurfaceIssue: vi.fn(),
+        showToast,
+        syncBrowserWebview: vi.fn(async () => {}),
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleReload();
+      await result.current.handleOpenExternal();
+    });
+
+    expect(reloadBrowserWebviewMock).not.toHaveBeenCalled();
+    expect(openUrlInExternalBrowserMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the overlay browser URL externally in foreground mode", async () => {
+    const showToast = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      return useBrowserViewActions({
+        browserUrl: "https://example.com/article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        setSurfaceIssue: vi.fn(),
+        showToast,
+        syncBrowserWebview: vi.fn(async () => {}),
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleOpenExternal();
+    });
+
+    expect(openUrlInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/article", {
+      background: false,
+      errorLabel: "Failed to open preview in external browser",
+      showToast,
+    });
   });
 
   it("does not retry the embedded webview without a browser URL", () => {

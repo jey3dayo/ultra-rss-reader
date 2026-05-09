@@ -123,9 +123,24 @@ describe("article-list utils", () => {
     const result = selectVisibleArticles({
       articles: [],
       accountArticles: [
-        { ...sampleArticles[0], id: "art-folder", feed_id: "feed-1", is_read: false },
-        { ...sampleArticles[1], id: "art-other", feed_id: "feed-2", is_read: false },
-        { ...sampleArticles[0], id: "art-read", feed_id: "feed-1", is_read: true },
+        {
+          ...sampleArticles[0],
+          id: "art-folder",
+          feed_id: "feed-1",
+          is_read: false,
+        },
+        {
+          ...sampleArticles[1],
+          id: "art-other",
+          feed_id: "feed-2",
+          is_read: false,
+        },
+        {
+          ...sampleArticles[0],
+          id: "art-read",
+          feed_id: "feed-1",
+          is_read: true,
+        },
       ],
       tagArticles: [],
       searchResults: [],
@@ -146,8 +161,20 @@ describe("article-list utils", () => {
   it("filters feed articles by feed id when the source is account-scoped starred articles", () => {
     const result = selectVisibleArticles({
       articles: [
-        { ...sampleArticles[0], id: "starred-feed", feed_id: "feed-1", is_starred: true, is_read: true },
-        { ...sampleArticles[1], id: "starred-other", feed_id: "feed-2", is_starred: true, is_read: true },
+        {
+          ...sampleArticles[0],
+          id: "starred-feed",
+          feed_id: "feed-1",
+          is_starred: true,
+          is_read: true,
+        },
+        {
+          ...sampleArticles[1],
+          id: "starred-other",
+          feed_id: "feed-2",
+          is_starred: true,
+          is_read: true,
+        },
       ],
       accountArticles: [],
       tagArticles: [],
@@ -188,14 +215,68 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["art-folder"]);
   });
 
+  it("filters search results to the selected feed source", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [
+        { ...sampleArticles[0], id: "art-feed", feed_id: "feed-1" },
+        { ...sampleArticles[1], id: "art-other", feed_id: "feed-2" },
+      ],
+      feedId: "feed-1",
+      tagId: null,
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: true,
+      searchQuery: "Article",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["art-feed"]);
+  });
+
+  it("filters search results to the selected tag source", () => {
+    const taggedArticle = { ...sampleArticles[0], id: "tagged-match", feed_id: "feed-1" };
+    const untaggedArticle = { ...sampleArticles[1], id: "untagged-match", feed_id: "feed-1" };
+
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [taggedArticle],
+      searchResults: [taggedArticle, untaggedArticle],
+      feedId: null,
+      tagId: "tag-1",
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: true,
+      searchQuery: "Article",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["tagged-match"]);
+  });
+
   it("keeps smart unread searches limited to unread articles", () => {
     const result = selectVisibleArticles({
       articles: [],
       accountArticles: [],
       tagArticles: [],
       searchResults: [
-        { ...sampleArticles[0], id: "search-unread", is_read: false, is_starred: false },
-        { ...sampleArticles[1], id: "search-read", is_read: true, is_starred: true },
+        {
+          ...sampleArticles[0],
+          id: "search-unread",
+          is_read: false,
+          is_starred: false,
+        },
+        {
+          ...sampleArticles[1],
+          id: "search-read",
+          is_read: true,
+          is_starred: true,
+        },
       ],
       feedId: null,
       tagId: null,
@@ -216,9 +297,24 @@ describe("article-list utils", () => {
       accountArticles: [],
       tagArticles: [],
       searchResults: [
-        { ...sampleArticles[0], id: "starred-unread", is_read: false, is_starred: true },
-        { ...sampleArticles[1], id: "starred-read", is_read: true, is_starred: true },
-        { ...sampleArticles[0], id: "plain-unread", is_read: false, is_starred: false },
+        {
+          ...sampleArticles[0],
+          id: "starred-unread",
+          is_read: false,
+          is_starred: true,
+        },
+        {
+          ...sampleArticles[1],
+          id: "starred-read",
+          is_read: true,
+          is_starred: true,
+        },
+        {
+          ...sampleArticles[0],
+          id: "plain-unread",
+          is_read: false,
+          is_starred: false,
+        },
       ],
       feedId: null,
       tagId: null,
@@ -237,9 +333,24 @@ describe("article-list utils", () => {
     const result = selectVisibleArticles({
       articles: [],
       accountArticles: [
-        { ...sampleArticles[0], id: "starred-read", is_starred: true, is_read: true },
-        { ...sampleArticles[1], id: "starred-unread", is_starred: true, is_read: false },
-        { ...sampleArticles[2], id: "plain-unread", is_starred: false, is_read: false },
+        {
+          ...sampleArticles[0],
+          id: "starred-read",
+          is_starred: true,
+          is_read: true,
+        },
+        {
+          ...sampleArticles[1],
+          id: "starred-unread",
+          is_starred: true,
+          is_read: false,
+        },
+        {
+          ...sampleArticles[2],
+          id: "plain-unread",
+          is_starred: false,
+          is_read: false,
+        },
       ],
       tagArticles: [],
       searchResults: [],
@@ -260,9 +371,24 @@ describe("article-list utils", () => {
     const result = selectVisibleArticles({
       articles: [],
       accountArticles: [
-        { ...sampleArticles[0], id: "starred-read", is_starred: true, is_read: true },
-        { ...sampleArticles[1], id: "starred-unread", is_starred: true, is_read: false },
-        { ...sampleArticles[2], id: "plain-unread", is_starred: false, is_read: false },
+        {
+          ...sampleArticles[0],
+          id: "starred-read",
+          is_starred: true,
+          is_read: true,
+        },
+        {
+          ...sampleArticles[1],
+          id: "starred-unread",
+          is_starred: true,
+          is_read: false,
+        },
+        {
+          ...sampleArticles[2],
+          id: "plain-unread",
+          is_starred: false,
+          is_read: false,
+        },
       ],
       tagArticles: [],
       searchResults: [],
@@ -279,10 +405,60 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
   });
 
+  it("uses tag articles as the source when a tag is selected even if feed and account sources are present", () => {
+    const result = selectVisibleArticles({
+      articles: [{ ...sampleArticles[0], id: "feed-source", feed_id: "feed-1" }],
+      accountArticles: [{ ...sampleArticles[1], id: "account-source", feed_id: "feed-2" }],
+      tagArticles: [{ ...sampleArticles[2], id: "tag-source", feed_id: "feed-3" }],
+      searchResults: [],
+      feedId: "feed-1",
+      tagId: "tag-1",
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["tag-source"]);
+  });
+
+  it("returns no visible folder articles when the selected folder has no feeds", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        { ...sampleArticles[0], id: "account-feed-1", feed_id: "feed-1" },
+        { ...sampleArticles[1], id: "account-feed-2", feed_id: "feed-2" },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      folderFeedIds: new Set(),
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result).toEqual([]);
+  });
+
   it("applies the active footer filter to tag articles", () => {
     const tagArticles = [
-      { ...sampleArticles[0], id: "tag-unread", is_read: false, is_starred: false },
-      { ...sampleArticles[1], id: "tag-starred", is_read: true, is_starred: true },
+      {
+        ...sampleArticles[0],
+        id: "tag-unread",
+        is_read: false,
+        is_starred: false,
+      },
+      {
+        ...sampleArticles[1],
+        id: "tag-starred",
+        is_read: true,
+        is_starred: true,
+      },
     ];
 
     const unreadResult = selectVisibleArticles({
@@ -322,8 +498,16 @@ describe("article-list utils", () => {
     const result = selectVisibleArticles({
       articles: [],
       accountArticles: [
-        { ...sampleArticles[0], id: "viewed-first", published_at: "2026-04-20T00:00:00Z" },
-        { ...sampleArticles[1], id: "viewed-second", published_at: "2026-04-22T00:00:00Z" },
+        {
+          ...sampleArticles[0],
+          id: "viewed-first",
+          published_at: "2026-04-20T00:00:00Z",
+        },
+        {
+          ...sampleArticles[1],
+          id: "viewed-second",
+          published_at: "2026-04-22T00:00:00Z",
+        },
       ],
       tagArticles: [],
       searchResults: [],
@@ -437,7 +621,10 @@ describe("article-list utils", () => {
   it("prepends retained articles missing from the current primary source", () => {
     const result = mergeResolvedArticlesWithRetained({
       resolvedPrimarySourceArticles: [sampleArticles[1]],
-      retainedArticlesSnapshot: { contextKey: "feed:feed-1", articles: [sampleArticles[0], sampleArticles[1]] },
+      retainedArticlesSnapshot: {
+        contextKey: "feed:feed-1",
+        articles: [sampleArticles[0], sampleArticles[1]],
+      },
       retainedArticleIds: new Set(["art-1", "art-2"]),
       contextKey: "feed:feed-1",
     });
@@ -446,8 +633,13 @@ describe("article-list utils", () => {
   });
 
   it("compares article lists by stable row fields", () => {
+    expect(areArticleListsEquivalent([sampleArticles[0]], [sampleArticles[0], sampleArticles[1]])).toBe(false);
+    expect(areArticleListsEquivalent([sampleArticles[0], sampleArticles[1]], [sampleArticles[0]])).toBe(false);
     expect(areArticleListsEquivalent([sampleArticles[0]], [{ ...sampleArticles[0], summary: "changed" }])).toBe(true);
     expect(areArticleListsEquivalent([sampleArticles[0]], [{ ...sampleArticles[0], title: "changed" }])).toBe(false);
+    expect(
+      areArticleListsEquivalent([sampleArticles[0], sampleArticles[1]], [sampleArticles[1], sampleArticles[0]]),
+    ).toBe(false);
   });
 
   it("returns unread ids and unread count from the currently visible list", () => {
@@ -492,7 +684,10 @@ describe("article-list utils", () => {
   it("retains the selected starred smart-view row in all mode", () => {
     const retainedArticleIds = new Set(["art-1"]);
     const result = resolveEffectiveRetainedArticleIds({
-      sourcePlan: buildTestSourcePlan({ sourceFilter: "starred", effectiveViewMode: "all" }),
+      sourcePlan: buildTestSourcePlan({
+        sourceFilter: "starred",
+        effectiveViewMode: "all",
+      }),
       retainedArticleIds,
       selectedArticleId: "art-2",
     });
@@ -506,14 +701,20 @@ describe("article-list utils", () => {
 
     expect(
       resolveEffectiveRetainedArticleIds({
-        sourcePlan: buildTestSourcePlan({ sourceFilter: "starred", effectiveViewMode: "unread" }),
+        sourcePlan: buildTestSourcePlan({
+          sourceFilter: "starred",
+          effectiveViewMode: "unread",
+        }),
         retainedArticleIds,
         selectedArticleId: "art-2",
       }),
     ).toBe(retainedArticleIds);
     expect(
       resolveEffectiveRetainedArticleIds({
-        sourcePlan: buildTestSourcePlan({ sourceFilter: "all", effectiveViewMode: "all" }),
+        sourcePlan: buildTestSourcePlan({
+          sourceFilter: "all",
+          effectiveViewMode: "all",
+        }),
         retainedArticleIds,
         selectedArticleId: "art-2",
       }),
@@ -526,11 +727,17 @@ describe("article-list utils", () => {
     expect(Result.unwrap(result)).toBe("art-2");
   });
 
-  it("returns the adjacent id from an ordered id list", () => {
+  it("keeps navigation similarity limited to pure adjacent id lookup", () => {
     expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "b", 1))).toBe("c");
     expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "b", -1))).toBe("a");
     expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], null, 1))).toBe("a");
     expect(Result.unwrapError(getAdjacentItemId([], null, 1))).toBe("no_items");
+  });
+
+  it("clamps adjacent navigation at list edges", () => {
+    expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "a", -1))).toBe("a");
+    expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "c", 1))).toBe("c");
+    expect(Result.unwrap(getAdjacentItemId(["a", "b", "c"], "missing", -1))).toBe("a");
   });
 
   it("returns an error when no articles are available", () => {
@@ -601,6 +808,47 @@ describe("article-list utils", () => {
     });
 
     expect(result).toBe(0);
+  });
+
+  it("clamps downward navigation scroll to the maximum scroll top", () => {
+    const result = calculateArticleNavigationScrollTop({
+      currentScrollTop: 720,
+      viewportTop: 100,
+      viewportHeight: 360,
+      itemTop: 520,
+      itemHeight: 96,
+      direction: 1,
+      stickyTopOffset: 32,
+      edgePadding: 12,
+      maxScrollTop: 800,
+    });
+
+    expect(result).toBe(800);
+  });
+
+  it("uses the visible unread rows for non-feed and non-folder mark-all-read counts", () => {
+    const filteredArticles = [
+      { ...sampleArticles[0], id: "visible-unread", is_read: false },
+      { ...sampleArticles[1], id: "visible-read", is_read: true },
+      { ...sampleArticles[2], id: "another-visible-unread", is_read: false },
+    ];
+
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "smart", kind: "recent" },
+        selectedFeedUnreadCount: 12,
+        folderUnreadCount: 34,
+        filteredArticles,
+      }),
+    ).toBe(2);
+    expect(
+      resolveArticleListMarkAllReadCount({
+        selection: { type: "tag", tagId: "tag-1" },
+        selectedFeedUnreadCount: 12,
+        folderUnreadCount: 34,
+        filteredArticles,
+      }),
+    ).toBe(2);
   });
 
   it("keeps retained articles visible in unread view even after they become read", () => {

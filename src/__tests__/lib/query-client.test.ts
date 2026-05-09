@@ -8,11 +8,23 @@ describe("query client retry policy", () => {
     expect(createTestQueryClient().getDefaultOptions().queries?.retry).toBe(false);
   });
 
+  it("keeps test mutations non-retrying by default", () => {
+    expect(createTestQueryClient().getDefaultOptions().mutations?.retry).toBe(false);
+  });
+
   it("allows tests to override query retry when a retry-specific scenario needs it", () => {
     expect(
       createTestQueryClient({
         defaultOptions: { queries: { retry: 2 } },
       }).getDefaultOptions().queries?.retry,
+    ).toBe(2);
+  });
+
+  it("allows tests to override mutation retry when a retry-specific scenario needs it", () => {
+    expect(
+      createTestQueryClient({
+        defaultOptions: { mutations: { retry: 2 } },
+      }).getDefaultOptions().mutations?.retry,
     ).toBe(2);
   });
 });

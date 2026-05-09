@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/articles/article-list";
+import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window/window-events";
 import type { SidebarFeedNavigationParams } from "../../sidebar-feed-section.types";
 
@@ -18,18 +19,38 @@ export function useSidebarFeedNavigation({
   selectFeed,
 }: SidebarFeedNavigationParams) {
   const latestExpandedFolderIdsRef = useRef(expandedFolderIds);
+  const latestSelectedFeedIdRef = useRef(selectedFeedId);
+  const pendingFocusFrameRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     latestExpandedFolderIdsRef.current = expandedFolderIds;
   }, [expandedFolderIds]);
 
+  useEffect(() => {
+    latestSelectedFeedIdRef.current = selectedFeedId;
+  }, [selectedFeedId]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      if (pendingFocusFrameRef.current !== null) {
+        cancelAnimationFrame(pendingFocusFrameRef.current);
+        pendingFocusFrameRef.current = null;
+      }
+    };
+  }, []);
+
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
-      const nextFeedId = getAdjacentItemId(orderedFeedIds, selectedFeedId, direction);
+      const nextFeedId = getAdjacentItemId(orderedFeedIds, latestSelectedFeedIdRef.current, direction);
       if (Result.isFailure(nextFeedId)) {
         return;
       }
       const resolvedNextFeedId = Result.unwrap(nextFeedId);
+      latestSelectedFeedIdRef.current = resolvedNextFeedId;
 
       const nextFeedFolderId = getFeedFolderId(resolvedNextFeedId) ?? null;
       const latestExpandedFolderIds = latestExpandedFolderIdsRef.current;
@@ -40,8 +61,20 @@ export function useSidebarFeedNavigation({
       }
 
       selectFeed(resolvedNextFeedId);
-      requestAnimationFrame(() => {
-        const nextFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${resolvedNextFeedId}"]`);
+      if (pendingFocusFrameRef.current !== null) {
+        cancelAnimationFrame(pendingFocusFrameRef.current);
+      }
+      pendingFocusFrameRef.current = requestAnimationFrame(() => {
+        pendingFocusFrameRef.current = null;
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        const nextFeedButton = queryElementByDataAttribute<HTMLButtonElement>(
+          document,
+          "data-feed-id",
+          resolvedNextFeedId,
+        );
         if (!nextFeedButton) {
           return;
         }
@@ -50,7 +83,7 @@ export function useSidebarFeedNavigation({
         nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
       });
     },
-    [getFeedFolderId, orderedFeedIds, selectFeed, selectedFeedId, setExpandedFolders],
+    [getFeedFolderId, orderedFeedIds, selectFeed, setExpandedFolders],
   );
 
   useEffect(() => {

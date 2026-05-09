@@ -4,6 +4,9 @@ import {
   invalidateArticleQueries,
   invalidateFeedQueries,
   invalidateSyncCompletedQueries,
+  queryKeys,
+  resolveArticleInvalidationQueryKeys,
+  resolveFeedInvalidationQueryKeys,
 } from "@/lib/query/query-invalidation";
 
 function createInvalidateSpy() {
@@ -14,6 +17,63 @@ function createInvalidateSpy() {
 }
 
 describe("query-invalidation", () => {
+  it("keeps typed query key helpers aligned with existing tuple shapes", () => {
+    expect(queryKeys.feeds.byAccount("acc-1")).toEqual(["feeds", "acc-1"]);
+    expect(queryKeys.articles.byFeed("feed-1", "unread")).toEqual(["articles", "feed-1", { mode: "unread" }]);
+    expect(queryKeys.accountArticles.byAccount("acc-1", "all")).toEqual(["accountArticles", "acc-1", { mode: "all" }]);
+    expect(queryKeys.accountArticles.byAccountPrefix("acc-1")).toEqual(["accountArticles", "acc-1"]);
+    expect(queryKeys.feedArticleSummaries.root).toEqual(["feedArticleSummaries"]);
+    expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual(["feedArticleSummaries", "acc-1"]);
+    expect(queryKeys.folderArticles.byFolder("folder-1", "starred")).toEqual([
+      "folderArticles",
+      "folder-1",
+      { mode: "starred" },
+    ]);
+    expect(queryKeys.recentArticles.byAccount("acc-1", "all")).toEqual(["recentArticles", "acc-1", { mode: "all" }]);
+    expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual(["search", "acc-1", "fresh"]);
+  });
+
+  it("keeps feed invalidation target keys explicit", () => {
+    expect(resolveFeedInvalidationQueryKeys()).toEqual([["feeds"], ["folders"]]);
+    expect(
+      resolveFeedInvalidationQueryKeys({
+        includeFeeds: false,
+        includeFolders: false,
+        includeAccountUnreadCount: true,
+      }),
+    ).toEqual([["accountUnreadCount"]]);
+  });
+
+  it("keeps article invalidation target keys explicit", () => {
+    expect(resolveArticleInvalidationQueryKeys()).toEqual([
+      ["articles"],
+      ["accountArticles"],
+      ["folderArticles"],
+      ["starredArticles"],
+      ["accountUnreadCount"],
+      ["accountStarredCount"],
+      ["feeds"],
+      ["articlesByTag"],
+      ["search"],
+      ["recentArticles"],
+    ]);
+    expect(
+      resolveArticleInvalidationQueryKeys({
+        includeArticles: false,
+        includeAccountArticles: false,
+        includeStarredArticles: false,
+        includeAccountUnreadCount: false,
+        includeAccountStarredCount: false,
+        includeFeeds: false,
+        includeArticlesByTag: false,
+        includeTagArticleCounts: true,
+        includeSearch: false,
+        includeFeedIntegrityReport: true,
+        includeRecentArticles: false,
+      }),
+    ).toEqual([["tagArticleCounts"], ["feedIntegrityReport"]]);
+  });
+
   it("invalidates feed query keys with opt-in account unread count", () => {
     const { invalidateQueries, queryClient } = createInvalidateSpy();
 

@@ -43,6 +43,43 @@ describe("useFeedArticleSummaries", () => {
     expect(listFeedArticleSummariesSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the query disabled for a whitespace-only account id", () => {
+    const listFeedArticleSummariesSpy = vi.spyOn(tauriCommands, "listFeedArticleSummaries");
+
+    const { result } = renderHook(({ accountId }: HookProps) => useFeedArticleSummaries(accountId), {
+      initialProps: { accountId: "   " },
+      wrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+    expect(listFeedArticleSummariesSpy).not.toHaveBeenCalled();
+  });
+
+  it("trims a valid account id before building the query and command call", async () => {
+    const listFeedArticleSummariesSpy = vi
+      .spyOn(tauriCommands, "listFeedArticleSummaries")
+      .mockResolvedValue(
+        Result.succeed([{ feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 }]),
+      );
+
+    const { result, rerender } = renderHook(({ accountId }: HookProps) => useFeedArticleSummaries(accountId), {
+      initialProps: { accountId: " acc-1 " },
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual([
+        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 },
+      ]);
+    });
+
+    rerender({ accountId: "acc-1" });
+
+    expect(listFeedArticleSummariesSpy).toHaveBeenCalledTimes(1);
+    expect(listFeedArticleSummariesSpy).toHaveBeenCalledWith("acc-1");
+  });
+
   it("does not keep the previous account summaries while the next account query is pending", async () => {
     const initialProps: HookProps = { accountId: "acc-1" };
     let resolveSecondAccount!: (value: Awaited<ReturnType<typeof tauriCommands.listFeedArticleSummaries>>) => void;

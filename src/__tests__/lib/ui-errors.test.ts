@@ -8,6 +8,25 @@ describe("ui error projection", () => {
     expect(getErrorMessage("failed")).toBe("Unknown error");
   });
 
+  it("falls back for blank error messages", () => {
+    expect(getErrorMessage(new Error(""))).toBe("Unknown error");
+    expect(getErrorMessage(new Error("   "))).toBe("Unknown error");
+    expect(getErrorMessage({ message: "\n\t " })).toBe("Unknown error");
+  });
+
+  it("falls back when error message access is unsafe or non-string", () => {
+    const errorWithThrowingMessage = {};
+    Object.defineProperty(errorWithThrowingMessage, "message", {
+      get() {
+        throw new Error("message unavailable");
+      },
+    });
+
+    expect(getErrorMessage(errorWithThrowingMessage)).toBe("Unknown error");
+    expect(getErrorMessage({ message: 123 })).toBe("Unknown error");
+    expect(getErrorMessage({ message: { text: "network down" } })).toBe("Unknown error");
+  });
+
   it("keeps retry and dismiss actions explicit in the toast payload", () => {
     const onRetry = vi.fn();
     const onDismiss = vi.fn();
@@ -33,6 +52,17 @@ describe("ui error projection", () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it("falls back when toast messages are blank", () => {
+    expect(
+      projectUiErrorToast({
+        message: "   ",
+      }),
+    ).toEqual({
+      message: "Unknown error",
+      severity: "error",
+    });
+  });
+
   it("does not project inert action labels without handlers", () => {
     expect(
       projectUiErrorToast({
@@ -43,5 +73,35 @@ describe("ui error projection", () => {
       message: "クリップボードを利用できません",
       severity: "error",
     });
+  });
+
+  it("does not project action labels that are blank after trimming", () => {
+    const onRetry = vi.fn();
+    const onDismiss = vi.fn();
+
+    expect(
+      projectUiErrorToast({
+        message: "クリップボードを利用できません",
+        retryLabel: "   ",
+        onRetry,
+        dismissLabel: "\n\t",
+        onDismiss,
+      }),
+    ).toEqual({
+      message: "クリップボードを利用できません",
+      severity: "error",
+    });
+  });
+
+  it("trims projected action labels", () => {
+    const onRetry = vi.fn();
+
+    expect(
+      projectUiErrorToast({
+        message: "クリップボードを利用できません",
+        retryLabel: "  再試行  ",
+        onRetry,
+      }).actions?.[0]?.label,
+    ).toBe("再試行");
   });
 });

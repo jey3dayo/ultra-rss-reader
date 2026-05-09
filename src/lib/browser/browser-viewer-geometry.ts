@@ -48,13 +48,24 @@ export type BrowserViewerGeometry = {
   };
 };
 
+const INVALID_VIEWPORT_WIDTH_FALLBACK = 520;
+
+function normalizeViewportWidth(viewportWidth: number): number {
+  if (!Number.isFinite(viewportWidth) || viewportWidth < 0) {
+    return INVALID_VIEWPORT_WIDTH_FALLBACK;
+  }
+
+  return viewportWidth;
+}
+
 function resolveMainStageGeometry(
   viewportWidth: number,
   diagnosticsVisible: boolean,
   overlayTitlebar: boolean,
 ): BrowserViewerGeometry {
-  const compact = viewportWidth <= 768;
-  const ultraCompact = viewportWidth <= 520;
+  const normalizedViewportWidth = normalizeViewportWidth(viewportWidth);
+  const compact = normalizedViewportWidth <= 768;
+  const ultraCompact = normalizedViewportWidth <= 520;
   const chromeHorizontalInset = compact ? 12 : 16;
   const visualHeaderHeight = compact ? 48 : 40;
   const leadingSafeInset = overlayTitlebar ? (compact ? 64 : 72) : chromeHorizontalInset;

@@ -5,6 +5,8 @@ import {
   formatAddAccountValidationError,
   getAddAccountFormConfig,
 } from "@/lib/account/add-account-form";
+import enSettings from "@/locales/en/settings.json";
+import jaSettings from "@/locales/ja/settings.json";
 
 describe("add-account-form utils", () => {
   it("returns local form config", () => {
@@ -75,6 +77,18 @@ describe("add-account-form utils", () => {
     expect(Result.unwrapError(result)).toBe("missing_server_url");
   });
 
+  it("fails when FreshRSS server URL is not a URL", () => {
+    const result = buildAddAccountPayload({
+      kind: "FreshRss",
+      name: "",
+      serverUrl: "not a url",
+      username: "alice",
+      password: "secret",
+    });
+
+    expect(Result.unwrapError(result)).toBe("invalid_server_url");
+  });
+
   it("fails when credentials are missing", () => {
     const missingUsername = buildAddAccountPayload({
       kind: "FreshRss",
@@ -95,8 +109,23 @@ describe("add-account-form utils", () => {
     expect(Result.unwrapError(missingPassword)).toBe("missing_password");
   });
   it("formats validation errors for toasts", () => {
-    expect(formatAddAccountValidationError("FreshRss", "missing_server_url")).toBe("Server URL is required");
-    expect(formatAddAccountValidationError("FreshRss", "missing_username")).toBe("Username is required");
-    expect(formatAddAccountValidationError("FreshRss", "missing_password")).toBe("Password is required");
+    expect(formatAddAccountValidationError("FreshRss", "missing_server_url")).toBe("account.error_server_url_required");
+    expect(formatAddAccountValidationError("FreshRss", "invalid_server_url")).toBe("account.error_server_url_invalid");
+    expect(formatAddAccountValidationError("FreshRss", "missing_username")).toBe("account.error_username_required");
+    expect(formatAddAccountValidationError("FreshRss", "missing_password")).toBe("account.error_password_required");
+  });
+
+  it("keeps validation error keys in settings locales", () => {
+    const keys = [
+      "error_server_url_required",
+      "error_server_url_invalid",
+      "error_username_required",
+      "error_password_required",
+    ] as const;
+
+    for (const key of keys) {
+      expect(enSettings.account[key]).toBeTruthy();
+      expect(jaSettings.account[key]).toBeTruthy();
+    }
   });
 });

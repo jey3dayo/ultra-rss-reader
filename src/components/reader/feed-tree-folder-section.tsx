@@ -61,6 +61,9 @@ export function FeedTreeFolderSection({
     }
     event.preventDefault();
     event.stopPropagation();
+    if (folder.unreadCount <= 0) {
+      return;
+    }
     onMarkFolderRead?.(folder);
   };
 
@@ -77,7 +80,7 @@ export function FeedTreeFolderSection({
       {showDropOverlay ? (
         <button
           type="button"
-          aria-label={t("move_to_folder", { name: folder.name })}
+          aria-label={t("move_to_folder", { defaultValue: "Move to folder {{name}}", name: folder.name })}
           {...{
             [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
             [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
@@ -97,7 +100,7 @@ export function FeedTreeFolderSection({
           />
         ) : null}
         <SidebarLeadingControlButton
-          aria-label={t("toggle_folder", { name: folder.name })}
+          aria-label={t("toggle_folder", { defaultValue: "Toggle folder {{name}}", name: folder.name })}
           aria-expanded={folder.isExpanded}
           aria-controls={panelId}
           density={sidebarDensity}
@@ -115,7 +118,7 @@ export function FeedTreeFolderSection({
             render={
               <SidebarNavButton
                 density={sidebarDensity}
-                aria-label={t("select_folder", { name: folder.name })}
+                aria-label={t("select_folder", { defaultValue: "Select folder {{name}}", name: folder.name })}
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}

@@ -8,6 +8,7 @@ const baseFeed: FeedDto = {
   id: "feed-1",
   account_id: "acc-1",
   folder_id: "folder-1",
+  remote_id: null,
   title: "AUTOMATON",
   url: "https://automaton-media.com/feed/",
   site_url: "https://automaton-media.com",
@@ -54,7 +55,7 @@ describe("FeedItemView", () => {
     );
 
     expect(screen.queryByText("0")).not.toBeInTheDocument();
-    expect(screen.getByText("A")).toBeInTheDocument();
+    expect(screen.getByText("A").parentElement).toHaveClass("size-5");
   });
 
   it("uses the softened sidebar hover tone for unselected rows", () => {

@@ -22,7 +22,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarButton label="Copy link" onClick={onClick}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarButton>
       </TooltipProvider>,
     );
@@ -32,13 +32,41 @@ describe("IconToolbarControl", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps tooltip semantics but does not activate aria-disabled icon buttons by click or keyboard", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <TooltipProvider>
+        <IconToolbarButton label="Sync now" onClick={onClick} ariaDisabled>
+          <Globe className="size-4" />
+        </IconToolbarButton>
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByRole("button", { name: "Sync now" });
+
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).not.toBeDisabled();
+
+    await user.hover(button);
+    expect(await screen.findByText("Sync now")).toHaveClass("motion-popup-surface");
+
+    await user.click(button);
+    button.focus();
+    await user.keyboard("{Enter}");
+    await user.keyboard(" ");
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it("renders tooltips with the shared popup motion surface", async () => {
     const user = userEvent.setup();
 
     render(
       <TooltipProvider>
         <IconToolbarButton label="Copy link" onClick={vi.fn()}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarButton>
       </TooltipProvider>,
     );
@@ -52,7 +80,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarToggle label="Close browser window" pressed={true} pressedTone="accent" onPressedChange={vi.fn()}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarToggle>
       </TooltipProvider>,
     );
@@ -70,7 +98,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarToggle label="Toggle read" pressed={true} onPressedChange={vi.fn()}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarToggle>
       </TooltipProvider>,
     );
@@ -87,7 +115,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarToggle label="Toggle star" pressed={true} pressedTone="starred" onPressedChange={vi.fn()}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarToggle>
       </TooltipProvider>,
     );
@@ -106,7 +134,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarButton label="Sync now" tooltipLabel="Refresh subscriptions" onClick={vi.fn()}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarButton>
       </TooltipProvider>,
     );
@@ -123,7 +151,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarSurfaceButton label="Open in External Browser" onClick={vi.fn()} tooltipSide="left">
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarSurfaceButton>
       </TooltipProvider>,
     );
@@ -140,7 +168,7 @@ describe("IconToolbarControl", () => {
       <TooltipProvider>
         <Menu.Root>
           <IconToolbarMenuTrigger label="Share">
-            <Globe className="h-4 w-4" />
+            <Globe className="size-4" />
           </IconToolbarMenuTrigger>
           <Menu.Portal>
             <Menu.Positioner>
@@ -191,7 +219,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarSurfaceButton label="Close Web Preview" onClick={onClick}>
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarSurfaceButton>
       </TooltipProvider>,
     );
@@ -211,7 +239,7 @@ describe("IconToolbarControl", () => {
     render(
       <TooltipProvider>
         <IconToolbarSurfaceButton label="Web back" onClick={vi.fn()} variant="chrome">
-          <Globe className="h-4 w-4" />
+          <Globe className="size-4" />
         </IconToolbarSurfaceButton>
       </TooltipProvider>,
     );

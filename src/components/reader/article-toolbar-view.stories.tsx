@@ -1,5 +1,5 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { fn } from "storybook/test";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleToolbarView } from "./article-toolbar-view";
@@ -10,17 +10,22 @@ const meta = {
   tags: ["autodocs"],
   args: {
     showCloseButton: true,
-    canToggleRead: true,
-    canToggleStar: true,
-    isRead: false,
-    isStarred: true,
-    isBrowserOpen: false,
-    showCopyLinkButton: true,
-    canCopyLink: true,
-    showOpenInBrowserButton: true,
-    canOpenInBrowser: true,
-    showOpenInExternalBrowserButton: true,
-    canOpenInExternalBrowser: true,
+    articleState: {
+      hasArticle: true,
+      isRead: false,
+      isStarred: true,
+      isBrowserOpen: false,
+    },
+    actionOptions: {
+      canToggleRead: true,
+      canToggleStar: true,
+      showCopyLinkButton: true,
+      canCopyLink: true,
+      showOpenInBrowserButton: true,
+      canOpenInBrowser: true,
+      showOpenInExternalBrowserButton: true,
+      canOpenInExternalBrowser: true,
+    },
     labels: {
       closeView: "Close view",
       toggleRead: "Toggle read",
@@ -50,27 +55,39 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const mobileDecorator: Decorator = (Story) => {
+function MobileLayoutModeBoundary({ children }: { children: ReactNode }) {
   useEffect(() => {
+    const previousLayoutMode = useUiStore.getState().layoutMode;
     useUiStore.setState({ layoutMode: "mobile" });
-    return () => useUiStore.setState({ layoutMode: "wide" });
+    return () => useUiStore.setState({ layoutMode: previousLayoutMode });
   }, []);
 
-  return <Story />;
+  return children;
+}
+
+const mobileDecorator: Decorator = (Story) => {
+  return (
+    <MobileLayoutModeBoundary>
+      <Story />
+    </MobileLayoutModeBoundary>
+  );
 };
 
 function MobileInteractiveToolbar(args: Story["args"]) {
-  const [isRead, setIsRead] = useState(args?.isRead ?? false);
-  const [isStarred, setIsStarred] = useState(args?.isStarred ?? false);
-  const [isBrowserOpen, setIsBrowserOpen] = useState(args?.isBrowserOpen ?? false);
+  const [isRead, setIsRead] = useState(args?.articleState?.isRead ?? false);
+  const [isStarred, setIsStarred] = useState(args?.articleState?.isStarred ?? false);
+  const [isBrowserOpen, setIsBrowserOpen] = useState(args?.articleState?.isBrowserOpen ?? false);
 
   return (
     <ArticleToolbarView
       {...meta.args}
       {...args}
-      isRead={isRead}
-      isStarred={isStarred}
-      isBrowserOpen={isBrowserOpen}
+      articleState={{
+        ...(args?.articleState ?? meta.args.articleState),
+        isRead,
+        isStarred,
+        isBrowserOpen,
+      }}
       onToggleRead={setIsRead}
       onToggleStar={setIsStarred}
       onOpenInBrowser={() => setIsBrowserOpen((current) => !current)}
@@ -80,13 +97,20 @@ function MobileInteractiveToolbar(args: Story["args"]) {
 
 export const Default: Story = {
   args: {
-    isBrowserOpen: false,
+    articleState: {
+      ...meta.args.articleState,
+      isBrowserOpen: false,
+    },
   },
 };
 
 export const MobileDefault: Story = {
   args: {
-    isBrowserOpen: false,
+    layoutMode: "mobile",
+    articleState: {
+      ...meta.args.articleState,
+      isBrowserOpen: false,
+    },
   },
   decorators: [mobileDecorator],
   parameters: {
@@ -96,9 +120,13 @@ export const MobileDefault: Story = {
 
 export const MobileInteractive: Story = {
   args: {
-    isRead: false,
-    isStarred: false,
-    isBrowserOpen: false,
+    layoutMode: "mobile",
+    articleState: {
+      ...meta.args.articleState,
+      isRead: false,
+      isStarred: false,
+      isBrowserOpen: false,
+    },
   },
   decorators: [mobileDecorator],
   parameters: {
@@ -109,8 +137,12 @@ export const MobileInteractive: Story = {
 
 export const MobilePreviewOpen: Story = {
   args: {
-    isBrowserOpen: true,
+    layoutMode: "mobile",
     showCloseButton: false,
+    articleState: {
+      ...meta.args.articleState,
+      isBrowserOpen: true,
+    },
   },
   decorators: [mobileDecorator],
   parameters: {
@@ -120,14 +152,21 @@ export const MobilePreviewOpen: Story = {
 
 export const MobileDisabledActions: Story = {
   args: {
+    layoutMode: "mobile",
     showCloseButton: false,
-    canToggleRead: false,
-    canToggleStar: false,
-    isBrowserOpen: false,
-    canCopyLink: false,
-    canOpenInBrowser: false,
-    showOpenInExternalBrowserButton: false,
-    canOpenInExternalBrowser: false,
+    articleState: {
+      ...meta.args.articleState,
+      isBrowserOpen: false,
+    },
+    actionOptions: {
+      ...meta.args.actionOptions,
+      canToggleRead: false,
+      canToggleStar: false,
+      canCopyLink: false,
+      canOpenInBrowser: false,
+      showOpenInExternalBrowserButton: false,
+      canOpenInExternalBrowser: false,
+    },
   },
   decorators: [mobileDecorator],
   parameters: {
@@ -137,20 +176,29 @@ export const MobileDisabledActions: Story = {
 
 export const PreviewOpen: Story = {
   args: {
-    isBrowserOpen: true,
     showCloseButton: false,
+    articleState: {
+      ...meta.args.articleState,
+      isBrowserOpen: true,
+    },
   },
 };
 
 export const DisabledActions: Story = {
   args: {
     showCloseButton: false,
-    canToggleRead: false,
-    canToggleStar: false,
-    isBrowserOpen: false,
-    canCopyLink: false,
-    canOpenInBrowser: false,
-    showOpenInExternalBrowserButton: false,
-    canOpenInExternalBrowser: false,
+    articleState: {
+      ...meta.args.articleState,
+      isBrowserOpen: false,
+    },
+    actionOptions: {
+      ...meta.args.actionOptions,
+      canToggleRead: false,
+      canToggleStar: false,
+      canCopyLink: false,
+      canOpenInBrowser: false,
+      showOpenInExternalBrowserButton: false,
+      canOpenInExternalBrowser: false,
+    },
   },
 };

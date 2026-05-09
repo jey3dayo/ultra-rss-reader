@@ -102,6 +102,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   }
 
   const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;
+  const browserBackLabel = controller.browserState?.can_go_back ? t("web_back") : t("back_to_reader");
 
   const startAcceptedFeedback = (actionKey: string) => {
     setActiveFeedbackAction(actionKey);
@@ -138,7 +139,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
           <BrowserOverlayIconAction
             actionKey="browser-back"
             compact={presentation.leadingActionSurface.compact}
-            label={t("web_back")}
+            label={browserBackLabel}
             onClick={() => {
               startAcceptedFeedback("browser-back");
               return controller.browserState?.can_go_back ? controller.handleGoBack() : controller.handleCloseOverlay();

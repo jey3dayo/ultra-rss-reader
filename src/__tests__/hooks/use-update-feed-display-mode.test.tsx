@@ -38,6 +38,7 @@ describe("useUpdateFeedDisplaySettings", () => {
           id: "feed-1",
           account_id: "acc-1",
           folder_id: null,
+          remote_id: null,
           title: "Tech Blog",
           url: "https://example.com/feed.xml",
           site_url: "https://example.com",
@@ -78,6 +79,7 @@ describe("useUpdateFeedDisplaySettings", () => {
 
   it("rolls back display settings and shows a toast on failure", async () => {
     seedFeeds();
+    const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
     vi.spyOn(tauriCommands, "updateFeedDisplaySettings").mockResolvedValue(
       Result.fail({ type: "UserVisible", message: "boom" }),
     );
@@ -92,6 +94,43 @@ describe("useUpdateFeedDisplaySettings", () => {
         web_preview_mode: "inherit",
       }),
     ]);
+    expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
     expect(showToastMock).toHaveBeenCalledWith("failed_to_update_display_settings:boom");
+  });
+
+  it("does not leave optimistic display settings behind when a canceled update fails", async () => {
+    seedFeeds();
+    const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
+    let resolveUpdate: (result: Awaited<ReturnType<typeof tauriCommands.updateFeedDisplaySettings>>) => void = () => {};
+    vi.spyOn(tauriCommands, "updateFeedDisplaySettings").mockReturnValue(
+      new Promise((resolve) => {
+        resolveUpdate = resolve;
+      }),
+    );
+    const { result } = createHook();
+
+    const promise = result.current("feed-1", "on", "on");
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          reader_mode: "on",
+          web_preview_mode: "on",
+        }),
+      ]);
+    });
+
+    resolveUpdate(Result.fail({ type: "UserVisible", message: "boom" }));
+    await expect(promise).resolves.toBe(false);
+
+    expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      }),
+    ]);
   });
 });

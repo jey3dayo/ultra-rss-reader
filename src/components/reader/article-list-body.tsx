@@ -49,6 +49,9 @@ export function ArticleListBody({
   markAllReadLabel,
   onMarkAllRead,
 }: ArticleListBodyProps) {
+  const hasArticles = groups.some((group) => group.items.length > 0);
+  const showBodyContextMenu = !isLoading && hasArticles;
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger render={<div />} className="flex-1 overflow-hidden">
@@ -73,15 +76,17 @@ export function ArticleListBody({
           renderRow={({ article, content }) => <ArticleContextMenu article={article}>{content}</ArticleContextMenu>}
         />
       </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Positioner>
-          <ContextMenu.Popup className={contextMenuStyles.popup}>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
-              {markAllReadLabel}
-            </ContextMenu.Item>
-          </ContextMenu.Popup>
-        </ContextMenu.Positioner>
-      </ContextMenu.Portal>
+      {showBodyContextMenu ? (
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner>
+            <ContextMenu.Popup className={contextMenuStyles.popup}>
+              <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
+                {markAllReadLabel}
+              </ContextMenu.Item>
+            </ContextMenu.Popup>
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      ) : null}
     </ContextMenu.Root>
   );
 }

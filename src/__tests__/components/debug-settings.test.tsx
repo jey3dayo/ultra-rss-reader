@@ -69,6 +69,21 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().settingsOpen).toBe(false);
   });
 
+  it("shows a localized toast for an invalid non-empty web preview url", async () => {
+    const user = userEvent.setup();
+
+    useUiStore.setState({ settingsOpen: true });
+
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    await user.type(screen.getByLabelText("Web preview URL"), "not a url");
+    await user.click(screen.getByRole("button", { name: "Open: Web preview URL" }));
+
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Enter a valid web preview URL." });
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+  });
+
   it("opens the geometry check page instead of the old image viewer overlay flow", async () => {
     const user = userEvent.setup();
     const geometryCheckUrl = new URL("/dev-web-preview-geometry.html", window.location.origin).toString();
@@ -77,8 +92,8 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(screen.queryByRole("button", { name: "Open: Open image viewer overlay" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Open: Open web preview geometry check" }));
+    expect(screen.queryByRole("button", { name: "Open: Image viewer overlay" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open: Web preview geometry check" }));
 
     expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
@@ -94,7 +109,7 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByRole("button", { name: "Open: Open web preview toast check" }));
+    await user.click(screen.getByRole("button", { name: "Open: Web preview toast check" }));
 
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
     expect(useUiStore.getState().contentMode).toBe("browser");
@@ -105,16 +120,42 @@ describe("DebugSettings", () => {
   it("keeps long debug action labels on one line", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("Open web preview geometry check")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByText("Open web preview toast check")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByText("Open reading display mode settings")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Web preview geometry check")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Web preview toast check")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Reading display mode settings")).toHaveClass("whitespace-nowrap");
   });
 
   it("shows the current credentials backend and relaunch hint", async () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("OS keyring")).toBeInTheDocument();
-    expect(screen.getByText(/mise run app:dev/i)).toBeInTheDocument();
+    expect(screen.getByText(/relaunching with `mise run app:dev`/i)).toBeInTheDocument();
     expect(screen.getByText(/mise run app:dev:native-keyring/i)).toBeInTheDocument();
+  });
+
+  it("shows explicit debug copy when platform info loading fails", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_platform_info") {
+        throw new Error("platform unavailable");
+      }
+      return undefined;
+    });
+
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(
+      await screen.findByText("Platform info unavailable. Credentials backend was not detected."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("OS keyring")).not.toBeInTheDocument();
+  });
+
+  it("shows Dev data seed safety guidance without an execution button", async () => {
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Dev data seed")).toBeInTheDocument();
+    expect(screen.getByText("mise run app:dev:seed-from-prod")).toBeInTheDocument();
+    expect(screen.getByText(/timestamped backup/i)).toBeInTheDocument();
+    expect(screen.getByText(/Production credentials are not copied/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /seed/i })).not.toBeInTheDocument();
   });
 });

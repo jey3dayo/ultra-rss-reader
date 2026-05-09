@@ -3,7 +3,7 @@ import {
   MOBILE_LAYOUT_BREAKPOINT_PX,
   SIDEBAR_PANE_WIDTH_PX,
 } from "@/constants/ui-layout";
-import type { FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
+import type { ContentMode, FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 
 export type Pane = FocusedPane;
 export type ResponsiveLayoutMode = LayoutMode;
@@ -23,7 +23,7 @@ export function resolveResponsiveLayoutMode(
   return preferredLayoutMode;
 }
 
-export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, _contentMode: string): Pane[] {
+export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, _contentMode: ContentMode): Pane[] {
   if (layoutMode === "wide") {
     return ["sidebar", "list", "content"];
   }
@@ -31,6 +31,23 @@ export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, 
     return focusedPane === "content" ? ["list", "content"] : ["sidebar", "list"];
   }
   return [focusedPane];
+}
+
+export function resolveVisiblePane(
+  layoutMode: ResponsiveLayoutMode,
+  focusedPane: FocusedPane,
+  selectedAccountId: string | null,
+): FocusedPane {
+  if (layoutMode !== "mobile") {
+    return focusedPane;
+  }
+  if (focusedPane === "content") {
+    return "content";
+  }
+  if (selectedAccountId === null) {
+    return "sidebar";
+  }
+  return "list";
 }
 
 export function isPaneVisible(layoutMode: SlidingLayoutMode, focusedPane: FocusedPane, pane: Pane): boolean {

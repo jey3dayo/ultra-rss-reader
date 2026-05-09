@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { createLabeledSelectRowChangeHandler, LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 
 describe("shared form controls", () => {
@@ -74,6 +74,30 @@ describe("shared form controls", () => {
     expect(screen.queryByRole("button", { name: "Saving" })).not.toBeInTheDocument();
   });
 
+  it("blocks form action submit activation while loading", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <FormActionButtons
+        cancelLabel="Cancel"
+        submitLabel="Save"
+        submittingLabel="Saving"
+        loading={true}
+        onCancel={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const submitButton = screen.getByRole("button", { name: "Saving" });
+
+    expect(submitButton).toBeDisabled();
+
+    await user.click(submitButton);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("renders the shared form dialog shell with separated header, body, and footer", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
@@ -102,11 +126,46 @@ describe("shared form controls", () => {
       "bg-surface-1/72",
     );
 
+    await user.click(screen.getByRole("textbox", { name: "Feed URL" }));
+    await user.keyboard("{Enter}");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledTimes(2);
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it.each([
+    { propName: "loading", props: { loading: true } },
+    { propName: "submitDisabled", props: { submitDisabled: true } },
+  ])("blocks shared form dialog submit paths while $propName is active", async ({ props }) => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <FormDialogShell
+        open={true}
+        title="Edit feed"
+        cancelLabel="Cancel"
+        submitLabel="Save"
+        submittingLabel="Saving"
+        onOpenChange={vi.fn()}
+        onSubmit={onSubmit}
+        {...props}
+      >
+        <LabeledInputRow label="Feed URL" name="feed-url" value="" onChange={vi.fn()} />
+      </FormDialogShell>,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Feed URL" });
+    const submitButton = screen.getByRole("button", { name: props.loading ? "Saving" : "Save" });
+
+    await user.click(input);
+    await user.keyboard("{Enter}");
+    await user.click(submitButton);
+
+    expect(submitButton).toBeDisabled();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("associates labeled input rows with their input and inline action", async () => {
@@ -161,6 +220,87 @@ describe("shared form controls", () => {
     const actionButton = screen.getByRole("button", { name: "Copy: Server URL" });
     expect(actionButton).toHaveClass("text-foreground-soft");
     expect(actionButton).not.toHaveClass("text-muted-foreground");
+
+    await user.click(actionButton);
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps input focus after clicking an inside action once", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+
+    render(
+      <LabeledInputRow
+        label="Server URL"
+        name="server-url"
+        value="https://example.com/rss"
+        onChange={vi.fn()}
+        actionLabel="Copy"
+        actionPlacement="inside"
+        onAction={onAction}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Server URL" }) as HTMLInputElement;
+    const actionButton = screen.getByRole("button", { name: "Copy: Server URL" });
+
+    await user.click(input);
+    input.setSelectionRange(8, 19);
+
+    await user.click(actionButton);
+
+    expect(input).toHaveFocus();
+    expect(input.selectionStart).toBe(8);
+    expect(input.selectionEnd).toBe(19);
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables labeled input actions by default when the input row is disabled", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+
+    render(
+      <LabeledInputRow
+        label="Server URL"
+        name="server-url"
+        value="https://example.com/rss"
+        disabled
+        onChange={vi.fn()}
+        actionLabel="Reset"
+        onAction={onAction}
+      />,
+    );
+
+    const actionButton = screen.getByRole("button", { name: "Reset: Server URL" });
+
+    expect(actionButton).toBeDisabled();
+
+    await user.click(actionButton);
+
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("allows labeled input actions when explicitly enabled on a disabled input row", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+
+    render(
+      <LabeledInputRow
+        label="Server URL"
+        name="server-url"
+        value="https://example.com/rss"
+        disabled
+        actionDisabled={false}
+        onChange={vi.fn()}
+        actionLabel="Reset"
+        onAction={onAction}
+      />,
+    );
+
+    const actionButton = screen.getByRole("button", { name: "Reset: Server URL" });
+
+    expect(actionButton).not.toBeDisabled();
 
     await user.click(actionButton);
 
@@ -248,5 +388,41 @@ describe("shared form controls", () => {
     );
 
     expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveTextContent("custom");
+  });
+
+  it("does not call labeled select change handlers while disabled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <LabeledSelectRow
+        label="Display mode"
+        name="display-mode"
+        value="preview"
+        options={[
+          { value: "standard", label: "Standard" },
+          { value: "preview", label: "Preview" },
+        ]}
+        disabled
+        onChange={onChange}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Display mode" }));
+
+    expect(screen.queryByRole("option", { name: "Standard" })).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("drops disabled and null labeled select values before calling change handlers", () => {
+    const onChange = vi.fn();
+    const enabledHandleChange = createLabeledSelectRowChangeHandler({ disabled: false, onChange });
+    const disabledHandleChange = createLabeledSelectRowChangeHandler({ disabled: true, onChange });
+
+    enabledHandleChange(null);
+    disabledHandleChange("standard");
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

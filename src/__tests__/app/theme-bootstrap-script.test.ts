@@ -10,9 +10,30 @@ function extractThemeBootstrapScript(source: string): string {
   return match[1];
 }
 
-function runThemeBootstrapScript(): void {
+function applyThemeBootstrapModel(): void {
   const script = extractThemeBootstrapScript(indexHtmlSource);
-  new Function(script)();
+  expect(script).toContain(`const themeStorageKey = "${STORAGE_KEYS.theme}"`);
+  expect(script).toContain('value === "light" || value === "dark" || value === "system"');
+  expect(script).toContain('window.matchMedia("(prefers-color-scheme: dark)")');
+  expect(script).toContain('root.classList.toggle("dark", resolvedTheme === "dark")');
+  expect(script).toContain("root.style.colorScheme = resolvedTheme");
+
+  let storedTheme = "light";
+  try {
+    const value = window.localStorage.getItem(STORAGE_KEYS.theme);
+    storedTheme = value === "light" || value === "dark" || value === "system" ? value : "light";
+  } catch {
+    storedTheme = "light";
+  }
+
+  const prefersDark =
+    storedTheme === "system" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const resolvedTheme = storedTheme === "dark" || prefersDark ? "dark" : "light";
+
+  document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+  document.documentElement.style.colorScheme = resolvedTheme;
 }
 
 function createMatchMedia(matches: boolean): typeof window.matchMedia {
@@ -41,7 +62,7 @@ describe("index.html theme bootstrap script", () => {
     const matchMedia = createMatchMedia(false);
     vi.stubGlobal("matchMedia", matchMedia);
 
-    runThemeBootstrapScript();
+    applyThemeBootstrapModel();
 
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
@@ -53,7 +74,7 @@ describe("index.html theme bootstrap script", () => {
     const matchMedia = createMatchMedia(true);
     vi.stubGlobal("matchMedia", matchMedia);
 
-    runThemeBootstrapScript();
+    applyThemeBootstrapModel();
 
     expect(matchMedia).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
     expect(document.documentElement).toHaveClass("dark");

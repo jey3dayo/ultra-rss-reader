@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
 
@@ -42,6 +42,10 @@ vi.mock("@/hooks/use-update-feed-display-mode", () => ({
 }));
 
 describe("FolderContextMenuContent", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("confirms marking every folder feed as read", async () => {
     const user = userEvent.setup();
     const folder: FolderDto = {
@@ -80,6 +84,7 @@ describe("FolderContextMenuContent", () => {
         id: "feed-1",
         account_id: "acc-1",
         folder_id: "folder-1",
+        remote_id: null,
         title: "Alpha",
         url: "https://example.com/alpha.xml",
         site_url: "https://example.com/alpha",
@@ -91,6 +96,7 @@ describe("FolderContextMenuContent", () => {
         id: "feed-2",
         account_id: "acc-1",
         folder_id: "folder-1",
+        remote_id: null,
         title: "Beta",
         url: "https://example.com/beta.xml",
         site_url: "https://example.com/beta",
@@ -128,6 +134,7 @@ describe("FolderContextMenuContent", () => {
         id: "feed-1",
         account_id: "acc-1",
         folder_id: "folder-1",
+        remote_id: null,
         title: "Alpha",
         url: "https://example.com/alpha.xml",
         site_url: "https://example.com/alpha",
@@ -139,6 +146,7 @@ describe("FolderContextMenuContent", () => {
         id: "feed-2",
         account_id: "acc-1",
         folder_id: "folder-1",
+        remote_id: null,
         title: "Beta",
         url: "https://example.com/beta.xml",
         site_url: "https://example.com/beta",
@@ -157,5 +165,23 @@ describe("FolderContextMenuContent", () => {
     expect(screen.getByRole("menuitem", { name: "Default" })).not.toHaveTextContent("✓");
     expect(screen.getByRole("menuitem", { name: "Standard" })).not.toHaveTextContent("✓");
     expect(screen.getByRole("menuitem", { name: "Preview" })).not.toHaveTextContent("✓");
+  });
+
+  it("hides mark all read when folder unread count is zero", () => {
+    const folder: FolderDto = {
+      id: "folder-1",
+      account_id: "acc-1",
+      name: "Work",
+      sort_order: 0,
+    };
+
+    render(
+      <ContextMenu.Root open>
+        <FolderContextMenuContent folder={folder} folderUnread={0} feeds={[]} />
+      </ContextMenu.Root>,
+    );
+
+    expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
+    expect(confirmMarkAllReadMock).not.toHaveBeenCalled();
   });
 });

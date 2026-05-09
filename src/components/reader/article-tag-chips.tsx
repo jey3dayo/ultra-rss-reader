@@ -1,6 +1,7 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
 import { ArticleTagPickerView } from "./article-tag-picker-view";
 
@@ -48,6 +49,14 @@ function normalizeArticleTagNameForMatch(name: string): string {
   return name.trim().toLocaleLowerCase();
 }
 
+function toArticleTagAssignErrorMessage(error: unknown): string {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+
+  return String(error);
+}
+
 export function findArticleTagByName(
   tags: Array<{ id: string; name: string; color: string | null }> | undefined,
   name: string,
@@ -68,11 +77,24 @@ export function buildArticleTagPickerLists(params: {
   availableTags: ArticleTagPickerTagView[];
 } {
   const { articleTags, allTags } = params;
-  const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
+  const assignedTagIds = new Set<string>();
+  const assignedTags: ArticleTagPickerTagView[] = [];
+  const availableTags: ArticleTagPickerTagView[] = [];
+
+  for (const tag of articleTags ?? []) {
+    assignedTagIds.add(tag.id);
+    assignedTags.push(toArticleTagPickerTagView(tag));
+  }
+
+  for (const tag of allTags ?? []) {
+    if (!assignedTagIds.has(tag.id)) {
+      availableTags.push(toArticleTagPickerTagView(tag));
+    }
+  }
 
   return {
-    assignedTags: (articleTags ?? []).map(toArticleTagPickerTagView),
-    availableTags: (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView),
+    assignedTags,
+    availableTags,
   };
 }
 
@@ -83,12 +105,27 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
   const tagArticleMutation = useTagArticle();
   const untagArticleMutation = useUntagArticle();
   const createTagMutation = useCreateTag();
+  const showToast = useUiStore((store) => store.showToast);
   const [state, dispatch] = useReducer(articleTagChipsReducer, initialArticleTagChipsState);
   const { showPicker, newTagName } = state;
   const { assignedTags, availableTags } = buildArticleTagPickerLists({
     articleTags,
     allTags,
   });
+
+  const assignExistingTag = (tagId: string) => {
+    tagArticleMutation.mutate(
+      { articleId, tagId },
+      {
+        onSuccess: () => {
+          dispatch({ type: "finish-create-tag" });
+        },
+        onError: (error) => {
+          showToast(toArticleTagAssignErrorMessage(error));
+        },
+      },
+    );
+  };
 
   const handleCreateAndAssign = (name: string) => {
     if (!name) return;
@@ -99,14 +136,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
         return;
       }
 
-      tagArticleMutation.mutate(
-        { articleId, tagId: existingTag.id },
-        {
-          onSuccess: () => {
-            dispatch({ type: "finish-create-tag" });
-          },
-        },
-      );
+      assignExistingTag(existingTag.id);
       return;
     }
 
@@ -114,8 +144,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
       { name },
       {
         onSuccess: (tag) => {
-          tagArticleMutation.mutate({ articleId, tagId: tag.id });
-          dispatch({ type: "finish-create-tag" });
+          assignExistingTag(tag.id);
         },
       },
     );
@@ -138,9 +167,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
       }}
       onExpandedChange={(value) => dispatch({ type: "set-show-picker", value })}
       onNewTagNameChange={(value) => dispatch({ type: "set-new-tag-name", value })}
-      onAssignTag={(tagId) => {
-        tagArticleMutation.mutate({ articleId, tagId });
-      }}
+      onAssignTag={assignExistingTag}
       onRemoveTag={(tagId) => {
         untagArticleMutation.mutate({ articleId, tagId });
       }}

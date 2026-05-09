@@ -77,6 +77,7 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
       displayModeLabel={t("display_mode")}
       displayPresetOptions={displayPresetOptions}
       selectedDisplayPreset={selectedDisplayPreset}
+      hasUnreadArticles={folderUnread > 0}
       onMarkAllRead={handleMarkAllRead}
       onMarkOldUnreadRead={(days) => {
         void markOldUnreadRead(days);

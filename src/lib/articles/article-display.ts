@@ -1,3 +1,5 @@
+import type { PreferencesDto } from "@/api/schemas/preferences";
+
 export type ArticleDisplayPreset = "standard" | "preview";
 export type BinaryDisplayMode = "on" | "off";
 export type TriStateDisplayMode = "inherit" | BinaryDisplayMode;
@@ -86,7 +88,7 @@ export function appDefaultsToDisplayPreset(
   });
 }
 
-export function resolveAppDefaultDisplayModes(prefs: Record<string, string>): ArticleDisplayModes {
+export function resolveAppDefaultDisplayModes(prefs: PreferencesDto): ArticleDisplayModes {
   const readerModeDefault = prefs.reader_mode_default;
   const webPreviewModeDefault = prefs.web_preview_mode_default;
 
@@ -96,7 +98,7 @@ export function resolveAppDefaultDisplayModes(prefs: Record<string, string>): Ar
   };
 }
 
-export function resolveAppDefaultDisplayPreset(prefs: Record<string, string>): ArticleDisplayPreset {
+export function resolveAppDefaultDisplayPreset(prefs: PreferencesDto): ArticleDisplayPreset {
   return modesToDisplayPreset(resolveAppDefaultDisplayModes(prefs));
 }
 
@@ -110,14 +112,11 @@ export function resolveFeedDisplayOverrides(feed: FeedLikeDisplaySettings | null
 
   const readerMode = feed.reader_mode;
   const webPreviewMode = feed.web_preview_mode;
-  if (isTriStateDisplayMode(readerMode) && isTriStateDisplayMode(webPreviewMode)) {
-    return {
-      readerMode,
-      webPreviewMode,
-    };
-  }
 
-  return { readerMode: "inherit", webPreviewMode: "inherit" };
+  return {
+    readerMode: isTriStateDisplayMode(readerMode) ? readerMode : "inherit",
+    webPreviewMode: isTriStateDisplayMode(webPreviewMode) ? webPreviewMode : "inherit",
+  };
 }
 
 export function displayPresetToTriStateModes(preset: FeedDisplayPresetOption): {
@@ -160,6 +159,10 @@ export function resolveFeedDisplayPreset(feed: FeedLikeDisplaySettings | null | 
 export function resolveFolderDisplayPreset(feeds: Array<FeedLikeDisplaySettings>): FeedDisplayPresetOption | null {
   if (feeds.length === 0) {
     return "default";
+  }
+
+  if (feeds.some(hasInvalidDisplayAxis)) {
+    return null;
   }
 
   const [firstFeed, ...restFeeds] = feeds;
@@ -211,6 +214,14 @@ export function isArticleDisplayPreset(value: string): value is ArticleDisplayPr
 
 export function isTriStateDisplayMode(value: string | null | undefined): value is TriStateDisplayMode {
   return value === "inherit" || value === "on" || value === "off";
+}
+
+function hasInvalidDisplayAxis(feed: FeedLikeDisplaySettings): boolean {
+  return isInvalidPersistedDisplayAxis(feed.reader_mode) || isInvalidPersistedDisplayAxis(feed.web_preview_mode);
+}
+
+function isInvalidPersistedDisplayAxis(value: string | null | undefined): boolean {
+  return value != null && !isTriStateDisplayMode(value);
 }
 
 function booleanToPreferenceValue(value: boolean): PreferenceBooleanValue {

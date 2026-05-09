@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
+import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
 
 type CreateTagDialogViewProps = {
   open: boolean;
@@ -22,18 +22,7 @@ export function CreateTagDialogView({
 }: CreateTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-  }, [open]);
+  const inputRef = useTagDialogAutofocus(open);
 
   return (
     <FormDialogShell

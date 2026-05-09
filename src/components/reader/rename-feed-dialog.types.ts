@@ -64,12 +64,3 @@ export type RenameFeedDialogController = {
   handleSubmit: () => Promise<void>;
   folderSelectProps: FeedDialogControllerFolderSelectProps;
 };
-
-export type UseRenameFeedDialogViewPropsParams = {
-  open: boolean;
-  feedSiteUrl: string;
-  feedUrl: string;
-  onOpenChange: (open: boolean) => void;
-  folderLabelId: string;
-  controller: RenameFeedDialogController;
-};

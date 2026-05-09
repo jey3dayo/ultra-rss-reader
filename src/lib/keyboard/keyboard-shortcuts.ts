@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { PlatformInfo } from "@/api/schemas";
-import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import { type PlatformKind, SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import type { ContentMode } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
@@ -62,6 +61,8 @@ export type ShortcutActionId =
   | "open_command_palette"
   | "open_settings";
 
+export type ShortcutPreferenceKey = `shortcut_${ShortcutActionId}`;
+
 export type ShortcutLabelKey =
   | "shortcuts.next_article"
   | "shortcuts.prev_article"
@@ -89,12 +90,12 @@ export type ShortcutCategoryKey =
   | "shortcuts.category_actions"
   | "shortcuts.category_global";
 
-export interface ShortcutDefinition {
+export type ShortcutDefinition = {
   id: ShortcutActionId;
   labelKey: ShortcutLabelKey;
   categoryKey: ShortcutCategoryKey;
   defaultKey: string;
-}
+};
 
 /** Default shortcut definitions. Order determines display order in settings. */
 export const shortcutDefinitions: ShortcutDefinition[] = [
@@ -222,7 +223,7 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 ];
 
 /** Preference key prefix for shortcut overrides. */
-export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}`;
+export const shortcutPrefKey = (id: ShortcutActionId): ShortcutPreferenceKey => `shortcut_${id}`;
 
 const shortcutActionIdSet = new Set<string>(shortcutDefinitions.map((definition) => definition.id));
 
@@ -230,27 +231,34 @@ export function isShortcutActionId(value: string): value is ShortcutActionId {
   return shortcutActionIdSet.has(value);
 }
 
-export function isShortcutPreferenceKey(key: string): boolean {
+export function isShortcutPreferenceKey(key: string): key is ShortcutPreferenceKey {
   return key.startsWith("shortcut_") && isShortcutActionId(key.slice("shortcut_".length));
 }
 
-export type KeyboardShortcutPrefs = Record<string, string>;
+export type KeyboardShortcutPrefs = Partial<Record<ShortcutPreferenceKey, string>>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
+
+const nativeMenuOwnedShortcuts = new Set(["\u2318+r"]);
+
 function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
 
 /** All default shortcut preference entries (for preferences-store defaults). */
-export const shortcutDefaults: KeyboardShortcutPrefs = Object.fromEntries(
-  shortcutDefinitions.map((d) => [shortcutPrefKey(d.id), d.defaultKey]),
-);
+export const shortcutDefaults: KeyboardShortcutPrefs = {};
+for (const definition of shortcutDefinitions) {
+  shortcutDefaults[shortcutPrefKey(definition.id)] = definition.defaultKey;
+}
 
 /** Build a reverse mapping: key string -> ShortcutActionId. */
 export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
   const map: KeyToActionMap = new Map();
   for (const def of shortcutDefinitions) {
     const key = getShortcutKey(def.id, prefs);
+    if (map.has(key)) {
+      continue;
+    }
     map.set(key, def.id);
   }
   return map;
@@ -266,7 +274,7 @@ function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: bool
 }
 
 /** Display-friendly format: "Shift+R" -> "Shift + R", "⌘," -> "⌘ ," */
-export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kind"]): string {
+export function formatKeyForDisplay(key: string, platformKind: PlatformKind): string {
   const modifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
   const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
   const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
@@ -276,7 +284,7 @@ export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kin
 export function getShortcutDisplay(
   id: ShortcutActionId,
   prefs: KeyboardShortcutPrefs,
-  platformKind: PlatformInfo["kind"],
+  platformKind: PlatformKind,
 ): string {
   return formatKeyForDisplay(getShortcutKey(id, prefs), platformKind);
 }
@@ -408,9 +416,14 @@ export function resolveKeyboardAction(
   // Use custom mapping if provided, otherwise use defaults
   const map = keyToAction ?? buildKeyToActionMap({});
 
-  // open_settings must work even in text inputs
+  const textInputTarget = isTextInputTarget(targetTag, targetIsTextEditing);
+
+  // The platform settings shortcut must work even in text inputs.
   const settingsActionId = map.get(normalized);
   if (settingsActionId === "open_settings") {
+    if (textInputTarget && normalized !== "\u2318,") {
+      return Result.fail("ignored_input");
+    }
     return Result.succeed({ type: "open-settings" });
   }
   // Also keep legacy check for ⌘, (always works regardless of mapping)
@@ -418,7 +431,11 @@ export function resolveKeyboardAction(
     return Result.succeed({ type: "open-settings" });
   }
 
-  if (isTextInputTarget(targetTag, targetIsTextEditing)) {
+  if (nativeMenuOwnedShortcuts.has(normalized)) {
+    return Result.fail("no_action");
+  }
+
+  if (textInputTarget) {
     return Result.fail("ignored_input");
   }
 

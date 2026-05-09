@@ -36,7 +36,7 @@ function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: F
   return (
     <>
       <div className="flex items-center gap-1">
-        {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         <span className="font-medium">{folderName}</span>
       </div>
       {folderUnread > 0 && <MotionNumber value={folderUnread.toLocaleString()} className="text-foreground-soft" />}

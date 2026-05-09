@@ -29,7 +29,15 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
 
       showConfirm(
         t("confirm_mark_old_unread_read", { count }),
-        () => markOldUnreadRead.mutate({ scopeKind, targetId, olderThanDays }),
+        () =>
+          markOldUnreadRead.mutate(
+            { scopeKind, targetId, olderThanDays },
+            {
+              onError: (error) => {
+                showToast(error.message);
+              },
+            },
+          ),
         {
           actionLabel: tc("mark_as_read_action"),
           variant: "warning",

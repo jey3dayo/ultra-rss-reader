@@ -1,6 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
-import type { Dispatch, RefObject } from "react";
+import type { RefObject } from "react";
 import type { DiscoveredFeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDialogControllerFolderSelectProps } from "./feed-dialog-form.types";
 
@@ -80,28 +78,6 @@ export type ResolveAddFeedDialogDerivedParams = {
   exampleUrlHint: string;
 };
 
-export type AddFeedDialogSubmitParams = {
-  accountId: string;
-  state: AddFeedDialogState;
-  derived: Pick<AddFeedDialogControllerDerived, "isManualUrlValid">;
-  folderSelection: AddFeedDialogFolderSelectionParams;
-  queryClient: QueryClient;
-  onOpenChange: (open: boolean) => void;
-  showToast: (message: string) => void;
-  t: TFunction<"reader">;
-};
-
-export type UseAddFeedDialogActionsParams = Omit<AddFeedDialogSubmitParams, "derived"> & {
-  dispatch: Dispatch<AddFeedDialogAction>;
-  derived: AddFeedDialogControllerDerived;
-  trimmedUrl: string;
-};
-
-export type UseAddFeedDialogActionsResult = {
-  handleDiscover: () => Promise<void>;
-  handleSubmit: () => Promise<void>;
-};
-
 export type AddFeedDialogController = {
   inputRef: RefObject<HTMLInputElement | null>;
   url: string;
@@ -117,11 +93,4 @@ export type AddFeedDialogController = {
   handleSubmit: () => Promise<void>;
   folderSelectProps: FeedDialogControllerFolderSelectProps;
   derived: AddFeedDialogControllerDerived;
-};
-
-export type UseAddFeedDialogViewPropsParams = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  folderLabelId: string;
-  controller: AddFeedDialogController;
 };

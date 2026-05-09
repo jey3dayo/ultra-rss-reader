@@ -1,8 +1,9 @@
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
-import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
+import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } from "../hooks/use-layout";
+import type { ContentMode } from "../lib/layout/layout-state.types";
 import { cn } from "../lib/utils";
-import { type ContentMode, useUiStore } from "../stores/ui-store";
+import { useUiStore } from "../stores/ui-store";
 import { AccountPane } from "./reader/account-pane";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
@@ -11,11 +12,13 @@ import { Sidebar } from "./reader/sidebar";
 function SlidingPaneLayout({
   layoutMode,
   focusedPane,
+  selectedAccountId,
   accountPaneOpen,
   subscriptionsWorkspaceOpen,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
+  selectedAccountId: string | null;
   accountPaneOpen: boolean;
   subscriptionsWorkspaceOpen: boolean;
 }) {
@@ -28,7 +31,8 @@ function SlidingPaneLayout({
   }
 
   const isMobile = layoutMode === "mobile";
-  const translateX = computeTranslateX(layoutMode, focusedPane);
+  const activePane = resolveVisiblePane(layoutMode, focusedPane, selectedAccountId);
+  const translateX = computeTranslateX(layoutMode, activePane);
   const shouldShowAccountPane = !isMobile && accountPaneOpen;
 
   return (
@@ -61,23 +65,23 @@ function SlidingPaneLayout({
             <div
               className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
-              aria-hidden={!isPaneVisible(layoutMode, focusedPane, "sidebar")}
-              {...(!isPaneVisible(layoutMode, focusedPane, "sidebar") ? { inert: true } : {})}
+              aria-hidden={!isPaneVisible(layoutMode, activePane, "sidebar")}
+              {...(!isPaneVisible(layoutMode, activePane, "sidebar") ? { inert: true } : {})}
             >
               <Sidebar />
             </div>
             <div
               className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
-              aria-hidden={!isPaneVisible(layoutMode, focusedPane, "list")}
-              {...(!isPaneVisible(layoutMode, focusedPane, "list") ? { inert: true } : {})}
+              aria-hidden={!isPaneVisible(layoutMode, activePane, "list")}
+              {...(!isPaneVisible(layoutMode, activePane, "list") ? { inert: true } : {})}
             >
               <ArticleList />
             </div>
             <div
               className={cn(isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
-              aria-hidden={!isPaneVisible(layoutMode, focusedPane, "content")}
-              {...(!isPaneVisible(layoutMode, focusedPane, "content") ? { inert: true } : {})}
+              aria-hidden={!isPaneVisible(layoutMode, activePane, "content")}
+              {...(!isPaneVisible(layoutMode, activePane, "content") ? { inert: true } : {})}
             >
               <ArticleView />
             </div>
@@ -92,6 +96,7 @@ export function AppLayout() {
   const layoutMode = useUiStore((state) => state.layoutMode);
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
+  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const sidebarOpen = useUiStore((state) => state.sidebarOpen);
   const accountPaneOpen = useUiStore((state) => state.accountPaneOpen);
@@ -113,6 +118,7 @@ export function AppLayout() {
         <SlidingPaneLayout
           layoutMode={layoutMode}
           focusedPane={focusedPane}
+          selectedAccountId={selectedAccountId}
           accountPaneOpen={accountPaneOpen}
           subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
         />

@@ -14,6 +14,7 @@ export function useUpdateFeedDisplaySettings() {
 
   return useCallback(
     async (feedId: string, readerMode: TriStateDisplayMode, webPreviewMode: TriStateDisplayMode): Promise<boolean> => {
+      await qc.cancelQueries({ queryKey: ["feeds"] });
       const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: ["feeds"] });
 
       qc.setQueriesData<FeedDto[]>({ queryKey: ["feeds"] }, (prev) =>

@@ -1,7 +1,15 @@
 import { Result } from "@praha/byethrow";
 
+const BROWSER_IFRAME_SELECTORS = [
+  "iframe[data-browser-webview-iframe]",
+  "iframe[data-browser-preview-iframe]",
+  "iframe",
+] as const;
+
 function getIframe(): Result.Result<HTMLIFrameElement, Error> {
-  const iframe = document.querySelector<HTMLIFrameElement>("iframe");
+  const iframe = BROWSER_IFRAME_SELECTORS.map((selector) => document.querySelector<HTMLIFrameElement>(selector)).find(
+    (candidate) => candidate !== null,
+  );
   return iframe ? Result.succeed(iframe) : Result.fail(new Error("iframe not found"));
 }
 
@@ -32,6 +40,9 @@ export function reloadWebview() {
       // cross-origin では contentWindow.location.reload() が SecurityError になるため
       // src を再設定してリロードする
       const currentSrc = iframe.src;
+      if (currentSrc.length === 0) {
+        throw new Error("iframe src is empty");
+      }
       iframe.src = "";
       iframe.src = currentSrc;
     },

@@ -6,31 +6,11 @@ import { CommandPaletteResourceGroups } from "./command-palette-resource-groups"
 
 export function CommandPaletteResults({
   resultsMotionKey = "",
-  recentActions,
-  filteredActions,
-  filteredDevScenarios,
-  filteredFeeds,
-  filteredTags,
-  articles,
-  showRecentActions,
-  showActions,
-  showDevScenarios,
-  showFeeds,
-  showTags,
-  showArticles,
-  hasVisibleResults,
-  noResultsLabel,
-  recentActionsHeading,
-  actionsHeading,
-  feedsHeading,
-  tagsHeading,
-  articlesHeading,
+  items,
+  visibility,
+  headings,
+  handlers,
   getCommandItemValue,
-  onActionSelect,
-  onDevScenarioSelect,
-  onFeedSelect,
-  onTagSelect,
-  onArticleSelect,
 }: CommandPaletteResultsProps) {
   return (
     <CommandList
@@ -41,37 +21,68 @@ export function CommandPaletteResults({
       className={MOTION_CONTENT_SWAP_CLASS_NAME}
     >
       <CommandPaletteActionGroups
-        recentActions={recentActions}
-        filteredActions={filteredActions}
-        showRecentActions={showRecentActions}
-        showActions={showActions}
-        recentActionsHeading={recentActionsHeading}
-        actionsHeading={actionsHeading}
+        items={{
+          recentActions: items.recentActions,
+          filteredActions: items.filteredActions,
+        }}
+        visibility={{
+          recentActions: visibility.recentActions,
+          actions: visibility.actions,
+        }}
+        headings={{
+          recentActionsHeading: headings.recentActionsHeading,
+          actionsHeading: headings.actionsHeading,
+        }}
         getCommandItemValue={(kind, id) => getCommandItemValue(kind, id)}
-        onActionSelect={onActionSelect}
+        onActionSelect={handlers.onActionSelect}
       />
 
       <CommandPaletteResourceGroups
-        filteredDevScenarios={filteredDevScenarios}
-        filteredFeeds={filteredFeeds}
-        filteredTags={filteredTags}
-        articles={articles}
-        showRecentActions={showRecentActions}
-        showDevScenarios={showDevScenarios}
-        showFeeds={showFeeds}
-        showTags={showTags}
-        showArticles={showArticles}
-        feedsHeading={feedsHeading}
-        tagsHeading={tagsHeading}
-        articlesHeading={articlesHeading}
+        items={{
+          filteredDevScenarios: items.filteredDevScenarios,
+          filteredFeeds: items.filteredFeeds,
+          filteredTags: items.filteredTags,
+          articles: items.articles,
+          recentFeeds: items.recentFeeds,
+          recentTags: items.recentTags,
+          recentArticles: items.recentArticles,
+        }}
+        displayState={
+          visibility.recentActions || visibility.recentResources
+            ? {
+                mode: "recent",
+                groups: {
+                  feeds: visibility.feeds,
+                  tags: visibility.tags,
+                  articles: visibility.articles,
+                },
+              }
+            : {
+                mode: "search",
+                groups: {
+                  devScenarios: visibility.devScenarios,
+                  feeds: visibility.feeds,
+                  tags: visibility.tags,
+                  articles: visibility.articles,
+                },
+              }
+        }
+        headings={{
+          devScenariosHeading: headings.devScenariosHeading,
+          feedsHeading: headings.feedsHeading,
+          tagsHeading: headings.tagsHeading,
+          articlesHeading: headings.articlesHeading,
+        }}
         getCommandItemValue={(kind, id) => getCommandItemValue(kind, id)}
-        onDevScenarioSelect={onDevScenarioSelect}
-        onFeedSelect={onFeedSelect}
-        onTagSelect={onTagSelect}
-        onArticleSelect={onArticleSelect}
+        handlers={{
+          onDevScenarioSelect: handlers.onDevScenarioSelect,
+          onFeedSelect: handlers.onFeedSelect,
+          onTagSelect: handlers.onTagSelect,
+          onArticleSelect: handlers.onArticleSelect,
+        }}
       />
 
-      {!showRecentActions && !hasVisibleResults ? <CommandEmpty>{noResultsLabel}</CommandEmpty> : null}
+      {!visibility.hasVisibleResults ? <CommandEmpty>{headings.noResultsLabel}</CommandEmpty> : null}
     </CommandList>
   );
 }

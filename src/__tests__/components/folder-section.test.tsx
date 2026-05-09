@@ -16,6 +16,7 @@ const feeds: FeedDto[] = [
     id: "feed-1",
     account_id: "acc-1",
     folder_id: "folder-1",
+    remote_id: null,
     title: "Alpha",
     url: "https://example.com/alpha.xml",
     site_url: "https://example.com/alpha",
@@ -27,6 +28,7 @@ const feeds: FeedDto[] = [
     id: "feed-2",
     account_id: "acc-1",
     folder_id: "folder-1",
+    remote_id: null,
     title: "Beta",
     url: "https://example.com/beta.xml",
     site_url: "https://example.com/beta",
@@ -58,6 +60,7 @@ describe("FolderSectionView", () => {
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveClass("min-h-9");
+    expect(trigger.querySelector("svg")).toHaveClass("size-3");
     expect(trigger).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
     expect(trigger).toHaveClass("focus-visible:ring-2");
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "text-foreground-soft", "tabular-nums");

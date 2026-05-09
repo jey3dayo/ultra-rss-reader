@@ -224,8 +224,7 @@ describe("SettingsModalView", () => {
     });
     expect(screen.getByTestId("settings-nav-shell")).toHaveClass("h-[18rem]");
     expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[18rem]");
-    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
-    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("p-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("border-border/60");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("shadow-none");

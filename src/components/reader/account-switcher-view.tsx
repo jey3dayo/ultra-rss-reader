@@ -1,10 +1,11 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
-import { type ButtonHTMLAttributes, forwardRef, useEffect } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 import { SIDEBAR_FALLBACK_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherProps } from "./account-switcher.types";
-import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
+import { AccountSwitcherMenu } from "./account-switcher-menu";
+import { useAccountSwitcherViewModel } from "./hooks/sidebar/use-sidebar-account-switcher";
 
 type AccountSwitcherTriggerButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -16,23 +17,22 @@ type AccountSwitcherTriggerButtonProps = Omit<
   hasMultipleAccounts: boolean;
   isExpanded?: boolean;
   lastSyncedLabel: string;
+  ref?: Ref<HTMLButtonElement>;
 };
 
-export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, AccountSwitcherTriggerButtonProps>(
-  (
-    {
-      accountName,
-      canOpenAccountList,
-      className,
-      controlsId,
-      hasMultipleAccounts,
-      isExpanded = false,
-      lastSyncedLabel,
-      type = "button",
-      ...props
-    },
-    ref,
-  ) => (
+export function AccountSwitcherTriggerButton({
+  accountName,
+  canOpenAccountList,
+  className,
+  controlsId,
+  hasMultipleAccounts,
+  isExpanded = false,
+  lastSyncedLabel,
+  ref,
+  type = "button",
+  ...props
+}: AccountSwitcherTriggerButtonProps) {
+  return (
     <button
       ref={ref}
       type={type}
@@ -57,24 +57,7 @@ export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, Accoun
       </h1>
       <p className="text-[0.72rem] font-medium tracking-[0.04em] text-sidebar-foreground/54">{lastSyncedLabel}</p>
     </button>
-  ),
-);
-
-AccountSwitcherTriggerButton.displayName = "AccountSwitcherTriggerButton";
-
-function resolveSelectedAccountViewModel(
-  accounts: AccountSwitcherProps["accounts"],
-  selectedAccountId: string | null,
-): {
-  selectedAccountName: string | null;
-  selectedIndex: number;
-} {
-  const selectedIndex = accounts.findIndex((account) => account.id === selectedAccountId);
-
-  return {
-    selectedAccountName: selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null,
-    selectedIndex,
-  };
+  );
 }
 
 export function AccountSwitcherView({
@@ -93,17 +76,12 @@ export function AccountSwitcherView({
   onClose,
   renderContextMenu,
 }: AccountSwitcherProps) {
-  const { selectedAccountName, selectedIndex } = resolveSelectedAccountViewModel(accounts, selectedAccountId);
-  const canOpenAccountList = selectedIndex >= 0 && accounts.length > 0;
-  const hasMultipleAccounts = canOpenAccountList && accounts.length > 1;
-
-  useEffect(() => {
-    if (!isExpanded || accounts.length === 0) return;
-
-    requestAnimationFrame(() => {
-      focusAccountItem(itemRefs, accounts.length, selectedIndex >= 0 ? selectedIndex : 0);
-    });
-  }, [accounts, isExpanded, itemRefs, selectedIndex]);
+  const { selectedAccountName, hasMultipleAccounts, canOpenAccountList } = useAccountSwitcherViewModel({
+    accounts,
+    selectedAccountId,
+    isExpanded,
+    itemRefs,
+  });
 
   return (
     <div className="relative px-5 pt-4 pb-4">
@@ -136,7 +114,7 @@ export function AccountSwitcherView({
         {renderContextMenu?.()}
       </ContextMenu.Root>
 
-      {isExpanded && accounts.length > 0 ? (
+      {isExpanded && hasMultipleAccounts ? (
         <AccountSwitcherMenu
           accounts={accounts}
           accountStatusLabels={accountStatusLabels}

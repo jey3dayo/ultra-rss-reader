@@ -1,4 +1,4 @@
-import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, type RefCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -30,6 +30,11 @@ export function AccountPane() {
   const accountPaneOpen = useUiStore((state) => state.accountPaneOpen);
   const selectAccount = useUiStore((state) => state.selectAccount);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const setAccountItemRef =
+    (index: number): RefCallback<HTMLButtonElement> =>
+    (element) => {
+      itemRefs.current[index] = element;
+    };
 
   useEffect(() => {
     if (!accountPaneOpen) {
@@ -95,9 +100,7 @@ export function AccountPane() {
             return (
               <SidebarNavButton
                 key={account.id}
-                ref={(element) => {
-                  itemRefs.current[index] = element;
-                }}
+                ref={setAccountItemRef(index)}
                 data-account-pane-navigation-target="true"
                 {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
                 {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}

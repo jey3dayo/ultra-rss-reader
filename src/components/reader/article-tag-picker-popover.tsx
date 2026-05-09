@@ -12,7 +12,6 @@ type ArticleTagPickerPopoverProps = {
   newTagName: string;
   newTagInputRef: RefObject<HTMLInputElement | null>;
   tagOptionRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
-  onExpandedChange: ArticleTagPickerViewProps["onExpandedChange"];
   onAssignTag: ArticleTagPickerViewProps["onAssignTag"];
   onNewTagNameChange: ArticleTagPickerViewProps["onNewTagNameChange"];
   onCreateTag: () => void;
@@ -27,7 +26,6 @@ export function ArticleTagPickerPopover({
   newTagName,
   newTagInputRef,
   tagOptionRefs,
-  onExpandedChange,
   onAssignTag,
   onNewTagNameChange,
   onCreateTag,
@@ -55,7 +53,6 @@ export function ArticleTagPickerPopover({
           swatchColor={tag.color}
           onClick={() => {
             onAssignTag(tag.id);
-            onExpandedChange(false);
           }}
         >
           {tag.name}
@@ -86,10 +83,10 @@ export function ArticleTagPickerPopover({
           size="icon-sm"
           onClick={onCreateTag}
           disabled={!newTagName.trim()}
-          className="h-10 w-10 rounded-md text-foreground-soft hover:bg-surface-1/72"
+          className="size-10 rounded-md text-foreground-soft hover:bg-surface-1/72"
           aria-label={labels.createTag}
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="size-3" />
         </Button>
       </div>
     </div>

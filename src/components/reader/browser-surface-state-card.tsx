@@ -39,7 +39,7 @@ export function BrowserSurfaceStateCard({
           <p className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft uppercase">
             {labels.technicalDetail}
           </p>
-          <p className="rounded-md border border-browser-overlay-state-detail-border bg-browser-overlay-state-detail-surface px-3 py-2 text-xs text-foreground-soft">
+          <p className="rounded-md border border-browser-overlay-state-detail-border bg-browser-overlay-state-detail-surface px-3 py-2 text-xs break-words text-foreground-soft [overflow-wrap:anywhere]">
             {issue.detail}
           </p>
         </div>
@@ -47,12 +47,12 @@ export function BrowserSurfaceStateCard({
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {issue.canRetry ? (
           <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="size-3.5" />
             {labels.retryWebPreview}
           </Button>
         ) : null}
         <Button type="button" variant="secondary" size="sm" onClick={onOpenExternal}>
-          <ExternalLink className="h-3.5 w-3.5" />
+          <ExternalLink className="size-3.5" />
           {labels.openInExternalBrowser}
         </Button>
       </div>

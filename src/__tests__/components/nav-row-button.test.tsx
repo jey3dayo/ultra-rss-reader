@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 
@@ -20,9 +21,29 @@ describe("NavRowButton", () => {
     expect(button).toHaveClass("bg-sidebar-accent");
     expect(button).toHaveClass("select-none");
     expect(button).toHaveClass("shadow-[var(--sidebar-selection-inset-shadow)]");
+    expect(button).toHaveAttribute("aria-current", "page");
+    expect(button).not.toHaveAttribute("aria-pressed");
     expect(screen.getByText("Secondary text")).toBeInTheDocument();
     expect(screen.getByText("L")).toBeInTheDocument();
     expect(screen.getByText("3")).toHaveClass("motion-content-swap");
+  });
+
+  it("lets callers override selected aria state", () => {
+    render(<NavRowButton selected title="Primary row" aria-current="step" aria-pressed="true" />);
+
+    const button = screen.getByRole("button", { name: "Primary row" });
+
+    expect(button).toHaveAttribute("aria-current", "step");
+    expect(button).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("does not expose selection aria state when unselected", () => {
+    render(<NavRowButton title="Primary row" />);
+
+    const button = screen.getByRole("button", { name: "Primary row" });
+
+    expect(button).not.toHaveAttribute("aria-current");
+    expect(button).not.toHaveAttribute("aria-pressed");
   });
 
   it("animates primitive trailing values as content swaps", () => {
@@ -30,6 +51,20 @@ describe("NavRowButton", () => {
 
     expect(screen.getByText("7")).toHaveClass("motion-content-swap", "tabular-nums");
     expect(screen.getByText("7")).toHaveAttribute("data-motion-phase", "entering");
+  });
+
+  it("defaults to button type", () => {
+    render(<NavRowButton title="Primary row" />);
+
+    expect(screen.getByRole("button", { name: "Primary row" })).toHaveAttribute("type", "button");
+  });
+
+  it("passes explicit ref props to the underlying button", () => {
+    const buttonRef = createRef<HTMLButtonElement>();
+
+    render(<NavRowButton ref={buttonRef} title="Primary row" />);
+
+    expect(buttonRef.current).toBe(screen.getByRole("button", { name: "Primary row" }));
   });
 
   it("keeps custom trailing nodes under caller control", () => {

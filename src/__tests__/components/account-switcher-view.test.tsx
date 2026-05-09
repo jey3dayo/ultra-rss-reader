@@ -37,9 +37,12 @@ describe("AccountSwitcherView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Local/ })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: /Local/ })).toHaveClass("select-none");
-    expect(screen.getByRole("button", { name: /Local/ })).toHaveClass("rounded-xl", "text-sidebar-foreground/92");
+    const trigger = screen.getByRole("button", { name: /Local/ });
+
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveClass("select-none");
+    expect(trigger).toHaveClass("rounded-xl", "text-sidebar-foreground/92");
+    expect(triggerRef.current).toBe(trigger);
     expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Local" })).toHaveClass("font-medium");
@@ -95,9 +98,10 @@ describe("AccountSwitcherView", () => {
     expect(onClose).toHaveBeenCalledWith(true);
   });
 
-  it("opens the account target when only one account exists", async () => {
+  it("keeps a single selected account trigger closed without menu semantics", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
+    const onClose = vi.fn();
 
     render(
       <AccountSwitcherView
@@ -113,13 +117,51 @@ describe("AccountSwitcherView", () => {
         itemRefs={{ current: [] }}
         onToggle={onToggle}
         onSelectAccount={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /Local/ });
+
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
+    expect(trigger).not.toHaveAttribute("aria-expanded");
+    expect(trigger).not.toHaveAttribute("aria-controls");
+    expect(screen.queryByRole("menu", { name: "Accounts" })).not.toBeInTheDocument();
+    await user.click(trigger);
+    expect(onToggle).not.toHaveBeenCalled();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    fireEvent.keyDown(trigger, { key: "Escape" });
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale expanded state for a single selected account", () => {
+    const itemRefs = createAccountItemRefs();
+
+    render(
+      <AccountSwitcherView
+        title="Ultra RSS"
+        lastSyncedLabel="Not synced yet"
+        accounts={[sampleAccounts[0]]}
+        accountStatusLabels={{}}
+        selectedAccountId="acc-1"
+        isExpanded={true}
+        menuId="account-menu"
+        menuLabel="Accounts"
+        triggerRef={createRef<HTMLButtonElement>()}
+        itemRefs={itemRefs}
+        onToggle={vi.fn()}
+        onSelectAccount={vi.fn()}
         onClose={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Local/ }));
+    const trigger = screen.getByRole("button", { name: /Local/ });
 
-    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(trigger).not.toHaveAttribute("aria-expanded");
+    expect(trigger).not.toHaveAttribute("aria-controls");
+    expect(screen.queryByRole("menu", { name: "Accounts" })).not.toBeInTheDocument();
+    expect(itemRefs.current).toEqual([]);
   });
 
   it("uses the title fallback and disables menu semantics when accounts are empty", async () => {

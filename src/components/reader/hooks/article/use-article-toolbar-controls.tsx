@@ -78,18 +78,14 @@ export function useArticleToolbarControls({
   );
 
   return {
-    hasArticle: article !== null,
-    canToggleRead: actionAvailability.canToggleRead,
-    canToggleStar: actionAvailability.canToggleStar,
-    isRead: article?.is_read ?? false,
-    isStarred: article?.is_starred ?? false,
-    isBrowserOpen,
-    showCopyLinkButton: actionAvailability.showCopyLinkButton,
-    canCopyLink: actionAvailability.canCopyLink,
-    showOpenInBrowserButton: actionAvailability.showOpenInBrowserButton,
-    canOpenInBrowser: actionAvailability.canOpenInBrowser,
-    showOpenInExternalBrowserButton: actionAvailability.showOpenInExternalBrowserButton,
-    canOpenInExternalBrowser: actionAvailability.canOpenInExternalBrowser,
+    layoutMode,
+    articleState: {
+      hasArticle: article !== null,
+      isRead: article?.is_read ?? false,
+      isStarred: article?.is_starred ?? false,
+      isBrowserOpen,
+    },
+    actionOptions: actionAvailability,
     shareMenuControl,
     labels: {
       closeView: t("close_view"),

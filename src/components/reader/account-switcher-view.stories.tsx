@@ -2,7 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createRef } from "react";
 import { fn } from "storybook/test";
 import type { AccountDto } from "@/api/tauri-commands";
+import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherView } from "./account-switcher-view";
+
+type AccountSwitcherStoryArgs = Omit<AccountSwitcherProps, "triggerRef" | "itemRefs">;
 
 const sampleAccounts: AccountDto[] = [
   {
@@ -34,9 +37,15 @@ function createAccountItemRefs() {
   return { current };
 }
 
+function AccountSwitcherStory(args: AccountSwitcherStoryArgs) {
+  return (
+    <AccountSwitcherView {...args} triggerRef={createRef<HTMLButtonElement>()} itemRefs={createAccountItemRefs()} />
+  );
+}
+
 const meta = {
   title: "Reader/Sidebar/AccountSwitcherView",
-  component: AccountSwitcherView,
+  component: AccountSwitcherStory,
   tags: ["autodocs"],
   args: {
     title: "Ultra RSS",
@@ -49,8 +58,6 @@ const meta = {
     isExpanded: false,
     menuId: "account-switcher-menu",
     menuLabel: "Accounts",
-    triggerRef: createRef<HTMLButtonElement>(),
-    itemRefs: createAccountItemRefs(),
     onToggle: fn(),
     onSelectAccount: fn(),
     onClose: fn(),
@@ -62,7 +69,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof AccountSwitcherView>;
+} satisfies Meta<AccountSwitcherStoryArgs>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

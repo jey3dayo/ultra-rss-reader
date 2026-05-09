@@ -99,6 +99,26 @@ describe("FeedTreeRow", () => {
     expect(onSelectFeed).not.toHaveBeenCalled();
   });
 
+  it("does not mark a zero-unread feed read on middle click", () => {
+    const onSelectFeed = vi.fn();
+    const onMarkFeedRead = vi.fn();
+
+    render(
+      <FeedTreeRow
+        feed={{ ...baseFeed, unreadCount: 0, isSelected: false }}
+        displayFavicons={false}
+        onSelectFeed={onSelectFeed}
+        onMarkFeedRead={onMarkFeedRead}
+        canDragFeeds={false}
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByRole("button", { name: /Alpha/ }), { button: 1 });
+
+    expect(onMarkFeedRead).not.toHaveBeenCalled();
+    expect(onSelectFeed).not.toHaveBeenCalled();
+  });
+
   it("shows the drag handle only on row hover or its own focus-visible state", () => {
     const { container } = render(
       <FeedTreeRow

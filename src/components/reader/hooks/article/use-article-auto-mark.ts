@@ -2,6 +2,7 @@ import type { UseMutationResult } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preferences";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
@@ -25,6 +26,18 @@ const delayedAutoMarkTimeoutsMs = {
   after_0_5s: 500,
   after_1s: 1000,
 } satisfies Record<DelayedAfterReadingPreference, number>;
+
+function removeRetainedArticle(articleId: string) {
+  useUiStore.setState((state) => {
+    if (!state.retainedArticleIds.has(articleId)) {
+      return state;
+    }
+
+    const retainedArticleIds = new Set(state.retainedArticleIds);
+    retainedArticleIds.delete(articleId);
+    return { retainedArticleIds };
+  });
+}
 
 export function useArticleAutoMark({
   articleId,
@@ -53,6 +66,8 @@ export function useArticleAutoMark({
       autoMarkedArticleIdRef.current = articleId;
       pendingAutoMarkTimeoutRef.current = null;
 
+      const shouldRollbackRetainedArticle =
+        viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
       if (viewMode === "unread") {
         retainArticle(articleId);
       }
@@ -69,6 +84,9 @@ export function useArticleAutoMark({
           onError: (error) => {
             if (autoMarkedArticleIdRef.current === articleId) {
               autoMarkedArticleIdRef.current = null;
+            }
+            if (shouldRollbackRetainedArticle) {
+              removeRetainedArticle(articleId);
             }
             showToast(error.message);
           },

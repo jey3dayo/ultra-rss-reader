@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { Dispatch, MutableRefObject, ReactNode, RefObject, SetStateAction } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
@@ -11,7 +11,7 @@ export type BrowserViewScope = BrowserViewerScope;
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 export type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
 export type BrowserViewGeometry = BrowserViewerGeometry;
-export type BrowserOverlayActionSurfaceTone = "default" | "subtle";
+type BrowserOverlayActionSurfaceTone = "default" | "subtle";
 export type BrowserOverlayActionSurfacePresentation = {
   compact: boolean;
   tone: BrowserOverlayActionSurfaceTone;
@@ -50,13 +50,14 @@ export type ResolveBrowserViewSurfacePresentationParams = {
   compact: boolean;
 };
 
-export type BrowserViewProps = {
-  scope?: BrowserViewScope;
+export type BrowserOverlayCloseHandler = {
   onCloseOverlay: () => void;
-  labels: {
-    closeWebPreview: string;
-  };
-  toolbarActions?: BrowserOverlayToolbarAction[];
+};
+
+export type BrowserWebviewStateBinding = {
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
 };
 
 export type BrowserViewController = {

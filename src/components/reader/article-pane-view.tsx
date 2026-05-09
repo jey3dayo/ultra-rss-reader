@@ -1,4 +1,3 @@
-import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticlePaneController } from "@/components/reader/hooks/article/use-article-pane-controller";
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
 import {
@@ -13,17 +12,15 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
-import type { ArticlePaneProps } from "./article-view.types";
+import type { ArticlePaneProps, ArticlePaneToolbarState } from "./article-view.types";
 import { BrowserOverlaySurface } from "./article-view-state";
 
-type ArticleToolbarProps = {
-  article: ArticleDto | null;
-  isBrowserOpen: boolean;
-  onCloseView: () => void;
-  onToggleBrowserOverlay: () => void;
-};
-
-export function ArticleToolbar({ article, isBrowserOpen, onCloseView, onToggleBrowserOverlay }: ArticleToolbarProps) {
+export function ArticleToolbar({
+  article,
+  isBrowserOpen,
+  onCloseView,
+  onToggleBrowserOverlay,
+}: ArticlePaneToolbarState) {
   const actionStripProps = useArticleToolbarControls({
     article,
     isBrowserOpen,
@@ -35,8 +32,11 @@ export function ArticleToolbar({ article, isBrowserOpen, onCloseView, onToggleBr
       showCloseButton={article !== null && !isBrowserOpen}
       hideActionStrip={isBrowserOpen}
       onCloseView={onCloseView}
-      hideBrowserOverlayActions={isBrowserOpen}
       {...actionStripProps}
+      articleState={{
+        ...actionStripProps.articleState,
+        hideBrowserOverlayActions: isBrowserOpen,
+      }}
     />
   );
 }

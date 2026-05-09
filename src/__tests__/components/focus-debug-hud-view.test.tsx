@@ -170,6 +170,15 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Collapse debug HUD" })).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("keeps dev-only HUD accessible action copy in English", () => {
+    renderFocusDebugHudView();
+
+    expect(screen.getByRole("button", { name: "Move debug HUD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide debug HUD" })).toBeInTheDocument();
+  });
+
   it("uses compact header-style utility actions", async () => {
     const user = userEvent.setup();
 

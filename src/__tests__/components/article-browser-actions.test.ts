@@ -2,10 +2,13 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  type ArticleActionError,
   addArticleToReadingList,
+  categorizeArticleActionError,
   copyArticleLink,
   openArticleInExternalBrowser,
   openUrlInExternalBrowser,
+  resolveArticleActionErrorCategory,
 } from "@/components/reader/article-browser-actions";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -82,6 +85,16 @@ describe("article-browser-actions", () => {
       }),
     );
     expect(showToast).toHaveBeenCalledWith("Clipboard unavailable");
+  });
+
+  it("preserves clipboard categories when copy link reports them", () => {
+    const error = {
+      type: "UserVisible",
+      message: "Clipboard permission denied",
+      category: "permission_denied",
+    } satisfies ArticleActionError;
+
+    expect(categorizeArticleActionError(error)).toBe(error);
   });
 
   it("projects invalid clipboard text without invoking Tauri", async () => {
@@ -199,5 +212,41 @@ describe("article-browser-actions", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+  });
+
+  it("classifies invalid URL errors without changing the external-browser toast message", async () => {
+    const consoleError = vi.mocked(console.error);
+    setupTauriMocks((cmd) => {
+      if (cmd === "open_in_browser") {
+        throw {
+          type: "UserVisible",
+          message: "Only http:// and https:// URLs are supported",
+        };
+      }
+      return undefined;
+    });
+
+    await openUrlInExternalBrowser("javascript:alert('owned')", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(consoleError).toHaveBeenLastCalledWith(
+      "Failed to open in browser:",
+      expect.objectContaining({
+        category: "invalid_url",
+        message: expect.stringContaining("Only http:// and https:// URLs are supported"),
+      }),
+    );
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Only http:// and https:// URLs are supported"));
+  });
+
+  it("classifies action error categories shared by copy and open actions", () => {
+    expect(resolveArticleActionErrorCategory("Clipboard unavailable")).toBe("runtime_unavailable");
+    expect(resolveArticleActionErrorCategory("Clipboard permission denied")).toBe("permission_denied");
+    expect(resolveArticleActionErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
+    expect(resolveArticleActionErrorCategory("Invalid clipboard text")).toBe("invalid_text");
+    expect(resolveArticleActionErrorCategory("Unexpected failure")).toBe("unknown");
   });
 });

@@ -2,7 +2,6 @@ import { Result } from "@praha/byethrow";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback } from "react";
 import {
-  type AppError,
   type BrowserWebviewState,
   focusBrowserWebview,
   goBackBrowserWebview,
@@ -15,7 +14,7 @@ import { openUrlInExternalBrowser } from "../../article-browser-actions";
 import type { BrowserViewController } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
 
-type BrowserWebviewCommand = () => Promise<Result.Result<BrowserWebviewState, AppError>>;
+type BrowserWebviewCommand = typeof goBackBrowserWebview;
 
 type UseBrowserViewActionsParams = {
   browserUrl: string | null;

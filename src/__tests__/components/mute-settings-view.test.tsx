@@ -117,4 +117,100 @@ describe("MuteSettingsView", () => {
 
     expect(onScopeChange).toHaveBeenCalledWith("body");
   });
+
+  it("submits mute keyword creation with Enter and ignores disabled submits", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+
+    const { rerender } = render(
+      <MuteSettingsView
+        title="Mute"
+        addHeading="Add muted keyword"
+        intro="Hide articles that match these rules."
+        keywordLabel="Keyword"
+        keywordValue="spoiler"
+        keywordPlaceholder="spoiler"
+        scopeAriaLabel="Mute scope"
+        scopeValue="title"
+        scopeOptions={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+          { value: "title_and_body", label: "Title and body" },
+        ]}
+        addLabel="Add"
+        onKeywordChange={vi.fn()}
+        onScopeChange={vi.fn()}
+        onAdd={onAdd}
+        addDisabled={false}
+        savedHeading="Saved rules"
+        emptyState="No mute keywords yet."
+        rules={[]}
+        savedScopeAriaLabel={() => "Saved scope"}
+        onRuleScopeChange={vi.fn()}
+        deleteLabel="Delete"
+        onRequestDelete={vi.fn()}
+        autoMarkReadHeading="Auto mark as read"
+        autoMarkReadLabel="Mark muted items as read"
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately."
+        onAutoMarkReadChange={vi.fn()}
+        confirmOpen={false}
+        confirmMessage="Delete muted keyword?"
+        confirmActionLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirmDelete={vi.fn()}
+        onCancelDelete={vi.fn()}
+      />,
+    );
+
+    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "{Enter}");
+    expect(onAdd).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <MuteSettingsView
+        title="Mute"
+        addHeading="Add muted keyword"
+        intro="Hide articles that match these rules."
+        keywordLabel="Keyword"
+        keywordValue="spoiler"
+        keywordPlaceholder="spoiler"
+        scopeAriaLabel="Mute scope"
+        scopeValue="title"
+        scopeOptions={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+          { value: "title_and_body", label: "Title and body" },
+        ]}
+        addLabel="Add"
+        onKeywordChange={vi.fn()}
+        onScopeChange={vi.fn()}
+        onAdd={onAdd}
+        addDisabled={true}
+        savedHeading="Saved rules"
+        emptyState="No mute keywords yet."
+        rules={[]}
+        savedScopeAriaLabel={() => "Saved scope"}
+        onRuleScopeChange={vi.fn()}
+        deleteLabel="Delete"
+        onRequestDelete={vi.fn()}
+        autoMarkReadHeading="Auto mark as read"
+        autoMarkReadLabel="Mark muted items as read"
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately."
+        onAutoMarkReadChange={vi.fn()}
+        confirmOpen={false}
+        confirmMessage="Delete muted keyword?"
+        confirmActionLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirmDelete={vi.fn()}
+        onCancelDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "{Enter}");
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
 });

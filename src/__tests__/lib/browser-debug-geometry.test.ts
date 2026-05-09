@@ -19,7 +19,12 @@ const nativeDiagnostics = {
 
 describe("browser-debug-geometry", () => {
   it("creates a diagnostics snapshot separately from row rendering", () => {
-    expect(createBrowserDebugGeometrySnapshot({ layoutDiagnostics, nativeDiagnostics })).toEqual({
+    expect(
+      createBrowserDebugGeometrySnapshot({
+        layoutDiagnostics,
+        nativeDiagnostics,
+      }),
+    ).toEqual({
       layoutDiagnostics,
       nativeDiagnostics,
     });
@@ -56,7 +61,12 @@ describe("browser-debug-geometry", () => {
   });
 
   it("returns no rows when diagnostics are unavailable", () => {
-    expect(getBrowserGeometryRows({ layoutDiagnostics: null, nativeDiagnostics: null })).toEqual([]);
+    expect(
+      getBrowserGeometryRows({
+        layoutDiagnostics: null,
+        nativeDiagnostics: null,
+      }),
+    ).toEqual([]);
   });
 
   it("formats match rows when layout and native diagnostics are both available", () => {
@@ -80,5 +90,65 @@ describe("browser-debug-geometry", () => {
         nativeDiagnostics: null,
       }),
     ).toContainEqual({ label: "fill", value: "n/a n/a" });
+  });
+
+  it("formats non-finite layout geometry values as n/a", () => {
+    expect(
+      getBrowserGeometryRows({
+        layoutDiagnostics: {
+          ...layoutDiagnostics,
+          viewport: { width: Number.NaN, height: Number.NEGATIVE_INFINITY },
+          overlay: {
+            x: Number.NaN,
+            y: Number.POSITIVE_INFINITY,
+            width: 1000,
+            height: 500,
+          },
+          hostLogical: {
+            x: 100,
+            y: 50,
+            width: Number.NaN,
+            height: Number.POSITIVE_INFINITY,
+          },
+          lane: {
+            left: Number.NaN,
+            top: 0,
+            right: Number.POSITIVE_INFINITY,
+            bottom: 500,
+          },
+        },
+        nativeDiagnostics: null,
+      }),
+    ).toEqual([
+      { label: "viewport", value: "n/a x n/a" },
+      { label: "overlay", value: "n/a,n/a 1000 x 500" },
+      { label: "stage", value: "100,50 500 x 250" },
+      { label: "host", value: "100,50 n/a x n/a" },
+      { label: "fill", value: "n/a n/a" },
+      { label: "lane", value: "Ln/a T0 Rn/a B500" },
+    ]);
+  });
+
+  it("formats non-finite native geometry values as n/a", () => {
+    const rows = getBrowserGeometryRows({
+      layoutDiagnostics,
+      nativeDiagnostics: {
+        ...nativeDiagnostics,
+        scaleFactor: Number.POSITIVE_INFINITY,
+        nativeWebviewBounds: {
+          x: Number.NaN,
+          y: Number.POSITIVE_INFINITY,
+          width: Number.NEGATIVE_INFINITY,
+          height: 250,
+        },
+      },
+    });
+
+    expect(rows).toContainEqual({ label: "rust", value: "resize xn/a" });
+    expect(rows).toContainEqual({
+      label: "native",
+      value: "n/a,n/a n/a x 250",
+    });
+    expect(rows).toContainEqual({ label: "delta", value: "xn/a yn/a wn/a h0" });
   });
 });

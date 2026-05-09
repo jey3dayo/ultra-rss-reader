@@ -2,8 +2,9 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMutation } from "@/hooks/create-mutation";
+import { useUiStore } from "@/stores/ui-store";
 
 type TestArgs = {
   id: string;
@@ -14,6 +15,10 @@ type TestData = {
 };
 
 describe("createMutation", () => {
+  beforeEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
   function renderGeneratedMutation({
     mutationFn,
     invalidate,
@@ -58,6 +63,7 @@ describe("createMutation", () => {
     await expect(result.current.mutateAsync({ id: "item-1" })).rejects.toBeDefined();
 
     expect(invalidate).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
   it("does not call invalidate when the mutation throws", async () => {

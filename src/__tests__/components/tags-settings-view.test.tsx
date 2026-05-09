@@ -79,7 +79,7 @@ describe("TagsSettingsView", () => {
 
     const favRow = screen.getByTestId("tags-settings-row-tag-1");
     expect(within(favRow).getByText("Fav")).toBeInTheDocument();
-    expect(within(favRow).getByTestId("tags-settings-color-dot-tag-1")).toHaveClass("h-2.5", "w-2.5", "rounded-full");
+    expect(within(favRow).getByTestId("tags-settings-color-dot-tag-1")).toHaveClass("size-2.5", "rounded-full");
     expect(within(favRow).getByRole("button", { name: "Edit Fav" })).toHaveClass("size-8");
     expect(within(favRow).getByRole("button", { name: "Delete Fav" })).toHaveClass("size-8");
 
@@ -140,6 +140,78 @@ describe("TagsSettingsView", () => {
     expect(onCreate).toHaveBeenCalledTimes(1);
   });
 
+  it("submits tag creation with Enter and ignores disabled submits", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+
+    const { rerender } = render(
+      <TagsSettingsView
+        title="Tags"
+        addHeading="Add tag"
+        intro="Use tags to organize related articles."
+        nameLabel="Name"
+        nameValue="News"
+        namePlaceholder="News"
+        colorLabel="Color"
+        colorValue={null}
+        colorOptions={["#cf7868", "#6f8eb8"]}
+        noColorLabel="No color"
+        colorOptionAriaLabel={(color) => `Color ${color}`}
+        createLabel="Create"
+        onNameChange={vi.fn()}
+        onColorChange={vi.fn()}
+        onCreate={onCreate}
+        createDisabled={false}
+        savedHeading="Saved tags"
+        emptyState="No tags yet."
+        tags={[]}
+        editLabel="Edit"
+        editAriaLabel={(name) => `Edit ${name}`}
+        deleteLabel="Delete"
+        deleteAriaLabel={(name) => `Delete ${name}`}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "{Enter}");
+    expect(onCreate).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <TagsSettingsView
+        title="Tags"
+        addHeading="Add tag"
+        intro="Use tags to organize related articles."
+        nameLabel="Name"
+        nameValue="News"
+        namePlaceholder="News"
+        colorLabel="Color"
+        colorValue={null}
+        colorOptions={["#cf7868", "#6f8eb8"]}
+        noColorLabel="No color"
+        colorOptionAriaLabel={(color) => `Color ${color}`}
+        createLabel="Create"
+        onNameChange={vi.fn()}
+        onColorChange={vi.fn()}
+        onCreate={onCreate}
+        createDisabled={true}
+        savedHeading="Saved tags"
+        emptyState="No tags yet."
+        tags={[]}
+        editLabel="Edit"
+        editAriaLabel={(name) => `Edit ${name}`}
+        deleteLabel="Delete"
+        deleteAriaLabel={(name) => `Delete ${name}`}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "{Enter}");
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
   it("updates the selected color from the tag creation swatches", async () => {
     const user = userEvent.setup();
     const onColorChange = vi.fn();
@@ -174,11 +246,11 @@ describe("TagsSettingsView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Color #cf7868" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Color #6f8eb8" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("radio", { name: "Color #cf7868" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Color #6f8eb8" })).not.toBeChecked();
 
-    await user.click(screen.getByRole("button", { name: "Color #6f8eb8" }));
-    await user.click(screen.getByRole("button", { name: "No color" }));
+    await user.click(screen.getByRole("radio", { name: "Color #6f8eb8" }));
+    await user.click(screen.getByRole("radio", { name: "No color" }));
 
     expect(onColorChange).toHaveBeenNthCalledWith(1, "#6f8eb8");
     expect(onColorChange).toHaveBeenNthCalledWith(2, null);

@@ -51,6 +51,15 @@ function resolveEffectiveViewMode(
   return query.filter;
 }
 
+function normalizeReaderScopeId(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue.length === 0 ? null : trimmedValue;
+}
+
 // ReaderQuery represents only the user's reader intent. Paging, sorting, API
 // choice, labels, and focus handling stay in their own layers.
 export function resolveReaderQuery(
@@ -58,7 +67,8 @@ export function resolveReaderQuery(
   viewMode: ReaderFilter,
   selectedAccountId: string | null,
 ): ReaderQuery | null {
-  if (selectedAccountId === null) {
+  const accountId = normalizeReaderScopeId(selectedAccountId);
+  if (accountId === null) {
     return null;
   }
 
@@ -66,45 +76,60 @@ export function resolveReaderQuery(
     if (selection.kind === "recent") {
       return {
         source: "recent",
-        scope: { type: "account", accountId: selectedAccountId },
+        scope: { type: "account", accountId },
         filter: viewMode,
       };
     }
 
     return {
       source: "articles",
-      scope: { type: "account", accountId: selectedAccountId },
+      scope: { type: "account", accountId },
       filter: selection.kind,
     };
   }
 
   if (selection.type === "feed") {
+    const feedId = normalizeReaderScopeId(selection.feedId);
+    if (feedId === null) {
+      return null;
+    }
+
     return {
       source: "articles",
-      scope: { type: "feed", feedId: selection.feedId },
+      scope: { type: "feed", feedId },
       filter: viewMode,
     };
   }
 
   if (selection.type === "folder") {
+    const folderId = normalizeReaderScopeId(selection.folderId);
+    if (folderId === null) {
+      return null;
+    }
+
     return {
       source: "articles",
-      scope: { type: "folder", folderId: selection.folderId },
+      scope: { type: "folder", folderId },
       filter: viewMode,
     };
   }
 
   if (selection.type === "tag") {
+    const tagId = normalizeReaderScopeId(selection.tagId);
+    if (tagId === null) {
+      return null;
+    }
+
     return {
       source: "articles",
-      scope: { type: "tag", tagId: selection.tagId },
+      scope: { type: "tag", tagId },
       filter: viewMode,
     };
   }
 
   return {
     source: "articles",
-    scope: { type: "account", accountId: selectedAccountId },
+    scope: { type: "account", accountId },
     filter: viewMode,
   };
 }

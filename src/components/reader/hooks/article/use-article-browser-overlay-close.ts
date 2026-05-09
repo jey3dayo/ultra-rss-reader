@@ -5,7 +5,13 @@ import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseArticleBrowserOverlayCloseParams } from "../../article-view.types";
+
+type UseArticleBrowserOverlayCloseParams = {
+  closeBrowser: () => void;
+  focusSelectedArticleRow: () => void;
+  setBrowserCloseInFlight: (inFlight: boolean) => void;
+  setBrowserOverlayClosedPreference: () => void;
+};
 
 function prefersReducedMotion() {
   return (

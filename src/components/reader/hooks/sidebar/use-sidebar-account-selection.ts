@@ -65,6 +65,8 @@ export function useSidebarAccountSelection({
   restoreAccountSelection,
   setSelectedAccountPreference,
 }: SidebarAccountSelectionParams) {
+  // This intentionally stays separate from updater lifecycle code: the overlap is
+  // only the React effect shape, while this hook owns account selection side effects.
   useEffect(() => {
     const action = resolveSidebarAccountSelectionAction({
       accounts,

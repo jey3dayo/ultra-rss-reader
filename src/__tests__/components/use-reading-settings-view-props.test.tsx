@@ -76,7 +76,10 @@ describe("useReadingSettingsViewProps", () => {
       () =>
         useReadingSettingsViewProps({
           t,
-          prefs: { reader_mode_default: "true", web_preview_mode_default: "true" },
+          prefs: {
+            reader_mode_default: "true",
+            web_preview_mode_default: "true",
+          },
           setPref,
           devIntent: null,
           platformKind: "macos",
@@ -103,8 +106,17 @@ describe("useReadingSettingsViewProps", () => {
     expect(setPref).not.toHaveBeenCalled();
 
     displayPreset.onChange("standard");
-    expect(setPref).toHaveBeenCalledWith("reader_mode_default", "true");
-    expect(setPref).toHaveBeenCalledWith("web_preview_mode_default", "false");
+    expect(setPref.mock.calls).toEqual([
+      ["reader_mode_default", "true"],
+      ["web_preview_mode_default", "false"],
+    ]);
+
+    setPref.mockClear();
+    displayPreset.onChange("preview");
+    expect(setPref.mock.calls).toEqual([
+      ["reader_mode_default", "true"],
+      ["web_preview_mode_default", "true"],
+    ]);
   });
 
   it("exposes an opt-in web preview focus retention switch", () => {
@@ -225,14 +237,12 @@ describe("useReadingSettingsViewProps", () => {
     const backgroundControl = getSwitchControl(result.current, "open-links-background");
     const shortcutControl = getSwitchControl(result.current, "cmd-click-browser");
 
-    expect(originalArticleSection?.note).toBe(
-      "Please note that some third-party browsers do not support opening links in the background.",
-    );
+    expect(originalArticleSection?.note).toBe(t("reading.open_links_background_note"));
     expect(openLinks).toEqual(expect.objectContaining({ value: "default_browser" }));
     expect(backgroundControl).toEqual(expect.objectContaining({ checked: true, disabled: false }));
     expect(shortcutControl).toEqual(
       expect.objectContaining({
-        label: "Ctrl-click opens Web Preview",
+        label: t("reading.cmd_click_browser", { modifier: "Ctrl" }),
         checked: true,
       }),
     );
@@ -282,6 +292,7 @@ describe("useReadingSettingsViewProps", () => {
     expect(getActionControl(result.current, "clear-recent-articles")).toEqual(
       expect.objectContaining({
         actionLabel: t("reading.clear_recent_articles"),
+        actionAriaLabel: t("reading.clear_recent_articles_aria_label"),
         disabled: true,
       }),
     );
@@ -290,5 +301,26 @@ describe("useReadingSettingsViewProps", () => {
 
     expect(showConfirm).not.toHaveBeenCalled();
     expect(clearHistoryMutateMock).not.toHaveBeenCalled();
+  });
+
+  it("maps ja recent history action aria labels from locale keys", () => {
+    const tJa = i18n.getFixedT("ja", "settings");
+
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t: tJa,
+          prefs: {},
+          setPref: vi.fn(),
+          devIntent: null,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(getActionControl(result.current, "clear-recent-articles").actionAriaLabel).toBe(
+      tJa("reading.clear_recent_articles_aria_label"),
+    );
   });
 });

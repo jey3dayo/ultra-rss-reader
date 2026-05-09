@@ -13,6 +13,8 @@ export function useArticleListViewState({
   feedCount,
   isLoading,
   isLoadingAccountArticles,
+  isLoadingFolderArticles,
+  isLoadingRecentArticles,
   isLoadingTagArticles,
   showSearch,
   trimmedDebouncedQuery,
@@ -68,7 +70,11 @@ export function useArticleListViewState({
     ? isLoading
     : tagId
       ? isLoadingTagArticles
-      : accountListScopeId != null && isLoadingAccountArticles;
+      : selection.type === "folder"
+        ? isLoadingFolderArticles
+        : selection.type === "smart" && selection.kind === "recent"
+          ? isLoadingRecentArticles
+          : accountListScopeId != null && isLoadingAccountArticles;
 
   const isSearchLoading = showSearch && trimmedDebouncedQuery.length > 0 && searchResults === undefined && isSearching;
   const isSearchEmptyState =

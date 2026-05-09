@@ -13,6 +13,9 @@ describe("getOptionLabelByValue", () => {
 
   it("falls back to raw unknown values and an empty null label", () => {
     expect(getOptionLabelByValue(options, "custom")).toBe("custom");
+    expect(getOptionLabelByValue(options, " custom ")).toBe("custom");
+    expect(getOptionLabelByValue(options, "")).toBe("");
+    expect(getOptionLabelByValue(options, "   ")).toBe("");
     expect(getOptionLabelByValue(options, null)).toBe("");
   });
 
@@ -20,6 +23,7 @@ describe("getOptionLabelByValue", () => {
     const optionsWithEmpty = [{ value: "", label: "Use default" }, ...options] as const;
 
     expect(getOptionLabelByValue(optionsWithEmpty, "")).toBe("Use default");
+    expect(getOptionLabelByValue(optionsWithEmpty, "   ")).toBe("Use default");
     expect(getOptionLabelByValue(optionsWithEmpty, null)).toBe("Use default");
   });
 

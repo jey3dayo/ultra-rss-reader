@@ -1,12 +1,16 @@
 import { renderHook } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { useAppearanceSettingsViewProps } from "@/components/settings/hooks/use-appearance-settings-view-props";
 import { useGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
 import { useReadingSettingsViewProps } from "@/components/settings/hooks/use-reading-settings-view-props";
-import type { SettingsPageControl, SettingsPageViewProps } from "@/components/settings/settings-page.types";
+import type {
+  SettingsPageControl,
+  SettingsPageViewProps,
+  SettingsPreferenceViewPropsParams,
+} from "@/components/settings/settings-page.types";
 import i18n from "@/lib/i18n";
-import { preferenceSchemas } from "@/schemas/preferences";
+import { type KnownPreferenceKey, preferenceSchemas } from "@/schemas/preferences";
 
 const t = i18n.getFixedT("en", "settings");
 
@@ -53,6 +57,10 @@ function assertSettingsPreferenceSchemaParity(props: SettingsPageViewProps, setP
 }
 
 describe("settings preference option schema parity", () => {
+  it("keeps settings preference writes bounded to known schema keys", () => {
+    expectTypeOf<Parameters<SettingsPreferenceViewPropsParams["setPref"]>[0]>().toEqualTypeOf<KnownPreferenceKey>();
+  });
+
   it("keeps general settings writes aligned with preference schemas", () => {
     const setPref = vi.fn();
     const props = useGeneralSettingsViewProps({ t, prefs: {}, setPref });

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ArticleContentView } from "@/components/reader/article-content-view";
+import { ArticleContentView, fromSanitizedArticleHtml } from "@/components/reader/article-content-view";
 import articleContentViewStories from "@/components/reader/article-content-view.stories";
 
 describe("ArticleContentView", () => {
@@ -8,7 +8,9 @@ describe("ArticleContentView", () => {
     const { container } = render(
       <ArticleContentView
         thumbnailUrl="https://example.com/thumbnail.png"
-        contentHtml="<p>Hello <strong>world</strong> <a href='https://example.com'>link</a></p>"
+        contentHtml={fromSanitizedArticleHtml(
+          "<p>Hello <strong>world</strong> <a href='https://example.com'>link</a></p>",
+        )}
       />,
     );
 
@@ -26,7 +28,7 @@ describe("ArticleContentView", () => {
   });
 
   it("omits the thumbnail wrapper when no image is provided", () => {
-    const { container } = render(<ArticleContentView contentHtml="<p>Only text</p>" />);
+    const { container } = render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<p>Only text</p>")} />);
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Only text")).toBeInTheDocument();
@@ -36,7 +38,9 @@ describe("ArticleContentView", () => {
     const { container } = render(
       <ArticleContentView
         feedName="葬送のフリーレン"
-        contentHtml="<p>葬送のフリーレン</p><p>本文です</p><figure><p><img src='https://example.com/panel.png' alt='' /></p></figure>"
+        contentHtml={fromSanitizedArticleHtml(
+          "<p>葬送のフリーレン</p><p>本文です</p><figure><p><img src='https://example.com/panel.png' alt='' /></p></figure>",
+        )}
       />,
     );
 
@@ -47,7 +51,10 @@ describe("ArticleContentView", () => {
 
   it("keeps the opening content when it does not duplicate the feed name", () => {
     render(
-      <ArticleContentView feedName="葬送のフリーレン" contentHtml="<p>第147話 英雄のいない地</p><p>本文です</p>" />,
+      <ArticleContentView
+        feedName="葬送のフリーレン"
+        contentHtml={fromSanitizedArticleHtml("<p>第147話 英雄のいない地</p><p>本文です</p>")}
+      />,
     );
 
     expect(screen.getByText("第147話 英雄のいない地")).toBeInTheDocument();
@@ -55,12 +62,12 @@ describe("ArticleContentView", () => {
   });
 
   it("hides placeholder null article bodies", () => {
-    const { container, rerender } = render(<ArticleContentView contentHtml="null" />);
+    const { container, rerender } = render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("null")} />);
 
     expect(screen.queryByText("null")).not.toBeInTheDocument();
     expect(container.querySelector(".prose")?.textContent?.trim()).toBe("");
 
-    rerender(<ArticleContentView contentHtml="<p>null</p>" />);
+    rerender(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<p>null</p>")} />);
 
     expect(screen.queryByText("null")).not.toBeInTheDocument();
     expect(container.querySelector(".prose")?.textContent?.trim()).toBe("");
@@ -69,5 +76,11 @@ describe("ArticleContentView", () => {
   it("uses a fixture-only thumbnail in storybook", () => {
     expect(articleContentViewStories.args?.thumbnailUrl).toBeTruthy();
     expect(articleContentViewStories.args?.thumbnailUrl).not.toMatch(/^https?:\/\//);
+  });
+
+  it("keeps sanitized HTML branding as a type-only danger boundary", () => {
+    const sanitizedHtml = "<p data-source='rust-sanitizer'>Safe <em>content</em></p>";
+
+    expect(fromSanitizedArticleHtml(sanitizedHtml)).toBe(sanitizedHtml);
   });
 });

@@ -10,6 +10,7 @@ type FeedContextMenuViewProps = {
   displayModeLabel: string;
   displayPresetOptions: Array<{ value: string; label: string }>;
   selectedDisplayPreset: string;
+  hasUnreadArticles?: boolean;
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
@@ -28,6 +29,7 @@ export function FeedContextMenuView({
   displayModeLabel,
   displayPresetOptions,
   selectedDisplayPreset,
+  hasUnreadArticles = true,
   unsubscribeLabel,
   editLabel,
   onOpenSite,
@@ -41,15 +43,21 @@ export function FeedContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onEdit}>
+          <ContextMenu.Item data-action-id="feed-edit" className={contextMenuStyles.item} onClick={onEdit}>
             {editLabel}
           </ContextMenu.Item>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onOpenSite}>
+          <ContextMenu.Item data-action-id="feed-open-site" className={contextMenuStyles.item} onClick={onOpenSite}>
             {openSiteLabel}
           </ContextMenu.Item>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
-            {markAllReadLabel}
-          </ContextMenu.Item>
+          {hasUnreadArticles && (
+            <ContextMenu.Item
+              data-action-id="feed-mark-all-read"
+              className={contextMenuStyles.item}
+              onClick={onMarkAllRead}
+            >
+              {markAllReadLabel}
+            </ContextMenu.Item>
+          )}
           <OldUnreadContextMenuItems
             label={markOldUnreadReadLabel}
             dayLabel={oldUnreadDayLabel}
@@ -60,6 +68,8 @@ export function FeedContextMenuView({
           {displayPresetOptions.map((option) => (
             <ContextMenu.Item
               key={option.value}
+              data-action-id="feed-set-display-preset"
+              data-action-value={option.value}
               className={contextMenuStyles.item}
               onClick={() => onSetDisplayPreset(option.value)}
             >
@@ -70,7 +80,11 @@ export function FeedContextMenuView({
             </ContextMenu.Item>
           ))}
           <ContextMenu.Separator className={contextMenuStyles.separator} />
-          <ContextMenu.Item className={contextMenuStyles.destructiveItem} onClick={onUnsubscribe}>
+          <ContextMenu.Item
+            data-action-id="feed-unsubscribe"
+            className={contextMenuStyles.destructiveItem}
+            onClick={onUnsubscribe}
+          >
             {unsubscribeLabel}
           </ContextMenu.Item>
         </ContextMenu.Popup>

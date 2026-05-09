@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import { SidebarHeaderView } from "./sidebar-header-view";
 
 const meta = {
@@ -7,13 +8,19 @@ const meta = {
   component: SidebarHeaderView,
   tags: ["autodocs"],
   args: {
-    isSyncing: false,
     onSync: fn(),
     onAddFeed: fn(),
     syncButtonLabel: "Sync feeds",
     syncButtonText: "Sync",
     addFeedButtonLabel: "Add feed",
     addFeedButtonText: "Add",
+    displayState: {
+      layout: "desktop",
+      titlebar: "standard",
+    },
+    syncState: {
+      status: "idle",
+    },
   },
   decorators: [
     (Story) => (
@@ -41,7 +48,9 @@ export const ClickToSpin: Story = {
 
 export const Syncing: Story = {
   args: {
-    isSyncing: true,
+    syncState: {
+      status: "syncing",
+    },
   },
 };
 
@@ -55,16 +64,14 @@ export const CooldownTooltip: Story = {
   },
   args: {
     syncTooltipLabel: "Sync available in 15s",
-    isSyncCoolingDown: true,
+    syncState: {
+      status: "cooldown",
+    },
   },
 };
 
 export const DenseNarrowViewport: Story = {
-  parameters: {
-    viewport: {
-      defaultViewport: "mobile2",
-    },
-  },
+  parameters: denseNarrowViewportParameters,
   decorators: [
     (Story) => (
       <div className="w-[220px] bg-sidebar text-sidebar-foreground">

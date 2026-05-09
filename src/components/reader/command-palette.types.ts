@@ -16,30 +16,42 @@ export type PaletteAction = CommandPaletteActionItem & {
   keywords: string[];
 };
 
-export type CommandPaletteItemValueResolver = (kind: CommandPaletteItemKind, id: string) => string;
+type CommandPaletteItemValueResolver = (kind: CommandPaletteItemKind, id: string) => string;
 
-export type CommandPaletteResultsProps = {
-  resultsMotionKey?: string;
+type CommandPaletteResultsItems = {
   recentActions: CommandPaletteActionItem[];
   filteredActions: CommandPaletteActionItem[];
   filteredDevScenarios: RuntimeDevScenario[];
   filteredFeeds: FeedDto[];
   filteredTags: TagDto[];
   articles: ArticleDto[];
-  showRecentActions: boolean;
-  showActions: boolean;
-  showDevScenarios: boolean;
-  showFeeds: boolean;
-  showTags: boolean;
-  showArticles: boolean;
+  recentFeeds: FeedDto[];
+  recentTags: TagDto[];
+  recentArticles: ArticleDto[];
+};
+
+type CommandPaletteResultsVisibility = {
+  recentActions: boolean;
+  recentResources: boolean;
+  actions: boolean;
+  devScenarios: boolean;
+  feeds: boolean;
+  tags: boolean;
+  articles: boolean;
   hasVisibleResults: boolean;
+};
+
+type CommandPaletteResultsHeadings = {
   noResultsLabel: string;
   recentActionsHeading: string;
   actionsHeading: string;
+  devScenariosHeading: string;
   feedsHeading: string;
   tagsHeading: string;
   articlesHeading: string;
-  getCommandItemValue: CommandPaletteItemValueResolver;
+};
+
+type CommandPaletteResultsHandlers = {
   onActionSelect: (action: CommandPaletteActionItem["id"]) => void;
   onDevScenarioSelect: (scenarioId: RuntimeDevScenario["id"]) => void;
   onFeedSelect: (feedId: string) => void;
@@ -47,9 +59,18 @@ export type CommandPaletteResultsProps = {
   onArticleSelect: (feedId: string, articleId: string) => void;
 };
 
-export type CommandPaletteViewResultsProps = Omit<CommandPaletteResultsProps, "getCommandItemValue">;
+export type CommandPaletteResultsProps = {
+  resultsMotionKey?: string;
+  items: CommandPaletteResultsItems;
+  visibility: CommandPaletteResultsVisibility;
+  headings: CommandPaletteResultsHeadings;
+  handlers: CommandPaletteResultsHandlers;
+  getCommandItemValue: CommandPaletteItemValueResolver;
+};
 
-export type CommandPalettePrefixHints = {
+type CommandPaletteViewResultsProps = Omit<CommandPaletteResultsProps, "getCommandItemValue">;
+
+type CommandPalettePrefixHints = {
   actions: string;
   feeds: string;
   tags: string;

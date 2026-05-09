@@ -58,6 +58,21 @@ describe("FeedContextMenuView", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
+    expect(screen.getByRole("menuitem", { name: "Edit…" })).toHaveAttribute("data-action-id", "feed-edit");
+    expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveAttribute("data-action-id", "feed-open-site");
+    expect(screen.getByRole("menuitem", { name: "Mark all as read" })).toHaveAttribute(
+      "data-action-id",
+      "feed-mark-all-read",
+    );
+    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute(
+      "data-action-id",
+      "feed-set-display-preset",
+    );
+    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
+    expect(screen.getByRole("menuitem", { name: "Unsubscribe…" })).toHaveAttribute(
+      "data-action-id",
+      "feed-unsubscribe",
+    );
     expect(onOpenSite).toHaveBeenCalledTimes(1);
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
@@ -105,5 +120,39 @@ describe("FeedContextMenuView", () => {
       "Preview",
       "Unsubscribe…",
     ]);
+  });
+
+  it("hides mark all read when the feed has no unread articles", () => {
+    const onMarkAllRead = vi.fn();
+
+    render(
+      <ContextMenu.Root open>
+        <FeedContextMenuView
+          openSiteLabel="Open site"
+          markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
+          displayModeLabel="Display mode"
+          displayPresetOptions={[
+            { value: "default", label: "Default" },
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
+          ]}
+          selectedDisplayPreset="default"
+          hasUnreadArticles={false}
+          unsubscribeLabel="Unsubscribe…"
+          editLabel="Edit…"
+          onOpenSite={vi.fn()}
+          onMarkAllRead={onMarkAllRead}
+          onMarkOldUnreadRead={vi.fn()}
+          onSetDisplayPreset={vi.fn()}
+          onUnsubscribe={vi.fn()}
+          onEdit={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
+    expect(onMarkAllRead).not.toHaveBeenCalled();
   });
 });

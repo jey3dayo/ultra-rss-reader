@@ -89,4 +89,65 @@ describe("useDebugSettingsViewProps", () => {
     expect(openWebPreviewToastCheck).not.toHaveBeenCalled();
     expect(runReadingDisplayModeScenario).not.toHaveBeenCalled();
   });
+
+  it("keeps debug scenario labels as nouns so action accessible names do not repeat open", () => {
+    const props = createProps({ devBuild: true });
+
+    const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
+    const scenarioControls = scenariosSection?.controls ?? [];
+
+    expect(scenarioControls).toEqual([
+      expect.objectContaining({
+        id: "debug-web-preview-geometry-check",
+        type: "action",
+        actionLabel: "Open",
+        label: "Web preview geometry check",
+      }),
+      expect.objectContaining({
+        id: "debug-web-preview-toast-check",
+        type: "action",
+        actionLabel: "Open",
+        label: "Web preview toast check",
+      }),
+      expect.objectContaining({
+        id: "debug-reading-display-mode",
+        type: "action",
+        actionLabel: "Open",
+        label: "Reading display mode settings",
+      }),
+    ]);
+  });
+
+  it("surfaces the Dev data seed command and safety notes without wiring execution", () => {
+    const props = createProps();
+
+    const devDataSection = props.sections.find((section) => section.id === "debug-dev-data");
+
+    expect(devDataSection).toEqual(
+      expect.objectContaining({
+        heading: "Dev data seed",
+        note: expect.stringContaining("Dev app"),
+      }),
+    );
+    expect(devDataSection?.controls).toEqual([
+      expect.objectContaining({
+        id: "debug-dev-data-command",
+        type: "info",
+        label: "Command",
+        value: "mise run app:dev:seed-from-prod",
+      }),
+      expect.objectContaining({
+        id: "debug-dev-data-backup",
+        type: "info",
+        label: "Backup and restart",
+        value: expect.stringContaining("timestamped backup"),
+      }),
+      expect.objectContaining({
+        id: "debug-dev-data-credentials",
+        type: "info",
+        label: "Credentials",
+        value: expect.stringContaining("not copied"),
+      }),
+    ]);
+  });
 });

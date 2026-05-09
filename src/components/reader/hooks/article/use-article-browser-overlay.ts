@@ -1,9 +1,27 @@
 import { useCallback, useEffect } from "react";
+import type { FeedDto } from "@/api/tauri-commands";
 import { useArticleBrowserOverlayClose } from "@/components/reader/hooks/article/use-article-browser-overlay-close";
 import { useArticleBrowserOverlayDisplay } from "@/components/reader/hooks/article/use-article-browser-overlay-display";
 import { useBrowserOverlayFocusReturn } from "@/components/reader/hooks/browser/use-browser-overlay-focus-return";
+import type { ResolvedArticleDisplay } from "@/lib/articles/article-display";
+import type { ContentMode } from "@/lib/layout/layout-state.types";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseArticleBrowserOverlayParams, UseArticleBrowserOverlayResult } from "../../article-view.types";
+
+type UseArticleBrowserOverlayParams = {
+  articleId: string;
+  articleUrl: string | null;
+  browserUrl: string | null;
+  contentMode: ContentMode;
+  feed?: FeedDto;
+};
+
+type UseArticleBrowserOverlayResult = {
+  isBrowserOpen: boolean;
+  resolvedDisplay: ResolvedArticleDisplay;
+  handleOpenBrowserOverlay: () => void;
+  handleCloseBrowserOverlay: () => void;
+  handleToggleBrowserOverlay: () => void;
+};
 
 export function useArticleBrowserOverlay({
   articleId,

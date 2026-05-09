@@ -1,5 +1,5 @@
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
-import { safeParseJsonWithSchema } from "@/schemas/parse";
+import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
 function readStorage(): Storage | null {
@@ -7,7 +7,11 @@ function readStorage(): Storage | null {
     return null;
   }
 
-  return window.localStorage;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 export function getHistory(): string[] {
@@ -22,14 +26,19 @@ export function getHistory(): string[] {
       return [];
     }
 
-    return safeParseJsonWithSchema(raw, CommandHistoryStorageSchema) ?? [];
+    return parseJsonWithSchemaOrNull(raw, CommandHistoryStorageSchema) ?? [];
   } catch {
     return [];
   }
 }
 
 export function compactCommandHistory(entries: readonly string[], id: string): string[] {
-  return [id, ...entries.filter((entry) => entry !== id)].slice(0, MAX_COMMAND_HISTORY);
+  const cleanEntries = entries.filter((entry) => entry.trim().length > 0);
+  if (id.trim().length === 0) {
+    return cleanEntries.slice(0, MAX_COMMAND_HISTORY);
+  }
+
+  return [id, ...cleanEntries.filter((entry) => entry !== id)].slice(0, MAX_COMMAND_HISTORY);
 }
 
 export function addToHistory(id: string): void {

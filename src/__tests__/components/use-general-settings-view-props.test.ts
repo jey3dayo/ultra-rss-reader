@@ -3,6 +3,24 @@ import { useGeneralSettingsViewProps as buildGeneralSettingsViewProps } from "@/
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");
+const tJa = i18n.getFixedT("ja", "settings");
+
+function getLanguageControl(tFunction = t) {
+  const props = buildGeneralSettingsViewProps({
+    t: tFunction,
+    prefs: {},
+    setPref: vi.fn(),
+  });
+  const control = props.sections
+    .flatMap((section) => section.controls)
+    .find((candidate) => candidate.id === "language");
+
+  if (control?.type !== "select") {
+    throw new Error("Expected language select control");
+  }
+
+  return control;
+}
 
 describe("useGeneralSettingsViewProps", () => {
   it("keeps general settings scoped to app navigation and sync controls", () => {
@@ -22,6 +40,19 @@ describe("useGeneralSettingsViewProps", () => {
       "show-sidebar-tags",
       "startup-folder-expansion",
       "sync-on-startup",
+    ]);
+  });
+
+  it("keeps system language localized while English and Japanese use self-labels", () => {
+    expect(getLanguageControl(t).options).toEqual([
+      { value: "system", label: t("general.system_default") },
+      { value: "en", label: "English" },
+      { value: "ja", label: "日本語" },
+    ]);
+    expect(getLanguageControl(tJa).options).toEqual([
+      { value: "system", label: tJa("general.system_default") },
+      { value: "en", label: "English" },
+      { value: "ja", label: "日本語" },
     ]);
   });
 

@@ -10,7 +10,7 @@ import {
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { openArticleInExternalBrowser } from "./article-browser-actions";
-import { ArticleContentView } from "./article-content-view";
+import { ArticleContentView, fromSanitizedArticleHtml } from "./article-content-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { ArticleTagChips } from "./article-tag-chips";
 
@@ -22,6 +22,27 @@ type ArticleReaderBodyProps = {
 
 function getArticleContentAnchors(contentContainer: HTMLElement): HTMLAnchorElement[] {
   return Array.from(contentContainer.querySelectorAll<HTMLAnchorElement>("a[href]"));
+}
+
+function resolveArticleContentLinkUrl(href: string, articleUrl: string | null | undefined): string | null {
+  const trimmedHref = href.trim();
+  if (!trimmedHref) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmedHref).toString();
+  } catch {
+    if (!articleUrl?.trim()) {
+      return null;
+    }
+  }
+
+  try {
+    return new URL(trimmedHref, articleUrl).toString();
+  } catch {
+    return null;
+  }
 }
 
 function getReaderScrollDirection(event: KeyboardEvent<HTMLDivElement>): 1 | -1 | null {
@@ -52,7 +73,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   const previousArticleIdRef = useRef(article.id);
   const articleUrl = article.url;
   const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
-  const articleContentHtml = article.content_sanitized;
+  const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
 
   useLayoutEffect(() => {
     if (previousArticleIdRef.current === article.id) {
@@ -95,11 +116,15 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     const anchors = getArticleContentAnchors(contentContainer);
     const handleContentClick = (event: Event) => {
       const anchor = event.currentTarget;
-      if (!(anchor instanceof HTMLAnchorElement) || !anchor.href) {
+      if (!(anchor instanceof HTMLAnchorElement)) {
         return;
       }
       event.preventDefault();
-      void openArticleInExternalBrowser(anchor.href);
+      const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
+      if (!resolvedUrl) {
+        return;
+      }
+      void openArticleInExternalBrowser(resolvedUrl);
     };
 
     for (const anchor of anchors) {
@@ -111,7 +136,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
         anchor.removeEventListener("click", handleContentClick);
       }
     };
-  }, [articleContentHtml, contentContainerElement]);
+  }, [articleContentHtml, articleUrl, contentContainerElement]);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     const direction = getReaderScrollDirection(event);

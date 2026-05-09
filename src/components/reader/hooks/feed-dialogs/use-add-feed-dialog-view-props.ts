@@ -1,6 +1,13 @@
 import { useTranslation } from "react-i18next";
-import type { UseAddFeedDialogViewPropsParams } from "../../add-feed-dialog.types";
+import type { AddFeedDialogController } from "../../add-feed-dialog.types";
 import type { AddFeedDialogViewProps } from "../../add-feed-dialog-view";
+
+type UseAddFeedDialogViewPropsParams = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  folderLabelId: string;
+  controller: AddFeedDialogController;
+};
 
 export function useAddFeedDialogViewProps({
   open,

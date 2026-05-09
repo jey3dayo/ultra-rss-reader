@@ -14,6 +14,7 @@ import { buildSidebarSmartViews } from "@/lib/sidebar/sidebar-smart-views";
 const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   account_id: "acc-1",
   folder_id: null,
+  remote_id: null,
   title: "Feed",
   url: "https://example.com/feed.xml",
   site_url: "https://example.com",
@@ -63,6 +64,18 @@ describe("groupFeedsByFolder", () => {
     expect(unfolderedFeeds).toHaveLength(1);
     expect(unfolderedFeeds[0].id).toBe("f2");
   });
+
+  it("treats blank folder ids as unfoldered", () => {
+    const feeds = [
+      makeFeed({ id: "f1", folder_id: "" }),
+      makeFeed({ id: "f2", folder_id: "   " }),
+      makeFeed({ id: "f3", folder_id: " folder-a " }),
+    ];
+    const { feedsByFolder, unfolderedFeeds } = groupFeedsByFolder(feeds);
+
+    expect(unfolderedFeeds.map((feed) => feed.id)).toEqual(["f1", "f2"]);
+    expect(feedsByFolder.get("folder-a")?.map((feed) => feed.id)).toEqual(["f3"]);
+  });
 });
 
 describe("sortFeedsByPreference", () => {
@@ -95,13 +108,17 @@ describe("folder feed counts", () => {
 
   it("counts feeds in a folder", () => {
     expect(countFeedsInFolder(feeds, "folder-a")).toBe(2);
+    expect(countFeedsInFolder(feeds, " folder-a ")).toBe(2);
     expect(countFeedsInFolder(feeds, "folder-missing")).toBe(0);
+    expect(countFeedsInFolder([makeFeed({ id: "blank", folder_id: " " })], " ")).toBe(0);
     expect(countFeedsInFolder(undefined, "folder-a")).toBe(0);
   });
 
   it("sums unread feeds in a folder", () => {
     expect(countUnreadFeedsInFolder(feeds, "folder-a")).toBe(7);
+    expect(countUnreadFeedsInFolder(feeds, " folder-a ")).toBe(7);
     expect(countUnreadFeedsInFolder(feeds, "folder-missing")).toBe(0);
+    expect(countUnreadFeedsInFolder([makeFeed({ id: "blank", folder_id: " ", unread_count: 9 })], " ")).toBe(0);
     expect(countUnreadFeedsInFolder(undefined, "folder-a")).toBe(0);
   });
 

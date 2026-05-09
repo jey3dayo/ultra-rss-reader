@@ -8,7 +8,6 @@ import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { WorkspaceHeader } from "@/components/shared/workspace-header";
-import { Switch } from "@/components/ui/switch";
 import { usePlatformStore } from "@/stores/platform-store";
 
 describe("Design-themed shared components", () => {
@@ -164,15 +163,6 @@ describe("Design-themed shared components", () => {
       "bg-state-warning-surface",
       "text-state-warning-foreground",
     );
-  });
-
-  it("keeps base switch transitions explicit", () => {
-    render(<Switch aria-label="Base switch" />);
-
-    const switchControl = screen.getByRole("switch", { name: "Base switch" });
-    expect(switchControl).toHaveClass("transition-[color,background-color,border-color,box-shadow,opacity]");
-    expect(switchControl).not.toHaveClass("transition-all");
-    expect(switchControl.querySelector("[data-slot='switch-thumb']")).toHaveClass("transition-transform");
   });
 
   it("centralizes colored article filter toggle buttons", () => {

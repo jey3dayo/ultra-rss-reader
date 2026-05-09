@@ -9,6 +9,7 @@ type FolderContextMenuViewProps = {
   displayModeLabel: string;
   displayPresetOptions: Array<{ value: string; label: string }>;
   selectedDisplayPreset: string | null;
+  hasUnreadArticles?: boolean;
   onMarkAllRead: () => void;
   onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
   onSetDisplayPreset: (value: string) => void;
@@ -21,6 +22,7 @@ export function FolderContextMenuView({
   displayModeLabel,
   displayPresetOptions,
   selectedDisplayPreset,
+  hasUnreadArticles = true,
   onMarkAllRead,
   onMarkOldUnreadRead,
   onSetDisplayPreset,
@@ -29,9 +31,15 @@ export function FolderContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
-            {markAllReadLabel}
-          </ContextMenu.Item>
+          {hasUnreadArticles && (
+            <ContextMenu.Item
+              data-action-id="folder-mark-all-read"
+              className={contextMenuStyles.item}
+              onClick={onMarkAllRead}
+            >
+              {markAllReadLabel}
+            </ContextMenu.Item>
+          )}
           <OldUnreadContextMenuItems
             label={markOldUnreadReadLabel}
             dayLabel={oldUnreadDayLabel}
@@ -42,6 +50,8 @@ export function FolderContextMenuView({
           {displayPresetOptions.map((option) => (
             <ContextMenu.Item
               key={option.value}
+              data-action-id="folder-set-display-preset"
+              data-action-value={option.value}
               className={contextMenuStyles.item}
               onClick={() => onSetDisplayPreset(option.value)}
             >

@@ -1,6 +1,5 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
+import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
@@ -10,6 +9,7 @@ const feed: FeedDto = {
   id: "feed-1",
   account_id: "acc-1",
   folder_id: "folder-1",
+  remote_id: null,
   title: "Tech Blog",
   url: "https://example.com/feed.xml",
   site_url: "https://example.com",
@@ -39,42 +39,37 @@ function createParams(overrides: Partial<SubmitFeedEditsParams> = {}): SubmitFee
 }
 
 describe("submitFeedEdits", () => {
-  let calls: MockTauriCommandCall[] = [];
+  let recorder = createTauriMockCallRecorder();
 
   beforeEach(() => {
-    calls = [];
+    recorder = createTauriMockCallRecorder();
   });
 
   it("skips rename, folder move, and display updates when nothing changed", async () => {
     const updateFeedFolder = vi.fn(async () => true);
     const updateDisplaySettings = vi.fn(async () => true);
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      return undefined;
-    });
+    setupTauriMocks(recorder.handler);
 
     await expect(submitFeedEdits(createParams({ updateFeedFolder, updateDisplaySettings }))).resolves.toBe(true);
 
-    expect(calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
+    expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
     expect(updateFeedFolder).not.toHaveBeenCalled();
     expect(updateDisplaySettings).not.toHaveBeenCalled();
   });
 
   it("returns false and shows a toast when rename fails", async () => {
     const showToast = vi.fn();
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
+    recorder = createTauriMockCallRecorder((cmd) => {
       if (cmd === "rename_feed") {
         throw { type: "UserVisible", message: "Name already exists" };
       }
-
       return undefined;
     });
+    setupTauriMocks(recorder.handler);
 
     await expect(submitFeedEdits(createParams({ title: "Renamed", showToast }))).resolves.toBe(false);
 
-    expect(calls).toContainEqual({
+    expect(recorder.calls).toContainEqual({
       cmd: "rename_feed",
       args: { feedId: feed.id, title: "Renamed" },
     });
@@ -83,10 +78,7 @@ describe("submitFeedEdits", () => {
 
   it("updates feed display settings when the display preset changes", async () => {
     const updateDisplaySettings = vi.fn(async () => true);
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      return undefined;
-    });
+    setupTauriMocks(recorder.handler);
 
     await expect(submitFeedEdits(createParams({ displayPreset: "preview", updateDisplaySettings }))).resolves.toBe(
       true,
@@ -99,10 +91,7 @@ describe("submitFeedEdits", () => {
     const queryClient = createTestQueryClient();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     const updateFeedFolder = vi.fn(async () => true);
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      return undefined;
-    });
+    setupTauriMocks(recorder.handler);
 
     await expect(
       submitFeedEdits(
@@ -118,7 +107,7 @@ describe("submitFeedEdits", () => {
       ),
     ).resolves.toBe(true);
 
-    expect(calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
+    expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
     expect(updateFeedFolder).toHaveBeenCalledWith({
       feedId: feed.id,
       folderId: "folder-2",

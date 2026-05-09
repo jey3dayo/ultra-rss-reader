@@ -179,6 +179,14 @@ describe("formatArticleDate", () => {
     expect(result).toContain("AT");
     expect(result).toContain("25 MARCH 2026");
   });
+
+  it("falls back when given an invalid locale tag", () => {
+    const locale = resolveArticleDateLocale("en_US");
+
+    expect(locale).toBe("en-US");
+    expect(() => formatArticleDate("2026-03-25T10:00:00Z", locale)).not.toThrow();
+    expect(formatArticleDate("2026-03-25T10:00:00Z", locale)).toContain("AT");
+  });
 });
 
 describe("resolveArticleDateLocale", () => {
@@ -193,6 +201,10 @@ describe("resolveArticleDateLocale", () => {
   it("falls back unsupported locales to en", () => {
     expect(resolveArticleDateLocale("zh-CN")).toBe("en");
     expect(resolveArticleDateLocale(undefined)).toBe("en");
+  });
+
+  it("falls back invalid locale tags to en-US", () => {
+    expect(resolveArticleDateLocale("en_US")).toBe("en-US");
   });
 });
 
@@ -288,6 +300,37 @@ describe("buildArticleViewSummary", () => {
     });
   });
 
+  it("scopes the latest feed summary article to the selected feed", () => {
+    const selectedFeedArticle = {
+      ...sampleArticles[0],
+      feed_id: "feed-1",
+      title: "Selected feed post",
+      published_at: "2026-03-01T10:00:00Z",
+    };
+    const otherFeedArticle = {
+      ...sampleArticles[1],
+      feed_id: "feed-2",
+      title: "Other feed newer post",
+      published_at: "2026-04-01T10:00:00Z",
+    };
+
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedFeedId: null,
+      feeds: sampleFeeds,
+      folders: [],
+      tags: [],
+      filteredArticles: [selectedFeedArticle],
+      allFeedArticles: [selectedFeedArticle, otherFeedArticle],
+    });
+
+    expect(Result.unwrap(result)).toMatchObject({
+      kind: "feed",
+      latestArticleTitle: "Selected feed post",
+      latestArticlePublishedAt: "2026-03-01T10:00:00Z",
+    });
+  });
+
   it("counts folder feeds and unread visible articles for folder summaries", () => {
     const folders: FolderDto[] = [
       {
@@ -302,8 +345,16 @@ describe("buildArticleViewSummary", () => {
       folder_id: index < 2 ? "folder-1" : "folder-other",
     }));
     const filteredArticles = [
-      { ...sampleArticles[0], is_read: false, published_at: "2026-03-01T10:00:00Z" },
-      { ...sampleArticles[1], is_read: true, published_at: "2026-03-02T10:00:00Z" },
+      {
+        ...sampleArticles[0],
+        is_read: false,
+        published_at: "2026-03-01T10:00:00Z",
+      },
+      {
+        ...sampleArticles[1],
+        is_read: true,
+        published_at: "2026-03-02T10:00:00Z",
+      },
     ];
 
     const result = buildArticleViewSummaryResult({

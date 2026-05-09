@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteHandlers as createCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
@@ -31,12 +32,16 @@ describe("useCommandPaletteHandlers resource history", () => {
     vi.restoreAllMocks();
   });
 
-  it("records feed history before landing navigation and preserves it when landing fails", async () => {
+  it("records feed history before landing navigation and preserves it when landing returns a failure result", async () => {
     const closePalette = vi.fn();
     const showToast = vi.fn();
     const openFeedLanding = vi.fn(async () => {
       expectCommandHistory(["feed:feed-1"]);
-      throw new Error("boom");
+      return Result.fail({
+        type: "landing_fetch_failed" as const,
+        feedId: "feed-1",
+        message: "boom",
+      });
     });
     const handlers = createHandlers({ closePalette, showToast, openFeedLanding });
 
@@ -49,6 +54,23 @@ describe("useCommandPaletteHandlers resource history", () => {
       expect(showToast).toHaveBeenCalledWith('Failed to open feed "feed-1": boom');
     });
     expectCommandHistory(["feed:feed-1"]);
+  });
+
+  it("shows localized feed landing failures that do not come from fetch exceptions", async () => {
+    const showToast = vi.fn();
+    const openFeedLanding = vi.fn(async () =>
+      Result.fail({
+        type: "feed_not_found" as const,
+        feedId: "missing-feed",
+      }),
+    );
+    const handlers = createHandlers({ showToast, openFeedLanding });
+
+    handlers.handleFeedSelect("missing-feed");
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Failed to open feed "missing-feed": Feed not found.');
+    });
   });
 
   it("records tag and article resource history before selection and closes after navigation", () => {

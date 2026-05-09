@@ -14,7 +14,7 @@ function SidebarFeedTreeSkeletonRow({
   return (
     <div className={inset ? "pl-6" : undefined}>
       <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
-        <Skeleton aria-hidden="true" className="h-3.5 w-3.5 rounded-sm bg-surface-4/70" />
+        <Skeleton aria-hidden="true" className="size-3.5 rounded-sm bg-surface-4/70" />
         <Skeleton aria-hidden="true" className="h-3.5 flex-1 max-w-[10.5rem] bg-surface-4/70" />
         <Skeleton
           aria-hidden="true"

@@ -23,5 +23,9 @@ export function getRetainedArticleIdsAfterSelectingArticle({
 }
 
 export function addRetainedArticle(currentRetainedArticleIds: ReadonlySet<string>, articleId: string): Set<string> {
+  if (articleId.trim() === "") {
+    return new Set(currentRetainedArticleIds);
+  }
+
   return new Set([...currentRetainedArticleIds, articleId]);
 }

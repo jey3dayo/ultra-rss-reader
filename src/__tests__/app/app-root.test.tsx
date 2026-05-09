@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, render, waitFor } from "@testing-library/react";
-import type { DevIntentState } from "@tests/helpers/dev-intent";
+import { type TestUserVisibleAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
+import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import type { AccountDto } from "@/api/tauri-commands";
@@ -11,11 +12,6 @@ type UiState = {
   selectedAccountId: string | null;
 };
 
-type TestAppError = {
-  type: "UserVisible";
-  message: string;
-};
-
 const {
   loadPreferencesMock,
   triggerStartupSyncMock,
@@ -24,19 +20,20 @@ const {
   preferencesState,
   devIntentState,
   uiState,
-} = vi.hoisted(() => {
-  const devIntentState: DevIntentState = { intent: null };
+} = await vi.hoisted(async () => {
+  const { createDevIntentState } = await import("@tests/helpers/dev-intent");
+  const devIntentState: DevIntentState = createDevIntentState();
   const uiState: UiState = { selectedAccountId: null };
 
   return {
     loadPreferencesMock: vi.fn(),
-    triggerStartupSyncMock: vi.fn<(accountId?: string) => Promise<Result.Result<boolean, TestAppError>>>(() =>
+    triggerStartupSyncMock: vi.fn<(accountId?: string) => Promise<Result.Result<boolean, TestUserVisibleAppError>>>(
+      () => Promise.resolve(Result.succeed(true)),
+    ),
+    syncAccountMock: vi.fn<(accountId: string) => Promise<Result.Result<boolean, TestUserVisibleAppError>>>(() =>
       Promise.resolve(Result.succeed(true)),
     ),
-    syncAccountMock: vi.fn<(accountId: string) => Promise<Result.Result<boolean, TestAppError>>>(() =>
-      Promise.resolve(Result.succeed(true)),
-    ),
-    listAccountsMock: vi.fn<() => Promise<Result.Result<AccountDto[], TestAppError>>>(() =>
+    listAccountsMock: vi.fn<() => Promise<Result.Result<AccountDto[], TestUserVisibleAppError>>>(() =>
       Promise.resolve(Result.succeed([])),
     ),
     preferencesState: {
@@ -130,7 +127,7 @@ describe("App", () => {
     listAccountsMock.mockClear();
     preferencesState.prefs = {};
     preferencesState.loaded = true;
-    devIntentState.intent = null;
+    resetDevIntentState(devIntentState);
     uiState.selectedAccountId = null;
   });
 
@@ -231,6 +228,90 @@ describe("App", () => {
     dateNowSpy.mockRestore();
   });
 
+  it("keeps sync-on-wake account selection scoped to active sync-on-wake accounts after the hidden threshold", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now");
+    uiState.selectedAccountId = "acc-active";
+    listAccountsMock.mockResolvedValueOnce(
+      Result.succeed([
+        createAccount({ id: "acc-active", sync_on_wake: true }),
+        createAccount({ id: "acc-disabled", sync_on_wake: false }),
+      ]),
+    );
+    dateNowSpy.mockReturnValue(0);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      setDocumentHidden(true);
+      dispatchVisibilityChange();
+    });
+    dateNowSpy.mockReturnValue(APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS + 1);
+    act(() => {
+      setDocumentHidden(false);
+      dispatchVisibilityChange();
+    });
+
+    await waitFor(() => {
+      expect(syncAccountMock).toHaveBeenCalledTimes(1);
+    });
+    expect(listAccountsMock).toHaveBeenCalledTimes(1);
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-active");
+    expect(syncAccountMock).not.toHaveBeenCalledWith("acc-disabled");
+    dateNowSpy.mockRestore();
+  });
+
+  it("does not check sync-on-wake accounts when the app was hidden below the wake threshold", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now");
+    dateNowSpy.mockReturnValue(0);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      setDocumentHidden(true);
+      dispatchVisibilityChange();
+    });
+    dateNowSpy.mockReturnValue(APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS - 1);
+    act(() => {
+      setDocumentHidden(false);
+      dispatchVisibilityChange();
+    });
+
+    expect(listAccountsMock).not.toHaveBeenCalled();
+    expect(syncAccountMock).not.toHaveBeenCalled();
+    dateNowSpy.mockRestore();
+  });
+
+  it("keeps one stable visibility listener across rerenders", async () => {
+    const addEventListenerSpy = vi.spyOn(document, "addEventListener");
+    const removeEventListenerSpy = vi.spyOn(document, "removeEventListener");
+
+    const { rerender, unmount } = render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(<App />);
+
+    expect(addEventListenerSpy.mock.calls.filter(([eventName]) => eventName === "visibilitychange")).toHaveLength(1);
+    expect(removeEventListenerSpy.mock.calls.filter(([eventName]) => eventName === "visibilitychange")).toHaveLength(0);
+
+    unmount();
+
+    expect(removeEventListenerSpy.mock.calls.filter(([eventName]) => eventName === "visibilitychange")).toHaveLength(1);
+
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
+  });
+
   it("does not start duplicate sync-on-wake work while a wake sync is in flight", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
     const listAccountsDeferred = createDeferred<Awaited<ReturnType<typeof listAccountsMock>>>();
@@ -274,7 +355,7 @@ describe("App", () => {
   it("logs sync-on-wake list account failures", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const error = { type: "UserVisible" as const, message: "list failed" };
+    const error = testUserVisibleAppError("list failed");
     listAccountsMock.mockResolvedValueOnce(Result.fail(error));
     dateNowSpy.mockReturnValue(0);
 
@@ -302,10 +383,17 @@ describe("App", () => {
     consoleWarnSpy.mockRestore();
   });
 
+  it("uses the shared user-visible test error fixture shape", () => {
+    expect(testUserVisibleAppError("sync failed")).toEqual({
+      type: "UserVisible",
+      message: "sync failed",
+    });
+  });
+
   it("logs sync-on-wake account sync failures", async () => {
     const dateNowSpy = vi.spyOn(Date, "now");
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const error = { type: "UserVisible" as const, message: "sync failed" };
+    const error = testUserVisibleAppError("sync failed");
     listAccountsMock.mockResolvedValueOnce(Result.succeed([createAccount({ id: "acc-wake" })]));
     syncAccountMock.mockResolvedValueOnce(Result.fail(error));
     dateNowSpy.mockReturnValue(0);

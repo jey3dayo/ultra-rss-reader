@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
-import { ArticleToolbarView, resolveArticleToolbarActions } from "@/components/reader/article-toolbar-view";
+import {
+  ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT,
+  ArticleToolbarView,
+  resolveArticleToolbarActions,
+} from "@/components/reader/article-toolbar-view";
 import {
   MOTION_DATA_ICON_ATTRIBUTE,
   MOTION_DATA_STATE_ATTRIBUTE,
@@ -65,6 +69,39 @@ describe("ArticleToolbarView", () => {
     });
   });
 
+  it("keeps resolver outputs aligned with toolbar action options", () => {
+    const resolved = resolveArticleToolbarActions({
+      hasArticle: true,
+      hasUrl: true,
+      showCopyLinkPreference: true,
+      hideBrowserOverlayActions: false,
+      layoutMode: "mobile",
+    });
+    const contractResultKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap((action) => action.resultKeys).sort();
+    const contractActionOptionKeys = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.flatMap(
+      (action) => action.actionOptionKeys,
+    ).sort();
+
+    expect(Object.keys(resolved).sort()).toEqual(contractResultKeys);
+    expect(contractActionOptionKeys).toEqual([
+      "canCopyLink",
+      "canOpenInBrowser",
+      "canOpenInExternalBrowser",
+      "canToggleRead",
+      "canToggleStar",
+      "showCopyLinkButton",
+      "showOpenInBrowserButton",
+      "showOpenInExternalBrowserButton",
+    ]);
+    expect(ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.map((action) => action.actionId)).toEqual([
+      "toggle-read",
+      "toggle-star",
+      "open-in-browser",
+      "open-in-external-browser",
+      "copy-link",
+    ]);
+  });
+
   it("renders visible actions and calls their handlers", async () => {
     const user = userEvent.setup();
     const onCloseView = vi.fn();
@@ -77,17 +114,22 @@ describe("ArticleToolbarView", () => {
     const { container } = render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton
-        canCopyLink
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser
+        articleState={{
+          hasArticle: true,
+          isRead: true,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -165,17 +207,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead={false}
-        isStarred
-        isBrowserOpen={false}
-        showCopyLinkButton={false}
-        canCopyLink={false}
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton={false}
-        canOpenInExternalBrowser={false}
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: true,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: false,
+          canCopyLink: false,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: false,
+          canOpenInExternalBrowser: false,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -231,18 +278,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
-        hasArticle={false}
-        canToggleRead={false}
-        canToggleStar={false}
-        isRead={false}
-        isStarred
-        isBrowserOpen={false}
-        showCopyLinkButton={false}
-        canCopyLink={false}
-        showOpenInBrowserButton={false}
-        canOpenInBrowser={false}
-        showOpenInExternalBrowserButton={false}
-        canOpenInExternalBrowser={false}
+        articleState={{
+          hasArticle: false,
+          isRead: false,
+          isStarred: true,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: false,
+          canToggleStar: false,
+          showCopyLinkButton: false,
+          canCopyLink: false,
+          showOpenInBrowserButton: false,
+          canOpenInBrowser: false,
+          showOpenInExternalBrowserButton: false,
+          canOpenInExternalBrowser: false,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -278,18 +329,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
-        hasArticle={false}
-        canToggleRead={false}
-        canToggleStar={false}
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton
-        canCopyLink={false}
-        showOpenInBrowserButton
-        canOpenInBrowser={false}
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser={false}
+        articleState={{
+          hasArticle: false,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: false,
+          canToggleStar: false,
+          showCopyLinkButton: true,
+          canCopyLink: false,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: false,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: false,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -327,18 +382,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
-        hasArticle={false}
-        canToggleRead={false}
-        canToggleStar={false}
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton={false}
-        canCopyLink={false}
-        showOpenInBrowserButton={false}
-        canOpenInBrowser={false}
-        showOpenInExternalBrowserButton={false}
-        canOpenInExternalBrowser={false}
+        articleState={{
+          hasArticle: false,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: false,
+          canToggleStar: false,
+          showCopyLinkButton: false,
+          canCopyLink: false,
+          showOpenInBrowserButton: false,
+          canOpenInBrowser: false,
+          showOpenInExternalBrowserButton: false,
+          canOpenInExternalBrowser: false,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -376,18 +435,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
-        hasArticle={false}
-        canToggleRead={false}
-        canToggleStar={false}
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton
-        canCopyLink={false}
-        showOpenInBrowserButton
-        canOpenInBrowser={false}
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser={false}
+        articleState={{
+          hasArticle: false,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: false,
+          canToggleStar: false,
+          showCopyLinkButton: true,
+          canCopyLink: false,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: false,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: false,
+        }}
         shareMenuControl={
           <ArticleShareMenu
             article={null}
@@ -443,17 +506,22 @@ describe("ArticleToolbarView", () => {
     const { container } = render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton
-        canCopyLink
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -487,17 +555,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen
-        showCopyLinkButton
-        canCopyLink
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: true,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -539,17 +612,22 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton
-        canCopyLink
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -573,10 +651,13 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    const toolbarButtons = screen
-      .getAllByRole("button")
-      .map((button) => button.getAttribute("aria-label"))
-      .filter((label): label is string => label !== null);
+    const toolbarButtons = screen.getAllByRole("button").reduce<string[]>((labels, button) => {
+      const label = button.getAttribute("aria-label");
+      if (label !== null) {
+        labels.push(label);
+      }
+      return labels;
+    }, []);
 
     expect(toolbarButtons).toEqual([
       "Close article",
@@ -588,6 +669,57 @@ describe("ArticleToolbarView", () => {
     ]);
   });
 
+  it("uses the layoutMode prop for action rendering even when the UI store differs", () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        layoutMode="wide"
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "More actions" })).not.toBeInTheDocument();
+  });
+
   it("groups secondary link actions under More actions in mobile layout", async () => {
     useUiStore.setState({ layoutMode: "mobile" });
     const user = userEvent.setup();
@@ -597,17 +729,23 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen={false}
-        showCopyLinkButton
-        canCopyLink
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton
-        canOpenInExternalBrowser
+        layoutMode="mobile"
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: true,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
@@ -657,23 +795,86 @@ describe("ArticleToolbarView", () => {
     expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps unavailable mobile secondary actions out of the More actions menu", async () => {
+    const user = userEvent.setup();
+    const onCopyLink = vi.fn();
+    const onOpenInExternalBrowser = vi.fn();
+
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        layoutMode="mobile"
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: false,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: true,
+          canCopyLink: false,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: true,
+          canOpenInExternalBrowser: true,
+        }}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={onCopyLink}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={onOpenInExternalBrowser}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+
+    expect(screen.queryByRole("menuitem", { name: "Copy link" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("menuitem", { name: "Open in External Browser" }));
+
+    expect(onCopyLink).not.toHaveBeenCalled();
+    expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
+  });
+
   it("switches the mobile preview label when Web Preview is already open", () => {
     useUiStore.setState({ layoutMode: "mobile" });
 
     render(
       <ArticleToolbarView
         showCloseButton
-        canToggleRead
-        canToggleStar
-        isRead={false}
-        isStarred={false}
-        isBrowserOpen
-        showCopyLinkButton={false}
-        canCopyLink={false}
-        showOpenInBrowserButton
-        canOpenInBrowser
-        showOpenInExternalBrowserButton={false}
-        canOpenInExternalBrowser={false}
+        layoutMode="mobile"
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: true,
+        }}
+        actionOptions={{
+          canToggleRead: true,
+          canToggleStar: true,
+          showCopyLinkButton: false,
+          canCopyLink: false,
+          showOpenInBrowserButton: true,
+          canOpenInBrowser: true,
+          showOpenInExternalBrowserButton: false,
+          canOpenInExternalBrowser: false,
+        }}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",

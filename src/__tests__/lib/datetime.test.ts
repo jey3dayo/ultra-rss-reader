@@ -89,6 +89,17 @@ describe("datetime helpers", () => {
     expect(formatLongDate("not-a-date", "en-US")).toBeNull();
   });
 
+  it("falls back to the default locale for malformed locale tags", () => {
+    const value = "2026-05-01T10:30:00Z";
+    const malformedLocale = "en_US";
+
+    expect(formatHourMinute(value, malformedLocale)).toBe(formatHourMinute(value));
+    expect(formatShortDate(value, malformedLocale)).toBe(formatShortDate(value));
+    expect(formatShortDateTime(value, malformedLocale)).toBe(formatShortDateTime(value));
+    expect(formatLongDate(value, malformedLocale)).toBe(formatLongDate(value));
+    expect(formatMediumDate(value, malformedLocale)).toBe(formatMediumDate(value));
+  });
+
   it("counts local calendar day boundaries across daylight saving time changes", () => {
     const originalTimezone = process.env.TZ;
     process.env.TZ = "America/New_York";

@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, forwardRef } from "react";
+import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 type ReaderInlineActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -11,10 +11,11 @@ const readerInlineActionButtonClassNames: Record<ReaderInlineActionButtonProps["
     "motion-static-hover-surface -mx-1 -my-1 block w-[calc(100%+0.5rem)] rounded-md px-1 py-1.5 text-left hover:bg-surface-1/72",
 };
 
-export const ReaderInlineActionButton = forwardRef<HTMLButtonElement, ReaderInlineActionButtonProps>(
-  ({ className, type = "button", variant, ...props }, ref) => (
-    <button ref={ref} type={type} className={cn(readerInlineActionButtonClassNames[variant], className)} {...props} />
-  ),
-);
-
-ReaderInlineActionButton.displayName = "ReaderInlineActionButton";
+export function ReaderInlineActionButton({
+  className,
+  type = "button",
+  variant,
+  ...props
+}: ReaderInlineActionButtonProps) {
+  return <button type={type} className={cn(readerInlineActionButtonClassNames[variant], className)} {...props} />;
+}

@@ -3,7 +3,10 @@ import { articleFilterToggleButtonClassName } from "@/components/shared/article-
 
 describe("ArticleFilterToggleButton contracts", () => {
   it("keeps the all-mode pressed contract neutral and shared with control chips", () => {
-    const className = articleFilterToggleButtonClassName({ mode: "all", size: "filter" });
+    const className = articleFilterToggleButtonClassName({
+      mode: "all",
+      size: "filter",
+    });
 
     expect(className).toContain("motion-contextual-surface");
     expect(className).toContain("rounded-md");
@@ -14,6 +17,25 @@ describe("ArticleFilterToggleButton contracts", () => {
     expect(className).toContain("data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]");
     expect(className).not.toContain("semantic-tone-unread");
     expect(className).not.toContain("semantic-tone-starred");
+  });
+
+  it("maps unread and starred modes to semantic pressed tone tokens", () => {
+    const unreadClassName = articleFilterToggleButtonClassName({
+      mode: "unread",
+      size: "filter",
+    });
+    const starredClassName = articleFilterToggleButtonClassName({
+      mode: "starred",
+      size: "filter",
+    });
+
+    expect(unreadClassName).toContain("data-[pressed]:bg-[var(--semantic-tone-unread-surface)]");
+    expect(unreadClassName).toContain("data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]");
+    expect(unreadClassName).not.toContain("semantic-tone-starred");
+
+    expect(starredClassName).toContain("data-[pressed]:bg-[var(--semantic-tone-starred-surface)]");
+    expect(starredClassName).toContain("data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]");
+    expect(starredClassName).not.toContain("semantic-tone-unread");
   });
 
   it("keeps the article filter size contract on supported shared chip sizes", () => {

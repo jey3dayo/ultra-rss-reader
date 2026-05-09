@@ -38,4 +38,75 @@ describe("UnsubscribeFeedDialogView", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("keeps confirm and cancel state transitions separate", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    const { rerender } = render(
+      <UnsubscribeFeedDialogView
+        open={true}
+        title="Unsubscribe"
+        description="Unsubscribe from Tech Blog?"
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Unsubscribe" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    onConfirm.mockClear();
+    rerender(
+      <UnsubscribeFeedDialogView
+        open={true}
+        title="Unsubscribe"
+        description="Unsubscribe from Tech Blog?"
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("disables actions and ignores confirm while pending", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <UnsubscribeFeedDialogView
+        open={true}
+        title="Unsubscribe"
+        description="Unsubscribe from Tech Blog?"
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        pending={true}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const confirmButton = screen.getByRole("button", { name: "Unsubscribe" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    expect(confirmButton).toBeDisabled();
+    expect(cancelButton).toBeDisabled();
+
+    await user.click(confirmButton);
+    await user.click(cancelButton);
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });

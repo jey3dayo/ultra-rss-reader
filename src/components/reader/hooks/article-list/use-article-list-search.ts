@@ -30,7 +30,7 @@ function articleListSearchReducer(
     case "open-search":
       return { ...state, showSearch: true };
     case "close-search":
-      return { ...state, showSearch: false, searchQuery: "" };
+      return { ...state, showSearch: false, searchQuery: "", debouncedQuery: "" };
     case "reset-search":
       return initialArticleListSearchState;
     case "set-search-query":
@@ -47,6 +47,7 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const { showSearch, searchQuery, debouncedQuery } = state;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const previousAccountIdRef = useRef(selectedAccountId);
+  const debounceGenerationRef = useRef(0);
 
   useEffect(() => {
     if (previousAccountIdRef.current === selectedAccountId) {
@@ -54,11 +55,17 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
     }
 
     previousAccountIdRef.current = selectedAccountId;
+    debounceGenerationRef.current += 1;
     dispatch({ type: "reset-search" });
   }, [selectedAccountId]);
 
   useEffect(() => {
+    const generation = debounceGenerationRef.current;
     const timer = setTimeout(() => {
+      if (generation !== debounceGenerationRef.current) {
+        return;
+      }
+
       dispatch({ type: "set-debounced-query", value: searchQuery });
     }, ARTICLE_SEARCH_DEBOUNCE_MS);
     return () => {
@@ -66,7 +73,7 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
     };
   }, [searchQuery]);
 
-  const trimmedDebouncedQuery = debouncedQuery.trim();
+  const trimmedDebouncedQuery = showSearch ? debouncedQuery.trim() : "";
   const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
 
   const focusSearchInput = useCallback(() => {
@@ -90,7 +97,13 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   }, [focusSearchInput, openSearch, showSearch]);
 
   const handleCloseSearch = useCallback(() => {
+    debounceGenerationRef.current += 1;
     dispatch({ type: "close-search" });
+  }, []);
+
+  const setSearchQuery = useCallback((value: string) => {
+    debounceGenerationRef.current += 1;
+    dispatch({ type: "set-search-query", value });
   }, []);
 
   return {
@@ -103,6 +116,6 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
     openSearch,
     handleToggleSearch,
     handleCloseSearch,
-    setSearchQuery: (value) => dispatch({ type: "set-search-query", value }),
+    setSearchQuery,
   };
 }

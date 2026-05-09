@@ -1,9 +1,51 @@
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UseArticleStatusActionsParams } from "@/components/reader/hooks/article/use-article-status-actions";
 import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
+import { useUiStore } from "@/stores/ui-store";
+
+type SetReadMutate = UseArticleStatusActionsParams["setRead"]["mutate"];
+type ToggleStarMutate = UseArticleStatusActionsParams["toggleStar"]["mutate"];
+
+function createMutationContext() {
+  return {
+    client: new QueryClient(),
+    meta: undefined,
+  };
+}
+
+function createParams(overrides: Partial<UseArticleStatusActionsParams> = {}): UseArticleStatusActionsParams {
+  return {
+    articleId: "art-1",
+    isRead: false,
+    isStarred: false,
+    viewMode: "all",
+    retainOnUnstar: false,
+    showToast: vi.fn(),
+    addRecentlyRead: vi.fn(),
+    removeRecentlyRead: vi.fn(),
+    retainArticle: vi.fn(),
+    setRead: {
+      mutate: vi.fn(),
+    },
+    toggleStar: {
+      mutate: vi.fn(),
+    },
+    starredMessage: "starred",
+    unstarredMessage: "unstarred",
+    ...overrides,
+  };
+}
 
 describe("useArticleStatusActions", () => {
+  beforeEach(() => {
+    useUiStore.setState({
+      retainedArticleIds: new Set(),
+      recentlyReadIds: new Set(),
+    });
+  });
+
   it("removes recently-read state when an article is marked unread", () => {
     const addRecentlyRead = vi.fn();
     const removeRecentlyRead = vi.fn();
@@ -97,5 +139,92 @@ describe("useArticleStatusActions", () => {
     expect(showToast).not.toHaveBeenCalled();
     expect(addRecentlyRead).not.toHaveBeenCalled();
     expect(removeRecentlyRead).not.toHaveBeenCalled();
+  });
+
+  it("rolls back newly retained unread articles and shows a toast when marking read fails", () => {
+    const showToast = vi.fn();
+    const mutate: SetReadMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleStatusActionsParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions(
+        createParams({
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          showToast,
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.setReadStatus(true);
+    });
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+    expect(showToast).toHaveBeenCalledWith("Failed to mark read");
+  });
+
+  it("keeps pre-existing retained unread articles when marking read fails", () => {
+    useUiStore.getState().retainArticle("art-1");
+    const showToast = vi.fn();
+    const mutate: SetReadMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleStatusActionsParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions(
+        createParams({
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          showToast,
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.setReadStatus(true);
+    });
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(showToast).toHaveBeenCalledWith("Failed to mark read");
+  });
+
+  it("shows a toast without status success copy when starring fails", () => {
+    const showToast = vi.fn();
+    const retainArticle = vi.fn();
+    const mutate: ToggleStarMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to star"), variables, undefined, createMutationContext());
+    };
+    const toggleStar: UseArticleStatusActionsParams["toggleStar"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions(
+        createParams({
+          retainArticle,
+          retainOnUnstar: true,
+          showToast,
+          toggleStar,
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.setStarStatus(true, { showStatusToast: true });
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Failed to star");
+    expect(showToast).not.toHaveBeenCalledWith("starred");
+    expect(retainArticle).not.toHaveBeenCalled();
   });
 });

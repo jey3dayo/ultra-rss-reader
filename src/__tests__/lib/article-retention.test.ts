@@ -49,4 +49,22 @@ describe("article retention", () => {
     expect(previousRetainedArticleIds).toEqual(new Set(["art-1"]));
     expect(retainedArticleIds).toEqual(new Set(["art-1", "art-2"]));
   });
+
+  it("ignores blank article ids when selecting in unread mode", () => {
+    const retainedArticleIds = getRetainedArticleIdsAfterSelectingArticle({
+      articleId: "   ",
+      viewMode: "unread",
+      currentRetainedArticleIds: new Set(["art-1"]),
+    });
+
+    expect(retainedArticleIds).toEqual(new Set(["art-1"]));
+  });
+
+  it("ignores blank article ids when adding retained articles directly", () => {
+    const previousRetainedArticleIds = new Set(["art-1"]);
+    const retainedArticleIds = addRetainedArticle(previousRetainedArticleIds, "");
+
+    expect(previousRetainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(retainedArticleIds).toEqual(new Set(["art-1"]));
+  });
 });

@@ -23,7 +23,11 @@ describe("ArticleListScreenView", () => {
       />,
     );
 
-    expect(screen.getByText("Loading articles")).toHaveClass(
+    const loadingStatus = screen.getByRole("status");
+
+    expect(loadingStatus).toHaveAttribute("aria-live", "polite");
+    expect(loadingStatus).toHaveTextContent("Loading articles");
+    expect(loadingStatus).toHaveClass(
       "rounded-md",
       "border",
       "border-border/70",

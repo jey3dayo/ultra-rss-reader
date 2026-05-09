@@ -32,6 +32,7 @@ const feed: FeedDto = {
   id: "feed-1",
   account_id: "account-1",
   folder_id: null,
+  remote_id: null,
   title: "Tech News",
   url: "https://example.com/feed.xml",
   site_url: "https://example.com",

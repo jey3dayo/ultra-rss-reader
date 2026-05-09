@@ -28,7 +28,7 @@ type UseBrowserViewSurfaceStateParams = {
   blockedHint: string;
 };
 
-type UseBrowserViewSurfaceStateResult = {
+export type UseBrowserViewSurfaceStateResult = {
   surfaceIssue: BrowserSurfaceIssue | null;
   setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
   handleLostEmbeddedBrowserWebview: (error: AppError) => void;

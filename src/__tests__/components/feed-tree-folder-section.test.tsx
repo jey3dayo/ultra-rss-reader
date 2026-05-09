@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedTreeFolderViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeFolderSection } from "@/components/reader/feed-tree-folder-section";
@@ -57,6 +57,28 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("pl-1.5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
+  });
+
+  it("does not mark a zero-unread folder read on middle click", () => {
+    const onSelectFolder = vi.fn();
+    const onMarkFolderRead = vi.fn();
+
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, unreadCount: 0, isSelected: false }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        onMarkFolderRead={onMarkFolderRead}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Select folder Comic" }), { button: 1 });
+
+    expect(onMarkFolderRead).not.toHaveBeenCalled();
+    expect(onSelectFolder).not.toHaveBeenCalled();
   });
 
   it("uses a softer active drop tone for folder targets", () => {

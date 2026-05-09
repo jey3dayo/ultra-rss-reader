@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useBrowserViewController } from "@/components/reader/hooks/browser/use-browser-view-controller";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
@@ -8,7 +8,16 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
-import type { BrowserViewProps } from "./browser-view.types";
+import type { BrowserOverlayToolbarAction, BrowserViewScope } from "./browser-view.types";
+
+type BrowserViewProps = {
+  scope?: BrowserViewScope;
+  onCloseOverlay: () => void;
+  labels: {
+    closeWebPreview: string;
+  };
+  toolbarActions?: BrowserOverlayToolbarAction[];
+};
 
 function prefersReducedMotion() {
   return (
@@ -19,40 +28,38 @@ function prefersReducedMotion() {
 }
 
 const BROWSER_THEME_WIPE_DURATION_MS = 750;
+const SYSTEM_COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 
 function getSystemTheme() {
   return typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
+    window.matchMedia(SYSTEM_COLOR_SCHEME_QUERY).matches
     ? "dark"
     : "light";
 }
 
+function subscribeSystemThemeChange(onStoreChange: () => void) {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return () => {};
+  }
+
+  const mediaQuery = window.matchMedia(SYSTEM_COLOR_SCHEME_QUERY);
+  mediaQuery.addEventListener("change", onStoreChange);
+
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function useSystemTheme() {
+  return useSyncExternalStore(subscribeSystemThemeChange, getSystemTheme, () => "light");
+}
+
 function BrowserThemeWipeOverlay() {
   const themePreference = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "theme"));
-  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() => getSystemTheme());
-  const resolvedTheme = useMemo(
-    () => (themePreference === "system" ? systemTheme : themePreference),
-    [systemTheme, themePreference],
-  );
+  const systemTheme = useSystemTheme();
+  const resolvedTheme = themePreference === "system" ? systemTheme : themePreference;
   const cleanupTimeoutRef = useRef<number | null>(null);
   const previousResolvedThemeRef = useRef<typeof resolvedTheme | null>(null);
   const [wipeKey, setWipeKey] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return undefined;
-    }
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (event: MediaQueryListEvent) => {
-      setSystemTheme(event.matches ? "dark" : "light");
-    };
-    setSystemTheme(mediaQuery.matches ? "dark" : "light");
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   useEffect(() => {
     if (previousResolvedThemeRef.current === null) {
@@ -106,6 +113,54 @@ function BrowserThemeWipeOverlay() {
   );
 }
 
+type BrowserOverlayOpenAction = { type: "close" } | { type: "open" };
+
+function createInitialBrowserOverlayOpenState() {
+  return prefersReducedMotion();
+}
+
+function browserOverlayOpenReducer(state: boolean, action: BrowserOverlayOpenAction) {
+  switch (action.type) {
+    case "close":
+      return false;
+    case "open":
+      return true;
+  }
+
+  return state;
+}
+
+function useBrowserOverlayOpenState(browserCloseInFlight: boolean) {
+  const [overlayOpen, dispatchOverlayOpen] = useReducer(
+    browserOverlayOpenReducer,
+    undefined,
+    createInitialBrowserOverlayOpenState,
+  );
+
+  useEffect(() => {
+    if (browserCloseInFlight) {
+      dispatchOverlayOpen({ type: "close" });
+      return undefined;
+    }
+
+    if (prefersReducedMotion()) {
+      dispatchOverlayOpen({ type: "open" });
+      return undefined;
+    }
+
+    dispatchOverlayOpen({ type: "close" });
+    const frame = window.requestAnimationFrame(() => {
+      dispatchOverlayOpen({ type: "open" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [browserCloseInFlight]);
+
+  return overlayOpen;
+}
+
 function BrowserOverlayShell({
   controller,
   scope,
@@ -118,28 +173,7 @@ function BrowserOverlayShell({
   toolbarActions?: BrowserViewProps["toolbarActions"];
 }) {
   const browserCloseInFlight = useUiStore((s) => s.browserCloseInFlight);
-  const [overlayOpen, setOverlayOpen] = useState(() => prefersReducedMotion());
-
-  useEffect(() => {
-    if (browserCloseInFlight) {
-      setOverlayOpen(false);
-      return undefined;
-    }
-
-    if (prefersReducedMotion()) {
-      setOverlayOpen(true);
-      return undefined;
-    }
-
-    setOverlayOpen(false);
-    const frame = window.requestAnimationFrame(() => {
-      setOverlayOpen(true);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [browserCloseInFlight]);
+  const overlayOpen = useBrowserOverlayOpenState(browserCloseInFlight);
 
   return (
     <div

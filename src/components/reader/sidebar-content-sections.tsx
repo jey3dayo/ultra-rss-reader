@@ -13,129 +13,124 @@ import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-i
 import { SidebarTagSection } from "./sidebar-tag-section";
 
 export type SidebarContentSectionsProps = {
-  subscriptionsLabel: string;
-  isFeedsSectionOpen: boolean;
-  onToggleFeedsSection: () => void;
+  subscriptions: {
+    label: string;
+    isOpen: boolean;
+    onToggle: () => void;
+    renderContextMenu: () => ReactNode;
+  };
   viewportRef: RefObject<HTMLDivElement | null>;
-  subscriptionsIndexLabel: string;
-  subscriptionsIndexShortLabel: string;
-  settingsLabel: string;
-  themeToggleLabel: string;
-  onOpenSubscriptionsIndex: () => void;
-  onOpenSettings: () => void;
-  selectedAccountId: string | null;
-  isAddFeedDialogOpen: boolean;
-  onAddFeedDialogOpenChange: (open: boolean) => void;
-  pressPlusToAddFeedLabel: string;
-  tagsLabel: string;
-  noFolderLabel: string;
-  showSidebarTags: boolean;
-  isTagsSectionOpen: SidebarTagListProps["isOpen"];
-  onToggleTagsSection: SidebarTagListProps["onToggleOpen"];
-  feedTreeProps: SidebarFeedTreeProps;
-  tags: SidebarTagItemsParams["tags"];
-  tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];
-  selection: SidebarTagItemsParams["selection"];
-  onSelectTag: SidebarTagListProps["onSelectTag"];
-  renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
-  renderTagSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
-  renderSubscriptionsSectionContextMenu: () => ReactNode;
+  navigation: {
+    subscriptionsIndexLabel: string;
+    subscriptionsIndexShortLabel: string;
+    settingsLabel: string;
+    themeToggleLabel: string;
+    onOpenSubscriptionsIndex: () => void;
+    onOpenSettings: () => void;
+  };
+  addFeedDialog: {
+    accountId: string | null;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+  };
+  feedTree: {
+    props: SidebarFeedTreeProps;
+    noFolderLabel: string;
+    pressPlusToAddFeedLabel: string;
+    isLoading: boolean;
+    showSkeleton: boolean;
+  };
+  tagSection: {
+    isVisible: boolean;
+    label: string;
+    isOpen: SidebarTagListProps["isOpen"];
+    onToggle: SidebarTagListProps["onToggleOpen"];
+    tags: SidebarTagItemsParams["tags"];
+    tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];
+    selection: SidebarTagItemsParams["selection"];
+    onSelectTag: SidebarTagListProps["onSelectTag"];
+    renderContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
+    renderSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
+  };
   sidebarDensity: SidebarDensity;
-  isFeedTreeLoading: boolean;
-  showFeedTreeSkeleton: boolean;
   onFocusAccountList: () => void;
 };
 
 export function SidebarContentSections({
-  subscriptionsLabel,
-  isFeedsSectionOpen,
-  onToggleFeedsSection,
-  renderSubscriptionsSectionContextMenu,
+  subscriptions,
   viewportRef,
-  subscriptionsIndexLabel,
-  subscriptionsIndexShortLabel,
-  settingsLabel,
-  themeToggleLabel,
-  onOpenSubscriptionsIndex,
-  onOpenSettings,
-  selectedAccountId,
-  isAddFeedDialogOpen,
-  onAddFeedDialogOpenChange,
-  pressPlusToAddFeedLabel,
-  tagsLabel,
-  noFolderLabel,
-  showSidebarTags,
-  isTagsSectionOpen,
-  onToggleTagsSection,
-  feedTreeProps,
-  tags,
-  tagArticleCounts,
-  selection,
-  onSelectTag,
-  renderTagContextMenu,
-  renderTagSectionContextMenu,
+  navigation,
+  addFeedDialog,
+  feedTree,
+  tagSection: tagSectionProps,
   sidebarDensity,
-  isFeedTreeLoading,
-  showFeedTreeSkeleton,
   onFocusAccountList,
 }: SidebarContentSectionsProps) {
   const { t: commonT } = useTranslation("common");
-  const tagItems = useSidebarTagItems({ tags, tagArticleCounts, selection });
-  const feedEmptyState: FeedTreeEmptyState = selectedAccountId
-    ? isFeedTreeLoading
+  const tagItems = useSidebarTagItems({
+    tags: tagSectionProps.tags,
+    tagArticleCounts: tagSectionProps.tagArticleCounts,
+    selection: tagSectionProps.selection,
+  });
+  const feedEmptyState: FeedTreeEmptyState = addFeedDialog.accountId
+    ? feedTree.isLoading
       ? { kind: "loading", label: commonT("loading") }
-      : { kind: "message", message: pressPlusToAddFeedLabel }
+      : { kind: "message", message: feedTree.pressPlusToAddFeedLabel }
     : { kind: "hidden" };
 
-  const tagSection = showSidebarTags ? (
+  const tagSection = tagSectionProps.isVisible ? (
     <SidebarTagSection
-      tagsLabel={tagsLabel}
-      isOpen={isTagsSectionOpen}
-      onToggleOpen={onToggleTagsSection}
+      tagsLabel={tagSectionProps.label}
+      isOpen={tagSectionProps.isOpen}
+      onToggleOpen={tagSectionProps.onToggle}
       sidebarDensity={sidebarDensity}
       tags={tagItems}
-      onSelectTag={onSelectTag}
-      renderTagSectionContextMenu={renderTagSectionContextMenu}
-      renderContextMenu={renderTagContextMenu}
+      onSelectTag={tagSectionProps.onSelectTag}
+      renderTagSectionContextMenu={tagSectionProps.renderSectionContextMenu}
+      renderContextMenu={tagSectionProps.renderContextMenu}
     />
   ) : null;
 
-  const addFeedDialog = selectedAccountId ? (
-    <AddFeedDialog open={isAddFeedDialogOpen} onOpenChange={onAddFeedDialogOpenChange} accountId={selectedAccountId} />
+  const addFeedDialogView = addFeedDialog.accountId ? (
+    <AddFeedDialog
+      open={addFeedDialog.isOpen}
+      onOpenChange={addFeedDialog.onOpenChange}
+      accountId={addFeedDialog.accountId}
+    />
   ) : null;
   const subscriptionsSectionContextMenu = useMemo(
-    () => renderSubscriptionsSectionContextMenu(),
-    [renderSubscriptionsSectionContextMenu],
+    () => subscriptions.renderContextMenu(),
+    [subscriptions.renderContextMenu],
   );
 
   return (
     <SidebarContentView
-      subscriptionsLabel={subscriptionsLabel}
-      isFeedsSectionOpen={isFeedsSectionOpen}
-      onToggleFeedsSection={onToggleFeedsSection}
+      subscriptionsLabel={subscriptions.label}
+      isFeedsSectionOpen={subscriptions.isOpen}
+      onToggleFeedsSection={subscriptions.onToggle}
       subscriptionsSectionContextMenu={subscriptionsSectionContextMenu}
       viewportRef={viewportRef}
       feedTree={
-        showFeedTreeSkeleton ? (
+        feedTree.showSkeleton ? (
           <SidebarFeedTreeSkeleton label={commonT("loading")} />
         ) : (
           <FeedTreeView
-            {...feedTreeProps}
+            {...feedTree.props}
             sidebarDensity={sidebarDensity}
-            unfolderedLabel={noFolderLabel}
+            unfolderedLabel={feedTree.noFolderLabel}
             emptyState={feedEmptyState}
           />
         )
       }
       tagSection={tagSection}
-      subscriptionsIndexLabel={subscriptionsIndexLabel}
-      subscriptionsIndexShortLabel={subscriptionsIndexShortLabel}
-      settingsLabel={settingsLabel}
-      themeToggleLabel={themeToggleLabel}
-      onOpenSubscriptionsIndex={onOpenSubscriptionsIndex}
-      onOpenSettings={onOpenSettings}
+      subscriptionsIndexLabel={navigation.subscriptionsIndexLabel}
+      subscriptionsIndexShortLabel={navigation.subscriptionsIndexShortLabel}
+      settingsLabel={navigation.settingsLabel}
+      themeToggleLabel={navigation.themeToggleLabel}
+      onOpenSubscriptionsIndex={navigation.onOpenSubscriptionsIndex}
+      onOpenSettings={navigation.onOpenSettings}
       onFocusAccountList={onFocusAccountList}
-      addFeedDialog={addFeedDialog}
+      addFeedDialog={addFeedDialogView}
     />
   );
 }

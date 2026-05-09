@@ -1,33 +1,27 @@
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
+import { createUiStoreSliceHook } from "../use-ui-store-slice";
+
+const useArticleViewUiStoreSlice = createUiStoreSliceHook((s) => ({
+  closeBrowser: s.closeBrowser,
+  layoutMode: s.layoutMode,
+  contentMode: s.contentMode,
+  browserUrl: s.browserUrl,
+  selection: s.selection,
+  clearArticle: s.clearArticle,
+  showToast: s.showToast,
+  addRecentlyRead: s.addRecentlyRead,
+  retainArticle: s.retainArticle,
+  viewMode: s.viewMode,
+  setFocusedPane: s.setFocusedPane,
+}));
 
 export function useArticleViewUiState() {
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
-  const layoutMode = useUiStore((s) => s.layoutMode);
-  const contentMode = useUiStore((s) => s.contentMode);
-  const browserUrl = useUiStore((s) => s.browserUrl);
-  const selection = useUiStore((s) => s.selection);
-  const clearArticle = useUiStore((s) => s.clearArticle);
-  const showToast = useUiStore((s) => s.showToast);
-  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const retainArticle = useUiStore((s) => s.retainArticle);
-  const viewMode = useUiStore((s) => s.viewMode);
-  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
+  const uiState = useArticleViewUiStoreSlice();
   const afterReading = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "after_reading"));
 
   return {
-    closeBrowser,
-    layoutMode,
-    contentMode,
-    browserUrl,
-    selection,
-    clearArticle,
-    showToast,
-    addRecentlyRead,
-    retainArticle,
-    viewMode,
-    setFocusedPane,
+    ...uiState,
     afterReading,
   };
 }

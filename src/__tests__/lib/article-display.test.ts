@@ -137,6 +137,33 @@ describe("article-display preset conversions", () => {
     ).toBeNull();
   });
 
+  it("treats one invalid child display axis as an indeterminate folder preset", () => {
+    expect(
+      resolveFolderDisplayPreset([
+        { reader_mode: "on", web_preview_mode: "off" },
+        { reader_mode: "on", web_preview_mode: "custom" },
+      ]),
+    ).toBeNull();
+  });
+
+  it("treats all invalid child display axes as an indeterminate folder preset", () => {
+    expect(
+      resolveFolderDisplayPreset([
+        { reader_mode: "custom", web_preview_mode: "off" },
+        { reader_mode: "on", web_preview_mode: "custom" },
+      ]),
+    ).toBeNull();
+  });
+
+  it("keeps mixed valid child display presets indeterminate", () => {
+    expect(
+      resolveFolderDisplayPreset([
+        { reader_mode: "on", web_preview_mode: "off" },
+        { reader_mode: "on", web_preview_mode: "on" },
+      ]),
+    ).toBeNull();
+  });
+
   it("narrows unknown values to feed display preset options", () => {
     expect(isFeedDisplayPresetOption("default")).toBe(true);
     expect(isFeedDisplayPresetOption("standard")).toBe(true);
@@ -160,7 +187,7 @@ describe("article-display preset conversions", () => {
     expect(isTriStateDisplayMode(null)).toBe(false);
   });
 
-  it("falls feed display overrides back to inherit when persisted values are invalid", () => {
+  it("falls feed display overrides back to inherit per invalid persisted axis", () => {
     expect(
       resolveFeedDisplayOverrides({
         reader_mode: "on",
@@ -176,7 +203,7 @@ describe("article-display preset conversions", () => {
         web_preview_mode: "custom",
       }),
     ).toEqual({
-      readerMode: "inherit",
+      readerMode: "on",
       webPreviewMode: "inherit",
     });
     expect(
@@ -186,7 +213,7 @@ describe("article-display preset conversions", () => {
       }),
     ).toEqual({
       readerMode: "inherit",
-      webPreviewMode: "inherit",
+      webPreviewMode: "off",
     });
   });
 

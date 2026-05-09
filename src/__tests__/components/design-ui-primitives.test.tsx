@@ -9,32 +9,40 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME,
+  MOTION_ARTICLE_SLIDE_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
-  MOTION_CONTENT_SWAP_CLASS_NAME,
-  MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME,
+  MOTION_CLASS_NAMES,
   MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
-  MOTION_DATA_ICON_ATTRIBUTE,
-  MOTION_DATA_PHASE_ATTRIBUTE,
-  MOTION_DATA_SIDE_ATTRIBUTE,
-  MOTION_DATA_STARTING_STYLE_ATTRIBUTE,
-  MOTION_DATA_STATE_ATTRIBUTE,
-  MOTION_DISCLOSURE_PANEL_CLASS_NAME,
+  MOTION_DATA_ATTRIBUTES,
+  MOTION_DATA_DIRECTION_ATTRIBUTE,
+  MOTION_DIRECTION_NEXT,
+  MOTION_DIRECTION_PREV,
   MOTION_DISCLOSURE_TRIGGER_CLASS_NAME,
-  MOTION_ICON_SWAP_CLASS_NAME,
-  MOTION_ICON_SWAP_ICON_A,
-  MOTION_ICON_SWAP_ICON_CLASS_NAME,
-  MOTION_ICON_SWAP_STATE_A,
-  MOTION_PHASE_ENTERING,
+  MOTION_GLOBAL_CSS_CONTRACT_SELECTORS,
+  MOTION_KEYFRAMES_NAMES,
   MOTION_POPUP_DIALOG_CLASS_NAME,
   MOTION_POPUP_OVERLAY_CLASS_NAME,
-  MOTION_POPUP_SIDE_TOP,
-  MOTION_POPUP_SURFACE_CLASS_NAME,
-  MOTION_RESIZE_SURFACE_CLASS_NAME,
-  MOTION_STATIC_HOVER_SURFACE_CLASS_NAME,
 } from "@/constants";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
+
+const expectGlobalCssToContainMotionContract = () => {
+  for (const className of MOTION_CLASS_NAMES) {
+    expect(globalCss).toContain(`.${className}`);
+  }
+
+  for (const keyframesName of MOTION_KEYFRAMES_NAMES) {
+    expect(globalCss).toContain(`@keyframes ${keyframesName}`);
+  }
+
+  for (const dataAttribute of MOTION_DATA_ATTRIBUTES) {
+    expect(globalCss).toContain(`[${dataAttribute}`);
+  }
+
+  for (const selector of MOTION_GLOBAL_CSS_CONTRACT_SELECTORS) {
+    expect(globalCss).toContain(selector);
+  }
+};
 
 describe("Design-themed UI primitives", () => {
   it("uses warm surface styling for shared button variants", () => {
@@ -88,21 +96,8 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
     expect(globalCss).toContain("--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);");
-    expect(globalCss).toContain(`.${MOTION_DISCLOSURE_PANEL_CLASS_NAME}`);
-    expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}`);
-    expect(globalCss).toContain(`.${MOTION_STATIC_HOVER_SURFACE_CLASS_NAME}`);
-    expect(globalCss).toContain(`.${MOTION_CONTENT_SWAP_CLASS_NAME}`);
-    expect(globalCss).toContain(`.${MOTION_ICON_SWAP_CLASS_NAME}`);
-    expect(globalCss).toContain(
-      `.${MOTION_ICON_SWAP_CLASS_NAME}[${MOTION_DATA_STATE_ATTRIBUTE}="${MOTION_ICON_SWAP_STATE_A}"] > .${MOTION_ICON_SWAP_ICON_CLASS_NAME}[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_SWAP_ICON_A}"]`,
-    );
-    expect(globalCss).toContain(`.${MOTION_RESIZE_SURFACE_CLASS_NAME}`);
-    expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}`);
-    expect(globalCss).toContain(
-      `.${MOTION_POPUP_SURFACE_CLASS_NAME}[${MOTION_DATA_SIDE_ATTRIBUTE}="${MOTION_POPUP_SIDE_TOP}"]`,
-    );
+    expectGlobalCssToContainMotionContract();
     expect(globalCss).toContain("@starting-style");
-    expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}[${MOTION_DATA_STARTING_STYLE_ATTRIBUTE}]`);
     expect(globalCss).toContain(`.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
     expect(globalCss).not.toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
@@ -110,24 +105,17 @@ describe("Design-themed UI primitives", () => {
     );
     expect(globalCss).toContain("border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);");
     expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`);
-    expect(globalCss).toContain(
-      `.${MOTION_CONTENT_SWAP_CLASS_NAME}[${MOTION_DATA_PHASE_ATTRIBUTE}="${MOTION_PHASE_ENTERING}"]`,
-    );
-    expect(globalCss).toContain(`@keyframes ${MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME}`);
-    expect(globalCss).toContain(".motion-article-slide");
-    expect(globalCss).toContain("@keyframes motion-article-slide-next");
-    expect(globalCss).toContain("@keyframes motion-article-slide-prev");
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="next"]');
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="prev"]');
-    expect(globalCss).toContain("@keyframes vertical-wipe");
     expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-old(root)");
     expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-new(root)");
     expect(globalCss).toContain("animation: vertical-wipe 0.75s ease-in-out forwards;");
-    expect(globalCss).toContain(`.${MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME}`);
     expect(globalCss).toContain("will-change: clip-path;");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="next"],');
-    expect(globalCss).toContain('.motion-article-slide[data-motion-direction="prev"],');
+    expect(globalCss).toContain(
+      `.${MOTION_ARTICLE_SLIDE_CLASS_NAME}[${MOTION_DATA_DIRECTION_ATTRIBUTE}="${MOTION_DIRECTION_NEXT}"],`,
+    );
+    expect(globalCss).toContain(
+      `.${MOTION_ARTICLE_SLIDE_CLASS_NAME}[${MOTION_DATA_DIRECTION_ATTRIBUTE}="${MOTION_DIRECTION_PREV}"],`,
+    );
     expect(globalCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(
       "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",

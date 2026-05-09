@@ -41,6 +41,8 @@ function isMouseNavigationButton(event: MouseEvent): boolean {
 }
 
 export function useMouseNavigation() {
+  // Keep this separate from the similar browser lifecycle hooks: it owns global
+  // mouse side-button capture and must not inherit URL or keyboard semantics.
   useEffect(() => {
     const handleMouseDown = createMouseEventListener((event) => {
       if (!isMouseNavigationButton(event) || event.defaultPrevented || isIgnoredMouseNavigationTarget(event.target)) {

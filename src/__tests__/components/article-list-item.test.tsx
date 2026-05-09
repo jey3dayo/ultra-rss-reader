@@ -36,6 +36,7 @@ describe("ArticleListItem", () => {
       metaLabel: "Read 10:30",
       normalizedFeedName: "Episode 150",
       normalizedSummary: "Episode 150",
+      normalizedThumbnail: "https://example.com/image.jpg",
       normalizedTitle: "Episode 150",
       showFeedName: false,
       showSecondaryRow: true,
@@ -67,12 +68,125 @@ describe("ArticleListItem", () => {
       metaLabel: "Tech Blog · Read yesterday",
       normalizedFeedName: "Tech Blog",
       normalizedSummary: "A hello world article",
+      normalizedThumbnail: "",
       normalizedTitle: "First Article",
       showFeedName: true,
       showSecondaryRow: true,
       showSummary: true,
       showThumbnail: false,
     });
+  });
+
+  it("treats whitespace-only thumbnails as absent", () => {
+    expect(
+      resolveArticleListItemPresentation({
+        title: "First Article",
+        summary: "A hello world article",
+        thumbnail: "   ",
+        feedName: "Tech Blog",
+        viewedAtLabel: null,
+        isRead: false,
+        isStarred: false,
+        isRecentlyRead: false,
+        textPreview: "true",
+        imagePreviews: "medium",
+        unreadSuffix: "(unread)",
+        starredSuffix: "(starred)",
+      }),
+    ).toMatchObject({
+      normalizedThumbnail: "",
+      showSecondaryRow: true,
+      showSummary: true,
+      showThumbnail: false,
+    });
+  });
+
+  it("normalizes title whitespace for row labels and display", () => {
+    expect(
+      resolveArticleListItemPresentation({
+        title: "  First Article  ",
+        summary: "A hello world article",
+        thumbnail: null,
+        feedName: "Tech Blog",
+        viewedAtLabel: null,
+        isRead: false,
+        isStarred: false,
+        isRecentlyRead: false,
+        textPreview: "true",
+        imagePreviews: "off",
+        unreadSuffix: "(unread)",
+        starredSuffix: "(starred)",
+      }),
+    ).toMatchObject({
+      ariaLabel: "First Article (unread)",
+      normalizedTitle: "First Article",
+      showSummary: true,
+    });
+
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], title: "  First Article  ", is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveAttribute(
+      "aria-label",
+      "First Article (unread)",
+    );
+    expect(screen.getByRole("heading", { name: "First Article" })).toBeInTheDocument();
+  });
+
+  it("uses the title fallback for empty row labels and display", () => {
+    expect(
+      resolveArticleListItemPresentation({
+        title: "   ",
+        summary: null,
+        thumbnail: null,
+        feedName: undefined,
+        viewedAtLabel: null,
+        isRead: false,
+        isStarred: false,
+        isRecentlyRead: false,
+        textPreview: "true",
+        imagePreviews: "off",
+        unreadSuffix: "(unread)",
+        starredSuffix: "(starred)",
+      }),
+    ).toMatchObject({
+      ariaLabel: "Untitled article (unread)",
+      normalizedTitle: "Untitled article",
+      showSummary: false,
+    });
+
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], title: "   ", is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("option", { name: "Untitled article (unread)" })).toHaveAttribute(
+      "aria-label",
+      "Untitled article (unread)",
+    );
+    expect(screen.getByRole("heading", { name: "Untitled article" })).toBeInTheDocument();
   });
 
   it("treats recently read retained articles as read in accessibility labels", () => {
@@ -133,7 +247,7 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByTestId("article-star-indicator")).toHaveClass("h-3", "w-3");
+    expect(screen.getByTestId("article-star-indicator")).toHaveClass("size-3");
   });
 
   it("reserves the star slot even when the article is not starred", () => {
@@ -153,7 +267,7 @@ describe("ArticleListItem", () => {
     );
 
     expect(screen.queryByTestId("article-star-indicator")).toBeNull();
-    expect(screen.getByTestId("article-star-slot")).toHaveClass("h-3", "w-3", "shrink-0");
+    expect(screen.getByTestId("article-star-slot")).toHaveClass("size-3", "shrink-0");
   });
 
   it("activates article rows with Enter and Space", () => {

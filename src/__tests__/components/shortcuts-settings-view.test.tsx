@@ -32,6 +32,7 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "J",
                 isRecording: false,
                 resetDisabled: false,
+                resetAriaLabel: "Reset Next article shortcut",
                 onReset: vi.fn(),
                 conflictLabel: "Already used",
                 onStartRecording,
@@ -49,6 +50,7 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "⌘ ,",
                 isLocked: true,
                 isRecording: false,
+                resetAriaLabel: "Reset Open settings shortcut",
                 onReset: onLockedReset,
               },
             ],
@@ -66,7 +68,7 @@ describe("ShortcutsSettingsView", () => {
     expect(screen.getByText("Already used")).toHaveClass("text-state-danger-foreground");
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
     const lockedResetButton = screen.getByRole("button", {
-      name: "Reset to defaults: Open settings",
+      name: "Reset Open settings shortcut",
     });
     expect(lockedResetButton).toBeDisabled();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass(
@@ -74,7 +76,7 @@ describe("ShortcutsSettingsView", () => {
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByRole("button", { name: "Reset to defaults: Next article" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
     expect(screen.getByText("⌘ ,")).toHaveClass("bg-surface-1", "text-foreground-soft");
@@ -115,6 +117,7 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "J",
                 isRecording: false,
                 resetDisabled: true,
+                resetAriaLabel: "Reset Next article shortcut",
                 onReset: onResetDefault,
               },
               {
@@ -123,6 +126,7 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "P",
                 isRecording: false,
                 resetDisabled: false,
+                resetAriaLabel: "Reset Previous article shortcut",
                 onReset: onResetCustom,
               },
             ],
@@ -131,9 +135,9 @@ describe("ShortcutsSettingsView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Reset to defaults: Next article" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeDisabled();
     const rowReset = screen.getByRole("button", {
-      name: "Reset to defaults: Previous article",
+      name: "Reset Previous article shortcut",
     });
     expect(rowReset).toBeEnabled();
 
@@ -144,11 +148,45 @@ describe("ShortcutsSettingsView", () => {
     expect(onResetCustom).toHaveBeenCalledTimes(1);
   });
 
-  it("focuses the active badge and captures the next window key press while recording", async () => {
+  it("prefers explicit row reset aria labels", () => {
+    render(
+      <ShortcutsSettingsView
+        title="Shortcuts"
+        conflictMessage={null}
+        pressAKeyLabel="Press a key"
+        resetLabel="Reset to defaults"
+        resetDisabled={false}
+        onResetAll={vi.fn()}
+        categories={[
+          {
+            id: "navigation",
+            heading: "Navigation",
+            items: [
+              {
+                id: "next_article",
+                label: "Next article",
+                displayKey: "J",
+                isRecording: false,
+                resetDisabled: false,
+                resetAriaLabel: "Reset Next article shortcut",
+                onReset: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset to defaults: Next article" })).toBeNull();
+  });
+
+  it("disables resets while recording without interfering with key capture", async () => {
     const user = userEvent.setup();
     const onStartRecording = vi.fn();
     const onRecordKeyDown = vi.fn();
     const onResetAll = vi.fn();
+    const onResetRow = vi.fn();
 
     const { rerender } = render(
       <ShortcutsSettingsView
@@ -169,6 +207,7 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "J",
                 isRecording: false,
                 resetDisabled: false,
+                resetAriaLabel: "Reset Next article shortcut",
                 onReset: vi.fn(),
                 onStartRecording,
                 onKeyDown: onRecordKeyDown,
@@ -202,7 +241,8 @@ describe("ShortcutsSettingsView", () => {
                 displayKey: "J",
                 isRecording: true,
                 resetDisabled: false,
-                onReset: vi.fn(),
+                resetAriaLabel: "Reset Next article shortcut",
+                onReset: onResetRow,
                 onStartRecording,
                 onKeyDown: onRecordKeyDown,
               },
@@ -215,6 +255,8 @@ describe("ShortcutsSettingsView", () => {
     const recordingButton = screen.getByRole("button", { name: "Press a key" });
     expect(recordingButton).toHaveClass("w-full");
     expect(recordingButton).toHaveClass("bg-ring/14");
+    expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeDisabled();
 
     await waitFor(() => {
       expect(recordingButton).toHaveFocus();
@@ -231,8 +273,10 @@ describe("ShortcutsSettingsView", () => {
       metaKey: true,
     });
     await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    await user.click(screen.getByRole("button", { name: "Reset Next article shortcut" }));
 
     expect(onRecordKeyDown).toHaveBeenCalledTimes(2);
-    expect(onResetAll).toHaveBeenCalledTimes(1);
+    expect(onResetAll).not.toHaveBeenCalled();
+    expect(onResetRow).not.toHaveBeenCalled();
   });
 });

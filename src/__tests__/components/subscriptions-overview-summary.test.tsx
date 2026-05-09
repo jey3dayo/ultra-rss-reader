@@ -51,13 +51,20 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(actionableCard).toHaveClass("w-full", "min-w-0");
     expect(actionableCard).toHaveClass("rounded-md", "focus-visible:ring-2");
     expect(actionableCard).toHaveClass("sm:col-span-2", "lg:col-span-1");
+    expect(actionableCard).toHaveAttribute("aria-pressed", "false");
+    expect(actionableCard).toBeVisible();
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("絞り込む").closest("span")).toHaveAttribute("data-label-chip", "neutral");
     expect(within(actionableCard).getByText("条件")).toHaveClass("text-foreground-soft");
+    const statusIcon = actionableCard.querySelector("svg[aria-hidden='true']");
+    expect(statusIcon).not.toBeNull();
+    expect(statusIcon).toHaveClass("size-3");
+    expect(statusIcon).toBeVisible();
 
     const neutralCard = screen.getByRole("button", { name: /Healthy/ });
     expect(neutralCard).not.toBeNull();
+    expect(neutralCard).toBeVisible();
     expect(within(neutralCard).getByText("Healthy")).toHaveClass("text-foreground-soft");
     expect(within(neutralCard).getByText("All good")).toHaveClass("text-foreground-soft");
   });
@@ -256,5 +263,30 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(staticCard).not.toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-neutral)]");
     expect(within(staticCard).getByText("参照")).toBeInTheDocument();
     expect(within(staticCard).getByText("Ready")).toHaveClass("text-foreground-soft");
+  });
+
+  it("uses renderValue without replacing the surrounding card structure", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "2",
+            caption: "Check these feeds",
+            tone: "review",
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+        renderValue={(card) => <strong data-testid="custom-summary-value">{card.value} feeds</strong>}
+      />,
+    );
+
+    const card = screen.getByRole("button", { name: "Needs review を表示" });
+
+    expect(card).toHaveClass("rounded-md", "w-full");
+    expect(within(card).getByTestId("subscriptions-summary-card-badge-slot")).toBeInTheDocument();
+    expect(within(card).getByTestId("custom-summary-value")).toHaveTextContent("2 feeds");
+    expect(within(card).getByText("絞り込む").closest("[data-label-chip]")).toBeInTheDocument();
   });
 });

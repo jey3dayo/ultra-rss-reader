@@ -1,10 +1,12 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import type { DevIntentState } from "@tests/helpers/dev-intent";
+import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { sampleAccounts, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
+import i18n from "@tests/helpers/i18n-setup";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
+import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AccountPane } from "@/components/reader/account-pane";
@@ -17,8 +19,9 @@ import { resetManualSyncCooldownForTests } from "@/lib/sync/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { devIntentState } = vi.hoisted(() => {
-  const devIntentState: DevIntentState = { intent: null };
+const { devIntentState } = await vi.hoisted(async () => {
+  const { createDevIntentState } = await import("@tests/helpers/dev-intent");
+  const devIntentState: DevIntentState = createDevIntentState();
   return { devIntentState };
 });
 
@@ -199,7 +202,7 @@ describe("Sidebar", () => {
     syncProgressListener = null;
     syncWarningListener = null;
     renderedFeedContextMenuFeeds.length = 0;
-    devIntentState.intent = null;
+    resetDevIntentState(devIntentState);
     sidebarSourceOverrides.feedsEnabled = false;
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersEnabled = false;
@@ -220,6 +223,28 @@ describe("Sidebar", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("uses the reader locale for the navigation landmark", async () => {
+    await i18n.changeLanguage("en");
+    const QueryWrapper = createWrapper();
+    const { rerender } = render(
+      <I18nextProvider i18n={i18n}>
+        <Sidebar />
+      </I18nextProvider>,
+      { wrapper: QueryWrapper },
+    );
+
+    expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeInTheDocument();
+
+    await i18n.changeLanguage("ja");
+    rerender(
+      <I18nextProvider i18n={i18n}>
+        <Sidebar />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByRole("navigation", { name: "サイドバー" })).toBeInTheDocument();
   });
 
   it("keeps the sidebar in loading state and hides the add-feed CTA while the selected account feeds are unresolved", async () => {
@@ -2300,8 +2325,10 @@ describe("Sidebar", () => {
 
   it("keeps showing the previous successful sync time when manual sync fails", async () => {
     const lastSuccessAt = new Date().toISOString();
+    const calls: MockTauriCommandCall[] = [];
 
-    setupTauriMocks((cmd) => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
       if (cmd === "get_account_sync_status") {
         return {
           last_success_at: lastSuccessAt,
@@ -2319,11 +2346,16 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     await screen.findByText(/Today at /);
+    calls.length = 0;
 
     fireEvent.click(screen.getByLabelText("Sync feeds"));
 
     await waitFor(() => {
       expect(screen.getByText(/Today at /)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "get_account_sync_status").length).toBeGreaterThan(0);
     });
   });
 
@@ -2844,8 +2876,10 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const feedsButton = await screen.findByRole("button", { name: "Subscriptions" });
-    const tagsButton = await screen.findByRole("button", { name: "Tags" });
+    const [feedsButton, tagsButton] = await Promise.all([
+      screen.findByRole("button", { name: "Subscriptions" }),
+      screen.findByRole("button", { name: "Tags" }),
+    ]);
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
 
     expect(feedsButton.closest('[data-slot="scroll-area"]')).toBeNull();

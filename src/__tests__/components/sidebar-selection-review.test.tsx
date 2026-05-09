@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderStory } from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
-import { SidebarSelectionReviewCanvas } from "@/components/reader/sidebar-selection-review.stories";
+import sidebarSelectionReviewMeta, { Default } from "@/components/reader/sidebar-selection-review.stories";
 
 describe("SidebarSelectionReviewCanvas", () => {
   it("renders the cross-component selection review scenarios", () => {
-    render(<SidebarSelectionReviewCanvas />);
+    renderStory(sidebarSelectionReviewMeta, Default);
 
     expect(screen.getByText("Smart View / Unread Selected")).toHaveClass("text-sidebar-foreground/40");
     expect(screen.getByText("Smart View / Starred Selected")).toBeInTheDocument();

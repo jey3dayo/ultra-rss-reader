@@ -56,7 +56,11 @@ export function ArticleListScreenView({
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
         <div className="flex h-full items-center justify-center p-6">
-          <div className="rounded-md border border-border/70 bg-surface-1/72 px-4 py-3 text-center text-sm text-foreground-soft">
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-md border border-border/70 bg-surface-1/72 px-4 py-3 text-center text-sm text-foreground-soft"
+          >
             {loadingMessage}
           </div>
         </div>

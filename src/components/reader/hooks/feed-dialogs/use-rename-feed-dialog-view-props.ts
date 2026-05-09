@@ -1,7 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
-import type { RenameFeedDialogViewOption, UseRenameFeedDialogViewPropsParams } from "../../rename-feed-dialog.types";
+import type { RenameFeedDialogController, RenameFeedDialogViewOption } from "../../rename-feed-dialog.types";
 import type { RenameFeedDialogViewProps } from "../../rename-feed-dialog-view";
+
+type UseRenameFeedDialogViewPropsParams = {
+  open: boolean;
+  feedSiteUrl: string;
+  feedUrl: string;
+  onOpenChange: (open: boolean) => void;
+  folderLabelId: string;
+  controller: RenameFeedDialogController;
+};
 
 export function useRenameFeedDialogViewProps({
   open,

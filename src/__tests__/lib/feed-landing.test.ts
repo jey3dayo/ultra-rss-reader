@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
+  hasWebPreviewUrl,
   resolveFeedLandingArticle,
   resolveFeedLandingArticleResult,
   resolveFeedLandingDisplay,
@@ -38,15 +39,33 @@ const baseArticles: ArticleDto[] = [
 
 describe("resolveFeedLandingArticle", () => {
   it("returns the first visible unread article using newest-first ordering", () => {
-    expect(resolveFeedLandingArticle({ articles: baseArticles, sortUnread: "newest_first" })?.id).toBe("art-new");
+    expect(
+      resolveFeedLandingArticle({
+        articles: baseArticles,
+        sortUnread: "newest_first",
+      })?.id,
+    ).toBe("art-new");
   });
 
   it("returns null when the unread landing list would be empty", () => {
-    const allRead = baseArticles.map((article) => ({ ...article, is_read: true }));
-    expect(resolveFeedLandingArticle({ articles: allRead, sortUnread: "newest_first" })).toBeNull();
-    expect(Result.unwrapError(resolveFeedLandingArticleResult({ articles: allRead, sortUnread: "newest_first" }))).toBe(
-      "no_visible_article",
-    );
+    const allRead = baseArticles.map((article) => ({
+      ...article,
+      is_read: true,
+    }));
+    expect(
+      resolveFeedLandingArticle({
+        articles: allRead,
+        sortUnread: "newest_first",
+      }),
+    ).toBeNull();
+    expect(
+      Result.unwrapError(
+        resolveFeedLandingArticleResult({
+          articles: allRead,
+          sortUnread: "newest_first",
+        }),
+      ),
+    ).toBe("no_visible_article");
   });
 
   it("returns the first visible starred article in starred mode", () => {
@@ -55,9 +74,26 @@ describe("resolveFeedLandingArticle", () => {
       is_starred: index === 1,
     }));
 
-    expect(resolveFeedLandingArticle({ articles, sortUnread: "newest_first", viewMode: "starred" })?.id).toBe(
-      "art-old",
-    );
+    expect(
+      resolveFeedLandingArticle({
+        articles,
+        sortUnread: "newest_first",
+        viewMode: "starred",
+      })?.id,
+    ).toBe("art-old");
+  });
+});
+
+describe("hasWebPreviewUrl", () => {
+  it.each([
+    ["https absolute URL", "https://example.com/new", true],
+    ["http absolute URL", "http://example.com/new", true],
+    ["whitespace-only URL", " \n\t ", false],
+    ["javascript URL", "javascript:alert(1)", false],
+    ["relative URL", "/articles/new", false],
+    ["malformed URL", "https://", false],
+  ])("returns %s capability as %s", (_label, articleUrl, expected) => {
+    expect(hasWebPreviewUrl(articleUrl)).toBe(expected);
   });
 });
 
@@ -66,7 +102,10 @@ describe("resolveFeedLandingDisplay", () => {
     expect(
       resolveFeedLandingDisplay({
         feed: { reader_mode: "on", web_preview_mode: "on" },
-        prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+        prefs: {
+          reader_mode_default: "true",
+          web_preview_mode_default: "false",
+        },
         articleUrl: "https://example.com/new",
       }).webPreviewMode,
     ).toBe(true);
@@ -77,6 +116,18 @@ describe("resolveFeedLandingDisplay", () => {
       feed: { reader_mode: "on", web_preview_mode: "on" },
       prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
       articleUrl: null,
+    });
+
+    expect(display.readerMode).toBe(true);
+    expect(display.webPreviewMode).toBe(false);
+    expect(display.fallbackReason).toBe("missing_web_preview");
+  });
+
+  it("falls back to reader mode when the landing article URL is whitespace-only", () => {
+    const display = resolveFeedLandingDisplay({
+      feed: { reader_mode: "on", web_preview_mode: "on" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      articleUrl: " \n\t ",
     });
 
     expect(display.readerMode).toBe(true);

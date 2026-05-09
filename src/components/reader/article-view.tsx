@@ -118,7 +118,7 @@ function buildSummaryCardProps(
   if (summary.kind === "folder") {
     return {
       title: summary.folder.name,
-      leadingVisual: <FolderClosed className="h-5 w-5 text-foreground-soft" />,
+      leadingVisual: <FolderClosed className="size-5 text-foreground-soft" />,
       metrics: [
         { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
         { label: readerT("unread"), value: renderSummaryCount(summary.unreadCount, locale) },
@@ -131,9 +131,9 @@ function buildSummaryCardProps(
     return {
       title: summary.tag.name,
       leadingVisual: summary.tag.color ? (
-        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: summary.tag.color }} />
+        <span className="inline-block size-3 rounded-full" style={{ backgroundColor: summary.tag.color }} />
       ) : (
-        <TagIcon className="h-5 w-5 text-foreground-soft" />
+        <TagIcon className="size-5 text-foreground-soft" />
       ),
       metrics: [
         { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },
@@ -147,9 +147,9 @@ function buildSummaryCardProps(
     title: summary.smartKind === "unread" ? sidebarT("unread") : sidebarT("starred"),
     leadingVisual:
       summary.smartKind === "unread" ? (
-        <Inbox className="h-5 w-5 text-foreground-soft" />
+        <Inbox className="size-5 text-foreground-soft" />
       ) : (
-        <Star className="h-5 w-5 text-foreground-soft" />
+        <Star className="size-5 text-foreground-soft" />
       ),
     metrics: [
       { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },

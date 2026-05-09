@@ -2,8 +2,8 @@ import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
-import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard/keyboard-shortcuts";
-import type { ArticleNavigationDirection, FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
+import type { KeyboardAction, KeyboardShortcutPrefs } from "@/lib/keyboard/keyboard-shortcuts";
+import type { FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
@@ -13,13 +13,10 @@ import type { ArticleListContextStripProps } from "./article-list-context-strip"
 import type { ArticleListFooterProps } from "./article-list-footer";
 import type { ArticleListHeaderProps } from "./article-list-header";
 
-export type ArticleListLayoutMode = LayoutMode;
-export type ArticleListSelection = ReaderSelection;
-export type ArticleListViewMode = ViewMode;
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
 
 export type UseArticleListViewPropsResult = {
-  layoutMode: ArticleListLayoutMode;
+  layoutMode: LayoutMode;
   headerProps: ArticleListHeaderProps;
   contextStripProps: ArticleListContextStripProps;
   bodyProps: ArticleListBodyProps;
@@ -45,7 +42,7 @@ export type UseArticleListInteractionsResult = {
 };
 
 export type UseArticleListViewStateParams = {
-  selection: ArticleListSelection;
+  selection: ReaderSelection;
   t: TFunction<"reader">;
   selectedAccountId: string | null;
   feedId: string | null;
@@ -55,6 +52,8 @@ export type UseArticleListViewStateParams = {
   feedCount?: number;
   isLoading: boolean;
   isLoadingAccountArticles: boolean;
+  isLoadingFolderArticles: boolean;
+  isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
   showSearch: boolean;
   trimmedDebouncedQuery: string;
@@ -69,39 +68,18 @@ export type UseArticleListViewStateResult = {
     secondaryLabel: string | null;
     tone: "unread" | "starred" | null;
   };
-  footerModes: ReadonlyArray<ArticleListViewMode>;
-  footerDisabledModes: ReadonlyArray<ArticleListViewMode>;
+  footerModes: ReadonlyArray<ViewMode>;
+  footerDisabledModes: ReadonlyArray<ViewMode>;
   isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
   setupEmptyState: ArticleListSetupState;
 };
 
-export type UseArticleListEffectsParams = {
-  selection: ArticleListSelection;
-  scrollToTopOnChange: string;
-  listRef: RefObject<HTMLDivElement | null>;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  filteredArticles: ArticleDto[];
-  focusedPane: FocusedPane;
-  selectedArticleId: string | null;
-  isPrimarySourceLoading: boolean;
-  clearArticle: () => void;
-};
-
-export type UseArticleListGroupsParams = {
-  groupedArticles: Record<string, ArticleDto[]>;
-  groupBy: string;
-  feedNameMap: Map<string, string>;
-  selectedArticleId: string | null;
-  recentlyReadIds: Set<string>;
-  t: TFunction<"reader">;
-};
-
 export type UseArticleListViewPropsParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
-  layoutMode: ArticleListLayoutMode;
+  layoutMode: LayoutMode;
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -114,6 +92,8 @@ export type UseArticleListViewPropsParams = {
   handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   isLoadingAccountArticles: boolean;
+  isLoadingFolderArticles: boolean;
+  isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
   trimmedDebouncedQuery: string;
   articleGroups: ArticleGroupsViewGroup[];
@@ -122,8 +102,8 @@ export type UseArticleListViewPropsParams = {
   imagePreviews: string;
   selectionStyle: string;
   selectArticle: (articleId: string) => void;
-  effectiveViewMode: ArticleListViewMode;
-  setViewMode: (viewMode: ArticleListViewMode) => void;
+  effectiveViewMode: ViewMode;
+  setViewMode: (viewMode: ViewMode) => void;
 } & Pick<
   UseArticleListHeaderControlsResult,
   | "showSidebarButton"
@@ -147,27 +127,29 @@ export type UseArticleListPresentationParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
-  selection: UseArticleListViewStateParams["selection"];
+  selection: ReaderSelection;
   focusedPane: FocusedPane;
   selectedAccountId: string | null;
   accountCount?: number;
-  feeds: UseArticleListSourcesResult["feeds"];
+  feeds: FeedDto[] | undefined;
   feedId: string | null;
   tagId: string | null;
   accountListScopeId: string | null;
   isLoading: boolean;
   isLoadingAccountArticles: boolean;
+  isLoadingFolderArticles: boolean;
+  isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
   showSearch: boolean;
   trimmedDebouncedQuery: string;
-  searchResults: UseArticleListViewStateParams["searchResults"];
+  searchResults: unknown[] | undefined;
   isSearching: boolean;
-  filteredArticles: UseArticleListEffectsParams["filteredArticles"];
-  groupedArticles: UseArticleListGroupsParams["groupedArticles"];
-  groupBy: UseArticleListGroupsParams["groupBy"];
-  feedNameMap: UseArticleListGroupsParams["feedNameMap"];
+  filteredArticles: ArticleDto[];
+  groupedArticles: Record<string, ArticleDto[]>;
+  groupBy: string;
+  feedNameMap: Map<string, string>;
   selectedArticleId: string | null;
-  recentlyReadIds: UseArticleListGroupsParams["recentlyReadIds"];
+  recentlyReadIds: Set<string>;
   selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
   layoutMode: UseArticleListHeaderControllerParams["layoutMode"];
   sidebarOpen: boolean;
@@ -176,23 +158,23 @@ export type UseArticleListPresentationParams = {
   selectArticle: (articleId: string) => void;
   clearArticle: () => void;
   openSearch: () => void;
-  keyboardPrefs: UseArticleListInteractionsParams["keyboardPrefs"];
+  keyboardPrefs: KeyboardShortcutPrefs;
   scrollToTopOnChange: string;
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;
   selectionStyle: string;
-  effectiveViewMode: UseArticleListViewPropsParams["effectiveViewMode"];
-  setViewMode: UseArticleListViewPropsParams["setViewMode"];
+  effectiveViewMode: ViewMode;
+  setViewMode: (viewMode: ViewMode) => void;
   searchQuery: string;
-  searchInputRef: UseArticleListViewPropsParams["searchInputRef"];
+  searchInputRef: RefObject<HTMLInputElement | null>;
   handleToggleSearch: () => void;
   handleCloseSearch: () => void;
   setSearchQuery: (value: string) => void;
 };
 
 export type UseArticleListHeaderActionsParams = {
-  selection: ArticleListSelection;
+  selection: ReaderSelection;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
@@ -201,18 +183,21 @@ export type UseArticleListHeaderActionsParams = {
 
 export type UseArticleListHeaderActionsResult = {
   selectedFeedDisplayPreset: FeedDisplayPresetOption;
-  displayPresetOptions: Array<{ value: FeedDisplayPresetOption; label: string }>;
+  displayPresetOptions: Array<{
+    value: FeedDisplayPresetOption;
+    label: string;
+  }>;
   handleSetDisplayMode: (nextPreset: FeedDisplayPresetOption) => Promise<void>;
   handleMarkAllRead: () => void;
 };
 
 export type UseArticleListHeaderControllerParams = {
-  selection: ArticleListSelection;
+  selection: ReaderSelection;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
   filteredArticles: ArticleDto[];
-  layoutMode: ArticleListLayoutMode;
+  layoutMode: LayoutMode;
   sidebarOpen: boolean;
   sidebarSubscriptionsLabel: string;
   feedDisplayLabel: string;
@@ -227,7 +212,7 @@ export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsR
 };
 
 export type UseArticleListHeaderControlsParams = {
-  layoutMode: ArticleListLayoutMode;
+  layoutMode: LayoutMode;
   sidebarOpen: boolean;
   sidebarSubscriptionsLabel: string;
   feedDisplayLabel: string;
@@ -235,7 +220,10 @@ export type UseArticleListHeaderControlsParams = {
   hideSidebarLabel: string;
   resolvedFeedId: string | null;
   selectedFeedDisplayPreset: FeedDisplayPresetOption;
-  displayPresetOptions: Array<{ value: FeedDisplayPresetOption; label: string }>;
+  displayPresetOptions: Array<{
+    value: FeedDisplayPresetOption;
+    label: string;
+  }>;
   onSetDisplayMode: (value: FeedDisplayPresetOption) => void;
   openSidebar: () => void;
   toggleSidebar: () => void;
@@ -248,29 +236,6 @@ export type UseArticleListHeaderControlsResult = {
   isSidebarVisible?: boolean;
   feedModeControl: ReactNode;
   handleSidebarToggle: () => void;
-};
-
-export type UseArticleListBodyPropsParams = {
-  t: TFunction<"reader">;
-  tc: TFunction<"common">;
-  listRef: ArticleListBodyProps["listRef"];
-  viewportRef: ArticleListBodyProps["viewportRef"];
-  handleListKeyDownCapture: ArticleListBodyProps["onListKeyDownCapture"];
-  isLoading: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingTagArticles: boolean;
-  isSearchLoading: boolean;
-  isSearchEmptyState: boolean;
-  setupEmptyState: ArticleListSetupState;
-  trimmedDebouncedQuery: string;
-  articleGroups: ArticleListBodyProps["groups"];
-  dimArchived: ArticleListBodyProps["dimArchived"];
-  textPreview: ArticleListBodyProps["textPreview"];
-  imagePreviews: ArticleListBodyProps["imagePreviews"];
-  selectionStyle: ArticleListBodyProps["selectionStyle"];
-  selectArticle: ArticleListBodyProps["onSelectArticle"];
-  handleCloseSearch: () => void;
-  handleMarkAllRead: () => void;
 };
 
 export type UseArticleListSearchParams = {
@@ -291,16 +256,11 @@ export type UseArticleListSearchResult = {
 };
 
 export type UseArticleListSourcesParams = {
-  selection: ArticleListSelection;
+  selection: ReaderSelection;
   selectedAccountId: string | null;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
-  viewMode: ArticleListViewMode;
-};
-
-export type ArticleListPrimarySourceSnapshot = {
-  contextKey: string;
-  articles: ArticleDto[] | undefined;
+  viewMode: ViewMode;
 };
 
 export type UseArticleListSourcesResult = {
@@ -315,21 +275,9 @@ export type UseArticleListSourcesResult = {
   tagArticles: ArticleDto[] | undefined;
   isLoading: boolean;
   isLoadingAccountArticles: boolean;
+  isLoadingFolderArticles: boolean;
+  isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
-};
-
-export type UseArticleListNavigationParams = {
-  filteredArticles: ArticleDto[];
-  selectedArticleId: string | null;
-  selectArticle: (articleId: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
-  listRef: ArticleListBodyProps["listRef"];
-  viewportRef: ArticleListBodyProps["viewportRef"];
-};
-
-export type UseArticleListGlobalEventsParams = {
-  onNavigateArticle: (direction: 1 | -1) => void;
-  onFocusSearch: UseArticleListSearchResult["openSearch"];
-  onMarkAllRead: () => void;
 };
 
 export type HandleArticleListKeyboardActionParams = {
@@ -337,15 +285,6 @@ export type HandleArticleListKeyboardActionParams = {
   clearArticle: () => void;
   toggleSidebar: () => void;
   openSidebar: () => void;
-};
-
-export type UseArticleListKeydownHandlerParams = {
-  selectedArticleId: string | null;
-  selectArticle: (articleId: string) => void;
-  clearArticle: HandleArticleListKeyboardActionParams["clearArticle"];
-  toggleSidebar: HandleArticleListKeyboardActionParams["toggleSidebar"];
-  openSidebar: HandleArticleListKeyboardActionParams["openSidebar"];
-  keyToAction: KeyToActionMap;
 };
 
 export type UseArticleListDataParams = {
@@ -371,7 +310,7 @@ export type UseArticleListDataResult = {
   feedId: string | null;
   tagId: string | null;
   accountListScopeId: string | null;
-  effectiveViewMode: ArticleListViewMode;
+  effectiveViewMode: ViewMode;
   feedNameMap: Map<string, string>;
   filteredArticles: ArticleDto[];
   groupedArticles: Record<string, ArticleDto[]>;

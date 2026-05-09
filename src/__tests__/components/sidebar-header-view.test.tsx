@@ -1,20 +1,29 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { SidebarHeaderProps } from "@/components/reader/sidebar-header-view";
 import { SidebarHeaderView } from "@/components/reader/sidebar-header-view";
-import { usePlatformStore } from "@/stores/platform-store";
-import { useUiStore } from "@/stores/ui-store";
+
+const defaultProps = {
+  onSync: vi.fn(),
+  onAddFeed: vi.fn(),
+  syncButtonLabel: "Sync feeds",
+  syncButtonText: "Sync",
+  addFeedButtonLabel: "Add feed",
+  addFeedButtonText: "Add",
+  displayState: {
+    layout: "desktop",
+    titlebar: "standard",
+  },
+  syncState: {
+    status: "idle",
+  },
+} satisfies SidebarHeaderProps;
 
 describe("SidebarHeaderView", () => {
-  beforeEach(() => {
-    useUiStore.setState({ layoutMode: "wide" });
-    usePlatformStore.setState(usePlatformStore.getInitialState());
-    resetTauriRuntimeFlags();
-  });
-
   afterEach(() => {
     vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it("renders sync and add feed actions with labels", async () => {
@@ -22,17 +31,7 @@ describe("SidebarHeaderView", () => {
     const onSync = vi.fn();
     const onAddFeed = vi.fn();
 
-    const { container } = render(
-      <SidebarHeaderView
-        isSyncing={false}
-        onSync={onSync}
-        onAddFeed={onAddFeed}
-        syncButtonLabel="Sync feeds"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
-      />,
-    );
+    const { container } = render(<SidebarHeaderView {...defaultProps} onSync={onSync} onAddFeed={onAddFeed} />);
 
     expect(container.firstElementChild).toHaveClass("border-b");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
@@ -56,19 +55,7 @@ describe("SidebarHeaderView", () => {
   });
 
   it("uses icon-dominant actions in mobile layout", () => {
-    useUiStore.setState({ layoutMode: "mobile" });
-
-    render(
-      <SidebarHeaderView
-        isSyncing={false}
-        onSync={vi.fn()}
-        onAddFeed={vi.fn()}
-        syncButtonLabel="Sync feeds"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
-      />,
-    );
+    render(<SidebarHeaderView {...defaultProps} displayState={{ ...defaultProps.displayState, layout: "mobile" }} />);
 
     expect(screen.getByRole("button", { name: "Sync feeds" })).not.toHaveTextContent("Sync");
     expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveClass("size-11", "rounded-md");
@@ -76,66 +63,28 @@ describe("SidebarHeaderView", () => {
     expect(screen.getByRole("button", { name: "Add feed" })).toHaveClass("size-11", "rounded-md");
   });
 
-  it("reserves left space for mac overlay traffic lights only on mac desktop", () => {
-    setTauriRuntimePresent();
-    usePlatformStore.setState({
-      platform: {
-        kind: "macos",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-      inFlightLoad: null,
-    });
-
+  it("reserves left space when the controller requests desktop overlay padding", () => {
     const { container } = render(
       <SidebarHeaderView
-        isSyncing={false}
-        onSync={vi.fn()}
-        onAddFeed={vi.fn()}
-        syncButtonLabel="Sync feeds"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
+        {...defaultProps}
+        displayState={{
+          ...defaultProps.displayState,
+          titlebar: "desktop-overlay",
+        }}
       />,
     );
 
     expect(container.firstElementChild).toHaveClass("pl-20");
   });
 
-  it("keeps sidebar actions flush on windows desktop without mac-only left padding", () => {
-    setTauriRuntimePresent();
-    usePlatformStore.setState({
-      platform: {
-        kind: "windows",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-      inFlightLoad: null,
-    });
-
+  it("keeps sidebar actions flush when desktop overlay padding is not requested", () => {
     const { container } = render(
       <SidebarHeaderView
-        isSyncing={false}
-        onSync={vi.fn()}
-        onAddFeed={vi.fn()}
-        syncButtonLabel="Sync feeds"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
+        {...defaultProps}
+        displayState={{
+          ...defaultProps.displayState,
+          titlebar: "standard",
+        }}
       />,
     );
 
@@ -147,15 +96,9 @@ describe("SidebarHeaderView", () => {
 
     render(
       <SidebarHeaderView
-        isSyncing={false}
-        onSync={vi.fn()}
-        onAddFeed={vi.fn()}
-        syncButtonLabel="Sync feeds"
+        {...defaultProps}
         syncTooltipLabel="Sync available in 15s"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
-        isSyncCoolingDown={true}
+        syncState={{ status: "cooldown" }}
       />,
     );
 
@@ -171,17 +114,7 @@ describe("SidebarHeaderView", () => {
   it("spins the sync icon for one second after an accepted click", async () => {
     vi.useFakeTimers();
 
-    render(
-      <SidebarHeaderView
-        isSyncing={false}
-        onSync={vi.fn()}
-        onAddFeed={vi.fn()}
-        syncButtonLabel="Sync feeds"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
-      />,
-    );
+    render(<SidebarHeaderView {...defaultProps} />);
 
     const syncButton = screen.getByRole("button", { name: "Sync feeds" });
     const icon = syncButton.querySelector("svg");
@@ -202,20 +135,16 @@ describe("SidebarHeaderView", () => {
     expect(icon).not.toHaveClass("animate-spin");
   });
 
-  it("spins briefly on cooldown clicks to acknowledge input", async () => {
+  it("does not activate or spin on cooldown clicks", async () => {
     vi.useFakeTimers();
+    const onSync = vi.fn();
 
     render(
       <SidebarHeaderView
-        isSyncing={false}
-        onSync={vi.fn()}
-        onAddFeed={vi.fn()}
-        syncButtonLabel="Sync feeds"
+        {...defaultProps}
+        onSync={onSync}
         syncTooltipLabel="Sync available in 15s"
-        syncButtonText="Sync"
-        addFeedButtonLabel="Add feed"
-        addFeedButtonText="Add"
-        isSyncCoolingDown={true}
+        syncState={{ status: "cooldown" }}
       />,
     );
 
@@ -223,15 +152,11 @@ describe("SidebarHeaderView", () => {
     const icon = syncButton.querySelector("svg");
 
     fireEvent.click(syncButton);
-    expect(icon).toHaveClass("animate-spin");
+    expect(onSync).not.toHaveBeenCalled();
+    expect(icon).not.toHaveClass("animate-spin");
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(449);
-    });
-    expect(icon).toHaveClass("animate-spin");
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
+      await vi.advanceTimersByTimeAsync(450);
     });
     expect(icon).not.toHaveClass("animate-spin");
   });

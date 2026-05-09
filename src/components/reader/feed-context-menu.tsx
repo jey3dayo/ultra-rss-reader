@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useCallback, useReducer } from "react";
+import { useCallback, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/articles/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
@@ -59,6 +60,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const markOldUnreadRead = useOldUnreadReadAction("feed", feed.id);
   const deleteFeedMutation = useDeleteFeed();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
+  const showToast = useUiStore((s) => s.showToast);
+  const unsubscribePendingRef = useRef(false);
+  const [unsubscribePending, setUnsubscribePending] = useState(false);
 
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
   const selectedDisplayPreset = resolveFeedDisplayPreset(feed);
@@ -75,11 +79,14 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       openInBrowser(url, bg).then((result) =>
         Result.pipe(
           result,
-          Result.inspectError((e) => console.error("Failed to open site:", e)),
+          Result.inspectError((e) => {
+            console.error("Failed to open site:", e);
+            showToast(e.message);
+          }),
         ),
       );
     }
-  }, [feed.site_url, feed.url]);
+  }, [feed.site_url, feed.url, showToast]);
 
   const handleMarkAllRead = useCallback(() => {
     confirmMarkAllRead(
@@ -112,6 +119,12 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   }, []);
 
   const handleConfirmUnsubscribe = async () => {
+    if (unsubscribePendingRef.current) {
+      return;
+    }
+
+    unsubscribePendingRef.current = true;
+    setUnsubscribePending(true);
     try {
       await deleteFeedMutation.mutateAsync({
         feedId: feed.id,
@@ -120,6 +133,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       });
     } catch {
       return;
+    } finally {
+      unsubscribePendingRef.current = false;
+      setUnsubscribePending(false);
     }
   };
 
@@ -135,6 +151,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         selectedDisplayPreset={selectedDisplayPreset}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
+        hasUnreadArticles={feed.unread_count > 0}
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
         onMarkOldUnreadRead={(days) => {
@@ -153,6 +170,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       <UnsubscribeDialog
         feed={feed}
         open={showUnsubscribeDialog}
+        pending={unsubscribePending || deleteFeedMutation.isPending}
         onOpenChange={(value) => dispatch({ type: "set-unsubscribe-dialog", value })}
         onConfirm={handleConfirmUnsubscribe}
       />

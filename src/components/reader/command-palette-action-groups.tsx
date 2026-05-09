@@ -1,17 +1,12 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "../ui/command";
 import type { CommandPaletteActionItem, CommandPaletteResultsProps } from "./command-palette.types";
 
-type CommandPaletteActionGroupsProps = Pick<
-  CommandPaletteResultsProps,
-  | "recentActions"
-  | "filteredActions"
-  | "showRecentActions"
-  | "showActions"
-  | "recentActionsHeading"
-  | "actionsHeading"
-  | "getCommandItemValue"
-  | "onActionSelect"
->;
+type CommandPaletteActionGroupsProps = Pick<CommandPaletteResultsProps, "getCommandItemValue"> & {
+  items: Pick<CommandPaletteResultsProps["items"], "recentActions" | "filteredActions">;
+  visibility: Pick<CommandPaletteResultsProps["visibility"], "recentActions" | "actions">;
+  headings: Pick<CommandPaletteResultsProps["headings"], "recentActionsHeading" | "actionsHeading">;
+  onActionSelect: CommandPaletteResultsProps["handlers"]["onActionSelect"];
+};
 
 type CommandPaletteActionItemsProps = Pick<
   CommandPaletteActionGroupsProps,
@@ -44,21 +39,18 @@ function CommandPaletteActionItems({
 }
 
 export function CommandPaletteActionGroups({
-  recentActions,
-  filteredActions,
-  showRecentActions,
-  showActions,
-  recentActionsHeading,
-  actionsHeading,
+  items,
+  visibility,
+  headings,
   getCommandItemValue,
   onActionSelect,
 }: CommandPaletteActionGroupsProps) {
   return (
     <>
-      {showRecentActions && recentActions.length > 0 ? (
-        <CommandGroup heading={recentActionsHeading}>
+      {visibility.recentActions && items.recentActions.length > 0 ? (
+        <CommandGroup heading={headings.recentActionsHeading}>
           <CommandPaletteActionItems
-            actions={recentActions}
+            actions={items.recentActions}
             keyPrefix="recent"
             getCommandItemValue={getCommandItemValue}
             onActionSelect={onActionSelect}
@@ -66,10 +58,10 @@ export function CommandPaletteActionGroups({
         </CommandGroup>
       ) : null}
 
-      {!showRecentActions && showActions && filteredActions.length > 0 ? (
-        <CommandGroup heading={actionsHeading}>
+      {!visibility.recentActions && visibility.actions && items.filteredActions.length > 0 ? (
+        <CommandGroup heading={headings.actionsHeading}>
           <CommandPaletteActionItems
-            actions={filteredActions}
+            actions={items.filteredActions}
             getCommandItemValue={getCommandItemValue}
             onActionSelect={onActionSelect}
           />

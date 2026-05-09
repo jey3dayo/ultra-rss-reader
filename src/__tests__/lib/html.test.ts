@@ -24,7 +24,7 @@ describe("stripHtmlTags", () => {
   });
 
   it("strips self-closing tags", () => {
-    expect(stripHtmlTags("Hello<br/>world")).toBe("Helloworld");
+    expect(stripHtmlTags("Hello<br/>world")).toBe("Hello world");
   });
 
   it("decodes HTML entities", () => {
@@ -37,6 +37,11 @@ describe("stripHtmlTags", () => {
 
   it("collapses multiple whitespace into single space", () => {
     expect(stripHtmlTags("<p>Hello</p>   <p>world</p>")).toBe("Hello world");
+  });
+
+  it("preserves spacing between adjacent block elements", () => {
+    expect(stripHtmlTags("<p>Lead</p><p>Body</p>")).toBe("Lead Body");
+    expect(stripHtmlTags("<ul><li>One</li><li>Two</li></ul>")).toBe("One Two");
   });
 
   it("handles complex real-world RSS content", () => {
@@ -66,6 +71,24 @@ describe("normalizeArticleBodyHtml", () => {
     const html = '<figure><img src="https://example.com/image.png" alt="">Article title</figure><p>Body text</p>';
 
     expect(normalizeArticleBodyHtml(html, "Article title")).toBe(html);
+  });
+
+  it("removes a duplicated leading feed label with a separator suffix", () => {
+    expect(normalizeArticleBodyHtml("<p>Tech Blog:</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
+    expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
+    expect(normalizeArticleBodyHtml("<p>Tech Blog -</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
+  });
+
+  it("keeps leading nodes that only start with the feed label text", () => {
+    const html = "<p>Tech Blog Weekly</p><p>Body text</p>";
+
+    expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
+  });
+
+  it("keeps leading media nodes even when their text matches a feed label suffix", () => {
+    const html = '<figure><img src="https://example.com/image.png" alt="">Tech Blog:</figure><p>Body text</p>';
+
+    expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
   });
 
   it("normalizes null body text to an empty string", () => {

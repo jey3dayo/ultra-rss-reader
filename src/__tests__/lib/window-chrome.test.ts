@@ -2,9 +2,29 @@ import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/t
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 
+const originalUserAgentDataDescriptor = Object.getOwnPropertyDescriptor(navigator, "userAgentData");
+
+function stubUserAgentDataPlatform(platform: string) {
+  Object.defineProperty(navigator, "userAgentData", {
+    configurable: true,
+    get: () => ({ platform }),
+  });
+}
+
+function restoreUserAgentDataPlatform() {
+  if (originalUserAgentDataDescriptor == null) {
+    Reflect.deleteProperty(navigator, "userAgentData");
+    return;
+  }
+
+  Object.defineProperty(navigator, "userAgentData", originalUserAgentDataDescriptor);
+}
+
 describe("window-chrome", () => {
   afterEach(() => {
     resetTauriRuntimeFlags();
+    restoreUserAgentDataPlatform();
+    vi.restoreAllMocks();
   });
 
   it("does not treat browser dev mocks as the native Tauri runtime", () => {
@@ -49,5 +69,22 @@ describe("window-chrome", () => {
         hasTauriRuntime: false,
       }),
     ).toBe(false);
+  });
+
+  it.each([
+    ["MacIntel", "Win32", true],
+    ["Windows", "MacIntel", false],
+    ["", "MacIntel", false],
+  ])("prefers userAgentData platform %s over navigator platform %s for unknown desktop chrome fallback", (userAgentDataPlatform, navigatorPlatform, expected) => {
+    setTauriRuntimePresent();
+    vi.spyOn(navigator, "platform", "get").mockReturnValue(navigatorPlatform);
+    stubUserAgentDataPlatform(userAgentDataPlatform);
+
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: "unknown",
+        hasTauriRuntime: true,
+      }),
+    ).toBe(expected);
   });
 });

@@ -1,15 +1,24 @@
 import { act, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { createRef } from "react";
+import { createRef, useRef, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ArticleListLayoutMode } from "@/components/reader/article-list.types";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
 import {
   resolveArticleListHeaderControlAvailability,
   useArticleListHeaderControls,
 } from "@/components/reader/hooks/article-list/use-article-list-header-controls";
+import type { LayoutMode } from "@/lib/layout/layout-state.types";
 import { useUiStore } from "@/stores/ui-store";
+
+const articleListHeaderLabels = {
+  markAllReadLabel: "Mark all as read",
+  markAllReadButtonText: "Read",
+  searchArticlesLabel: "Search articles",
+  searchArticlesButtonText: "Search",
+  closeSearchLabel: "Close search",
+  searchArticlesPlaceholder: "Search articles…",
+};
 
 describe("ArticleListHeader", () => {
   beforeEach(() => {
@@ -17,7 +26,7 @@ describe("ArticleListHeader", () => {
   });
 
   type HeaderControlsHookProps = {
-    layoutMode: ArticleListLayoutMode;
+    layoutMode: LayoutMode;
     sidebarOpen: boolean;
   };
 
@@ -165,6 +174,7 @@ describe("ArticleListHeader", () => {
         showSearch
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton={false}
         sidebarButtonLabel="Show sidebar"
         onMarkAllRead={vi.fn()}
@@ -187,6 +197,7 @@ describe("ArticleListHeader", () => {
         showSearch
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton={false}
         sidebarButtonLabel="Show sidebar"
         onMarkAllRead={vi.fn()}
@@ -209,6 +220,40 @@ describe("ArticleListHeader", () => {
     expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute("data-motion-phase", "entering");
   });
 
+  it("uses action and search labels from view props", () => {
+    render(
+      <ArticleListHeader
+        showSearch
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        labels={{
+          markAllReadLabel: "Props mark all",
+          markAllReadButtonText: "Props read",
+          searchArticlesLabel: "Props search",
+          searchArticlesButtonText: "Props search short",
+          closeSearchLabel: "Props close search",
+          searchArticlesPlaceholder: "Props search placeholder",
+        }}
+        showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("button", { name: "Props mark all" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Props search" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Props close search" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Props search" })).toHaveAttribute(
+      "placeholder",
+      "Props search placeholder",
+    );
+  });
+
   it("closes search when pressing Escape in the focused search input", async () => {
     const user = userEvent.setup();
     const onCloseSearch = vi.fn();
@@ -218,6 +263,7 @@ describe("ArticleListHeader", () => {
         showSearch
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton={false}
         sidebarButtonLabel="Show sidebar"
         onMarkAllRead={vi.fn()}
@@ -229,12 +275,59 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    const searchInput = screen.getByRole("textbox", { name: "Search articles" });
+    const searchInput = screen.getByRole("textbox", {
+      name: "Search articles",
+    });
     searchInput.focus();
 
     await user.keyboard("{Escape}");
 
     expect(onCloseSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns focus to the search toggle when Escape closes the search input", async () => {
+    const user = userEvent.setup();
+
+    function ControlledHeader() {
+      const [showSearch, setShowSearch] = useState(true);
+      const searchInputRef = useRef<HTMLInputElement>(null);
+
+      return (
+        <ArticleListHeader
+          showSearch={showSearch}
+          searchQuery=""
+          searchInputRef={searchInputRef}
+          labels={articleListHeaderLabels}
+          showSidebarButton={false}
+          sidebarButtonLabel="Show sidebar"
+          onMarkAllRead={vi.fn()}
+          onToggleSidebar={vi.fn()}
+          onToggleSearch={() => setShowSearch(true)}
+          onCloseSearch={() => setShowSearch(false)}
+          onSearchQueryChange={vi.fn()}
+        />
+      );
+    }
+
+    render(<ControlledHeader />, { wrapper: createWrapper() });
+
+    const searchInput = screen.getByRole("textbox", {
+      name: /^(Search articles|search_articles)$/,
+    });
+    searchInput.focus();
+
+    await user.keyboard("{Escape}");
+
+    expect(
+      screen.queryByRole("textbox", {
+        name: /^(Search articles|search_articles)$/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /^(Search articles|search_articles)$/,
+      }),
+    ).toHaveFocus();
   });
 
   it("shows a sidebar toggle button when requested", async () => {
@@ -246,6 +339,7 @@ describe("ArticleListHeader", () => {
         showSearch={false}
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton
         sidebarButtonLabel="Hide sidebar"
         isSidebarVisible
@@ -273,6 +367,7 @@ describe("ArticleListHeader", () => {
         showSearch={false}
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton
         sidebarButtonLabel="Hide sidebar"
         isSidebarVisible
@@ -295,6 +390,7 @@ describe("ArticleListHeader", () => {
         showSearch={false}
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton
         sidebarButtonLabel="Show sidebar"
         sidebarButtonText="Subscriptions"
@@ -321,6 +417,7 @@ describe("ArticleListHeader", () => {
         showSearch={false}
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
         showSidebarButton={false}
         sidebarButtonLabel="Show sidebar"
         onMarkAllRead={vi.fn()}

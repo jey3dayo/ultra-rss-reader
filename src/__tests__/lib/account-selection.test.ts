@@ -32,8 +32,22 @@ describe("getPreferredAccountId", () => {
     expect(getPreferredAccountId(accounts, "acc-2")).toBe("acc-2");
   });
 
+  it("trims the saved account id before matching", () => {
+    expect(getPreferredAccountId(accounts, " acc-2 ")).toBe("acc-2");
+  });
+
   it("falls back to the first account when the saved id is invalid", () => {
     expect(getPreferredAccountId(accounts, "missing")).toBe("acc-1");
+  });
+
+  it("falls back to the first account when the saved id is whitespace-only", () => {
+    expect(getPreferredAccountId(accounts, "   ")).toBe("acc-1");
+  });
+
+  it("returns the normalized saved account id when matching duplicate account ids", () => {
+    expect(getPreferredAccountId([...accounts, { ...accounts[1], name: "FreshRSS duplicate" }], " acc-2 ")).toBe(
+      "acc-2",
+    );
   });
 
   it("returns null when there are no accounts", () => {

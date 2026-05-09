@@ -7,6 +7,8 @@ type UseBrowserOverlayShortcutsParams = {
 };
 
 export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
+  // Keep this separate from the similar lifecycle hooks: it owns only Escape
+  // priority while a browser URL is active, not mouse or resize lifecycle.
   useBrowserUrlEffect(browserUrl, () => {
     const handleKeyDown = createKeyboardEventListener((event) => {
       if (event.key !== "Escape" || event.defaultPrevented) {

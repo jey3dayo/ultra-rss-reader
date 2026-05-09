@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
@@ -19,6 +20,52 @@ describe("AppConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
   });
 
+  it("runs the confirm action once and clears dialog state", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    useUiStore.getState().showConfirm("Apply this action?", onConfirm, { actionLabel: "Apply" });
+
+    render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().confirmDialog).toEqual({
+      open: false,
+      message: "",
+      actionLabel: null,
+      variant: "default",
+      icon: null,
+      onConfirm: null,
+    });
+  });
+
+  it("cancels and closes without running the confirm action", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    useUiStore.getState().showConfirm("Cancel this action?", onConfirm, { actionLabel: "Apply" });
+
+    render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+  });
+
+  it("treats dialog close as cancel without running the confirm action", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    useUiStore.getState().showConfirm("Close this action?", onConfirm, { actionLabel: "Apply" });
+
+    render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+    await user.keyboard("{Escape}");
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+  });
+
   it("switches warning and destructive tones through the shared dialog variant", () => {
     act(() => {
       useUiStore.getState().showConfirm("Mark all selected articles as read?", vi.fn(), {
@@ -29,7 +76,9 @@ describe("AppConfirmDialog", () => {
 
     expect(useUiStore.getState().confirmDialog.variant).toBe("warning");
 
-    const { unmount } = render(<AppConfirmDialog />, { wrapper: createWrapper() });
+    const { unmount } = render(<AppConfirmDialog />, {
+      wrapper: createWrapper(),
+    });
 
     expect(screen.getByTestId("confirm-dialog-icon")).toHaveClass("bg-state-warning-surface");
     expect(screen.getByTestId("confirm-dialog-icon-svg")).toHaveClass("text-state-warning-foreground");

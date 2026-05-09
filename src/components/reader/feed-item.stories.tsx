@@ -7,6 +7,7 @@ const baseFeed: FeedDto = {
   id: "feed-1",
   account_id: "acc-1",
   folder_id: "folder-1",
+  remote_id: null,
   title: "AUTOMATON",
   url: "https://automaton-media.com/feed/",
   site_url: "https://automaton-media.com",

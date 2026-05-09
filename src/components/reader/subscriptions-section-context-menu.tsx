@@ -18,6 +18,7 @@ export function SubscriptionsSectionContextMenu({
     <SubscriptionsSectionContextMenuView
       expandAllFoldersLabel={t("expand_all_folders")}
       collapseAllFoldersLabel={t("collapse_all_folders")}
+      hasFolders={folderIds.length > 0}
       onExpandAllFolders={() => onExpandAllFolders(folderIds)}
       onCollapseAllFolders={onCollapseAllFolders}
     />

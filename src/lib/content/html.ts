@@ -12,6 +12,13 @@ export function stripHtmlTags(html: string): string {
     doc.querySelectorAll("script, style").forEach((node) => {
       node.remove();
     });
+    doc
+      .querySelectorAll(
+        "br, p, div, section, article, header, footer, main, aside, blockquote, pre, li, ul, ol, h1, h2, h3, h4, h5, h6",
+      )
+      .forEach((node) => {
+        node.after(" ");
+      });
     const text = doc.body.textContent ?? "";
     // Normalize non-breaking spaces and collapse whitespace
     return text
@@ -23,6 +30,8 @@ export function stripHtmlTags(html: string): string {
   // Fallback: regex-based stripping
   return html
     .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<(br|p|div|section|article|header|footer|main|aside|blockquote|pre|li|ul|ol|h[1-6])\b[^>]*\/?>/gi, " ")
+    .replace(/<\/(p|div|section|article|header|footer|main|aside|blockquote|pre|li|ul|ol|h[1-6])>/gi, " ")
     .replace(/<[^>]*>/g, "")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -39,6 +48,10 @@ function normalizeVisibleText(text: string): string {
     .replace(/\u00A0/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isDuplicateLeadingLabelText(text: string, label: string): boolean {
+  return text === label || text === `${label}:` || text === `${label}｜` || text === `${label} -`;
 }
 
 function stripLeadingDuplicateLabel(html: string, label?: string | null): string {
@@ -59,7 +72,7 @@ function stripLeadingDuplicateLabel(html: string, label?: string | null): string
     return html;
   }
 
-  if (normalizeVisibleText(firstMeaningfulNode.textContent ?? "") !== normalizedLabel) {
+  if (!isDuplicateLeadingLabelText(normalizeVisibleText(firstMeaningfulNode.textContent ?? ""), normalizedLabel)) {
     return html;
   }
 

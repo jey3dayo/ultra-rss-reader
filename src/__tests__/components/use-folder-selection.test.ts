@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { NEW_FOLDER_VALUE } from "@/components/reader/folder-select-view";
 import { buildFolderOptions, useFolderSelection } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
 
@@ -58,5 +58,35 @@ describe("use-folder-selection", () => {
     expect(result.current.folderSelectValue).toBe("folder-reset");
     expect(result.current.isCreatingFolder).toBe(false);
     expect(result.current.newFolderName).toBe("");
+  });
+
+  it("cancels pending new folder input focus after unmount", () => {
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 12;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const input = document.createElement("input");
+    const focusSpy = vi.spyOn(input, "focus");
+    const { result, unmount } = renderHook(() => useFolderSelection(null));
+
+    act(() => {
+      result.current.handleFolderChange(NEW_FOLDER_VALUE);
+    });
+    result.current.newFolderInputRef.current = input;
+
+    unmount();
+    const frameCallback = scheduledCallbacks[0];
+    if (!frameCallback) {
+      throw new Error("Expected scheduled focus callback");
+    }
+    frameCallback(0);
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(12);
+    expect(focusSpy).not.toHaveBeenCalled();
+
+    requestAnimationFrameSpy.mockRestore();
+    cancelAnimationFrameSpy.mockRestore();
   });
 });

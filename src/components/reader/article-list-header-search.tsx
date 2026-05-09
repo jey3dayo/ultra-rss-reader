@@ -11,6 +11,13 @@ type ArticleListHeaderSearchProps = {
   onCloseSearch: () => void;
 };
 
+function focusSearchToggle(searchArticlesLabel: string) {
+  const searchToggle = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
+    (button) => button.getAttribute("aria-label") === searchArticlesLabel,
+  );
+  searchToggle?.focus({ preventScroll: true });
+}
+
 export function ArticleListHeaderSearch({
   searchInputRef,
   searchQuery,
@@ -47,6 +54,7 @@ export function ArticleListHeaderSearch({
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
+            focusSearchToggle(searchArticlesLabel);
             onCloseSearch();
           }
         }}

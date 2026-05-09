@@ -112,6 +112,34 @@ describe("window-events", () => {
     expect(removeSpy).toHaveBeenCalledWith("test-window-events-ping", onPing, options);
   });
 
+  it("rolls back registered listeners when a later registration fails", () => {
+    const registrationError = new Error("second listener failed");
+    const target = {
+      addEventListener: vi.fn((type: string) => {
+        if (type === "second-event") {
+          throw registrationError;
+        }
+      }),
+      removeEventListener: vi.fn(),
+    };
+    const firstListener = vi.fn();
+    const secondListener = vi.fn();
+    const firstOptions = { capture: true, passive: true };
+    const secondOptions = { passive: true };
+
+    expect(() =>
+      bindWindowEvents([
+        { target, type: "first-event", listener: firstListener, options: firstOptions },
+        { target, type: "second-event", listener: secondListener, options: secondOptions },
+      ]),
+    ).toThrow(registrationError);
+
+    expect(target.addEventListener).toHaveBeenNthCalledWith(1, "first-event", firstListener, firstOptions);
+    expect(target.addEventListener).toHaveBeenNthCalledWith(2, "second-event", secondListener, secondOptions);
+    expect(target.removeEventListener).toHaveBeenCalledOnce();
+    expect(target.removeEventListener).toHaveBeenCalledWith("first-event", firstListener, firstOptions);
+  });
+
   it("adds and removes typed helper listeners with matching target, type, listener, and options", () => {
     const target = {
       addEventListener: vi.fn(),

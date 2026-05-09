@@ -4,6 +4,7 @@ import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
   buildSubscriptionReviewReasonFacts,
+  resolveSubscriptionCleanupRecommendation,
   resolveSubscriptionReviewReasonFactTranslationKey,
   resolveSubscriptionReviewSummaryTranslationKey,
   summarizeSubscriptionReviewCandidate,
@@ -14,6 +15,7 @@ const feeds: FeedDto[] = [
     id: "feed-stale",
     account_id: "acc-1",
     folder_id: "folder-work",
+    remote_id: null,
     title: "Old Product Blog",
     url: "https://example.com/old.xml",
     site_url: "https://example.com/old",
@@ -25,6 +27,7 @@ const feeds: FeedDto[] = [
     id: "feed-active",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Active Feed",
     url: "https://example.com/active.xml",
     site_url: "https://example.com/active",
@@ -36,6 +39,7 @@ const feeds: FeedDto[] = [
     id: "feed-mid",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Quiet Feed",
     url: "https://example.com/quiet.xml",
     site_url: "https://example.com/quiet",
@@ -55,9 +59,21 @@ const folders: FolderDto[] = [
 ];
 
 const feedArticleSummaries: FeedArticleSummaryDto[] = [
-  { feed_id: "feed-stale", latest_article_at: "2025-11-01T10:00:00Z", starred_count: 1 },
-  { feed_id: "feed-active", latest_article_at: "2026-04-01T09:00:00Z", starred_count: 1 },
-  { feed_id: "feed-mid", latest_article_at: "2026-01-01T12:00:00Z", starred_count: 0 },
+  {
+    feed_id: "feed-stale",
+    latest_article_at: "2025-11-01T10:00:00Z",
+    starred_count: 1,
+  },
+  {
+    feed_id: "feed-active",
+    latest_article_at: "2026-04-01T09:00:00Z",
+    starred_count: 1,
+  },
+  {
+    feed_id: "feed-mid",
+    latest_article_at: "2026-01-01T12:00:00Z",
+    starred_count: 0,
+  },
 ];
 
 describe("buildSubscriptionReviewCandidates", () => {
@@ -137,8 +153,16 @@ describe("buildSubscriptionReviewCandidates", () => {
       ],
       folders,
       feedArticleSummaries: [
-        { feed_id: "feed-stale-boundary", latest_article_at: "2026-01-05T00:00:00Z", starred_count: 1 },
-        { feed_id: "feed-recent-boundary", latest_article_at: "2026-01-06T00:00:00Z", starred_count: 1 },
+        {
+          feed_id: "feed-stale-boundary",
+          latest_article_at: "2026-01-05T00:00:00Z",
+          starred_count: 1,
+        },
+        {
+          feed_id: "feed-recent-boundary",
+          latest_article_at: "2026-01-06T00:00:00Z",
+          starred_count: 1,
+        },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
@@ -152,6 +176,54 @@ describe("buildSubscriptionReviewCandidates", () => {
       staleDays: 89,
       reasonKeys: [],
     });
+  });
+
+  it("does not expose stale review state for future latest article dates", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-stale", title: "Past Feed", unread_count: 1 },
+        {
+          ...feeds[1],
+          id: "feed-future",
+          title: "Future Feed",
+          unread_count: 1,
+        },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-stale",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 1,
+        },
+        {
+          feed_id: "feed-future",
+          latest_article_at: "2026-04-06T00:00:00Z",
+          starred_count: 1,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    const futureCandidate = candidates.find((candidate) => candidate.feedId === "feed-future");
+
+    if (!futureCandidate) {
+      throw new Error("expected review candidates to include the future-dated feed");
+    }
+
+    expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-stale", "feed-future"]);
+    const futureFacts = buildSubscriptionReviewReasonFacts(futureCandidate);
+
+    expect(futureCandidate).toMatchObject({
+      staleDays: 0,
+      reasonKeys: [],
+    });
+    expect(futureCandidate.reasonKeys).not.toContain("stale_90d");
+    expect(futureCandidate.staleDays).toBeGreaterThanOrEqual(0);
+    expect(futureFacts).toEqual([]);
+    expect(futureFacts.every((fact) => fact.value >= 0)).toBe(true);
+    expect(resolveSubscriptionCleanupRecommendation(futureCandidate)).toBe("retain");
   });
 
   it("excludes candidates removed by keep or later local state", () => {
@@ -169,15 +241,42 @@ describe("buildSubscriptionReviewCandidates", () => {
   it("excludes hidden feeds before summary and reason sorting", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
-        { ...feeds[0], id: "feed-hidden-critical", title: "A Hidden Critical Feed", unread_count: 0 },
-        { ...feeds[0], id: "feed-visible-medium", title: "B Visible Medium Feed", unread_count: 4 },
-        { ...feeds[0], id: "feed-visible-low", title: "C Visible Low Feed", unread_count: 4 },
+        {
+          ...feeds[0],
+          id: "feed-hidden-critical",
+          title: "A Hidden Critical Feed",
+          unread_count: 0,
+        },
+        {
+          ...feeds[0],
+          id: "feed-visible-medium",
+          title: "B Visible Medium Feed",
+          unread_count: 4,
+        },
+        {
+          ...feeds[0],
+          id: "feed-visible-low",
+          title: "C Visible Low Feed",
+          unread_count: 4,
+        },
       ],
       folders,
       feedArticleSummaries: [
-        { feed_id: "feed-hidden-critical", latest_article_at: "2025-01-01T00:00:00Z", starred_count: 0 },
-        { feed_id: "feed-visible-medium", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 1 },
-        { feed_id: "feed-visible-low", latest_article_at: "2026-03-01T00:00:00Z", starred_count: 1 },
+        {
+          feed_id: "feed-hidden-critical",
+          latest_article_at: "2025-01-01T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-visible-medium",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 1,
+        },
+        {
+          feed_id: "feed-visible-low",
+          latest_article_at: "2026-03-01T00:00:00Z",
+          starred_count: 1,
+        },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(["feed-hidden-critical"]),
@@ -201,6 +300,7 @@ describe("buildSubscriptionReviewCandidates", () => {
           id: "feed-empty",
           account_id: "acc-1",
           folder_id: null,
+          remote_id: null,
           title: "Empty Feed",
           url: "https://example.com/empty.xml",
           site_url: "https://example.com/empty",
@@ -230,19 +330,59 @@ describe("buildSubscriptionReviewCandidates", () => {
   it("sorts equally stale candidates by reason count, unread count, starred count, then title", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
-        { ...feeds[0], id: "feed-low-reasons", title: "Delta", unread_count: 4 },
-        { ...feeds[0], id: "feed-more-reasons", title: "Charlie", unread_count: 0 },
-        { ...feeds[0], id: "feed-fewer-unread", title: "Bravo", unread_count: 1 },
-        { ...feeds[0], id: "feed-fewer-stars", title: "Alpha", unread_count: 1 },
+        {
+          ...feeds[0],
+          id: "feed-low-reasons",
+          title: "Delta",
+          unread_count: 4,
+        },
+        {
+          ...feeds[0],
+          id: "feed-more-reasons",
+          title: "Charlie",
+          unread_count: 0,
+        },
+        {
+          ...feeds[0],
+          id: "feed-fewer-unread",
+          title: "Bravo",
+          unread_count: 1,
+        },
+        {
+          ...feeds[0],
+          id: "feed-fewer-stars",
+          title: "Alpha",
+          unread_count: 1,
+        },
         { ...feeds[0], id: "feed-title-tie", title: "Able", unread_count: 1 },
       ],
       folders,
       feedArticleSummaries: [
-        { feed_id: "feed-low-reasons", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 2 },
-        { feed_id: "feed-more-reasons", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 2 },
-        { feed_id: "feed-fewer-unread", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 2 },
-        { feed_id: "feed-fewer-stars", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 1 },
-        { feed_id: "feed-title-tie", latest_article_at: "2026-01-01T00:00:00Z", starred_count: 1 },
+        {
+          feed_id: "feed-low-reasons",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 2,
+        },
+        {
+          feed_id: "feed-more-reasons",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 2,
+        },
+        {
+          feed_id: "feed-fewer-unread",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 2,
+        },
+        {
+          feed_id: "feed-fewer-stars",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 1,
+        },
+        {
+          feed_id: "feed-title-tie",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: 1,
+        },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
@@ -297,26 +437,84 @@ describe("buildSubscriptionReviewCandidates", () => {
       starredCount: 1,
     };
 
-    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["stale_90d", "no_stars"] })).toEqual({
+    expect(
+      summarizeSubscriptionReviewCandidate({
+        ...candidate,
+        reasonKeys: ["stale_90d", "no_stars"],
+      }),
+    ).toEqual({
       tone: "medium",
       titleKey: "consider",
       summaryKey: "stale_with_no_stars",
     });
-    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["no_unread", "no_stars"] })).toEqual({
+    expect(
+      summarizeSubscriptionReviewCandidate({
+        ...candidate,
+        reasonKeys: ["no_unread", "no_stars"],
+      }),
+    ).toEqual({
       tone: "medium",
       titleKey: "consider",
       summaryKey: "inactive_without_signals",
     });
-    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["stale_90d"] })).toEqual({
+    expect(
+      summarizeSubscriptionReviewCandidate({
+        ...candidate,
+        reasonKeys: ["stale_90d"],
+      }),
+    ).toEqual({
       tone: "medium",
       titleKey: "consider",
       summaryKey: "stale_but_supported",
     });
-    expect(summarizeSubscriptionReviewCandidate({ ...candidate, reasonKeys: ["no_stars"] })).toEqual({
+    expect(
+      summarizeSubscriptionReviewCandidate({
+        ...candidate,
+        reasonKeys: ["no_stars"],
+      }),
+    ).toEqual({
       tone: "low",
       titleKey: "keep",
       summaryKey: "healthy_feed",
     });
+  });
+
+  it("separates cleanup recommendation from review reason signals", () => {
+    const candidate = {
+      feedId: "feed-signals",
+      title: "Signal Feed",
+      folderId: null,
+      folderName: null,
+      latestArticleAt: "2026-01-01T00:00:00Z",
+      staleDays: 94,
+      unreadCount: 0,
+      starredCount: 0,
+    };
+
+    expect(
+      resolveSubscriptionCleanupRecommendation({
+        ...candidate,
+        reasonKeys: ["stale_90d", "no_unread"],
+      }),
+    ).toBe("cleanup_candidate");
+    expect(
+      resolveSubscriptionCleanupRecommendation({
+        ...candidate,
+        reasonKeys: ["stale_90d", "no_stars"],
+      }),
+    ).toBe("watch");
+    expect(
+      resolveSubscriptionCleanupRecommendation({
+        ...candidate,
+        reasonKeys: ["no_unread", "no_stars"],
+      }),
+    ).toBe("watch");
+    expect(
+      resolveSubscriptionCleanupRecommendation({
+        ...candidate,
+        reasonKeys: ["no_stars"],
+      }),
+    ).toBe("retain");
   });
 
   it("builds reason facts only for active review reasons", () => {

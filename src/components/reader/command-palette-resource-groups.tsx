@@ -2,55 +2,64 @@ import { FlaskConicalIcon, HashIcon, NewspaperIcon, RssIcon } from "lucide-react
 import { CommandGroup, CommandItem } from "../ui/command";
 import type { CommandPaletteResultsProps } from "./command-palette.types";
 
-type CommandPaletteResourceGroupsProps = Pick<
-  CommandPaletteResultsProps,
-  | "filteredDevScenarios"
-  | "filteredFeeds"
-  | "filteredTags"
-  | "articles"
-  | "showRecentActions"
-  | "showDevScenarios"
-  | "showFeeds"
-  | "showTags"
-  | "showArticles"
-  | "feedsHeading"
-  | "tagsHeading"
-  | "articlesHeading"
-  | "getCommandItemValue"
-  | "onDevScenarioSelect"
-  | "onFeedSelect"
-  | "onTagSelect"
-  | "onArticleSelect"
+type CommandPaletteResourceGroupsProps = Pick<CommandPaletteResultsProps, "getCommandItemValue"> & {
+  items: Pick<
+    CommandPaletteResultsProps["items"],
+    | "filteredDevScenarios"
+    | "filteredFeeds"
+    | "filteredTags"
+    | "articles"
+    | "recentFeeds"
+    | "recentTags"
+    | "recentArticles"
+  >;
+  displayState: CommandPaletteResourceGroupsDisplayState;
+  headings: Pick<
+    CommandPaletteResultsProps["headings"],
+    "devScenariosHeading" | "feedsHeading" | "tagsHeading" | "articlesHeading"
+  >;
+  handlers: Pick<
+    CommandPaletteResultsProps["handlers"],
+    "onDevScenarioSelect" | "onFeedSelect" | "onTagSelect" | "onArticleSelect"
+  >;
+};
+
+type CommandPaletteResourceGroupVisibility = Pick<
+  CommandPaletteResultsProps["visibility"],
+  "feeds" | "tags" | "articles"
 >;
 
+type CommandPaletteResourceGroupsDisplayState =
+  | {
+      mode: "recent";
+      groups: CommandPaletteResourceGroupVisibility;
+    }
+  | {
+      mode: "search";
+      groups: CommandPaletteResourceGroupVisibility & Pick<CommandPaletteResultsProps["visibility"], "devScenarios">;
+    };
+
 export function CommandPaletteResourceGroups({
-  filteredDevScenarios,
-  filteredFeeds,
-  filteredTags,
-  articles,
-  showRecentActions,
-  showDevScenarios,
-  showFeeds,
-  showTags,
-  showArticles,
-  feedsHeading,
-  tagsHeading,
-  articlesHeading,
+  items,
+  displayState,
+  headings,
   getCommandItemValue,
-  onDevScenarioSelect,
-  onFeedSelect,
-  onTagSelect,
-  onArticleSelect,
+  handlers,
 }: CommandPaletteResourceGroupsProps) {
+  const displayRecentResources = displayState.mode === "recent";
+  const visibleFeeds = displayRecentResources ? items.recentFeeds : items.filteredFeeds;
+  const visibleTags = displayRecentResources ? items.recentTags : items.filteredTags;
+  const visibleArticles = displayRecentResources ? items.recentArticles : items.articles;
+
   return (
     <>
-      {!showRecentActions && showDevScenarios && filteredDevScenarios.length > 0 ? (
-        <CommandGroup heading="Dev Scenarios">
-          {filteredDevScenarios.map((scenario) => (
+      {displayState.mode === "search" && displayState.groups.devScenarios && items.filteredDevScenarios.length > 0 ? (
+        <CommandGroup heading={headings.devScenariosHeading}>
+          {items.filteredDevScenarios.map((scenario) => (
             <CommandItem
               key={scenario.id}
               value={getCommandItemValue("scenario", scenario.id)}
-              onSelect={() => onDevScenarioSelect(scenario.id)}
+              onSelect={() => handlers.onDevScenarioSelect(scenario.id)}
             >
               <FlaskConicalIcon />
               <span>{scenario.title}</span>
@@ -59,42 +68,49 @@ export function CommandPaletteResourceGroups({
         </CommandGroup>
       ) : null}
 
-      {!showRecentActions && showFeeds && filteredFeeds.length > 0 ? (
-        <CommandGroup heading={feedsHeading}>
-          {filteredFeeds.map((feed) => (
+      {displayState.groups.feeds && visibleFeeds.length > 0 ? (
+        <CommandGroup heading={headings.feedsHeading}>
+          {visibleFeeds.map((feed) => (
             <CommandItem
               key={feed.id}
               value={getCommandItemValue("feed", feed.id)}
-              onSelect={() => onFeedSelect(feed.id)}
+              onSelect={() => handlers.onFeedSelect(feed.id)}
             >
               <RssIcon />
               <span>{feed.title}</span>
+              <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">{feed.site_url ?? feed.url}</span>
             </CommandItem>
           ))}
         </CommandGroup>
       ) : null}
 
-      {!showRecentActions && showTags && filteredTags.length > 0 ? (
-        <CommandGroup heading={tagsHeading}>
-          {filteredTags.map((tag) => (
-            <CommandItem key={tag.id} value={getCommandItemValue("tag", tag.id)} onSelect={() => onTagSelect(tag.id)}>
+      {displayState.groups.tags && visibleTags.length > 0 ? (
+        <CommandGroup heading={headings.tagsHeading}>
+          {visibleTags.map((tag) => (
+            <CommandItem
+              key={tag.id}
+              value={getCommandItemValue("tag", tag.id)}
+              onSelect={() => handlers.onTagSelect(tag.id)}
+            >
               <HashIcon />
               <span>{tag.name}</span>
+              {tag.color ? <span className="ml-auto text-xs text-foreground-soft">{tag.color}</span> : null}
             </CommandItem>
           ))}
         </CommandGroup>
       ) : null}
 
-      {!showRecentActions && showArticles && articles.length > 0 ? (
-        <CommandGroup heading={articlesHeading}>
-          {articles.map((article) => (
+      {displayState.groups.articles && visibleArticles.length > 0 ? (
+        <CommandGroup heading={headings.articlesHeading}>
+          {visibleArticles.map((article) => (
             <CommandItem
               key={article.id}
               value={getCommandItemValue("article", article.id)}
-              onSelect={() => onArticleSelect(article.feed_id, article.id)}
+              onSelect={() => handlers.onArticleSelect(article.feed_id, article.id)}
             >
               <NewspaperIcon />
               <span>{article.title}</span>
+              <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">{article.url}</span>
             </CommandItem>
           ))}
         </CommandGroup>

@@ -106,6 +106,23 @@ function filterByFeedId(articles: ArticleDto[], feedId: string | null): ArticleD
   return articles.filter((article) => article.feed_id === feedId);
 }
 
+function filterByTagArticles(
+  articles: ArticleDto[],
+  tagId: string | null,
+  tagArticles: ArticleDto[] | undefined,
+): ArticleDto[] {
+  if (!tagId) {
+    return articles;
+  }
+
+  if (tagArticles === undefined) {
+    return [];
+  }
+
+  const taggedArticleIds = new Set(tagArticles.map((article) => article.id));
+  return articles.filter((article) => taggedArticleIds.has(article.id));
+}
+
 function filterByViewMode(
   articles: ArticleDto[],
   viewMode: ViewMode,
@@ -261,7 +278,11 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
   let list: ArticleDto[];
   if (showSearch && searchQuery.length > 0) {
     list = filterByViewMode(
-      filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds),
+      filterByTagArticles(
+        filterByFeedId(filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds), feedId),
+        tagId,
+        tagArticles,
+      ),
       viewMode,
       sourceFilter,
       retainedArticleIds,
@@ -287,11 +308,23 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
 }
 
 export function countUnreadArticles(articles: ArticleDto[]): number {
-  return getUnreadArticleIds(articles).length;
+  let count = 0;
+  for (const article of articles) {
+    if (!article.is_read) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 export function countStarredArticles(articles: ArticleDto[]): number {
-  return articles.filter((article) => article.is_starred).length;
+  let count = 0;
+  for (const article of articles) {
+    if (article.is_starred) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 export function getUnreadArticleIds(articles: ArticleDto[]): string[] {
@@ -389,7 +422,13 @@ export function buildFolderFeedIdSet(feeds: FeedDto[] | undefined, folderId: str
     return null;
   }
 
-  return new Set((feeds ?? []).filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
+  const feedIds = new Set<string>();
+  for (const feed of feeds ?? []) {
+    if (feed.folder_id === folderId) {
+      feedIds.add(feed.id);
+    }
+  }
+  return feedIds;
 }
 
 export function getAdjacentItemId(

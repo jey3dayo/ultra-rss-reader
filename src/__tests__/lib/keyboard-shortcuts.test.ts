@@ -27,6 +27,24 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
   });
 
+  it("ignores a single-key open settings remap when an input is focused", () => {
+    const result = resolveKeyboardAction({
+      key: "o",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "INPUT",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      keyToAction: buildKeyToActionMap({
+        shortcut_open_settings: "o",
+      }),
+    });
+
+    expect(Result.unwrapError(result)).toBe("ignored_input");
+  });
+
   it("resolves Cmd+K to open-command-palette", () => {
     const result = resolveKeyboardAction({
       key: "k",
@@ -289,6 +307,39 @@ describe("keyboard shortcut resolver", () => {
     expect(map.get("⌘+\\")).toBe("toggle_sidebar");
   });
 
+  it("keeps the first custom shortcut key when it collides with another action", () => {
+    const keyToAction = buildKeyToActionMap({
+      shortcut_next_article: "x",
+      shortcut_prev_article: "x",
+    });
+
+    expect(keyToAction.get("x")).toBe("next_article");
+
+    const result = resolveKeyboardAction({
+      key: "x",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+      keyToAction,
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "navigate-article", direction: 1 });
+  });
+
+  it("does not let later duplicate custom shortcuts overwrite an earlier custom shortcut", () => {
+    const keyToAction = buildKeyToActionMap({
+      shortcut_open_settings: "z",
+      shortcut_open_command_palette: "z",
+      shortcut_focus_sidebar: "z",
+    });
+
+    expect(keyToAction.get("z")).toBe("focus_sidebar");
+  });
+
   it("does not fall back to the plain key when a command-modified shortcut is unmapped", () => {
     const map = buildKeyToActionMap({
       shortcut_open_command_palette: "⌘+p",
@@ -340,6 +391,24 @@ describe("keyboard shortcut resolver", () => {
     });
 
     expect(Result.unwrap(result)).toEqual({ type: "navigate-feed", direction: 1 });
+  });
+
+  it("lets the native menu own Cmd+R even when Web Preview reload is remapped to it", () => {
+    const result = resolveKeyboardAction({
+      key: "r",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      viewMode: "all",
+      keyToAction: buildKeyToActionMap({
+        shortcut_reload_webview: "⌘+r",
+      }),
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
   });
 
   it.each([

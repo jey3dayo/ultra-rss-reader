@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { AccountDetailViewProps } from "@/components/settings/account-detail/types";
-import { AccountDetailView } from "@/components/settings/account-detail/view";
+import { AccountDetailView, type AccountDetailViewProps } from "@/components/settings/account-detail/view";
 
 function renderAccountDetailView(syncSectionOverrides: Partial<AccountDetailViewProps["syncSection"]> = {}) {
   render(

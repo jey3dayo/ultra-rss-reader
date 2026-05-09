@@ -5,6 +5,10 @@ export type WindowEventBinding = {
   options?: boolean | AddEventListenerOptions;
 };
 
+type RegisteredWindowEventBinding = Omit<WindowEventBinding, "target"> & {
+  target: Pick<Window, "addEventListener" | "removeEventListener">;
+};
+
 export function createKeyboardEventListener(handleEvent: (event: KeyboardEvent) => void): EventListener {
   return (event) => {
     if (event instanceof KeyboardEvent) {
@@ -47,12 +51,23 @@ export function createCustomEventDetailListener<T>(
 }
 
 export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
-  for (const { target = window, type, listener, options } of bindings) {
-    target.addEventListener(type, listener, options);
+  const registeredBindings: RegisteredWindowEventBinding[] = [];
+
+  try {
+    for (const { target = window, type, listener, options } of bindings) {
+      target.addEventListener(type, listener, options);
+      registeredBindings.push({ target, type, listener, options });
+    }
+  } catch (error) {
+    for (let index = registeredBindings.length - 1; index >= 0; index -= 1) {
+      const { target, type, listener, options } = registeredBindings[index];
+      target.removeEventListener(type, listener, options);
+    }
+    throw error;
   }
 
   return () => {
-    for (const { target = window, type, listener, options } of bindings) {
+    for (const { target, type, listener, options } of registeredBindings) {
       target.removeEventListener(type, listener, options);
     }
   };

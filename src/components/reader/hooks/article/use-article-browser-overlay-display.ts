@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FeedDto } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import {
   type BinaryDisplayMode,
+  type ResolvedArticleDisplay,
   resolveAppDefaultDisplayModes,
   resolveArticleDisplay,
   resolveFeedDisplayOverrides,
 } from "@/lib/articles/article-display";
+import { hasWebPreviewUrl } from "@/lib/feed/feed-landing";
 import { bindWindowEvents } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import type {
-  UseArticleBrowserOverlayDisplayParams,
-  UseArticleBrowserOverlayDisplayResult,
-} from "../../article-view.types";
+
+type UseArticleBrowserOverlayDisplayParams = {
+  articleId: string;
+  articleUrl: string | null;
+  feed?: FeedDto;
+};
+
+type UseArticleBrowserOverlayDisplayResult = {
+  requestedDisplay: ResolvedArticleDisplay;
+  resolvedDisplay: ResolvedArticleDisplay;
+  shouldShowBrowserOverlay: boolean;
+  setBrowserOverlayOpenPreference: () => void;
+  setBrowserOverlayClosedPreference: () => void;
+};
 
 export function useArticleBrowserOverlayDisplay({
   articleId,
@@ -27,7 +40,10 @@ export function useArticleBrowserOverlayDisplay({
   const appDefaultDisplayModes = useMemo(() => resolveAppDefaultDisplayModes(prefs), [prefs]);
   const feedDisplayOverrides = useMemo(() => resolveFeedDisplayOverrides(feed), [feed]);
   const temporaryOverride = useMemo(
-    () => ({ readerMode: readerModeOverride, webPreviewMode: webPreviewModeOverride }),
+    () => ({
+      readerMode: readerModeOverride,
+      webPreviewMode: webPreviewModeOverride,
+    }),
     [readerModeOverride, webPreviewModeOverride],
   );
 
@@ -48,19 +64,24 @@ export function useArticleBrowserOverlayDisplay({
         appDefault: appDefaultDisplayModes,
         feedOverride: feedDisplayOverrides,
         temporaryOverride,
-        articleCapabilities: { hasWebPreview: Boolean(articleUrl) },
+        articleCapabilities: { hasWebPreview: hasWebPreviewUrl(articleUrl) },
       }),
     [appDefaultDisplayModes, articleUrl, feedDisplayOverrides, temporaryOverride],
   );
 
-  const shouldShowBrowserOverlay = Boolean(articleUrl) && resolvedDisplay.webPreviewMode;
+  const shouldShowBrowserOverlay = hasWebPreviewUrl(articleUrl) && resolvedDisplay.webPreviewMode;
 
   useEffect(() => {
     const markKeyboardNavigationIntent = () => {
       preserveBrowserOverlayOnNextArticleRef.current = webPreviewModeOverride === "on";
     };
 
-    return bindWindowEvents([{ type: APP_EVENTS.navigateArticle, listener: markKeyboardNavigationIntent }]);
+    return bindWindowEvents([
+      {
+        type: APP_EVENTS.navigateArticle,
+        listener: markKeyboardNavigationIntent,
+      },
+    ]);
   }, [webPreviewModeOverride]);
 
   useEffect(() => {

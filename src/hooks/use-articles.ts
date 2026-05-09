@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ArticleDto,
@@ -28,7 +28,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
-import { invalidateArticleQueries } from "@/lib/query/query-invalidation";
+import { invalidateArticleQueries, queryKeys } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 export type SetReadMutationInput = {
@@ -73,6 +73,14 @@ function requireEnabledQueryValue(value: string | null, label: string): string {
   return value;
 }
 
+function normalizeManualArticleQueryId(value: string | null): string | null {
+  if (value === null || value.trim().length === 0) {
+    return null;
+  }
+
+  return value;
+}
+
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
   const updateArticleArray = (current: unknown) => {
     if (!Array.isArray(current)) {
@@ -88,12 +96,16 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
     });
   };
 
-  qc.setQueriesData({ queryKey: ["articles"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["accountArticles"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["starredArticles"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["recentArticles"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["articlesByTag"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["search"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: queryKeys.articles.root }, updateArticleArray);
+  qc.setQueriesData({ queryKey: queryKeys.accountArticles.root }, updateArticleArray);
+  qc.setQueriesData({ queryKey: queryKeys.starredArticles.root }, updateArticleArray);
+  qc.setQueriesData({ queryKey: queryKeys.recentArticles.root }, updateArticleArray);
+  qc.setQueriesData({ queryKey: queryKeys.articlesByTag.root }, updateArticleArray);
+  qc.setQueriesData({ queryKey: queryKeys.search.root }, updateArticleArray);
+}
+
+function invalidateArticleMutationQueries(qc: QueryClient) {
+  invalidateArticleQueries(qc, { includeTagArticleCounts: true });
 }
 
 function isArticleDto(candidate: unknown): candidate is ArticleDto {
@@ -106,25 +118,36 @@ function isArticleDto(candidate: unknown): candidate is ArticleDto {
   );
 }
 
+function indexArticleDtosById(data: unknown): Map<string, ArticleDto> {
+  const articlesById = new Map<string, ArticleDto>();
+  if (!Array.isArray(data)) {
+    return articlesById;
+  }
+
+  for (const candidate of data) {
+    if (isArticleDto(candidate) && !articlesById.has(candidate.id)) {
+      articlesById.set(candidate.id, candidate);
+    }
+  }
+
+  return articlesById;
+}
+
 function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | null {
-  const queryKeys = [
-    ["articles"],
-    ["accountArticles"],
-    ["articlesByTag"],
-    ["search"],
-    ["starredArticles"],
-    ["recentArticles"],
+  const articleCacheRoots: readonly QueryKey[] = [
+    queryKeys.articles.root,
+    queryKeys.accountArticles.root,
+    queryKeys.articlesByTag.root,
+    queryKeys.search.root,
+    queryKeys.starredArticles.root,
+    queryKeys.recentArticles.root,
   ] as const;
 
-  for (const queryKey of queryKeys) {
+  for (const queryKey of articleCacheRoots) {
     const matches = qc.getQueriesData<unknown>({ queryKey });
     for (const [, data] of matches) {
-      if (!Array.isArray(data)) {
-        continue;
-      }
-
-      const article = data.find((candidate) => isArticleDto(candidate) && candidate.id === articleId);
-      if (article && isArticleDto(article)) {
+      const article = indexArticleDtosById(data).get(articleId);
+      if (article) {
         return article;
       }
     }
@@ -136,7 +159,7 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
 function resolveAccountIdsForArticle(qc: QueryClient, feedId: string): string[] {
   const accountIds = new Set<string>();
 
-  for (const [, data] of qc.getQueriesData<unknown>({ queryKey: ["feeds"] })) {
+  for (const [, data] of qc.getQueriesData<unknown>({ queryKey: queryKeys.feeds.root })) {
     if (!Array.isArray(data)) {
       continue;
     }
@@ -180,6 +203,15 @@ function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, opt
   return nextArray;
 }
 
+function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
+  const options = queryKey[2];
+  if (options && typeof options === "object" && "mode" in options && options.mode === "unread" && nextArticle.is_read) {
+    return false;
+  }
+
+  return true;
+}
+
 function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
   const cachedArticle = findCachedArticle(qc, articleId);
   if (cachedArticle === null) {
@@ -189,26 +221,34 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   const nextArticle = { ...cachedArticle, is_starred: starred };
   const accountIds = resolveAccountIdsForArticle(qc, cachedArticle.feed_id);
 
-  qc.setQueriesData({ queryKey: ["articles"] }, (current) => updateCachedArticleArray(current, nextArticle));
-  qc.setQueriesData({ queryKey: ["articlesByTag"] }, (current) => updateCachedArticleArray(current, nextArticle));
-  qc.setQueriesData({ queryKey: ["search"] }, (current) => updateCachedArticleArray(current, nextArticle));
-  qc.setQueriesData({ queryKey: ["recentArticles"] }, (current) => updateCachedArticleArray(current, nextArticle));
+  qc.setQueriesData({ queryKey: queryKeys.articles.root }, (current) => updateCachedArticleArray(current, nextArticle));
+  qc.setQueriesData({ queryKey: queryKeys.articlesByTag.root }, (current) =>
+    updateCachedArticleArray(current, nextArticle),
+  );
+  qc.setQueriesData({ queryKey: queryKeys.search.root }, (current) => updateCachedArticleArray(current, nextArticle));
+  qc.setQueriesData({ queryKey: queryKeys.recentArticles.root }, (current) =>
+    updateCachedArticleArray(current, nextArticle),
+  );
 
   if (accountIds.length > 0) {
     for (const accountId of accountIds) {
-      const accountArticleQueries = qc.getQueriesData<unknown>({ queryKey: ["accountArticles", accountId] });
+      const accountArticleQueries = qc.getQueriesData<unknown>({
+        queryKey: queryKeys.accountArticles.byAccountPrefix(accountId),
+      });
 
       if (accountArticleQueries.length === 0) {
-        qc.setQueryData(["accountArticles", accountId, { mode: "all" }], [nextArticle]);
+        qc.setQueryData(queryKeys.accountArticles.byAccount(accountId, "all"), [nextArticle]);
       } else {
         for (const [queryKey] of accountArticleQueries) {
           qc.setQueryData(queryKey, (current: unknown) =>
-            updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
+            updateCachedArticleArray(current, nextArticle, {
+              insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
+            }),
           );
         }
       }
 
-      qc.setQueryData(["starredArticles", accountId], (current: unknown) => {
+      qc.setQueryData(queryKeys.starredArticles.byAccount(accountId), (current: unknown) => {
         if (!Array.isArray(current)) {
           return starred ? [nextArticle] : [];
         }
@@ -230,11 +270,17 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
     return;
   }
 
-  qc.setQueriesData({ queryKey: ["accountArticles"] }, (current) =>
-    updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
-  );
+  for (const [queryKey] of qc.getQueriesData<unknown>({
+    queryKey: queryKeys.accountArticles.root,
+  })) {
+    qc.setQueryData(queryKey, (current: unknown) =>
+      updateCachedArticleArray(current, nextArticle, {
+        insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
+      }),
+    );
+  }
 
-  qc.setQueriesData({ queryKey: ["starredArticles"] }, (current: unknown) => {
+  qc.setQueriesData({ queryKey: queryKeys.starredArticles.root }, (current: unknown) => {
     if (!Array.isArray(current)) {
       return starred ? [nextArticle] : [];
     }
@@ -256,16 +302,17 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
 
 export function useArticles(feedId: string | null, options?: ArticleQueryOptions) {
   const mode = resolveArticleQueryMode(options);
+  const normalizedFeedId = normalizeManualArticleQueryId(feedId);
 
   return useQuery({
-    queryKey: ["articles", feedId, { mode }],
+    queryKey: queryKeys.articles.byFeed(normalizedFeedId, mode),
     queryFn: () => {
-      const resolvedFeedId = requireEnabledQueryValue(feedId, "feedId");
+      const resolvedFeedId = requireEnabledQueryValue(normalizedFeedId, "feedId");
       return (
         mode === "starred" ? listFeedStarredArticles(resolvedFeedId) : listArticles(resolvedFeedId, mode === "unread")
       ).then(Result.unwrap());
     },
-    enabled: !!feedId,
+    enabled: !!normalizedFeedId,
   });
 }
 
@@ -275,28 +322,31 @@ export function useFeedStarredArticles(feedId: string | null) {
 
 export function useAccountArticles(accountId: string | null, options?: ArticleQueryOptions) {
   const mode = resolveArticleQueryMode(options);
+  const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
   return useQuery({
-    queryKey: ["accountArticles", accountId, { mode }],
+    queryKey: queryKeys.accountArticles.byAccount(normalizedAccountId, mode),
     queryFn: () => {
-      const resolvedAccountId = requireEnabledQueryValue(accountId, "accountId");
+      const resolvedAccountId = requireEnabledQueryValue(normalizedAccountId, "accountId");
       return (
         mode === "starred"
           ? listStarredArticles(resolvedAccountId)
           : listAccountArticles(resolvedAccountId, mode === "unread")
       ).then(Result.unwrap());
     },
-    enabled: !!accountId,
+    enabled: !!normalizedAccountId,
   });
 }
 
 export function useFolderArticles(folderId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
+  const normalizedFolderId = normalizeManualArticleQueryId(folderId);
 
   return useQuery({
-    queryKey: ["folderArticles", folderId, { mode }],
-    queryFn: () => listFolderArticles(requireEnabledQueryValue(folderId, "folderId"), mode).then(Result.unwrap()),
-    enabled: !!folderId,
+    queryKey: queryKeys.folderArticles.byFolder(normalizedFolderId, mode),
+    queryFn: () =>
+      listFolderArticles(requireEnabledQueryValue(normalizedFolderId, "folderId"), mode).then(Result.unwrap()),
+    enabled: !!normalizedFolderId,
   });
 }
 
@@ -304,29 +354,33 @@ export const useStarredArticles = createQuery("starredArticles", listStarredArti
 
 export function useRecentArticles(accountId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
+  const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
   return useQuery({
-    queryKey: ["recentArticles", accountId, { mode }],
+    queryKey: queryKeys.recentArticles.byAccount(normalizedAccountId, mode),
     queryFn: () =>
-      listRecentArticles(requireEnabledQueryValue(accountId, "accountId"), undefined, undefined, mode).then(
+      listRecentArticles(requireEnabledQueryValue(normalizedAccountId, "accountId"), undefined, undefined, mode).then(
         Result.unwrap(),
       ),
-    enabled: !!accountId,
+    enabled: !!normalizedAccountId,
   });
 }
 
 export function useFeedIntegrityReport() {
   return useQuery({
-    queryKey: ["feedIntegrityReport"],
+    queryKey: queryKeys.feedIntegrityReport.root,
     queryFn: () => getFeedIntegrityReport().then(Result.unwrap()),
   });
 }
 
 export function useAccountStarredCount(accountId: string | null) {
+  const normalizedAccountId = normalizeManualArticleQueryId(accountId);
+
   return useQuery({
-    queryKey: ["accountStarredCount", accountId],
-    queryFn: () => countAccountStarredArticles(requireEnabledQueryValue(accountId, "accountId")).then(Result.unwrap()),
-    enabled: !!accountId,
+    queryKey: queryKeys.accountStarredCount.byAccount(normalizedAccountId),
+    queryFn: () =>
+      countAccountStarredArticles(requireEnabledQueryValue(normalizedAccountId, "accountId")).then(Result.unwrap()),
+    enabled: !!normalizedAccountId,
   });
 }
 
@@ -337,35 +391,47 @@ export function useSetRead() {
     mutationFn: ({ id, read }: SetReadMutationInput) => markArticleRead(id, read).then(Result.unwrap()),
     onSuccess: (_data, variables) => {
       patchCachedArticleReadState(qc, variables.id, variables.read);
-      invalidateArticleQueries(qc);
+      invalidateArticleMutationQueries(qc);
     },
   });
 }
 
 export const useMarkAllRead = createMutation(
   (articleIds: string[]) => markArticlesRead(articleIds),
-  (qc) => invalidateArticleQueries(qc),
+  invalidateArticleMutationQueries,
 );
 
-export const useMarkAccountRead = createMutation(markAccountRead, (qc) => invalidateArticleQueries(qc));
+export const useMarkAccountRead = createMutation(markAccountRead, invalidateArticleMutationQueries);
 
-export const useMarkAccountStarredRead = createMutation(markAccountStarredRead, (qc) => invalidateArticleQueries(qc));
+export const useMarkAccountStarredRead = createMutation(markAccountStarredRead, invalidateArticleMutationQueries);
 
 export const useMarkOldUnreadRead = createMutation(
   ({ scopeKind, targetId, olderThanDays }: MarkOldUnreadReadMutationInput) =>
     markOldUnreadRead(scopeKind, targetId, olderThanDays),
-  (qc) => invalidateArticleQueries(qc),
+  invalidateArticleMutationQueries,
 );
 
-export const useUnstarAccountArticles = createMutation(unstarAccountArticles, (qc) => invalidateArticleQueries(qc));
+export const useUnstarAccountArticles = createMutation(unstarAccountArticles, invalidateArticleMutationQueries);
 
 export function useRecordArticleView() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ accountId, articleId }: RecordArticleViewMutationInput) =>
-      recordArticleView(accountId, articleId).then(Result.unwrap),
-    onSuccess: () => {
+    mutationFn: ({ accountId, articleId }: RecordArticleViewMutationInput) => {
+      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
+      const normalizedArticleId = normalizeManualArticleQueryId(articleId);
+
+      if (!normalizedAccountId || !normalizedArticleId) {
+        return Promise.resolve(null);
+      }
+
+      return recordArticleView(normalizedAccountId, normalizedArticleId).then(Result.unwrap);
+    },
+    onSuccess: (_data, variables) => {
+      if (!normalizeManualArticleQueryId(variables.accountId) || !normalizeManualArticleQueryId(variables.articleId)) {
+        return;
+      }
+
       invalidateArticleQueries(qc, {
         includeAccountArticles: false,
         includeStarredArticles: false,
@@ -395,15 +461,15 @@ export const useClearArticleViewHistory = createMutation(clearArticleViewHistory
   }),
 );
 
-export const useMarkFeedRead = createMutation(markFeedRead, (qc) => invalidateArticleQueries(qc));
+export const useMarkFeedRead = createMutation(markFeedRead, invalidateArticleMutationQueries);
 
-export const useMarkFolderRead = createMutation(markFolderRead, (qc) => invalidateArticleQueries(qc));
+export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticleMutationQueries);
 
 export function useSearchArticles(accountId: string | null, query: string) {
   return useQuery({
-    queryKey: ["search", accountId, query],
+    queryKey: queryKeys.search.byAccountAndQuery(accountId, query),
     queryFn: () => searchArticles(requireEnabledQueryValue(accountId, "accountId"), query).then(Result.unwrap()),
-    enabled: !!accountId && query.length > 0,
+    enabled: !!accountId && query.trim().length > 0,
   });
 }
 
@@ -411,6 +477,6 @@ export const useToggleStar = createMutation(
   ({ id, starred }: ToggleStarMutationInput) => toggleArticleStar(id, starred),
   (qc, variables) => {
     patchCachedArticleStarState(qc, variables.id, variables.starred);
-    invalidateArticleQueries(qc);
+    invalidateArticleMutationQueries(qc);
   },
 );

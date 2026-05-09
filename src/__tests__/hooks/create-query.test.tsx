@@ -34,6 +34,23 @@ describe("createQuery", () => {
     expect(fetcher).toHaveBeenCalledWith("item-1");
   });
 
+  it("unwraps Result.fail into a query error", async () => {
+    const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
+      initialProps: { id: "item-1" },
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(fetcher).toHaveBeenCalledWith("item-1");
+    expect(result.current.error).toMatchObject({ message: "load failed" });
+  });
+
   it("does not pass missing or invalid disabled ids to the fetcher", () => {
     const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
     const useGeneratedQuery = createQuery("items", fetcher);
@@ -58,6 +75,11 @@ describe("createQuery", () => {
     expect(fetcher).not.toHaveBeenCalled();
 
     rerender({ id: "" });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(fetcher).not.toHaveBeenCalled();
+
+    rerender({ id: "   " });
 
     expect(result.current.fetchStatus).toBe("idle");
     expect(fetcher).not.toHaveBeenCalled();

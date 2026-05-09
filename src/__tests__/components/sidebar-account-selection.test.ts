@@ -29,6 +29,30 @@ const accounts: AccountDto[] = [
 ];
 
 describe("resolveSidebarAccountSelectionAction", () => {
+  it("waits for preferences and accounts before restoring the startup selection", () => {
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: false,
+        selectedAccountId: null,
+        savedAccountId: "acc-2",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({ type: "noop" });
+
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts: undefined,
+        preferencesLoaded: true,
+        selectedAccountId: null,
+        savedAccountId: "acc-2",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({ type: "noop" });
+  });
+
   it("clears selection and saved preference when no accounts remain", () => {
     expect(
       resolveSidebarAccountSelectionAction({

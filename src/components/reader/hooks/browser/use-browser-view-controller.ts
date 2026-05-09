@@ -15,7 +15,7 @@ import type { BrowserViewController, BrowserViewScope } from "../../browser-view
 import { resolveBrowserViewPresentation } from "../../browser-view-presentation";
 import { initialBrowserState } from "../../browser-webview-state";
 
-type UseBrowserViewControllerParams = {
+export type UseBrowserViewControllerParams = {
   scope: BrowserViewScope;
   onCloseOverlay: () => void;
 };
@@ -100,6 +100,7 @@ export function useBrowserViewController({
     hostRef,
     waitForBrowserWebviewListeners,
     syncBrowserWebview,
+    showSurfaceFailure,
   });
 
   useBrowserWebviewCleanup();

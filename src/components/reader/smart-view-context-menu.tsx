@@ -53,12 +53,23 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
     });
   }, [accountId, showConfirm, t, unstarAccountArticles, view.count]);
 
+  const handleClearRecentHistory = useCallback(() => {
+    showConfirm(t("clear_recent_history"), () => clearArticleViewHistory.mutate(accountId), {
+      actionLabel: t("clear_recent_history"),
+      variant: "warning",
+    });
+  }, [accountId, clearArticleViewHistory, showConfirm, t]);
+
   if (view.kind === "unread") {
     return (
       <ContextMenu.Portal>
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkUnreadRead}>
+            <ContextMenu.Item
+              data-action-id="smart-unread-mark-all-read"
+              className={contextMenuStyles.item}
+              onClick={handleMarkUnreadRead}
+            >
               {t("mark_all_as_read")}
             </ContextMenu.Item>
             <OldUnreadContextMenuItems
@@ -79,10 +90,18 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
       <ContextMenu.Portal>
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkStarredRead}>
+            <ContextMenu.Item
+              data-action-id="smart-starred-mark-all-read"
+              className={contextMenuStyles.item}
+              onClick={handleMarkStarredRead}
+            >
               {t("mark_all_as_read")}
             </ContextMenu.Item>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleUnstarAll}>
+            <ContextMenu.Item
+              data-action-id="smart-starred-unstar-all"
+              className={contextMenuStyles.item}
+              onClick={handleUnstarAll}
+            >
               {t("unstar_all")}
             </ContextMenu.Item>
           </ContextMenu.Popup>
@@ -96,8 +115,9 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item
+            data-action-id="smart-recent-clear-history"
             className={contextMenuStyles.destructiveItem}
-            onClick={() => clearArticleViewHistory.mutate(accountId)}
+            onClick={handleClearRecentHistory}
           >
             {t("clear_recent_history")}
           </ContextMenu.Item>

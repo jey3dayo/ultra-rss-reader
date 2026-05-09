@@ -62,6 +62,17 @@ async function flushAsyncWork(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 function setPlatformState({
   loaded,
   supportsRuntimeWindowIconReplacement,
@@ -209,6 +220,21 @@ describe("useAppIconTheme", () => {
     expect(setIconMock).not.toHaveBeenCalled();
   });
 
+  it("falls back without throwing when system theme cannot read matchMedia", async () => {
+    vi.stubGlobal("matchMedia", undefined);
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    expect(() => render(<HookHarness />)).not.toThrow();
+
+    await flushAsyncWork();
+
+    expect(setIconMock).not.toHaveBeenCalled();
+  });
+
   it("applies icon after platform info loads and runtime replacement becomes available", async () => {
     vi.stubGlobal(
       "matchMedia",
@@ -235,5 +261,103 @@ describe("useAppIconTheme", () => {
     await waitFor(() => {
       expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
     });
+  });
+
+  it("treats runtime icon replacement failures as no-op and reflects the next theme state", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => createMatchMedia(false)),
+    );
+    setIconMock.mockRejectedValueOnce(new Error("runtime icon unavailable")).mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+  });
+
+  it("applies only the latest queued icon request after rapid theme changes", async () => {
+    const firstIconRequest = createDeferred<void>();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => createMatchMedia(false)),
+    );
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    });
+
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      firstIconRequest.resolve();
+    });
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledTimes(2);
+      expect(setIconMock).toHaveBeenLastCalledWith("/icons/app-icon-light.png");
+    });
+  });
+
+  it("does not apply queued icon requests after unmount", async () => {
+    const firstIconRequest = createDeferred<void>();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => createMatchMedia(false)),
+    );
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    const { unmount } = render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    });
+
+    await flushAsyncWork();
+    unmount();
+
+    act(() => {
+      firstIconRequest.resolve();
+    });
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(1);
   });
 });

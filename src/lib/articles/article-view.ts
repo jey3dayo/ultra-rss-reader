@@ -147,7 +147,13 @@ export function resolveArticleDateLocale(locale: string | undefined): string {
     return "en";
   }
 
+  const safeLocale = resolveSafeArticleDateLocale(locale);
   const normalized = locale.toLowerCase();
+
+  if (safeLocale === ARTICLE_DATE_LOCALE_FALLBACK) {
+    return safeLocale;
+  }
+
   if (normalized.startsWith("ja")) {
     return "ja";
   }
@@ -159,13 +165,24 @@ export function resolveArticleDateLocale(locale: string | undefined): string {
   return "en";
 }
 
+const ARTICLE_DATE_LOCALE_FALLBACK = "en-US";
+
+function resolveSafeArticleDateLocale(locale: string): string {
+  try {
+    Intl.DateTimeFormat(locale);
+    return locale;
+  } catch {
+    return ARTICLE_DATE_LOCALE_FALLBACK;
+  }
+}
+
 export function formatArticleDate(dateStr: string, locale = "en-US"): string {
   const date = parseDateInput(dateStr);
   if (date === null) {
     return dateStr;
   }
 
-  const resolvedLocale = locale || "en-US";
+  const resolvedLocale = resolveSafeArticleDateLocale(locale || ARTICLE_DATE_LOCALE_FALLBACK);
 
   if (!resolvedLocale.toLowerCase().startsWith("en")) {
     return date.toLocaleString(resolvedLocale, {
@@ -219,7 +236,9 @@ export function buildArticleViewSummaryResult(
 
   if (selection.type === "feed") {
     const feed = feeds?.find((candidate) => candidate.id === selection.feedId);
-    const latestFeedArticleResult = findLatestArticle(allFeedArticles);
+    const latestFeedArticleResult = findLatestArticle(
+      allFeedArticles?.filter((article) => article.feed_id === selection.feedId),
+    );
     const latestFeedArticle = Result.isSuccess(latestFeedArticleResult) ? Result.unwrap(latestFeedArticleResult) : null;
 
     return feed

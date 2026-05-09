@@ -5,8 +5,27 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
 import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+export type FeedLandingFailure =
+  | { type: "missing_account" }
+  | { type: "feed_not_found"; feedId: string }
+  | { type: "landing_fetch_failed"; feedId: string; message: string };
+
+export type FeedLandingSuccess = { type: "feed_selected"; feedId: string; articleId: string | null };
+export type FeedLandingResult = Result.Result<FeedLandingSuccess, FeedLandingFailure>;
+
+function getLandingFailureMessage(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+        ? String(Reflect.get(error, "message"))
+        : "Unknown error";
+  return message.replace(/^Error:\s*/, "");
+}
 
 export function useFeedLanding() {
   const queryClient = useQueryClient();
@@ -20,11 +39,11 @@ export function useFeedLanding() {
   return useCallback(
     async (feedId: string) => {
       if (!selectedAccountId) {
-        return;
+        return Result.fail({ type: "missing_account" } satisfies FeedLandingFailure);
       }
 
       const store = useUiStore.getState();
-      const feedQueryKey = ["feeds", selectedAccountId] as const;
+      const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
       const feedList =
         feeds.length > 0
           ? feeds
@@ -43,7 +62,7 @@ export function useFeedLanding() {
 
       const feed = feedList.find((candidate) => candidate.id === feedId);
       if (!feed) {
-        return;
+        return Result.fail({ type: "feed_not_found", feedId } satisfies FeedLandingFailure);
       }
 
       const preserveStarredContext =
@@ -52,7 +71,7 @@ export function useFeedLanding() {
       store.selectFeedFromCurrentContext(feedId);
 
       try {
-        const articlesQueryKey = ["articles", feedId, { mode: preserveStarredContext ? "starred" : "all" }] as const;
+        const articlesQueryKey = queryKeys.articles.byFeed(feedId, preserveStarredContext ? "starred" : "all");
         const articles = await queryClient
           .fetchQuery({
             queryKey: articlesQueryKey,
@@ -76,7 +95,7 @@ export function useFeedLanding() {
         });
         if (Result.isFailure(landingArticleResult)) {
           store.closeBrowser();
-          return;
+          return Result.succeed({ type: "feed_selected", feedId, articleId: null } satisfies FeedLandingSuccess);
         }
 
         const landingArticle = Result.unwrap(landingArticleResult);
@@ -94,9 +113,19 @@ export function useFeedLanding() {
         } else {
           store.closeBrowser();
         }
+        return Result.succeed({
+          type: "feed_selected",
+          feedId,
+          articleId: landingArticle.id,
+        } satisfies FeedLandingSuccess);
       } catch (error) {
         console.error("Failed to land on feed article:", error);
         store.closeBrowser();
+        return Result.fail({
+          type: "landing_fetch_failed",
+          feedId,
+          message: getLandingFailureMessage(error),
+        } satisfies FeedLandingFailure);
       }
     },
     [feeds, prefs, queryClient, selectedAccountId, sortUnread],

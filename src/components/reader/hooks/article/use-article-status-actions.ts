@@ -1,6 +1,7 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
@@ -34,6 +35,18 @@ type UseArticleStatusActionsResult = {
   handleToggleRead: () => void;
   handleToggleStar: () => void;
 };
+
+function removeRetainedArticle(articleId: string) {
+  useUiStore.setState((state) => {
+    if (!state.retainedArticleIds.has(articleId)) {
+      return state;
+    }
+
+    const retainedArticleIds = new Set(state.retainedArticleIds);
+    retainedArticleIds.delete(articleId);
+    return { retainedArticleIds };
+  });
+}
 
 export function useArticleStatusActions({
   articleId,
@@ -69,6 +82,8 @@ export function useArticleStatusActions({
         return;
       }
 
+      const shouldRollbackRetainedArticle =
+        pressed && viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
       retainIfNeeded(pressed);
       setRead.mutate(
         { id: articleId, read: pressed },
@@ -80,10 +95,16 @@ export function useArticleStatusActions({
               removeRecentlyRead(articleId);
             }
           },
+          onError: (error) => {
+            if (shouldRollbackRetainedArticle) {
+              removeRetainedArticle(articleId);
+            }
+            showToast(error.message);
+          },
         },
       );
     },
-    [addRecentlyRead, articleId, removeRecentlyRead, retainIfNeeded, setRead],
+    [addRecentlyRead, articleId, removeRecentlyRead, retainIfNeeded, setRead, showToast, viewMode],
   );
 
   const setStarStatus = useCallback(
@@ -102,6 +123,9 @@ export function useArticleStatusActions({
             if (options?.showStatusToast) {
               showToast(pressed ? starredMessage : unstarredMessage);
             }
+          },
+          onError: (error) => {
+            showToast(error.message);
           },
         },
       );

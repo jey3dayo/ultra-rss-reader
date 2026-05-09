@@ -18,14 +18,13 @@ export function TagListView({
 }: SidebarTagListProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
   const panelId = "sidebar-tag-section-panel";
-  const hasVisibleTags = isOpen && tags.length > 0;
 
   return (
     <div>
-      <div className="px-2 py-2">
+      <div className="p-2">
         <SidebarSectionToggle
           label={tagsLabel}
-          isOpen={hasVisibleTags}
+          isOpen={isOpen}
           onToggle={onToggleOpen}
           panelId={panelId}
           contextMenu={renderTagSectionContextMenu?.()}
@@ -33,8 +32,8 @@ export function TagListView({
       </div>
       <div
         id={panelId}
-        data-state={hasVisibleTags ? "open" : "closed"}
-        aria-hidden={hasVisibleTags ? "false" : "true"}
+        data-state={isOpen ? "open" : "closed"}
+        aria-hidden={isOpen ? "false" : "true"}
         className="motion-disclosure-panel"
       >
         <div className="motion-disclosure-body">
@@ -53,9 +52,9 @@ export function TagListView({
                     />
                   }
                 >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                  <span className="flex size-5 shrink-0 items-center justify-center">
                     {tag.color && (
-                      <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                      <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
                     )}
                   </span>
                   <span className="truncate">{tag.name}</span>

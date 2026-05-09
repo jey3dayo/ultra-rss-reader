@@ -8,6 +8,8 @@ import { focusArticleContentTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
+const ARTICLE_LIST_ITEM_TITLE_FALLBACK = "Untitled article";
+
 type ArticleListItemProps = {
   article: ArticleDto;
   isSelected: boolean;
@@ -43,6 +45,7 @@ type ArticleListItemPresentation = {
   metaLabel: string;
   normalizedFeedName: string;
   normalizedSummary: string;
+  normalizedThumbnail: string;
   normalizedTitle: string;
   showFeedName: boolean;
   showSecondaryRow: boolean;
@@ -66,8 +69,9 @@ export function resolveArticleListItemPresentation({
 }: ArticleListItemPresentationInput): ArticleListItemPresentation {
   const isRead = articleIsRead || isRecentlyRead;
   const isUnread = !isRead;
-  const normalizedTitle = title.trim();
+  const normalizedTitle = title.trim() || ARTICLE_LIST_ITEM_TITLE_FALLBACK;
   const normalizedFeedName = feedName?.trim() ?? "";
+  const normalizedThumbnail = thumbnail?.trim() ?? "";
   const summaryText = summary ? stripHtmlTags(summary) : "";
   const normalizedSummary = summaryText.trim();
   const showFeedName = Boolean(normalizedFeedName) && normalizedFeedName !== normalizedTitle;
@@ -77,15 +81,16 @@ export function resolveArticleListItemPresentation({
     Boolean(normalizedSummary) &&
     normalizedSummary !== normalizedTitle &&
     normalizedSummary !== normalizedFeedName;
-  const showThumbnail = imagePreviews !== "off" && Boolean(thumbnail);
+  const showThumbnail = imagePreviews !== "off" && Boolean(normalizedThumbnail);
 
   return {
-    ariaLabel: `${title}${isRead ? "" : ` ${unreadSuffix}`}${isStarred ? ` ${starredSuffix}` : ""}`,
+    ariaLabel: `${normalizedTitle}${isRead ? "" : ` ${unreadSuffix}`}${isStarred ? ` ${starredSuffix}` : ""}`,
     isRead,
     isUnread,
     metaLabel,
     normalizedFeedName,
     normalizedSummary,
+    normalizedThumbnail,
     normalizedTitle,
     showFeedName,
     showSecondaryRow: showSummary || showThumbnail,
@@ -178,7 +183,7 @@ export function ArticleListItem({
         <div className="flex flex-1 items-start gap-2">
           <UnreadIcon
             unread={presentation.isUnread}
-            className={cn("mt-1.5 h-2 w-2", !presentation.isUnread && "invisible")}
+            className={cn("mt-1.5 size-2", !presentation.isUnread && "invisible")}
           />
           <div className="flex flex-1 items-start gap-1.5">
             <h3
@@ -191,16 +196,14 @@ export function ArticleListItem({
                     : "text-foreground/78",
               )}
             >
-              {article.title}
+              {presentation.normalizedTitle}
             </h3>
             <span
               aria-hidden={!article.is_starred}
               data-testid="article-star-slot"
-              className="mt-0.5 flex h-3 w-3 shrink-0 items-center justify-center"
+              className="mt-0.5 flex size-3 shrink-0 items-center justify-center"
             >
-              {article.is_starred ? (
-                <StarIcon starred className="h-3 w-3" data-testid="article-star-indicator" />
-              ) : null}
+              {article.is_starred ? <StarIcon starred className="size-3" data-testid="article-star-indicator" /> : null}
             </span>
           </div>
         </div>
@@ -229,7 +232,7 @@ export function ArticleListItem({
               {presentation.normalizedSummary}
             </p>
           )}
-          {presentation.showThumbnail && article.thumbnail && (
+          {presentation.showThumbnail && (
             <div
               className={cn(
                 "relative shrink-0 overflow-hidden rounded",
@@ -238,7 +241,7 @@ export function ArticleListItem({
                 imagePreviews === "large" && "h-20 w-28",
               )}
             >
-              <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
+              <img src={presentation.normalizedThumbnail} alt="" className="h-full w-full object-cover" />
             </div>
           )}
         </div>

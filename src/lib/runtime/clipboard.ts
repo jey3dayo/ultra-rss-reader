@@ -26,7 +26,7 @@ export function resolveClipboardErrorCategory(message: string): ClipboardErrorCa
   ) {
     return "runtime_unavailable";
   }
-  if (normalized.includes("invalid") || normalized.includes("validation") || normalized.includes("text")) {
+  if (normalized.includes("invalid") || normalized.includes("validation") || /\btext\b/.test(normalized)) {
     return "invalid_text";
   }
   return "unknown";
@@ -40,7 +40,7 @@ function categorizeClipboardError(error: AppError): ClipboardCopyError {
 }
 
 export async function copyTextToClipboard(value: string): Result.ResultAsync<void, ClipboardCopyError> {
-  if (!value) {
+  if (value.trim().length === 0) {
     return Result.fail({
       type: "UserVisible",
       message: "Invalid clipboard text",

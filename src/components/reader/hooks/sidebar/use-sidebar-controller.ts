@@ -6,6 +6,7 @@ import { useSidebarControllerSections } from "@/components/reader/hooks/sidebar/
 import { useSidebarRuntime } from "@/components/reader/hooks/sidebar/use-sidebar-runtime";
 import { useSidebarViewProps } from "@/components/reader/hooks/sidebar/use-sidebar-view-props";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { focusSelectedAccountPaneTarget } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { focusAccountItem } from "../../account-switcher-menu";
@@ -135,7 +136,11 @@ export function useSidebarController(): SidebarControllerResult {
     let frameId = 0;
     let retriesRemaining = 10;
     const focusSelectedFeed = () => {
-      const selectedFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${selectedFeedId}"]`);
+      const selectedFeedButton = queryElementByDataAttribute<HTMLButtonElement>(
+        document,
+        "data-feed-id",
+        selectedFeedId,
+      );
       if (!selectedFeedButton) {
         if (retriesRemaining <= 0) {
           return;

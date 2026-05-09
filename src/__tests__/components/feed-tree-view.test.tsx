@@ -613,7 +613,7 @@ describe("FeedTreeView", () => {
         onDropToFolder={vi.fn()}
         onDropToUnfoldered={vi.fn()}
         onDragEnd={vi.fn()}
-        displayFavicons={false}
+        displayFavicons={true}
         emptyState={{ kind: "message", message: "No feeds yet" }}
       />,
     );
@@ -636,7 +636,10 @@ describe("FeedTreeView", () => {
     expect(overlay.firstElementChild).toHaveClass(
       "border-[var(--sidebar-frame-border)]",
       "bg-[var(--sidebar-frame-solid-surface)]",
+      "px-2",
+      "py-1.5",
     );
+    expect(overlay.querySelector("img")?.parentElement).toHaveClass("size-5");
   });
 
   it("allows moving a feed by clicking the handle and then the target folder", () => {

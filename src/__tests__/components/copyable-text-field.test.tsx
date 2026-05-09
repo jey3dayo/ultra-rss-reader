@@ -67,7 +67,7 @@ describe("CopyableTextField", () => {
     expect(screen.getByRole("button", { name: "Copy server URL" })).toBeInTheDocument();
   });
 
-  it("disables the copy button when the field is disabled or empty", () => {
+  it("disables the copy button when the field is disabled, empty, or whitespace-only", () => {
     const { rerender } = render(
       <CopyableTextField
         label="Server URL"
@@ -91,6 +91,30 @@ describe("CopyableTextField", () => {
       <CopyableTextField
         label="Server URL"
         name="server-url"
+        value="   "
+        copyLabel="Copy server URL"
+        onCopy={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Copy server URL" })).toBeDisabled();
+
+    rerender(
+      <CopyableTextField
+        label="Server URL"
+        name="server-url"
+        value={"\n\t"}
+        copyLabel="Copy server URL"
+        onCopy={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Copy server URL" })).toBeDisabled();
+
+    rerender(
+      <CopyableTextField
+        label="Server URL"
+        name="server-url"
         value="https://example.com"
         copyLabel="Copy server URL"
         onCopy={vi.fn()}
@@ -98,5 +122,85 @@ describe("CopyableTextField", () => {
     );
 
     expect(screen.getByRole("button", { name: "Copy server URL" })).toBeEnabled();
+  });
+
+  it("passes non-blank copy values unchanged", async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn<(value: string) => void>();
+
+    render(
+      <CopyableTextField
+        label="Server URL"
+        name="server-url"
+        value="  https://example.com  "
+        copyLabel="Copy server URL"
+        onCopy={onCopy}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Copy server URL" }));
+
+    expect(onCopy).toHaveBeenCalledOnce();
+    expect(onCopy).toHaveBeenCalledWith("  https://example.com  ");
+  });
+
+  it("preserves readonly input focus and selection when clicking the copy action", async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+
+    render(
+      <CopyableTextField
+        label="Server URL"
+        name="server-url"
+        value="https://example.com"
+        readOnly
+        copyLabel="Copy server URL"
+        onCopy={onCopy}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Server URL" });
+    await user.click(input);
+
+    expect(input).toHaveFocus();
+    expect(input).toHaveSelection("https://example.com");
+
+    await user.click(screen.getByRole("button", { name: "Copy server URL" }));
+
+    expect(onCopy).toHaveBeenCalledOnce();
+    expect(input).toHaveFocus();
+    expect(input).toHaveSelection("https://example.com");
+  });
+
+  it("preserves editable input focus and selection range when clicking the copy action", async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+
+    render(
+      <CopyableTextField
+        label="Server URL"
+        name="server-url"
+        value="https://example.com"
+        copyLabel="Copy server URL"
+        onCopy={onCopy}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", {
+      name: "Server URL",
+    });
+    expect(input).toBeInstanceOf(HTMLInputElement);
+    if (!(input instanceof HTMLInputElement)) {
+      throw new TypeError("Expected Server URL textbox to be an input element");
+    }
+    input.focus();
+    input.setSelectionRange(8, 15);
+
+    await user.click(screen.getByRole("button", { name: "Copy server URL" }));
+
+    expect(onCopy).toHaveBeenCalledOnce();
+    expect(input).toHaveFocus();
+    expect(input.selectionStart).toBe(8);
+    expect(input.selectionEnd).toBe(15);
   });
 });

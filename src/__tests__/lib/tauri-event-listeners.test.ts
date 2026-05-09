@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { attachTauriListeners, createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
 
 function createDeferredCleanup() {
@@ -30,6 +31,11 @@ function createFakeTauriEventTarget() {
 }
 
 describe("tauri-event-listeners", () => {
+  afterEach(() => {
+    resetTauriRuntimeFlags();
+    vi.restoreAllMocks();
+  });
+
   it("runs ready cleanups when disposed", async () => {
     const cleanup = vi.fn();
     const group = createTauriListenerGroup([Promise.resolve(cleanup)]);
@@ -147,6 +153,31 @@ describe("tauri-event-listeners", () => {
     await group.ready;
 
     expect(onError).toHaveBeenCalledWith(error);
+  });
+
+  it("warns by default when Tauri runtime listener registration fails", async () => {
+    setTauriRuntimePresent();
+    const error = new Error("listen failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const group = createTauriListenerGroup([Promise.reject(error)]);
+
+    await group.ready;
+
+    expect(warn).toHaveBeenCalledWith(
+      "[tauri-event-listeners] Failed to register or cleanup Tauri event listener.",
+      error,
+    );
+  });
+
+  it("keeps browser-dev runtime unavailable listener rejection quiet by default", async () => {
+    window.__DEV_BROWSER_MOCKS__ = true;
+    const error = new Error("runtime unavailable");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const group = createTauriListenerGroup([Promise.reject(error)]);
+
+    await group.ready;
+
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("treats unavailable runtime subscription rejection as non-fatal", async () => {

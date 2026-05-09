@@ -36,6 +36,15 @@ describe("FolderContextMenuView", () => {
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
+    expect(screen.getByRole("menuitem", { name: "Mark all as read" })).toHaveAttribute(
+      "data-action-id",
+      "folder-mark-all-read",
+    );
+    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute(
+      "data-action-id",
+      "folder-set-display-preset",
+    );
+    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
     expect(screen.getByText("Display mode")).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Preview" })).toHaveTextContent("✓Preview");
   });
@@ -99,5 +108,33 @@ describe("FolderContextMenuView", () => {
     expect(screen.getByRole("menuitem", { name: "Default" })).not.toHaveTextContent("✓");
     expect(screen.getByRole("menuitem", { name: "Standard" })).not.toHaveTextContent("✓");
     expect(screen.getByRole("menuitem", { name: "Preview" })).not.toHaveTextContent("✓");
+  });
+
+  it("hides mark all read when the folder has no unread articles", () => {
+    const onMarkAllRead = vi.fn();
+
+    render(
+      <ContextMenu.Root open>
+        <FolderContextMenuView
+          markAllReadLabel="Mark all as read"
+          markOldUnreadReadLabel="Mark old unread as read"
+          oldUnreadDayLabel={(days) => `${days} days`}
+          displayModeLabel="Display mode"
+          displayPresetOptions={[
+            { value: "default", label: "Default" },
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
+          ]}
+          selectedDisplayPreset="preview"
+          hasUnreadArticles={false}
+          onMarkAllRead={onMarkAllRead}
+          onMarkOldUnreadRead={vi.fn()}
+          onSetDisplayPreset={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
+    expect(onMarkAllRead).not.toHaveBeenCalled();
   });
 });

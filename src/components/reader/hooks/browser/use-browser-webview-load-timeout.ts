@@ -14,9 +14,11 @@ export function useBrowserWebviewLoadTimeout({
   isStillLoading,
   showSurfaceFailure,
 }: UseBrowserWebviewLoadTimeoutParams) {
+  // Keep this separate from the similar lifecycle hooks: it owns only the
+  // requested-URL timeout window and stale-loading guard.
   useBrowserUrlEffect(
     browserUrl,
-    ({ browserUrl: activeBrowserUrl, isCurrent }) => {
+    ({ isCurrent }) => {
       if (!isLoading) {
         return undefined;
       }
@@ -28,7 +30,7 @@ export function useBrowserWebviewLoadTimeout({
 
         showSurfaceFailure({
           type: "UserVisible",
-          message: `Timed out waiting for embedded browser webview to finish loading: ${activeBrowserUrl}`,
+          message: "Timed out waiting for embedded browser webview to finish loading.",
         });
       }, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
 

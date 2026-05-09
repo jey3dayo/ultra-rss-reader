@@ -1,16 +1,80 @@
 import { Result } from "@praha/byethrow";
-import { addToReadingList, openInBrowser } from "@/api/tauri-commands";
+import { type AppError, addToReadingList, openInBrowser } from "@/api/tauri-commands";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
-type ArticleBrowserToastOperation<T> = () => Result.ResultAsync<T, { message: string }>;
+export type ArticleActionErrorCategory =
+  | "runtime_unavailable"
+  | "permission_denied"
+  | "invalid_text"
+  | "invalid_url"
+  | "unknown";
+
+export type ArticleActionError = AppError & {
+  category: ArticleActionErrorCategory;
+};
+
+type ArticleBrowserToastOperation<T> = () => Result.ResultAsync<T, AppError>;
 type OpenExternalBrowserParams = {
   background: boolean;
   showToast: ArticleStatusToast;
   errorLabel: string;
 };
+
+function isArticleActionErrorCategory(value: unknown): value is ArticleActionErrorCategory {
+  return (
+    value === "runtime_unavailable" ||
+    value === "permission_denied" ||
+    value === "invalid_text" ||
+    value === "invalid_url" ||
+    value === "unknown"
+  );
+}
+
+function isCategorizedActionError(error: AppError): error is ArticleActionError {
+  return "category" in error && isArticleActionErrorCategory(error.category);
+}
+
+export function resolveArticleActionErrorCategory(message: string): ArticleActionErrorCategory {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("permission") || normalized.includes("denied") || normalized.includes("not allowed")) {
+    return "permission_denied";
+  }
+  if (
+    normalized.includes("unavailable") ||
+    normalized.includes("not available") ||
+    normalized.includes("plugin") ||
+    normalized.includes("unknown command")
+  ) {
+    return "runtime_unavailable";
+  }
+  if (
+    normalized.includes("invalid url") ||
+    normalized.includes("invalid uri") ||
+    normalized.includes("only http:// and https:// urls are supported")
+  ) {
+    return "invalid_url";
+  }
+  if (normalized.includes("invalid") || normalized.includes("validation") || normalized.includes("text")) {
+    return "invalid_text";
+  }
+
+  return "unknown";
+}
+
+export function categorizeArticleActionError(error: AppError): ArticleActionError {
+  if (isCategorizedActionError(error)) {
+    return error;
+  }
+
+  return {
+    ...error,
+    category: resolveArticleActionErrorCategory(error.message),
+  };
+}
 
 function runToastOperation<T>(
   operation: ArticleBrowserToastOperation<T>,
@@ -22,7 +86,7 @@ function runToastOperation<T>(
       result,
       Result.inspect(() => showToast(successMessage)),
       Result.inspectError((error) => {
-        console.error(`${errorLabel}:`, error);
+        console.error(`${errorLabel}:`, categorizeArticleActionError(error));
         showToast(error.message);
       }),
     ),
@@ -50,7 +114,7 @@ export function openUrlInExternalBrowser(
     Result.pipe(
       result,
       Result.inspectError((error) => {
-        console.error(`${errorLabel}:`, error);
+        console.error(`${errorLabel}:`, categorizeArticleActionError(error));
         showToast(error.message);
       }),
     ),

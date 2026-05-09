@@ -9,11 +9,9 @@ import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { BrowserWebviewDiagnosticsPayload } from "../../browser-view.types";
+import type { BrowserOverlayCloseHandler, BrowserWebviewDiagnosticsPayload } from "../../browser-view.types";
 
-type UseBrowserViewRuntimeParams = {
-  onCloseOverlay: () => void;
-};
+type UseBrowserViewRuntimeParams = BrowserOverlayCloseHandler;
 
 type UseBrowserViewRuntimeResult = {
   showDiagnostics: boolean;

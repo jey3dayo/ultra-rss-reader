@@ -11,7 +11,11 @@ export function AccountContextMenuContent({ settingsLabel, onOpenSettings }: Acc
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onOpenSettings}>
+          <ContextMenu.Item
+            data-action-id="account-open-settings"
+            className={contextMenuStyles.item}
+            onClick={onOpenSettings}
+          >
             {settingsLabel}
           </ContextMenu.Item>
         </ContextMenu.Popup>

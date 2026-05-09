@@ -1,7 +1,33 @@
 import { Result } from "@praha/byethrow";
 
+function readErrorLikeMessage(error: object): string | null {
+  try {
+    const message = Reflect.get(error, "message");
+    return typeof message === "string" && message.length > 0 ? message : null;
+  } catch {
+    return null;
+  }
+}
+
+function stringifyUnknownError(error: unknown): string {
+  try {
+    return String(error);
+  } catch {
+    return Object.prototype.toString.call(error);
+  }
+}
+
 function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
+  if (error instanceof Error) {
+    return error;
+  }
+
+  if (error !== null && typeof error === "object") {
+    const message = readErrorLikeMessage(error);
+    return new Error(message ?? stringifyUnknownError(error));
+  }
+
+  return new Error(stringifyUnknownError(error));
 }
 
 export function isWindowFullscreen() {

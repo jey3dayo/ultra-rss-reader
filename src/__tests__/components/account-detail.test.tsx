@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import i18n from "@tests/helpers/i18n-setup";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDetail } from "@/components/settings/account-detail";
-import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -319,6 +319,7 @@ describe("AccountDetail", () => {
       },
       accountSetupSession: {
         accountId: "acc-1",
+        owner: "add-account",
         state: "syncing",
       },
     });
@@ -555,6 +556,7 @@ describe("AccountDetail", () => {
     useUiStore.setState({
       accountSetupSession: {
         accountId: "acc-1",
+        owner: "add-account",
         state: "syncing",
       },
     });
@@ -593,6 +595,7 @@ describe("AccountDetail", () => {
     useUiStore.setState({
       accountSetupSession: {
         accountId: "acc-1",
+        owner: "add-account",
         state: "failed",
         errorMessage: "Sync failed: Authentication failed",
       },
@@ -645,6 +648,7 @@ describe("AccountDetail", () => {
       selectedAccountId: "acc-1",
       accountSetupSession: {
         accountId: "acc-1",
+        owner: "add-account",
         state: "failed",
         errorMessage: "Sync failed: Authentication failed",
       },
@@ -1106,6 +1110,48 @@ describe("AccountDetail", () => {
     });
   });
 
+  it.each([
+    ["en", "Failed to copy server URL: Clipboard unavailable"],
+    ["ja", "サーバーURLのコピーに失敗しました: Clipboard unavailable"],
+  ] as const)("wraps server URL copy failures in the %s locale toast", async (language, expectedMessage) => {
+    await i18n.changeLanguage(language);
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "copy_to_clipboard":
+          throw { type: "UserVisible", message: "Clipboard unavailable" };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: i18n.t("settings:account.copy_server_url") }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(expectedMessage);
+    });
+    expect(showToast).not.toHaveBeenCalledWith("Clipboard unavailable");
+  });
+
   it("shows a warning toast when account sync completes with anomalies", async () => {
     const user = userEvent.setup();
 
@@ -1327,6 +1373,7 @@ describe("AccountDetail", () => {
       selectedAccountId: "acc-1",
       accountSetupSession: {
         accountId: "acc-1",
+        owner: "add-account",
         state: "failed",
         errorMessage: "Sync failed: Authentication failed",
       },

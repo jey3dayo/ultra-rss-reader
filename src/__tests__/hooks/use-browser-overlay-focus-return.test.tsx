@@ -125,4 +125,38 @@ describe("useBrowserOverlayFocusReturn", () => {
     expect(document.activeElement).toBe(articleListRoot);
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
+
+  it("cancels the scheduled focus return when unmounted before the animation frame runs", () => {
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 42;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame");
+
+    const articleButton = document.createElement("button");
+    articleButton.dataset.articleId = "article-1";
+    document.body.append(articleButton);
+
+    const { rerender, unmount } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "article-1",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    rerender({ isBrowserOpen: false });
+    unmount();
+    const scheduledFrame = scheduledCallbacks[0];
+    if (!scheduledFrame) {
+      throw new Error("expected requestAnimationFrame callback to be scheduled");
+    }
+    scheduledFrame(0);
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
+    expect(document.activeElement).not.toBe(articleButton);
+    expect(useUiStore.getState().focusedPane).not.toBe("list");
+  });
 });

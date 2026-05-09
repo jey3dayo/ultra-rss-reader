@@ -103,7 +103,7 @@ describe("useArticleListSearch", () => {
     expect(result.current.showSearch).toBe(true);
   });
 
-  it("closes search and clears the debounced query after the debounce delay", () => {
+  it("closes search and clears the debounced query immediately", () => {
     const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
@@ -124,12 +124,57 @@ describe("useArticleListSearch", () => {
 
     expect(result.current.showSearch).toBe(false);
     expect(result.current.searchQuery).toBe("");
-    expect(result.current.trimmedDebouncedQuery).toBe("urgent");
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
+  });
 
+  it("does not pass stale debounced query to search while the search UI is closed", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("  urgent  ");
+    });
     act(() => {
       vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
     });
 
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "urgent");
+
+    act(() => {
+      result.current.handleCloseSearch();
+    });
+    act(() => {
+      result.current.setSearchQuery("stale");
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.showSearch).toBe(false);
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
+  });
+
+  it("does not revive a stale query when search is reopened before the old debounce timer flushes", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("  urgent  ");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS - 1);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+
+    act(() => {
+      result.current.handleCloseSearch();
+      result.current.openSearch();
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(result.current.showSearch).toBe(true);
+    expect(result.current.searchQuery).toBe("");
     expect(result.current.trimmedDebouncedQuery).toBe("");
     expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
   });

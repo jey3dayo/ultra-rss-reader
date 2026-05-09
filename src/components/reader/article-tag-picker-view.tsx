@@ -26,17 +26,20 @@ export function ArticleTagPickerView({
     newTagInputRef,
     tagOptionRefs,
     closePicker,
+    requestFocusRestoreOnClose,
     handleTriggerKeyDown,
     handleListboxKeyDown,
   } = useArticleTagPickerPopover({
     isExpanded,
     availableTagCount: availableTags.length,
     onExpandedChange,
+    onNewTagNameChange,
   });
 
   const handleCreateTag = () => {
     const trimmedName = newTagName.trim();
     if (!trimmedName) return;
+    requestFocusRestoreOnClose();
     onCreateTag(trimmedName);
   };
 
@@ -64,7 +67,7 @@ export function ArticleTagPickerView({
               aria-expanded={isExpanded}
               aria-controls={pickerId}
             >
-              <Plus className="h-3 w-3" aria-hidden="true" />
+              <Plus className="size-3" aria-hidden="true" />
               {hasAssignedTags ? null : <span className="truncate">{labels.addTag}</span>}
             </TagPickerTriggerButton>
             {isExpanded && (
@@ -75,7 +78,6 @@ export function ArticleTagPickerView({
                 newTagName={newTagName}
                 newTagInputRef={newTagInputRef}
                 tagOptionRefs={tagOptionRefs}
-                onExpandedChange={onExpandedChange}
                 onAssignTag={onAssignTag}
                 onNewTagNameChange={onNewTagNameChange}
                 onCreateTag={handleCreateTag}

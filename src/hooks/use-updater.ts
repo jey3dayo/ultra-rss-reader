@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
+import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -14,18 +15,18 @@ let downloadInFlight = false;
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
   store.showToast({
-    message: `v${version} が利用可能です`,
+    message: i18n.t("updater.available", { version }),
     persistent: true,
     variant: "update",
     actions: [
       {
-        label: "今すぐ更新",
+        label: i18n.t("updater.update_now"),
         onClick: () => {
           startDownload();
         },
       },
       {
-        label: "後で",
+        label: i18n.t("updater.later"),
         onClick: () => {
           store.clearToast();
         },
@@ -38,18 +39,18 @@ function showUpdateFailureToast(message: string): void {
   const store = useUiStore.getState();
   console.error("Update download failed:", message);
   store.showToast({
-    message: "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
+    message: i18n.t("updater.download_failed_keep_current"),
     persistent: true,
     variant: "update",
     actions: [
       {
-        label: "もう一度確認",
+        label: i18n.t("updater.check_again"),
         onClick: () => {
           void runManualUpdateCheck();
         },
       },
       {
-        label: "閉じる",
+        label: i18n.t("close"),
         onClick: () => {
           store.clearToast();
         },
@@ -66,7 +67,7 @@ function startDownload(): void {
   downloadInFlight = true;
   const store = useUiStore.getState();
   store.showToast({
-    message: "ダウンロード中… 0%",
+    message: i18n.t("updater.downloading_percent", { percent: 0 }),
     persistent: true,
     progress: 0,
     variant: "update",
@@ -88,7 +89,24 @@ export function normalizeDownloadProgressPercent(percent: number | null): number
     return null;
   }
 
+  if (!Number.isFinite(percent)) {
+    return null;
+  }
+
   return Math.min(100, Math.max(0, Math.round(percent)));
+}
+
+function readDownloadProgressPercent(payload: unknown): number | null | undefined {
+  if (typeof payload !== "object" || payload === null || !("percent" in payload)) {
+    return undefined;
+  }
+
+  const percent = payload.percent;
+  if (percent === null || typeof percent === "number") {
+    return normalizeDownloadProgressPercent(percent);
+  }
+
+  return undefined;
 }
 
 function restartPreparedUpdate(): void {
@@ -99,16 +117,16 @@ function restartPreparedUpdate(): void {
       Result.inspectError((error) => {
         console.error("App restart failed:", error);
         store.showToast({
-          message: "再起動に失敗しました。更新の準備は完了しています。",
+          message: i18n.t("updater.restart_failed_ready"),
           persistent: true,
           variant: "update",
           actions: [
             {
-              label: "もう一度再起動",
+              label: i18n.t("updater.restart_again"),
               onClick: restartPreparedUpdate,
             },
             {
-              label: "後で",
+              label: i18n.t("updater.later"),
               onClick: () => {
                 store.clearToast();
               },
@@ -120,19 +138,26 @@ function restartPreparedUpdate(): void {
   );
 }
 
+function isStartupUpdaterUnavailable(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)
+  );
+}
+
 export function showRestartToast(): void {
   const store = useUiStore.getState();
   store.showToast({
-    message: "更新の準備ができました",
+    message: i18n.t("updater.ready"),
     persistent: true,
     variant: "update",
     actions: [
       {
-        label: "再起動",
+        label: i18n.t("updater.restart"),
         onClick: restartPreparedUpdate,
       },
       {
-        label: "後で",
+        label: i18n.t("updater.later"),
         onClick: () => {
           store.clearToast();
         },
@@ -175,7 +200,7 @@ export async function runManualUpdateCheck(): Promise<void> {
   const result = await performUpdateCheckResult();
   if (Result.isFailure(result)) {
     console.error("Manual update check failed:", Result.unwrapError(result));
-    store.showToast("アップデートの確認に失敗しました");
+    store.showToast(i18n.t("updater.check_failed"));
     return;
   }
 
@@ -184,32 +209,46 @@ export async function runManualUpdateCheck(): Promise<void> {
     showUpdateAvailableToast(info.version);
     return;
   }
-  store.showToast("最新バージョンです");
+  store.showToast(i18n.t("updater.up_to_date"));
 }
 
 export function useUpdater(): void {
+  // Keep this separate from sidebar/browser lifecycle hooks: this effect owns the
+  // updater startup check and Tauri event listener disposal, not shared UI state.
   useEffect(() => {
-    // Startup check (silent on failure)
-    performUpdateCheckResult().then((result) => {
-      Result.pipe(
-        result,
-        Result.inspect((info) => {
-          if (info) {
-            showUpdateAvailableToast(info.version);
-          }
-        }),
-        Result.inspectError((error) => {
-          console.warn("Startup update check failed (silent):", error);
-        }),
-      );
-    });
+    let cancelled = false;
 
-    return attachTauriListeners(
+    // Startup check (silent on failure)
+    if (!isStartupUpdaterUnavailable()) {
+      performUpdateCheckResult().then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        Result.pipe(
+          result,
+          Result.inspect((info) => {
+            if (info) {
+              showUpdateAvailableToast(info.version);
+            }
+          }),
+          Result.inspectError((error) => {
+            console.warn("Startup update check failed (silent):", error);
+          }),
+        );
+      });
+    }
+
+    const disposeTauriListeners = attachTauriListeners(
       [
-        listen<{ percent: number | null }>("update-download-progress", (event) => {
+        listen("update-download-progress", (event) => {
           const store = useUiStore.getState();
-          const percent = normalizeDownloadProgressPercent(event.payload.percent);
-          const message = percent != null ? `ダウンロード中… ${percent}%` : "ダウンロード中…";
+          const percent = readDownloadProgressPercent(event.payload);
+          if (percent === undefined) {
+            return;
+          }
+          const message =
+            percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
           store.showToast({
             message,
             persistent: true,
@@ -224,5 +263,10 @@ export function useUpdater(): void {
       ],
       () => {},
     );
+
+    return () => {
+      cancelled = true;
+      disposeTauriListeners();
+    };
   }, []);
 }

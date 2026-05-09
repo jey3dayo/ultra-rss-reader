@@ -5,11 +5,12 @@ import { UnsubscribeFeedDialogView } from "./unsubscribe-feed-dialog-view";
 type UnsubscribeDialogProps = {
   feed: FeedDto;
   open: boolean;
+  pending?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 };
 
-export function UnsubscribeDialog({ feed, open, onOpenChange, onConfirm }: UnsubscribeDialogProps) {
+export function UnsubscribeDialog({ feed, open, pending, onOpenChange, onConfirm }: UnsubscribeDialogProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
 
@@ -25,6 +26,7 @@ export function UnsubscribeDialog({ feed, open, onOpenChange, onConfirm }: Unsub
       }
       cancelLabel={tc("cancel")}
       confirmLabel={t("unsubscribe")}
+      pending={pending}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}
     />

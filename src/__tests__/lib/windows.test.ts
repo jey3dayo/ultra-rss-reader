@@ -58,6 +58,15 @@ describe("windows", () => {
     expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
   });
 
+  it("returns a failure result when always-on-top is unavailable", async () => {
+    setAlwaysOnTopMock.mockRejectedValue(new Error("permission denied"));
+
+    const result = await setWindowAlwaysOnTop(true);
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual(new Error("permission denied"));
+  });
+
   it("sets the current Tauri window icon", async () => {
     setIconMock.mockResolvedValue(undefined);
 
@@ -75,8 +84,31 @@ describe("windows", () => {
     expect(Result.unwrapError(result)).toEqual(new Error("boom"));
   });
 
-  it("wraps non-error Tauri write failures as Error values", async () => {
+  it("preserves structured non-error Tauri failure messages", async () => {
     setFullscreenMock.mockRejectedValue({ message: "denied" });
+
+    const result = await setWindowFullscreen(true);
+
+    expect(Result.unwrapError(result)).toEqual(new Error("denied"));
+  });
+
+  it("wraps symbol Tauri failures as readable Error values", async () => {
+    setFullscreenMock.mockRejectedValue(Symbol("window denied"));
+
+    const result = await setWindowFullscreen(true);
+
+    expect(Result.unwrapError(result)).toEqual(new Error("Symbol(window denied)"));
+  });
+
+  it("wraps Tauri failures with throwing message getters as readable Error values", async () => {
+    const errorLike = Object.create(null, {
+      message: {
+        get: () => {
+          throw new Error("message getter failed");
+        },
+      },
+    });
+    setFullscreenMock.mockRejectedValue(errorLike);
 
     const result = await setWindowFullscreen(true);
 

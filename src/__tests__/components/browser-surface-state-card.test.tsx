@@ -134,6 +134,8 @@ describe("BrowserSurfaceStateCard", () => {
     expect(detail).toHaveClass("rounded-md");
     expect(detail).toHaveClass("border-browser-overlay-state-detail-border");
     expect(detail).toHaveClass("bg-browser-overlay-state-detail-surface");
+    expect(detail).toHaveClass("break-words");
+    expect(detail).toHaveClass("[overflow-wrap:anywhere]");
     expect(retryButton).not.toHaveAccessibleName(/Technical detail/);
     expect(externalButton).not.toHaveAccessibleName(/The embedded browser/);
   });

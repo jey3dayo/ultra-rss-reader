@@ -42,7 +42,7 @@ function DragHandle({
 
   return (
     <SidebarLeadingControlButton
-      aria-label={t("drag_feed", { name: feedTitle })}
+      aria-label={t("drag_feed", { defaultValue: "Drag {{name}}", name: feedTitle })}
       density={sidebarDensity}
       visibleMode="on-row-hover"
       onPointerDown={onPointerDown}
@@ -57,7 +57,7 @@ function DragHandle({
         isArmed && "bg-[var(--feed-tree-drop-target-surface)] text-foreground opacity-100",
       )}
     >
-      <GripVertical className="h-3 w-3" aria-hidden="true" />
+      <GripVertical className="size-3" aria-hidden="true" />
     </SidebarLeadingControlButton>
   );
 }
@@ -85,6 +85,9 @@ export function FeedTreeRow({
     }
     event.preventDefault();
     event.stopPropagation();
+    if (feed.unreadCount <= 0) {
+      return;
+    }
     onMarkFeedRead?.(feed);
   };
 
@@ -131,7 +134,7 @@ export function FeedTreeRow({
           onMouseDown={handleMiddleMouseDown}
         >
           {displayFavicons && (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+            <span className="flex size-5 shrink-0 items-center justify-center">
               <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
             </span>
           )}

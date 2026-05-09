@@ -28,6 +28,7 @@ function toFeedContextMenuFeed(feed: FeedTreeFeedViewModel) {
     id: feed.id,
     account_id: feed.accountId,
     folder_id: feed.folderId,
+    remote_id: null,
     title: feed.title,
     url: feed.url,
     site_url: feed.siteUrl,

@@ -22,16 +22,28 @@ export function ArticleContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onToggleRead}>
+          <ContextMenu.Item
+            data-action-id="article-toggle-read"
+            className={contextMenuStyles.item}
+            onClick={onToggleRead}
+          >
             {toggleReadLabel}
           </ContextMenu.Item>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onToggleStar}>
+          <ContextMenu.Item
+            data-action-id="article-toggle-star"
+            className={contextMenuStyles.item}
+            onClick={onToggleStar}
+          >
             {toggleStarLabel}
           </ContextMenu.Item>
           {onOpenInBrowser && openInBrowserLabel && (
             <>
               <ContextMenu.Separator className={contextMenuStyles.separator} />
-              <ContextMenu.Item className={contextMenuStyles.item} onClick={onOpenInBrowser}>
+              <ContextMenu.Item
+                data-action-id="article-open-browser"
+                className={contextMenuStyles.item}
+                onClick={onOpenInBrowser}
+              >
                 {openInBrowserLabel}
               </ContextMenu.Item>
             </>

@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import type { AppError } from "@/api/tauri-commands";
 import { useBrowserUrlLayoutEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { bindWindowEvents } from "@/lib/window/window-events";
 
@@ -7,6 +8,7 @@ type UseBrowserWebviewBoundsSyncParams = {
   hostRef: RefObject<HTMLDivElement | null>;
   waitForBrowserWebviewListeners: () => Promise<void>;
   syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+  showSurfaceFailure: (error: AppError) => void;
 };
 
 export function useBrowserWebviewBoundsSync({
@@ -14,7 +16,10 @@ export function useBrowserWebviewBoundsSync({
   hostRef,
   waitForBrowserWebviewListeners,
   syncBrowserWebview,
+  showSurfaceFailure,
 }: UseBrowserWebviewBoundsSyncParams) {
+  // Keep this separate from the similar lifecycle hooks: it owns layout reads,
+  // ResizeObserver cleanup, and native webview create/resize sync ordering.
   useBrowserUrlLayoutEffect(
     browserUrl,
     ({ browserUrl: activeBrowserUrl, isCurrent }) => {
@@ -25,13 +30,22 @@ export function useBrowserWebviewBoundsSync({
       let cancelled = false;
 
       const syncBounds = (mode: "create" | "resize") => {
-        void waitForBrowserWebviewListeners().then(() => {
-          if (cancelled || !isCurrent()) {
-            return;
-          }
+        void waitForBrowserWebviewListeners()
+          .then(() => {
+            if (cancelled || !isCurrent()) {
+              return;
+            }
 
-          void syncBrowserWebview(activeBrowserUrl, mode);
-        });
+            void syncBrowserWebview(activeBrowserUrl, mode);
+          })
+          .catch((error: AppError) => {
+            if (cancelled || !isCurrent()) {
+              return;
+            }
+
+            console.error("Failed to initialize embedded browser listeners:", error);
+            showSurfaceFailure(error);
+          });
       };
 
       syncBounds("create");
@@ -55,6 +69,6 @@ export function useBrowserWebviewBoundsSync({
         removeWindowEvents();
       };
     },
-    [hostRef, syncBrowserWebview, waitForBrowserWebviewListeners],
+    [hostRef, showSurfaceFailure, syncBrowserWebview, waitForBrowserWebviewListeners],
   );
 }

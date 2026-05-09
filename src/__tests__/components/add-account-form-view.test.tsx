@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { AccountConfigFormView } from "@/components/settings/add-account/account-config-form-view";
 import { AddAccountFormView } from "@/components/settings/add-account/form-view";
 
 describe("AddAccountFormView", () => {
@@ -170,5 +171,112 @@ describe("AddAccountFormView", () => {
       "border-state-danger-border",
       "bg-state-danger-surface",
     );
+  });
+
+  it("uses native form submit semantics without browser navigation", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <AddAccountFormView
+        title="Add Account"
+        accountHeading="Account"
+        accountType={{
+          label: "Type",
+          name: "account-type",
+          value: "Local",
+          options: [{ value: "Local", label: "Local" }],
+          onChange: () => {},
+          disabled: false,
+        }}
+        accountName={{
+          label: "Name",
+          name: "account-name",
+          value: "Local",
+          placeholder: "Local",
+          onChange: () => {},
+          disabled: false,
+        }}
+        submitLabel="Add"
+        submittingLabel="Adding…"
+        cancelLabel="Cancel"
+        submitting={false}
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+      />,
+    );
+
+    const form = container.querySelector("form");
+    expect(form).not.toBeNull();
+
+    const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+    const dispatchResult = form?.dispatchEvent(submitEvent);
+
+    expect(dispatchResult).toBe(false);
+    expect(submitEvent.defaultPrevented).toBe(true);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AccountConfigFormView", () => {
+  it("uses native form submit semantics without browser navigation", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <AccountConfigFormView
+        title="Configure Account"
+        backLabel="Back"
+        backAriaLabel="Back to services"
+        accountHeading="Account"
+        accountName={{
+          label: "Name",
+          name: "account-name",
+          value: "Work RSS",
+          placeholder: "FreshRSS",
+          onChange: () => {},
+          disabled: false,
+        }}
+        credentialsSection={{
+          heading: "FreshRSS",
+          serverUrl: {
+            label: "Server URL",
+            name: "server-url",
+            value: "https://example.com",
+            placeholder: "https://your-freshrss.com",
+            onChange: () => {},
+            disabled: false,
+          },
+          credential: {
+            label: "Username",
+            name: "username",
+            value: "alice",
+            onChange: () => {},
+            disabled: false,
+          },
+          password: {
+            label: "Password",
+            name: "password",
+            value: "secret",
+            type: "password",
+            onChange: () => {},
+            disabled: false,
+          },
+        }}
+        submitLabel="Add"
+        submittingLabel="Adding…"
+        cancelLabel="Cancel"
+        submitting={false}
+        onBack={() => {}}
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+      />,
+    );
+
+    const form = container.querySelector("form");
+    expect(form).not.toBeNull();
+
+    const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+    const dispatchResult = form?.dispatchEvent(submitEvent);
+
+    expect(dispatchResult).toBe(false);
+    expect(submitEvent.defaultPrevented).toBe(true);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });

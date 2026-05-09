@@ -59,7 +59,7 @@ export function ArticleListHeaderActions({
                   isSidebarVisible && "bg-surface-1/72 text-foreground",
                 )}
               >
-                <PanelLeft className="h-4 w-4" />
+                <PanelLeft className="size-4" />
                 <span>{sidebarButtonText}</span>
               </Button>
             </AppTooltip>
@@ -70,7 +70,7 @@ export function ArticleListHeaderActions({
               ariaPressed={isSidebarVisible}
               className={cn(isSidebarVisible && iconToolbarActiveClassName)}
             >
-              <PanelLeft className="h-4 w-4" />
+              <PanelLeft className="size-4" />
             </IconToolbarButton>
           ))}
       </div>
@@ -79,7 +79,7 @@ export function ArticleListHeaderActions({
         {feedModeControl}
         {feedModeControl && <hr className="mx-0.5 h-5 w-px border-0 bg-border" />}
         <IconToolbarButton label={markAllReadLabel} onClick={onMarkAllRead}>
-          <CheckCheck className="h-4 w-4" />
+          <CheckCheck className="size-4" />
         </IconToolbarButton>
         <IconToolbarButton
           label={searchArticlesLabel}
@@ -87,11 +87,11 @@ export function ArticleListHeaderActions({
           ariaPressed={showSearch}
           className={cn(showSearch && iconToolbarActiveClassName)}
         >
-          <Search className="h-4 w-4" />
+          <Search className="size-4" />
         </IconToolbarButton>
         {showSearch && (
           <IconToolbarButton label={closeSearchLabel} onClick={onCloseSearch}>
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </IconToolbarButton>
         )}
       </div>

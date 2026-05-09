@@ -64,6 +64,24 @@ describe("FeedFavicon", () => {
     expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("retries favicon loading when the resolved favicon source changes after a failure", () => {
+    const { container, rerender } = render(
+      <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+
+    fireEvent.error(image as HTMLImageElement);
+
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+
+    rerender(<FeedFavicon title="Gamma" url="https://next.example.com/feed.xml" siteUrl="https://next.example.com" />);
+
+    const retryImage = container.querySelector("img");
+    expect(retryImage).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=next.example.com&sz=32");
+  });
+
   it("applies grayscale only to resolved favicon images", () => {
     const { container } = render(
       <FeedFavicon title="Delta" url="https://example.com/feed.xml" siteUrl="https://example.com" grayscale />,

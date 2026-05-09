@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
+import actionsSource from "@/lib/actions.ts?raw";
 import { APP_ACTIONS } from "@/lib/app-actions";
-import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
+import { keyboardEvents, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
+import menuSource from "../../../src-tauri/src/menu.rs?raw";
 
 const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({
   triggerSyncMock: vi.fn(),
@@ -62,6 +64,53 @@ function stubWindowLocationReload(reload: Location["reload"]) {
     reload,
   };
   return vi.spyOn(window, "location", "get").mockReturnValue(location);
+}
+
+function extractBlock(source: string, pattern: RegExp, label: string): string {
+  const matched = source.match(pattern)?.[1];
+  if (!matched) {
+    throw new Error(`Could not find ${label}`);
+  }
+  return matched;
+}
+
+function extractExecuteActionCases(source: string): string[] {
+  const startIndex = source.indexOf("export function executeAction(action: AppAction): void");
+  if (startIndex < 0) {
+    throw new Error("Could not find executeAction function");
+  }
+  const block = source.slice(startIndex);
+
+  return [...block.matchAll(/case "([^"]+)":/g)].map((match) => match[1]);
+}
+
+function extractMenuActionPayloads(source: string): string[] {
+  const block = extractBlock(
+    source,
+    /fn resolve_menu_action\(menu_id: &str\) -> Option<&'static str> \{[\s\S]*?match menu_id \{([\s\S]*?)^\s*\}/m,
+    "resolve_menu_action block",
+  );
+
+  return [...block.matchAll(/=> Some\("([^"]+)"\),/g)].map((match) => match[1]);
+}
+
+function shortcutActionToAppAction(shortcutAction: string): string {
+  switch (shortcutAction) {
+    case "show_unread":
+      return "set-filter-unread";
+    case "show_all":
+      return "set-filter-all";
+    case "show_starred":
+      return "set-filter-starred";
+    case "open_in_app_browser":
+      return "open-in-reader";
+    case "open_external_browser":
+      return "open-in-browser";
+    case "close_or_clear":
+      return "close-browser";
+    default:
+      return shortcutAction.replaceAll("_", "-");
+  }
 }
 
 vi.mock("@/api/tauri-commands", () => ({
@@ -451,12 +500,49 @@ describe("executeAction", () => {
 
       window.removeEventListener(keyboardEvents.openExternalBrowser, handler);
     });
+
+    it("keeps share action targets delegated to article keyboard handlers after Web Preview navigation", () => {
+      const copyHandler = vi.fn();
+      const externalHandler = vi.fn();
+      const readingListHandler = vi.fn();
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/webview-navigation-target",
+        browserNavigationState: { canGoBack: true, canGoForward: false },
+      });
+      window.addEventListener(keyboardEvents.copyLink, copyHandler);
+      window.addEventListener(keyboardEvents.openExternalBrowser, externalHandler);
+      window.addEventListener(keyboardEvents.addToReadingList, readingListHandler);
+
+      executeAction("copy-link");
+      executeAction("open-in-default-browser");
+      executeAction("add-to-reading-list");
+
+      expect(copyHandler).toHaveBeenCalledTimes(1);
+      expect(externalHandler).toHaveBeenCalledTimes(1);
+      expect(readingListHandler).toHaveBeenCalledTimes(1);
+      expect(copyHandler.mock.calls[0]?.[0]).toBeInstanceOf(Event);
+      expect(externalHandler.mock.calls[0]?.[0]).toBeInstanceOf(Event);
+      expect(readingListHandler.mock.calls[0]?.[0]).toBeInstanceOf(Event);
+      expect(copyHandler.mock.calls[0]?.[0]).not.toBeInstanceOf(CustomEvent);
+      expect(externalHandler.mock.calls[0]?.[0]).not.toBeInstanceOf(CustomEvent);
+      expect(readingListHandler.mock.calls[0]?.[0]).not.toBeInstanceOf(CustomEvent);
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/webview-navigation-target");
+
+      window.removeEventListener(keyboardEvents.copyLink, copyHandler);
+      window.removeEventListener(keyboardEvents.openExternalBrowser, externalHandler);
+      window.removeEventListener(keyboardEvents.addToReadingList, readingListHandler);
+    });
   });
 
   describe("preference toggle actions", () => {
     it("toggles reading_sort preference", async () => {
       const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
-      const { setPref } = usePreferencesStore.getState();
+      const { prefs, setPref } = usePreferencesStore.getState();
+      delete prefs.reading_sort;
+      delete prefs.sort_unread;
       vi.mocked(setPref).mockClear();
 
       executeAction("toggle-sort-unread");
@@ -464,13 +550,38 @@ describe("executeAction", () => {
       expect(setPref).toHaveBeenCalledWith("reading_sort", "oldest_first");
     });
 
+    it("toggles reading_sort from the current reading_sort value before legacy sort_unread", async () => {
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
+      const { prefs, setPref } = usePreferencesStore.getState();
+      prefs.reading_sort = "oldest_first";
+      prefs.sort_unread = "newest_first";
+      vi.mocked(setPref).mockClear();
+
+      executeAction("toggle-sort-unread");
+
+      expect(setPref).toHaveBeenCalledWith("reading_sort", "newest_first");
+    });
+
     it("toggles group_by preference", async () => {
       const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
-      const { setPref } = usePreferencesStore.getState();
+      const { prefs, setPref } = usePreferencesStore.getState();
+      prefs.group_by = "date";
+      vi.mocked(setPref).mockClear();
 
       executeAction("toggle-group-by-feed");
 
-      expect(setPref).toHaveBeenCalled();
+      expect(setPref).toHaveBeenCalledWith("group_by", "feed");
+    });
+
+    it("toggles group_by feed preference back to date", async () => {
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
+      const { prefs, setPref } = usePreferencesStore.getState();
+      prefs.group_by = "feed";
+      vi.mocked(setPref).mockClear();
+
+      executeAction("toggle-group-by-feed");
+
+      expect(setPref).toHaveBeenCalledWith("group_by", "date");
     });
 
     it("sets theme to dark", async () => {
@@ -832,6 +943,16 @@ describe("executeAction", () => {
   });
 
   describe("isAppAction", () => {
+    it("keeps the runtime action registry duplicate-free", () => {
+      expect(new Set(APP_ACTIONS).size).toBe(APP_ACTIONS.length);
+    });
+
+    it("keeps the runtime action registry aligned with executeAction cases", () => {
+      const executeActionCases = extractExecuteActionCases(actionsSource);
+
+      expect(new Set(executeActionCases)).toEqual(new Set(APP_ACTIONS));
+    });
+
     it("accepts every action registered for runtime boundaries", () => {
       for (const action of APP_ACTIONS) {
         expect(isAppAction(action)).toBe(true);
@@ -862,6 +983,43 @@ describe("executeAction", () => {
       expect(isAppAction(undefined)).toBe(false);
       expect(isAppAction(1)).toBe(false);
       expect(isAppAction({ type: "open-settings" })).toBe(false);
+    });
+
+    it("keeps native menu action payloads registered as app actions", () => {
+      const menuActionPayloads = extractMenuActionPayloads(menuSource);
+
+      for (const action of menuActionPayloads) {
+        expect(APP_ACTIONS).toContain(action);
+        expect(isAppAction(action)).toBe(true);
+      }
+    });
+
+    it("keeps shared shortcut and native menu action ids mapped to registered app actions", () => {
+      const menuActionPayloads = new Set(extractMenuActionPayloads(menuSource));
+      const sharedShortcutActions = shortcutDefinitions
+        .map((definition) => shortcutActionToAppAction(definition.id))
+        .filter((action) => menuActionPayloads.has(action));
+
+      expect(sharedShortcutActions).toEqual([
+        "next-article",
+        "prev-article",
+        "next-feed",
+        "prev-feed",
+        "toggle-read",
+        "toggle-star",
+        "open-in-reader",
+        "open-in-browser",
+        "mark-all-read",
+        "set-filter-unread",
+        "set-filter-all",
+        "set-filter-starred",
+        "open-settings",
+      ]);
+
+      for (const action of sharedShortcutActions) {
+        expect(APP_ACTIONS).toContain(action);
+        expect(isAppAction(action)).toBe(true);
+      }
     });
   });
 });

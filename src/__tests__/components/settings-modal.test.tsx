@@ -82,6 +82,34 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
   });
 
+  it("clears account navigation state when switching from account detail to a settings category", async () => {
+    const user = userEvent.setup();
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    const accountButtons = await screen.findAllByRole("button", { name: /FreshRSS/i });
+    await user.click(accountButtons[accountButtons.length - 1] ?? accountButtons[0]);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+
+    await user.click(screen.getByRole("button", { name: /^(Reading|nav\.reading)$/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState()).toEqual(
+        expect.objectContaining({
+          settingsCategory: "reading",
+          settingsAccountId: null,
+          settingsAddAccount: false,
+          settingsAddAccountInitialKind: null,
+        }),
+      );
+    });
+
+    expect(screen.queryByTestId("account-detail-layout")).not.toBeInTheDocument();
+  });
+
   it("opens add account form when selecting add account from general settings", async () => {
     const user = userEvent.setup();
 
@@ -124,6 +152,7 @@ describe("SettingsModal", () => {
       settingsAddAccount: true,
       accountSetupSession: {
         accountId: "acc-2",
+        owner: "add-account",
         state: "syncing",
       },
     });
@@ -137,6 +166,70 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 2, name: /Add Account/i })).not.toBeInTheDocument();
+  });
+
+  it("locks settings navigation while add-account credential verification is pending", async () => {
+    const user = userEvent.setup();
+    let resolveAddAccount: ((value: unknown) => void) | undefined;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        return new Promise((resolve) => {
+          resolveAddAccount = resolve;
+        });
+      }
+      return undefined;
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.type(await screen.findByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        owner: "add-account",
+        state: "verifying",
+      });
+    });
+
+    await user.click(screen.getByRole("button", { name: "Close preferences" }));
+    await user.click(screen.getByRole("button", { name: "Reading" }));
+    await user.click(screen.getByRole("button", { name: /FreshRSS/i }));
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        settingsOpen: true,
+        settingsCategory: "accounts",
+        settingsAccountId: null,
+        settingsAddAccount: true,
+      }),
+    );
+    expect(screen.getByRole("button", { name: "Reading" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeDisabled();
+
+    resolveAddAccount?.({
+      ...sampleAccounts[1],
+      id: "acc-new",
+      kind: "FreshRss",
+      name: "FreshRSS",
+      username: "alice",
+      server_url: "https://freshrss.example.com",
+      sync_interval_secs: 3600,
+      sync_on_startup: true,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    });
   });
 
   it("shows the mute settings category in navigation", async () => {
@@ -264,7 +357,7 @@ describe("SettingsModal", () => {
     expect(createButton).toBeDisabled();
 
     await user.type(nameInput, "Later");
-    await user.click(screen.getByRole("button", { name: "Color #6f8eb8" }));
+    await user.click(screen.getByRole("radio", { name: "Color #6f8eb8" }));
 
     expect(createButton).toBeEnabled();
 
@@ -636,7 +729,7 @@ describe("SettingsModal", () => {
 
     const historySwitch = screen.getByRole("switch", { name: "Record recently viewed articles" });
     expect(historySwitch).toBeChecked();
-    expect(screen.getByRole("button", { name: "Clear history: Recently viewed history" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear recently viewed history" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Open the first article when selecting a feed" })).toBeInTheDocument();
 
     await user.click(historySwitch);

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -107,6 +107,31 @@ describe("ShortcutsSettings", () => {
 
     expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent("n");
     expect(setPref).not.toHaveBeenCalled();
+  });
+
+  it("ignores Alt key combinations while recording instead of saving the plain key", async () => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "j",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-next_article"));
+
+    const recordingButton = screen.getByTestId("shortcut-badge-next_article");
+    fireEvent.keyDown(recordingButton, {
+      key: "k",
+      altKey: true,
+    });
+
+    expect(setPref).not.toHaveBeenCalled();
+    expect(recordingButton).toHaveTextContent("Press a key");
   });
 
   it("resets one shortcut row without resetting all bindings", async () => {

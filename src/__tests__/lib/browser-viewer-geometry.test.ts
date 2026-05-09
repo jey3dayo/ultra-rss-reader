@@ -187,6 +187,26 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chrome.action.size).toBe(44);
   });
 
+  it.each([
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    -1,
+  ])("normalizes invalid main-stage viewport widths to the compact-safe fallback: %s", (viewportWidth) => {
+    const geometry = resolveBrowserViewerGeometry({
+      scope: "main-stage",
+      viewportWidth,
+      diagnosticsVisible: false,
+    });
+
+    expect(geometry.compact).toBe(true);
+    expect(geometry.ultraCompact).toBe(true);
+    expect(geometry.stage.top).toBe(48);
+    expect(geometry.chromeRail.height).toBe(48);
+    expect(geometry.chrome.action.size).toBe(44);
+    expect(geometry.diagnostics).toEqual({ compact: true, top: 50 });
+  });
+
   it("keeps desktop diagnostics below the fullscreen chrome without changing the stage contract", () => {
     const hiddenDiagnostics = resolveBrowserViewerGeometry({
       scope: "main-stage",

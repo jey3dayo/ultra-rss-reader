@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Command,
@@ -39,11 +39,13 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [searchValue, setSearchValue] = useState("");
 
-  useEffect(() => {
-    if (open) {
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
       setSearchValue("");
-    }
-  }, [open]);
+      onOpenChange(nextOpen);
+    },
+    [onOpenChange],
+  );
 
   const shortcuts = useMemo<ShortcutHelpItem[]>(
     () =>
@@ -71,9 +73,9 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
   }, [shortcuts, t]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
-        <div className="border-b px-4 py-4">
+        <div className="border-b p-4">
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-lg">{t("shortcuts_help.title")}</DialogTitle>
             <DialogDescription className="flex flex-wrap items-center gap-2">

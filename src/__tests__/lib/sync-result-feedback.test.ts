@@ -63,6 +63,27 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, Local" });
   });
 
+  it("uses account ids for blank failed account names while preserving duplicate name dedupe", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 4,
+        succeeded: 0,
+        failed: [
+          { account_id: "acc-1", account_name: "FreshRSS", message: "boom" },
+          { account_id: "acc-2", account_name: "", message: "missing name" },
+          { account_id: "acc-3", account_name: "   ", message: "blank name" },
+          {
+            account_id: "acc-4",
+            account_name: "FreshRSS",
+            message: "boom again",
+          },
+        ],
+        warnings: [],
+      }),
+    ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, acc-2, acc-3" });
+  });
+
   it("summarizes warning-only sync results", () => {
     expect(
       summarizeSyncResult({
@@ -122,6 +143,16 @@ describe("sync-result-feedback", () => {
     ).toBe("FreshRSS, Local");
   });
 
+  it("uses account ids for blank warning account names", () => {
+    expect(
+      getSyncWarningAccountNames([
+        { account_id: "acc-1", account_name: "", message: "warn 1" },
+        { account_id: "acc-2", account_name: "  ", message: "warn 2" },
+        { account_id: "acc-3", account_name: "Local", message: "warn 3" },
+      ]),
+    ).toBe("acc-1, acc-2, Local");
+  });
+
   it("summarizes warning payloads for event-driven retry notifications", () => {
     expect(
       summarizeSyncWarnings([
@@ -134,6 +165,13 @@ describe("sync-result-feedback", () => {
         { account_id: "acc-2", account_name: "Local", message: "warn 2" },
       ]),
     ).toEqual({ kind: "retry-pending", accounts: "FreshRSS, Local" });
+  });
+
+  it("keeps empty warning output copy unchanged", () => {
+    expect(summarizeSyncWarnings([])).toEqual({
+      kind: "warnings",
+      accounts: "",
+    });
   });
 
   it("prefers scheduled retries over other warning kinds", () => {
@@ -188,6 +226,70 @@ describe("sync-result-feedback", () => {
       retryAt: "2026-04-13T03:16:00Z",
       retryInSeconds: 60,
     });
+  });
+
+  it("keeps scheduled retry output copy unchanged across multiple timestamps", () => {
+    const feedback = summarizeSyncWarnings([
+      {
+        account_id: "acc-1",
+        account_name: "FreshRSS",
+        message: "Retry later",
+        kind: "retry_scheduled",
+        retry_at: "2026-04-13T03:20:00Z",
+        retry_in_seconds: 300,
+      },
+      {
+        account_id: "acc-2",
+        account_name: "Local",
+        message: "Retry sooner",
+        kind: "retry_scheduled",
+        retry_at: "2026-04-13T03:16:00Z",
+        retry_in_seconds: 60,
+      },
+    ]);
+
+    expect(
+      resolveSyncFeedbackMessage(feedback, {
+        alreadyInProgress: "already running",
+        partialFailure: (accounts) => `partial:${accounts}`,
+        retryScheduled: (accounts, retryAt, retryInSeconds) => `scheduled:${accounts}:${retryAt}:${retryInSeconds}`,
+        retryPending: (accounts) => `pending:${accounts}`,
+        warnings: (accounts) => `warnings:${accounts}`,
+        success: "done",
+      }),
+    ).toBe("scheduled:FreshRSS, Local:2026-04-13T03:16:00Z:60");
+  });
+
+  it("keeps first scheduled retry output copy when retry seconds are equal", () => {
+    const feedback = summarizeSyncWarnings([
+      {
+        account_id: "acc-1",
+        account_name: "FreshRSS",
+        message: "Retry first",
+        kind: "retry_scheduled",
+        retry_at: "2026-04-13T03:16:00Z",
+        retry_in_seconds: 60,
+      },
+      {
+        account_id: "acc-2",
+        account_name: "Local",
+        message: "Retry same time",
+        kind: "retry_scheduled",
+        retry_at: "2026-04-13T03:17:00Z",
+        retry_in_seconds: 60,
+      },
+    ]);
+
+    expect(
+      resolveSyncFeedbackMessage(feedback, {
+        alreadyInProgress: "already running",
+        partialFailure: (accounts) => `partial:${accounts}`,
+        retryScheduled: (accounts, retryAt, retryInSeconds) => `scheduled:${accounts}:${retryAt}:${retryInSeconds}`,
+        retryPending: (accounts) => `pending:${accounts}`,
+        warnings: (accounts) => `warnings:${accounts}`,
+        success: "done",
+      }),
+    ).toBe("scheduled:FreshRSS, Local:2026-04-13T03:16:00Z:60");
   });
 
   it("uses scheduled retry warnings with missing retry seconds after timed warnings", () => {

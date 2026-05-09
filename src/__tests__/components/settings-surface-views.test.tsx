@@ -180,7 +180,7 @@ describe("Settings surface views", () => {
           {
             id: "copy-link",
             label: "Copy link",
-            icon: <Copy className="h-5 w-5" />,
+            icon: <Copy className="size-5" />,
             checked: true,
             onCheckedChange,
           },

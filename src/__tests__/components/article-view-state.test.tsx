@@ -2,6 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => (key === "close_browser_overlay" ? "Close Web Preview" : key),
+  }),
+}));
+
 vi.mock("@/components/reader/browser-view", () => ({
   BrowserView: ({ labels, onCloseOverlay }: { labels: { closeWebPreview: string }; onCloseOverlay: () => void }) => (
     <button type="button" aria-label={labels.closeWebPreview} onClick={onCloseOverlay}>

@@ -15,6 +15,7 @@ function renderArticleListBody({
   emptyDescription,
   emptyActionLabel,
   onEmptyAction,
+  isLoading = false,
   groups = [
     {
       id: "today",
@@ -38,6 +39,7 @@ function renderArticleListBody({
   emptyDescription?: string;
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
+  isLoading?: boolean;
   groups?: ComponentProps<typeof ArticleListBody>["groups"];
   onSelectArticle?: (articleId: string) => void;
   onMarkAllRead?: () => void;
@@ -48,7 +50,7 @@ function renderArticleListBody({
       listRef={{ current: null }}
       viewportRef={{ current: null }}
       onListKeyDownCapture={vi.fn()}
-      isLoading={false}
+      isLoading={isLoading}
       loadingMessage="Loading articles"
       emptyStateVariant={emptyStateVariant}
       emptyMessage={emptyMessage}
@@ -107,6 +109,24 @@ describe("ArticleListBody", () => {
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onSelectArticle).not.toHaveBeenCalled();
+  });
+
+  it("does not expose mark all read from an empty list body context menu", () => {
+    const { onMarkAllRead } = renderArticleListBody({ groups: [] });
+
+    fireEvent.contextMenu(screen.getByText("No articles"));
+
+    expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
+    expect(onMarkAllRead).not.toHaveBeenCalled();
+  });
+
+  it("does not expose mark all read from a loading list body context menu", () => {
+    const { onMarkAllRead } = renderArticleListBody({ isLoading: true, groups: [] });
+
+    fireEvent.contextMenu(screen.getByText("Loading articles"));
+
+    expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
+    expect(onMarkAllRead).not.toHaveBeenCalled();
   });
 
   it("passes search empty-state semantics through without creating an article listbox", async () => {

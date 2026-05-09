@@ -1,10 +1,36 @@
-import type { UseArticleListBodyPropsParams } from "../../article-list.types";
+import type { TFunction } from "i18next";
+import type { ArticleListSetupState } from "../../article-list.types";
 import type { ArticleListBodyProps } from "../../article-list-body";
 
 type ArticleListBodyEmptyStateProps = Pick<
   ArticleListBodyProps,
   "emptyStateVariant" | "emptyMessage" | "emptyDescription" | "emptyActionLabel" | "onEmptyAction"
 >;
+
+type UseArticleListBodyPropsParams = {
+  t: TFunction<"reader">;
+  tc: TFunction<"common">;
+  listRef: ArticleListBodyProps["listRef"];
+  viewportRef: ArticleListBodyProps["viewportRef"];
+  handleListKeyDownCapture: ArticleListBodyProps["onListKeyDownCapture"];
+  isLoading: boolean;
+  isLoadingAccountArticles: boolean;
+  isLoadingFolderArticles: boolean;
+  isLoadingRecentArticles: boolean;
+  isLoadingTagArticles: boolean;
+  isSearchLoading: boolean;
+  isSearchEmptyState: boolean;
+  setupEmptyState: ArticleListSetupState;
+  trimmedDebouncedQuery: string;
+  articleGroups: ArticleListBodyProps["groups"];
+  dimArchived: ArticleListBodyProps["dimArchived"];
+  textPreview: ArticleListBodyProps["textPreview"];
+  imagePreviews: ArticleListBodyProps["imagePreviews"];
+  selectionStyle: ArticleListBodyProps["selectionStyle"];
+  selectArticle: ArticleListBodyProps["onSelectArticle"];
+  handleCloseSearch: () => void;
+  handleMarkAllRead: () => void;
+};
 
 type BuildArticleListBodyEmptyStateParams = Pick<
   UseArticleListBodyPropsParams,
@@ -52,6 +78,8 @@ export function useArticleListBodyProps({
   handleListKeyDownCapture,
   isLoading,
   isLoadingAccountArticles,
+  isLoadingFolderArticles,
+  isLoadingRecentArticles,
   isLoadingTagArticles,
   isSearchLoading,
   isSearchEmptyState,
@@ -79,7 +107,13 @@ export function useArticleListBodyProps({
     listRef,
     viewportRef,
     onListKeyDownCapture: handleListKeyDownCapture,
-    isLoading: isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading,
+    isLoading:
+      isLoading ||
+      isLoadingAccountArticles ||
+      isLoadingFolderArticles ||
+      isLoadingRecentArticles ||
+      isLoadingTagArticles ||
+      isSearchLoading,
     loadingMessage: tc("loading"),
     ...emptyStateProps,
     groups: articleGroups,

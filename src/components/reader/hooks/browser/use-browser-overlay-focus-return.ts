@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { useUiStore } from "@/stores/ui-store";
 
 type UseBrowserOverlayFocusReturnParams = {
@@ -18,13 +19,14 @@ export function useBrowserOverlayFocusReturn({
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
   const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
+  const focusReturnFrameRef = useRef<number | null>(null);
 
   const focusSelectedArticleRow = useCallback(() => {
     if (typeof document === "undefined") {
       return;
     }
 
-    const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
+    const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
     if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
       return;
     }
@@ -48,14 +50,21 @@ export function useBrowserOverlayFocusReturn({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
       const previousTarget = overlayFocusReturnTargetRef.current;
       const previousTargetKey = overlayFocusReturnTargetKeyRef.current;
       overlayFocusReturnTargetRef.current = null;
       overlayFocusReturnTargetKeyRef.current = null;
 
-      requestAnimationFrame(() => {
-        const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
+      focusReturnFrameRef.current = requestAnimationFrame(() => {
+        focusReturnFrameRef.current = null;
+        if (cancelled) {
+          return;
+        }
+
+        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
         if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
           useUiStore.getState().setFocusedPane("list");
           selectedArticleTarget.focus({ preventScroll: true });
@@ -63,8 +72,10 @@ export function useBrowserOverlayFocusReturn({
         }
 
         if (previousTargetKey) {
-          const nextTarget = document.querySelector<HTMLElement>(
-            `[data-browser-overlay-return-focus="${previousTargetKey}"]`,
+          const nextTarget = queryElementByDataAttribute<HTMLElement>(
+            document,
+            "data-browser-overlay-return-focus",
+            previousTargetKey,
           );
           if (nextTarget && !nextTarget.hasAttribute("disabled")) {
             nextTarget.focus();
@@ -94,6 +105,14 @@ export function useBrowserOverlayFocusReturn({
     }
 
     wasBrowserOpenRef.current = isBrowserOpen;
+
+    return () => {
+      cancelled = true;
+      if (focusReturnFrameRef.current !== null) {
+        cancelAnimationFrame(focusReturnFrameRef.current);
+        focusReturnFrameRef.current = null;
+      }
+    };
   }, [articleId, isBrowserOpen]);
 
   return {

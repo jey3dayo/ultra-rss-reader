@@ -5,6 +5,7 @@ import {
   formatRawClickTrace,
   formatRawKeyboardTrace,
   formatRawPointerTrace,
+  resolveDebugTraceSource,
 } from "@/lib/debug/debug-input-trace";
 
 function expectCustomEvent(value: unknown): asserts value is CustomEvent<string> {
@@ -38,5 +39,14 @@ describe("debug-input-trace", () => {
     const event = listener.mock.calls[0]?.[0];
     expectCustomEvent(event);
     expect(event.detail).toMatch(/^\d{2}:\d{2}:\d{2}\.\d{3} queue next-article$/);
+  });
+
+  it("keeps debug trace sources separated from production log commands", () => {
+    expect(resolveDebugTraceSource("raw-key Enter target=button")).toBe("input");
+    expect(resolveDebugTraceSource("window-mouse 3 -> mouse-back")).toBe("input");
+    expect(resolveDebugTraceSource("browser-geometry resize width=1200 height=800")).toBe("browser_geometry");
+    expect(resolveDebugTraceSource("sync-error account=acc-1 kind=network")).toBe("sync_error");
+    expect(resolveDebugTraceSource("hud-copy success")).toBe("app");
+    expect(resolveDebugTraceSource("open_log_dir")).toBe("app");
   });
 });

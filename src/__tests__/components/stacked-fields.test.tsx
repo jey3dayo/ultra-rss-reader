@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { StackedSelectField } from "@/components/shared/stacked-select-field";
+import { createStackedSelectFieldChangeHandler, StackedSelectField } from "@/components/shared/stacked-select-field";
 
 describe("stacked shared fields", () => {
   it("associates stacked input fields with their label", () => {
@@ -42,5 +42,93 @@ describe("stacked shared fields", () => {
     await user.click(await screen.findByRole("option", { name: "Reader" }));
 
     expect(onChange).toHaveBeenCalledWith("reader");
+  });
+
+  it("keeps generated stacked select label references stable", () => {
+    render(
+      <StackedSelectField
+        label="Display mode"
+        name="display-mode"
+        value="preview"
+        options={[
+          { value: "default", label: "Default" },
+          { value: "preview", label: "Web Preview" },
+        ]}
+        onChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const label = screen.getByText("Display mode");
+
+    expect(label).toHaveAttribute("id");
+    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveAttribute("aria-labelledby", label.id);
+  });
+
+  it("keeps explicit stacked select label references stable", () => {
+    render(
+      <StackedSelectField
+        labelId="display-mode-label"
+        label="Display mode"
+        name="display-mode"
+        value="preview"
+        options={[
+          { value: "default", label: "Default" },
+          { value: "preview", label: "Web Preview" },
+        ]}
+        onChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByText("Display mode")).toHaveAttribute("id", "display-mode-label");
+    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveAttribute(
+      "aria-labelledby",
+      "display-mode-label",
+    );
+  });
+
+  it("does not call stacked select change handlers while disabled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <StackedSelectField
+        label="Display mode"
+        name="display-mode"
+        value="preview"
+        options={[
+          { value: "default", label: "Default" },
+          { value: "preview", label: "Web Preview" },
+          { value: "reader", label: "Reader" },
+        ]}
+        disabled
+        onChange={onChange}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Display mode" }));
+
+    expect(screen.queryByRole("option", { name: "Reader" })).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("drops null stacked select values before calling change handlers", () => {
+    const onChange = vi.fn();
+    const handleChange = createStackedSelectFieldChangeHandler({ disabled: false, onChange });
+
+    handleChange(null);
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("drops stacked select values before calling change handlers when disabled", () => {
+    const onChange = vi.fn();
+    const handleChange = createStackedSelectFieldChangeHandler({ disabled: true, onChange });
+
+    handleChange("reader");
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

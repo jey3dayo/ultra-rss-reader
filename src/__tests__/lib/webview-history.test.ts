@@ -70,14 +70,15 @@ describe("webview-history", () => {
     expect(second.iframe.src).toBe("https://example.com/second");
   });
 
-  it("succeeds reload when the first iframe src is empty", async () => {
+  it("fails reload when the first iframe src is empty", async () => {
     const first = appendTrackedIframe("");
     const second = appendTrackedIframe("https://example.com/second");
 
     const result = await reloadWebview();
 
-    expect(Result.isSuccess(result)).toBe(true);
-    expect(first.assignedSrcs).toEqual(["", ""]);
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toBe("iframe src is empty");
+    expect(first.assignedSrcs).toEqual([]);
     expect(second.assignedSrcs).toEqual([]);
     expect(first.iframe.src).toBe("");
   });
@@ -104,5 +105,31 @@ describe("webview-history", () => {
     expect(secondBack).not.toHaveBeenCalled();
     expect(firstForward).toHaveBeenCalledTimes(1);
     expect(secondForward).not.toHaveBeenCalled();
+  });
+
+  it("targets the browser webview iframe when a hidden unrelated iframe appears first", async () => {
+    const hidden = appendIframe("https://example.com/hidden");
+    hidden.hidden = true;
+    const browser = appendIframe("https://example.com/browser");
+    browser.setAttribute("data-browser-webview-iframe", "");
+    const hiddenBack = vi.spyOn(getIframeHistory(hidden), "back").mockImplementation(() => undefined);
+    const browserBack = vi.spyOn(getIframeHistory(browser), "back").mockImplementation(() => undefined);
+
+    expect(Result.isSuccess(await goBackInWebview())).toBe(true);
+
+    expect(hiddenBack).not.toHaveBeenCalled();
+    expect(browserBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads the browser preview iframe before falling back to the first iframe", async () => {
+    const unrelated = appendTrackedIframe("https://example.com/unrelated");
+    const preview = appendTrackedIframe("https://example.com/preview");
+    preview.iframe.setAttribute("data-browser-preview-iframe", "");
+
+    const result = await reloadWebview();
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(unrelated.assignedSrcs).toEqual([]);
+    expect(preview.assignedSrcs).toEqual(["", "https://example.com/preview"]);
   });
 });

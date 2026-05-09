@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/components/app-layout";
+import { WORKSPACE_DETAIL_PANE_WIDTH } from "@/components/shared/workspace-pane-layout";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -122,6 +123,24 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
       width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
     });
+    expect(screen.getByTestId("main-stage").firstElementChild).not.toHaveStyle({
+      width: `${WORKSPACE_DETAIL_PANE_WIDTH}px`,
+    });
+  });
+
+  it("keeps app shell responsive constraints outside the workspace split helper", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "content",
+      sidebarOpen: true,
+    });
+
+    const { container } = render(<AppLayout />);
+
+    expect(container.firstElementChild).toHaveClass("relative", "h-full", "overflow-hidden");
+    expect(screen.getByTestId("main-stage")).toHaveClass("flex", "min-w-0", "flex-1");
+    expect(screen.getByTestId("main-stage")).not.toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
   });
 
   it("keeps the transient account pane mounted for wide layout open and close motion", () => {
@@ -195,6 +214,44 @@ describe("AppLayout", () => {
     expect(shell).toHaveStyle({ width: "0px" });
     expect(shell).toHaveAttribute("aria-hidden", "true");
     expect(shell).toHaveAttribute("inert");
+  });
+
+  it("falls back to the sidebar pane on mobile when no account is selected", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      focusedPane: "list",
+      selectedAccountId: null,
+    });
+
+    render(<AppLayout />);
+
+    const tray = screen.getByTestId("sliding-pane-tray");
+    const [sidebarPane, listPane, contentPane] = Array.from(tray.children);
+
+    expect(tray).toHaveStyle({ transform: "translateX(0%)" });
+    expect(sidebarPane).not.toHaveAttribute("inert");
+    expect(listPane).toHaveAttribute("inert");
+    expect(contentPane).toHaveAttribute("inert");
+  });
+
+  it("keeps the content pane visible on mobile when content is focused", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      focusedPane: "content",
+      selectedAccountId: "acc-1",
+    });
+
+    render(<AppLayout />);
+
+    const tray = screen.getByTestId("sliding-pane-tray");
+    const [sidebarPane, listPane, contentPane] = Array.from(tray.children);
+
+    expect(tray).toHaveStyle({ transform: "translateX(-200%)" });
+    expect(sidebarPane).toHaveAttribute("inert");
+    expect(listPane).toHaveAttribute("inert");
+    expect(contentPane).not.toHaveAttribute("inert");
   });
 
   it("does not render the browser overlay root inside AppLayout", () => {

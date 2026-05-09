@@ -1,5 +1,21 @@
+import type { RefObject } from "react";
 import { useEffect } from "react";
-import type { UseArticleListEffectsParams } from "../../article-list.types";
+import type { ArticleDto } from "@/api/tauri-commands";
+import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
+import type { FocusedPane } from "@/lib/layout/layout-state.types";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+
+type UseArticleListEffectsParams = {
+  selection: ReaderSelection;
+  scrollToTopOnChange: string;
+  listRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  filteredArticles: ArticleDto[];
+  focusedPane: FocusedPane;
+  selectedArticleId: string | null;
+  isPrimarySourceLoading: boolean;
+  clearArticle: () => void;
+};
 
 export function useArticleListEffects({
   selection,
@@ -48,7 +64,9 @@ export function useArticleListEffects({
       return;
     }
 
-    const targetRow = listRef.current?.querySelector<HTMLElement>(`[data-article-id="${targetArticleId}"]`);
+    const targetRow = listRef.current
+      ? queryElementByDataAttribute<HTMLElement>(listRef.current, "data-article-id", targetArticleId)
+      : null;
     if (!targetRow || targetRow === activeElement) {
       return;
     }

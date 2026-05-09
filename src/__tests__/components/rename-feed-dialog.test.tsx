@@ -6,6 +6,7 @@ import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
   RenameFeedDialogView: (props: {
@@ -90,11 +91,13 @@ const sampleFolders = [
 describe("RenameDialog", () => {
   beforeEach(() => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    useUiStore.setState({ ...useUiStore.getInitialState() });
   });
 
   afterEach(() => {
     teardownTauriMocks();
     usePreferencesStore.setState({ prefs: {}, loaded: false });
+    useUiStore.setState({ ...useUiStore.getInitialState() });
   });
 
   it("creates a new folder only when saving the edited feed", async () => {
@@ -249,6 +252,34 @@ describe("RenameDialog", () => {
     });
 
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dialog open and surfaces validation when submitting an empty title", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const onOpenChange = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(useUiStore.getState().toastMessage?.message).toBe("Title is required");
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(calls.find((call) => call.cmd === "rename_feed")).toBeUndefined();
   });
 
   it("ignores unknown display-mode values from the view", async () => {

@@ -8,14 +8,24 @@ type GroupedFeeds = {
   unfolderedFeeds: FeedDto[];
 };
 
+function normalizeFolderId(folderId: string | null): string | null {
+  if (folderId === null) {
+    return null;
+  }
+
+  const trimmedFolderId = folderId.trim();
+  return trimmedFolderId.length === 0 ? null : trimmedFolderId;
+}
+
 export function groupFeedsByFolder(feeds: FeedDto[]): GroupedFeeds {
   const byFolder = new Map<string, FeedDto[]>();
   const unfoldered: FeedDto[] = [];
   for (const feed of feeds) {
-    if (feed.folder_id !== null) {
-      const existing = byFolder.get(feed.folder_id) ?? [];
+    const folderId = normalizeFolderId(feed.folder_id);
+    if (folderId !== null) {
+      const existing = byFolder.get(folderId) ?? [];
       existing.push(feed);
-      byFolder.set(feed.folder_id, existing);
+      byFolder.set(folderId, existing);
     } else {
       unfoldered.push(feed);
     }
@@ -28,7 +38,12 @@ export function sortFeedsByPreference(feeds: FeedDto[], _sortPreference?: SortSu
 }
 
 export function countFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {
-  return (feeds ?? []).filter((feed) => feed.folder_id === folderId).length;
+  const normalizedFolderId = normalizeFolderId(folderId);
+  if (normalizedFolderId === null) {
+    return 0;
+  }
+
+  return (feeds ?? []).filter((feed) => normalizeFolderId(feed.folder_id) === normalizedFolderId).length;
 }
 
 export function sumUnreadCounts(feeds: FeedDto[] | undefined): number {
@@ -49,5 +64,13 @@ export function buildStarredCountByFeedId(articles: ArticleDto[] | undefined): M
 }
 
 export function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {
-  return (feeds ?? []).reduce((sum, feed) => (feed.folder_id === folderId ? sum + feed.unread_count : sum), 0);
+  const normalizedFolderId = normalizeFolderId(folderId);
+  if (normalizedFolderId === null) {
+    return 0;
+  }
+
+  return (feeds ?? []).reduce(
+    (sum, feed) => (normalizeFolderId(feed.folder_id) === normalizedFolderId ? sum + feed.unread_count : sum),
+    0,
+  );
 }

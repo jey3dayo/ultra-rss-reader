@@ -6,7 +6,8 @@ import { setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/t
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
-import type { BrowserOverlayToolbarAction, BrowserViewScope } from "@/components/reader/browser-view.types";
+import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
+import type { UseBrowserViewControllerParams } from "@/components/reader/hooks/browser/use-browser-view-controller";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { APP_EVENTS } from "@/constants/events";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
@@ -180,18 +181,28 @@ function setReducedMotionPreference(matches: boolean) {
 }
 
 type BrowserViewHarnessProps = {
-  scope?: BrowserViewScope;
-  onCloseOverlay?: () => void;
+  controllerParams?: Partial<UseBrowserViewControllerParams>;
 };
 
-function BrowserViewHarness({ scope = "main-stage", onCloseOverlay }: BrowserViewHarnessProps = {}) {
+function buildBrowserViewControllerParams({
+  scope = "main-stage",
+  onCloseOverlay = () => useUiStore.getState().closeBrowser(),
+}: Partial<UseBrowserViewControllerParams> = {}): UseBrowserViewControllerParams {
+  return {
+    scope,
+    onCloseOverlay,
+  };
+}
+
+function BrowserViewHarness({ controllerParams }: BrowserViewHarnessProps = {}) {
   const contentMode = useUiStore((s) => s.contentMode);
+  const { scope, onCloseOverlay } = buildBrowserViewControllerParams(controllerParams);
   return (
     <div data-browser-overlay-root="" className="relative h-[900px] w-[1400px]">
       {contentMode === "browser" ? (
         <BrowserView
           scope={scope}
-          onCloseOverlay={onCloseOverlay ?? (() => useUiStore.getState().closeBrowser())}
+          onCloseOverlay={onCloseOverlay}
           labels={{
             closeWebPreview: "Close Web Preview",
           }}
@@ -362,7 +373,7 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const backButton = await screen.findByRole("button", { name: "Web back" });
+    const backButton = await screen.findByRole("button", { name: "Back to Reader" });
     await waitFor(() => {
       expect(backButton).toBeEnabled();
     });
@@ -445,7 +456,7 @@ describe("BrowserView", () => {
     expect(topRail.style.backgroundImage).toBe("var(--browser-overlay-rail)");
     expect(topRail.style.borderColor).toBe("var(--color-browser-overlay-rail-border)");
     const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
-    const backButton = within(chrome).getByRole("button", { name: "Web back" });
+    const backButton = within(chrome).getByRole("button", { name: "Back to Reader" });
     const forwardButton = within(chrome).getByRole("button", { name: "Web forward" });
     const reloadButton = screen.getByRole("button", { name: /reload page/i });
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
@@ -556,7 +567,7 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
+    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, { wrapper: createWrapper() });
 
     await userEvent.setup().click(screen.getByTestId("browser-overlay-scrim"));
     expect(onCloseOverlay).toHaveBeenCalledTimes(0);
@@ -576,7 +587,7 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
+    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, { wrapper: createWrapper() });
 
     await userEvent.setup().click(
       within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
@@ -1169,7 +1180,7 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
+    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed)).toBe(true);

@@ -32,13 +32,20 @@ describe("use-command-history", () => {
     expect(getHistory()).toEqual([]);
   });
 
-  it("discards non-string entries from stored history", () => {
+  it("discards non-string and blank entries from stored history", () => {
     localStorage.setItem(
       STORAGE_KEYS.commandHistory,
-      JSON.stringify(["feed:feed-1", null, { kind: "feed", id: "feed-2" }, 1, "action:open-settings"]),
+      JSON.stringify(["feed:feed-1", null, { kind: "feed", id: "feed-2" }, 1, "", "   ", "action:open-settings"]),
     );
 
     expect(getHistory()).toEqual(["feed:feed-1", "action:open-settings"]);
+  });
+
+  it("caps oversized stored history before exposing it to the UI", () => {
+    const entries = Array.from({ length: MAX_COMMAND_HISTORY + 25 }, (_, index) => `item-${index}`);
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(entries));
+
+    expect(getHistory()).toEqual(entries.slice(0, MAX_COMMAND_HISTORY));
   });
 
   it("adds items to the front of history", () => {
@@ -59,12 +66,21 @@ describe("use-command-history", () => {
   it("compacts stored history after invalid entries are discarded", () => {
     localStorage.setItem(
       STORAGE_KEYS.commandHistory,
-      JSON.stringify(["feed:feed-1", null, "feed:feed-2", { id: "feed-3" }, "tag:tag-1"]),
+      JSON.stringify(["feed:feed-1", null, "", "feed:feed-2", { id: "feed-3" }, "tag:tag-1"]),
     );
 
     addToHistory("feed:feed-2");
 
     expect(getHistory()).toEqual(["feed:feed-2", "feed:feed-1", "tag:tag-1"]);
+  });
+
+  it("does not add blank history ids and cleans existing blank entries", () => {
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["feed:feed-1", "", "tag:tag-1"]));
+
+    addToHistory("   ");
+
+    expect(getHistory()).toEqual(["feed:feed-1", "tag:tag-1"]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["feed:feed-1", "tag:tag-1"]));
   });
 
   it("compacts raw history values by moving duplicates to the front and capping size", () => {
@@ -128,6 +144,16 @@ describe("use-command-history", () => {
 
     expect(() => getHistory()).not.toThrow();
     expect(getHistory()).toEqual([]);
+  });
+
+  it("fails safely when the localStorage getter throws", () => {
+    vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new Error("storage getter unavailable");
+    });
+
+    expect(getHistory()).toEqual([]);
+    expect(() => addToHistory("feed-1")).not.toThrow();
+    expect(() => clearHistory()).not.toThrow();
   });
 
   it("fails safely when storage clear throws", () => {

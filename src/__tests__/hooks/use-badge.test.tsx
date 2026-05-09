@@ -11,11 +11,28 @@ const { setBadgeCountMock } = vi.hoisted(() => ({
   setBadgeCountMock: vi.fn(),
 }));
 
-vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({
+type BadgeWindowMock = {
+  setBadgeCount: typeof setBadgeCountMock;
+};
+
+const { getCurrentWindowMock } = vi.hoisted(() => ({
+  getCurrentWindowMock: vi.fn<() => BadgeWindowMock | Promise<BadgeWindowMock>>(() => ({
     setBadgeCount: setBadgeCountMock,
-  }),
+  })),
 }));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: getCurrentWindowMock,
+}));
+
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+}
 
 function HookHarness() {
   useBadge();
@@ -27,6 +44,10 @@ describe("useBadge", () => {
     teardownTauriMocks();
     setupTauriMocks();
     setBadgeCountMock.mockReset();
+    getCurrentWindowMock.mockReset();
+    getCurrentWindowMock.mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ selectedAccountId: "acc-1" });
   });
@@ -42,6 +63,7 @@ describe("useBadge", () => {
   });
 
   it("uses the selected account feed unread sum for all_unread", async () => {
+    useUiStore.setState({ selectedAccountId: "acc-2" });
     usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
@@ -85,6 +107,7 @@ describe("useBadge", () => {
   });
 
   it("uses account unread count query result for only_inbox", async () => {
+    useUiStore.setState({ selectedAccountId: "acc-2" });
     usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
@@ -197,6 +220,60 @@ describe("useBadge", () => {
 
     expect(calls.some((call) => call.cmd === "list_feeds")).toBe(false);
     expect(calls.some((call) => call.cmd === "count_account_unread_articles")).toBe(false);
+  });
+
+  it("treats badge runtime failures as no-op and reflects the next badge state", async () => {
+    setBadgeCountMock.mockRejectedValueOnce(new Error("badge runtime unavailable")).mockResolvedValue(undefined);
+    useUiStore.setState({ selectedAccountId: "acc-2" });
+    usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(undefined);
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(5);
+    });
+  });
+
+  it("does not let an older deferred badge request win over the latest badge count", async () => {
+    const firstWindow = {
+      setBadgeCount: vi.fn(),
+    };
+    const firstWindowReady = createDeferred<typeof firstWindow>();
+    getCurrentWindowMock.mockReturnValueOnce(firstWindowReady.promise).mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
+    useUiStore.setState({ selectedAccountId: "acc-2" });
+    usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getCurrentWindowMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
+    });
+
+    firstWindowReady.resolve(firstWindow);
+    await act(async () => {
+      await firstWindowReady.promise;
+    });
+
+    expect(firstWindow.setBadgeCount).not.toHaveBeenCalled();
+    expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
   });
 
   it("clears selected account only_inbox badge after a zero unread query result", async () => {

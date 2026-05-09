@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useId, useReducer, useRef } from "react";
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from "react";
+import type { AccountDto } from "@/api/tauri-commands";
+import { focusAccountItem } from "../../account-switcher-menu";
 import { isOutsideElement } from "../../dom-target";
 import type { SidebarAccountSwitcherResult } from "../../sidebar-runtime.types";
 
@@ -12,6 +14,20 @@ type SidebarAccountSwitcherAction =
 
 const initialSidebarAccountSwitcherState: SidebarAccountSwitcherState = {
   isAccountListOpen: false,
+};
+
+type AccountSwitcherViewModelParams = {
+  accounts: AccountDto[];
+  selectedAccountId: string | null;
+  isExpanded: boolean;
+  itemRefs: SidebarAccountSwitcherResult["accountItemRefs"];
+};
+
+type AccountSwitcherViewModel = {
+  selectedAccountName: string | null;
+  selectedIndex: number;
+  hasMultipleAccounts: boolean;
+  canOpenAccountList: boolean;
 };
 
 function sidebarAccountSwitcherReducer(
@@ -68,5 +84,37 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
     accountMenuId,
     closeAccountList,
     toggleAccountList,
+  };
+}
+
+export function useAccountSwitcherViewModel({
+  accounts,
+  selectedAccountId,
+  isExpanded,
+  itemRefs,
+}: AccountSwitcherViewModelParams): AccountSwitcherViewModel {
+  const selectedIndex = useMemo(
+    () => accounts.findIndex((account) => account.id === selectedAccountId),
+    [accounts, selectedAccountId],
+  );
+  const selectedAccountName = selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null;
+  const hasMultipleAccounts = selectedIndex >= 0 && accounts.length > 1;
+  const canOpenAccountList = hasMultipleAccounts;
+
+  useEffect(() => {
+    if (!isExpanded || !hasMultipleAccounts) return;
+
+    const frameId = requestAnimationFrame(() => {
+      focusAccountItem(itemRefs, accounts.length, selectedIndex);
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [accounts.length, hasMultipleAccounts, isExpanded, itemRefs, selectedIndex]);
+
+  return {
+    selectedAccountName,
+    selectedIndex,
+    hasMultipleAccounts,
+    canOpenAccountList,
   };
 }

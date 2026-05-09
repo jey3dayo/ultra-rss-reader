@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import type { AccountSyncWarning } from "@/api/schemas/sync-result";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
@@ -12,14 +13,22 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
+import type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
+import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
-import type {
-  SidebarSyncParams,
-  SidebarSyncProgressPayload,
-  SidebarSyncResult,
-  SidebarSyncWarningPayload,
-} from "../../sidebar-sync.types";
+import type { SidebarSyncResult } from "../../sidebar-sync.types";
 import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
+
+type SidebarSyncProgressPayload = SyncProgressEventDto;
+type SidebarSyncWarningPayload = AccountSyncWarning[];
+
+type SidebarSyncParams = {
+  selectedAccountId: string | null;
+  syncProgress: SyncProgressUiState;
+  applySyncProgress: (event: SyncProgressEventDto) => void;
+  clearSyncProgress: () => void;
+  showToast: (message: string) => void;
+};
 
 type SidebarSyncState = {
   cooldownTick: number;
@@ -186,6 +195,7 @@ export function useSidebarSync({
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       },
       onError: (error) => {
+        invalidateAccountSyncStatuses();
         console.error("Sync failed:", error);
         showToast(t("sync_failed"));
       },

@@ -102,7 +102,7 @@ function ReviewCard(props: { title: string; children: ReactNode }) {
   );
 }
 
-export function SidebarSelectionReviewCanvas() {
+function SidebarSelectionReviewCanvas() {
   return (
     <div className="space-y-4">
       <style>{`

@@ -6,7 +6,7 @@ import { SettingsNavView } from "@/components/settings/settings-nav-view";
 describe("SettingsNavView", () => {
   it("renders category entries from props and reports selection", () => {
     const onSelectCategory = vi.fn();
-    const items: SettingsNavItem[] = [
+    const items: SettingsNavItem<"general" | "custom-category">[] = [
       {
         id: "general",
         label: "General",
@@ -47,5 +47,33 @@ describe("SettingsNavView", () => {
     fireEvent.click(appearanceButton);
 
     expect(onSelectCategory).toHaveBeenCalledWith("custom-category");
+  });
+
+  it("does not report category selection while disabled", () => {
+    const onSelectCategory = vi.fn();
+    const items: SettingsNavItem<"general" | "custom-category">[] = [
+      {
+        id: "general",
+        label: "General",
+        icon: <span aria-hidden="true">G</span>,
+        isActive: true,
+      },
+      {
+        id: "custom-category",
+        label: "Custom category",
+        icon: <span aria-hidden="true">A</span>,
+        isActive: false,
+      },
+    ];
+
+    render(<SettingsNavView items={items} onSelectCategory={onSelectCategory} disabled />);
+
+    const customCategoryButton = screen.getByRole("button", { name: "Custom category" });
+
+    expect(customCategoryButton).toBeDisabled();
+
+    fireEvent.click(customCategoryButton);
+
+    expect(onSelectCategory).not.toHaveBeenCalled();
   });
 });

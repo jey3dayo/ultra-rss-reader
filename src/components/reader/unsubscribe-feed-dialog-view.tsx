@@ -1,14 +1,11 @@
 import type { ReactNode } from "react";
-import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
+import {
+  DestructiveConfirmDialogView,
+  type DestructiveConfirmDialogViewProps,
+} from "@/components/shared/destructive-confirm-dialog-view";
 
-type UnsubscribeFeedDialogViewProps = {
-  open: boolean;
-  title: string;
+type UnsubscribeFeedDialogViewProps = Omit<DestructiveConfirmDialogViewProps, "description"> & {
   description: ReactNode;
-  cancelLabel: string;
-  confirmLabel: string;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
 };
 
 export function UnsubscribeFeedDialogView({
@@ -17,6 +14,7 @@ export function UnsubscribeFeedDialogView({
   description,
   cancelLabel,
   confirmLabel,
+  pending,
   onOpenChange,
   onConfirm,
 }: UnsubscribeFeedDialogViewProps) {
@@ -27,6 +25,7 @@ export function UnsubscribeFeedDialogView({
       description={<p className="text-sm">{description}</p>}
       cancelLabel={cancelLabel}
       confirmLabel={confirmLabel}
+      pending={pending}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}
     />

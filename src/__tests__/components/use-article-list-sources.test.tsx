@@ -199,6 +199,46 @@ describe("useArticleListSources", () => {
     expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1", { mode: "starred" });
   });
 
+  it("reports folder source loading separately from account article loading", () => {
+    useAccountArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
+    useFolderArticlesMock.mockReturnValue({ data: undefined, isLoading: true });
+
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "folder", folderId: "folder-1" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoadingAccountArticles).toBe(false);
+    expect(result.current.isLoadingFolderArticles).toBe(true);
+  });
+
+  it("reports recent source loading separately from account article loading", () => {
+    useAccountArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
+    useRecentArticlesMock.mockReturnValue({ data: undefined, isLoading: true });
+
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "smart", kind: "recent" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoadingAccountArticles).toBe(false);
+    expect(result.current.isLoadingRecentArticles).toBe(true);
+  });
+
   it("requests starred tag articles through the tag mode when the tag view is starred", () => {
     renderHook(
       () =>

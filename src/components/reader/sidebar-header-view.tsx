@@ -2,12 +2,8 @@ import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { cn } from "@/lib/utils";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
-import { usePlatformStore } from "@/stores/platform-store";
-import { useUiStore } from "@/stores/ui-store";
 
 export type SidebarHeaderProps = {
-  isSyncing: boolean;
   onSync: () => void;
   onAddFeed: () => void;
   syncButtonLabel: string;
@@ -15,9 +11,22 @@ export type SidebarHeaderProps = {
   syncButtonText: string;
   addFeedButtonLabel: string;
   addFeedButtonText: string;
-  isSyncDisabled?: boolean;
-  isSyncCoolingDown?: boolean;
-  isAddFeedDisabled?: boolean;
+  displayState: SidebarHeaderDisplayState;
+  syncState: SidebarHeaderSyncState;
+  actionAvailability?: SidebarHeaderActionAvailability;
+};
+
+type SidebarHeaderDisplayState = {
+  layout: "desktop" | "mobile";
+  titlebar: "standard" | "desktop-overlay";
+};
+
+type SidebarHeaderSyncState = {
+  status: "idle" | "syncing" | "disabled" | "cooldown";
+};
+
+type SidebarHeaderActionAvailability = {
+  addFeed: "available" | "disabled";
 };
 
 const ACCEPTED_SYNC_SPIN_MS = 1_000;
@@ -43,7 +52,6 @@ function sidebarHeaderReducer(state: SidebarHeaderState, action: SidebarHeaderAc
 }
 
 export function SidebarHeaderView({
-  isSyncing,
   onSync,
   onAddFeed,
   syncButtonLabel,
@@ -51,18 +59,18 @@ export function SidebarHeaderView({
   syncButtonText: _syncButtonText,
   addFeedButtonLabel,
   addFeedButtonText: _addFeedButtonText,
-  isSyncDisabled = false,
-  isSyncCoolingDown = false,
-  isAddFeedDisabled = false,
+  displayState,
+  syncState,
+  actionAvailability,
 }: SidebarHeaderProps) {
-  const isMobile = useUiStore((state) => state.layoutMode === "mobile");
-  const platformKind = usePlatformStore((state) => state.platform.kind);
-  const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
-    platformKind,
-    hasTauriRuntime: hasTauriRuntime(),
-  });
   const [state, dispatch] = useReducer(sidebarHeaderReducer, initialSidebarHeaderState);
   const { isFeedbackSpinning } = state;
+  const isMobile = displayState.layout === "mobile";
+  const useDesktopOverlay = displayState.titlebar === "desktop-overlay";
+  const isSyncing = syncState.status === "syncing";
+  const isSyncDisabled = syncState.status === "disabled";
+  const isSyncCoolingDown = syncState.status === "cooldown";
+  const isAddFeedDisabled = actionAvailability?.addFeed === "disabled";
   const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName = "hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:px-0";
   const mobileHeaderActionButtonClassName = "size-11";
@@ -117,7 +125,7 @@ export function SidebarHeaderView({
             isSyncCoolingDown && "opacity-70",
           )}
         >
-          <RefreshCw className={cn("h-4 w-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
+          <RefreshCw className={cn("size-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
         </IconToolbarButton>
         <IconToolbarButton
           label={addFeedButtonLabel}
@@ -125,7 +133,7 @@ export function SidebarHeaderView({
           disabled={isAddFeedDisabled}
           className={cn(headerActionButtonClassName, isMobile ? mobileHeaderActionButtonClassName : "w-11")}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
         </IconToolbarButton>
       </div>
     </div>

@@ -8,6 +8,14 @@ import {
   type StoryMeta,
 } from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
+import copyableReadonlyFieldMeta, {
+  Default as CopyableReadonlyFieldDefault,
+  Disabled as CopyableReadonlyFieldDisabled,
+} from "@/components/shared/copyable-readonly-field.stories";
+import copyableReadonlyFieldListMeta, {
+  CardSurface as CopyableReadonlyFieldListCardSurface,
+  Plain as CopyableReadonlyFieldListPlain,
+} from "@/components/shared/copyable-readonly-field-list.stories";
 import formActionButtonsMeta, {
   Loading as FormActionButtonsLoading,
   LongLocalizedLabels as FormActionButtonsLongLocalizedLabels,
@@ -36,8 +44,12 @@ import workspaceHeaderMeta, {
   WindowsDesktop as WorkspaceHeaderWindowsDesktop,
 } from "@/components/shared/workspace-header.stories";
 
-function renderStory<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: StoryLike<TArgs>, useWrapper = false) {
-  return renderStoryHelper(meta, story, useWrapper ? { wrapper: createWrapper() } : undefined);
+function renderStory<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: StoryLike<TArgs>) {
+  return renderStoryHelper(meta, story);
+}
+
+function renderStoryWithWrapper<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: StoryLike<TArgs>) {
+  return renderStoryHelper(meta, story, { wrapper: createWrapper() });
 }
 
 describe("Shared stories", () => {
@@ -71,6 +83,25 @@ describe("Shared stories", () => {
   });
 
   it("renders labeled field stories with their story-specific controls", async () => {
+    renderStory(copyableReadonlyFieldMeta, CopyableReadonlyFieldDefault);
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveValue("https://example.com/feed.xml");
+    expect(screen.getByRole("button", { name: "Copy feed URL" })).toBeInTheDocument();
+
+    cleanup();
+    renderStory(copyableReadonlyFieldMeta, CopyableReadonlyFieldDisabled);
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Copy feed URL" })).toBeDisabled();
+
+    cleanup();
+    renderStory(copyableReadonlyFieldListMeta, CopyableReadonlyFieldListPlain);
+    expect(screen.getByRole("textbox", { name: "Website URL" })).toHaveValue("https://example.com");
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveValue("https://example.com/feed.xml");
+
+    cleanup();
+    const { container } = renderStory(copyableReadonlyFieldListMeta, CopyableReadonlyFieldListCardSurface);
+    expect(container.querySelector(".rounded-md.border.bg-card")).not.toBeNull();
+
+    cleanup();
     renderStory(labeledInputRowMeta, LabeledInputRowInsideIconAction);
     expect(screen.getByRole("textbox", { name: "Username" })).toHaveValue("ultra-reader");
     expect(screen.getByRole("button", { name: "Reset username" })).toBeInTheDocument();
@@ -88,7 +119,7 @@ describe("Shared stories", () => {
     expect(screen.getByRole("textbox", { name: "Server URL" })).toBeDisabled();
 
     cleanup();
-    renderStory(labeledSelectRowMeta, LabeledSelectRowOpen, true);
+    renderStoryWithWrapper(labeledSelectRowMeta, LabeledSelectRowOpen);
     expect(screen.getByRole("combobox", { name: "Account type" })).toHaveTextContent("FreshRSS");
     expect(screen.getByRole("option", { name: "Feedbin" })).toBeInTheDocument();
 
@@ -112,7 +143,7 @@ describe("Shared stories", () => {
     expect(screen.getByRole("textbox", { name: "Feed title" })).toBeDisabled();
 
     cleanup();
-    renderStory(stackedSelectFieldMeta, {}, true);
+    renderStoryWithWrapper(stackedSelectFieldMeta, {});
     expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveTextContent("Web Preview");
   });
 

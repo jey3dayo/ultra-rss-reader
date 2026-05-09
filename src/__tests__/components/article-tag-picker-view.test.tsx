@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -54,18 +54,19 @@ describe("ArticleTagPickerView", () => {
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("motion-static-hover-surface");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("hover:bg-surface-1/72");
     expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-10");
-    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("h-10", "w-10", "rounded-md");
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("size-10", "rounded-md");
     expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass(
       "text-foreground-soft",
       "hover:bg-surface-1/72",
     );
 
     await user.click(removeButton);
+    onExpandedChange.mockClear();
     await user.click(screen.getByRole("option", { name: "Important" }));
 
     expect(onRemoveTag).toHaveBeenCalledWith("tag-1");
     expect(onAssignTag).toHaveBeenCalledWith("tag-2");
-    expect(onExpandedChange).toHaveBeenCalledWith(false);
+    expect(onExpandedChange).not.toHaveBeenCalled();
     expect(onNewTagNameChange).not.toHaveBeenCalled();
     expect(onCreateTag).not.toHaveBeenCalled();
   });
@@ -186,6 +187,174 @@ describe("ArticleTagPickerView", () => {
     expect(onCreateTag).toHaveBeenCalledWith("Fresh");
   });
 
+  it("returns focus to the trigger and clears the draft when successful creation closes the picker", async () => {
+    const user = userEvent.setup();
+    const onCreateTag = vi.fn();
+
+    function ControlledPicker() {
+      const [isExpanded, setIsExpanded] = useState(true);
+      const [newTagName, setNewTagName] = useState("");
+
+      return (
+        <ArticleTagPickerView
+          assignedTags={[]}
+          availableTags={[]}
+          newTagName={newTagName}
+          isExpanded={isExpanded}
+          labels={{
+            addTag: "Add tag",
+            availableTags: "Available tags",
+            newTagPlaceholder: "Create tag",
+            createTag: "Create tag",
+            removeTag: (name) => `Remove tag ${name}`,
+          }}
+          onExpandedChange={setIsExpanded}
+          onNewTagNameChange={setNewTagName}
+          onAssignTag={vi.fn()}
+          onRemoveTag={vi.fn()}
+          onCreateTag={(name) => {
+            onCreateTag(name);
+            setIsExpanded(false);
+          }}
+        />
+      );
+    }
+
+    render(<ControlledPicker />);
+
+    const input = screen.getByRole("textbox");
+    await user.type(input, "Review");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add tag" })).toHaveFocus();
+    });
+
+    expect(onCreateTag).toHaveBeenCalledWith("Review");
+
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+
+  it("clears the draft when the picker closes before reopening", async () => {
+    const user = userEvent.setup();
+
+    function ControlledPicker() {
+      const [isExpanded, setIsExpanded] = useState(true);
+      const [newTagName, setNewTagName] = useState("");
+
+      return (
+        <ArticleTagPickerView
+          assignedTags={[]}
+          availableTags={[]}
+          newTagName={newTagName}
+          isExpanded={isExpanded}
+          labels={{
+            addTag: "Add tag",
+            availableTags: "Available tags",
+            newTagPlaceholder: "Create tag",
+            createTag: "Create tag",
+            removeTag: (name) => `Remove tag ${name}`,
+          }}
+          onExpandedChange={setIsExpanded}
+          onNewTagNameChange={setNewTagName}
+          onAssignTag={vi.fn()}
+          onRemoveTag={vi.fn()}
+          onCreateTag={vi.fn()}
+        />
+      );
+    }
+
+    render(<ControlledPicker />);
+
+    await user.type(screen.getByRole("textbox"), "Stale");
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add tag" }));
+    expect(screen.getByRole("textbox")).toHaveValue("");
+
+    await user.type(screen.getByRole("textbox"), "Outside");
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add tag" }));
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+
+  it("cancels scheduled close focus restore after unmount", async () => {
+    const user = userEvent.setup();
+    const scheduledCallbacks = new Map<number, FrameRequestCallback>();
+    let nextFrameId = 1;
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      const frameId = nextFrameId;
+      nextFrameId += 1;
+      scheduledCallbacks.set(frameId, callback);
+      return frameId;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation((frameId) => {
+      scheduledCallbacks.delete(frameId);
+    });
+
+    function ControlledPicker() {
+      const [isExpanded, setIsExpanded] = useState(true);
+
+      return (
+        <ArticleTagPickerView
+          assignedTags={[]}
+          availableTags={[]}
+          newTagName=""
+          isExpanded={isExpanded}
+          labels={{
+            addTag: "Add tag",
+            availableTags: "Available tags",
+            newTagPlaceholder: "Create tag",
+            createTag: "Create tag",
+            removeTag: (name) => `Remove tag ${name}`,
+          }}
+          onExpandedChange={setIsExpanded}
+          onNewTagNameChange={vi.fn()}
+          onAssignTag={vi.fn()}
+          onRemoveTag={vi.fn()}
+          onCreateTag={vi.fn()}
+        />
+      );
+    }
+
+    const { unmount } = render(<ControlledPicker />);
+    const trigger = screen.getByRole("button", { name: "Add tag" });
+    const focusSpy = vi.spyOn(trigger, "focus");
+
+    await user.click(screen.getByRole("textbox"));
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();
+    });
+
+    const restoreFocusFrameId = nextFrameId - 1;
+    const restoreFocusCallback = scheduledCallbacks.get(restoreFocusFrameId);
+    expect(restoreFocusCallback).toBeDefined();
+
+    unmount();
+    restoreFocusCallback?.(0);
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(restoreFocusFrameId);
+    expect(focusSpy).not.toHaveBeenCalled();
+
+    requestAnimationFrameSpy.mockRestore();
+    cancelAnimationFrameSpy.mockRestore();
+  });
+
   it("keeps the view independent from the tauri api layer", () => {
     expect(articleTagPickerViewSource).not.toContain("@/api/tauri-commands");
     expect(articleTagPickerViewSource).toContain(
@@ -274,5 +443,53 @@ describe("ArticleTagPickerView", () => {
     );
 
     expect(input).toHaveFocus();
+  });
+
+  it("supports Home and End listbox navigation across available tags", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[
+          { id: "tag-1", name: "Later", color: null },
+          { id: "tag-2", name: "Important", color: "#ff0000" },
+          { id: "tag-3", name: "Archive", color: null },
+        ]}
+        newTagName=""
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    const listbox = screen.getByRole("listbox", { name: "Available tags" });
+    const firstOption = screen.getByRole("option", { name: "Later" });
+    const middleOption = screen.getByRole("option", { name: "Important" });
+    const lastOption = screen.getByRole("option", { name: "Archive" });
+
+    await waitFor(() => {
+      expect(firstOption).toHaveFocus();
+    });
+
+    middleOption.focus();
+    expect(middleOption).toHaveFocus();
+
+    await user.keyboard("{End}");
+    expect(lastOption).toHaveFocus();
+
+    await user.keyboard("{Home}");
+    expect(firstOption).toHaveFocus();
+    expect(listbox).toBeInTheDocument();
   });
 });

@@ -28,6 +28,15 @@ describe("ArticleContextMenuView", () => {
     await user.click(screen.getByRole("menuitem", { name: "Star" }));
     await user.click(screen.getByRole("menuitem", { name: "Open in Browser" }));
 
+    expect(screen.getByRole("menuitem", { name: "Mark as Read" })).toHaveAttribute(
+      "data-action-id",
+      "article-toggle-read",
+    );
+    expect(screen.getByRole("menuitem", { name: "Star" })).toHaveAttribute("data-action-id", "article-toggle-star");
+    expect(screen.getByRole("menuitem", { name: "Open in Browser" })).toHaveAttribute(
+      "data-action-id",
+      "article-open-browser",
+    );
     expect(onToggleRead).toHaveBeenCalledTimes(1);
     expect(onToggleStar).toHaveBeenCalledTimes(1);
     expect(onOpenInBrowser).toHaveBeenCalledTimes(1);

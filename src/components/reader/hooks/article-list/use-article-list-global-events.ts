@@ -2,7 +2,12 @@ import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window/window-events";
-import type { UseArticleListGlobalEventsParams } from "../../article-list.types";
+
+type UseArticleListGlobalEventsParams = {
+  onNavigateArticle: (direction: 1 | -1) => void;
+  onFocusSearch: () => void;
+  onMarkAllRead: () => void;
+};
 
 function isArticleNavigationDirection(value: unknown): value is 1 | -1 {
   return value === 1 || value === -1;

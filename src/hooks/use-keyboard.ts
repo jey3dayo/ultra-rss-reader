@@ -9,7 +9,13 @@ import {
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
-import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import {
+  focusArticleListRowTargetWhenReady,
+  focusSelectedSidebarTarget,
+  isArticleListPaneTarget,
+  isArticleListRowTarget,
+  isSidebarPaneTarget,
+} from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
@@ -30,19 +36,33 @@ function isTextEditingTarget(target: Element | null): boolean {
 }
 
 export function useKeyboard() {
-  const store = useUiStore();
+  const selectedArticleId = useUiStore((state) => state.selectedArticleId);
+  const contentMode = useUiStore((state) => state.contentMode);
+  const viewMode = useUiStore((state) => state.viewMode);
+  const subscriptionsWorkspaceOpen = useUiStore((state) => state.subscriptionsWorkspace !== null);
+  const clearArticle = useUiStore((state) => state.clearArticle);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const openSidebar = useUiStore((state) => state.openSidebar);
   const prefs = usePreferencesStore((s) => s.prefs);
 
   const keyToAction = useMemo(() => buildKeyToActionMap(prefs), [prefs]);
 
   useEffect(() => {
     const handler = createKeyboardEventListener((e) => {
+      if (e.defaultPrevented) {
+        return;
+      }
+
       const targetElement = e.target instanceof Element ? e.target : null;
       if (targetElement?.closest('[data-disable-global-shortcuts="true"]')) {
         return;
       }
 
       const currentStore = useUiStore.getState();
+      if (e.key === "Escape" && currentStore.contentMode === "browser" && currentStore.browserUrl) {
+        return;
+      }
+
       const normalizedPaneKey = normalizePaneNavigationKey(e.key);
       const targetInAccountPane = targetElement?.closest('[data-account-pane="true"]');
       const targetInSidebarPane = targetElement?.closest('[data-sidebar-pane="true"]');
@@ -80,17 +100,15 @@ export function useKeyboard() {
 
       const isSidebarArrowKey =
         (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "ArrowRight") &&
-        targetElement?.closest('[data-sidebar-pane="true"]');
+        isSidebarPaneTarget(targetElement);
       if (isSidebarArrowKey) {
         return;
       }
 
-      const articleListOptionTarget = targetElement?.closest('[role="option"][data-article-id]');
-      const articleListPaneTarget = targetElement?.closest('[data-article-list-pane="true"]');
       if (
         e.key === "ArrowLeft" &&
         currentStore.focusedPane === "content" &&
-        articleListPaneTarget &&
+        isArticleListPaneTarget(targetElement) &&
         !isTextEditingTarget(targetElement)
       ) {
         e.preventDefault();
@@ -106,7 +124,7 @@ export function useKeyboard() {
       if (
         e.key === "ArrowLeft" &&
         currentStore.focusedPane === "content" &&
-        !articleListOptionTarget &&
+        !isArticleListRowTarget(targetElement) &&
         !isTextEditingTarget(targetElement)
       ) {
         e.preventDefault();
@@ -124,10 +142,10 @@ export function useKeyboard() {
         shiftKey: e.shiftKey,
         targetTag: targetElement?.tagName,
         targetIsTextEditing: isTextEditingTarget(targetElement),
-        selectedArticleId: store.selectedArticleId,
-        contentMode: store.contentMode,
-        viewMode: store.viewMode,
-        subscriptionsWorkspaceOpen: store.subscriptionsWorkspace !== null,
+        selectedArticleId,
+        contentMode,
+        viewMode,
+        subscriptionsWorkspaceOpen,
         keyToAction,
       });
 
@@ -163,13 +181,13 @@ export function useKeyboard() {
           executeAction("close-browser");
           break;
         case "clear-article":
-          store.clearArticle();
+          clearArticle();
           break;
         case "toggle-sidebar":
-          store.toggleSidebar();
+          toggleSidebar();
           break;
         case "focus-sidebar":
-          store.openSidebar();
+          openSidebar();
           break;
         case "navigate-article":
           executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
@@ -184,5 +202,14 @@ export function useKeyboard() {
     });
 
     return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
-  }, [store, keyToAction]);
+  }, [
+    clearArticle,
+    contentMode,
+    keyToAction,
+    openSidebar,
+    selectedArticleId,
+    subscriptionsWorkspaceOpen,
+    toggleSidebar,
+    viewMode,
+  ]);
 }

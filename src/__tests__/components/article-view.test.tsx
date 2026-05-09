@@ -77,7 +77,7 @@ function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
 }
 
 function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, value: string) {
-  const labelNode = within(summary).getByText(label);
+  const labelNode = within(summary).getByText(new RegExp(`^${label}$`, "i"));
   const row = labelNode.closest("div");
 
   if (!row) {
@@ -85,6 +85,18 @@ function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, val
   }
 
   expect(within(row).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
+}
+
+function expectSummaryLeadingVisual(summary: HTMLElement, expectedClassName: string) {
+  const leadingVisual = within(summary).getByTestId("feed-detail-leading-visual");
+  const visual = leadingVisual.firstElementChild;
+
+  if (!(visual instanceof HTMLElement || visual instanceof SVGElement)) {
+    throw new Error("Summary leading visual was not rendered");
+  }
+
+  expect(leadingVisual).toHaveClass("size-10");
+  expect(visual).toHaveClass(expectedClassName);
 }
 
 async function expectArticleAutoMarksAsRead({
@@ -148,6 +160,52 @@ function setReadingListPlatformSupport(enabled: boolean) {
   });
 }
 
+function listAccountFeedsWithFeedOneModes({
+  accountId,
+  readerMode,
+  webPreviewMode,
+}: {
+  accountId: string | undefined;
+  readerMode: "on" | "off";
+  webPreviewMode: "on" | "off";
+}) {
+  const feeds: (typeof sampleFeeds)[number][] = [];
+
+  for (const feed of sampleFeeds) {
+    if (feed.account_id !== accountId) {
+      continue;
+    }
+
+    feeds.push(feed.id === "feed-1" ? { ...feed, reader_mode: readerMode, web_preview_mode: webPreviewMode } : feed);
+  }
+
+  return feeds;
+}
+
+function listAccountFeedsInFolder(accountId: string, folderId: string) {
+  const feeds: (typeof sampleFeeds)[number][] = [];
+
+  for (const feed of sampleFeeds) {
+    if (feed.account_id === accountId) {
+      feeds.push({ ...feed, folder_id: folderId });
+    }
+  }
+
+  return feeds;
+}
+
+function listOffSourceArticlesExcept(articleId: string) {
+  const articles: (typeof sampleArticles)[number][] = [];
+
+  for (const article of sampleArticles) {
+    if (article.id !== articleId) {
+      articles.push({ ...article, id: `${article.id}-off-source` });
+    }
+  }
+
+  return articles;
+}
+
 function getArticleReaderViewport() {
   const viewport = screen
     .getByTestId("article-reader-scroll-area")
@@ -183,9 +241,11 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "on",
+          });
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -218,9 +278,11 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -329,7 +391,10 @@ describe("ArticleView", () => {
       selectedArticleId: "art-1",
       contentMode: "reader",
     });
-    usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { open_links: "in_app" },
+      loaded: true,
+    });
 
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
@@ -432,7 +497,10 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({ prefs: { action_open_browser: "false" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { action_open_browser: "false" },
+      loaded: true,
+    });
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
@@ -441,7 +509,9 @@ describe("ArticleView", () => {
     expect(screen.queryByText("S")).not.toBeInTheDocument();
     expect(screen.queryByText("P")).not.toBeInTheDocument();
 
-    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    const openBrowserButton = await screen.findByRole("button", {
+      name: "Open Web Preview",
+    });
     expect(openBrowserButton).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(openBrowserButton);
@@ -567,16 +637,26 @@ describe("ArticleView", () => {
     const overlayActions = screen.getByTestId("browser-overlay-actions");
 
     expect(
-      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", { name: "Close Web Preview" }),
+      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+        name: "Close Web Preview",
+      }),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", { name: "Web back" }),
+      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+        name: "Back to Reader",
+      }),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", { name: "Web forward" }),
+      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+        name: "Web forward",
+      }),
     ).toBeInTheDocument();
     expect(within(overlayActions).getByRole("button", { name: "Reload page" })).toBeInTheDocument();
-    expect(within(overlayActions).getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(
+      within(overlayActions).getByRole("button", {
+        name: "Open in External Browser",
+      }),
+    ).toBeInTheDocument();
     expect(within(overlayActions).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
   });
 
@@ -683,7 +763,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    const openBrowserButton = await screen.findByRole("button", {
+      name: "Open Web Preview",
+    });
     openBrowserButton.focus();
     window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
 
@@ -744,7 +826,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    const openBrowserButton = await screen.findByRole("button", {
+      name: "Open Web Preview",
+    });
     openBrowserButton.focus();
     window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
 
@@ -804,7 +888,9 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    const openBrowserButton = await screen.findByRole("button", {
+      name: "Open Web Preview",
+    });
     openBrowserButton.focus();
     window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
 
@@ -922,7 +1008,10 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { open_links: "default_browser" },
+      loaded: true,
+    });
 
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
@@ -982,7 +1071,10 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { open_links: "in_app" },
+      loaded: true,
+    });
 
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
@@ -1013,7 +1105,10 @@ describe("ArticleView", () => {
     feedButton.click();
 
     await waitFor(() => {
-      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
       expect(useUiStore.getState().contentMode).toBe("empty");
     });
   });
@@ -1042,11 +1137,16 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { open_links: "in_app" },
+      loaded: true,
+    });
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const titleButton = await screen.findByRole("button", { name: "First Article" });
+    const titleButton = await screen.findByRole("button", {
+      name: "First Article",
+    });
     calls.length = 0;
     fireEvent.click(titleButton, { metaKey: true });
 
@@ -1085,11 +1185,16 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { open_links: "in_app" },
+      loaded: true,
+    });
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const titleButton = await screen.findByRole("button", { name: "First Article" });
+    const titleButton = await screen.findByRole("button", {
+      name: "First Article",
+    });
     calls.length = 0;
     fireEvent(titleButton, new MouseEvent("auxclick", { bubbles: true, button: 1 }));
 
@@ -1114,9 +1219,11 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -1152,9 +1259,11 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -1198,9 +1307,11 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -1225,7 +1336,9 @@ describe("ArticleView", () => {
     await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({ message: "Could not launch browser" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Could not launch browser",
+      });
     });
   });
 
@@ -1239,9 +1352,11 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1481,9 +1596,11 @@ describe("ArticleView", () => {
             (article) => article.feed_id === args.feedId && (!args.unreadOnly || !article.is_read),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "on",
+          });
         case "list_tags":
         case "get_article_tags":
           return [];
@@ -1538,9 +1655,11 @@ describe("ArticleView", () => {
         case "list_account_articles":
           return sampleArticles;
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "on",
+          });
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -1617,9 +1736,11 @@ describe("ArticleView", () => {
         case "list_account_articles":
           return [];
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "on",
+          });
         case "list_tags":
         case "get_article_tags":
           return [];
@@ -1656,18 +1777,18 @@ describe("ArticleView", () => {
 
   it("keeps browser preview available for unread smart-view selections that only exist in the unread query source", async () => {
     const previewUrl = "https://example.com/1";
-    const offSourceArticles = sampleArticles
-      .filter((article) => article.id !== "art-1")
-      .map((article) => ({ ...article, id: `${article.id}-off-source` }));
+    const offSourceArticles = listOffSourceArticlesExcept("art-1");
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_account_articles":
           return args.unreadOnly ? sampleArticles.filter((article) => article.id === "art-1") : offSourceArticles;
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "on",
+          });
         case "list_tags":
         case "get_article_tags":
           return [];
@@ -1793,7 +1914,7 @@ describe("ArticleView", () => {
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();
-    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
     expect(within(summary).getByText("example.com")).toBeInTheDocument();
     expect(within(summary).queryByRole("link", { name: "example.com" })).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
@@ -1838,11 +1959,16 @@ describe("ArticleView", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_folders":
-          return [{ id: "folder-1", account_id: "acc-1", name: "Gaming", sort_order: 0 }];
+          return [
+            {
+              id: "folder-1",
+              account_id: "acc-1",
+              name: "Gaming",
+              sort_order: 0,
+            },
+          ];
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => ({ ...feed, folder_id: "folder-1" }));
+          return listAccountFeedsInFolder(args.accountId, "folder-1");
         case "list_account_articles":
           return sampleArticles;
         case "list_folder_articles":
@@ -1867,9 +1993,10 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
-    expectSummaryMetricMotionValue(summary, "Feeds", "2");
+    expectSummaryLeadingVisual(summary, "size-5");
+    expectSummaryMetricMotionValue(summary, "Feeds", "1");
     expectSummaryMetricMotionValue(summary, "Unread", "1");
-    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -1904,9 +2031,10 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
+    expectSummaryLeadingVisual(summary, "size-3");
     expectSummaryMetricMotionValue(summary, "Articles", "2");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
-    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
   });
 
   it("renders an unread smart-view summary card when unread is selected without an article", async () => {
@@ -1921,12 +2049,13 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Unread" })).toBeInTheDocument();
+    expect(within(summary).getByRole("heading", { level: 3, name: /^Unread$/i })).toBeInTheDocument();
+    expectSummaryLeadingVisual(summary, "size-5");
     await waitFor(() => {
       expectSummaryMetricMotionValue(summary, "Articles", "1");
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
   });
 
   it("renders a starred smart-view summary card when starred is selected without an article", async () => {
@@ -1942,7 +2071,8 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Starred" })).toBeInTheDocument();
+    expect(within(summary).getByRole("heading", { level: 3, name: /^Starred$/i })).toBeInTheDocument();
+    expectSummaryLeadingVisual(summary, "size-5");
     await waitFor(() => {
       expectSummaryMetricMotionValue(summary, "Articles", "1");
     });
@@ -2079,9 +2209,11 @@ describe("ArticleView", () => {
         case "list_articles":
           return sampleArticles.filter((article) => article.feed_id === args.feedId);
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -2225,7 +2357,10 @@ describe("ArticleView", () => {
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
     const viewport = getArticleReaderViewport();
-    Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 500 });
+    Object.defineProperty(viewport, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
     viewport.scrollTop = 0;
 
     fireEvent.keyDown(viewport, { key: "ArrowDown" });

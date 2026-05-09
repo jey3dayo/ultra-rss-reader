@@ -1,8 +1,18 @@
 import { useEffect, useRef } from "react";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { safeParseJsonWithSchema } from "@/schemas/parse";
+import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
+
+type StartupFolderExpansionFeed = SidebarStartupFolderExpansionParams["feedList"][number];
+type StartupFolderExpansionFolder = SidebarStartupFolderExpansionParams["folderList"][number];
+
+type ResolveSidebarStartupExpandedFolderIdsParams = {
+  startupFolderExpansion: SidebarStartupFolderExpansionParams["startupFolderExpansion"];
+  feedList: StartupFolderExpansionFeed[];
+  folderList: StartupFolderExpansionFolder[];
+  storedFolderIds?: Iterable<string>;
+};
 
 function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
   try {
@@ -11,7 +21,7 @@ function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
       return {};
     }
 
-    return safeParseJsonWithSchema(raw, StoredSidebarExpandedFoldersSchema) ?? {};
+    return parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema) ?? {};
   } catch {
     return {};
   }
@@ -22,9 +32,40 @@ function getStoredSidebarExpandedFolders(accountId: string): string[] {
 }
 
 function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<string>): void {
-  const nextState = readStoredSidebarExpandedFolders();
-  nextState[accountId] = [...new Set(folderIds)];
-  window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(nextState));
+  try {
+    const nextState = readStoredSidebarExpandedFolders();
+    nextState[accountId] = [...new Set(folderIds)];
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(nextState));
+  } catch {
+    // Ignore quota or storage availability failures; expansion state remains in React state.
+  }
+}
+
+export function resolveSidebarStartupExpandedFolderIds({
+  startupFolderExpansion,
+  feedList,
+  folderList,
+  storedFolderIds = [],
+}: ResolveSidebarStartupExpandedFolderIdsParams): Set<string> {
+  const validFolderIds = new Set(folderList.map((folder) => folder.id));
+
+  if (startupFolderExpansion === "unread_folders") {
+    const unreadFolderIds = new Set<string>();
+
+    for (const feed of feedList) {
+      if (feed.folder_id !== null && feed.unread_count > 0 && validFolderIds.has(feed.folder_id)) {
+        unreadFolderIds.add(feed.folder_id);
+      }
+    }
+
+    return unreadFolderIds;
+  }
+
+  if (startupFolderExpansion === "restore_previous") {
+    return new Set([...storedFolderIds].filter((folderId) => validFolderIds.has(folderId)));
+  }
+
+  return new Set();
 }
 
 export function useSidebarStartupFolderExpansion({
@@ -61,22 +102,12 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    const validFolderIds = new Set(folderList.map((folder) => folder.id));
-    let nextExpandedFolderIds = new Set<string>();
-
-    if (startupFolderExpansion === "unread_folders") {
-      nextExpandedFolderIds = new Set(
-        feedList
-          .filter((feed) => feed.folder_id && feed.unread_count > 0)
-          .map((feed) => feed.folder_id)
-          .filter((folderId): folderId is string => typeof folderId === "string")
-          .filter((folderId) => validFolderIds.has(folderId)),
-      );
-    } else if (startupFolderExpansion === "restore_previous") {
-      nextExpandedFolderIds = new Set(
-        getStoredSidebarExpandedFolders(selectedAccountId).filter((folderId) => validFolderIds.has(folderId)),
-      );
-    }
+    const nextExpandedFolderIds = resolveSidebarStartupExpandedFolderIds({
+      startupFolderExpansion,
+      feedList,
+      folderList,
+      storedFolderIds: getStoredSidebarExpandedFolders(selectedAccountId),
+    });
 
     setExpandedFolders(nextExpandedFolderIds);
     startupExpansionTokenRef.current = startupExpansionToken;

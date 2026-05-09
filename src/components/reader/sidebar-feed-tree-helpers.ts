@@ -14,6 +14,45 @@ import type {
 
 const EMPTY_STARRED_COUNT_BY_FEED_ID = new Map<string, number>();
 
+function buildVisibleSidebarFeedTreeFolder(
+  folder: SidebarFeedTreeFolderBuildParams["sortedFolderList"][number],
+  {
+    feedsByFolder,
+    visibleFolderFeedsById,
+    expandedFolderIds,
+    selectedFolderId,
+    selectedFeedId,
+    grayscaleFavicons,
+    viewMode,
+    starredCountByFeedId,
+    hideEmptyFoldersInCurrentView,
+  }: Omit<SidebarFeedTreeFolderBuildParams, "sortedFolderList">,
+): FeedTreeFolderViewModel | null {
+  const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
+  const folderFeeds = visibleFolderFeedsById.get(folder.id) ?? [];
+  const isSelected = selectedFolderId === folder.id;
+
+  if (hideEmptyFoldersInCurrentView && !isSelected && folderFeeds.length === 0) {
+    return null;
+  }
+
+  return {
+    id: folder.id,
+    name: folder.name,
+    accountId: folder.account_id,
+    sortOrder: folder.sort_order,
+    unreadCount: viewMode === "starred" ? folderFeeds.length : sumUnreadCounts(rawFolderFeeds),
+    isExpanded: expandedFolderIds.has(folder.id),
+    isSelected,
+    feeds: mapFeedsToFeedTreeViewModels(folderFeeds, {
+      selectedFeedId,
+      grayscaleFavicons,
+      viewMode,
+      starredCountByFeedId,
+    }),
+  };
+}
+
 export function getVisibleSidebarFeeds(
   feeds: FeedDto[],
   viewMode: SidebarFeedTreeViewMode,
@@ -114,25 +153,25 @@ export function buildSidebarFeedTreeFolders({
   starredCountByFeedId,
   hideEmptyFoldersInCurrentView,
 }: SidebarFeedTreeFolderBuildParams): FeedTreeFolderViewModel[] {
-  return sortedFolderList
-    .map((folder) => {
-      const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
-      const folderFeeds = visibleFolderFeedsById.get(folder.id) ?? [];
-      return {
-        id: folder.id,
-        name: folder.name,
-        accountId: folder.account_id,
-        sortOrder: folder.sort_order,
-        unreadCount: viewMode === "starred" ? folderFeeds.length : sumUnreadCounts(rawFolderFeeds),
-        isExpanded: expandedFolderIds.has(folder.id),
-        isSelected: selectedFolderId === folder.id,
-        feeds: mapFeedsToFeedTreeViewModels(folderFeeds, {
-          selectedFeedId,
-          grayscaleFavicons,
-          viewMode,
-          starredCountByFeedId,
-        }),
-      };
-    })
-    .filter((folder) => !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0);
+  const folderModels: FeedTreeFolderViewModel[] = [];
+  const folderBuildParams = {
+    feedsByFolder,
+    visibleFolderFeedsById,
+    expandedFolderIds,
+    selectedFolderId,
+    selectedFeedId,
+    grayscaleFavicons,
+    viewMode,
+    starredCountByFeedId,
+    hideEmptyFoldersInCurrentView,
+  };
+
+  for (const folder of sortedFolderList) {
+    const folderModel = buildVisibleSidebarFeedTreeFolder(folder, folderBuildParams);
+    if (folderModel !== null) {
+      folderModels.push(folderModel);
+    }
+  }
+
+  return folderModels;
 }

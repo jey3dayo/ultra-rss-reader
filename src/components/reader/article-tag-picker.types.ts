@@ -1,3 +1,5 @@
+import type { TagViewItem } from "@/lib/tags.types";
+
 export type ArticleTagPickerViewLabels = {
   sectionTitle?: string;
   sectionHint?: string;
@@ -8,11 +10,7 @@ export type ArticleTagPickerViewLabels = {
   removeTag: (name: string) => string;
 };
 
-export type ArticleTagPickerTagView = {
-  id: string;
-  name: string;
-  color: string | null;
-};
+export type ArticleTagPickerTagView = TagViewItem;
 
 export type ArticleTagPickerViewProps = {
   assignedTags: ArticleTagPickerTagView[];
@@ -25,10 +23,4 @@ export type ArticleTagPickerViewProps = {
   onAssignTag: (tagId: string) => void;
   onRemoveTag: (tagId: string) => void;
   onCreateTag: (name: string) => void;
-};
-
-export type UseArticleTagPickerPopoverParams = {
-  isExpanded: boolean;
-  availableTagCount: number;
-  onExpandedChange: ArticleTagPickerViewProps["onExpandedChange"];
 };

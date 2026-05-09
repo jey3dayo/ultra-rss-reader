@@ -12,27 +12,32 @@ type UseCommandPaletteViewPropsParams = {
   noResultsLabel: string;
   recentActionsHeading: string;
   actionsHeading: string;
+  devScenariosHeading: string;
   feedsHeading: string;
   tagsHeading: string;
   articlesHeading: string;
   recentActions: CommandPaletteActionItem[];
   filteredActions: CommandPaletteActionItem[];
   filteredDevScenarios: RuntimeDevScenario[];
-  filteredFeeds: CommandPaletteResultsProps["filteredFeeds"];
-  filteredTags: CommandPaletteResultsProps["filteredTags"];
-  articles: CommandPaletteResultsProps["articles"];
+  filteredFeeds: CommandPaletteResultsProps["items"]["filteredFeeds"];
+  filteredTags: CommandPaletteResultsProps["items"]["filteredTags"];
+  articles: CommandPaletteResultsProps["items"]["articles"];
+  recentFeeds: CommandPaletteResultsProps["items"]["recentFeeds"];
+  recentTags: CommandPaletteResultsProps["items"]["recentTags"];
+  recentArticles: CommandPaletteResultsProps["items"]["recentArticles"];
   showRecentActions: boolean;
+  showRecentResources: boolean;
   showActions: boolean;
   showDevScenarios: boolean;
   showFeeds: boolean;
   showTags: boolean;
   showArticles: boolean;
   hasVisibleResults: boolean;
-  onActionSelect: CommandPaletteResultsProps["onActionSelect"];
-  onDevScenarioSelect: CommandPaletteResultsProps["onDevScenarioSelect"];
-  onFeedSelect: CommandPaletteResultsProps["onFeedSelect"];
-  onTagSelect: CommandPaletteResultsProps["onTagSelect"];
-  onArticleSelect: CommandPaletteResultsProps["onArticleSelect"];
+  onActionSelect: CommandPaletteResultsProps["handlers"]["onActionSelect"];
+  onDevScenarioSelect: CommandPaletteResultsProps["handlers"]["onDevScenarioSelect"];
+  onFeedSelect: CommandPaletteResultsProps["handlers"]["onFeedSelect"];
+  onTagSelect: CommandPaletteResultsProps["handlers"]["onTagSelect"];
+  onArticleSelect: CommandPaletteResultsProps["handlers"]["onArticleSelect"];
   prefixHintActions: string;
   prefixHintFeeds: string;
   prefixHintTags: string;
@@ -45,6 +50,7 @@ export function useCommandPaletteViewProps({
   noResultsLabel,
   recentActionsHeading,
   actionsHeading,
+  devScenariosHeading,
   feedsHeading,
   tagsHeading,
   articlesHeading,
@@ -54,7 +60,11 @@ export function useCommandPaletteViewProps({
   filteredFeeds,
   filteredTags,
   articles,
+  recentFeeds,
+  recentTags,
+  recentArticles,
   showRecentActions,
+  showRecentResources,
   showActions,
   showDevScenarios,
   showFeeds,
@@ -75,30 +85,43 @@ export function useCommandPaletteViewProps({
     description,
     placeholder,
     resultsProps: {
-      recentActions,
-      filteredActions,
-      filteredDevScenarios,
-      filteredFeeds,
-      filteredTags,
-      articles,
-      showRecentActions,
-      showActions,
-      showDevScenarios,
-      showFeeds,
-      showTags,
-      showArticles,
-      hasVisibleResults,
-      noResultsLabel,
-      recentActionsHeading,
-      actionsHeading,
-      feedsHeading,
-      tagsHeading,
-      articlesHeading,
-      onActionSelect,
-      onDevScenarioSelect,
-      onFeedSelect,
-      onTagSelect,
-      onArticleSelect,
+      items: {
+        recentActions,
+        filteredActions,
+        filteredDevScenarios,
+        filteredFeeds,
+        filteredTags,
+        articles,
+        recentFeeds,
+        recentTags,
+        recentArticles,
+      },
+      visibility: {
+        recentActions: showRecentActions,
+        recentResources: showRecentResources,
+        actions: showActions,
+        devScenarios: showDevScenarios,
+        feeds: showFeeds,
+        tags: showTags,
+        articles: showArticles,
+        hasVisibleResults,
+      },
+      headings: {
+        noResultsLabel,
+        recentActionsHeading,
+        actionsHeading,
+        devScenariosHeading,
+        feedsHeading,
+        tagsHeading,
+        articlesHeading,
+      },
+      handlers: {
+        onActionSelect,
+        onDevScenarioSelect,
+        onFeedSelect,
+        onTagSelect,
+        onArticleSelect,
+      },
     },
     prefixHints: {
       actions: prefixHintActions,
