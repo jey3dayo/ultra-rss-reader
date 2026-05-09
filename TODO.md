@@ -59,6 +59,31 @@
   - `src/__tests__/lib/keyboard-shortcuts.test.ts` で duplicate custom key を検出して無効化するか、現仕様維持なら winner action を明示する
   - shortcut recording UI や native menu accelerator collision とは分け、frontend key-to-action map の collision boundary だけを扱う
 
+- [ ] account DTO identity/display field schema 候補を追加する
+  - `src/api/schemas/account.ts` の `AccountDtoSchema` が `id` / `kind` / `name` / optional `display_name` を blank string のまま通すため、response DTO としての最小 invariant を固定する
+  - `src/__tests__/api/schemas.test.ts` で blank id/name/display_name を reject または trim/fallback する方針を追加し、Rust DTO field parity test は維持する
+  - provider normalizer display name policy や account settings copy とは分け、frontend Account DTO schema boundary だけを扱う
+
+- [ ] feed DTO URL/title schema boundary 候補を追加する
+  - `src/api/schemas/feed.ts` の `FeedDtoSchema` が `id` / `account_id` / `title` / `url` / `site_url` を任意 string として通すため、blank title と URL 形式の扱いを決める
+  - `src/__tests__/api/schemas.test.ts` で blank feed id/title、whitespace URL、non-http feed URL を reject するか backend trusted contract として明示する
+  - feed website href helper や provider URL normalization とは分け、Feed DTO response schema の入力境界だけを扱う
+
+- [ ] folder DTO blank identity schema 候補を追加する
+  - `src/api/schemas/folder.ts` の `FolderDtoSchema` が `id` / `account_id` / `name` の blank string を通すため、sidebar grouping に入る前の DTO invariant を固定する
+  - `src/__tests__/api/schemas.test.ts` で blank folder id / account id / name の期待値を追加し、`sort_order` の既存 nonnegative integer contract は維持する
+  - create folder args schema blank name や sidebar blank folder id grouping guard とは分け、Folder DTO response schema だけを扱う
+
+- [ ] account sync status datetime schema 候補を追加する
+  - `src/api/schemas/account-sync-status.ts` の `last_success_at` / `next_retry_at` が nullable string のため、invalid date / date-only / offset なし timestamp を許すか固定する
+  - `src/__tests__/api/schemas.test.ts` で ISO datetime with offset は通し、malformed timestamp は reject または UI formatter fallback 前提として明示する
+  - account sync last success clock injection や retry copy formatting とは分け、AccountSyncStatus DTO schema の datetime boundary だけを扱う
+
+- [ ] nullable starred count nonnegative schema 候補を追加する
+  - `src/api/schemas/starred-articles.ts` の `NullableStarredCountSchema` が `z.number().int().nullable()` なので、negative count を 0 にするか validation error にするか決める
+  - `src/__tests__/api/tauri-commands.test.ts` または `src/__tests__/api/schemas.test.ts` で `null -> 0` は維持しつつ `-1` / fractional / `Infinity` の扱いを固定する
+  - sidebar starred badge display や feed-level starred counts とは分け、count_account_starred_articles response schema だけを扱う
+
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
