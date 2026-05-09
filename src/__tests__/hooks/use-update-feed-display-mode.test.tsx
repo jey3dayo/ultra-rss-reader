@@ -59,6 +59,14 @@ describe("useUpdateFeedDisplaySettings", () => {
     return renderHook(() => useUpdateFeedDisplaySettings(), { wrapper });
   }
 
+  function createDeferred<T>() {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    const promise = new Promise<T>((innerResolve) => {
+      resolve = innerResolve;
+    });
+    return { promise, resolve };
+  }
+
   it("optimistically updates display settings and invalidates feeds on success", async () => {
     seedFeeds();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -122,6 +130,54 @@ describe("useUpdateFeedDisplaySettings", () => {
       }),
     ]);
     expect(showToastMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps optimistic display settings when a stale feeds refetch resolves later", async () => {
+    seedFeeds();
+    const staleFeeds: FeedDto[] = [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Tech Blog",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 5,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ];
+    const deferredRefetch = createDeferred<FeedDto[]>();
+    await queryClient.invalidateQueries({ queryKey: ["feeds", "acc-1"] });
+    let refetchStarted = false;
+    const staleRefetch = queryClient.fetchQuery({
+      queryKey: ["feeds", "acc-1"],
+      queryFn: ({ signal }) =>
+        new Promise<FeedDto[]>((resolve, reject) => {
+          refetchStarted = true;
+          signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+          deferredRefetch.promise.then(resolve);
+        }),
+    });
+    vi.spyOn(tauriCommands, "updateFeedDisplaySettings").mockResolvedValue(Result.succeed(null));
+    const { result } = createHook();
+
+    await waitFor(() => {
+      expect(refetchStarted).toBe(true);
+    });
+    await expect(result.current("feed-1", "on", "on")).resolves.toBe(true);
+
+    deferredRefetch.resolve(staleFeeds);
+    await expect(staleRefetch).resolves.toEqual(staleFeeds);
+
+    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        reader_mode: "on",
+        web_preview_mode: "on",
+      }),
+    ]);
   });
 
   it("does not leave optimistic display settings behind when a canceled update fails", async () => {
