@@ -1,7 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { copyTextToClipboard, copyValueToClipboard, resolveClipboardErrorCategory } from "@/lib/runtime/clipboard";
+import {
+  CLIPBOARD_TEXT_MAX_CHARS,
+  copyTextToClipboard,
+  copyValueToClipboard,
+  resolveClipboardErrorCategory,
+} from "@/lib/runtime/clipboard";
 
 const { copyToClipboardMock } = vi.hoisted(() => ({
   copyToClipboardMock: vi.fn(),
@@ -166,6 +171,50 @@ describe("clipboard", () => {
     expect(Result.isSuccess(result)).toBe(true);
     expect(copyToClipboardMock).toHaveBeenCalledWith("copy me");
     expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("rejects clipboard text over the fixed size limit before invoking native or frontend writes", async () => {
+    const result = await copyTextToClipboard("x".repeat(CLIPBOARD_TEXT_MAX_CHARS + 1));
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toMatchObject({
+      message: "Invalid clipboard text",
+      category: "invalid_text",
+    });
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
+  });
+
+  it("allows text at the fixed size limit", async () => {
+    const value = "x".repeat(CLIPBOARD_TEXT_MAX_CHARS);
+    copyToClipboardMock.mockResolvedValue(Result.succeed(null));
+
+    const result = await copyTextToClipboard(value);
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(copyToClipboardMock).toHaveBeenCalledWith(value);
+  });
+
+  it("rejects non-http article link clipboard values before invoking native or frontend writes", async () => {
+    for (const value of ["mailto:hello@example.com", "file:///tmp/article.html", "https://example.com/article\nnext"]) {
+      const result = await copyTextToClipboard(value, { category: "article_link" });
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result)).toMatchObject({
+        message: "Invalid clipboard text",
+        category: "invalid_text",
+      });
+    }
+
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
+  });
+
+  it("passes http article link clipboard values through without trimming", async () => {
+    copyToClipboardMock.mockResolvedValue(Result.succeed(null));
+
+    const result = await copyTextToClipboard("https://example.com/article?q=1", { category: "article_link" });
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(copyToClipboardMock).toHaveBeenCalledWith("https://example.com/article?q=1");
   });
 
   it("falls back to the frontend clipboard when the Tauri runtime is unavailable", async () => {

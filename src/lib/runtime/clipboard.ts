@@ -4,9 +4,17 @@ import { copyToClipboard } from "@/api/tauri-commands";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export type ClipboardErrorCategory = "runtime_unavailable" | "permission_denied" | "invalid_text" | "unknown";
+export type ClipboardTextCategory = "plain_text" | "article_link";
 
 export type ClipboardCopyError = AppError & {
   category: ClipboardErrorCategory;
+};
+
+export const CLIPBOARD_TEXT_MAX_CHARS = 2048;
+const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
+
+type CopyTextToClipboardOptions = {
+  category?: ClipboardTextCategory;
 };
 
 type CopyValueToClipboardCallbacks = {
@@ -65,6 +73,39 @@ function toClipboardCopyError(error: unknown): ClipboardCopyError {
   };
 }
 
+function invalidClipboardTextError(): ClipboardCopyError {
+  return {
+    type: "UserVisible",
+    message: INVALID_CLIPBOARD_TEXT_MESSAGE,
+    category: "invalid_text",
+  };
+}
+
+function isHttpUrlText(value: string): boolean {
+  if (value.includes("\n") || value.includes("\r")) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function validateClipboardText(value: string, category: ClipboardTextCategory): ClipboardCopyError | null {
+  if (value.trim().length === 0 || Array.from(value).length > CLIPBOARD_TEXT_MAX_CHARS) {
+    return invalidClipboardTextError();
+  }
+
+  if (category === "article_link" && !isHttpUrlText(value)) {
+    return invalidClipboardTextError();
+  }
+
+  return null;
+}
+
 async function copyTextWithFrontendClipboard(value: string): Result.ResultAsync<void, ClipboardCopyError> {
   if (typeof navigator === "undefined" || typeof navigator.clipboard?.writeText !== "function") {
     return Result.fail({
@@ -82,13 +123,13 @@ async function copyTextWithFrontendClipboard(value: string): Result.ResultAsync<
   }
 }
 
-export async function copyTextToClipboard(value: string): Result.ResultAsync<void, ClipboardCopyError> {
-  if (value.trim().length === 0) {
-    return Result.fail({
-      type: "UserVisible",
-      message: "Invalid clipboard text",
-      category: "invalid_text",
-    });
+export async function copyTextToClipboard(
+  value: string,
+  { category = "plain_text" }: CopyTextToClipboardOptions = {},
+): Result.ResultAsync<void, ClipboardCopyError> {
+  const validationError = validateClipboardText(value, category);
+  if (validationError) {
+    return Result.fail(validationError);
   }
 
   if (!hasTauriRuntime()) {

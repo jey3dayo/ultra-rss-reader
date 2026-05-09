@@ -170,7 +170,11 @@ export function openUrlInExternalBrowser(
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  return runToastOperation(() => copyTextToClipboard(url), { showToast, successMessage }, "Copy failed");
+  return runToastOperation(
+    () => copyTextToClipboard(url, { category: "article_link" }),
+    { showToast, successMessage },
+    "Copy failed",
+  );
 }
 
 export function addArticleToReadingList(url: string, { showToast, successMessage }: ArticleToastActionParams) {

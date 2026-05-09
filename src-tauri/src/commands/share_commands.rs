@@ -2,6 +2,10 @@ use crate::commands::dto::AppError;
 
 const READING_LIST_URL_ERROR: &str =
     "Only http:// and https:// URLs without newlines are supported";
+const READING_LIST_COMMAND_ERROR: &str =
+    "Failed to add to Reading List. Please try again from Safari.";
+const CLIPBOARD_TEXT_ERROR: &str = "Invalid clipboard text";
+const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
 
 fn is_reading_list_url(url: &str) -> bool {
     if url.contains(['\n', '\r']) {
@@ -33,9 +37,26 @@ fn reading_list_script(url: &str) -> Result<String, AppError> {
     ))
 }
 
+fn validate_clipboard_text(text: &str) -> Result<(), AppError> {
+    if text.trim().is_empty() || text.chars().count() > CLIPBOARD_TEXT_MAX_CHARS {
+        return Err(AppError::UserVisible {
+            message: CLIPBOARD_TEXT_ERROR.to_string(),
+        });
+    }
+
+    Ok(())
+}
+
+fn reading_list_command_error() -> AppError {
+    AppError::UserVisible {
+        message: READING_LIST_COMMAND_ERROR.to_string(),
+    }
+}
+
 #[tauri::command]
 pub async fn copy_to_clipboard(app: tauri::AppHandle, text: String) -> Result<(), AppError> {
     use tauri_plugin_clipboard_manager::ClipboardExt;
+    validate_clipboard_text(&text)?;
     app.clipboard()
         .write_text(&text)
         .map_err(|e| AppError::UserVisible {
@@ -57,9 +78,12 @@ pub async fn add_to_reading_list(url: String) -> Result<(), AppError> {
         })?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(AppError::UserVisible {
-            message: format!("Failed to add to Reading List: {stderr}"),
-        });
+        tracing::warn!(
+            status = %output.status,
+            stderr = %stderr,
+            "failed to add URL to Safari Reading List"
+        );
+        return Err(reading_list_command_error());
     }
     Ok(())
 }
@@ -74,7 +98,11 @@ pub async fn add_to_reading_list(_url: String) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_reading_list_url, reading_list_script, READING_LIST_URL_ERROR};
+    use super::{
+        is_reading_list_url, reading_list_command_error, reading_list_script,
+        validate_clipboard_text, CLIPBOARD_TEXT_ERROR, CLIPBOARD_TEXT_MAX_CHARS,
+        READING_LIST_COMMAND_ERROR, READING_LIST_URL_ERROR,
+    };
 
     #[test]
     fn builds_reading_list_script_for_http_urls() {
@@ -156,5 +184,30 @@ mod tests {
 
             assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
         }
+    }
+
+    #[test]
+    fn hides_applescript_stderr_from_reading_list_user_visible_errors() {
+        let error = reading_list_command_error();
+
+        assert_eq!(error.to_string(), READING_LIST_COMMAND_ERROR);
+        assert!(!error.to_string().contains("osascript"));
+        assert!(!error.to_string().contains("https://example.com/private"));
+    }
+
+    #[test]
+    fn validates_clipboard_text_before_native_write() {
+        validate_clipboard_text("https://example.com/article").unwrap();
+        validate_clipboard_text(&"x".repeat(CLIPBOARD_TEXT_MAX_CHARS)).unwrap();
+
+        for text in ["", "   ", "\n\t"] {
+            let error = validate_clipboard_text(text).unwrap_err();
+
+            assert_eq!(error.to_string(), CLIPBOARD_TEXT_ERROR);
+        }
+
+        let error = validate_clipboard_text(&"x".repeat(CLIPBOARD_TEXT_MAX_CHARS + 1)).unwrap_err();
+
+        assert_eq!(error.to_string(), CLIPBOARD_TEXT_ERROR);
     }
 }
