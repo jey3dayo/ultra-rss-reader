@@ -1,4 +1,10 @@
-import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import type {
+  AccountDto,
+  ArticleDto,
+  FeedDto,
+  FolderDto,
+  TagDto,
+} from "@/api/tauri-commands";
 
 export type SidebarSourcesParams = {
   selectedAccountId: string | null;
@@ -6,7 +12,9 @@ export type SidebarSourcesParams = {
 
 type SidebarAccountStatusLabelSource = Pick<AccountDto, "id">;
 export type SidebarAccountStatusLabels = Record<string, string>;
-export type SidebarAccountStatusLabelsParams = readonly SidebarAccountStatusLabelSource[] | undefined;
+export type SidebarAccountStatusLabelsParams =
+  | readonly SidebarAccountStatusLabelSource[]
+  | undefined;
 
 type SidebarAccountSourceModel = {
   accounts: AccountDto[] | undefined;
@@ -32,4 +40,6 @@ type SidebarTagSourceModel = {
   tagArticleCounts: Record<string, number> | undefined;
 };
 
-export type SidebarSourcesResult = SidebarAccountSourceModel & SidebarFeedTreeSourceModel & SidebarTagSourceModel;
+export type SidebarSourcesResult = SidebarAccountSourceModel &
+  SidebarFeedTreeSourceModel &
+  SidebarTagSourceModel;

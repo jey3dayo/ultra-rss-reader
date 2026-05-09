@@ -1,9 +1,15 @@
 import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
-import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
+import {
+  displayPresetToTriStateModes,
+  resolveFeedDisplayPreset,
+} from "@/lib/articles/article-display";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
-import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
+import type {
+  FeedEditDisplayPreset,
+  SubmitFeedEditsParams,
+} from "./rename-feed-dialog.types";
 
 export type {
   FeedEditDisplayPreset,
@@ -15,7 +21,8 @@ export type FeedMutationEditorState<ExtraState extends object = object> = {
   loading: boolean;
 } & ExtraState;
 
-export type FeedEditorState<ExtraState extends object = object> = FeedMutationEditorState<ExtraState>;
+export type FeedEditorState<ExtraState extends object = object> =
+  FeedMutationEditorState<ExtraState>;
 
 export async function submitFeedEdits({
   feed,
@@ -72,11 +79,18 @@ export async function submitFeedEdits({
 
   if (didUpdateDisplayMode) {
     const nextModes = displayPresetToTriStateModes(displayPreset);
-    displaySettingsSucceeded = await updateDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
+    displaySettingsSucceeded = await updateDisplaySettings(
+      feed.id,
+      nextModes.readerMode,
+      nextModes.webPreviewMode,
+    );
   }
 
   invalidateFeedQueries(queryClient, {
-    includeFeeds: didMoveFolder || (didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded),
+    includeFeeds:
+      didMoveFolder ||
+      (didRename && renameSucceeded) ||
+      (didUpdateDisplayMode && displaySettingsSucceeded),
   });
 
   return renameSucceeded && displaySettingsSucceeded;

@@ -1,7 +1,13 @@
 import type { MutableRefObject } from "react";
 
-export type { InvalidateFeedQueriesOptions as FeedMutationCacheInvalidationOptions } from "@/lib/query/query-invalidation";
-export { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
+export type {
+  InvalidateFeedQueriesOptions,
+  InvalidateFeedQueriesOptions as FeedMutationCacheInvalidationOptions,
+} from "@/lib/query/query-invalidation";
+export {
+  invalidateArticleQueries,
+  invalidateFeedQueries,
+} from "@/lib/query/query-invalidation";
 
 type FeedMutationOptimisticRollbackParams<TResult> = {
   run: () => Promise<TResult>;
@@ -30,12 +36,17 @@ type LatestFeedMutationGuardParams = {
   latestRequestIdRef: MutableRefObject<number>;
 };
 
-export function startLatestFeedMutation({ latestRequestIdRef }: LatestFeedMutationGuardParams): number {
+export function startLatestFeedMutation({
+  latestRequestIdRef,
+}: LatestFeedMutationGuardParams): number {
   const requestId = latestRequestIdRef.current + 1;
   latestRequestIdRef.current = requestId;
   return requestId;
 }
 
-export function isLatestFeedMutation({ latestRequestIdRef }: LatestFeedMutationGuardParams, requestId: number): boolean {
+export function isLatestFeedMutation(
+  { latestRequestIdRef }: LatestFeedMutationGuardParams,
+  requestId: number,
+): boolean {
   return latestRequestIdRef.current === requestId;
 }

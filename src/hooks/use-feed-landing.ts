@@ -2,10 +2,21 @@ import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
-import { isLatestFeedMutation, runFeedMutationWithOptimisticRollback, startLatestFeedMutation } from "@/components/reader/feed-query-cache";
+import {
+  listArticles,
+  listFeedStarredArticles,
+  listFeeds,
+} from "@/api/tauri-commands";
+import {
+  isLatestFeedMutation,
+  runFeedMutationWithOptimisticRollback,
+  startLatestFeedMutation,
+} from "@/components/reader/feed-query-cache";
 import { useFeeds } from "@/hooks/use-feeds";
-import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
+import {
+  resolveFeedLandingArticleResult,
+  resolveFeedLandingDisplay,
+} from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -20,14 +31,24 @@ type FeedLandingSuccess = {
   feedId: string;
   articleId: string | null;
 };
-export type FeedLandingResult = Result.Result<FeedLandingSuccess, FeedLandingFailure>;
+export type FeedLandingResult = Result.Result<
+  FeedLandingSuccess,
+  FeedLandingFailure
+>;
 
 type FeedLandingUiSnapshot = Pick<
   ReturnType<typeof useUiStore.getState>,
-  "browserUrl" | "contentMode" | "focusedPane" | "selectedArticleId" | "selection" | "viewMode"
+  | "browserUrl"
+  | "contentMode"
+  | "focusedPane"
+  | "selectedArticleId"
+  | "selection"
+  | "viewMode"
 >;
 
-function captureFeedLandingUiSnapshot(store: ReturnType<typeof useUiStore.getState>): FeedLandingUiSnapshot {
+function captureFeedLandingUiSnapshot(
+  store: ReturnType<typeof useUiStore.getState>,
+): FeedLandingUiSnapshot {
   return {
     browserUrl: store.browserUrl,
     contentMode: store.contentMode,
@@ -72,7 +93,8 @@ export function useFeedLanding() {
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const prefs = usePreferencesStore((state) => state.prefs);
   const sortUnread = usePreferencesStore(
-    (state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
+    (state) =>
+      state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
   );
   const latestRequestIdRef = useRef(0);
 
@@ -95,96 +117,107 @@ export function useFeedLanding() {
         },
         shouldRollback: Result.isFailure,
         run: async () => {
-        const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
-        const feedList =
-          feeds.length > 0
-            ? feeds
-            : await queryClient
-                .fetchQuery({
-                  queryKey: feedQueryKey,
-                  queryFn: () => listFeeds(selectedAccountId).then((result) => Result.unwrap(result)),
-                })
-                .catch((error) => {
-                  const cachedFeeds = queryClient.getQueryData<FeedDto[]>(feedQueryKey);
-                  if (cachedFeeds) {
-                    return cachedFeeds;
-                  }
-                  throw error;
-                });
+          const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
+          const feedList =
+            feeds.length > 0
+              ? feeds
+              : await queryClient
+                  .fetchQuery({
+                    queryKey: feedQueryKey,
+                    queryFn: () =>
+                      listFeeds(selectedAccountId).then((result) =>
+                        Result.unwrap(result),
+                      ),
+                  })
+                  .catch((error) => {
+                    const cachedFeeds =
+                      queryClient.getQueryData<FeedDto[]>(feedQueryKey);
+                    if (cachedFeeds) {
+                      return cachedFeeds;
+                    }
+                    throw error;
+                  });
 
-        const feed = feedList.find((candidate) => candidate.id === feedId);
-        if (!feed) {
-          return Result.fail({
-            type: "feed_not_found",
+          const feed = feedList.find((candidate) => candidate.id === feedId);
+          if (!feed) {
+            return Result.fail({
+              type: "feed_not_found",
+              feedId,
+            } satisfies FeedLandingFailure);
+          }
+
+          const preserveStarredContext =
+            store.viewMode === "starred" ||
+            (store.selection.type === "smart" &&
+              store.selection.kind === "starred");
+
+          store.selectFeedFromCurrentContext(feedId);
+
+          const articlesQueryKey = queryKeys.articles.byFeed(
             feedId,
-          } satisfies FeedLandingFailure);
-        }
+            preserveStarredContext ? "starred" : "all",
+          );
+          const articles = await queryClient
+            .fetchQuery({
+              queryKey: articlesQueryKey,
+              queryFn: () =>
+                (preserveStarredContext
+                  ? listFeedStarredArticles(feedId)
+                  : listArticles(feedId)
+                ).then((result) => Result.unwrap(result)),
+            })
+            .catch((error) => {
+              const cachedArticles =
+                queryClient.getQueryData<ArticleDto[]>(articlesQueryKey);
+              if (cachedArticles) {
+                return cachedArticles;
+              }
+              throw error;
+            });
 
-        const preserveStarredContext =
-          store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
+          if (!isLatestFeedMutation({ latestRequestIdRef }, requestId)) {
+            return Result.fail({
+              type: "landing_fetch_failed",
+              feedId,
+              message: "Stale feed landing request",
+            } satisfies FeedLandingFailure);
+          }
 
-        store.selectFeedFromCurrentContext(feedId);
+          const landingArticleResult = resolveFeedLandingArticleResult({
+            articles,
+            sortUnread,
+            viewMode: preserveStarredContext ? "starred" : "unread",
+          });
+          if (Result.isFailure(landingArticleResult)) {
+            store.closeBrowser();
+            return Result.succeed({
+              type: "feed_selected",
+              feedId,
+              articleId: null,
+            } satisfies FeedLandingSuccess);
+          }
 
-        const articlesQueryKey = queryKeys.articles.byFeed(feedId, preserveStarredContext ? "starred" : "all");
-        const articles = await queryClient
-          .fetchQuery({
-            queryKey: articlesQueryKey,
-            queryFn: () =>
-              (preserveStarredContext ? listFeedStarredArticles(feedId) : listArticles(feedId)).then((result) =>
-                Result.unwrap(result),
-              ),
-          })
-          .catch((error) => {
-            const cachedArticles = queryClient.getQueryData<ArticleDto[]>(articlesQueryKey);
-            if (cachedArticles) {
-              return cachedArticles;
-            }
-            throw error;
+          const landingArticle = Result.unwrap(landingArticleResult);
+          store.selectArticle(landingArticle.id);
+
+          const resolvedDisplay = resolveFeedLandingDisplay({
+            feed,
+            prefs,
+            articleUrl: landingArticle.url,
           });
 
-        if (!isLatestFeedMutation({ latestRequestIdRef }, requestId)) {
-          return Result.fail({
-            type: "landing_fetch_failed",
-            feedId,
-            message: "Stale feed landing request",
-          } satisfies FeedLandingFailure);
-        }
-
-        const landingArticleResult = resolveFeedLandingArticleResult({
-          articles,
-          sortUnread,
-          viewMode: preserveStarredContext ? "starred" : "unread",
-        });
-        if (Result.isFailure(landingArticleResult)) {
-          store.closeBrowser();
+          const landingArticleUrl = landingArticle.url;
+          if (resolvedDisplay.webPreviewMode && landingArticleUrl) {
+            store.openBrowser(landingArticleUrl);
+          } else {
+            store.closeBrowser();
+          }
           return Result.succeed({
             type: "feed_selected",
             feedId,
-            articleId: null,
+            articleId: landingArticle.id,
           } satisfies FeedLandingSuccess);
-        }
-
-        const landingArticle = Result.unwrap(landingArticleResult);
-        store.selectArticle(landingArticle.id);
-
-        const resolvedDisplay = resolveFeedLandingDisplay({
-          feed,
-          prefs,
-          articleUrl: landingArticle.url,
-        });
-
-        const landingArticleUrl = landingArticle.url;
-        if (resolvedDisplay.webPreviewMode && landingArticleUrl) {
-          store.openBrowser(landingArticleUrl);
-        } else {
-          store.closeBrowser();
-        }
-        return Result.succeed({
-          type: "feed_selected",
-          feedId,
-          articleId: landingArticle.id,
-        } satisfies FeedLandingSuccess);
-        }
+        },
       }).catch((error) => {
         console.error("Failed to land on feed article:", error);
         return Result.fail({
