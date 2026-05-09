@@ -122,6 +122,18 @@ describe("folder feed counts", () => {
     expect(countUnreadFeedsInFolder(undefined, "folder-a")).toBe(0);
   });
 
+  it("keeps blank folder ids unfoldered when counting a real folder", () => {
+    const mixedFeeds = [
+      makeFeed({ id: "f1", folder_id: "folder-a", unread_count: 3 }),
+      makeFeed({ id: "f2", folder_id: "", unread_count: 5 }),
+      makeFeed({ id: "f3", folder_id: "   ", unread_count: 7 }),
+      makeFeed({ id: "f4", folder_id: " folder-a ", unread_count: 11 }),
+    ];
+
+    expect(countFeedsInFolder(mixedFeeds, "folder-a")).toBe(2);
+    expect(countUnreadFeedsInFolder(mixedFeeds, "folder-a")).toBe(14);
+  });
+
   it("sums unread counts without filtering by folder", () => {
     expect(sumUnreadCounts(feeds)).toBe(18);
     expect(sumUnreadCounts(undefined)).toBe(0);

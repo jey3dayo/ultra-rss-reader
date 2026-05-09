@@ -1,5 +1,13 @@
 import { Result } from "@praha/byethrow";
 
+/**
+ * Returns the preferred link target for a feed website action.
+ *
+ * This helper only normalizes caller-provided strings by trimming outer whitespace:
+ * it prefers a non-empty site URL, falls back to a non-empty feed URL, and returns
+ * null when both inputs are blank after trimming. URL validity is handled by
+ * upstream add-feed/provider boundaries, not here.
+ */
 export function resolveFeedWebsiteHref(siteUrl: string, feedUrl: string): string | null {
   const normalizedSiteUrl = siteUrl.trim();
   const normalizedFeedUrl = feedUrl.trim();
@@ -10,6 +18,9 @@ export type ExtractSiteHostError = { type: "missing_url" } | { type: "invalid_ur
 
 /**
  * Extract the hostname from a feed's site_url or fallback url.
+ *
+ * Host labels are intentionally resilient: an invalid site URL does not block a
+ * valid feed URL from providing a favicon/host label fallback.
  */
 export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result<string, ExtractSiteHostError> {
   const normalizedSiteUrl = siteUrl.trim();

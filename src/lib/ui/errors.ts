@@ -11,16 +11,20 @@ function normalizeErrorMessage(message: unknown): string {
   return normalizedMessage.length > 0 ? normalizedMessage : UNKNOWN_ERROR_MESSAGE;
 }
 
+function getObjectErrorMessage(error: object): string {
+  try {
+    return normalizeErrorMessage(Reflect.get(error, "message"));
+  } catch {
+    return UNKNOWN_ERROR_MESSAGE;
+  }
+}
+
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    return normalizeErrorMessage(error.message);
+    return getObjectErrorMessage(error);
   }
   if (typeof error === "object" && error !== null && "message" in error) {
-    try {
-      return normalizeErrorMessage(Reflect.get(error, "message"));
-    } catch {
-      return UNKNOWN_ERROR_MESSAGE;
-    }
+    return getObjectErrorMessage(error);
   }
   return UNKNOWN_ERROR_MESSAGE;
 }

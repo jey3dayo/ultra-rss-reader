@@ -6,10 +6,10 @@ describe("errors", () => {
     expect(getErrorMessage(new Error("boom"))).toBe("boom");
   });
 
-  it("returns object message fields as strings", () => {
+  it("returns string object message fields", () => {
     expect(getErrorMessage({ message: "plain message" })).toBe("plain message");
-    expect(getErrorMessage({ message: 123 })).toBe("123");
-    expect(getErrorMessage({ message: Symbol("symbol message") })).toBe("Symbol(symbol message)");
+    expect(getErrorMessage({ message: 123 })).toBe("Unknown error");
+    expect(getErrorMessage({ message: Symbol("symbol message") })).toBe("Unknown error");
   });
 
   it("falls back when object message getter throws", () => {
@@ -20,6 +20,27 @@ describe("errors", () => {
     };
 
     expect(getErrorMessage(error)).toBe("Unknown error");
+  });
+
+  it("falls back when Error message getter throws", () => {
+    const error = new Error("boom");
+    Object.defineProperty(error, "message", {
+      get() {
+        throw new Error("getter failed");
+      },
+    });
+
+    expect(getErrorMessage(error)).toBe("Unknown error");
+  });
+
+  it("falls back without calling unsafe string conversion", () => {
+    expect(
+      getErrorMessage({
+        toString() {
+          throw new Error("toString failed");
+        },
+      }),
+    ).toBe("Unknown error");
   });
 
   it("falls back for values without a message", () => {

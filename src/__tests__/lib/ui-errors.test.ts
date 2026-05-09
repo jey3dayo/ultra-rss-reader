@@ -23,8 +23,19 @@ describe("ui error projection", () => {
     });
 
     expect(getErrorMessage(errorWithThrowingMessage)).toBe("Unknown error");
+    expect(getErrorMessage({ message: Symbol("symbol message") })).toBe("Unknown error");
     expect(getErrorMessage({ message: 123 })).toBe("Unknown error");
     expect(getErrorMessage({ message: { text: "network down" } })).toBe("Unknown error");
+  });
+
+  it("falls back when fallback stringification would be unsafe", () => {
+    const errorWithThrowingToString = {
+      toString() {
+        throw new Error("toString unavailable");
+      },
+    };
+
+    expect(getErrorMessage(errorWithThrowingToString)).toBe("Unknown error");
   });
 
   it("keeps retry and dismiss actions explicit in the toast payload", () => {

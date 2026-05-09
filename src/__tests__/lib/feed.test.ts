@@ -49,7 +49,7 @@ describe("extractSiteHost", () => {
     expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "not-valid" });
   });
 
-  it("falls back to feed url when site_url is invalid", () => {
+  it("uses the feed url as a resilient fallback when site_url is invalid", () => {
     const result = extractSiteHost("not-valid", "https://feed.example.com/rss");
     expect(Result.unwrap(result)).toBe("feed.example.com");
   });
