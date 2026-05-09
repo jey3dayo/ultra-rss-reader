@@ -111,9 +111,21 @@ describe("resolveFeedLandingDisplay", () => {
     ).toBe(true);
   });
 
-  it("falls back to reader mode when the landing article has no URL", () => {
+  it("enables web preview when the landing article has no URL but the feed has a site URL", () => {
     const display = resolveFeedLandingDisplay({
-      feed: { reader_mode: "on", web_preview_mode: "on" },
+      feed: { reader_mode: "on", site_url: "https://example.com", web_preview_mode: "on" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      articleUrl: null,
+    });
+
+    expect(display.readerMode).toBe(true);
+    expect(display.webPreviewMode).toBe(true);
+    expect(display.fallbackReason).toBeNull();
+  });
+
+  it("falls back to reader mode when neither the landing article nor feed has a preview URL", () => {
+    const display = resolveFeedLandingDisplay({
+      feed: { reader_mode: "on", site_url: null, web_preview_mode: "on" },
       prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
       articleUrl: null,
     });

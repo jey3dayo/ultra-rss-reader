@@ -25,6 +25,10 @@ export function hasWebPreviewUrl(articleUrl: string | null | undefined): boolean
   }
 }
 
+function hasAnyWebPreviewUrl(urls: readonly (string | null | undefined)[]): boolean {
+  return urls.some((url) => hasWebPreviewUrl(url));
+}
+
 export function resolveFeedLandingArticleResult(params: {
   articles: ArticleDto[];
   sortUnread: string;
@@ -62,6 +66,7 @@ export function resolveFeedLandingDisplay(params: {
   feed:
     | {
         reader_mode?: string | null;
+        site_url?: string | null;
         web_preview_mode?: string | null;
       }
     | null
@@ -73,6 +78,6 @@ export function resolveFeedLandingDisplay(params: {
     appDefault: resolveAppDefaultDisplayModes(params.prefs),
     feedOverride: resolveFeedDisplayOverrides(params.feed),
     temporaryOverride: { readerMode: null, webPreviewMode: null },
-    articleCapabilities: { hasWebPreview: hasWebPreviewUrl(params.articleUrl) },
+    articleCapabilities: { hasWebPreview: hasAnyWebPreviewUrl([params.articleUrl, params.feed?.site_url]) },
   });
 }
