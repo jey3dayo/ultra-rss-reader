@@ -62,19 +62,14 @@ export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
   const registeredBindings: RegisteredWindowEventBinding[] = [];
 
   const cleanupRegisteredBindings = (options: { reverse?: boolean } = {}) => {
-    let cleanupError: unknown;
     const bindingsToCleanup = options.reverse ? registeredBindings.slice().reverse() : registeredBindings;
 
     for (const { target, type, listener, options } of bindingsToCleanup) {
       try {
         target.removeEventListener(type, listener, options);
       } catch (error) {
-        cleanupError ??= error;
+        console.error("Failed to remove window event listener.", error);
       }
-    }
-
-    if (cleanupError !== undefined) {
-      throw cleanupError;
     }
   };
 
