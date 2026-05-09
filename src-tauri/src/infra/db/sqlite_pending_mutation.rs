@@ -419,6 +419,30 @@ mod tests {
     }
 
     #[test]
+    fn save_duplicate_same_account_type_and_remote_entry_is_rejected_by_database_constraint() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'entry-1', '2024-01-01T00:00:01Z')",
+                params![account_id.0],
+            )
+            .expect_err("duplicate pending mutation should be rejected by unique index");
+    }
+
+    #[test]
     fn save_replacement_is_scoped_to_the_same_account() {
         let db = test_db();
         let account_a = insert_test_account(&db);

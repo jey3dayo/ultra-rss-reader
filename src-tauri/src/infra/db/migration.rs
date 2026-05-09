@@ -21,6 +21,7 @@ const MIGRATION_V15: &str = include_str!("../../../migrations/V15__remove_inorea
 const MIGRATION_V16: &str =
     include_str!("../../../migrations/V16__account_connection_verification.sql");
 const MIGRATION_V17: &str = include_str!("../../../migrations/V17__article_view_history.sql");
+const MIGRATION_V18: &str = include_str!("../../../migrations/V18__db_repository_contracts.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
 const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -50,7 +51,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 17;
+pub const LATEST_VERSION: i32 = 18;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -108,6 +109,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 17 {
         tx.execute_batch(MIGRATION_V17)?;
+    }
+    if from_version < 18 {
+        tx.execute_batch(MIGRATION_V18)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -499,6 +503,32 @@ mod tests {
         assert!(conn
             .prepare("SELECT account_id, article_id, viewed_at FROM article_view_history LIMIT 0")
             .is_ok());
+    }
+
+    #[test]
+    fn latest_schema_prevents_duplicate_pending_mutations() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        let index_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM pragma_index_list('pending_mutations')
+                 WHERE name = 'idx_pending_mutations_unique_entry_type'
+                   AND [unique] = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(index_count, 1);
+    }
+
+    #[test]
+    fn latest_schema_version_is_single_latest_row() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        assert_single_schema_version_row(&conn, LATEST_VERSION);
     }
 
     #[test]
@@ -1066,7 +1096,85 @@ mod tests {
             .is_ok());
     }
 
+    #[test]
+    fn v18_deduplicates_pending_mutations_before_adding_unique_index() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        apply_v8_feed_reader_preview_modes(&conn).unwrap();
+        conn.execute_batch(MIGRATION_V9).unwrap();
+        set_schema_version(&conn, 10).unwrap();
+        conn.execute_batch(MIGRATION_V11).unwrap();
+        conn.execute_batch(MIGRATION_V12).unwrap();
+        conn.execute_batch(MIGRATION_V13).unwrap();
+        conn.execute_batch(MIGRATION_V14).unwrap();
+        conn.execute_batch(MIGRATION_V15).unwrap();
+        apply_v16_account_connection_verification(&conn).unwrap();
+        conn.execute_batch(MIGRATION_V17).unwrap();
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            params!["acc-1", "Local", "Local"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+             VALUES (?1, 'mark_read', 'entry-1', '2026-05-10T00:00:00Z'),
+                    (?1, 'mark_read', 'entry-1', '2026-05-10T00:00:01Z'),
+                    (?1, 'star', 'entry-1', '2026-05-10T00:00:02Z')",
+            params!["acc-1"],
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 17);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let pending_rows: Vec<(String, String)> = conn
+            .prepare(
+                "SELECT mutation_type, remote_entry_id
+                 FROM pending_mutations
+                 ORDER BY mutation_type, remote_entry_id",
+            )
+            .unwrap()
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(
+            pending_rows,
+            vec![
+                ("mark_read".to_string(), "entry-1".to_string()),
+                ("star".to_string(), "entry-1".to_string())
+            ]
+        );
+        assert_single_schema_version_row(&conn, LATEST_VERSION);
+
+        let duplicate_result = conn.execute(
+            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+             VALUES (?1, 'mark_read', 'entry-1', '2026-05-10T00:00:03Z')",
+            params!["acc-1"],
+        );
+        assert!(duplicate_result.is_err());
+    }
+
     fn normalize_sql(sql: &str) -> String {
         sql.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+
+    fn assert_single_schema_version_row(conn: &Connection, expected_version: i32) {
+        let (row_count, version): (i64, i32) = conn
+            .query_row(
+                "SELECT COUNT(*), MAX(version) FROM schema_version",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(row_count, 1);
+        assert_eq!(version, expected_version);
     }
 }

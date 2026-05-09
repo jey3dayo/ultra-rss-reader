@@ -53,6 +53,16 @@ fn verification_status_from_str(status: &str) -> DomainResult<ConnectionVerifica
     }
 }
 
+fn require_account_row_affected(rows_affected: usize, id: &AccountId) -> DomainResult<()> {
+    if rows_affected == 0 {
+        return Err(DomainError::Validation(format!(
+            "Account not found: {}",
+            id.as_ref()
+        )));
+    }
+    Ok(())
+}
+
 fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
     let kind_str: String = row.get(1)?;
     let verification_status: String = row.get(9)?;
@@ -151,11 +161,11 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         sync_on_wake: bool,
         keep_read_items_days: i64,
     ) -> DomainResult<()> {
-        self.conn.execute(
+        let rows_affected = self.conn.execute(
             "UPDATE accounts SET sync_interval_secs = ?1, sync_on_startup = ?2, sync_on_wake = ?3, keep_read_items_days = ?4 WHERE id = ?5",
             params![sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, id.0],
         )?;
-        Ok(())
+        require_account_row_affected(rows_affected, id)
     }
 
     fn update_credentials(
@@ -164,7 +174,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         server_url: Option<&str>,
         username: Option<&str>,
     ) -> DomainResult<()> {
-        self.conn.execute(
+        let rows_affected = self.conn.execute(
             "UPDATE accounts
              SET server_url = ?1,
                  username = ?2,
@@ -174,7 +184,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
              WHERE id = ?3",
             params![server_url, username, id.0],
         )?;
-        Ok(())
+        require_account_row_affected(rows_affected, id)
     }
 
     fn update_connection_verification(
@@ -184,7 +194,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         verified_at: Option<&str>,
         verification_error: Option<&str>,
     ) -> DomainResult<()> {
-        self.conn.execute(
+        let rows_affected = self.conn.execute(
             "UPDATE accounts
              SET connection_verification_status = ?1,
                  connection_verified_at = ?2,
@@ -197,21 +207,22 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 id.0
             ],
         )?;
-        Ok(())
+        require_account_row_affected(rows_affected, id)
     }
 
     fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()> {
-        self.conn.execute(
+        let rows_affected = self.conn.execute(
             "UPDATE accounts SET name = ?1 WHERE id = ?2",
             params![name, id.0],
         )?;
-        Ok(())
+        require_account_row_affected(rows_affected, id)
     }
 
     fn delete(&self, id: &AccountId) -> DomainResult<()> {
-        self.conn
+        let rows_affected = self
+            .conn
             .execute("DELETE FROM accounts WHERE id = ?1", params![id.0])?;
-        Ok(())
+        require_account_row_affected(rows_affected, id)
     }
 }
 
@@ -485,6 +496,24 @@ mod tests {
     }
 
     #[test]
+    fn update_sync_settings_returns_error_for_missing_account() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let error = repo
+            .update_sync_settings(
+                &AccountId("missing-account".to_string()),
+                7200,
+                false,
+                true,
+                90,
+            )
+            .expect_err("missing account update should fail");
+
+        assert!(error.to_string().contains("Account not found"));
+    }
+
+    #[test]
     fn save_and_update_credentials_persist_connection_verification_state() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.writer());
@@ -559,5 +588,62 @@ mod tests {
         );
         assert_eq!(updated.connection_verified_at, None);
         assert_eq!(updated.connection_verification_error, None);
+    }
+
+    #[test]
+    fn update_credentials_returns_error_for_missing_account() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let error = repo
+            .update_credentials(
+                &AccountId("missing-account".to_string()),
+                Some("https://new.example.com"),
+                Some("new-user"),
+            )
+            .expect_err("missing account credential update should fail");
+
+        assert!(error.to_string().contains("Account not found"));
+    }
+
+    #[test]
+    fn update_connection_verification_returns_error_for_missing_account() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let error = repo
+            .update_connection_verification(
+                &AccountId("missing-account".to_string()),
+                ConnectionVerificationStatus::Verified,
+                Some("2026-05-10T00:00:00Z"),
+                None,
+            )
+            .expect_err("missing account verification update should fail");
+
+        assert!(error.to_string().contains("Account not found"));
+    }
+
+    #[test]
+    fn rename_returns_error_for_missing_account() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let error = repo
+            .rename(&AccountId("missing-account".to_string()), "Renamed")
+            .expect_err("missing account rename should fail");
+
+        assert!(error.to_string().contains("Account not found"));
+    }
+
+    #[test]
+    fn delete_returns_error_for_missing_account() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let error = repo
+            .delete(&AccountId("missing-account".to_string()))
+            .expect_err("missing account delete should fail");
+
+        assert!(error.to_string().contains("Account not found"));
     }
 }
