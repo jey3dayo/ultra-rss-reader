@@ -8,17 +8,15 @@ export const ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE = "data-account-pane-selecte
 export const ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE = "data-account-pane-navigation-target";
 export const SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE = "data-sidebar-smart-view-kind";
 
-export type ReaderFocusTargetAttribute =
+type ReaderFocusTargetAttribute =
   | typeof SIDEBAR_SELECTED_TARGET_ATTRIBUTE
   | typeof SIDEBAR_FALLBACK_TARGET_ATTRIBUTE
   | typeof ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE
   | typeof ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE;
-export type SidebarSmartViewKindAttribute = typeof SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE;
-export type ReaderFocusAttribute = ReaderFocusTargetAttribute | SidebarSmartViewKindAttribute;
-export type ReaderFocusReturnAction = "focus-sidebar" | "focus-list";
+type ReaderFocusReturnAction = "focus-sidebar" | "focus-list";
 type ReaderFocusRetryGenerationKey = "article-list-row" | "sidebar-smart-view";
-export type ReaderFocusRetryCleanup = () => void;
-export type ReaderFocusFrameCleanup = () => void;
+type ReaderFocusRetryCleanup = () => void;
+type ReaderFocusFrameCleanup = () => void;
 
 const READER_FOCUS_FRAME_SCHEDULE_WARNING = "Failed to schedule reader focus frame.";
 

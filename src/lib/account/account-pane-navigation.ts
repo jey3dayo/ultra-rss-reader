@@ -11,7 +11,6 @@ import { useUiStore } from "@/stores/ui-store";
 
 export type PaneNavigationKey = "ArrowDown" | "ArrowUp" | "ArrowRight" | "Escape" | "Enter";
 export const ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE = "data-account-pane-account-id";
-export type AccountPaneAccountIdAttribute = typeof ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE;
 
 export function normalizePaneNavigationKey(key: string): PaneNavigationKey | null {
   switch (key) {
