@@ -2720,3 +2720,28 @@
   - `src/hooks/use-tags.ts` の `TAG_QUERY_KEYS` と `useTags` / `useTagArticleCounts` / `useArticlesByTag` の raw query key literal が drift しないよう整理する
   - `resolveTagMutationInvalidationQueryKeys()` と各 query hook の root key が一致することを `use-tags.test.tsx` で固定する
   - tag deletion selection fallback や tag article count nullish key とは分け、tag hook の query key ownership だけを扱う
+
+- [ ] preferences load rejected promise fallback 候補を追加する
+  - `src/stores/preferences-store.ts` の `loadPreferences()` は `getPreferences()` が Result.fail ではなく promise reject した場合に loaded/default fallback を適用できるか確認する
+  - `src/__tests__/stores/preferences-store.test.ts` で rejected load 後も `loaded: true`、language/font defaults、`preferencesLoadPromise` retry が成立することを固定する
+  - preferences load normalization とは分け、transport/runtime exception 時の store recovery だけを扱う
+
+- [ ] preferences setPref rejected persist failure 候補を追加する
+  - `src/stores/preferences-store.ts` の `setPref()` は `setPreference()` が promise reject した場合に toast も console error も通らないため、failure surface を固定する
+  - `src/__tests__/stores/preferences-store.test.ts` で rejected persist が localized toast になり、optimistic state / mirrored theme の扱いを明示する
+  - reading display preset paired preference とは分け、単一 preference persist の exception boundary だけを扱う
+
+- [ ] platform store rejected load fallback 候補を追加する
+  - `src/stores/platform-store.ts` の `loadPlatformInfo()` は `getPlatformInfo()` が Result.fail ではなく promise reject した場合に `loadError` / default platform へ落とせるか確認する
+  - `src/__tests__/stores/platform-store.test.ts` で rejected load 後に `inFlightLoad` が null へ戻り、次回 retry が可能なことを固定する
+  - platform abstraction contract 整理とは分け、store load exception recovery だけを扱う
+
+- [ ] settings close loading reset 候補を追加する
+  - `src/stores/ui-store.ts` の `closeSettings()` が `settingsLoading` を残すため、Data/Vacuum 中断後の再オープンで loading overlay が stale にならないか方針を固定する
+  - `src/__tests__/stores/ui-store.test.ts` で close 時に loading を reset するか、in-flight action 優先で維持するなら test 名で現仕様を明示する
+  - data settings stale size response guard とは分け、settings modal close 時の global loading state だけを扱う
+
+- [ ] data settings unmount async dispatch guard 候補を追加する
+  - `src/components/settings/hooks/use-data-settings-controller.ts` の initial `getDatabaseInfo()` や vacuum/open-log-dir promise が unmount 後に reducer dispatch / loading reset しないか確認する
+  - `src/__tests__/components/use-data-settings-controller.test.ts` で unmount 後に deferred command が resolve / reject しても state update warning と stale `setSettingsLoading(false)` が出ないことを固定する
+  - settings scroll observer cleanup や stale size response guard とは分け、data settings controller の async lifecycle cleanup だけを扱う
