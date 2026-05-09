@@ -2,10 +2,7 @@ import { useEffect } from "react";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { isGlobalShortcutTextEditingTarget } from "@/lib/keyboard/global-shortcut-targets";
-import {
-  bindWindowEvents,
-  createMouseEventListener,
-} from "@/lib/window/window-events";
+import { bindWindowEvents, createMouseEventListener } from "@/lib/window/window-events";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   return target instanceof Element && isGlobalShortcutTextEditingTarget(target);
@@ -16,17 +13,11 @@ function hasActiveBlockingLayer(): boolean {
     return false;
   }
 
-  if (
-    document.querySelector(
-      '[role="dialog"], [aria-modal="true"], [data-slot="dialog-overlay"], [role="menu"]',
-    )
-  ) {
+  if (document.querySelector('[role="dialog"], [aria-modal="true"], [data-slot="dialog-overlay"], [role="menu"]')) {
     return true;
   }
 
-  const browserOverlayRoot = document.querySelector<HTMLElement>(
-    "[data-browser-overlay-root]",
-  );
+  const browserOverlayRoot = document.querySelector<HTMLElement>("[data-browser-overlay-root]");
   return browserOverlayRoot?.classList.contains("pointer-events-auto") ?? false;
 }
 
@@ -51,11 +42,7 @@ export function useMouseNavigation() {
   // mouse side-button capture and must not inherit URL or keyboard semantics.
   useEffect(() => {
     const handleMouseDown = createMouseEventListener((event) => {
-      if (
-        !isMouseNavigationButton(event) ||
-        event.defaultPrevented ||
-        isIgnoredMouseNavigationTarget(event.target)
-      ) {
+      if (!isMouseNavigationButton(event) || event.defaultPrevented || isIgnoredMouseNavigationTarget(event.target)) {
         return;
       }
 
@@ -64,11 +51,7 @@ export function useMouseNavigation() {
     });
 
     const handleMouseUp = createMouseEventListener((event) => {
-      if (
-        !isMouseNavigationButton(event) ||
-        event.defaultPrevented ||
-        isIgnoredMouseNavigationTarget(event.target)
-      ) {
+      if (!isMouseNavigationButton(event) || event.defaultPrevented || isIgnoredMouseNavigationTarget(event.target)) {
         return;
       }
 

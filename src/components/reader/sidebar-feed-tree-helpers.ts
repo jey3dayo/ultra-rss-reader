@@ -101,11 +101,11 @@ export function mapFeedsToFeedTreeViewModels(
   }));
 }
 
-export function collectFeedIds(feeds: FeedDto[]): string[] {
+function collectFeedIds(feeds: FeedDto[]): string[] {
   return feeds.map((feed) => feed.id);
 }
 
-export function getVisibleSidebarFolderFeeds({
+function getVisibleSidebarFolderFeeds({
   folderId,
   feedsByFolder,
   getVisibleFeeds,
@@ -113,7 +113,7 @@ export function getVisibleSidebarFolderFeeds({
   return getVisibleFeeds(feedsByFolder.get(folderId) ?? []);
 }
 
-export function getVisibleSidebarUnfolderedFeeds({
+function getVisibleSidebarUnfolderedFeeds({
   unfolderedFeeds,
   getVisibleFeeds,
 }: SidebarUnfolderedFeedVisibilityParams): FeedDto[] {

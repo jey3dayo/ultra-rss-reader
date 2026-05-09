@@ -13,10 +13,7 @@ import {
   buildSubscriptionSummaryCards,
   buildSubscriptionsIndexSummary,
   buildVisibleSubscriptionRows,
-  countReviewCandidates,
-  countStaleCandidates,
   countStarredArticles,
-  findLatestArticleTimestamp,
   formatSubscriptionDate,
   resolveSelectedSubscriptionCandidate,
   resolveSelectedSubscriptionDetailMetrics,
@@ -194,8 +191,6 @@ describe("subscriptions index helpers", () => {
       reviewCount: 3,
       staleCount: 2,
     });
-    expect(countReviewCandidates(candidates)).toBe(3);
-    expect(countStaleCandidates(candidates)).toBe(2);
   });
 
   it("uses the last duplicate review candidate feed id while summary counts preserve caller input", () => {
@@ -311,13 +306,6 @@ describe("subscriptions index helpers", () => {
       previewArticles: [articles[0], articles[1]],
     });
     expect(countStarredArticles(articles)).toBe(2);
-    expect(findLatestArticleTimestamp([articles[1], articles[0]])).toBe("2025-11-01T10:00:00Z");
-    expect(
-      findLatestArticleTimestamp([
-        { ...articles[0], published_at: "not-a-date" },
-        { ...articles[1], published_at: "2025-10-15T10:00:00Z" },
-      ]),
-    ).toBe("2025-10-15T10:00:00Z");
   });
 
   it("orders detail preview articles by valid dates before invalid dates with stable equal-date ties", () => {

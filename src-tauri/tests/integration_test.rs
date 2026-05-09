@@ -27,12 +27,28 @@ use ultra_rss_reader_lib::repository::pending_mutation::{
 };
 use ultra_rss_reader_lib::service::sync_flow;
 
-struct PasswordCleanup(String);
+struct PasswordCleanup {
+    account_id: String,
+    expected_password: String,
+}
 
 impl Drop for PasswordCleanup {
     fn drop(&mut self) {
-        let _ = keyring_store::delete_password(&self.0);
+        if keyring_store::get_password(&self.account_id)
+            .ok()
+            .as_deref()
+            == Some(self.expected_password.as_str())
+        {
+            let _ = keyring_store::delete_password(&self.account_id);
+        }
     }
+}
+
+fn unique_keyring_test_account_id(test_name: &str) -> AccountId {
+    AccountId(format!(
+        "integration-test-{test_name}-{}",
+        uuid::Uuid::new_v4()
+    ))
 }
 
 struct EnvVarCleanup(&'static str);
@@ -63,6 +79,11 @@ impl Drop for EnvVarRestore {
             None => std::env::remove_var(self.key),
         }
     }
+}
+
+fn with_locked_db<T>(db: &Mutex<DbManager>, f: impl FnOnce(&DbManager) -> T) -> T {
+    let db_guard = db.lock().unwrap();
+    f(&db_guard)
 }
 
 #[tokio::test]
@@ -178,8 +199,13 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
     .unwrap();
     let db = Mutex::new(DbManager::new_in_memory().unwrap());
     let syncing = AtomicBool::new(false);
-    let account_id = AccountId::new();
-    let _password_cleanup = PasswordCleanup(account_id.0.clone());
+    let account_id =
+        unique_keyring_test_account_id("freshrss-sync-preserves-local-like-feed-read-state");
+    let test_password = format!("integration-test-password-{}", uuid::Uuid::new_v4());
+    let _password_cleanup = PasswordCleanup {
+        account_id: account_id.0.clone(),
+        expected_password: test_password.clone(),
+    };
 
     let mut server = mockito::Server::new_async().await;
     let feed_url = format!("{}/feed.xml", server.url());
@@ -273,8 +299,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
         Some("Original Local Article"),
     );
 
-    {
-        let db_guard = db.lock().unwrap();
+    with_locked_db(&db, |db_guard| {
         let account_repo = SqliteAccountRepository::new(db_guard.writer());
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
         let article_repo = SqliteArticleRepository::new(db_guard.writer());
@@ -339,9 +364,9 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
                 created_at: "2026-04-01T00:00:00Z".into(),
             })
             .unwrap();
-    }
+    });
 
-    keyring_store::set_password(account_id.as_ref(), "p").unwrap();
+    keyring_store::set_password(account_id.as_ref(), &test_password).unwrap();
 
     let result = run_full_sync(&db, &syncing).await.unwrap();
 
@@ -366,21 +391,22 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
     unread_count_mock.assert_async().await;
     local_feed_mock.assert_async().await;
 
-    let db_guard = db.lock().unwrap();
-    let article_repo = SqliteArticleRepository::new(db_guard.reader());
-    let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
+    with_locked_db(&db, |db_guard| {
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
 
-    let articles = article_repo
-        .find_by_feed(&feed_id, &Pagination::default())
-        .unwrap();
-    assert_eq!(articles.len(), 1);
-    assert_eq!(articles[0].title, "Original Local Article");
-    assert!(articles[0].is_read);
+        let articles = article_repo
+            .find_by_feed(&feed_id, &Pagination::default())
+            .unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Original Local Article");
+        assert!(articles[0].is_read);
 
-    let unread = article_repo.count_unread_by_account(&account_id).unwrap();
-    assert_eq!(unread, 0);
-    assert!(pending_repo
-        .find_by_account(&account_id)
-        .unwrap()
-        .is_empty());
+        let unread = article_repo.count_unread_by_account(&account_id).unwrap();
+        assert_eq!(unread, 0);
+        assert!(pending_repo
+            .find_by_account(&account_id)
+            .unwrap()
+            .is_empty());
+    });
 }

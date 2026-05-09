@@ -994,7 +994,16 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              WHERE is_read = 1
                AND is_starred = 0
                AND fetched_at < ?1
-               AND feed_id IN (SELECT id FROM feeds WHERE account_id = ?2)",
+               AND feed_id IN (SELECT id FROM feeds WHERE account_id = ?2)
+               AND NOT EXISTS (
+                 SELECT 1 FROM article_tags at WHERE at.article_id = articles.id
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM article_view_history h
+                 WHERE h.account_id = ?2
+                   AND h.article_id = articles.id
+               )",
             params![before.to_rfc3339(), account_id.0],
         )?;
         Ok(deleted as u64)
@@ -1094,83 +1103,63 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        // Try FTS5 first for performance
-        // Do not apply LIMIT/OFFSET per-query — pagination is applied after
-        // merging FTS and LIKE results to ensure correct page boundaries.
-        let fts_sql = format!(
-            "SELECT {select_cols_prefixed} FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             JOIN articles_fts fts ON a.rowid = fts.rowid
-             WHERE f.account_id = ?1
-             AND articles_fts MATCH ?2
-             AND {}
-             ORDER BY fts.rank"
-            ,
-            build_mute_keyword_exclusion_clause(
-                "a.title",
-                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
-            )
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
         );
-        let mut stmt = self.conn.prepare(&fts_sql)?;
-        let fts_articles: Vec<Article> = stmt
-            .query_map(params![account_id.0, fts_query], row_to_article)?
-            .collect::<Result<Vec<_>, _>>()?;
 
-        // Always run LIKE search as well to catch CJK-mixed titles where FTS5
-        // unicode61 tokenizer merges adjacent scripts into a single token
-        // (e.g. "新型HomePod"). Merge results with deduplication by article id.
+        // Run FTS and LIKE as a single paginated SQLite query. This keeps
+        // deduplication and ordering in SQL instead of materializing all hits
+        // into Rust before slicing the requested page.
+        let search_sql = format!(
+            "WITH matched(article_id, published_at, fetched_at) AS (
+               SELECT a.id, a.published_at, a.fetched_at FROM articles a
+               JOIN feeds f ON a.feed_id = f.id
+               JOIN articles_fts fts ON a.rowid = fts.rowid
+               WHERE f.account_id = ?1
+                 AND articles_fts MATCH ?2
+                 AND {mute_clause}
+               UNION
+               SELECT a.id, a.published_at, a.fetched_at FROM articles a
+               JOIN feeds f ON a.feed_id = f.id
+               WHERE f.account_id = ?1
+                 AND (
+                   a.title LIKE ?3 ESCAPE '\\'
+                   OR (
+                     CASE
+                       WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
+                       ELSE a.content_text
+                     END
+                   ) LIKE ?3 ESCAPE '\\'
+                 )
+                 AND {mute_clause}
+             )
+             SELECT {select_cols_prefixed} FROM articles a
+             JOIN matched m ON m.article_id = a.id
+             ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
+             LIMIT ?4 OFFSET ?5"
+        );
+
         // Escape SQL LIKE wildcards in the query to match literal characters.
         let escaped_query = query
             .replace('\\', "\\\\")
             .replace('%', "\\%")
             .replace('_', "\\_");
         let like_pattern = format!("%{escaped_query}%");
-        // Do not apply LIMIT/OFFSET here — pagination is applied after merging
-        // with FTS results to avoid duplicate/missing rows across pages.
-        let like_sql = format!(
-            "SELECT {select_cols_prefixed} FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1
-             AND (
-               a.title LIKE ?2 ESCAPE '\\'
-               OR (
-                 CASE
-                   WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
-                   ELSE a.content_text
-                 END
-               ) LIKE ?2 ESCAPE '\\'
-             )
-             AND {}
-             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}"
-            ,
-            build_mute_keyword_exclusion_clause(
-                "a.title",
-                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
-            )
-        );
-        let mut stmt = self.conn.prepare(&like_sql)?;
-        let like_articles: Vec<Article> = stmt
-            .query_map(params![account_id.0, like_pattern], row_to_article)?
+        let mut stmt = self.conn.prepare(&search_sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    fts_query,
+                    like_pattern,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
             .collect::<Result<Vec<_>, _>>()?;
-
-        // Merge FTS and LIKE results, deduplicating by article id
-        let mut seen = std::collections::HashSet::new();
-        let mut merged = Vec::with_capacity(fts_articles.len() + like_articles.len());
-        for article in fts_articles.into_iter().chain(like_articles) {
-            if seen.insert(article.id.0.clone()) {
-                merged.push(article);
-            }
-        }
-        merged.sort_by(|left, right| {
-            right
-                .published_at
-                .cmp(&left.published_at)
-                .then_with(|| right.fetched_at.cmp(&left.fetched_at))
-                .then_with(|| right.id.0.cmp(&left.id.0))
-        });
-        let start = pagination.offset.min(merged.len());
-        let end = (start + pagination.limit).min(merged.len());
-        Ok(merged[start..end].to_vec())
+        Ok(articles)
     }
 }
 
@@ -2505,6 +2494,46 @@ mod tests {
     }
 
     #[test]
+    fn article_view_history_cascades_with_account_and_feed_deletes() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_a = insert_test_feed(&db, &account_a);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let article_a = make_article(&feed_a, "Account A Article");
+        let article_b = make_article(&feed_b, "Account B Article");
+        repo.upsert(&[article_a.clone(), article_b.clone()])
+            .unwrap();
+        repo.record_view(&account_a, &article_a.id).unwrap();
+        repo.record_view(&account_b, &article_b.id).unwrap();
+
+        db.writer()
+            .execute("DELETE FROM feeds WHERE id = ?1", params![feed_a.0])
+            .unwrap();
+
+        let count_after_feed_delete: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count_after_feed_delete, 1);
+
+        db.writer()
+            .execute("DELETE FROM accounts WHERE id = ?1", params![account_b.0])
+            .unwrap();
+
+        let count_after_account_delete: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count_after_account_delete, 0);
+    }
+
+    #[test]
     fn mark_as_read_and_starred() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -2613,6 +2642,79 @@ mod tests {
             )
             .unwrap();
         assert_eq!(remaining.len(), 3);
+    }
+
+    #[test]
+    fn purge_old_read_keeps_tagged_and_view_history_articles() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let cutoff = Utc::now();
+        let old_time = cutoff - chrono::Duration::days(1);
+
+        let mut plain_old_read = make_article(&feed_id, "Plain old read");
+        plain_old_read.is_read = true;
+        plain_old_read.published_at = old_time;
+        plain_old_read.fetched_at = old_time;
+
+        let mut tagged_old_read = make_article(&feed_id, "Tagged old read");
+        tagged_old_read.is_read = true;
+        tagged_old_read.published_at = old_time + chrono::Duration::minutes(1);
+        tagged_old_read.fetched_at = old_time + chrono::Duration::minutes(1);
+
+        let mut viewed_old_read = make_article(&feed_id, "Viewed old read");
+        viewed_old_read.is_read = true;
+        viewed_old_read.published_at = old_time + chrono::Duration::minutes(2);
+        viewed_old_read.fetched_at = old_time + chrono::Duration::minutes(2);
+
+        repo.upsert(&[
+            plain_old_read.clone(),
+            tagged_old_read.clone(),
+            viewed_old_read.clone(),
+        ])
+        .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+                params!["tag-keep", "Keep", Option::<String>::None],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+                params![tagged_old_read.id.0, "tag-keep"],
+            )
+            .unwrap();
+        repo.record_view(&account_id, &viewed_old_read.id).unwrap();
+
+        let deleted = repo.purge_old_read(&account_id, cutoff).unwrap();
+
+        assert_eq!(deleted, 1);
+        let remaining_titles = repo
+            .find_by_feed(
+                &feed_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 10,
+                },
+            )
+            .unwrap()
+            .into_iter()
+            .map(|article| article.title)
+            .collect::<Vec<_>>();
+        assert_eq!(remaining_titles, ["Viewed old read", "Tagged old read"]);
+        assert_eq!(
+            repo.find_recently_viewed_by_account(
+                &account_id,
+                &Pagination::default(),
+                ArticleListMode::All
+            )
+            .unwrap()
+            .len(),
+            1
+        );
     }
 
     #[test]

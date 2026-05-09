@@ -9,7 +9,7 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 
 use super::http_defaults::http_client_builder;
-use super::normalizer::normalize_provider_metadata_url;
+use super::normalizer::{normalize_provider_article_url, normalize_provider_metadata_url};
 use super::traits::{Credentials, FeedProvider};
 
 // --- Google Reader API response types ---
@@ -385,10 +385,9 @@ impl GReaderProvider {
     }
 
     fn first_non_empty_link_href(links: Option<&[GReaderLink]>) -> Option<String> {
-        links?.iter().find_map(|link| {
-            let href = link.href.trim();
-            (!href.is_empty()).then(|| href.to_string())
-        })
+        links?
+            .iter()
+            .find_map(|link| normalize_provider_article_url(&link.href))
     }
 
     fn item_url(item: &GReaderItem) -> Option<String> {
@@ -1879,6 +1878,67 @@ mod tests {
         assert_eq!(entry.url.as_deref(), Some("https://example.com/canonical"));
     }
 
+    #[test]
+    fn map_item_to_entry_strips_url_credentials_and_fragment() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Private URL".to_string()),
+            canonical: None,
+            alternate: Some(vec![GReaderLink {
+                href: "https://alice:secret@example.com/article#token".to_string(),
+            }]),
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(entry.url.as_deref(), Some("https://example.com/article"));
+    }
+
+    #[test]
+    fn map_item_to_entry_skips_invalid_article_urls() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Invalid URL".to_string()),
+            canonical: Some(vec![GReaderLink {
+                href: "https://example.com/canonical".to_string(),
+            }]),
+            alternate: Some(vec![
+                GReaderLink {
+                    href: "javascript:alert(1)".to_string(),
+                },
+                GReaderLink {
+                    href: "https://example.com/alternate\u{8}".to_string(),
+                },
+            ]),
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(entry.url.as_deref(), Some("https://example.com/canonical"));
+    }
+
     #[tokio::test]
     async fn pull_entries_for_feed_scope_uses_requested_stream_when_origin_is_missing() {
         let mut server = mockito::Server::new_async().await;
@@ -2411,17 +2471,37 @@ mod tests {
     // Run with: dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored
     // Or: mise test:live
 
+    struct LiveFreshRssCredentials {
+        url: String,
+        user: String,
+        pass: String,
+    }
+
+    fn live_freshrss_credentials() -> Option<LiveFreshRssCredentials> {
+        let url = std::env::var("FRESHRSS_URL").ok()?;
+        let user = std::env::var("FRESHRSS_USER").ok()?;
+        let pass = std::env::var("FRESHRSS_PASS").ok()?;
+        Some(LiveFreshRssCredentials { url, user, pass })
+    }
+
+    fn skip_live_freshrss_test_when_env_is_missing(test_name: &str) {
+        eprintln!(
+            "skipping {test_name}: set FRESHRSS_URL, FRESHRSS_USER, and FRESHRSS_PASS to run manually"
+        );
+    }
+
     #[tokio::test]
     #[ignore]
     async fn freshrss_live_auth() {
-        let url = std::env::var("FRESHRSS_URL").expect("Set FRESHRSS_URL");
-        let user = std::env::var("FRESHRSS_USER").expect("Set FRESHRSS_USER");
-        let pass = std::env::var("FRESHRSS_PASS").expect("Set FRESHRSS_PASS");
+        let Some(credentials) = live_freshrss_credentials() else {
+            skip_live_freshrss_test_when_env_is_missing("freshrss_live_auth");
+            return;
+        };
 
-        let mut provider = GReaderProvider::for_freshrss(&url);
+        let mut provider = GReaderProvider::for_freshrss(&credentials.url);
         let creds = Credentials {
-            token: Some(user),
-            password: Some(pass),
+            token: Some(credentials.user),
+            password: Some(credentials.pass),
         };
         provider.authenticate(&creds).await.unwrap();
         assert!(provider.auth_token.is_some());
@@ -2431,7 +2511,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn freshrss_live_subscriptions() {
-        let (provider, _) = live_provider().await;
+        let Some((provider, _)) = live_provider("freshrss_live_subscriptions").await else {
+            return;
+        };
         let subs = provider.get_subscriptions().await.unwrap();
         println!("Subscriptions: {}", subs.len());
         for sub in &subs {
@@ -2443,7 +2525,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn freshrss_live_folders() {
-        let (provider, _) = live_provider().await;
+        let Some((provider, _)) = live_provider("freshrss_live_folders").await else {
+            return;
+        };
         let folders = provider.get_folders().await.unwrap();
         println!("Folders: {}", folders.len());
         for f in &folders {
@@ -2454,7 +2538,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn freshrss_live_pull_entries() {
-        let (provider, _) = live_provider().await;
+        let Some((provider, _)) = live_provider("freshrss_live_pull_entries").await else {
+            return;
+        };
         let result = provider.pull_entries(PullScope::All, None).await.unwrap();
         println!("Entries: {}", result.entries.len());
         println!("Has more: {}", result.has_more);
@@ -2470,27 +2556,30 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn freshrss_live_pull_state() {
-        let (provider, _) = live_provider().await;
+        let Some((provider, _)) = live_provider("freshrss_live_pull_state").await else {
+            return;
+        };
         let state = provider.pull_state().await.unwrap();
         println!("Read IDs: {}", state.read_ids.len());
         println!("Starred IDs: {}", state.starred_ids.len());
     }
 
     /// Helper: create an authenticated live provider
-    async fn live_provider() -> (GReaderProvider, ()) {
-        let url = std::env::var("FRESHRSS_URL").expect("Set FRESHRSS_URL");
-        let user = std::env::var("FRESHRSS_USER").expect("Set FRESHRSS_USER");
-        let pass = std::env::var("FRESHRSS_PASS").expect("Set FRESHRSS_PASS");
+    async fn live_provider(test_name: &str) -> Option<(GReaderProvider, ())> {
+        let Some(credentials) = live_freshrss_credentials() else {
+            skip_live_freshrss_test_when_env_is_missing(test_name);
+            return None;
+        };
 
-        let mut provider = GReaderProvider::for_freshrss(&url);
+        let mut provider = GReaderProvider::for_freshrss(&credentials.url);
         provider
             .authenticate(&Credentials {
-                token: Some(user),
-                password: Some(pass),
+                token: Some(credentials.user),
+                password: Some(credentials.pass),
             })
             .await
             .unwrap();
-        (provider, ())
+        Some((provider, ()))
     }
 
     #[tokio::test]

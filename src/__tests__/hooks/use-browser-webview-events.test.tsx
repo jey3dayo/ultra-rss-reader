@@ -9,9 +9,7 @@ import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browse
 type EventCallback = (event: { payload: unknown }) => void;
 type Cleanup = () => void;
 
-const listenMock = vi.hoisted(() =>
-  vi.fn<(eventName: string, callback: EventCallback) => Promise<Cleanup>>(),
-);
+const listenMock = vi.hoisted(() => vi.fn<(eventName: string, callback: EventCallback) => Promise<Cleanup>>());
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
@@ -27,9 +25,7 @@ describe("useBrowserWebviewEvents", () => {
   });
 
   function getListener(eventName: string): EventCallback {
-    const call = listenMock.mock.calls.find(
-      ([registeredEventName]) => registeredEventName === eventName,
-    );
+    const call = listenMock.mock.calls.find(([registeredEventName]) => registeredEventName === eventName);
     if (!call) {
       throw new Error(`Missing listener for ${eventName}`);
     }
@@ -91,9 +87,7 @@ describe("useBrowserWebviewEvents", () => {
       BROWSER_WINDOW_EVENTS.closed,
       BROWSER_WINDOW_EVENTS.diagnostics,
     ]);
-    expect(cleanups.every((cleanup) => cleanup.mock.calls.length === 1)).toBe(
-      true,
-    );
+    expect(cleanups.every((cleanup) => cleanup.mock.calls.length === 1)).toBe(true);
   });
 
   it("ignores duplicate native events after cleanup fails on unmount", async () => {
@@ -117,9 +111,7 @@ describe("useBrowserWebviewEvents", () => {
     await act(async () => {
       await result.current();
     });
-    const stateChangedListener = getListener(
-      BROWSER_WINDOW_EVENTS.stateChanged,
-    );
+    const stateChangedListener = getListener(BROWSER_WINDOW_EVENTS.stateChanged);
 
     unmount();
     stateChangedListener({
@@ -165,9 +157,7 @@ describe("useBrowserWebviewEvents", () => {
       BROWSER_WINDOW_EVENTS.fallback,
       BROWSER_WINDOW_EVENTS.closed,
     ]);
-    expect(cleanups.every((cleanup) => cleanup.mock.calls.length === 1)).toBe(
-      true,
-    );
+    expect(cleanups.every((cleanup) => cleanup.mock.calls.length === 1)).toBe(true);
   });
 
   it("passes valid native payloads to the matching browser webview handlers", async () => {
@@ -330,9 +320,7 @@ describe("useBrowserWebviewEvents", () => {
     const malformedPayloadMessages = consoleWarn.mock.calls
       .map(([message]) => message)
       .filter(
-        (message) =>
-          typeof message === "string" &&
-          message.includes("Ignored malformed embedded browser webview"),
+        (message) => typeof message === "string" && message.includes("Ignored malformed embedded browser webview"),
       );
 
     expect(malformedPayloadMessages).toEqual([

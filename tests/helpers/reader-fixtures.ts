@@ -136,7 +136,10 @@ export function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId
   return feedIds;
 }
 
-export function listArticlesByFeedId(articles: readonly ArticleFixture[], feedId: string | undefined): ArticleFixture[] {
+export function listArticlesByFeedId(
+  articles: readonly ArticleFixture[],
+  feedId: string | undefined,
+): ArticleFixture[] {
   const selectedArticles: ArticleFixture[] = [];
 
   for (const article of articles) {

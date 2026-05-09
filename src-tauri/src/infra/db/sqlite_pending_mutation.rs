@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::types::AccountId;
 use crate::repository::pending_mutation::{
-    PendingMutation, PendingMutationRepository, PendingMutationType,
+    PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 
 pub struct SqlitePendingMutationRepository<'a> {
@@ -94,6 +94,49 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
             .map(|id| id as &dyn rusqlite::types::ToSql)
             .collect();
         stmt.execute(params.as_slice())?;
+        Ok(())
+    }
+
+    fn delete_by_account_remote_entry_ids_and_axis(
+        &self,
+        account_id: &AccountId,
+        remote_entry_ids: &[String],
+        axis: PendingMutationAxis,
+    ) -> DomainResult<()> {
+        if remote_entry_ids.is_empty() {
+            return Ok(());
+        }
+
+        let entry_placeholders = std::iter::repeat_n("?", remote_entry_ids.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let type_values = match axis {
+            PendingMutationAxis::ReadState => {
+                PendingMutationType::MarkRead.replacement_type_values()
+            }
+            PendingMutationAxis::StarState => PendingMutationType::Star.replacement_type_values(),
+        };
+        let type_placeholders = std::iter::repeat_n("?", type_values.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "DELETE FROM pending_mutations
+             WHERE account_id = ?1
+               AND remote_entry_id IN ({entry_placeholders})
+               AND mutation_type IN ({type_placeholders})"
+        );
+        let mut params: Vec<&dyn rusqlite::types::ToSql> =
+            Vec::with_capacity(1 + remote_entry_ids.len() + type_values.len());
+        params.push(&account_id.0);
+        for remote_entry_id in remote_entry_ids {
+            params.push(remote_entry_id);
+        }
+        for mutation_type in type_values {
+            params.push(mutation_type);
+        }
+
+        self.conn
+            .execute(&sql, rusqlite::params_from_iter(params))?;
         Ok(())
     }
 }
@@ -317,6 +360,54 @@ mod tests {
         let db = test_db();
         let repo = SqlitePendingMutationRepository::new(db.writer());
         repo.delete(&[]).unwrap();
+    }
+
+    #[test]
+    fn delete_by_account_remote_entry_ids_and_axis_is_account_and_axis_scoped() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        for mutation in [
+            PendingMutation {
+                id: None,
+                account_id: account_a.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "shared-entry".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_a.clone(),
+                mutation_type: PendingMutationType::Star,
+                remote_entry_id: "shared-entry".to_string(),
+                created_at: "2024-01-01T00:00:01Z".to_string(),
+            },
+            PendingMutation {
+                id: None,
+                account_id: account_b.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "shared-entry".to_string(),
+                created_at: "2024-01-01T00:00:02Z".to_string(),
+            },
+        ] {
+            repo.save(&mutation).unwrap();
+        }
+
+        repo.delete_by_account_remote_entry_ids_and_axis(
+            &account_a,
+            &["shared-entry".to_string()],
+            PendingMutationAxis::ReadState,
+        )
+        .unwrap();
+
+        let found_a = repo.find_by_account(&account_a).unwrap();
+        let found_b = repo.find_by_account(&account_b).unwrap();
+        assert_eq!(found_a.len(), 1);
+        assert_eq!(found_a[0].mutation_type, PendingMutationType::Star);
+        assert_eq!(found_b.len(), 1);
+        assert_eq!(found_b[0].mutation_type, PendingMutationType::MarkRead);
     }
 
     #[test]

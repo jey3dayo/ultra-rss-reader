@@ -16,23 +16,27 @@ type FeedFaviconProps = {
 type FaviconSizeClassNames = {
   fallback: string;
   image: string;
+  pixels: number;
   requestSize: number;
 };
 
 const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   sm: {
     fallback: "h-5 w-5 text-[10px]",
-    image: "h-4 w-4",
+    image: "h-5 w-5",
+    pixels: 20,
     requestSize: 32,
   },
   md: {
     fallback: "h-6 w-6 text-[11px]",
-    image: "h-5 w-5",
+    image: "h-6 w-6",
+    pixels: 24,
     requestSize: 40,
   },
   lg: {
     fallback: "h-7 w-7 text-xs",
-    image: "h-6 w-6",
+    image: "h-7 w-7",
+    pixels: 28,
     requestSize: 64,
   },
 };
@@ -67,6 +71,8 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
       src={faviconSrc}
       alt=""
       className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
+      width={sizeClassName.pixels}
+      height={sizeClassName.pixels}
       referrerPolicy="no-referrer"
       onError={() => {
         setFailedFaviconSrc(faviconSrc);

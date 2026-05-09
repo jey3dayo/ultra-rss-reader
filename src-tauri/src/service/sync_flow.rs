@@ -41,13 +41,11 @@ pub async fn sync_account(
             provider
                 .push_mutations(std::slice::from_ref(&mutation))
                 .await?;
-            let id = pending_mutation.id.ok_or_else(|| {
-                DomainError::Persistence(format!(
-                    "Pending mutation for remote entry {} has no id after push",
-                    pending_mutation.remote_entry_id
-                ))
-            })?;
-            pending_mutation_repo.delete(&[id])?;
+            pending_mutation_repo.delete_by_account_remote_entry_ids_and_axis(
+                account_id,
+                std::slice::from_ref(&pending_mutation.remote_entry_id),
+                pending_mutation.mutation_type.axis(),
+            )?;
         }
     }
 
@@ -681,6 +679,25 @@ mod tests {
             self.deleted_ids.lock().unwrap().push(ids.to_vec());
             Ok(())
         }
+
+        fn delete_by_account_remote_entry_ids_and_axis(
+            &self,
+            _account_id: &AccountId,
+            remote_entry_ids: &[String],
+            axis: PendingMutationAxis,
+        ) -> DomainResult<()> {
+            let ids = self
+                .pending
+                .iter()
+                .filter(|pending| {
+                    remote_entry_ids.contains(&pending.remote_entry_id)
+                        && pending.mutation_type.axis() == axis
+                })
+                .filter_map(|pending| pending.id)
+                .collect::<Vec<_>>();
+            self.deleted_ids.lock().unwrap().push(ids);
+            Ok(())
+        }
     }
 
     fn test_account() -> Account {
@@ -874,7 +891,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sync_account_errors_when_pushed_pending_mutation_has_no_id() {
+    async fn sync_account_deletes_pushed_pending_mutation_by_remote_id() {
         let db = DbManager::new_in_memory().unwrap();
         let account = test_account();
         let account_repo = SqliteAccountRepository::new(db.writer());
@@ -897,7 +914,7 @@ mod tests {
             deleted_ids: Mutex::new(Vec::new()),
         };
 
-        let error = sync_account(
+        sync_account(
             &account.id,
             &provider,
             &article_repo,
@@ -906,14 +923,13 @@ mod tests {
             &pending_repo,
         )
         .await
-        .expect_err("missing pending mutation id should not be silent success");
+        .unwrap();
 
-        assert!(matches!(
-            error,
-            DomainError::Persistence(message) if message.contains("remote-entry-1")
-        ));
         assert_eq!(provider.pushed.lock().unwrap().len(), 1);
-        assert!(pending_repo.deleted_ids.lock().unwrap().is_empty());
+        assert_eq!(
+            *pending_repo.deleted_ids.lock().unwrap(),
+            vec![Vec::<i64>::new()]
+        );
     }
 
     #[tokio::test]

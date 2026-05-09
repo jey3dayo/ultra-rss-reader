@@ -2,8 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ArticleListItem, resolveArticleListItemPresentation } from "@/components/reader/article-list-item";
+import { ArticleListItem, articleListItemTestContract } from "@/components/reader/article-list-item";
 import { useUiStore } from "@/stores/ui-store";
+
+const { resolvePresentation } = articleListItemTestContract;
 
 describe("ArticleListItem", () => {
   beforeEach(() => {
@@ -15,7 +17,7 @@ describe("ArticleListItem", () => {
 
   it("resolves article row presentation without duplicating title, feed, or recently read state", () => {
     expect(
-      resolveArticleListItemPresentation({
+      resolvePresentation({
         title: "Episode 150",
         summary: "<p>Episode 150</p>",
         thumbnail: "https://example.com/image.jpg",
@@ -47,7 +49,7 @@ describe("ArticleListItem", () => {
 
   it("resolves article row meta, summary, and thumbnail presentation from independent row fields", () => {
     expect(
-      resolveArticleListItemPresentation({
+      resolvePresentation({
         title: "First Article",
         summary: "<p>A hello world article</p>",
         thumbnail: null,
@@ -79,7 +81,7 @@ describe("ArticleListItem", () => {
 
   it("treats whitespace-only thumbnails as absent", () => {
     expect(
-      resolveArticleListItemPresentation({
+      resolvePresentation({
         title: "First Article",
         summary: "A hello world article",
         thumbnail: "   ",
@@ -109,7 +111,7 @@ describe("ArticleListItem", () => {
       "not a url",
     ]) {
       expect(
-        resolveArticleListItemPresentation({
+        resolvePresentation({
           title: "First Article",
           summary: "A hello world article",
           thumbnail,
@@ -157,7 +159,7 @@ describe("ArticleListItem", () => {
 
   it("normalizes title whitespace for row labels and display", () => {
     expect(
-      resolveArticleListItemPresentation({
+      resolvePresentation({
         title: "  First\n\tArticle  ",
         summary: "A hello world article",
         thumbnail: null,
@@ -220,7 +222,7 @@ describe("ArticleListItem", () => {
 
   it("uses the title fallback for empty row labels and display", () => {
     expect(
-      resolveArticleListItemPresentation({
+      resolvePresentation({
         title: "   ",
         summary: null,
         thumbnail: null,

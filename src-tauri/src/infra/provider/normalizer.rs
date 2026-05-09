@@ -3,9 +3,16 @@ use crate::domain::provider::{FeedIdentifier, RemoteEntry};
 
 const MAX_PROVIDER_METADATA_URL_BYTES: usize = 2048;
 
+fn contains_control_char(value: &str) -> bool {
+    value.chars().any(char::is_control)
+}
+
 pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
     let trimmed = raw_url.trim();
-    if trimmed.is_empty() || trimmed.len() > MAX_PROVIDER_METADATA_URL_BYTES {
+    if trimmed.is_empty()
+        || trimmed.len() > MAX_PROVIDER_METADATA_URL_BYTES
+        || contains_control_char(trimmed)
+    {
         return None;
     }
 
@@ -16,6 +23,25 @@ pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
     if !url.username().is_empty() || url.password().is_some() {
         return None;
     }
+    url.set_fragment(None);
+    Some(url.to_string())
+}
+
+pub fn normalize_provider_article_url(raw_url: &str) -> Option<String> {
+    let trimmed = raw_url.trim();
+    if trimmed.is_empty()
+        || trimmed.len() > MAX_PROVIDER_METADATA_URL_BYTES
+        || contains_control_char(trimmed)
+    {
+        return None;
+    }
+
+    let mut url = reqwest::Url::parse(trimmed).ok()?;
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return None;
+    }
+    let _ = url.set_username("");
+    let _ = url.set_password(None);
     url.set_fragment(None);
     Some(url.to_string())
 }
@@ -64,9 +90,14 @@ pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<Remo
 fn select_article_url(links: &[feed_rs::model::Link]) -> Option<String> {
     links
         .iter()
-        .find(|link| is_article_html_link(link))
-        .or_else(|| links.iter().find(|link| !link.href.trim().is_empty()))
-        .map(|link| link.href.trim().to_string())
+        .filter(|link| is_article_html_link(link))
+        .find_map(|link| normalize_provider_article_url(&link.href))
+        .or_else(|| {
+            links
+                .iter()
+                .filter(|link| !link.href.trim().is_empty())
+                .find_map(|link| normalize_provider_article_url(&link.href))
+        })
 }
 
 fn is_article_html_link(link: &feed_rs::model::Link) -> bool {
@@ -238,6 +269,56 @@ mod tests {
             entries[0].url,
             Some("https://example.com/article".to_string())
         );
+    }
+
+    #[test]
+    fn article_url_strips_credentials_and_fragment() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Private Link</title>
+    <id>atom-private-link</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link href="https://alice:secret@example.com/article#token"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/article".to_string())
+        );
+    }
+
+    #[test]
+    fn article_url_skips_invalid_and_control_character_links() {
+        let atom = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<feed xmlns=\"http://www.w3.org/2005/Atom\">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Invalid Link</title>
+    <id>atom-invalid-link</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link href=\"javascript:alert(1)\"/>
+  </entry>
+  <entry>
+    <title>Control Link</title>
+    <id>atom-control-link</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link href=\"https://example.com/article\u{8}\"/>
+  </entry>
+</feed>";
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(entries[0].url, None);
+        assert_eq!(entries[1].url, None);
     }
 
     #[test]

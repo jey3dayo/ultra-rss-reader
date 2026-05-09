@@ -1,6 +1,5 @@
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/articles/article-display";
-import { findLatestArticleOrNull } from "@/lib/articles/article-view";
 import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
@@ -36,7 +35,7 @@ export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean
   return status.labelKey !== "normal";
 }
 
-export function countReviewCandidates(candidates: SubscriptionReviewCandidate[]): number {
+function countReviewCandidates(candidates: SubscriptionReviewCandidate[]): number {
   let count = 0;
   for (const candidate of candidates) {
     if (summarizeSubscriptionReviewCandidate(candidate).tone !== "low") {
@@ -46,7 +45,7 @@ export function countReviewCandidates(candidates: SubscriptionReviewCandidate[])
   return count;
 }
 
-export function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
+function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
   let count = 0;
   for (const candidate of candidates) {
     if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
@@ -54,10 +53,6 @@ export function countStaleCandidates(candidates: SubscriptionReviewCandidate[]):
     }
   }
   return count;
-}
-
-export function findLatestArticleTimestamp(articles: ArticleDto[]): string | null {
-  return findLatestArticleOrNull(articles)?.published_at ?? null;
 }
 
 export function rowMatchesSubscriptionSummaryFilter(
@@ -195,21 +190,10 @@ export function buildSubscriptionsIndexSummary({
   reviewCount: number;
   staleCount: number;
 } {
-  let reviewCount = 0;
-  let staleCount = 0;
-  for (const candidate of candidates) {
-    if (summarizeSubscriptionReviewCandidate(candidate).tone !== "low") {
-      reviewCount += 1;
-    }
-    if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
-      staleCount += 1;
-    }
-  }
-
   return {
     totalCount: feeds.length,
-    reviewCount,
-    staleCount,
+    reviewCount: countReviewCandidates(candidates),
+    staleCount: countStaleCandidates(candidates),
   };
 }
 

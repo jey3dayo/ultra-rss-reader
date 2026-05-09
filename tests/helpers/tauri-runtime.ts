@@ -1,17 +1,14 @@
+import {
+  installStoryRuntimeTauriInternals,
+  removeStoryRuntimeTauriInternals,
+} from "@/components/storybook/story-tauri-runtime";
+
 export function setTauriRuntimePresent() {
-  Object.defineProperty(window, "__TAURI_INTERNALS__", {
-    configurable: true,
-    writable: true,
-    value: {},
-  });
-  window.__DEV_BROWSER_MOCKS__ = false;
-  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+  return installStoryRuntimeTauriInternals();
 }
 
 export function setTauriRuntimeMissing() {
-  delete window.__TAURI_INTERNALS__;
-  window.__DEV_BROWSER_MOCKS__ = false;
-  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+  return removeStoryRuntimeTauriInternals();
 }
 
 export function resetTauriRuntimeFlags() {

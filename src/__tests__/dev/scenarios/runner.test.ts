@@ -30,20 +30,37 @@ function mockInnerLogicalSizes(sizes: Array<{ width: number; height: number }>) 
   });
 }
 
-function firstInvocationOrder(mock: { mock: { invocationCallOrder: number[] } }): number {
-  const [order] = mock.mock.invocationCallOrder;
-  if (order === undefined) {
-    throw new Error("Expected mock to be called.");
-  }
-  return order;
+type InvocationOrderMock = {
+  mock: {
+    invocationCallOrder: number[];
+  };
+};
+
+type MockInvocation = {
+  mock: InvocationOrderMock;
+  index: number;
+};
+
+function firstInvocation(mock: InvocationOrderMock): MockInvocation {
+  return { mock, index: 0 };
 }
 
-function invocationOrder(mock: { mock: { invocationCallOrder: number[] } }, index: number): number {
+function nextInvocation(mock: InvocationOrderMock, index: number): MockInvocation {
+  return { mock, index };
+}
+
+function invocationOrder({ mock, index }: MockInvocation): number {
   const order = mock.mock.invocationCallOrder[index];
   if (order === undefined) {
     throw new Error(`Expected mock to be called at index ${index}.`);
   }
   return order;
+}
+
+function expectMockInvocationsInOrder(invocations: MockInvocation[]) {
+  for (let index = 1; index < invocations.length; index += 1) {
+    expect(invocationOrder(invocations[index - 1])).toBeLessThan(invocationOrder(invocations[index]));
+  }
 }
 
 vi.mock("@tauri-apps/api/window", () => ({
@@ -340,8 +357,8 @@ describe("runDevScenario", () => {
     expect(mockWindow.unmaximize).toHaveBeenCalledTimes(1);
     expect(mockWindow.setSize).toHaveBeenCalledTimes(1);
     expect(mockWindow.center).toHaveBeenCalled();
-    expect(firstInvocationOrder(mockWindow.unmaximize)).toBeLessThan(firstInvocationOrder(mockWindow.scaleFactor));
-    expect(firstInvocationOrder(mockWindow.setSize)).toBeLessThan(firstInvocationOrder(mockWindow.center));
+    expectMockInvocationsInOrder([firstInvocation(mockWindow.unmaximize), firstInvocation(mockWindow.scaleFactor)]);
+    expectMockInvocationsInOrder([firstInvocation(mockWindow.setSize), firstInvocation(mockWindow.center)]);
   });
 
   it("keeps unmaximize, target resolution, retry verification, and center ordering stable", async () => {
@@ -367,11 +384,14 @@ describe("runDevScenario", () => {
     expect(mockWindow.setSize).toHaveBeenCalled();
     expect(mockWindow.center).toHaveBeenCalled();
     expect(timeoutSpy.mock.calls.filter(([, delayMs]) => delayMs === 80)).toHaveLength(2);
-    expect(invocationOrder(mockWindow.unmaximize, 0)).toBeLessThan(invocationOrder(mockWindow.scaleFactor, 0));
-    expect(invocationOrder(mockWindow.scaleFactor, 0)).toBeLessThan(invocationOrder(mockWindow.setSize, 0));
-    expect(invocationOrder(mockWindow.setSize, 0)).toBeLessThan(invocationOrder(mockWindow.center, 0));
-    expect(invocationOrder(mockWindow.center, 0)).toBeLessThan(invocationOrder(mockWindow.scaleFactor, 2));
-    expect(invocationOrder(mockWindow.scaleFactor, 2)).toBeLessThan(invocationOrder(mockWindow.center, 1));
+    expectMockInvocationsInOrder([
+      firstInvocation(mockWindow.unmaximize),
+      firstInvocation(mockWindow.scaleFactor),
+      firstInvocation(mockWindow.setSize),
+      firstInvocation(mockWindow.center),
+      nextInvocation(mockWindow.scaleFactor, 2),
+      nextInvocation(mockWindow.center, 1),
+    ]);
   });
 
   it("keeps the current logical window height when only a dev window width is requested", async () => {

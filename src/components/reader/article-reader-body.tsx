@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -66,9 +66,15 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement | null>(null);
+  const contentContainerClickListenerRef = useRef<((event: globalThis.MouseEvent) => void) | null>(null);
+  const contentContainerEventHandlerRef = useRef<(event: globalThis.MouseEvent) => void>(
+    (event: globalThis.MouseEvent) => {
+      contentContainerClickListenerRef.current?.(event);
+    },
+  );
   const previousArticleIdRef = useRef(article.id);
   const articleUrl = article.url;
-  const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
   const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
 
   useLayoutEffect(() => {
@@ -103,42 +109,59 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     [onOpenArticleTitleInWebPreview, openLinks],
   );
 
-  useEffect(() => {
-    const contentContainer = contentContainerElement;
-    if (!contentContainer || !articleContentHtml) {
+  contentContainerClickListenerRef.current = (event: globalThis.MouseEvent) => {
+    const contentContainer = contentContainerRef.current;
+    if (!contentContainer) {
       return;
     }
 
-    const handleContentContainerClick = (event: MouseEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
-        return;
-      }
+    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+      return;
+    }
 
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
 
-      const anchor = target.closest<HTMLAnchorElement>("a[href]");
-      if (!anchor || !contentContainer.contains(anchor)) {
-        return;
-      }
+    const anchor = target.closest<HTMLAnchorElement>("a[href]");
+    if (!anchor || !contentContainer.contains(anchor)) {
+      return;
+    }
 
-      event.preventDefault();
-      const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
-      if (!resolvedUrl) {
-        return;
-      }
+    event.preventDefault();
+    const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
+    if (!resolvedUrl) {
+      return;
+    }
 
-      void openArticleInExternalBrowser(resolvedUrl);
-    };
+    void openArticleInExternalBrowser(resolvedUrl);
+  };
 
-    contentContainer.addEventListener("click", handleContentContainerClick);
+  const setContentContainerElement = useCallback((node: HTMLDivElement | null) => {
+    const listener = contentContainerEventHandlerRef.current;
 
+    const previousNode = contentContainerRef.current;
+    if (previousNode) {
+      previousNode.removeEventListener("click", listener, true);
+    }
+
+    contentContainerRef.current = node;
+    if (node) {
+      node.addEventListener("click", listener, true);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
     return () => {
-      contentContainer.removeEventListener("click", handleContentContainerClick);
+      const contentContainer = contentContainerRef.current;
+      if (!contentContainer) {
+        return;
+      }
+
+      contentContainer.removeEventListener("click", contentContainerEventHandlerRef.current, true);
     };
-  }, [articleContentHtml, articleUrl, contentContainerElement]);
+  }, []);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     const direction = getReaderScrollDirection(event);

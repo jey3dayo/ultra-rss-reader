@@ -90,7 +90,9 @@ export function createTypeSurfaceHelper({
           });
 
           if (!hasExternalReference) {
-            diagnostics.push(`${surfaceFile}:${typeName} should stay in ${label} or move out of the public type surface`);
+            diagnostics.push(
+              `${surfaceFile}:${typeName} should stay in ${label} or move out of the public type surface`,
+            );
           }
         }
       }

@@ -9,7 +9,7 @@ export type CommandPaletteHistoryEntry =
 
 type CommandPaletteHistoryKind = CommandPaletteHistoryEntry["kind"];
 
-export const COMMAND_PALETTE_HISTORY_PREFIX: Record<CommandPaletteHistoryKind, string> = {
+const COMMAND_PALETTE_HISTORY_PREFIX: Record<CommandPaletteHistoryKind, string> = {
   action: "action:",
   feed: "feed:",
   tag: "tag:",

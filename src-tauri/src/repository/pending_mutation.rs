@@ -83,4 +83,10 @@ pub trait PendingMutationRepository {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<PendingMutation>>;
     fn save(&self, mutation: &PendingMutation) -> DomainResult<()>;
     fn delete(&self, ids: &[i64]) -> DomainResult<()>;
+    fn delete_by_account_remote_entry_ids_and_axis(
+        &self,
+        account_id: &AccountId,
+        remote_entry_ids: &[String],
+        axis: PendingMutationAxis,
+    ) -> DomainResult<()>;
 }

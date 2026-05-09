@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 
-function createMediaQueryList(
-  overrides: Partial<MediaQueryList> = {},
-): MediaQueryList {
+function createMediaQueryList(overrides: Partial<MediaQueryList> = {}): MediaQueryList {
   return {
     matches: false,
     media: "(prefers-reduced-motion: reduce)",
@@ -31,36 +29,28 @@ function createPartialModernRegistrationFixture({
   const modernListeners = new Set<EventListenerOrEventListenerObject>();
   const legacyListeners = new Set<(event: MediaQueryListEvent) => void>();
   const mediaQuery = createMediaQueryList({
-    addEventListener: vi.fn(
-      (_: string, nextListener: EventListenerOrEventListenerObject) => {
-        modernListeners.add(nextListener);
-        throw new Error("modern listener unavailable after registration");
-      },
-    ),
-    removeEventListener: vi.fn(
-      (_: string, nextListener: EventListenerOrEventListenerObject) => {
-        if (modernCleanupThrows) {
-          throw new Error("modern cleanup failed");
-        }
-        modernListeners.delete(nextListener);
-      },
-    ),
+    addEventListener: vi.fn((_: string, nextListener: EventListenerOrEventListenerObject) => {
+      modernListeners.add(nextListener);
+      throw new Error("modern listener unavailable after registration");
+    }),
+    removeEventListener: vi.fn((_: string, nextListener: EventListenerOrEventListenerObject) => {
+      if (modernCleanupThrows) {
+        throw new Error("modern cleanup failed");
+      }
+      modernListeners.delete(nextListener);
+    }),
     addListener: vi.fn((nextListener: (event: MediaQueryListEvent) => void) => {
       legacyListeners.add(nextListener);
     }),
-    removeListener: vi.fn(
-      (nextListener: (event: MediaQueryListEvent) => void) => {
-        legacyListeners.delete(nextListener);
-      },
-    ),
+    removeListener: vi.fn((nextListener: (event: MediaQueryListEvent) => void) => {
+      legacyListeners.delete(nextListener);
+    }),
   });
 
   return { mediaQuery, modernListeners, legacyListeners };
 }
 
-function dispatchMatchMediaChange(
-  listeners: Iterable<EventListenerOrEventListenerObject>,
-) {
+function dispatchMatchMediaChange(listeners: Iterable<EventListenerOrEventListenerObject>) {
   const event = { matches: true } as MediaQueryListEvent;
 
   for (const nextListener of listeners) {
@@ -148,16 +138,12 @@ describe("match-media-listener", () => {
     cleanup();
 
     expect(mediaQuery.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith(
-      "change",
-      listener,
-    );
+    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", listener);
   });
 
   it("does not register a duplicate legacy listener after modern registration partially succeeds", () => {
     const listener = vi.fn();
-    const { mediaQuery, modernListeners, legacyListeners } =
-      createPartialModernRegistrationFixture();
+    const { mediaQuery, modernListeners, legacyListeners } = createPartialModernRegistrationFixture();
 
     const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
     dispatchMatchMediaChange(modernListeners);
@@ -167,10 +153,7 @@ describe("match-media-listener", () => {
     cleanup();
 
     expect(listener).toHaveBeenCalledOnce();
-    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith(
-      "change",
-      listener,
-    );
+    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", listener);
     expect(mediaQuery.addListener).toHaveBeenCalledWith(listener);
     expect(mediaQuery.removeListener).toHaveBeenCalledWith(listener);
   });
@@ -184,10 +167,7 @@ describe("match-media-listener", () => {
     const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
 
     expect(() => cleanup()).not.toThrow();
-    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith(
-      "change",
-      listener,
-    );
+    expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", listener);
     expect(mediaQuery.addListener).not.toHaveBeenCalled();
   });
 });

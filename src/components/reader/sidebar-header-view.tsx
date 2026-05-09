@@ -96,7 +96,12 @@ export function SidebarHeaderView({
   };
 
   const handleSyncClick = () => {
-    if (isSyncing || isSyncDisabled || isSyncCoolingDown) {
+    if (isSyncing || isSyncDisabled) {
+      return;
+    }
+
+    if (isSyncCoolingDown) {
+      onSync();
       return;
     }
 

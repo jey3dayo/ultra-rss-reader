@@ -6,6 +6,12 @@ type StoryRuntimeSnapshot = {
   ultraRssBrowserMocksDescriptor: PropertyDescriptor | undefined;
 };
 
+type StoryTauriRuntimeInternalsOptions = {
+  writable?: boolean;
+};
+
+export type RestoreStoryRuntime = () => void;
+
 function captureStoryRuntimeSnapshot(): StoryRuntimeSnapshot {
   return {
     tauriInternalsDescriptor: Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__"),
@@ -29,18 +35,17 @@ function restoreStoryRuntimeSnapshot(snapshot: StoryRuntimeSnapshot) {
   restoreWindowDescriptor("__ULTRA_RSS_BROWSER_MOCKS__", snapshot.ultraRssBrowserMocksDescriptor);
 }
 
-function setStoryRuntimeTauriInternals(tauriInternals: object | undefined) {
+export function installStoryRuntimeTauriInternals(
+  tauriInternals: object = {},
+  options: StoryTauriRuntimeInternalsOptions = {},
+): RestoreStoryRuntime {
   const snapshot = captureStoryRuntimeSnapshot();
 
-  if (tauriInternals === undefined) {
-    delete window.__TAURI_INTERNALS__;
-  } else {
-    Object.defineProperty(window, "__TAURI_INTERNALS__", {
-      configurable: true,
-      writable: true,
-      value: tauriInternals,
-    });
-  }
+  Object.defineProperty(window, "__TAURI_INTERNALS__", {
+    configurable: true,
+    writable: options.writable ?? true,
+    value: tauriInternals,
+  });
 
   window.__DEV_BROWSER_MOCKS__ = false;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
@@ -48,12 +53,22 @@ function setStoryRuntimeTauriInternals(tauriInternals: object | undefined) {
   return () => restoreStoryRuntimeSnapshot(snapshot);
 }
 
+export function removeStoryRuntimeTauriInternals(): RestoreStoryRuntime {
+  const snapshot = captureStoryRuntimeSnapshot();
+
+  delete window.__TAURI_INTERNALS__;
+  window.__DEV_BROWSER_MOCKS__ = false;
+  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+
+  return () => restoreStoryRuntimeSnapshot(snapshot);
+}
+
 export function setStoryTauriRuntimePresent() {
-  return setStoryRuntimeTauriInternals({});
+  return installStoryRuntimeTauriInternals();
 }
 
 export function setStoryTauriRuntimeMissing() {
-  return setStoryRuntimeTauriInternals(undefined);
+  return removeStoryRuntimeTauriInternals();
 }
 
 export function setComponentIsolationStoryRuntime() {

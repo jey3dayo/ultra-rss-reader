@@ -11,7 +11,7 @@ import type {
   ResolveBrowserViewSurfacePresentationParams,
 } from "./browser-view.types";
 
-export function resolveBrowserViewSurfacePresentation({
+function resolveBrowserViewSurfacePresentation({
   scope,
   compact,
 }: ResolveBrowserViewSurfacePresentationParams): BrowserViewSurfacePresentation {

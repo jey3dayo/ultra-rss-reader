@@ -55,7 +55,7 @@ type ArticleListItemPresentation = {
   showThumbnail: boolean;
 };
 
-export function resolveArticleListItemPresentation({
+function resolveArticleListItemPresentation({
   title,
   summary,
   thumbnail,
@@ -101,6 +101,10 @@ export function resolveArticleListItemPresentation({
     showThumbnail,
   };
 }
+
+export const articleListItemTestContract = {
+  resolvePresentation: resolveArticleListItemPresentation,
+};
 
 export function ArticleListItem({
   article,

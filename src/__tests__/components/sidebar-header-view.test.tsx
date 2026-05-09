@@ -138,7 +138,7 @@ describe("SidebarHeaderView", () => {
     expect(icon).not.toHaveClass("animate-spin");
   });
 
-  it("does not activate or spin on cooldown clicks", async () => {
+  it("delegates cooldown clicks without starting accepted-sync feedback", async () => {
     vi.useFakeTimers();
     const onSync = vi.fn();
 
@@ -155,7 +155,7 @@ describe("SidebarHeaderView", () => {
     const icon = syncButton.querySelector("svg");
 
     fireEvent.click(syncButton);
-    expect(onSync).not.toHaveBeenCalled();
+    expect(onSync).toHaveBeenCalledTimes(1);
     expect(icon).not.toHaveClass("animate-spin");
 
     await act(async () => {

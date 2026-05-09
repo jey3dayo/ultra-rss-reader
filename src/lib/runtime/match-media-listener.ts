@@ -22,10 +22,7 @@ function createSafeCleanup(cleanup: () => void): () => void {
   };
 }
 
-export function subscribeMatchMediaChange(
-  mediaQuery: MediaQueryList,
-  listener: MediaQueryChangeListener,
-): () => void {
+export function subscribeMatchMediaChange(mediaQuery: MediaQueryList, listener: MediaQueryChangeListener): () => void {
   const legacyMediaQuery = mediaQuery as LegacyMediaQueryList;
 
   if (typeof legacyMediaQuery.addEventListener === "function") {

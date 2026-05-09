@@ -52,8 +52,9 @@ export const CommandHistoryStorageSchema = z
 
 export type CommandHistoryStorage = z.output<typeof CommandHistoryStorageSchema>;
 
-export const StoredSidebarExpandedFoldersSchema = z.record(z.string(), z.unknown()).transform(
-  (parsed): Record<string, string[]> => {
+export const StoredSidebarExpandedFoldersSchema = z
+  .record(z.string(), z.unknown())
+  .transform((parsed): Record<string, string[]> => {
     const expandedFolders: Record<string, string[]> = {};
     let accountCount = 0;
 
@@ -81,7 +82,6 @@ export const StoredSidebarExpandedFoldersSchema = z.record(z.string(), z.unknown
     }
 
     return expandedFolders;
-  },
-);
+  });
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;

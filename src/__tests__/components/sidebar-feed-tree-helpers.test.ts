@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
   buildSidebarFeedTreeFolders,
-  collectFeedIds,
   getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
@@ -143,7 +142,14 @@ describe("getVisibleSidebarFeedTreeData", () => {
   });
 
   it("collects feed ids in the current order", () => {
-    expect(collectFeedIds(feeds)).toEqual(["feed-a", "feed-b", "feed-c"]);
+    expect(
+      getVisibleSidebarFeedTreeData({
+        sortedFolderList: [],
+        feedsByFolder: new Map(),
+        unfolderedFeeds: feeds,
+        getVisibleFeeds: (candidateFeeds) => candidateFeeds,
+      }).orderedFeedIds,
+    ).toEqual(["feed-a", "feed-b", "feed-c"]);
   });
 
   it("builds ordered ids from visible folder and unfoldered feeds", () => {

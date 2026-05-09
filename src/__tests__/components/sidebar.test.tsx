@@ -2484,10 +2484,6 @@ describe("Sidebar", () => {
     expect(screen.getByText(new RegExp(expectedLastSyncedTimeLabel))).toBeInTheDocument();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
-    });
-
-    await act(async () => {
       fireEvent.click(syncButton);
       await Promise.resolve();
     });

@@ -257,8 +257,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFaviconSurface.style.backgroundColor).toBe("var(--subscriptions-list-favicon-surface)");
     expect(selectedFaviconSurface.style.borderColor).toBe("var(--subscriptions-list-divider)");
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toHaveClass(
-      "h-5",
-      "w-5",
+      "h-6",
+      "w-6",
     );
     expect(secondaryFeed).toHaveAccessibleName(/Fresh Feed/);
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
@@ -415,7 +415,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByText("記事の表示")).toBeInTheDocument();
     expect(within(detailPane).getByText("既定の表示")).toBeInTheDocument();
     expect(detailPane.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
-    expect(detailPane.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toHaveClass("h-6", "w-6");
+    expect(detailPane.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toHaveClass("h-7", "w-7");
     const articleLink = within(detailPane).getByRole("link", {
       name: "Old article",
     });

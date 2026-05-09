@@ -2,7 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronRight } from "lucide-react";
 import { contextMenuStyles } from "./context-menu-styles";
 
-export const OLD_UNREAD_DAY_PRESETS = [7, 30, 90] as const;
+const OLD_UNREAD_DAY_PRESETS = [7, 30, 90] as const;
 
 export type OldUnreadDayPreset = (typeof OLD_UNREAD_DAY_PRESETS)[number];
 

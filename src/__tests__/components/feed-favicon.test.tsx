@@ -59,10 +59,14 @@ describe("FeedFavicon", () => {
     expect(image).not.toBeNull();
     expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
     expect(image).toHaveAttribute("referrerpolicy", "no-referrer");
+    expect(image).toHaveAttribute("width", "20");
+    expect(image).toHaveAttribute("height", "20");
+    expect(image).toHaveClass("h-5", "w-5");
 
     fireEvent.error(image as HTMLImageElement);
 
     expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("G")).toHaveClass("h-5", "w-5");
   });
 
   it("retries favicon loading when the resolved favicon source changes after a failure", () => {

@@ -893,7 +893,11 @@ async fn sync_greader_feeds(
                 }
                 let db_guard = lock_db(db)?;
                 let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
-                pending_repo.delete(&[pending_mutation_id])?;
+                pending_repo.delete_by_account_remote_entry_ids_and_axis(
+                    &account.id,
+                    std::slice::from_ref(&pm.remote_entry_id),
+                    pm.mutation_type.axis(),
+                )?;
             }
             Err(error) => {
                 warn!(
@@ -3197,6 +3201,75 @@ mod tests {
             }
             AppError::Retryable { message } => {
                 panic!("post-write DB failures should not be retryable: {message}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_rolls_back_articles_when_sync_state_save_fails() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", LOCAL_ETAG_NEW)
+            .with_body(LOCAL_RSS_INITIAL)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute_batch(
+                    "CREATE TEMP TRIGGER fail_local_feed_sync_state_save
+                     BEFORE INSERT ON sync_state
+                     WHEN NEW.scope_key LIKE 'local_feed:%'
+                     BEGIN
+                       SELECT RAISE(ABORT, 'forced sync_state failure');
+                     END;",
+                )
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error = sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .expect_err("sync_state failure should roll back article writes");
+
+        mock.assert_async().await;
+        let db_guard = db.lock().unwrap();
+        let article_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                rusqlite::params![feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let sync_state_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+                rusqlite::params![
+                    account.id.as_ref(),
+                    local_feed_scope_key(&feed.url).as_string()
+                ],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(article_count, 0);
+        assert_eq!(sync_state_count, 0);
+        match error {
+            AppError::UserVisible { message } => {
+                assert!(message.contains("forced sync_state failure"));
+            }
+            AppError::Retryable { message } => {
+                panic!("sync_state DB failures should not be retryable: {message}");
             }
         }
     }
