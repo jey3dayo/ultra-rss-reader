@@ -152,7 +152,7 @@ describe("SidebarHeaderView", () => {
     const icon = syncButton.querySelector("svg");
 
     fireEvent.click(syncButton);
-    expect(onSync).not.toHaveBeenCalled();
+    expect(onSync).toHaveBeenCalledTimes(1);
     expect(icon).not.toHaveClass("animate-spin");
 
     await act(async () => {

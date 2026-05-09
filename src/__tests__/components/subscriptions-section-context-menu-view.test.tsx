@@ -36,7 +36,8 @@ describe("SubscriptionsSectionContextMenuView", () => {
     expect(onCollapseAllFolders).toHaveBeenCalledTimes(1);
   });
 
-  it("hides expand and collapse actions when there are no folders", () => {
+  it("keeps expand and collapse actions available when there are no folders", async () => {
+    const user = userEvent.setup();
     const onExpandAllFolders = vi.fn();
     const onCollapseAllFolders = vi.fn();
 
@@ -52,9 +53,10 @@ describe("SubscriptionsSectionContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
-    expect(screen.queryByRole("menuitem", { name: "Expand all folders" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Collapse all folders" })).not.toBeInTheDocument();
-    expect(onExpandAllFolders).not.toHaveBeenCalled();
-    expect(onCollapseAllFolders).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("menuitem", { name: "Expand all folders" }));
+    await user.click(screen.getByRole("menuitem", { name: "Collapse all folders" }));
+
+    expect(onExpandAllFolders).toHaveBeenCalledTimes(1);
+    expect(onCollapseAllFolders).toHaveBeenCalledTimes(1);
   });
 });
