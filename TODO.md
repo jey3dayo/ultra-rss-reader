@@ -772,6 +772,66 @@
   - Storybook だけ import 解決が壊れる状態を config test で検出する
   - Storybook E2E runtime guard とは分け、config alias parity だけを扱う
 
+- [ ] reader selection browser state reset 候補を追加する
+  - `src/stores/ui-store.ts` で feed / tag / account / smart view 遷移時に `browserUrl` / `browserNavigationState` / close in-flight を消す契約を固定する
+  - `src/__tests__/stores/ui-store.test.ts` で Web Preview 中の selection 変更後に stale browser state が残らないことを確認する
+  - browser geometry や overlay motion とは分け、reader selection の state reset だけを扱う
+
+- [ ] native menu shortcut hint parity 候補を追加する
+  - `src-tauri/src/menu.rs` の Item メニューに出している `J/K/V/B/S/M/A` 表示が shortcut 設定と乖離しない方針を決める
+  - prefs を反映するか固定表示にするかを Rust test で固定する
+  - shortcut recording UI とは分け、native menu hint の表示 contract だけを扱う
+
+- [ ] native menu accelerator collision 候補を追加する
+  - `src-tauri/src/menu.rs` の `CmdOrCtrl+R` sync all と Web Preview reload 系 shortcut の優先順位を整理する
+  - `src/lib/keyboard/keyboard-shortcuts.ts` 側の customizable shortcut と native accelerator の衝突 contract を追加する
+  - action taxonomy 変更ではなく、既存 accelerator の競合整理に限定する
+
+- [ ] share action URL target contract 候補を追加する
+  - `src/lib/actions.ts` の share 系 action が選択記事 URL と現在 WebView URL のどちらを対象にするかを固定する
+  - Web Preview 内遷移後の `copy-link` / external open / reading list 対象を contract test 化する
+  - mailto fallback とは分け、menu action の URL source だけを扱う
+
+- [ ] browser webview focus preference 候補を追加する
+  - `src/components/reader/hooks/browser/use-browser-webview-sync.ts` の create 後 `focusBrowserWebview()` が `web_preview_keep_focus` とどう関係するかを固定する
+  - 設定 off 時の focus 挙動を hook test で確認する
+  - focus restore failure feedback とは分け、create 後の focus policy だけを扱う
+
+- [ ] browser overlay back availability 候補を追加する
+  - `src/components/reader/browser-overlay-chrome.tsx` の back button が history なしでも有効に見える状態を整理する
+  - disabled / close fallback / label 変更のどれにするかを view test で固定する
+  - native navigation availability とは分け、overlay chrome の back affordance だけを扱う
+
+- [ ] browser webview lost surface contract 候補を追加する
+  - `src/components/reader/hooks/browser/use-browser-view-surface-state.ts` で embedded webview lost event を user-visible にするか silent close にするか固定する
+  - `use-browser-view-surface-state` の focused test で toast / surface issue / close state のいずれかを確認する
+  - bounds sync failure surface とは分け、webview disappeared 経路だけを扱う
+
+- [ ] reading list platform capability parity 候補を追加する
+  - `src-tauri/src/menu.rs` の Reading List native menu 表示条件と `src/stores/platform-store.ts` の `supports_reading_list` を揃える
+  - macOS / non-macOS の menu と frontend capability が drift しない contract test を追加する
+  - share command boundary とは分け、platform capability parity だけを扱う
+
+- [ ] always-on-top error surface 候補を追加する
+  - `src/hooks/use-window-always-on-top.ts` の `setWindowAlwaysOnTop` 失敗を完全 no-op にするか debug surface に出すか固定する
+  - unsupported platform と実エラーを同じ扱いにしない hook test を追加する
+  - window fullscreen / app icon とは分け、always-on-top preference application だけを扱う
+
+- [ ] create folder account preflight 候補を追加する
+  - `src-tauri/src/commands/feed_commands.rs` の `create_folder` で `account_id` 不在時に外部キー制約ではなく user-visible error を返す
+  - 存在しない account で folder が作られない command test を追加する
+  - add local feed account preflight とは分け、folder creation の account validation だけを扱う
+
+- [ ] article mark read transaction contract 候補を追加する
+  - `src-tauri/src/commands/article_commands.rs` の `mark_article_read` / `mark_articles_read` で pending mutation 作成と unread_count 再計算を同一 transaction に寄せる
+  - remote mutation queue 失敗時の local read state rollback を command / repository test で固定する
+  - auto mark retained rollback とは分け、manual article read command の atomicity だけを扱う
+
+- [ ] Playwright artifact separation contract 候補を追加する
+  - `playwright.config.ts` と `playwright.storybook.config.ts` の `outputDir` / HTML report folder が app と Storybook で分離される contract を追加する
+  - 失敗 artifact が互いに上書きされないことを config test で固定する
+  - Storybook runtime guard とは分け、E2E artifact path の config contract だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
