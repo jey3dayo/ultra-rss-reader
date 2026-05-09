@@ -84,11 +84,6 @@
   - React Doctor / Knip が account pane navigation helper の unused type を検出しており、settings account detail と reader focus restore の境界が見えにくい
   - account id selection、missing account、add-account complete、detail close、reader return focus の navigation contract を固定する
 
-- [ ] P2 feed-tree-view unused type を drag/drop hook contract と view props に分離する
-  - 対象: `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree.types.ts`, `src/components/reader/hooks/feed-tree/*`
-  - React Doctor / Knip が feed tree view の unused type を検出しており、drag hook params、row props、folder section props の境界がまた太りやすい
-  - view-local props は component 内、drag/drop shared state は hook types、row props は public contract として維持する
-
 - [ ] P2 rename-feed-dialog-view unused type を dialog state / view props に分ける
   - 対象: `src/components/reader/rename-feed-dialog-view.tsx`, `src/components/reader/rename-feed-dialog.types.ts`, `src/components/reader/hooks/feed-dialogs/*`
   - React Doctor / Knip が rename feed dialog view の unused type を検出しており、view props local 化後も controller/state type が残っている可能性がある
@@ -119,11 +114,6 @@
   - Rust tests には `unwrap` / `expect` が多く、fixture setup と production behavior assertion が混ざると panic message が調査しづらい
   - fixture-only unwrap 許容、production boundary は error assertion、panic message naming、helper `expect_ok` の採用可否を決める
 
-- [ ] P2 FeedTree drag drop overlay が folder row controls を過剰に覆わないようにする
-  - 対象: `src/components/reader/feed-tree-folder-section.tsx`, `src/components/reader/feed-tree-selectable-row.tsx`, `src/components/reader/hooks/feed-tree/*`
-  - drag 中の absolute overlay button が folder row 全体を覆うため、toggle/context/menu/focus target と drop target の責務が重なり、keyboard と pointer の挙動が壊れやすい
-  - drag active 中の toggle click、context menu open、keyboard focus、drop target aria-label、same folder drop の component test を追加する
-
 - [ ] P2 AppLayout の inert / aria-hidden fallback を WebView support matrix で検証する
   - 対象: `src/components/app-layout.tsx`, `src/__tests__/app.test.tsx`, `e2e/app.spec.ts`
   - hidden pane は `inert` と `aria-hidden` に依存するため、WebView 互換や test environment 差で focusable descendant が残ると keyboard navigation が背後 paneへ入る
@@ -143,16 +133,6 @@
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-sync.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`
   - 両者は request id / in-flight ref / Result unwrap / stale guard / failure surface が似ており、今後片側だけ latest-only や error redaction を直すと挙動差が出やすい
   - 共通化するなら責務は「async command lifecycle」までに限定し、browser bounds と feed discovery の business logic は混ぜず、late result / thrown command / Result failure の hook test を追加する
-
-- [ ] P1 similarity 90.00%: add feed submit と feed landing の optimistic UI rollback pattern を統一する
-  - 対象: `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/hooks/use-feed-landing.ts`
-  - 両方とも optimistic UI change 後に async fetch/mutation を進め、失敗時に local UI state を戻すが、snapshot 範囲・toast・stale request の扱いが別実装になっている
-  - shared rollback helper、snapshot owner、latest request id、cached fallback、stale failure toast の policy を決め、逆順 settle の focused test を追加する
-
-- [ ] P2 similarity 90.60%: add feed discovery と sidebar visibility fallback の fallback decision を pure helper 化する
-  - 対象: `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/components/reader/hooks/sidebar/use-sidebar-visibility-fallback.ts`
-  - 構造は似ているが片方は network result、片方は preference-driven selection fallback なので、hook 内に decision tree が残るほど edge case の test が膨らみやすい
-  - 共通 React hook にはせず、fallback decision を pure helper として分け、empty / single / multiple / hidden smart view / missing tag の table test を追加する
 
 - [ ] P2 similarity 91.15%: localStorage recovery と overflow observer の storage/observer lifecycle を別々に整理する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/components/settings/hooks/use-scroll-overflow-state.ts`
