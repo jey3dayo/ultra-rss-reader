@@ -58,6 +58,7 @@ import {
   updateAccountSyncArgs,
   updateFeedFolderArgs,
 } from "@/api/schemas";
+import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 
 function readTauriCommandsSource() {
@@ -590,6 +591,19 @@ describe("DTO schemas", () => {
   it("rejects UpdateInfoDto with blank version", () => {
     expect(() => UpdateInfoDtoSchema.parse({ version: "", body: null })).toThrow();
     expect(() => UpdateInfoDtoSchema.parse({ version: "   ", body: null })).toThrow();
+  });
+  it("accepts finite updater progress event payloads and rejects malformed values", () => {
+    expect(UpdateDownloadProgressEventPayloadSchema.parse({ percent: 42, loaded: 100 })).toEqual({
+      percent: 42,
+      loaded: 100,
+    });
+    expect(UpdateDownloadProgressEventPayloadSchema.parse({ percent: null })).toEqual({ percent: null });
+    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ percent: "42" }).success).toBe(false);
+    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ percent: Number.NaN }).success).toBe(false);
+    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ percent: Number.POSITIVE_INFINITY }).success).toBe(
+      false,
+    );
+    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ loaded: 100 }).success).toBe(false);
   });
   it("parses platform info response", () => {
     const data = {

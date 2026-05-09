@@ -436,10 +436,10 @@ describe("performUpdateCheck", () => {
       progress: 100,
     });
 
-    progressListeners[0]?.({ payload: { percent: Number.NaN } });
+    progressListeners[0]?.({ payload: { percent: 42.4 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中…",
-      progress: null,
+      message: "ダウンロード中… 42%",
+      progress: 42,
     });
   });
 
@@ -469,7 +469,10 @@ describe("performUpdateCheck", () => {
     await flushAsyncWork();
 
     progressListeners[0]?.({ payload: null });
+    progressListeners[0]?.({ payload: [] });
     progressListeners[0]?.({ payload: { percent: "50" } });
+    progressListeners[0]?.({ payload: { percent: Number.NaN } });
+    progressListeners[0]?.({ payload: { percent: Number.POSITIVE_INFINITY } });
     progressListeners[0]?.({ payload: { loaded: 1 } });
 
     expect(useUiStore.getState().toastMessage).toMatchObject({

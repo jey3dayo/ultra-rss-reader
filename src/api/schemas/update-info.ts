@@ -5,4 +5,11 @@ export const UpdateInfoDtoSchema = z.object({
   body: z.string().nullable(),
 });
 
+export const UpdateDownloadProgressEventPayloadSchema = z
+  .object({
+    percent: z.number().finite().nullable(),
+  })
+  .passthrough();
+
 export type UpdateInfoDto = z.output<typeof UpdateInfoDtoSchema>;
+export type UpdateDownloadProgressEventPayload = z.output<typeof UpdateDownloadProgressEventPayloadSchema>;

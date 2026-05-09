@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
+import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
@@ -97,16 +98,12 @@ export function normalizeDownloadProgressPercent(percent: number | null): number
 }
 
 function readDownloadProgressPercent(payload: unknown): number | null | undefined {
-  if (typeof payload !== "object" || payload === null || !("percent" in payload)) {
+  const result = UpdateDownloadProgressEventPayloadSchema.safeParse(payload);
+  if (!result.success) {
     return undefined;
   }
 
-  const percent = payload.percent;
-  if (percent === null || typeof percent === "number") {
-    return normalizeDownloadProgressPercent(percent);
-  }
-
-  return undefined;
+  return normalizeDownloadProgressPercent(result.data.percent);
 }
 
 function restartPreparedUpdate(): void {
