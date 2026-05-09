@@ -9,6 +9,31 @@
   - 既存の `mise run app:dev:seed-from-prod` を前提に、デバッグ画面から誤操作なく呼べる UX と確認導線を設計する
   - Dev 側 DB のバックアップ場所、アプリ再起動、credentials はコピーされないことを UI 上で明示する
 
+- [ ] generated query trimmed id cache contract 候補を追加する
+  - `src/hooks/create-query.ts` の `createQuery()` が enabled 判定だけ trim し、query key と fetcher には元の id を渡すため、`" acc-1 "` と `"acc-1"` が別 cache / command id になるか確認する
+  - `src/__tests__/hooks/create-query.test.tsx` で whitespace-padded id の query key と fetcher id を trim するか、caller normalization 必須として現仕様を明示する
+  - individual article/account hook の id boundary とは分け、generic generated query helper の id normalization だけを扱う
+
+- [ ] window event cleanup error isolation 候補を追加する
+  - `src/lib/window/window-events.ts` の `bindWindowEvents()` cleanup が `removeEventListener` 例外で後続 listener cleanup を止めないか確認する
+  - `src/__tests__/lib/window-events.test.ts` で複数 target のうち1件の remove が throw しても残りを cleanup するか、最初の例外で止める contract を固定する
+  - registration rollback contract とは分け、通常 cleanup 時の remove failure isolation だけを扱う
+
+- [ ] custom event detail guard exception boundary 候補を追加する
+  - `src/lib/window/window-events.ts` の `createCustomEventDetailListener()` が `isDetail(detail)` の例外をそのまま伝播するため、malformed payload で global listener 全体が落ちない方針にするか確認する
+  - `src/__tests__/lib/window-events.test.ts` で throwing guard / throwing handler / malformed detail の扱いを分け、guard failure は ignore か error surface かを固定する
+  - menu event payload formatting guard とは分け、shared CustomEvent detail listener helper の boundary だけを扱う
+
+- [ ] Storybook Tauri runtime helper restore contract 候補を追加する
+  - `src/components/storybook/story-tauri-runtime.ts` の helper が `__TAURI_INTERNALS__` と browser mock flags を直接上書きするため、nested decorator や story 間で以前の runtime flag が復元されるか確認する
+  - `src/__tests__/components/story-tauri-runtime.test.ts` で previous descriptor / mock flags を restore する helper を追加するか、現在の global reset contract を明示する
+  - Storybook runtime global state cleanup とは分け、Tauri runtime story helper の flag ownership だけを扱う
+
+- [ ] `.claude/rules` index completeness contract 候補を追加する
+  - `.claude/rules/*.md` が増えた時に `.claude/rules/README.md` への追記漏れが起きないよう、rules index の completeness を repo contract にする
+  - `src/__tests__/config/repo-contracts.test.ts` で `README.md` 以外の rule file が index に相対リンクされ、必要なら `CLAUDE.md` の Documentation Map から辿れることを固定する
+  - markdown link scan 拡張とは分け、rules index の source-of-truth drift だけを扱う
+
 - [ ] preferences error message stringification guard 候補を追加する
   - `src/stores/preferences-store.ts` の `resolveErrorMessage()` が `String(error)` fallback を直接呼ぶため、throwing `toString` を持つ unknown error で persist failure toast 自体が落ちないか確認する
   - `src/__tests__/stores/preferences-store.test.ts` で `setPreference` reject / `Result.fail` の error object が安全に fallback message へ落ちることを固定する
@@ -260,12 +285,13 @@
   - DTO alias や view model が `z.output` / `z.infer` / `api/tauri-commands` の source of truth と重複していないか確認し、UI 専用 shape は `*ViewModel` / `*UiState` として意図を明確にする
   - IPC / localStorage / app-config schema の validation 変更とは分け、type source-of-truth と DTO/UI state boundary だけを扱う
 
-- [ ] TypeScript safeInvoke schema overload cleanup 候補を追加する
+- [x] TypeScript safeInvoke schema overload cleanup 候補を追加する
   - `src/api/tauri-commands.ts` の `safeInvoke` overload が schema-aware return と generic return を混在させている点を整理する
   - `InvokeSchemas` / `InvokeArgsSchema` / `Record<string, unknown>` args の責務を分け、schema 付き command は `z.output<R>` を source of truth にする
   - command behavior は変えず、IPC wrapper の型境界と overload readability だけを扱う
+  - 対応済み: schema 付き経路は `invoke<unknown>` -> `parseWithSchema` -> `z.output<R>`、generic 経路は unchecked invoke helper に分離
 
-- [ ] TypeScript preference record typing cleanup 候補を追加する
+- [x] TypeScript preference record typing cleanup 候補を追加する
   - `src/schemas/preferences.ts` の `preferenceDefaults: Record<string, string>` / `hiddenPreferenceDefaults` / `KeyboardShortcutPrefs` の string map 境界を見直す
   - known preference key、shortcut preference key、unknown backend passthrough key を別 type で表現できるか確認する
   - preference normalization behavior は変えず、Record string map の責務分割だけを扱う
@@ -275,7 +301,7 @@
   - account/feed/folder/tag/recent/search query key の tuple shape を source of truth 化し、cache patch と invalidation の drift を防ぐ
   - TanStack Query behavior は変えず、query key type surface と literal duplication だけを扱う
 
-- [ ] TypeScript commandArgsSchemas typed map 候補を追加する
+- [x] TypeScript commandArgsSchemas typed map 候補を追加する
   - `src/api/schemas/commands.ts` の `commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown>>>` を command name union と紐づく typed map にできるか確認する
   - `safeInvoke` / `validateArgs` / schema contract test が未知 command と既知 command を型上でも区別できるか棚卸しする
   - IPC validation behavior は変えず、command schema registry の型精度だけを扱う
@@ -285,7 +311,7 @@
   - event name、storage key、browser surface literal、platform capability defaults を手書き string union と重複させない方針へ寄せる
   - constants 値の変更や migration は含めず、literal-derived type export と consumer typing だけを扱う
 
-- [ ] TypeScript parse helper result boundary 候補を追加する
+- [x] TypeScript parse helper result boundary 候補を追加する
   - `src/schemas/parse.ts` の throwing parse helper / nullable safe parse helper の責務と命名を整理する
   - JSON parse failure、schema parse failure、null fallback の扱いを focused test で固定し、call site が例外前提か fallback 前提か読み取れるようにする
   - 個別 schema の validation 変更とは分け、parse helper の return type と failure surface だけを扱う

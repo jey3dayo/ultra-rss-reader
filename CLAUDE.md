@@ -20,6 +20,10 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - For UI review or abstraction decisions, follow `DESIGN_REVIEW.md`.
 - Treat `src/locales/ja/` as product UI copy. Keep Japanese labels concise, natural, and context-aware; update copy-sensitive tests when changing visible labels.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
+- When touching browser APIs, Tauri runtime APIs, storage, platform globals, or other runtime boundaries, follow [.claude/rules/runtime-boundary.md](.claude/rules/runtime-boundary.md).
+- When adding async UI side effects, fire-and-forget calls, optimistic updates, or native command wrappers, follow [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md).
+- When adding or changing runtime schemas, DTO parsing, preferences schemas, or localStorage config schemas, follow [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md).
+- When adding boundary tests or turning TODO findings into durable coverage, follow [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
 
 ## File Placement
 
@@ -69,6 +73,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - `TODO.md` tracks in-progress and upcoming work only.
 - `CHANGELOG.md` records completed user-visible changes.
 - Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
+- Classify new TODO entries as implementation, contract test, rule update, manual verification, or type placement cleanup. If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of growing `TODO.md`.
 
 ## Localization Notes
 
@@ -93,6 +98,10 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - [DESIGN.md](DESIGN.md): visual rules and reusable UI design decisions
 - [DESIGN_REVIEW.md](DESIGN_REVIEW.md): UI review flow and routing (`DESIGN.md` vs `shared` vs feature-local)
 - [.claude/rules/README.md](.claude/rules/README.md): project-specific focused rules by topic
+- [.claude/rules/runtime-boundary.md](.claude/rules/runtime-boundary.md): runtime API boundary handling and focused fallback tests
+- [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md): async side effects, latest-only ordering, cleanup, and rejection surface
+- [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md): schema strictness, DTO trust boundaries, and fallback ownership
+- [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md): contract test placement, TODO intake, and durable regression coverage
 
 ## Agent Routing
 

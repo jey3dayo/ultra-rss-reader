@@ -13,6 +13,10 @@
 ## Frontend / Tauri
 
 - [tauri-ipc-error-handling.md](./tauri-ipc-error-handling.md): Tauri IPC のエラーハンドリング方針
+- [runtime-boundary.md](./runtime-boundary.md): Browser API / Tauri runtime / storage / platform globals の境界処理方針
+- [async-side-effect-policy.md](./async-side-effect-policy.md): fire-and-forget、latest-only、unmount cleanup、optimistic update の方針
+- [schema-boundary.md](./schema-boundary.md): DTO / preferences / localStorage schema の strictness と fallback 所有者
+- [contract-test-policy.md](./contract-test-policy.md): contract test の置き場所、TODO 化する境界値、ルール昇格の判断基準
 - [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
 - [dev-scenarios-command-palette.md](./dev-scenarios-command-palette.md): dev intent と command palette の共通 runner / 責務分離ルール
