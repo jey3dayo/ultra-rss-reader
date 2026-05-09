@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type MouseEvent, useCallback, useLayoutEffect, useRef } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -68,6 +68,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const previousArticleIdRef = useRef(article.id);
   const articleUrl = article.url;
+  const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
   const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
 
   useLayoutEffect(() => {
@@ -102,8 +103,13 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     [onOpenArticleTitleInWebPreview, openLinks],
   );
 
-  const handleContentContainerClick = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const contentContainer = contentContainerElement;
+    if (!contentContainer || !articleContentHtml) {
+      return;
+    }
+
+    const handleContentContainerClick = (event: MouseEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
         return;
       }
@@ -114,7 +120,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       }
 
       const anchor = target.closest<HTMLAnchorElement>("a[href]");
-      if (!anchor || !event.currentTarget.contains(anchor)) {
+      if (!anchor || !contentContainer.contains(anchor)) {
         return;
       }
 
@@ -125,9 +131,14 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
 
       event.preventDefault();
       void openArticleInExternalBrowser(resolvedUrl);
-    },
-    [articleUrl],
-  );
+    };
+
+    contentContainer.addEventListener("click", handleContentContainerClick);
+
+    return () => {
+      contentContainer.removeEventListener("click", handleContentContainerClick);
+    };
+  }, [articleContentHtml, articleUrl, contentContainerElement]);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     const direction = getReaderScrollDirection(event);
@@ -193,7 +204,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
           <ArticleTagChips articleId={article.id} />
         </div>
 
-        <div className="mt-7" data-article-content-container="true" onClick={handleContentContainerClick}>
+        <div className="mt-7" data-article-content-container="true" ref={setContentContainerElement}>
           <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>
