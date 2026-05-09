@@ -202,5 +202,6 @@ describe("startup sync storage", () => {
     expect(shouldThrottleStartupSync(undefined, 2_000)).toBe(false);
     expect(() => markStartupSyncTriggered(undefined, 12_345)).not.toThrow();
     expect(warn).toHaveBeenCalledWith("Startup sync localStorage is unavailable.", expect.any(DOMException));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });

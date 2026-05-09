@@ -10,6 +10,29 @@ function isFeedNavigationDirection(value: unknown): value is 1 | -1 {
   return value === 1 || value === -1;
 }
 
+const FEED_FOCUS_SCHEDULE_WARNING = "Failed to schedule sidebar feed focus.";
+
+function scheduleSidebarFeedFocus(callback: FrameRequestCallback): number | null {
+  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+    return null;
+  }
+
+  try {
+    return window.requestAnimationFrame(callback);
+  } catch (error) {
+    console.warn(FEED_FOCUS_SCHEDULE_WARNING, error);
+    return null;
+  }
+}
+
+function cancelSidebarFeedFocus(frameHandle: number): void {
+  if (typeof window === "undefined" || typeof window.cancelAnimationFrame !== "function") {
+    return;
+  }
+
+  window.cancelAnimationFrame(frameHandle);
+}
+
 export function useSidebarFeedNavigation({
   orderedFeedIds,
   selectedFeedId,
@@ -26,7 +49,7 @@ export function useSidebarFeedNavigation({
 
   const cancelPendingFocusFrame = useCallback(() => {
     if (pendingFocusFrameRef.current !== null) {
-      cancelAnimationFrame(pendingFocusFrameRef.current);
+      cancelSidebarFeedFocus(pendingFocusFrameRef.current);
       pendingFocusFrameRef.current = null;
       pendingFocusFeedIdRef.current = null;
     }
@@ -72,7 +95,7 @@ export function useSidebarFeedNavigation({
       selectFeed(resolvedNextFeedId);
       cancelPendingFocusFrame();
       pendingFocusFeedIdRef.current = resolvedNextFeedId;
-      pendingFocusFrameRef.current = requestAnimationFrame(() => {
+      const pendingFocusFrame = scheduleSidebarFeedFocus(() => {
         pendingFocusFrameRef.current = null;
         pendingFocusFeedIdRef.current = null;
         if (!isMountedRef.current) {
@@ -94,6 +117,10 @@ export function useSidebarFeedNavigation({
         nextFeedButton.focus({ preventScroll: true });
         nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
       });
+      pendingFocusFrameRef.current = pendingFocusFrame;
+      if (pendingFocusFrame === null) {
+        pendingFocusFeedIdRef.current = null;
+      }
     },
     [cancelPendingFocusFrame, getFeedFolderId, orderedFeedIds, selectFeed, setExpandedFolders],
   );
