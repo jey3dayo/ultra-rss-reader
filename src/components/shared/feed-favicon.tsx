@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useReducer, useRef } from "react";
+import { useState } from "react";
 import { extractSiteHost } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 
@@ -37,9 +37,14 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   },
 };
 
-export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
-  const failedFaviconSrcRef = useRef<string | null>(null);
-  const [, rerenderAfterFaviconFailure] = useReducer((count: number) => count + 1, 0);
+export function FeedFavicon({
+  title,
+  url,
+  siteUrl,
+  grayscale = false,
+  size = "sm",
+}: FeedFaviconProps) {
+  const [failedFaviconSrc, setFailedFaviconSrc] = useState<string | null>(null);
   let resolvedHost: string | null = null;
   Result.pipe(
     extractSiteHost(siteUrl, url),
@@ -52,36 +57,28 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
   const faviconSrc = resolvedHost
     ? `https://www.google.com/s2/favicons?domain=${resolvedHost}&sz=${sizeClassName.requestSize}`
     : null;
-  const failed = faviconSrc !== null && failedFaviconSrcRef.current === faviconSrc;
 
-  if (faviconSrc === null || failed) {
-    return (
-      <span
-        aria-hidden="true"
-        className={cn(
-          "flex shrink-0 items-center justify-center rounded bg-surface-1/72 font-bold text-foreground-soft",
-          sizeClassName.fallback,
-        )}
-      >
-        {fallbackLabel}
-      </span>
-    );
-  }
-
-  const imageSrc = faviconSrc;
-
-  return (
+  return faviconSrc === null || failedFaviconSrc === faviconSrc ? (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded bg-surface-1/72 font-bold text-foreground-soft",
+        sizeClassName.fallback,
+      )}
+    >
+      {fallbackLabel}
+    </span>
+  ) : (
     <img
-      src={imageSrc}
+      src={faviconSrc}
       alt=""
-      className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
+      className={cn(
+        sizeClassName.image,
+        "shrink-0 rounded",
+        grayscale && "grayscale",
+      )}
       onError={() => {
-        if (failedFaviconSrcRef.current === imageSrc) {
-          return;
-        }
-
-        failedFaviconSrcRef.current = imageSrc;
-        rerenderAfterFaviconFailure();
+        setFailedFaviconSrc(faviconSrc);
       }}
     />
   );
