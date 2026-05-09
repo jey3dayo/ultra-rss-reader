@@ -59,21 +59,6 @@
   - `src/__tests__/lib/sidebar.test.ts` で blank feed id、whitespace feed id、duplicate normal feed id の starred count を追加し、Article DTO schema 前提か helper guard かを決める
   - nullable starred count schema や article DTO blank URL normalization とは分け、sidebar starred badge projection の feed id boundary だけを扱う
 
-- [ ] article tag picker duplicate id projection 候補を追加する
-  - `src/components/reader/article-tag-chips.tsx` の `buildArticleTagPickerLists()` が assigned tag id を Set に入れつつ assigned list 自体には duplicate を残すため、duplicate id / blank id の表示方針を固定する
-  - `src/__tests__/components/article-tag-chips.test.tsx` で duplicate assigned tag、duplicate allTags、blank tag id を追加し、dedupe / caller invariant / schema rejection の境界を明示する
-  - article tag picker mutation failure や keyboard/focus contract とは分け、picker list projection の tag identity boundary だけを扱う
-
-- [ ] sidebar feed drag disabled start guard 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts` の `handleDragStartFeed` が `canDragFeeds` / `isFeedsSectionOpen` を見ずに一度 drag state を立てるため、disabled 時に start 自体を無視するか effect cleanup 前提にするか固定する
-  - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` で folder なし / section closed / feed missing の start と active drop target の期待値を追加する
-  - pointer drag threshold や visual drop target とは分け、repository update 前の hook state guard だけを扱う
-
-- [ ] sidebar feed drag drop rejection surface 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-feed-tree-props.ts` が `void handleDropToFolder(folderId)` で async drop を fire-and-forget するため、`moveFeedToFolder` reject 時に unhandled rejection にならないか確認する
-  - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` または feed tree props focused test で drop failure 時も drag state cleanup と error surface の方針を固定する
-  - feed move mutation toast や backend folder assignment validation とは分け、frontend drag/drop callback の async failure boundary だけを扱う
-
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
