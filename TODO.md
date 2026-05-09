@@ -74,11 +74,6 @@
   - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
   - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
 
-- [ ] sidebar subscription sort preference contract 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` が `sortSubscriptions` を受け取りつつ `_sortSubscriptions` として未使用なので、設定値を適用するか alphabetical 固定の廃止済み contract として整理する
-  - `src/__tests__/components/use-sidebar-feed-tree.test.tsx` と `src/__tests__/components/sidebar-feed-tree-helpers.test.ts` で `newest_first` / `alphabetical` の期待値を明示する
-  - folder `sort_order` や backend folder ordering とは分け、sidebar feed list の subscription sort preference だけを扱う
-
 - [ ] sidebar feed drag disabled start guard 候補を追加する
   - `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts` の `handleDragStartFeed` が `canDragFeeds` / `isFeedsSectionOpen` を見ずに一度 drag state を立てるため、disabled 時に start 自体を無視するか effect cleanup 前提にするか固定する
   - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` で folder なし / section closed / feed missing の start と active drop target の期待値を追加する
@@ -88,16 +83,6 @@
   - `src/components/reader/hooks/sidebar/use-sidebar-feed-tree-props.ts` が `void handleDropToFolder(folderId)` で async drop を fire-and-forget するため、`moveFeedToFolder` reject 時に unhandled rejection にならないか確認する
   - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` または feed tree props focused test で drop failure 時も drag state cleanup と error surface の方針を固定する
   - feed move mutation toast や backend folder assignment validation とは分け、frontend drag/drop callback の async failure boundary だけを扱う
-
-- [ ] subscription review duplicate summary policy 候補を追加する
-  - `src/lib/subscriptions/subscription-review-candidates.ts` の `buildSubscriptionReviewCandidates` が `feedArticleSummaries` を `Map(feed_id)` 化するため、同一 feed の重複 summary が来た時の勝ち順を固定する
-  - `src/__tests__/lib/subscription-review-candidates.test.ts` で duplicate `feed_id` の latest/starred count を last-wins / first-wins / invalid input のどれにするか明示する
-  - feed article summary query invalidation や duplicate feed policy とは分け、review candidate helper の summary projection だけを扱う
-
-- [ ] subscription candidate map duplicate feed id 候補を追加する
-  - `src/lib/subscriptions/subscriptions-index.ts` の `buildSubscriptionReviewCandidateMap` が duplicate candidate `feedId` を後勝ちにするため、同一 feed candidate が複数渡らない前提を test で固定する
-  - `src/__tests__/lib/subscriptions-index.test.ts` で duplicate candidate 入力時の map value と summary count の扱いを明示する
-  - review candidate ranking や hidden feed filtering とは分け、candidate map helper の duplicate key contract だけを扱う
 
 ## UI/UX 監査の残り
 
@@ -300,11 +285,6 @@
   - repo contract test の assertion 対象と failure message が変わらないことを確認する
   - runtime iterable performance とは分け、test helper iteration cleanup だけを扱う
 
-- [ ] react-doctor dev mock lookup index cleanup 候補を追加する
-  - `src/dev/mocks.ts` の loop 内 `includes` / `find` を必要な箇所だけ `Set` / `Map` index に寄せる
-  - account / feed / article 削除 cascade と list 系 mock の出力順が変わらないことを dev mock test で固定する
-  - runtime hot path の iterable performance とは分け、dev mock data graph lookup だけを扱う
-
 - [ ] react-doctor tauri dispatch lookup set 候補を追加する
   - `scripts/tauri-cli-dispatch.ts` の repeated membership check を `Set` 化する
   - Windows / non-Windows dispatch test で許可 command と拒否 command の判定が変わらないことを固定する
@@ -425,26 +405,6 @@
   - `pageerror` だけでなく `console.error` も拾う contract を最小 Playwright spec で固定する
   - E2E scenario 追加とは分け、runtime error detection helper だけを扱う
 
-- [ ] shared dialog close label locale 候補を追加する
-  - `src/components/ui/dialog.tsx` の `Close` 直書きを props または common locale key 経由に寄せる
-  - dialog wrapper test で `showCloseButton` の accessible name が props 由来になり、未指定時 fallback が locale と一致することを確認する
-  - feature dialog copy 変更とは分け、shared dialog primitive の close label だけを扱う
-
-- [ ] dev mock account cascade delete 候補を追加する
-  - `src/dev/mocks.ts` の `delete_account` mock で account 本体だけでなく feeds / folders / articles / recent history を掃除する
-  - `src/__tests__/dev/dev-mocks.test.ts` で account 削除後の `listFeeds` / `listRecentArticles` / account scoped count が空または 0 になることを固定する
-  - backend account deletion keyring order とは分け、browser dev mock data graph cleanup だけを扱う
-
-- [ ] dev mock feed delete article cleanup 候補を追加する
-  - `src/dev/mocks.ts` の `delete_feed` mock で削除記事に紐づく `mockArticleTags` と `mockArticleViewHistory` も掃除する
-  - `src/__tests__/dev/dev-mocks.test.ts` で feed 削除後の `getArticleTags(deletedArticleId)` が空になり、recent articles に削除記事が戻らないことを固定する
-  - dev mock account cascade delete とは分け、feed delete の article-related cleanup だけを扱う
-
-- [ ] dev mock unknown command failure 候補を追加する
-  - `src/dev/mocks.ts` の browser-only unknown command が `null` 成功にならないよう、test helper と同じく明示 reject にする
-  - `src/__tests__/dev/dev-mocks.test.ts` で `invoke("unknown_dev_command")` が reject し、既知 command coverage は維持されることを固定する
-  - Tauri default mock command coverage とは分け、browser dev mock unknown command policy だけを扱う
-
 - [ ] sidebar expanded folders storage failure 候補を追加する
   - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の expanded folder 永続化で `setItem` 失敗を捕捉する
   - `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.ts` で storage quota / unavailable 時も UI state 更新は維持されることを固定する
@@ -475,35 +435,10 @@
   - `src/__tests__/components/use-general-settings-view-props.test.ts` で `system` は locale 由来、`en` / `ja` は意図した self-label であることを確認する
   - general settings preference handling とは分け、language option label contract だけを扱う
 
-- [ ] article summary HTML spacing 候補を追加する
-  - `src/lib/content/html.ts` の `stripHtmlTags()` が block element / `br` / list item 境界を潰して `LeadBody` のような summary を作らないようにする
-  - `src/__tests__/lib/html.test.ts` と必要なら `src/__tests__/components/article-list-item.test.tsx` で `<p>Lead</p><p>Body</p>` が `Lead Body` になることを固定する
-  - article content danger boundary とは分け、plain text summary spacing だけを扱う
-
-- [ ] article reader relative link policy 候補を追加する
-  - `src/components/reader/article-reader-body.tsx` で sanitized 本文内の相対リンククリックを app origin ではなく記事 URL 基準にするか無効化するか固定する
-  - article reader focused test で `<a href="/posts/1">` の click が期待 URL へ解決される、または外部 open されないことを確認する
-  - sanitizer URL filtering とは分け、reader body relative link click policy だけを扱う
-
 - [ ] tag color picker radiogroup contract 候補を追加する
   - `src/components/shared/tag-color-picker.tsx` の色選択を単一選択グループとして扱えるようにする
   - `src/__tests__/components/tag-color-picker.test.tsx` で `radiogroup` / `radio` 相当の accessible grouping と arrow key selection を固定する
   - tag settings UI validation とは分け、shared color picker の keyboard/accessibility contract だけを扱う
-
-- [ ] form dialog shell submit guard 候補を追加する
-  - `src/components/shared/form-dialog-shell.tsx` の Enter submit と footer submit button が同じ submit guard を通るようにする
-  - `src/__tests__/components/shared-form-controls.test.tsx` で `loading` / `submitDisabled` 中は Enter と footer click のどちらも `onSubmit` しないことを固定する
-  - react-doctor form preventDefault review とは分け、shared dialog shell の submit path 統一だけを扱う
-
-- [ ] labeled input inside action focus boundary 候補を追加する
-  - `src/components/shared/labeled-input-row.tsx` の `actionPlacement="inside"` action が input focus / selection を奪わないようにする
-  - `src/__tests__/components/shared-form-controls.test.tsx` で inside action の mouse click 後も input focus が保持され、action は 1 回だけ実行されることを固定する
-  - copyable text field の個別挙動とは分け、labeled input row の inside action boundary だけを扱う
-
-- [ ] nav row selected aria state contract 候補を追加する
-  - `src/components/shared/nav-row-button.tsx` の `selected` と aria state の既定 contract を揃える
-  - `src/__tests__/components/nav-row-button.test.tsx` で `selected` 時の既定 aria state と、caller が `aria-current` / `aria-pressed` を明示した場合の上書きを固定する
-  - React 19 forwardRef cleanup とは分け、shared navigation row の selected state semantics だけを扱う
 
 - [ ] open log directory error copy contract 候補を追加する
   - `src-tauri/src/commands/log_commands.rs` と `src/components/settings/hooks/use-data-settings-controller.ts` で log directory open failure が UI 上で二重説明にならないようにする
