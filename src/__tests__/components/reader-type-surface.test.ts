@@ -54,6 +54,16 @@ const typeSurfaceSearchDirectories = [
   "src/__tests__/hooks",
 ] as const;
 
+type TypeSurfaceContract = {
+  readonly label: string;
+  readonly typeFileList: readonly string[];
+};
+
+type TypeSurfaceHelper = {
+  readonly assertTypeFileList: (contract: TypeSurfaceContract) => void;
+  readonly collectPublicContractDiagnostics: (contract: TypeSurfaceContract) => string[];
+};
+
 function collectTypeScriptFiles(directoryPath: string): string[] {
   if (!existsSync(directoryPath)) {
     return [];
@@ -88,56 +98,100 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function collectTypeSurfaceSearchFiles() {
-  return typeSurfaceSearchDirectories.flatMap((directoryPath) => collectTypeScriptFiles(join(repoRoot, directoryPath)));
-}
+function createTypeSurfaceHelper(): TypeSurfaceHelper {
+  const typeSurfaceSearchFiles = typeSurfaceSearchDirectories.flatMap((directoryPath) =>
+    collectTypeScriptFiles(join(repoRoot, directoryPath)),
+  );
+  const sourceByPath = new Map<string, string>();
 
-function collectUnusedExports(surfaceFiles: readonly string[], searchFiles = collectTypeSurfaceSearchFiles()) {
-  return surfaceFiles.flatMap((surfaceFile) => {
-    const exportedTypeNames = extractExportedTypeNames(readRepoFile(surfaceFile));
+  function readCachedRepoFile(path: string) {
+    const cachedSource = sourceByPath.get(path);
 
-    return exportedTypeNames
-      .filter((typeName) => {
-        const typeNamePattern = new RegExp(`\\b${escapeRegExp(typeName)}\\b`);
+    if (cachedSource !== undefined) {
+      return cachedSource;
+    }
 
-        return !searchFiles.some((candidateFile) => {
-          if (candidateFile === surfaceFile) {
-            return false;
+    const source = readRepoFile(path);
+
+    sourceByPath.set(path, source);
+
+    return source;
+  }
+
+  return {
+    assertTypeFileList({ typeFileList }: TypeSurfaceContract) {
+      expect(typeFileList.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+      expect(typeFileList).toEqual([...typeFileList].sort());
+    },
+    collectPublicContractDiagnostics({ label, typeFileList }: TypeSurfaceContract) {
+      const diagnostics = typeFileList.flatMap((surfaceFile) => {
+        const exportedTypeNames = extractExportedTypeNames(readCachedRepoFile(surfaceFile));
+
+        return exportedTypeNames.flatMap((typeName) => {
+          const typeNamePattern = new RegExp(`\\b${escapeRegExp(typeName)}\\b`);
+
+          const hasExternalReference = typeSurfaceSearchFiles.some((candidateFile) => {
+            if (candidateFile === surfaceFile) {
+              return false;
+            }
+
+            return typeNamePattern.test(readCachedRepoFile(candidateFile));
+          });
+
+          if (hasExternalReference) {
+            return [];
           }
 
-          return typeNamePattern.test(readRepoFile(candidateFile));
+          return [`${surfaceFile}:${typeName} should stay in ${label} or move out of the public type surface`];
         });
-      })
-      .map((typeName) => `${surfaceFile}:${typeName}`);
-  });
+      });
+
+      return diagnostics.sort();
+    },
+  };
 }
+
+const typeSurfaceHelper = createTypeSurfaceHelper();
+
+const publicContractAllowlist = {
+  reader: {
+    label: "reader public contract allowlist",
+    typeFileList: readerTypeSurfaceFiles,
+  },
+  settings: {
+    label: "settings public contract allowlist",
+    typeFileList: settingsTypeSurfaceFiles,
+  },
+} as const satisfies Record<string, TypeSurfaceContract>;
+
+const viewLocalPropsBlacklist = {
+  label: "view-local props blacklist",
+  typeFileList: localOnlyTypeSurfaceFiles,
+} as const satisfies TypeSurfaceContract;
 
 describe("reader type surface", () => {
   it("tracks the reader feature-local type split candidates", () => {
-    expect(readerTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-    expect(readerTypeSurfaceFiles).toEqual([...readerTypeSurfaceFiles].sort());
+    typeSurfaceHelper.assertTypeFileList(publicContractAllowlist.reader);
   });
 
   it("keeps exported reader type contracts externally referenced", () => {
-    expect(collectUnusedExports(readerTypeSurfaceFiles)).toEqual([]);
+    expect(typeSurfaceHelper.collectPublicContractDiagnostics(publicContractAllowlist.reader)).toEqual([]);
   });
 
   it("tracks settings feature-local type split candidates", () => {
-    expect(settingsTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-    expect(settingsTypeSurfaceFiles).toEqual([...settingsTypeSurfaceFiles].sort());
+    typeSurfaceHelper.assertTypeFileList(publicContractAllowlist.settings);
   });
 
   it("keeps exported settings type contracts externally referenced", () => {
-    expect(collectUnusedExports(settingsTypeSurfaceFiles)).toEqual([]);
+    expect(typeSurfaceHelper.collectPublicContractDiagnostics(publicContractAllowlist.settings)).toEqual([]);
   });
 
   it("tracks local-only exported Props/Params/Result cleanup candidates", () => {
-    expect(localOnlyTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-    expect(localOnlyTypeSurfaceFiles).toEqual([...localOnlyTypeSurfaceFiles].sort());
+    typeSurfaceHelper.assertTypeFileList(viewLocalPropsBlacklist);
   });
 
   it("keeps local-only exported type contracts externally referenced", () => {
-    expect(collectUnusedExports(localOnlyTypeSurfaceFiles)).toEqual([]);
+    expect(typeSurfaceHelper.collectPublicContractDiagnostics(viewLocalPropsBlacklist)).toEqual([]);
   });
 
   it("tracks small cleanup contracts without adding broad visual snapshots", () => {

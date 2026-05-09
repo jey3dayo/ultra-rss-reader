@@ -124,12 +124,12 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
         return;
       }
 
+      event.preventDefault();
       const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
       if (!resolvedUrl) {
         return;
       }
 
-      event.preventDefault();
       void openArticleInExternalBrowser(resolvedUrl);
     };
 
