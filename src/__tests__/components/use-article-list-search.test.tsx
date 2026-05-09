@@ -154,6 +154,28 @@ describe("useArticleListSearch", () => {
     expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
   });
 
+  it("does not retain a query set while closed when search is reopened", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.setSearchQuery("stale");
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.showSearch).toBe(false);
+    expect(result.current.searchQuery).toBe("");
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+
+    act(() => {
+      result.current.openSearch();
+    });
+
+    expect(result.current.showSearch).toBe(true);
+    expect(result.current.searchQuery).toBe("");
+    expect(result.current.trimmedDebouncedQuery).toBe("");
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
+  });
+
   it("does not revive a stale query when search is reopened before the old debounce timer flushes", () => {
     const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 

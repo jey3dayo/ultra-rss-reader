@@ -120,6 +120,17 @@ describe("ArticleListBody", () => {
     expect(onMarkAllRead).not.toHaveBeenCalled();
   });
 
+  it("does not expose mark all read when rendered groups have no article rows", () => {
+    const { onMarkAllRead } = renderArticleListBody({
+      groups: [{ id: "empty-group", label: "Today", showLabel: true, items: [] }],
+    });
+
+    fireEvent.contextMenu(screen.getByTestId("article-list-scroll-content"));
+
+    expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
+    expect(onMarkAllRead).not.toHaveBeenCalled();
+  });
+
   it("does not expose mark all read from a loading list body context menu", () => {
     const { onMarkAllRead } = renderArticleListBody({ isLoading: true, groups: [] });
 

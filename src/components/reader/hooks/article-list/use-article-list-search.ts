@@ -34,8 +34,16 @@ function articleListSearchReducer(
     case "reset-search":
       return initialArticleListSearchState;
     case "set-search-query":
+      if (!state.showSearch) {
+        return state;
+      }
+
       return { ...state, searchQuery: action.value };
     case "set-debounced-query":
+      if (!state.showSearch) {
+        return state;
+      }
+
       return { ...state, debouncedQuery: action.value };
     default:
       return state;

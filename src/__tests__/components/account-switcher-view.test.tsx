@@ -137,6 +137,8 @@ describe("AccountSwitcherView", () => {
 
   it("ignores stale expanded state for a single selected account", () => {
     const itemRefs = createAccountItemRefs();
+    const onClose = vi.fn();
+    const onToggle = vi.fn();
 
     render(
       <AccountSwitcherView
@@ -150,14 +152,20 @@ describe("AccountSwitcherView", () => {
         menuLabel="Accounts"
         triggerRef={createRef<HTMLButtonElement>()}
         itemRefs={itemRefs}
-        onToggle={vi.fn()}
+        onToggle={onToggle}
         onSelectAccount={vi.fn()}
-        onClose={vi.fn()}
+        onClose={onClose}
       />,
     );
 
     const trigger = screen.getByRole("button", { name: /Local/ });
 
+    fireEvent.keyDown(trigger, { key: "Escape" });
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
     expect(trigger).not.toHaveAttribute("aria-expanded");
     expect(trigger).not.toHaveAttribute("aria-controls");
     expect(screen.queryByRole("menu", { name: "Accounts" })).not.toBeInTheDocument();
