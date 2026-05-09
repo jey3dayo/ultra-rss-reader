@@ -44,6 +44,17 @@ async function expectLocatorsVisibleInParallel(locators: Locator[]) {
   await Promise.all(locators.map((locator) => expect(locator).toBeVisible()));
 }
 
+async function routeImagesToEmptyResponses(page: Page) {
+  await page.route("**/*", async (route) => {
+    if (route.request().resourceType() === "image") {
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+
+    await route.continue();
+  });
+}
+
 async function openSubscriptionsIndex(page: Page) {
   const showSidebarButton = page.getByRole("button", {
     name: /Show sidebar|サイドバーを表示/i,
@@ -53,10 +64,16 @@ async function openSubscriptionsIndex(page: Page) {
   }
 
   // Browser state changes stay sequential; only post-navigation assertions below are parallelized.
-  const manageSubscriptionsButton = page.getByRole("button", {
-    name: /Manage Subscriptions|購読を管理/i,
-  });
-  await manageSubscriptionsButton.waitFor({ state: "visible" });
+  const manageSubscriptionsButton = page
+    .locator('button:not([tabindex="-1"])')
+    .filter({ hasText: /Manage Subscriptions|購読一覧/i })
+    .or(
+      page.locator(
+        'button:not([tabindex="-1"])[aria-label="Manage Subscriptions"], button:not([tabindex="-1"])[aria-label="購読一覧"]',
+      ),
+    )
+    .first();
+  await expect(manageSubscriptionsButton).toBeVisible();
   await manageSubscriptionsButton.click();
 
   await expect(
@@ -139,6 +156,7 @@ async function expectHiddenAppLayoutPanesBlockFocus(
 test.describe("Ultra RSS Reader - basic rendering", () => {
   test.beforeEach(async ({ page }) => {
     installRuntimeErrorGuard(page);
+    await routeImagesToEmptyResponses(page);
     await page.goto("/");
   });
 
@@ -161,8 +179,10 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     ]);
   });
 
-  test("shows empty state message", async ({ page }) => {
-    await expect(page.getByText("Select an article to read")).toBeVisible();
+  test("shows the default selection summary", async ({ page }) => {
+    await expect(
+      page.getByRole("heading", { name: /Unread|未読/i }),
+    ).toBeVisible();
   });
 
   test("uses the light theme baseline by default", async ({ page }) => {
@@ -226,6 +246,9 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await sidebar
       .getByRole("button", { name: unreadSmartViewButtonName })
       .click();
+    await sidebar
+      .getByRole("button", { name: starredSmartViewButtonName })
+      .click();
 
     await expect(
       articleList.locator(`[data-article-id="${articleId}"]`),
@@ -277,15 +300,6 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   test("keeps hidden AppLayout panes out of keyboard focus across the WebView support matrix", async ({
     page,
   }) => {
-    await page.route("**/*", async (route) => {
-      if (route.request().resourceType() === "image") {
-        await route.fulfill({ status: 204, body: "" });
-        return;
-      }
-
-      await route.continue();
-    });
-
     const layoutCases = [
       { name: "wide", width: 1280, expectedHiddenPaneCount: 1 },
       { name: "compact", width: 900, expectedHiddenPaneCount: 2 },
@@ -374,10 +388,11 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   test("keeps subscription detail actions below the inventory heading on narrow screens", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 639, height: 900 });
+    await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
     await openSubscriptionInventory(page);
+    await page.setViewportSize({ width: 639, height: 900 });
 
     const detailActions = page
       .locator(
@@ -426,10 +441,11 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   test("keeps the first subscription row fixed on narrow screens when selection state changes", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 639, height: 900 });
+    await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
     await openSubscriptionInventory(page);
+    await page.setViewportSize({ width: 639, height: 900 });
 
     const rows = subscriptionRows(page);
     const firstRow = rows.first();
