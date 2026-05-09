@@ -75,20 +75,10 @@
   - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
   - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
 
-- [ ] P2 react-doctor shortcuts help effect handler 候補を追加する
-  - `src/components/reader/shortcuts-help-modal.tsx` の `useEffect` による event-handler 相当処理を open/change handler 境界へ寄せる
-  - modal open 時の focus / scroll / selected shortcut 表示が変わらない focused test を追加する
-  - shortcut recording Alt key contract とは分け、shortcuts help modal の effect handler 整理だけを扱う
-
 - [ ] P3 react-doctor test async waterfall 候補を追加する
   - `react-doctor/server-sequential-independent-await` が出ている test 群を、読みやすさを壊さない範囲で setup await と assertion await に分ける
   - 対象候補: `use-updater.test.ts` / `tauri-commands.test.ts` / `sidebar.test.tsx` / `scenario-runtime.test.ts`
   - production code の async policy とは分け、test runtime の無駄な waterfall cleanup だけを扱う
-
-- [ ] P2 react-doctor dev scenario dynamic import 候補を追加する
-  - `src/dev/scenario-runtime.ts` の dynamic import path を bundler が静的解析できる manifest / registry import へ寄せる
-  - dev scenario ID 追加時に import registry から漏れない contract test を追加する
-  - dev intent scenario id coverage とは分け、scenario runtime の bundle-splitting/import boundary だけを扱う
 
 - [ ] P3 react-doctor knip unused files cleanup 候補を追加する
   - `knip/files` の unused file 指摘を実 unused / config entrypoint / Storybook or Playwright entrypoint に分類する
@@ -99,11 +89,6 @@
   - `knip/duplicates` の duplicate export を schema barrel / story runtime helper ごとに整理する
   - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
   - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
-
-- [ ] P2 react-doctor app sync-on-wake account extraction 候補を追加する
-  - `src/App.tsx` の sync-on-wake 対象 account 抽出で `.filter().map()` している箇所を single-pass 化する
-  - app root focused test で hidden duration / active account / disabled account の sync 対象が変わらないことを固定する
-  - App visibility handler ref 候補とは分け、wake sync 対象抽出の iteration cleanup だけを扱う
 
 - [ ] P3 similarity reader UI state hook factory 候補を追加する
   - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
