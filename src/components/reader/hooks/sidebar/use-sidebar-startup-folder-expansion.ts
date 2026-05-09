@@ -35,7 +35,10 @@ function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<
   try {
     const nextState = readStoredSidebarExpandedFolders();
     nextState[accountId] = [...new Set(folderIds)];
-    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(nextState));
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify(StoredSidebarExpandedFoldersSchema.parse(nextState)),
+    );
   } catch {
     // Ignore quota or storage availability failures; expansion state remains in React state.
   }

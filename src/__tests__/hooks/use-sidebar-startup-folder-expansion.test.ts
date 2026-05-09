@@ -6,7 +6,11 @@ import {
   resolveSidebarStartupExpandedFolderIds,
   useSidebarStartupFolderExpansion,
 } from "@/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion";
-import { STORAGE_KEYS } from "@/constants/storage";
+import {
+  MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
+  MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+  STORAGE_KEYS,
+} from "@/constants/storage";
 
 const folders: FolderDto[] = [
   { id: "folder-unread", account_id: "acc-1", name: "Unread", sort_order: 0 },
@@ -282,6 +286,43 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     await waitFor(() => {
       expect(result.current).toEqual(new Set(["folder-unread"]));
+    });
+  });
+
+  it("prunes oversized sidebar expansion storage on write", async () => {
+    const folderIds = Array.from(
+      { length: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT + 5 },
+      (_, index) => `folder-${index}`,
+    );
+    const storedEntries = Array.from(
+      { length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS + 5 },
+      (_, index): [string, string[]] => [`stale-account-${index}`, folderIds],
+    );
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(Object.fromEntries(storedEntries)));
+
+    const { rerender } = renderHook(
+      ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "stale-account-0",
+          expandedFolderIds,
+          feedList: [],
+          folderList: folders,
+          startupFolderExpansion: "unread_folders",
+          feedsReady: true,
+          foldersReady: true,
+          setExpandedFolders: vi.fn(),
+        });
+      },
+      { initialProps: { expandedFolderIds: new Set<string>() } },
+    );
+
+    rerender({ expandedFolderIds: new Set(folderIds) });
+
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}");
+
+      expect(Object.keys(stored)).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS);
+      expect(stored["stale-account-0"]).toHaveLength(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
     });
   });
 });
