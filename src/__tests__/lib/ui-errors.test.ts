@@ -79,11 +79,31 @@ describe("ui error projection", () => {
       projectUiErrorToast({
         message: "クリップボードを利用できません",
         retryLabel: "再試行",
+        dismissLabel: "閉じる",
       }),
     ).toEqual({
       message: "クリップボードを利用できません",
       severity: "error",
     });
+  });
+
+  it("does not project action handlers without non-blank labels", () => {
+    const onRetry = vi.fn();
+    const onDismiss = vi.fn();
+
+    expect(
+      projectUiErrorToast({
+        message: "クリップボードを利用できません",
+        onRetry,
+        onDismiss,
+      }),
+    ).toEqual({
+      message: "クリップボードを利用できません",
+      severity: "error",
+    });
+
+    expect(onRetry).not.toHaveBeenCalled();
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 
   it("does not project action labels that are blank after trimming", () => {
@@ -102,6 +122,9 @@ describe("ui error projection", () => {
       message: "クリップボードを利用できません",
       severity: "error",
     });
+
+    expect(onRetry).not.toHaveBeenCalled();
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 
   it("trims projected action labels", () => {
