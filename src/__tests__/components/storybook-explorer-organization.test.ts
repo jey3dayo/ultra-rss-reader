@@ -121,6 +121,13 @@ describe("Storybook Explorer organization", () => {
     expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_TOP_LEVEL_GROUPS));
   });
 
+  it("keeps sorted story title copies from mutating the source order", () => {
+    const sourceTitles = ["Reader/Zeta", "Reader/Alpha", "Reader/Beta"];
+
+    expect(sortedCopy(sourceTitles)).toEqual(["Reader/Alpha", "Reader/Beta", "Reader/Zeta"]);
+    expect(sourceTitles).toEqual(["Reader/Zeta", "Reader/Alpha", "Reader/Beta"]);
+  });
+
   it("uses document-aligned UI Reference story names", () => {
     expect(sortedCopy(titlesUnder(STORYBOOK_EXPLORER_GROUPS.uiReference))).toEqual(
       sortedCopy(STORYBOOK_EXPLORER_UI_REFERENCE_TITLES),

@@ -740,6 +740,28 @@ describe("subscriptions index helpers", () => {
     ).toEqual(["feed-dormant", "feed-stale"]);
   });
 
+  it("keeps visible row sorting from mutating the caller-owned rows", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+    const rowOrderBeforeSort = rows.map((row) => row.feed.id);
+
+    const visibleRows = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "all",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(),
+      searchQuery: "",
+      sortKey: "updated_at",
+    });
+
+    expect(visibleRows.map((row) => row.feed.id)).toEqual(["feed-active", "feed-dormant", "feed-mid", "feed-stale"]);
+    expect(rows.map((row) => row.feed.id)).toEqual(rowOrderBeforeSort);
+  });
+
   it("keeps decided rows only for the all summary filter", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds,
@@ -1004,6 +1026,21 @@ describe("subscriptions index helpers", () => {
 
     expect(groups.map((group) => group.label)).toEqual(["AA Work", "ZZ No Folder"]);
     expect(groups[1]?.rows.map((row) => row.feed.id)).toEqual(["feed-active", "feed-dormant", "feed-mid"]);
+  });
+
+  it("keeps group sorting from mutating the caller-owned row order", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "AA Work"]]),
+    });
+    const rowOrderBeforeGrouping = rows.map((row) => row.feed.id);
+
+    const groups = buildSubscriptionListGroups(rows, "ZZ No Folder");
+
+    expect(groups.map((group) => group.label)).toEqual(["AA Work", "ZZ No Folder"]);
+    expect(rows.map((row) => row.feed.id)).toEqual(rowOrderBeforeGrouping);
   });
 
   it("uses folder keys as a stable tie-breaker when folder labels match", () => {
