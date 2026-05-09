@@ -41,27 +41,43 @@ function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<
   }
 }
 
+function collectValidFolderIds(folderList: StartupFolderExpansionFolder[]): Set<string> {
+  const folderIds = new Set<string>();
+
+  for (const folder of folderList) {
+    folderIds.add(folder.id);
+  }
+
+  return folderIds;
+}
+
+function collectUnreadFolderIds(
+  feedList: StartupFolderExpansionFeed[],
+  validFolderIds: ReadonlySet<string>,
+): Set<string> {
+  const unreadFolderIds = new Set<string>();
+
+  for (const feed of feedList) {
+    if (feed.folder_id !== null && feed.unread_count > 0 && validFolderIds.has(feed.folder_id)) {
+      unreadFolderIds.add(feed.folder_id);
+    }
+  }
+
+  return unreadFolderIds;
+}
+
 export function resolveSidebarStartupExpandedFolderIds({
   startupFolderExpansion,
   feedList,
   folderList,
   storedFolderIds = [],
 }: ResolveSidebarStartupExpandedFolderIdsParams): Set<string> {
-  const validFolderIds = new Set(folderList.map((folder) => folder.id));
-
   if (startupFolderExpansion === "unread_folders") {
-    const unreadFolderIds = new Set<string>();
-
-    for (const feed of feedList) {
-      if (feed.folder_id !== null && feed.unread_count > 0 && validFolderIds.has(feed.folder_id)) {
-        unreadFolderIds.add(feed.folder_id);
-      }
-    }
-
-    return unreadFolderIds;
+    return collectUnreadFolderIds(feedList, collectValidFolderIds(folderList));
   }
 
   if (startupFolderExpansion === "restore_previous") {
+    const validFolderIds = collectValidFolderIds(folderList);
     return new Set([...storedFolderIds].filter((folderId) => validFolderIds.has(folderId)));
   }
 
