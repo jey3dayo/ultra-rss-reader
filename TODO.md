@@ -94,11 +94,6 @@
   - `src/__tests__/lib/actions.test.ts` か dedicated test で `APP_ACTIONS` の重複なし、`isAppAction` の runtime acceptance、shortcut/menu 呼び出しの action id drift を固定する
   - share action target policy や command palette action UI とは分け、action id registry の型/runtime parity だけを扱う
 
-- [ ] feed landing web preview URL capability 候補を追加する
-  - `src/lib/feed/feed-landing.ts` の `hasWebPreviewUrl` が nonblank 判定だけなので、relative URL / unsupported scheme / malformed URL を preview capability として扱うか決める
-  - `src/__tests__/lib/feed-landing.test.ts` で `https://` / `http://` / whitespace / `javascript:` / relative path の期待値を固定する
-  - browser command URL schema や feed discovery URL safety とは分け、feed landing display helper の article URL capability 判定だけを扱う
-
 - [ ] folder display preset aggregate invalid policy 候補を追加する
   - `src/lib/articles/article-display.ts` の `resolveFolderDisplayPreset` が各 feed の invalid axis を `inherit` fallback 後に比較するため、invalid child feed を aggregate に含める方針を確認する
   - `src/__tests__/lib/article-display.test.ts` で child feed の片方だけ invalid / 両方 invalid / mixed valid preset の結果を固定する
@@ -178,16 +173,6 @@
   - `src/lib/subscriptions/subscription-review-candidates.ts` の `buildFolderNameByIdMap` が duplicate folder id を後勝ちにするため、DTO invariant 前提か UI helper 側で first-wins にするか決める
   - `src/__tests__/lib/subscription-review-candidates.test.ts` で duplicate folder id / blank folder name の folder label projection を固定する
   - folder DTO schema や OPML folder import とは分け、subscription review helper の folder name lookup だけを扱う
-
-- [ ] subscription summary card count boundary 候補を追加する
-  - `src/lib/subscriptions/subscriptions-index.ts` の `buildSubscriptionSummaryCards` が negative / nonfinite count をそのまま string と caption に渡せるため、summary count の入力境界を固定する
-  - `src/__tests__/lib/subscriptions-index.test.ts` で `totalCount` / `reviewCount` / `staleCount` の negative / `NaN` / `Infinity` を reject するか 0 fallback にするか明示する
-  - subscriptions overview visual layout とは分け、summary card helper の numeric boundary だけを扱う
-
-- [ ] subscription row search normalization 候補を追加する
-  - `src/lib/subscriptions/subscriptions-index.ts` の `buildVisibleSubscriptionRows` が title / feed URL / site URL / folder name を simple lowercase で検索するため、全角・濁点・accent・URL whitespace の扱いを固定する
-  - `src/__tests__/lib/subscriptions-index.test.ts` で mixed-case 以外の Unicode query と whitespace-padded URL/title の期待値を追加する
-  - search input UI や summary filter scroll reset とは分け、subscription row pure search helper の normalization だけを扱う
 
 ## UI/UX 監査の残り
 
