@@ -4,15 +4,18 @@ import {
   clearHistory,
   compactCommandHistory,
   getHistory,
+  resetCommandHistoryStorageFailureWarnings,
 } from "@/components/reader/hooks/command-palette/use-command-history";
 import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 
 describe("use-command-history", () => {
   beforeEach(() => {
+    resetCommandHistoryStorageFailureWarnings();
     localStorage.clear();
   });
 
   afterEach(() => {
+    resetCommandHistoryStorageFailureWarnings();
     vi.restoreAllMocks();
   });
 
@@ -169,6 +172,21 @@ describe("use-command-history", () => {
     expect(getHistory()).toEqual([]);
     expect(warn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Error));
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("can reset command history warning once cache between recovery checks", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+
+    addToHistory("feed-1");
+    addToHistory("feed-2");
+    resetCommandHistoryStorageFailureWarnings();
+    addToHistory("feed-3");
+
+    expect(warn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(2);
   });
 
   it("warns once while repeated storage reads fail", () => {

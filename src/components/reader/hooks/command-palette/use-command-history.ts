@@ -9,6 +9,10 @@ function resetCommandHistoryStorageFailure(kind: CommandHistoryStorageFailureKin
   warnedStorageFailureKinds.delete(kind);
 }
 
+export function resetCommandHistoryStorageFailureWarnings(): void {
+  warnedStorageFailureKinds.clear();
+}
+
 function logCommandHistoryStorageFailure(message: string, error: unknown): void {
   if (!import.meta.env.DEV) {
     return;
