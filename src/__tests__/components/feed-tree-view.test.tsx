@@ -1002,6 +1002,62 @@ describe("FeedTreeView", () => {
     expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
   });
 
+  it("tears down pointer drag state when the window loses focus", () => {
+    const onDragEnd = vi.fn();
+
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        folders={[]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Alpha",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 0,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={onDragEnd}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+      button: 0,
+      clientX: 12,
+      clientY: 16,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, {
+      clientX: 40,
+      clientY: 52,
+      pointerId: 1,
+    });
+    expect(screen.getByTestId("feed-tree-drag-overlay")).toBeInTheDocument();
+
+    fireEvent.blur(window);
+
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("feed-tree-drag-overlay")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+  });
+
   it("hides the unfoldered drop zone when dragging is disabled", () => {
     render(
       <FeedTreeView

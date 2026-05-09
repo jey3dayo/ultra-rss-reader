@@ -98,11 +98,19 @@ export function useFeedTreePointerDragEvents({
       finishPointerDrag(null, true);
     };
 
+    const handleWindowBlur = () => {
+      if (!pointerDragRef.current) {
+        return;
+      }
+      finishPointerDrag(null, true);
+    };
+
     return bindWindowEvents([
       { type: "pointermove", listener: createPointerEventListener(handlePointerMove) },
       { type: "pointerup", listener: createPointerEventListener(handlePointerUp) },
       { type: "pointercancel", listener: createPointerEventListener(handlePointerCancel) },
       { type: "keydown", listener: createKeyboardEventListener(handleEscape) },
+      { type: "blur", listener: handleWindowBlur },
     ]);
   }, [
     clearPointerTracking,
