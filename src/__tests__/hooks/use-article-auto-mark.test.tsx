@@ -6,9 +6,7 @@ import { useUiStore } from "@/stores/ui-store";
 
 type UseArticleAutoMarkParams = Parameters<typeof useArticleAutoMark>[0];
 type AutoMarkMutate = UseArticleAutoMarkParams["setRead"]["mutate"];
-type AutoMarkOnErrorContext = Parameters<
-  NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>
->[3];
+type AutoMarkOnErrorContext = Parameters<NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>>[3];
 
 function createMutationContext(): AutoMarkOnErrorContext {
   return {
@@ -17,9 +15,7 @@ function createMutationContext(): AutoMarkOnErrorContext {
   };
 }
 
-function createParams(
-  overrides: Partial<UseArticleAutoMarkParams> = {},
-): UseArticleAutoMarkParams {
+function createParams(overrides: Partial<UseArticleAutoMarkParams> = {}): UseArticleAutoMarkParams {
   return {
     articleId: "art-1",
     isRead: false,
@@ -174,12 +170,7 @@ describe("useArticleAutoMark", () => {
   it("immediately marks unread articles and records success only after mutation success", () => {
     const addRecentlyRead = vi.fn();
     const mutate: AutoMarkMutate = (variables, options) => {
-      options?.onSuccess?.(
-        undefined,
-        variables,
-        undefined,
-        createMutationContext(),
-      );
+      options?.onSuccess?.(undefined, variables, undefined, createMutationContext());
     };
     const setRead: UseArticleAutoMarkParams["setRead"] = {
       mutate: vi.fn(mutate),
@@ -208,12 +199,7 @@ describe("useArticleAutoMark", () => {
   it("allows the same article to retry after auto mark mutation fails", () => {
     const showToast = vi.fn();
     const mutate: AutoMarkMutate = (variables, options) => {
-      options?.onError?.(
-        new Error("Failed to mark read"),
-        variables,
-        undefined,
-        createMutationContext(),
-      );
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
     };
     const setRead: UseArticleAutoMarkParams["setRead"] = {
       mutate: vi.fn(mutate),
@@ -247,12 +233,7 @@ describe("useArticleAutoMark", () => {
   it("rolls back auto-retained unread articles when auto mark mutation fails", () => {
     const showToast = vi.fn();
     const mutate: AutoMarkMutate = (variables, options) => {
-      options?.onError?.(
-        new Error("Failed to mark read"),
-        variables,
-        undefined,
-        createMutationContext(),
-      );
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
     };
     const setRead: UseArticleAutoMarkParams["setRead"] = {
       mutate: vi.fn(mutate),
@@ -277,12 +258,7 @@ describe("useArticleAutoMark", () => {
   it("keeps pre-existing retained unread articles when auto mark mutation fails", () => {
     useUiStore.getState().retainArticle("art-1");
     const mutate: AutoMarkMutate = (variables, options) => {
-      options?.onError?.(
-        new Error("Failed to mark read"),
-        variables,
-        undefined,
-        createMutationContext(),
-      );
+      options?.onError?.(new Error("Failed to mark read"), variables, undefined, createMutationContext());
     };
     const setRead: UseArticleAutoMarkParams["setRead"] = {
       mutate: vi.fn(mutate),
@@ -299,19 +275,12 @@ describe("useArticleAutoMark", () => {
       );
     });
 
-    expect(useUiStore.getState().retainedArticleIds).toEqual(
-      new Set(["art-1"]),
-    );
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
   });
 
   it("does not block the next article after a failed auto mark mutation", () => {
     const mutate: AutoMarkMutate = (variables, options) => {
-      options?.onError?.(
-        new Error(`Failed ${variables.id}`),
-        variables,
-        undefined,
-        createMutationContext(),
-      );
+      options?.onError?.(new Error(`Failed ${variables.id}`), variables, undefined, createMutationContext());
     };
     const setRead: UseArticleAutoMarkParams["setRead"] = {
       mutate: vi.fn(mutate),
@@ -353,10 +322,7 @@ describe("useArticleAutoMark", () => {
   it("keeps newer auto mark state when a stale delayed mutation fails", () => {
     const showToast = vi.fn();
     const addRecentlyRead = vi.fn();
-    const mutationCallbacks = new Map<
-      string,
-      NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>
-    >();
+    const mutationCallbacks = new Map<string, NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>>();
     const mutate: AutoMarkMutate = (variables, options) => {
       if (options?.onError) {
         mutationCallbacks.set(variables.id, options.onError);
@@ -420,9 +386,7 @@ describe("useArticleAutoMark", () => {
     );
 
     expect(setRead.mutate).toHaveBeenCalledTimes(2);
-    expect(useUiStore.getState().retainedArticleIds).toEqual(
-      new Set(["art-2"]),
-    );
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-2"]));
     expect(addRecentlyRead).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith("Failed stale article");
   });

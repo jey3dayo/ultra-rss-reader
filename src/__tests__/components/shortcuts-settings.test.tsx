@@ -35,21 +35,11 @@ describe("ShortcutsSettings", () => {
     expect(screen.getByText("Show unread articles")).toBeInTheDocument();
     expect(screen.getByText("Show all articles")).toBeInTheDocument();
     expect(screen.getByText("Show starred articles")).toBeInTheDocument();
-    expect(screen.getByTestId("shortcut-badge-show_unread")).toHaveTextContent(
-      "⌘ 1",
-    );
-    expect(screen.getByTestId("shortcut-badge-show_all")).toHaveTextContent(
-      "⌘ 2",
-    );
-    expect(screen.getByTestId("shortcut-badge-show_starred")).toHaveTextContent(
-      "⌘ 3",
-    );
-    expect(screen.getByTestId("shortcut-badge-toggle_read")).toHaveTextContent(
-      "m",
-    );
-    expect(screen.getByTestId("shortcut-badge-toggle_star")).toHaveTextContent(
-      "s",
-    );
+    expect(screen.getByTestId("shortcut-badge-show_unread")).toHaveTextContent("⌘ 1");
+    expect(screen.getByTestId("shortcut-badge-show_all")).toHaveTextContent("⌘ 2");
+    expect(screen.getByTestId("shortcut-badge-show_starred")).toHaveTextContent("⌘ 3");
+    expect(screen.getByTestId("shortcut-badge-toggle_read")).toHaveTextContent("m");
+    expect(screen.getByTestId("shortcut-badge-toggle_star")).toHaveTextContent("s");
   });
 
   it("builds shortcut categories in definition order", () => {
@@ -60,11 +50,7 @@ describe("ShortcutsSettings", () => {
         { categoryKey: "shortcuts.category_navigation" },
         { categoryKey: "shortcuts.category_global" },
       ]),
-    ).toEqual([
-      "shortcuts.category_navigation",
-      "shortcuts.category_actions",
-      "shortcuts.category_global",
-    ]);
+    ).toEqual(["shortcuts.category_navigation", "shortcuts.category_actions", "shortcuts.category_global"]);
   });
 
   it("shows conflicts when a direct filter shortcut collides with an article toggle shortcut", () => {
@@ -79,12 +65,8 @@ describe("ShortcutsSettings", () => {
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
     expect(screen.getAllByText(/Conflict:/)).toHaveLength(2);
-    expect(
-      screen.getByText(/Conflict: Toggle read \/ unread/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Conflict: Show unread articles/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Conflict: Toggle read \/ unread/)).toBeInTheDocument();
+    expect(screen.getByText(/Conflict: Show unread articles/)).toBeInTheDocument();
   });
 
   it("shows native menu owned shortcut conflicts in the settings list", () => {
@@ -98,9 +80,7 @@ describe("ShortcutsSettings", () => {
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Conflict: native menu")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("shortcut-badge-reload_webview"),
-    ).toHaveTextContent("⌘ r");
+    expect(screen.getByTestId("shortcut-badge-reload_webview")).toHaveTextContent("⌘ r");
   });
 
   it("clears the global conflict message when recording a different shortcut starts", async () => {
@@ -111,8 +91,7 @@ describe("ShortcutsSettings", () => {
     await user.click(screen.getByTestId("shortcut-badge-show_unread"));
     await user.keyboard("m");
 
-    const conflictMessage =
-      /"m" is already assigned to "Toggle read \/ unread"/;
+    const conflictMessage = /"m" is already assigned to "Toggle read \/ unread"/;
 
     expect(await screen.findByText(conflictMessage)).toBeInTheDocument();
 
@@ -136,15 +115,11 @@ describe("ShortcutsSettings", () => {
 
     await user.click(screen.getByTestId("shortcut-badge-next_article"));
 
-    expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent(
-      "Press a key",
-    );
+    expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent("Press a key");
 
     await user.keyboard("{Escape}");
 
-    expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent(
-      "n",
-    );
+    expect(screen.getByTestId("shortcut-badge-next_article")).toHaveTextContent("n");
     expect(setPref).not.toHaveBeenCalled();
   });
 
@@ -208,9 +183,7 @@ describe("ShortcutsSettings", () => {
     });
 
     expect(setPref).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(/"Ctrl r" is already assigned to "native menu"/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/"Ctrl r" is already assigned to "native menu"/)).toBeInTheDocument();
   });
 
   it("resets one shortcut row without resetting all bindings", async () => {
