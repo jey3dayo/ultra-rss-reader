@@ -555,6 +555,31 @@
   - 複数 decorator が同じ context を受け取り、outer/inner order と args override が変わらないことを `fixtures.test.ts` または dedicated helper test で固定する
   - render helper assertion cleanup や individual story fixture 変更とは分け、decorator composition order だけを扱う
 
+- [ ] form action buttons loading guard 候補を追加する
+  - `src/components/shared/form-action-buttons.tsx` は `loading` 中でも `submitDisabled` が false なら submit button が押せるため、direct use 時の二重 submit 方針を固定する
+  - `src/__tests__/components/shared-form-controls.test.tsx` で `loading` 中は submitting label 表示と submit click suppression が同時に成立することを確認する
+  - `FormDialogShell` の submit guard とは分け、shared footer button primitive 単体の loading contract だけを扱う
+
+- [ ] labeled select row disabled/null change guard 候補を追加する
+  - `src/components/shared/labeled-select-row.tsx` の `onValueChange` が disabled 中の programmatic change と `null` 値をどう扱うか、`StackedSelectField` と同等の helper contract へ揃える
+  - `src/__tests__/components/shared-form-controls.test.tsx` で disabled row は option click / direct handler のどちらでも `onChange` せず、`null` は drop されることを固定する
+  - settings page select behavior や folder select business logic とは分け、shared labeled select row の primitive boundary だけを扱う
+
+- [ ] copyable text field whitespace copy guard 候補を追加する
+  - `src/components/shared/copyable-text-field.tsx` の copy button が `value=""` だけを disabled にしており、whitespace-only value では押せる点を整理する
+  - `src/__tests__/components/copyable-text-field.test.tsx` で `"   "` / `"\n\t"` は copy action disabled、非空白 value は payload を trim せず copy handler に委譲することを固定する
+  - clipboard runtime helper の whitespace guard とは分け、copyable text field の UI activation boundary だけを扱う
+
+- [ ] copyable text field inside action focus boundary 候補を追加する
+  - `CopyableTextField` の copy button は `onMouseDown.preventDefault()` で focus を奪わない前提だが、readonly/select 済み input の selection 維持が未固定になっている
+  - `src/__tests__/components/copyable-text-field.test.tsx` で copy button click 後も focused input と selection range が維持され、`onCopy` は 1 回だけ呼ばれることを確認する
+  - `CopyableReadonlyField` と `LabeledInputRow` の inside action focus test とは分け、editable/readOnly 両対応の `CopyableTextField` だけを扱う
+
+- [ ] labeled input disabled action parity 候補を追加する
+  - `src/components/shared/labeled-input-row.tsx` は input `disabled` と action button `disabled` が独立しており、field disabled 中も action が押せるため共有 row の方針を決める
+  - `src/__tests__/components/shared-form-controls.test.tsx` で `disabled` field の inline / inside action が実行されない、または action を明示的に許可する contract を固定する
+  - settings page text action disabled contract とは分け、shared labeled input row の disabled/action parity だけを扱う
+
 - [ ] manual article query whitespace id guard 候補を追加する
   - `src/hooks/use-articles.ts` の `useArticles` / `useAccountArticles` / `useFolderArticles` / `useRecentArticles` / `useAccountStarredCount` が `enabled: !!id` で whitespace-only id を有効扱いにする点を整理する
   - `src/__tests__/hooks/use-articles.test.tsx` で `"   "` / `"\n"` の feed/account/folder id では API が呼ばれず、query key も trim 後 null 相当になることを固定する
