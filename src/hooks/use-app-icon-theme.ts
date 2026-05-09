@@ -20,7 +20,8 @@ function isSameAppIconRequest(a: AppIconRequest, b: AppIconRequest) {
   return (
     a.theme === b.theme &&
     a.platformLoaded === b.platformLoaded &&
-    a.supportsRuntimeWindowIconReplacement === b.supportsRuntimeWindowIconReplacement
+    a.supportsRuntimeWindowIconReplacement ===
+      b.supportsRuntimeWindowIconReplacement
   );
 }
 
@@ -54,10 +55,13 @@ async function setAppIcon(
 }
 
 export function useAppIconTheme() {
-  const theme = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "theme"));
+  const theme = usePreferencesStore((s) =>
+    resolvePreferenceValue(s.prefs, "theme"),
+  );
   const platformLoaded = usePlatformStore((state) => state.loaded);
   const supportsRuntimeWindowIconReplacement = usePlatformStore(
-    (state) => state.platform.capabilities.supports_runtime_window_icon_replacement,
+    (state) =>
+      state.platform.capabilities.supports_runtime_window_icon_replacement,
   );
   const mountedRef = useRef(false);
   const pendingRequestRef = useRef<AppIconRequest | null>(null);
@@ -87,10 +91,14 @@ export function useAppIconTheme() {
 
         await setAppIcon(request.theme, {
           platformLoaded: request.platformLoaded,
-          supportsRuntimeWindowIconReplacement: request.supportsRuntimeWindowIconReplacement,
+          supportsRuntimeWindowIconReplacement:
+            request.supportsRuntimeWindowIconReplacement,
         });
 
-        if (pendingRequestRef.current !== null && isSameAppIconRequest(request, pendingRequestRef.current)) {
+        if (
+          pendingRequestRef.current !== null &&
+          isSameAppIconRequest(request, pendingRequestRef.current)
+        ) {
           pendingRequestRef.current = null;
         }
       }
@@ -125,7 +133,10 @@ export function useAppIconTheme() {
       return;
     }
 
-    if (typeof window.matchMedia !== "function") {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
       return;
     }
 
@@ -146,5 +157,10 @@ export function useAppIconTheme() {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme, platformLoaded, supportsRuntimeWindowIconReplacement, requestAppIcon]);
+  }, [
+    theme,
+    platformLoaded,
+    supportsRuntimeWindowIconReplacement,
+    requestAppIcon,
+  ]);
 }

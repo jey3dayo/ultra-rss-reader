@@ -1,6 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { renderHook } from "@testing-library/react";
-import { type TestUserVisibleAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
+import {
+  type TestUserVisibleAppError,
+  testUserVisibleAppError,
+} from "@tests/helpers/app-error";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockCheckForUpdate = vi.hoisted(() => vi.fn());
@@ -58,7 +61,8 @@ describe("performUpdateCheck", () => {
   });
 
   it("reuses the in-flight update check result for concurrent callers", async () => {
-    const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    const deferred =
+      createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
     const { performUpdateCheck } = await import("@/hooks/use-updater");
@@ -70,17 +74,22 @@ describe("performUpdateCheck", () => {
 
     deferred.resolve(Result.succeed({ version: "1.2.3", body: null }));
 
-    const [firstResult, secondResult] = await Promise.all([firstCheck, secondCheck]);
+    const [firstResult, secondResult] = await Promise.all([
+      firstCheck,
+      secondCheck,
+    ]);
 
     expect(firstResult).toEqual({ version: "1.2.3", body: null });
     expect(secondResult).toEqual({ version: "1.2.3", body: null });
   });
 
   it("shares a single in-flight update check between startup and manual triggers", async () => {
-    const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    const deferred =
+      createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
+    const { runManualUpdateCheck, useUpdater } =
+      await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
@@ -92,11 +101,14 @@ describe("performUpdateCheck", () => {
     deferred.resolve(Result.succeed({ version: "1.2.3", body: null }));
     await manualCheck;
 
-    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "v1.2.3 が利用可能です",
+    );
   });
 
   it("clears the in-flight guard after a shared failure so later checks can retry", async () => {
-    const failedCheck = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    const failedCheck =
+      createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
     mockCheckForUpdate.mockReturnValueOnce(failedCheck.promise);
 
     const { performUpdateCheckResult } = await import("@/hooks/use-updater");
@@ -107,7 +119,10 @@ describe("performUpdateCheck", () => {
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
 
     failedCheck.resolve(Result.fail(testUserVisibleAppError("network down")));
-    const [firstResult, secondResult] = await Promise.all([firstCheck, secondCheck]);
+    const [firstResult, secondResult] = await Promise.all([
+      firstCheck,
+      secondCheck,
+    ]);
 
     expect(firstResult).toSatisfy(Result.isFailure);
     expect(secondResult).toSatisfy(Result.isFailure);
@@ -136,7 +151,8 @@ describe("performUpdateCheck", () => {
     const error = testUserVisibleAppError("network down");
     mockCheckForUpdate.mockResolvedValue(Result.fail(error));
 
-    const { performUpdateCheck, performUpdateCheckResult } = await import("@/hooks/use-updater");
+    const { performUpdateCheck, performUpdateCheckResult } =
+      await import("@/hooks/use-updater");
 
     const result = await performUpdateCheckResult();
     expect(Result.isFailure(result)).toBe(true);
@@ -146,7 +162,9 @@ describe("performUpdateCheck", () => {
   });
 
   it("shows a fallback toast that keeps the current version when download fails", async () => {
-    mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("network down")));
+    mockDownloadAndInstallUpdate.mockResolvedValue(
+      Result.fail(testUserVisibleAppError("network down")),
+    );
 
     const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
@@ -165,17 +183,72 @@ describe("performUpdateCheck", () => {
     });
     await flushAsyncWork();
 
-    expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
+    expect(useUiStore.getState().toastMessage?.message).toContain(
+      "現在のバージョンを引き続き使用します",
+    );
     expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
     expect(useUiStore.getState().toastMessage?.variant).toBe("update");
-    expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
+    expect(
+      useUiStore
+        .getState()
+        .toastMessage?.actions?.some(
+          (action) => action.label === "もう一度確認",
+        ),
+    ).toBe(true);
+  });
+
+  it("cleans up the pending download when the download command rejects", async () => {
+    mockDownloadAndInstallUpdate
+      .mockRejectedValueOnce(new Error("download command rejected"))
+      .mockResolvedValueOnce(
+        Result.fail(testUserVisibleAppError("network down")),
+      );
+    mockCheckForUpdate.mockResolvedValue(
+      Result.succeed({ version: "1.2.4", body: null }),
+    );
+
+    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    await flushAsyncWork();
+
+    expect(useUiStore.getState().toastMessage?.message).toContain(
+      "現在のバージョンを引き続き使用します",
+    );
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    await flushAsyncWork();
+
+    expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(2);
+
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "もう一度確認")
+      ?.onClick();
+    await flushAsyncWork();
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "v1.2.4 が利用可能です",
+    );
   });
 
   it("uses locale keys for updater toast and action copy", async () => {
     await changeTestLanguage("en");
     mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
 
-    const { runManualUpdateCheck, showRestartToast, showUpdateAvailableToast } = await import("@/hooks/use-updater");
+    const { runManualUpdateCheck, showRestartToast, showUpdateAvailableToast } =
+      await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
@@ -184,17 +257,27 @@ describe("performUpdateCheck", () => {
       message: "v1.2.3 is available",
       variant: "update",
     });
-    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual(["Update now", "Later"]);
+    expect(
+      useUiStore
+        .getState()
+        .toastMessage?.actions?.map((action) => action.label),
+    ).toEqual(["Update now", "Later"]);
 
     showRestartToast();
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "Update is ready",
       variant: "update",
     });
-    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual(["Restart", "Later"]);
+    expect(
+      useUiStore
+        .getState()
+        .toastMessage?.actions?.map((action) => action.label),
+    ).toEqual(["Restart", "Later"]);
 
     await runManualUpdateCheck();
-    expect(useUiStore.getState().toastMessage?.message).toBe("You're up to date");
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "You're up to date",
+    );
   });
 
   it("ignores duplicate download clicks while one update download is pending", async () => {
@@ -206,7 +289,9 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
-    const startAction = useUiStore.getState().toastMessage?.actions?.find((action) => action.label === "今すぐ更新");
+    const startAction = useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新");
 
     startAction?.onClick();
     startAction?.onClick();
@@ -222,27 +307,34 @@ describe("performUpdateCheck", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockCheckForUpdate.mockResolvedValue(Result.fail(error));
 
-    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
+    const { runManualUpdateCheck, useUpdater } =
+      await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
     await flushAsyncWork();
 
-    expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Startup update check failed (silent):",
+      error,
+    );
     expect(useUiStore.getState().toastMessage).toBeNull();
 
     await runManualUpdateCheck();
 
     expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
-    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "アップデートの確認に失敗しました",
+    );
 
     warnSpy.mockRestore();
     errorSpy.mockRestore();
   });
 
   it("does not show an update toast when the startup check resolves after unmount", async () => {
-    const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    const deferred =
+      createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
     const { useUpdater } = await import("@/hooks/use-updater");
@@ -263,7 +355,8 @@ describe("performUpdateCheck", () => {
 
   it("does not warn when the startup check fails after unmount", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const deferred = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    const deferred =
+      createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
     const error = testUserVisibleAppError("network down");
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
@@ -277,18 +370,25 @@ describe("performUpdateCheck", () => {
     deferred.resolve(Result.fail(error));
     await flushAsyncWork();
 
-    expect(warnSpy).not.toHaveBeenCalledWith("Startup update check failed (silent):", error);
+    expect(warnSpy).not.toHaveBeenCalledWith(
+      "Startup update check failed (silent):",
+      error,
+    );
 
     warnSpy.mockRestore();
   });
 
-  it("skips the startup update check in browser dev mock preview", async () => {
+  it("skips update checks in browser dev mock preview", async () => {
     window.__DEV_BROWSER_MOCKS__ = true;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    mockCheckForUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("updater unavailable")));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockCheckForUpdate.mockResolvedValue(
+      Result.fail(testUserVisibleAppError("updater unavailable")),
+    );
 
-    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
+    const { runManualUpdateCheck, useUpdater } =
+      await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
@@ -303,15 +403,24 @@ describe("performUpdateCheck", () => {
 
     await runManualUpdateCheck();
 
-    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
-    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+    expect(mockCheckForUpdate).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalledWith(
+      "Manual update check failed:",
+      expect.objectContaining({ message: "updater unavailable" }),
+    );
+    expect(useUiStore.getState().toastMessage).toBeNull();
 
     warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it("re-checks updates from the fallback toast instead of auto-retrying the download", async () => {
-    mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("network down")));
-    mockCheckForUpdate.mockResolvedValue(Result.succeed({ version: "1.2.4", body: null }));
+    mockDownloadAndInstallUpdate.mockResolvedValue(
+      Result.fail(testUserVisibleAppError("network down")),
+    );
+    mockCheckForUpdate.mockResolvedValue(
+      Result.succeed({ version: "1.2.4", body: null }),
+    );
 
     const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
@@ -332,11 +441,15 @@ describe("performUpdateCheck", () => {
 
     expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(1);
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
-    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "v1.2.4 が利用可能です",
+    );
   });
 
   it("keeps the prepared update pending when restart command fails", async () => {
-    mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError("restart failed")));
+    mockRestartApp.mockResolvedValue(
+      Result.fail(testUserVisibleAppError("restart failed")),
+    );
 
     const { showRestartToast } = await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
@@ -355,10 +468,11 @@ describe("performUpdateCheck", () => {
       persistent: true,
       variant: "update",
     });
-    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
-      "もう一度再起動",
-      "後で",
-    ]);
+    expect(
+      useUiStore
+        .getState()
+        .toastMessage?.actions?.map((action) => action.label),
+    ).toEqual(["もう一度再起動", "後で"]);
   });
 
   it("keeps the prepared update pending when restart runtime is unavailable", async () => {
@@ -391,12 +505,17 @@ describe("performUpdateCheck", () => {
   it("normalizes download progress event percent before updating the toast", async () => {
     const progressListeners: Array<(event: { payload: unknown }) => void> = [];
     mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
-    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
-      if (eventName === "update-download-progress") {
-        progressListeners.push(callback);
-      }
-      return () => {};
-    });
+    mockListen.mockImplementation(
+      async (
+        eventName: string,
+        callback: (event: { payload: unknown }) => void,
+      ) => {
+        if (eventName === "update-download-progress") {
+          progressListeners.push(callback);
+        }
+        return () => {};
+      },
+    );
 
     const { useUpdater } = await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();
@@ -446,12 +565,17 @@ describe("performUpdateCheck", () => {
   it("ignores malformed download progress events", async () => {
     const progressListeners: Array<(event: { payload: unknown }) => void> = [];
     mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
-    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
-      if (eventName === "update-download-progress") {
-        progressListeners.push(callback);
-      }
-      return () => {};
-    });
+    mockListen.mockImplementation(
+      async (
+        eventName: string,
+        callback: (event: { payload: unknown }) => void,
+      ) => {
+        if (eventName === "update-download-progress") {
+          progressListeners.push(callback);
+        }
+        return () => {};
+      },
+    );
 
     const { useUpdater } = await import("@/hooks/use-updater");
     const useUiStore = await getUiStore();

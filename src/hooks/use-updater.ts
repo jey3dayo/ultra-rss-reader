@@ -2,7 +2,12 @@ import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
-import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
+import {
+  type AppError,
+  checkForUpdate,
+  downloadAndInstallUpdate,
+  restartApp,
+} from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
@@ -10,7 +15,8 @@ import { useUiStore } from "@/stores/ui-store";
 type UpdateInfo = { version: string; body: string | null };
 
 /** Share a single in-flight update check across startup and manual triggers. */
-let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
+let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null =
+  null;
 let downloadInFlight = false;
 
 export function showUpdateAvailableToast(version: string): void {
@@ -60,6 +66,18 @@ function showUpdateFailureToast(message: string): void {
   });
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "Unknown update download failure";
+}
+
 function startDownload(): void {
   if (downloadInFlight) {
     return;
@@ -74,18 +92,25 @@ function startDownload(): void {
     variant: "update",
   });
 
-  downloadAndInstallUpdate().then((result) =>
-    Result.pipe(
-      result,
-      Result.inspectError((e) => {
-        showUpdateFailureToast(e.message);
-        downloadInFlight = false;
-      }),
-    ),
-  );
+  void downloadAndInstallUpdate()
+    .then((result) =>
+      Result.pipe(
+        result,
+        Result.inspectError((e) => {
+          showUpdateFailureToast(e.message);
+          downloadInFlight = false;
+        }),
+      ),
+    )
+    .catch((error: unknown) => {
+      showUpdateFailureToast(getErrorMessage(error));
+      downloadInFlight = false;
+    });
 }
 
-export function normalizeDownloadProgressPercent(percent: number | null): number | null {
+export function normalizeDownloadProgressPercent(
+  percent: number | null,
+): number | null {
   if (percent === null) {
     return null;
   }
@@ -97,7 +122,9 @@ export function normalizeDownloadProgressPercent(percent: number | null): number
   return Math.min(100, Math.max(0, Math.round(percent)));
 }
 
-function readDownloadProgressPercent(payload: unknown): number | null | undefined {
+function readDownloadProgressPercent(
+  payload: unknown,
+): number | null | undefined {
   const result = UpdateDownloadProgressEventPayloadSchema.safeParse(payload);
   if (!result.success) {
     return undefined;
@@ -135,10 +162,11 @@ function restartPreparedUpdate(): void {
   );
 }
 
-function isStartupUpdaterUnavailable(): boolean {
+function isUpdaterRuntimeUnavailable(): boolean {
   return (
     typeof window !== "undefined" &&
-    (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)
+    (window.__DEV_BROWSER_MOCKS__ === true ||
+      window.__ULTRA_RSS_BROWSER_MOCKS__ === true)
   );
 }
 
@@ -163,7 +191,10 @@ export function showRestartToast(): void {
   });
 }
 
-export async function performUpdateCheckResult(): Result.ResultAsync<UpdateInfo | null, AppError> {
+export async function performUpdateCheckResult(): Result.ResultAsync<
+  UpdateInfo | null,
+  AppError
+> {
   if (checkInFlight) return checkInFlight;
 
   checkInFlight = (async () => {
@@ -192,6 +223,10 @@ export async function performUpdateCheck(): Promise<UpdateInfo | null> {
 }
 
 export async function runManualUpdateCheck(): Promise<void> {
+  if (isUpdaterRuntimeUnavailable()) {
+    return;
+  }
+
   const store = useUiStore.getState();
 
   const result = await performUpdateCheckResult();
@@ -216,7 +251,7 @@ export function useUpdater(): void {
     let cancelled = false;
 
     // Startup check (silent on failure)
-    if (!isStartupUpdaterUnavailable()) {
+    if (!isUpdaterRuntimeUnavailable()) {
       performUpdateCheckResult().then((result) => {
         if (cancelled) {
           return;
@@ -245,7 +280,9 @@ export function useUpdater(): void {
             return;
           }
           const message =
-            percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
+            percent != null
+              ? i18n.t("updater.downloading_percent", { percent })
+              : i18n.t("updater.downloading");
           store.showToast({
             message,
             persistent: true,

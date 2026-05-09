@@ -38,10 +38,16 @@ function createMatchMedia(matches: boolean) {
     },
     media: "(prefers-color-scheme: dark)",
     onchange: null,
-    addEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
+    addEventListener: (
+      _: string,
+      listener: (event: MatchMediaChangeEvent) => void,
+    ) => {
       listeners.add(listener);
     },
-    removeEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
+    removeEventListener: (
+      _: string,
+      listener: (event: MatchMediaChangeEvent) => void,
+    ) => {
       listeners.delete(listener);
     },
     listenerCount() {
@@ -88,7 +94,8 @@ function setPlatformState({
       kind,
       capabilities: {
         ...defaultCapabilities,
-        supports_runtime_window_icon_replacement: supportsRuntimeWindowIconReplacement,
+        supports_runtime_window_icon_replacement:
+          supportsRuntimeWindowIconReplacement,
       },
     },
   });
@@ -294,7 +301,9 @@ describe("useAppIconTheme", () => {
       "matchMedia",
       vi.fn(() => createMatchMedia(false)),
     );
-    setIconMock.mockRejectedValueOnce(new Error("runtime icon unavailable")).mockResolvedValue(undefined);
+    setIconMock
+      .mockRejectedValueOnce(new Error("runtime icon unavailable"))
+      .mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -322,7 +331,9 @@ describe("useAppIconTheme", () => {
       "matchMedia",
       vi.fn(() => createMatchMedia(false)),
     );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    setIconMock
+      .mockImplementationOnce(() => firstIconRequest.promise)
+      .mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -360,7 +371,9 @@ describe("useAppIconTheme", () => {
       "matchMedia",
       vi.fn(() => mql),
     );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    setIconMock
+      .mockImplementationOnce(() => firstIconRequest.promise)
+      .mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -397,7 +410,9 @@ describe("useAppIconTheme", () => {
       "matchMedia",
       vi.fn(() => createMatchMedia(false)),
     );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    setIconMock
+      .mockImplementationOnce(() => firstIconRequest.promise)
+      .mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
       loaded: true,
