@@ -2378,6 +2378,7 @@ mod tests {
             .await;
         let local_failure_mock = server
             .mock("GET", "/local-broken.xml")
+            .expect(0)
             .with_status(500)
             .with_body("server error")
             .create_async()
