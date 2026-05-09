@@ -219,12 +219,8 @@ describe("SubscriptionsIndexPage", () => {
     expectTypeOf<PageViewProps["summaryCards"][number]>().toEqualTypeOf<SubscriptionSummaryCard>();
     expectTypeOf<PageViewProps["groups"][number]>().toEqualTypeOf<SubscriptionListGroup>();
     expectTypeOf<PageViewProps["selectedRow"]>().toEqualTypeOf<SubscriptionListRow | null>();
-    expectTypeOf<
-      PageViewProps["selectedMetrics"]
-    >().toEqualTypeOf<SubscriptionDetailMetrics | null>();
-    expectTypeOf<
-      PageViewProps["selectedDetailCandidate"]
-    >().toEqualTypeOf<SubscriptionDetailCandidate | null>();
+    expectTypeOf<PageViewProps["selectedMetrics"]>().toEqualTypeOf<SubscriptionDetailMetrics | null>();
+    expectTypeOf<PageViewProps["selectedDetailCandidate"]>().toEqualTypeOf<SubscriptionDetailCandidate | null>();
     expectTypeOf<NonNullable<PageViewProps["decisionActions"]>>().toEqualTypeOf<SubscriptionDecisionActions>();
   });
 

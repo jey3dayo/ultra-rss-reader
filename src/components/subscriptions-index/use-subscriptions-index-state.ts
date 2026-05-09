@@ -43,10 +43,7 @@ type SubscriptionsIndexStateOptions = {
   initialListScrollTop?: number;
 };
 
-export function useSubscriptionsIndexState(
-  rows: SubscriptionListRow[],
-  options?: SubscriptionsIndexStateOptions,
-) {
+export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?: SubscriptionsIndexStateOptions) {
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
   const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
   const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(
