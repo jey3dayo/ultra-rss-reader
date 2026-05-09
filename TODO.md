@@ -370,11 +370,6 @@
   - React Doctor の `async-parallel` が script 内の 3 sequential await を検出しており、dev data refresh が不要に遅くなる可能性がある
   - DB connection、backup/read、transform、write の依存関係を明確にし、独立処理だけ並列化して error diagnostics を維持する
 
-- [ ] P3 Tailwind redundant size axes を design primitive から小さく潰す
-  - 対象: `src/components/reader/account-switcher-view.tsx`, `src/components/shared/nav-row-button.stories.tsx`
-  - React Doctor の `design-no-redundant-size-axes` が `w-4 h-4` を検出しており、Tailwind v3.4+ なら `size-4` に寄せられる
-  - production component を先に直し、Storybook は visual diff 影響がない範囲で同じ表記へ揃える
-
 - [ ] P3 React Compiler 未導入状態の採用判断メモを作る
   - 対象: `CLAUDE.md`, `.claude/rules/*`, `TODO.md`, `vite.config.ts`
   - React Doctor は React 19.2.6 を検出している一方で React Compiler は未検出なので、今後の memoization / effect cleanup の判断基準が compiler 有無で揺れやすい
@@ -459,11 +454,6 @@
   - 対象: `src/__tests__/components/ui-reference-specimen-registry.test.ts`, `src/__tests__/components/design-ui-primitives.test.tsx`
   - React Doctor が UI reference / design primitive test に `.toSorted()` warning を検出しており、primitive registry の並び順検証が各 test に分散している
   - component id sort、category sort、duplicate id diagnostics、missing visual specimen の helper を共有し、design rule failure を読みやすくする
-
-- [ ] P2 shared UI component の unused export を story / production entrypoint で分類する
-  - 対象: `src/components/shared/icon-toolbar-control.tsx`, `src/components/settings/shared/settings-action-button.tsx`, `src/components/shared/nav-row-button.stories.tsx`
-  - React Doctor / Knip が shared UI component export を unused として検出しており、Storybook-only wrapper と production reusable API の境界が曖昧になっている
-  - production import、story import、test import、dead export に分類し、残す public wrapper は Storybook specimen か design contract へ明示する
 
 - [ ] P2 reader feed helper exports を row/folder/sidebar contract で棚卸しする
   - 対象: `src/components/reader/folder-section.tsx`, `src/components/reader/sidebar-feed-tree-helpers.ts`, `src/components/reader/feed-edit-submit.ts`, `src/components/reader/feed-query-cache.ts`
@@ -584,11 +574,6 @@
   - 対象: `src/components/reader/feed-edit-submit.ts`, `src/components/reader/feed-query-cache.ts`, `src/hooks/use-delete-feed.ts`, `src/components/reader/hooks/feed-dialogs/*`
   - React Doctor / Knip が feed edit submit と feed query cache の unused type を検出しており、mutation submit payload と cache update helper が分離できていない可能性がある
   - add/rename/delete feed の submit result、optimistic update、rollback、query cache patch の owner を決める
-
-- [ ] P2 settings-content-layout の React 19 `useContext` warning を小さく実証する
-  - 対象: `src/components/settings/shared/settings-content-layout.tsx`, `src/components/settings/shared/*`, `src/__tests__/components/settings*.test.tsx`
-  - React Doctor が `useContext` -> `use()` の React 19 warning を出しているが、全体移行前に shared settings layout で互換性を確認する必要がある
-  - context read、conditional render、test environment、React Compiler 未導入状態の挙動を確認し、採用しない場合は suppression policy に残す
 
 - [ ] P3 account-switcher / nav-row story の `size-*` 表記を design cleanup として分離する
   - 対象: `src/components/reader/account-switcher-view.tsx`, `src/components/shared/nav-row-button.stories.tsx`
