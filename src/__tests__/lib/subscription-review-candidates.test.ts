@@ -151,13 +151,13 @@ describe("buildSubscriptionReviewCandidates", () => {
       feedArticleSummaries: [
         {
           feed_id: "feed-duplicate-summary",
-          latest_article_at: "2025-01-01T00:00:00Z",
-          starred_count: 7,
+          latest_article_at: "2026-04-01T00:00:00Z",
+          starred_count: 0,
         },
         {
           feed_id: "feed-duplicate-summary",
-          latest_article_at: "2026-04-01T00:00:00Z",
-          starred_count: 0,
+          latest_article_at: "2025-01-01T00:00:00Z",
+          starred_count: 7,
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
@@ -166,10 +166,10 @@ describe("buildSubscriptionReviewCandidates", () => {
 
     expect(candidates[0]).toMatchObject({
       feedId: "feed-duplicate-summary",
-      latestArticleAt: "2026-04-01T00:00:00Z",
-      staleDays: 4,
-      starredCount: 0,
-      reasonKeys: ["no_unread", "no_stars"],
+      latestArticleAt: "2025-01-01T00:00:00Z",
+      staleDays: 459,
+      starredCount: 7,
+      reasonKeys: ["stale_90d", "no_unread"],
     });
   });
 

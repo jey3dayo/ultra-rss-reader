@@ -166,6 +166,18 @@ function clampNonnegativeCount(value: number): number {
   return Number.isFinite(value) ? Math.max(0, value) : 0;
 }
 
+function buildFeedArticleSummaryByFeedIdMap(
+  feedArticleSummaries: FeedArticleSummaryDto[],
+): Map<string, FeedArticleSummaryDto> {
+  const summaryByFeedId = new Map<string, FeedArticleSummaryDto>();
+
+  for (const summary of feedArticleSummaries) {
+    summaryByFeedId.set(summary.feed_id, summary);
+  }
+
+  return summaryByFeedId;
+}
+
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
@@ -174,7 +186,7 @@ export function buildSubscriptionReviewCandidates({
   hiddenFeedIds,
 }: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
   const folderNameById = buildFolderNameByIdMap(folders);
-  const summaryByFeedId = new Map(feedArticleSummaries.map((summary) => [summary.feed_id, summary]));
+  const summaryByFeedId = buildFeedArticleSummaryByFeedIdMap(feedArticleSummaries);
 
   return feeds
     .filter((feed) => !hiddenFeedIds.has(feed.id))
