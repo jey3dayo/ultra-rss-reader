@@ -383,6 +383,31 @@ describe("DTO schemas", () => {
       }),
     ).toThrow();
   });
+  it("rejects AccountDto invalid connection verification timestamps when present", () => {
+    const data = {
+      id: "acc-1",
+      kind: "local",
+      name: "Local",
+      server_url: null,
+      username: null,
+      sync_interval_secs: 3600,
+      sync_on_startup: true,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+      connection_verification_status: "verified",
+      connection_verified_at: "2026-04-15T01:00:00Z",
+      connection_verification_error: null,
+    };
+
+    expect(AccountDtoSchema.parse(data)).toEqual(data);
+    expect(AccountDtoSchema.parse({ ...data, connection_verified_at: null })).toEqual({
+      ...data,
+      connection_verified_at: null,
+    });
+    expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "2026-04-15" })).toThrow();
+    expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "2026-04-15T01:00:00" })).toThrow();
+    expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "not-a-date" })).toThrow();
+  });
   it("keeps AccountDto schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(AccountDtoSchema.shape).sort()).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountDto"),
@@ -524,6 +549,8 @@ describe("DTO schemas", () => {
 
     expect(() => FeedDtoSchema.parse({ ...data, unread_count: -1 })).toThrow();
     expect(() => FeedDtoSchema.parse({ ...data, unread_count: 1.5 })).toThrow();
+    expect(() => FeedDtoSchema.parse({ ...data, unread_count: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => FeedDtoSchema.parse({ ...data, unread_count: "1" })).toThrow();
   });
   it("parses valid FeedArticleSummaryDto", () => {
     const data = {
@@ -546,6 +573,20 @@ describe("DTO schemas", () => {
 
     expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: -1 })).toThrow();
     expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: 1.5 })).toThrow();
+    expect(() =>
+      FeedArticleSummaryDtoSchema.parse({
+        ...data,
+        starred_count: Number.POSITIVE_INFINITY,
+      }),
+    ).toThrow();
+    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, latest_article_at: "2026-04-01" })).toThrow();
+    expect(() =>
+      FeedArticleSummaryDtoSchema.parse({
+        ...data,
+        latest_article_at: "2026-04-01T10:00:00",
+      }),
+    ).toThrow();
+    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, latest_article_at: "not-a-date" })).toThrow();
   });
   it("parses valid ArticleDto", () => {
     const data = {
@@ -562,6 +603,28 @@ describe("DTO schemas", () => {
       is_starred: false,
     };
     expect(ArticleDtoSchema.parse(data)).toEqual(data);
+  });
+  it("rejects ArticleDto invalid published timestamps", () => {
+    const data = {
+      id: "art-1",
+      feed_id: "feed-1",
+      title: "Hello",
+      content_sanitized: "<p>Hi</p>",
+      summary: null,
+      url: null,
+      author: null,
+      published_at: "2026-03-25T10:00:00Z",
+      thumbnail: null,
+      is_read: false,
+      is_starred: false,
+    };
+
+    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "2026-03-25" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "2026-03-25T10:00:00" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "not-a-date" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, viewed_at: "2026-03-25" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, viewed_at: "not-a-date" })).toThrow();
   });
   it("normalizes ArticleDto URL fields and rejects blank strings", () => {
     const data = {
@@ -728,6 +791,64 @@ describe("DTO schemas", () => {
       }).success,
     ).toBe(false);
     expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ loaded: 100 }).success).toBe(false);
+  });
+  it("rejects unknown backend DTO fields while preserving updater progress event passthrough fields", () => {
+    expect(
+      ArticleDtoSchema.safeParse({
+        id: "art-1",
+        feed_id: "feed-1",
+        title: "Hello",
+        content_sanitized: "<p>Hi</p>",
+        summary: null,
+        url: null,
+        author: null,
+        published_at: "2026-03-25T10:00:00Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+        backend_added_field: "unexpected",
+      }).success,
+    ).toBe(false);
+    expect(
+      AccountDtoSchema.safeParse({
+        id: "acc-1",
+        kind: "local",
+        name: "Local",
+        server_url: null,
+        username: null,
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+        capabilities: {
+          supports_folders: false,
+          supports_starring: false,
+          supports_search: false,
+          supports_delta_sync: false,
+          supports_remote_state: false,
+          backend_added_field: true,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      FeedDtoSchema.safeParse({
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Blog",
+        url: "https://example.com/feed.xml",
+        site_url: "",
+        unread_count: 0,
+        reader_mode: "on",
+        web_preview_mode: "off",
+        backend_added_field: "unexpected",
+      }).success,
+    ).toBe(false);
+    expect(UpdateDownloadProgressEventPayloadSchema.parse({ percent: 1, loaded: 100 })).toEqual({
+      percent: 1,
+      loaded: 100,
+    });
   });
   it("parses platform info response", () => {
     const data = {
@@ -1550,6 +1671,24 @@ describe("command args schemas", () => {
       SyncResultSchema.parse({
         ...valid,
         warnings: [{ ...valid.warnings[0], retry_in_seconds: 0.5 }],
+      }),
+    ).toThrow();
+    expect(() =>
+      SyncResultSchema.parse({
+        ...valid,
+        warnings: [{ ...valid.warnings[0], retry_at: "2026-04-15" }],
+      }),
+    ).toThrow();
+    expect(() =>
+      SyncResultSchema.parse({
+        ...valid,
+        warnings: [{ ...valid.warnings[0], retry_at: "2026-04-15T01:00:00" }],
+      }),
+    ).toThrow();
+    expect(() =>
+      SyncResultSchema.parse({
+        ...valid,
+        warnings: [{ ...valid.warnings[0], retry_at: "not-a-date" }],
       }),
     ).toThrow();
   });

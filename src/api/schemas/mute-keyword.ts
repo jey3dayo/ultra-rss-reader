@@ -1,17 +1,19 @@
 import { z } from "zod";
+import { IsoDateTimeStringSchema } from "./common";
 
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
-const isoDateTimeStringSchema = z.string().datetime({ offset: true });
 
 export const MuteKeywordScopeSchema = z.enum(["title", "body", "title_and_body"]);
 
-export const MuteKeywordDtoSchema = z.object({
-  id: z.string(),
-  keyword: nonBlankTrimmedStringSchema,
-  scope: MuteKeywordScopeSchema,
-  created_at: isoDateTimeStringSchema,
-  updated_at: isoDateTimeStringSchema,
-});
+export const MuteKeywordDtoSchema = z
+  .object({
+    id: z.string(),
+    keyword: nonBlankTrimmedStringSchema,
+    scope: MuteKeywordScopeSchema,
+    created_at: IsoDateTimeStringSchema,
+    updated_at: IsoDateTimeStringSchema,
+  })
+  .strict();
 
 export const MuteKeywordDtoListSchema = z.array(MuteKeywordDtoSchema);
 

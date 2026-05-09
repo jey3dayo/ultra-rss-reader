@@ -44,5 +44,61 @@ describe("FeedIntegrityReportDtoSchema", () => {
         ],
       }).success,
     ).toBe(false);
+    expect(
+      FeedIntegrityReportDtoSchema.safeParse({
+        ...getFeedIntegrityReportResponseFixture,
+        orphaned_feeds: [
+          {
+            ...getFeedIntegrityReportResponseFixture.orphaned_feeds[0],
+            article_count: Number.POSITIVE_INFINITY,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects invalid orphan latest article timestamps", () => {
+    expect(
+      FeedIntegrityReportDtoSchema.safeParse({
+        ...getFeedIntegrityReportResponseFixture,
+        orphaned_feeds: [
+          {
+            ...getFeedIntegrityReportResponseFixture.orphaned_feeds[0],
+            latest_article_published_at: "2026-04-20",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      FeedIntegrityReportDtoSchema.safeParse({
+        ...getFeedIntegrityReportResponseFixture,
+        orphaned_feeds: [
+          {
+            ...getFeedIntegrityReportResponseFixture.orphaned_feeds[0],
+            latest_article_published_at: "not-a-date",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects unknown backend DTO fields", () => {
+    expect(
+      FeedIntegrityReportDtoSchema.safeParse({
+        ...getFeedIntegrityReportResponseFixture,
+        backend_added_field: "unexpected",
+      }).success,
+    ).toBe(false);
+    expect(
+      FeedIntegrityReportDtoSchema.safeParse({
+        ...getFeedIntegrityReportResponseFixture,
+        orphaned_feeds: [
+          {
+            ...getFeedIntegrityReportResponseFixture.orphaned_feeds[0],
+            backend_added_field: "unexpected",
+          },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });

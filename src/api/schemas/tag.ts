@@ -7,11 +7,13 @@ const tagColorSchema = z
   .regex(/^#[0-9a-fA-F]{6}$/)
   .nullable();
 
-export const TagDtoSchema = z.object({
-  id: z.string(),
-  name: nonBlankTrimmedStringSchema,
-  color: tagColorSchema,
-});
+export const TagDtoSchema = z
+  .object({
+    id: z.string(),
+    name: nonBlankTrimmedStringSchema,
+    color: tagColorSchema,
+  })
+  .strict();
 
 export const TagDtoListSchema = z.array(TagDtoSchema);
 export const TagArticleCountsSchema = z.record(z.string(), NonnegativeIntegerSchema);

@@ -1,12 +1,15 @@
 import { z } from "zod";
+import { IsoDateTimeStringSchema } from "./common";
 
-const nullableIsoDateTimeStringSchema = z.string().datetime({ offset: true }).nullable();
+const nullableIsoDateTimeStringSchema = IsoDateTimeStringSchema.nullable();
 
-export const AccountSyncStatusSchema = z.object({
-  last_success_at: nullableIsoDateTimeStringSchema,
-  last_error: z.string().nullable(),
-  error_count: z.number().int().nonnegative(),
-  next_retry_at: nullableIsoDateTimeStringSchema,
-});
+export const AccountSyncStatusSchema = z
+  .object({
+    last_success_at: nullableIsoDateTimeStringSchema,
+    last_error: z.string().nullable(),
+    error_count: z.number().int().nonnegative().finite(),
+    next_retry_at: nullableIsoDateTimeStringSchema,
+  })
+  .strict();
 
 export type AccountSyncStatusDto = z.output<typeof AccountSyncStatusSchema>;
