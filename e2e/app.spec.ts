@@ -185,14 +185,8 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(detailActions).toBeVisible();
     await expect(inventoryHeading).toBeVisible();
 
-    const actionBox = await expectMeasurableBox(
-      detailActions,
-      "Expected subscription detail controls to have measurable bounds.",
-    );
-    const headingBox = await expectMeasurableBox(
-      inventoryHeading,
-      "Expected subscription inventory heading to have measurable bounds.",
-    );
+    const actionBox = await expectMeasurableBox(detailActions, "subscription detail controls");
+    const headingBox = await expectMeasurableBox(inventoryHeading, "subscription inventory heading");
 
     expect(actionBox.y).toBeGreaterThan(headingBox.y);
   });
@@ -207,15 +201,9 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const rows = subscriptionRows(page);
     const firstRow = rows.first();
 
-    const rowBefore = await expectMeasurableBox(
-      firstRow,
-      "Expected subscription row to have measurable bounds before selection.",
-    );
+    const rowBefore = await expectMeasurableBox(firstRow, "subscription row");
     await firstRow.click();
-    const rowAfter = await expectMeasurableBox(
-      firstRow,
-      "Expected subscription row to have measurable bounds after selection.",
-    );
+    const rowAfter = await expectMeasurableBox(firstRow, "subscription row");
 
     expect(rowAfter.y).toBe(rowBefore.y);
   });
@@ -229,15 +217,9 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const rows = subscriptionRows(page);
     const firstRow = rows.first();
 
-    const rowBefore = await expectMeasurableBox(
-      firstRow,
-      "Expected subscription row to have measurable bounds before selection.",
-    );
+    const rowBefore = await expectMeasurableBox(firstRow, "subscription row");
     await firstRow.click();
-    const rowAfter = await expectMeasurableBox(
-      firstRow,
-      "Expected subscription row to have measurable bounds after selection.",
-    );
+    const rowAfter = await expectMeasurableBox(firstRow, "subscription row");
 
     expect(rowAfter.y).toBe(rowBefore.y);
   });
@@ -252,11 +234,8 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const subscriptionRail = page.locator('[data-testid^="subscriptions-folder-tree-rail-"]').first();
     const firstRow = subscriptionRows(page).first();
 
-    const railBox = await expectMeasurableBox(
-      subscriptionRail,
-      "Expected subscription rail to have measurable bounds.",
-    );
-    const rowBox = await expectMeasurableBox(firstRow, "Expected subscription row to have measurable bounds.");
+    const railBox = await expectMeasurableBox(subscriptionRail, "subscription rail");
+    const rowBox = await expectMeasurableBox(firstRow, "subscription row");
 
     expect(Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(1);
   });
