@@ -1643,6 +1643,72 @@ mod tests {
     }
 
     #[test]
+    fn find_folder_filtered_modes_exclude_muted_articles_before_pagination() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Folder", 0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+                params![folder_id.0, feed_id.0],
+            )
+            .unwrap();
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest_muted_unread = make_article(&feed_id, "Kindle Unlimited unread");
+        newest_muted_unread.is_read = false;
+        newest_muted_unread.published_at = Utc::now() + chrono::Duration::seconds(4);
+        let mut visible_unread = make_article(&feed_id, "Visible unread");
+        visible_unread.is_read = false;
+        visible_unread.published_at = Utc::now() + chrono::Duration::seconds(3);
+        let mut newest_muted_starred = make_article(&feed_id, "Kindle Unlimited starred");
+        newest_muted_starred.is_starred = true;
+        newest_muted_starred.published_at = Utc::now() + chrono::Duration::seconds(2);
+        let mut visible_starred = make_article(&feed_id, "Visible starred");
+        visible_starred.is_starred = true;
+        visible_starred.published_at = Utc::now() + chrono::Duration::seconds(1);
+        repo.upsert(&[
+            newest_muted_unread,
+            visible_unread,
+            newest_muted_starred,
+            visible_starred,
+        ])
+        .unwrap();
+        insert_mute_keyword(&db, "Kindle Unlimited", "title");
+
+        let first_unread_page = repo
+            .find_unread_by_folder(
+                &folder_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 1,
+                },
+            )
+            .unwrap();
+        let first_starred_page = repo
+            .find_starred_by_folder(
+                &folder_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 1,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(first_unread_page.len(), 1);
+        assert_eq!(first_unread_page[0].title, "Visible unread");
+        assert_eq!(first_starred_page.len(), 1);
+        assert_eq!(first_starred_page[0].title, "Visible starred");
+    }
+
+    #[test]
     fn find_by_account_returns_articles_across_feeds() {
         let db = test_db();
         let account_id = insert_test_account(&db);
