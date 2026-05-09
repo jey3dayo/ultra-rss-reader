@@ -449,6 +449,7 @@ describe("useBadge", () => {
     await waitFor(() => {
       expect(setBadgeCountMock).toHaveBeenCalledWith(1);
     });
+    await expect(setBadgeCountMock.mock.results[0]?.value).rejects.toThrow("badge command rejected");
 
     act(() => {
       useUiStore.setState({ selectedAccountId: "acc-2" });
