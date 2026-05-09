@@ -1,10 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { act, render, waitFor } from "@testing-library/react";
-import { type TestUserVisibleAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
+import { testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
-import type { AccountDto } from "@/api/tauri-commands";
+import type { AccountDto, AppError } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "@/constants/ui-runtime";
 
@@ -27,13 +27,13 @@ const {
 
   return {
     loadPreferencesMock: vi.fn(),
-    triggerStartupSyncMock: vi.fn<(accountId?: string) => Promise<Result.Result<boolean, TestUserVisibleAppError>>>(
-      () => Promise.resolve(Result.succeed(true)),
-    ),
-    syncAccountMock: vi.fn<(accountId: string) => Promise<Result.Result<boolean, TestUserVisibleAppError>>>(() =>
+    triggerStartupSyncMock: vi.fn<(accountId?: string) => Promise<Result.Result<boolean, AppError>>>(() =>
       Promise.resolve(Result.succeed(true)),
     ),
-    listAccountsMock: vi.fn<() => Promise<Result.Result<AccountDto[], TestUserVisibleAppError>>>(() =>
+    syncAccountMock: vi.fn<(accountId: string) => Promise<Result.Result<boolean, AppError>>>(() =>
+      Promise.resolve(Result.succeed(true)),
+    ),
+    listAccountsMock: vi.fn<() => Promise<Result.Result<AccountDto[], AppError>>>(() =>
       Promise.resolve(Result.succeed([])),
     ),
     preferencesState: {
@@ -356,6 +356,37 @@ describe("App", () => {
     const dateNowSpy = vi.spyOn(Date, "now");
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const error = testUserVisibleAppError("list failed");
+    listAccountsMock.mockResolvedValueOnce(Result.fail(error));
+    dateNowSpy.mockReturnValue(0);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      setDocumentHidden(true);
+      dispatchVisibilityChange();
+    });
+    dateNowSpy.mockReturnValue(APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS + 1);
+    act(() => {
+      setDocumentHidden(false);
+      dispatchVisibilityChange();
+    });
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Sync on wake failed to list accounts:", error);
+    });
+    expect(syncAccountMock).not.toHaveBeenCalled();
+    dateNowSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("logs retryable sync-on-wake list account failures", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now");
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = testRetryableAppError("temporary list failure");
     listAccountsMock.mockResolvedValueOnce(Result.fail(error));
     dateNowSpy.mockReturnValue(0);
 

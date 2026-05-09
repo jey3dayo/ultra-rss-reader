@@ -18,7 +18,7 @@ type ArticleEmptyStateShellProps = {
 
 type BrowserOnlyStateViewProps = BrowserOverlayCloseHandler;
 
-type ArticleNotFoundStateViewProps = Pick<UiDisplayState, "message">;
+type ArticleNotFoundStateViewProps = UiDisplayState;
 
 export function BrowserOverlaySurface({
   children,

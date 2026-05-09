@@ -16,7 +16,13 @@ describe("account-detail-toast", () => {
         : key) as TFunction<"settings">;
     useUiStore.setState({ showToast });
 
-    createAccountDetailErrorToast(t, "account.failed_to_rename")({ message: "boom" });
+    createAccountDetailErrorToast(
+      t,
+      "account.failed_to_rename",
+    )({
+      message: "boom",
+      title: "Rename failed",
+    });
 
     expect(showToast).toHaveBeenCalledWith("Failed to rename account: boom");
   });

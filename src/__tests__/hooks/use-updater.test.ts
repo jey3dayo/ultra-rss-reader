@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { renderHook } from "@testing-library/react";
-import { type TestUserVisibleAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
+import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockCheckForUpdate = vi.hoisted(() => vi.fn());
@@ -133,7 +133,7 @@ describe("performUpdateCheck", () => {
   });
 
   it("returns a typed error and keeps the compatibility wrapper rejection on failure", async () => {
-    const error = testUserVisibleAppError("network down");
+    const error = testRetryableAppError("network down");
     mockCheckForUpdate.mockResolvedValue(Result.fail(error));
 
     const { performUpdateCheck, performUpdateCheckResult } = await import("@/hooks/use-updater");

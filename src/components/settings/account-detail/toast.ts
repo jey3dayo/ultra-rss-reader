@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
 import { useUiStore } from "@/stores/ui-store";
 
-type AccountDetailError = Pick<UiDisplayState, "message">;
+type AccountDetailError = UiDisplayState;
 
 type AccountDetailErrorToastKey =
   | "account.failed_to_rename"
