@@ -270,16 +270,6 @@
   - まず `article-empty-state-view` / `article-tag-picker` / `feed-tree-row` / `settings` small icons を小さな worker scope に分ける
   - Storybook specimen と test fixture は別バッチにし、UI 表示差分が出ないことを focused component test で確認する
 
-- [ ] react-doctor React 19 forwardRef cleanup 候補を追加する
-  - `react-doctor/no-react19-deprecated-apis` の対象 wrapper から不要な `forwardRef` を外す
-  - 対象: `shortcuts-settings-view` / `article-tag-picker-buttons` / `sidebar-nav-button` / `account-switcher-view` / `reader-inline-action-button` / `settings-content-layout` / `nav-row-button`
-  - public wrapper API と ref forwarding contract を壊さないよう component test 付きで worker 分割する
-
-- [ ] react-doctor mutation invalidation 候補を追加する
-  - `src/hooks/use-tags.ts` と `src/hooks/use-articles.ts` の `useMutation` / `createMutation` に cache update contract を明示する
-  - `useTagArticle` / article mutation 系で stale tag/article data が残らない invalidation を focused hook test で固定する
-  - pending mutation backend contract とは分け、TanStack Query cache consistency だけを扱う
-
 - [ ] react-doctor browser-view state effects 候補を追加する
   - `src/components/reader/browser-view.tsx` の cascading setState / state-only handler / trivial `useMemo` を整理する
   - reducer 化する state と `useRef` 化する render 非依存 state を分け、browser surface state test を追加する
