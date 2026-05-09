@@ -149,7 +149,9 @@ describe("useArticleListSearch", () => {
     });
     unmount();
     act(() => {
-      callbacks.forEach((callback) => callback(0));
+      callbacks.forEach((callback) => {
+        callback(0);
+      });
       vi.advanceTimersByTime(0);
     });
 

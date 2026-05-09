@@ -36,39 +36,16 @@ pub async fn sync_account(
     // Step 1: Push pending mutations (remote providers only)
     if caps.supports_remote_state {
         let pending = pending_mutation_repo.find_by_account(account_id)?;
-        if !pending.is_empty() {
-            let mutations: Vec<Mutation> = pending
-                .iter()
-                .map(|p| match p.mutation_type {
-                    PendingMutationType::MarkRead => Mutation::MarkRead {
-                        remote_entry_id: p.remote_entry_id.clone(),
-                    },
-                    PendingMutationType::MarkUnread => Mutation::MarkUnread {
-                        remote_entry_id: p.remote_entry_id.clone(),
-                    },
-                    PendingMutationType::Star => Mutation::SetStarred {
-                        remote_entry_id: p.remote_entry_id.clone(),
-                        starred: true,
-                    },
-                    PendingMutationType::Unstar => Mutation::SetStarred {
-                        remote_entry_id: p.remote_entry_id.clone(),
-                        starred: false,
-                    },
-                })
-                .collect();
-            provider.push_mutations(&mutations).await?;
-            let ids: Vec<i64> = pending
-                .iter()
-                .map(|p| {
-                    p.id.ok_or_else(|| {
-                        DomainError::Persistence(format!(
-                            "Pending mutation for remote entry {} has no id after push",
-                            p.remote_entry_id
-                        ))
-                    })
-                })
-                .collect::<DomainResult<Vec<_>>>()?;
-            pending_mutation_repo.delete(&ids)?;
+        for pending_mutation in pending {
+            let mutation = pending_to_provider_mutation(&pending_mutation);
+            provider.push_mutations(std::slice::from_ref(&mutation)).await?;
+            let id = pending_mutation.id.ok_or_else(|| {
+                DomainError::Persistence(format!(
+                    "Pending mutation for remote entry {} has no id after push",
+                    pending_mutation.remote_entry_id
+                ))
+            })?;
+            pending_mutation_repo.delete(&[id])?;
         }
     }
 
@@ -95,14 +72,22 @@ pub async fn sync_account(
     if caps.supports_remote_state {
         let remote_subs = provider.get_subscriptions().await?;
         for rs in remote_subs {
+            let existing_feed = feed_repo
+                .find_by_remote_id(account_id, &rs.remote_id)?
+                .or_else(|| feed_repo.find_by_url(account_id, &rs.url).ok().flatten());
             let folder_id = match rs.folder_remote_id.as_deref() {
                 Some(rid) => folder_repo
                     .find_by_remote_id(account_id, rid)?
                     .map(|f| f.id),
-                None => None,
+                None => existing_feed
+                    .as_ref()
+                    .and_then(|feed| feed.folder_id.clone()),
             };
             let feed = crate::domain::feed::Feed {
-                id: FeedId::new(),
+                id: existing_feed
+                    .as_ref()
+                    .map(|feed| feed.id.clone())
+                    .unwrap_or_else(FeedId::new),
                 account_id: account_id.clone(),
                 folder_id,
                 remote_id: Some(rs.remote_id),
@@ -206,6 +191,25 @@ pub async fn sync_account(
     Ok(updated_feeds)
 }
 
+fn pending_to_provider_mutation(pending: &crate::repository::pending_mutation::PendingMutation) -> Mutation {
+    match pending.mutation_type {
+        PendingMutationType::MarkRead => Mutation::MarkRead {
+            remote_entry_id: pending.remote_entry_id.clone(),
+        },
+        PendingMutationType::MarkUnread => Mutation::MarkUnread {
+            remote_entry_id: pending.remote_entry_id.clone(),
+        },
+        PendingMutationType::Star => Mutation::SetStarred {
+            remote_entry_id: pending.remote_entry_id.clone(),
+            starred: true,
+        },
+        PendingMutationType::Unstar => Mutation::SetStarred {
+            remote_entry_id: pending.remote_entry_id.clone(),
+            starred: false,
+        },
+    }
+}
+
 fn repair_outdated_sanitized_articles(article_repo: &dyn ArticleRepository) -> DomainResult<()> {
     const REPAIR_BATCH_LIMIT: usize = 500;
 
@@ -267,6 +271,14 @@ mod tests {
 
     struct RemoteStateProvider {
         pushed: Mutex<Vec<Mutation>>,
+    }
+
+    struct FailingSecondPushProvider {
+        pushed: Mutex<Vec<Mutation>>,
+    }
+
+    struct RemoteSubscriptionProvider {
+        subscriptions: Vec<RemoteSubscription>,
     }
 
     struct DeltaSyncProvider;
@@ -442,6 +454,141 @@ mod tests {
 
         async fn push_mutations(&self, mutations: &[Mutation]) -> DomainResult<()> {
             self.pushed.lock().unwrap().extend_from_slice(mutations);
+            Ok(())
+        }
+
+        async fn create_subscription(
+            &self,
+            _url: &str,
+            _folder: Option<&str>,
+        ) -> DomainResult<RemoteSubscription> {
+            Err(DomainError::Validation(
+                "test provider does not create subscriptions".to_string(),
+            ))
+        }
+
+        async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            Ok(())
+        }
+    }
+
+    #[async_trait]
+    impl FeedProvider for FailingSecondPushProvider {
+        fn kind(&self) -> ProviderKind {
+            ProviderKind::Local
+        }
+
+        fn capabilities(&self) -> ProviderCapabilities {
+            ProviderCapabilities {
+                supports_folders: false,
+                supports_starring: true,
+                supports_search: false,
+                supports_delta_sync: false,
+                supports_remote_state: true,
+            }
+        }
+
+        async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+            Ok(Vec::new())
+        }
+
+        async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+            Ok(Vec::new())
+        }
+
+        async fn pull_entries(
+            &self,
+            _scope: PullScope,
+            _cursor: Option<SyncCursor>,
+        ) -> DomainResult<PullResult> {
+            Ok(PullResult {
+                entries: Vec::new(),
+                next_cursor: None,
+                has_more: false,
+                not_modified: false,
+                skipped_entries: 0,
+            })
+        }
+
+        async fn pull_state(&self) -> DomainResult<RemoteState> {
+            Ok(RemoteState::default())
+        }
+
+        async fn push_mutations(&self, mutations: &[Mutation]) -> DomainResult<()> {
+            let mut pushed = self.pushed.lock().unwrap();
+            if !pushed.is_empty() {
+                return Err(DomainError::Network("second push failed".to_string()));
+            }
+            pushed.extend_from_slice(mutations);
+            Ok(())
+        }
+
+        async fn create_subscription(
+            &self,
+            _url: &str,
+            _folder: Option<&str>,
+        ) -> DomainResult<RemoteSubscription> {
+            Err(DomainError::Validation(
+                "test provider does not create subscriptions".to_string(),
+            ))
+        }
+
+        async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            Ok(())
+        }
+    }
+
+    #[async_trait]
+    impl FeedProvider for RemoteSubscriptionProvider {
+        fn kind(&self) -> ProviderKind {
+            ProviderKind::Local
+        }
+
+        fn capabilities(&self) -> ProviderCapabilities {
+            ProviderCapabilities {
+                supports_folders: false,
+                supports_starring: false,
+                supports_search: false,
+                supports_delta_sync: false,
+                supports_remote_state: true,
+            }
+        }
+
+        async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+            Ok(self.subscriptions.clone())
+        }
+
+        async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+            Ok(Vec::new())
+        }
+
+        async fn pull_entries(
+            &self,
+            _scope: PullScope,
+            _cursor: Option<SyncCursor>,
+        ) -> DomainResult<PullResult> {
+            Ok(PullResult {
+                entries: Vec::new(),
+                next_cursor: None,
+                has_more: false,
+                not_modified: false,
+                skipped_entries: 0,
+            })
+        }
+
+        async fn pull_state(&self) -> DomainResult<RemoteState> {
+            Ok(RemoteState::default())
+        }
+
+        async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
             Ok(())
         }
 
@@ -763,5 +910,121 @@ mod tests {
         ));
         assert_eq!(provider.pushed.lock().unwrap().len(), 1);
         assert!(pending_repo.deleted_ids.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn sync_account_deletes_each_pending_mutation_after_its_remote_push() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let provider = FailingSecondPushProvider {
+            pushed: Mutex::new(Vec::new()),
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = FakePendingMutationRepository {
+            pending: vec![
+                PendingMutation {
+                    id: Some(10),
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: "remote-entry-1".to_string(),
+                    created_at: "2024-01-01T00:00:00Z".to_string(),
+                },
+                PendingMutation {
+                    id: Some(11),
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::Star,
+                    remote_entry_id: "remote-entry-2".to_string(),
+                    created_at: "2024-01-01T00:00:01Z".to_string(),
+                },
+            ],
+            deleted_ids: Mutex::new(Vec::new()),
+        };
+
+        let error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .expect_err("second remote push should fail");
+
+        assert_eq!(error.to_string(), "Network error: second push failed");
+        assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+        assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+    }
+
+    #[tokio::test]
+    async fn sync_account_preserves_local_folder_when_remote_subscription_has_no_folder() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let folder_id = FolderId::new();
+        folder_repo
+            .save(&Folder {
+                id: folder_id.clone(),
+                account_id: account.id.clone(),
+                remote_id: Some("folder/tech".to_string()),
+                name: "Tech".to_string(),
+                sort_order: 0,
+            })
+            .unwrap();
+        let feed = Feed {
+            id: FeedId("existing-feed".to_string()),
+            account_id: account.id.clone(),
+            folder_id: Some(folder_id.clone()),
+            remote_id: Some("feed/remote".to_string()),
+            title: "Existing".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        feed_repo.save(&feed).unwrap();
+
+        let provider = RemoteSubscriptionProvider {
+            subscriptions: vec![RemoteSubscription {
+                remote_id: "feed/remote".to_string(),
+                title: "Remote title".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let saved = feed_repo
+            .find_by_remote_id(&account.id, "feed/remote")
+            .unwrap()
+            .unwrap();
+        assert_eq!(saved.id.0, "existing-feed");
+        assert_eq!(saved.folder_id, Some(folder_id));
+        assert_eq!(feed_repo.find_by_account(&account.id).unwrap().len(), 1);
     }
 }

@@ -35,10 +35,7 @@ export function buildOpmlExportFilename(accountName: string): string {
   return safeName ? `${safeName}-feeds.opml` : "feeds.opml";
 }
 
-function collectDeletedAccountFeedIds(
-  queryClient: QueryClient,
-  deletedAccountId: string,
-): Set<string> {
+function collectDeletedAccountFeedIds(queryClient: QueryClient, deletedAccountId: string): Set<string> {
   const feedIds = new Set<string>();
   const feedQueryResults = queryClient.getQueriesData<unknown>({
     queryKey: queryKeys.feeds.root,
@@ -84,31 +81,17 @@ function isDeletedAccountArticleQuery(
     return true;
   }
 
-  if (
-    root === queryKeys.articlesByTag.root[0] &&
-    queryKey[2] === deletedAccountId
-  ) {
+  if (root === queryKeys.articlesByTag.root[0] && queryKey[2] === deletedAccountId) {
     return true;
   }
 
-  return (
-    root === queryKeys.articles.root[0] &&
-    typeof queryKey[1] === "string" &&
-    deletedFeedIds.has(queryKey[1])
-  );
+  return root === queryKeys.articles.root[0] && typeof queryKey[1] === "string" && deletedFeedIds.has(queryKey[1]);
 }
 
-function removeDeletedAccountArticleCaches(
-  queryClient: QueryClient,
-  deletedAccountId: string,
-): void {
-  const deletedFeedIds = collectDeletedAccountFeedIds(
-    queryClient,
-    deletedAccountId,
-  );
+function removeDeletedAccountArticleCaches(queryClient: QueryClient, deletedAccountId: string): void {
+  const deletedFeedIds = collectDeletedAccountFeedIds(queryClient, deletedAccountId);
   queryClient.removeQueries({
-    predicate: ({ queryKey }) =>
-      isDeletedAccountArticleQuery(queryKey, deletedAccountId, deletedFeedIds),
+    predicate: ({ queryKey }) => isDeletedAccountArticleQuery(queryKey, deletedAccountId, deletedFeedIds),
   });
 }
 
@@ -150,6 +133,8 @@ export function useAccountDetailDangerZone({
   }, [revokePendingExportUrl]);
 
   useEffect(() => {
+    const accountId = account.id;
+    void accountId;
     revokePendingExportUrl();
   }, [account.id, revokePendingExportUrl]);
 

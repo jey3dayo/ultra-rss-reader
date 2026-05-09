@@ -1,6 +1,25 @@
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{FeedIdentifier, RemoteEntry};
 
+const MAX_PROVIDER_METADATA_URL_BYTES: usize = 2048;
+
+pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
+    let trimmed = raw_url.trim();
+    if trimmed.is_empty() || trimmed.len() > MAX_PROVIDER_METADATA_URL_BYTES {
+        return None;
+    }
+
+    let mut url = reqwest::Url::parse(trimmed).ok()?;
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return None;
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return None;
+    }
+    url.set_fragment(None);
+    Some(url.to_string())
+}
+
 pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<RemoteEntry>> {
     let feed = feed_rs::parser::parse(feed_data).map_err(|e| DomainError::Parse(e.to_string()))?;
 

@@ -276,38 +276,14 @@ describe("useAccountDetailDangerZone", () => {
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["accounts"], sampleAccounts);
     queryClient.setQueryData(queryKeys.feeds.root, sampleFeeds);
-    queryClient.setQueryData(
-      queryKeys.articles.byFeed("feed-1", "unread"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.articles.byFeed("feed-2", "unread"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.accountArticles.byAccount("acc-1", "unread"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.accountArticles.byAccount("acc-2", "unread"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.recentArticles.byAccount("acc-1", "all"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.starredArticles.byAccount("acc-1"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"),
-      sampleArticles,
-    );
-    queryClient.setQueryData(
-      queryKeys.search.byAccountAndQuery("acc-1", "hello"),
-      sampleArticles,
-    );
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-2", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-2", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-1"), sampleArticles);
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.search.byAccountAndQuery("acc-1", "hello"), sampleArticles);
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     const onAccountDeleted = vi.fn();
     useUiStore.setState({
@@ -346,40 +322,16 @@ describe("useAccountDetailDangerZone", () => {
     expect(useUiStore.getState().selectedArticleId).toBeNull();
     expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+    expect(queryClient.getQueryData(queryKeys.articles.byFeed("feed-1", "unread"))).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"))).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toBeUndefined();
     expect(
-      queryClient.getQueryData(queryKeys.articles.byFeed("feed-1", "unread")),
+      queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread")),
     ).toBeUndefined();
-    expect(
-      queryClient.getQueryData(
-        queryKeys.accountArticles.byAccount("acc-1", "unread"),
-      ),
-    ).toBeUndefined();
-    expect(
-      queryClient.getQueryData(
-        queryKeys.recentArticles.byAccount("acc-1", "all"),
-      ),
-    ).toBeUndefined();
-    expect(
-      queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1")),
-    ).toBeUndefined();
-    expect(
-      queryClient.getQueryData(
-        queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"),
-      ),
-    ).toBeUndefined();
-    expect(
-      queryClient.getQueryData(
-        queryKeys.search.byAccountAndQuery("acc-1", "hello"),
-      ),
-    ).toBeUndefined();
-    expect(
-      queryClient.getQueryData(queryKeys.articles.byFeed("feed-2", "unread")),
-    ).toEqual(sampleArticles);
-    expect(
-      queryClient.getQueryData(
-        queryKeys.accountArticles.byAccount("acc-2", "unread"),
-      ),
-    ).toEqual(sampleArticles);
+    expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "hello"))).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.articles.byFeed("feed-2", "unread"))).toEqual(sampleArticles);
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-2", "unread"))).toEqual(sampleArticles);
     expect(usePreferencesStore.getState().prefs.selected_account_id).toBe("acc-2");
     expect(setPreferenceMock).toHaveBeenCalledWith("selected_account_id", "acc-2");
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({

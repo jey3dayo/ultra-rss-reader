@@ -2,17 +2,15 @@ use async_trait::async_trait;
 use reqwest::header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
 use reqwest::StatusCode;
 use std::net::{IpAddr, ToSocketAddrs};
-use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 
+use super::http_defaults::http_client_builder;
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
 
-const LOCAL_PROVIDER_TIMEOUT: Duration = Duration::from_secs(15);
 const MAX_LOCAL_FEED_BODY_BYTES: u64 = 5 * 1024 * 1024;
-const LOCAL_PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
@@ -47,10 +45,8 @@ impl LocalProvider {
     }
 
     fn build_http_client(allow_private_feed_urls: bool) -> reqwest::Client {
-        reqwest::Client::builder()
-            .timeout(LOCAL_PROVIDER_TIMEOUT)
+        http_client_builder()
             .redirect(Self::redirect_policy(allow_private_feed_urls))
-            .user_agent(LOCAL_PROVIDER_USER_AGENT)
             .build()
             .unwrap_or_default()
     }
@@ -416,9 +412,15 @@ impl FeedProvider for LocalProvider {
                 .map(|t| t.content.clone())
                 .unwrap_or_else(|| url.to_string()),
             url: url.to_string(),
-            site_url: Self::select_feed_site_url(&feed, url.as_str()),
+            site_url: normalizer::normalize_provider_metadata_url(&Self::select_feed_site_url(
+                &feed,
+                url.as_str(),
+            ))
+            .unwrap_or_else(|| url.to_string()),
             folder_remote_id: None,
-            icon_url: feed.icon.map(|i| i.uri),
+            icon_url: feed
+                .icon
+                .and_then(|icon| normalizer::normalize_provider_metadata_url(&icon.uri)),
         })
     }
 
@@ -429,6 +431,7 @@ impl FeedProvider for LocalProvider {
 
 #[cfg(test)]
 mod tests {
+    use super::super::http_defaults::PROVIDER_USER_AGENT;
     use super::*;
     use chrono::Utc;
 
@@ -453,7 +456,7 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
         let mock = server
             .mock("GET", "/feed.xml")
-            .match_header("user-agent", LOCAL_PROVIDER_USER_AGENT)
+            .match_header("user-agent", PROVIDER_USER_AGENT)
             .with_body(SAMPLE_RSS)
             .with_header("content-type", "application/rss+xml")
             .create_async()
@@ -872,7 +875,7 @@ mod tests {
         let feed_url = format!("{}/feed.xml", server.url());
         let mock = server
             .mock("GET", "/feed.xml")
-            .match_header("user-agent", LOCAL_PROVIDER_USER_AGENT)
+            .match_header("user-agent", PROVIDER_USER_AGENT)
             .with_body(feed)
             .with_header("content-type", "application/rss+xml")
             .create_async()
@@ -925,7 +928,7 @@ mod tests {
         let feed_url = format!("{}/feed.xml", server.url());
         let mock = server
             .mock("GET", "/feed.xml")
-            .match_header("user-agent", LOCAL_PROVIDER_USER_AGENT)
+            .match_header("user-agent", PROVIDER_USER_AGENT)
             .with_body(SAMPLE_RSS)
             .with_header("content-type", "application/rss+xml")
             .create_async()

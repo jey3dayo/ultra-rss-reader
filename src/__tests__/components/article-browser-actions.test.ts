@@ -111,18 +111,19 @@ describe("article-browser-actions", () => {
     expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
   });
 
-  it.each(["mailto:hello@example.com", "file:///tmp/article.html", "https://example.com/article\nnext"])(
-    "projects invalid article link clipboard text without invoking Tauri: %j",
-    async (url) => {
-      await copyArticleLink(url, {
-        showToast,
-        successMessage: "Link copied",
-      });
+  it.each([
+    "mailto:hello@example.com",
+    "file:///tmp/article.html",
+    "https://example.com/article\nnext",
+  ])("projects invalid article link clipboard text without invoking Tauri: %j", async (url) => {
+    await copyArticleLink(url, {
+      showToast,
+      successMessage: "Link copied",
+    });
 
-      expect(calls).toEqual([]);
-      expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
-    },
-  );
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
+  });
 
   it("shows a success toast after adding a link to the reading list", async () => {
     setupTauriMocks((cmd, args) => {
@@ -221,25 +222,27 @@ describe("article-browser-actions", () => {
     expect(Result.unwrap(result)).toBe(expected);
   });
 
-  it.each(["mailto:hello@example.com", "file:///tmp/article.html", "javascript:alert('owned')", "/relative"])(
-    "rejects non-http article external-browser URLs before invoking Tauri: %j",
-    async (url) => {
-      setupTauriMocks((cmd, args) => {
-        calls.push({ cmd, args });
-        return undefined;
-      });
+  it.each([
+    "mailto:hello@example.com",
+    "file:///tmp/article.html",
+    "javascript:alert('owned')",
+    "/relative",
+  ])("rejects non-http article external-browser URLs before invoking Tauri: %j", async (url) => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
 
-      const result = await openUrlInExternalBrowser(url, {
-        background: false,
-        showToast,
-        errorLabel: "Failed to open in browser",
-      });
+    const result = await openUrlInExternalBrowser(url, {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
 
-      expect(result).toSatisfy(Result.isFailure);
-      expect(calls).toEqual([]);
-      expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
-    },
-  );
+    expect(result).toSatisfy(Result.isFailure);
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+  });
 
   it("rejects article external-browser URLs with credentials before invoking Tauri", async () => {
     setupTauriMocks((cmd, args) => {

@@ -61,11 +61,11 @@ import {
   renameAccount,
   renameFeed,
   renameTag,
+  type restartApp,
   searchArticles,
   setBrowserWebviewBounds,
   setMuteAutoMarkRead,
   setPreference,
-  type restartApp,
   tagArticle,
   testAccountConnection,
   toggleArticleStar,
@@ -1169,12 +1169,12 @@ describe("safeInvoke response validation", () => {
     }
   });
 
-  it("validates getPreferences responses as string records without preference value normalization", async () => {
+  it("validates getPreferences responses with known-key value schemas", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "get_preferences") {
         return {
-          theme: "midnight",
-          shortcut_next_article: "   ",
+          theme: "light",
+          shortcut_next_article: "Shift+J",
           selected_account_id: "acc-1",
         };
       }
@@ -1182,8 +1182,8 @@ describe("safeInvoke response validation", () => {
     });
 
     expect(Result.unwrap(await getPreferences())).toEqual({
-      theme: "midnight",
-      shortcut_next_article: "   ",
+      theme: "light",
+      shortcut_next_article: "Shift+J",
       selected_account_id: "acc-1",
     });
   });
