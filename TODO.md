@@ -347,16 +347,6 @@
   - discovery failure と submit failure は表示 copy と retry 導線が違うため、dialog view props 整理とは混ぜない
   - 実 network が必要な確認は manual verification に回し、parser/DTO/command response は fixture test で固定する
 
-- [ ] P3 Storybook fixture runtime 整理候補を別バッチで見直す
-  - `src/components/storybook/story-tauri-runtime.ts`、`story-query-client-provider.tsx`、UI reference canvas の mock runtime を、component isolation と app-like scenario で分ける
-  - story title / canvas taxonomy は既存 tests が見ているため、rename ではなく fixture provider の責務整理に限定する
-  - Tauri runtime mock と dev scenario mock data は用途が違うため、同じ worker に混ぜない
-
-- [ ] P2 logging / debug trace contract 候補を別バッチで追加する
-  - `src-tauri/src/commands/log_commands.rs`、`src/lib/debug-input-trace` 系、Debug HUD の trace 表示を、production log と dev-only trace で分ける
-  - key input trace / browser geometry diagnostics / sync error logs は用途が違うため、同じ debug UI に詰め込まず source ごとに contract を固定する
-  - file logging の保存先や rotation は packaged app 影響があるため、UI 表示整理とは別の manual verification にする
-
 - [ ] P1 screen snapshot / first-screen readiness 候補を別バッチで検証する
   - `use-screen-snapshot.ts`、startup account/feed selection、SQLite first screen snapshot の復元条件を、startup read model と UI fallback で分けて確認する
   - app launch 直後の loading skeleton、last selected account、recent article history は UX 影響が大きいため、fixture test と app smoke を分ける
@@ -376,11 +366,6 @@
   - `src-tauri/src/infra/provider/normalizer.rs`、provider traits、account DTO schema の display name / icon URL / capability flags を対応表で確認する
   - FreshRSS / GReader / local provider は認証・検索対応・delta sync の前提が違うため、provider ごとに fixture を分ける
   - account settings UI の表示 copy 変更は含めず、provider response normalization と frontend schema compatibility に限定する
-
-- [ ] P2 sidebar startup folder expansion 候補を別バッチで検証する
-  - `use-sidebar-startup-folder-expansion.ts`、last selected account/feed/folder、folder selection feed filter の初期展開条件を整理する
-  - startup sync や first-screen snapshot と同時に変えると原因が追いにくいため、sidebar tree state の pure/helper test を先に追加する
-  - user-triggered folder toggle と startup restore は UX 意味が違うため、state transition を分けて固定する
 
 - [ ] P0 account setup lock / session contract 候補を別バッチで見直す
   - `account-setup-session.types.ts`、add account controller、accounts nav の setup session lock を、wizard flow と settings navigation で分けて棚卸しする
