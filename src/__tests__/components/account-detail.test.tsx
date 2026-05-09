@@ -4,8 +4,10 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import i18n from "@tests/helpers/i18n-setup";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { AccountDto } from "@/api/tauri-commands";
 import { AccountDetail } from "@/components/settings/account-detail";
+import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import { i18nResourceLocales } from "@/lib/i18n-resources";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -137,6 +139,10 @@ describe("AccountDetail", () => {
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ settingsAccountId: "acc-1" });
+  });
+
+  it("keeps the account detail account contract schema-derived", () => {
+    expectTypeOf<AccountDetailAccount>().toEqualTypeOf<AccountDto>();
   });
 
   it("offers a 60 day retention option and persists it through update_account_sync", async () => {

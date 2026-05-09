@@ -16,6 +16,7 @@ import type {
   UiStoreShellState,
   UiStoreSyncProgressActions,
   UiStoreSyncProgressState,
+  UiStoreState,
   UiStoreToastActions,
   UiStoreToastState,
 } from "../../stores/ui-store";
@@ -85,6 +86,32 @@ describe("useUiStore", () => {
   });
 
   it("keeps typed slice inventories assignable from the current store", () => {
+    expectTypeOf<UiStoreSettingsState>().toEqualTypeOf<
+      Pick<
+        UiStoreState,
+        | "settingsOpen"
+        | "settingsCategory"
+        | "settingsAccountId"
+        | "settingsAddAccount"
+        | "settingsAddAccountInitialKind"
+        | "settingsLoading"
+      >
+    >();
+    expectTypeOf<UiStoreSettingsActions>().toEqualTypeOf<
+      Pick<
+        UiStoreState,
+        | "openSettings"
+        | "closeSettings"
+        | "setSettingsCategory"
+        | "openSettingsAccount"
+        | "openSettingsAddAccount"
+        | "setSettingsAccountId"
+        | "setSettingsAddAccount"
+        | "setSettingsAccountsView"
+        | "setSettingsLoading"
+      >
+    >();
+
     const state = useUiStore.getState();
     const shellState: UiStoreShellState = state;
     const layoutState: UiStoreLayoutState = state;

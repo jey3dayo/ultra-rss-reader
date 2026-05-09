@@ -1,10 +1,26 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { AccountConfigFormView } from "@/components/settings/add-account/account-config-form-view";
+import type {
+  AddAccountCredentialsSection,
+  AddAccountInputControl,
+} from "@/components/settings/add-account/form-view.types";
 import { AddAccountFormView } from "@/components/settings/add-account/form-view";
 
 describe("AddAccountFormView", () => {
+  it("keeps shared add-account form controls in the form view type surface", () => {
+    expectTypeOf<AddAccountInputControl>().toHaveProperty("value").toEqualTypeOf<string>();
+    expectTypeOf<AddAccountInputControl>().toHaveProperty("onChange").toEqualTypeOf<(value: string) => void>();
+    expectTypeOf<AddAccountCredentialsSection>()
+      .toHaveProperty("serverUrl")
+      .toEqualTypeOf<AddAccountInputControl | undefined>();
+    expectTypeOf<AddAccountCredentialsSection>()
+      .toHaveProperty("credential")
+      .toEqualTypeOf<AddAccountInputControl>();
+    expectTypeOf<AddAccountCredentialsSection>().toHaveProperty("password").toEqualTypeOf<AddAccountInputControl>();
+  });
+
   it("renders credential fields only when a credentials section is provided", () => {
     const { container, rerender } = render(
       <AddAccountFormView
