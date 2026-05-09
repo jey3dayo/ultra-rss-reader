@@ -277,11 +277,6 @@
   - layout token や CSS class の変更は visual impact があるため、まずは型・helper配置と tests の責務整理に限定する
   - app shell の overlay / debug HUD / modal collision とは別バッチにする
 
-- [ ] P1 Tauri menu / shortcut contract 整理候補を別バッチで見直す
-  - `src-tauri/src/menu.rs` / `menu_i18n.rs` と frontend shortcut handling の action id 対応を一覧化する
-  - menu label の i18n と frontend shortcut 表示は別レイヤーなので、まずは action id と emitted event の contract test を優先する
-  - native menu の checked state と UI preference state の同期は挙動影響があるため、型・テスト整理とは分ける
-
 - [ ] P1 Rust DB repository test 候補を別バッチで追加する
   - sqlite account / feed / folder / article / tag / sync state repository の境界値を、migration 適用済み DB fixture で固定する
   - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
@@ -307,11 +302,6 @@
   - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
   - release workflow の artifact matrix と updater signing は、docs 更新だけでなく実 release dry-run の観点を残す
 
-- [ ] P1 native menu checked state 同期候補を別バッチで検証する
-  - `src-tauri/src/menu.rs` の check menu item toggle と frontend preference state が、view filter / sort unread / group by feed でズレないか確認する
-  - menu action emit の contract test と、実 native menu の checked 表示確認を分ける
-  - i18n label や shortcut 表示変更は locale/copy batch に残し、ここでは state sync と event ordering だけを見る
-
 - [ ] P0 credentials / keyring verification 候補を別バッチで整理する
   - `src-tauri/src/infra/keyring_store.rs` と account detail credentials editor の保存/更新/削除/restart 復元を、native keyring と dev credentials で分けて検証する
   - `.env` や実 credential 値は扱わず、存在確認・失敗種別・fallback 表示の contract test と packaged manual verification に分ける
@@ -327,11 +317,6 @@
   - discovery failure と submit failure は表示 copy と retry 導線が違うため、dialog view props 整理とは混ぜない
   - 実 network が必要な確認は manual verification に回し、parser/DTO/command response は fixture test で固定する
 
-- [ ] P1 screen snapshot / first-screen readiness 候補を別バッチで検証する
-  - `use-screen-snapshot.ts`、startup account/feed selection、SQLite first screen snapshot の復元条件を、startup read model と UI fallback で分けて確認する
-  - app launch 直後の loading skeleton、last selected account、recent article history は UX 影響が大きいため、fixture test と app smoke を分ける
-  - DB migration や sync-on-startup と同時に変えると原因が追いにくいため、first-screen readiness の契約だけを先に固定する
-
 - [ ] P2 workspace pane / mobile recovery layout 候補を別バッチで見直す
   - `workspace-pane-layout.ts`、`app-layout.tsx`、mobile pane recovery の pane sizing / focus target / back affordance を棚卸しする
   - desktop 3-pane layout と mobile recovery は責務が違うため、responsive class 変更より先に layout state の contract test を追加する
@@ -346,8 +331,3 @@
   - `src-tauri/src/infra/provider/normalizer.rs`、provider traits、account DTO schema の display name / icon URL / capability flags を対応表で確認する
   - FreshRSS / GReader / local provider は認証・検索対応・delta sync の前提が違うため、provider ごとに fixture を分ける
   - account settings UI の表示 copy 変更は含めず、provider response normalization と frontend schema compatibility に限定する
-
-- [ ] P0 account setup lock / session contract 候補を別バッチで見直す
-  - `account-setup-session.types.ts`、add account controller、accounts nav の setup session lock を、wizard flow と settings navigation で分けて棚卸しする
-  - duplicate submit / navigation away / failed credential verification はデータ破損につながるため、UI copy より先に state machine の境界を固定する
-  - service picker の visual や provider icon 変更は含めず、setup session ownership と cancel/retry contract に限定する
