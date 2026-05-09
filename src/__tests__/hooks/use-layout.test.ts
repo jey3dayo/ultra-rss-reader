@@ -134,6 +134,13 @@ describe("resolveVisiblePane", () => {
     expect(resolveVisiblePane("mobile", "list", null)).toBe("sidebar");
   });
 
+  it("keeps mobile recovery tied to account selection state instead of pane sizing", () => {
+    expect(resolveVisiblePane("mobile", "sidebar", null)).toBe("sidebar");
+    expect(resolveVisiblePane("mobile", "list", null)).toBe("sidebar");
+    expect(resolveVisiblePane("mobile", "sidebar", "acc-1")).toBe("list");
+    expect(resolveVisiblePane("mobile", "list", "acc-1")).toBe("list");
+  });
+
   it("keeps content visible on mobile when content is focused", () => {
     expect(resolveVisiblePane("mobile", "content", "acc-1")).toBe("content");
   });

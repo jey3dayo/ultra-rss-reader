@@ -73,6 +73,23 @@ describe("AppLayout", () => {
     expect(screen.queryByText("Sidebar")).not.toBeInTheDocument();
   });
 
+  it("keeps subscriptions workspaces outside the mobile pane recovery tray", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      subscriptionsWorkspace: { kind: "index" },
+      focusedPane: "sidebar",
+      selectedAccountId: null,
+    });
+
+    render(<AppLayout />);
+
+    expect(screen.getByText("Article View")).toBeInTheDocument();
+    expect(screen.queryByTestId("sliding-pane-tray")).not.toBeInTheDocument();
+    expect(screen.queryByText("Article List")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sidebar")).not.toBeInTheDocument();
+  });
+
   it("keeps a closable sidebar shell mounted in wide layout for open and close motion", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
