@@ -135,6 +135,31 @@
   - event name、storage key、browser surface literal、platform capability defaults を手書き string union と重複させない方針へ寄せる
   - constants 値の変更や migration は含めず、literal-derived type export と consumer typing だけを扱う
 
+- [ ] TypeScript parse helper result boundary 候補を追加する
+  - `src/schemas/parse.ts` の throwing parse helper / nullable safe parse helper の責務と命名を整理する
+  - JSON parse failure、schema parse failure、null fallback の扱いを focused test で固定し、call site が例外前提か fallback 前提か読み取れるようにする
+  - 個別 schema の validation 変更とは分け、parse helper の return type と failure surface だけを扱う
+
+- [ ] TypeScript Storybook registry module guard 候補を追加する
+  - `tests/helpers/storybook-story-export-registry.ts` の `StorybookStoryModule` / `defaultMeta: Record<string, unknown>` を Storybook meta-like guard へ寄せられるか確認する
+  - default export の `component` 必須、named story object、allowlisted helper export の判定を helper 名で読める形にする
+  - individual story の修正とは分け、registry helper の module shape narrowing と failure message だけを扱う
+
+- [ ] TypeScript dev mock command args boundary 候補を追加する
+  - `src/dev/mocks.ts` の `parseMockArgs` 後の args を raw IPC payload から分け、command case ごとの parsed args type が局所で読み取れるようにする
+  - `commandArgsSchemas` の typed map 候補と接続できる余地を残しつつ、まず browser-only mock handler の boundary に限定する
+  - dev mock の返却データや pagination 挙動は変えず、mock command args の型境界だけを扱う
+
+- [ ] TypeScript dev mock seed/runtime state boundary 候補を追加する
+  - `src/dev/mock-data.ts` の exported `mockAccounts` / `mockFeeds` / `mockArticles` などを、readonly seed と mutable runtime state の責務に分けられるか確認する
+  - `resetMockDataForDevMocks` が seed を破壊せず fresh clone を復元することを focused test で固定する
+  - DTO schema parity や cascade delete 挙動とは分け、dev mock fixture state の type surface だけを扱う
+
+- [ ] TypeScript shared fixture clone API 候補を追加する
+  - `tests/helpers/fixtures.ts` の `sample*` 配列と `createSample*` clone helper の return type を、readonly fixture seed / mutable test fixture で分けられるか確認する
+  - fixture mutation isolation test を維持しつつ、test 側が seed を直接 mutate しにくい API へ寄せる
+  - fixture entity 追加や参照整合性 test の拡張とは分け、fixture helper の type contract だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
