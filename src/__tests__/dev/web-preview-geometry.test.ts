@@ -53,6 +53,11 @@ describe("dev-web-preview-geometry", () => {
           description:
             "The top rail should feel intentional but almost invisible, with the page still reading as immersive.",
         },
+        {
+          title: "Motion Boundary Check",
+          description:
+            "Only the overlay shell may use transform motion; the stage, chrome, and native webview bounds must stay position-synced.",
+        },
       ],
     });
   });

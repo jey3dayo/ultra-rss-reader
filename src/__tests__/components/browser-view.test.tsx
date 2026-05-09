@@ -571,6 +571,43 @@ describe("BrowserView", () => {
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });
 
+  it("keeps transform motion limited to the overlay shell", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    const shell = screen.getByTestId("browser-overlay-shell");
+    const stageShell = screen.getByTestId("browser-overlay-stage-shell");
+    const stage = screen.getByTestId("browser-overlay-stage");
+    const host = screen.getByTestId("browser-webview-host");
+    const leadingAction = screen.getByTestId("browser-overlay-leading-action");
+    const chrome = screen.getByTestId("browser-overlay-chrome");
+    const actions = screen.getByTestId("browser-overlay-actions");
+
+    await waitFor(() => {
+      expect(shell).toHaveAttribute("data-open", "true");
+    });
+
+    expect(shell).toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);
+    for (const element of [stageShell, stage, host, leadingAction, chrome, actions]) {
+      expect(element).not.toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);
+      expect(element.style.transform).toBe("");
+      expect(element.style.transition).toBe("");
+    }
+    expect(host).toHaveStyle({
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
+    });
+  });
+
   it("creates the embedded browser webview without motion delay when reduced motion is preferred", async () => {
     setReducedMotionPreference(true);
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
