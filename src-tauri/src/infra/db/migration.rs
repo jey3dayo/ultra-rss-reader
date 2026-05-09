@@ -843,6 +843,37 @@ mod tests {
         conn.execute_batch(MIGRATION_V11).unwrap();
         conn.execute_batch(MIGRATION_V12).unwrap();
         conn.execute_batch(MIGRATION_V13).unwrap();
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            params!["acc-1", "Local", "Local"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+            params!["feed-1", "acc-1", "Feed", "https://example.com/feed.xml"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO articles (
+                id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version,
+                summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at
+             ) VALUES (
+                ?1, ?2, NULL, ?3, ?4, ?5, ?6,
+                ?7, NULL, NULL, NULL, ?8, 0, 0, ?9
+             )",
+            params![
+                "article-1",
+                "feed-1",
+                "Article",
+                "<p>Raw</p>",
+                "<p>Sanitized <strong>body</strong></p>",
+                1,
+                "Summary fallback",
+                "2026-04-18T00:00:00Z",
+                "2026-04-18T00:00:00Z"
+            ],
+        )
+        .unwrap();
 
         let result = run_migrations(&mut conn).unwrap();
         assert_eq!(result.from_version, 13);
@@ -851,6 +882,15 @@ mod tests {
         assert!(conn
             .prepare("SELECT content_text FROM articles LIMIT 0")
             .is_ok());
+        let (content_sanitized, content_text): (String, String) = conn
+            .query_row(
+                "SELECT content_sanitized, content_text FROM articles WHERE id = 'article-1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(content_sanitized, "<p>Sanitized <strong>body</strong></p>");
+        assert_eq!(content_text, "");
     }
 
     #[test]
