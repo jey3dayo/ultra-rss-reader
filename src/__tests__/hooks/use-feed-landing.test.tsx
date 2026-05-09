@@ -53,7 +53,7 @@ describe("useFeedLanding", () => {
   beforeEach(() => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-2",
+      selectedAccountId: "acc-1",
     });
     usePreferencesStore.setState({
       prefs: {

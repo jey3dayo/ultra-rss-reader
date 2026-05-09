@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { extractSafeInvokeCommandsWithArgs } from "@tests/helpers/tauri-command-contract";
-import { describe, expect, expectTypeOf, it } from "vitest";
-import type { z } from "zod";
+import { describe, expect, it } from "vitest";
 import {
   AccountDtoSchema,
   AccountSyncStatusSchema,
@@ -1318,14 +1317,17 @@ describe("command args schemas", () => {
   it("types command args schema lookup by known command names", () => {
     const knownCommand = "list_articles" satisfies CommandWithArgs;
     const unknownCommand = "list_accounts";
+    const listArticlesSchema: typeof commandArgsSchemas.list_articles = getCommandArgsSchema(knownCommand);
 
-    expectTypeOf(getCommandArgsSchema(knownCommand)).toEqualTypeOf<typeof commandArgsSchemas.list_articles>();
-    expectTypeOf(getCommandArgsSchema(unknownCommand)).toEqualTypeOf<z.ZodType<Record<string, unknown>> | undefined>();
+    expect(listArticlesSchema).toBe(commandArgsSchemas.list_articles);
+    expect(getCommandArgsSchema(unknownCommand)).toBeUndefined();
     expect(isCommandWithArgs(knownCommand)).toBe(true);
     expect(isCommandWithArgs(unknownCommand)).toBe(false);
 
     if (isCommandWithArgs(knownCommand)) {
+      const narrowedCommand: CommandWithArgs = knownCommand;
       expect(getCommandArgsSchema(knownCommand)).toBe(commandArgsSchemas.list_articles);
+      expect(narrowedCommand).toBe(knownCommand);
     }
   });
 

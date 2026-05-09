@@ -33,15 +33,16 @@ describe("App", () => {
     expect(tray).toHaveStyle({ width: "100%" });
 
     // sidebar focused: sidebar visible, list and content hidden
-    const panes = tray?.children;
+    let panes = tray?.children;
     expect(panes).toHaveLength(3);
     expect(panes?.[0]).not.toHaveAttribute("inert");
     expect(panes?.[1]).toHaveAttribute("inert");
     expect(panes?.[2]).toHaveAttribute("inert");
 
     // Switch to list
-    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list" });
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
     rerender(<AppLayout />);
+    panes = screen.getByTestId("sliding-pane-tray").children;
 
     expect(panes?.[0]).toHaveAttribute("inert");
     expect(panes?.[1]).not.toHaveAttribute("inert");
@@ -50,8 +51,9 @@ describe("App", () => {
     expect(tray).toHaveStyle({ transform: "translateX(-100%)" });
 
     // Switch to content
-    useUiStore.setState({ layoutMode: "mobile", focusedPane: "content" });
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "content", selectedAccountId: "acc-1" });
     rerender(<AppLayout />);
+    panes = screen.getByTestId("sliding-pane-tray").children;
 
     expect(panes?.[0]).toHaveAttribute("inert");
     expect(panes?.[1]).toHaveAttribute("inert");

@@ -34,6 +34,31 @@
   - `src/__tests__/config/repo-contracts.test.ts` で `README.md` 以外の rule file が index に相対リンクされ、必要なら `CLAUDE.md` の Documentation Map から辿れることを固定する
   - markdown link scan 拡張とは分け、rules index の source-of-truth drift だけを扱う
 
+- [ ] browser webview synced state URL drift contract 候補を追加する
+  - `src/components/reader/browser-webview-sync-helpers.ts` の `shouldApplySyncedBrowserState()` が `previousState.url === requestedUrl` だけを見ており、`nextState.url` が別 URL の完了状態でも適用され得るか確認する
+  - `src/__tests__/components/browser-webview-sync-helpers.test.ts` で requested URL と returned state URL がずれた時の適用可否を固定する
+  - bounds geometry や native create command の契約とは分け、frontend state adoption の latest-only 判定だけを扱う
+
+- [ ] command palette history whitespace id boundary 候補を追加する
+  - `src/components/reader/command-palette-history.ts` の `parseCommandPaletteHistoryEntry()` が `feed:` 後続スペースのみや `tag:\n` のような whitespace-only id を resource history として受け入れるか確認する
+  - `src/__tests__/components/command-palette-history.test.ts` で blank / whitespace / padded id の扱いを追加し、trim するか caller normalization 必須かを固定する
+  - storage cap や action registry parity とは分け、history value parser の id boundary だけを扱う
+
+- [ ] roving focus non-positive count contract 候補を追加する
+  - `src/components/reader/roving-focus.ts` の `getLoopedFocusIndex()` が `itemCount < 0` や non-integer count を受けた時の結果を明示していないため、helper boundary を固定する
+  - `src/__tests__/components/roving-focus.test.ts` で negative count / fractional count / large index を追加し、呼び出し側 invariant か helper guard かを決める
+  - sidebar row の disabled skip behavior とは分け、shared roving focus helper の index normalization だけを扱う
+
+- [ ] sidebar sync event payload schema guard 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-sync.ts` の Tauri event handler が `sync-progress` / `sync-warning` payload をそのまま UI state と warning summarizer に渡すため、malformed payload の扱いを固定する
+  - `src/__tests__/hooks/use-sidebar-sync.test.ts` で payload wrapper / raw payload / unknown payload の3系統を分け、ignore・toast・error surface の契約を決める
+  - manual sync button の rejection handling とは分け、Tauri push event payload boundary だけを扱う
+
+- [ ] account detail scheduled focus cleanup 候補を追加する
+  - `src/components/settings/hooks/account-detail/account-detail-editor-focus.ts` の `scheduleAccountDetailInputFocus()` が `requestAnimationFrame` を cancel できないため、editor close / account switch 後に古い input へ focus しないか確認する
+  - `src/__tests__/hooks/use-account-detail-name-editor.test.tsx` または dedicated focus helper test で scheduled frame の unmount / ref replacement / missing RAF fallback を固定する
+  - tag dialog autofocus cleanup とは分け、account detail editor の scheduled focus ownership だけを扱う
+
 - [ ] preferences error message stringification guard 候補を追加する
   - `src/stores/preferences-store.ts` の `resolveErrorMessage()` が `String(error)` fallback を直接呼ぶため、throwing `toString` を持つ unknown error で persist failure toast 自体が落ちないか確認する
   - `src/__tests__/stores/preferences-store.test.ts` で `setPreference` reject / `Result.fail` の error object が安全に fallback message へ落ちることを固定する
