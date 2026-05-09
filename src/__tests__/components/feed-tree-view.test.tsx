@@ -639,7 +639,9 @@ describe("FeedTreeView", () => {
       "px-2",
       "py-1.5",
     );
-    expect(overlay.querySelector("img")?.parentElement).toHaveClass("size-5");
+    const overlayFaviconSlot = overlay.querySelector("img")?.parentElement;
+    expect(overlayFaviconSlot).toHaveClass("size-5");
+    expect(overlayFaviconSlot).not.toHaveClass("h-5", "w-5");
   });
 
   it("allows moving a feed by clicking the handle and then the target folder", () => {

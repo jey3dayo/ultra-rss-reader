@@ -55,7 +55,9 @@ describe("FeedItemView", () => {
     );
 
     expect(screen.queryByText("0")).not.toBeInTheDocument();
-    expect(screen.getByText("A").parentElement).toHaveClass("size-5");
+    const faviconSlot = screen.getByText("A").parentElement;
+    expect(faviconSlot).toHaveClass("size-5");
+    expect(faviconSlot).not.toHaveClass("h-5", "w-5");
   });
 
   it("uses the softened sidebar hover tone for unselected rows", () => {

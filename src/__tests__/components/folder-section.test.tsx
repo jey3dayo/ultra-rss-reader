@@ -60,7 +60,9 @@ describe("FolderSectionView", () => {
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveClass("min-h-9");
-    expect(trigger.querySelector("svg")).toHaveClass("size-3");
+    const disclosureIcon = trigger.querySelector("svg");
+    expect(disclosureIcon).toHaveClass("size-3");
+    expect(disclosureIcon).not.toHaveClass("h-3", "w-3");
     expect(trigger).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
     expect(trigger).toHaveClass("focus-visible:ring-2");
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "text-foreground-soft", "tabular-nums");
