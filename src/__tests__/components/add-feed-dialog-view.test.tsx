@@ -107,6 +107,9 @@ describe("AddFeedDialogView", () => {
       "bg-state-success-surface",
       "text-state-success-foreground",
     );
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-atomic", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Feed detected");
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Add" }).closest('[data-slot="dialog-footer"]')).toHaveClass(
@@ -204,6 +207,7 @@ describe("AddFeedDialogView", () => {
       "border-state-danger-border",
       "bg-state-danger-surface",
     );
+    expect(screen.getByRole("status")).toHaveTextContent("Invalid URL");
     expect(urlInput).toHaveAttribute("aria-describedby", helperText.id);
     expect(urlInput).toHaveAttribute("aria-errormessage", helperText.id);
     expect(urlInput).toHaveAttribute("aria-invalid", "true");

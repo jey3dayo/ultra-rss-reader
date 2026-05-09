@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ArticleListItem } from "./article-list-item";
 
@@ -35,11 +35,20 @@ export function ArticleGroupsView({
   onSelectArticle,
   renderRow,
 }: ArticleGroupsViewProps) {
+  const groupLabelIdPrefix = useId();
+
   return groups.map((group) => (
-    <div key={group.id}>
+    <div
+      key={group.id}
+      role="group"
+      aria-labelledby={group.showLabel ? `${groupLabelIdPrefix}-${group.id}` : undefined}
+    >
       {group.showLabel && (
         <div data-group-header="true" className="sticky top-0 bg-card px-4 py-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground-soft">
+          <span
+            id={`${groupLabelIdPrefix}-${group.id}`}
+            className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground-soft"
+          >
             {group.label}
           </span>
         </div>

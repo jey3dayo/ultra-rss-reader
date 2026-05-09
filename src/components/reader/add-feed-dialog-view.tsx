@@ -101,28 +101,30 @@ export function AddFeedDialogView({
         <FolderSelectView {...folderSelectProps} />
       </div>
 
-      {successMessage && !error ? (
-        <SurfaceCard
-          variant="info"
-          tone="success"
-          padding="compact"
-          data-motion-phase="entering"
-          className={MOTION_CONTENT_SWAP_CLASS_NAME}
-        >
-          <p className="text-sm">{successMessage}</p>
-        </SurfaceCard>
-      ) : null}
-      {error ? (
-        <SurfaceCard
-          variant="info"
-          tone="danger"
-          padding="compact"
-          data-motion-phase="entering"
-          className={MOTION_CONTENT_SWAP_CLASS_NAME}
-        >
-          <p className="text-sm">{error}</p>
-        </SurfaceCard>
-      ) : null}
+      <div role="status" aria-live="polite" aria-atomic="true">
+        {successMessage && !error ? (
+          <SurfaceCard
+            variant="info"
+            tone="success"
+            padding="compact"
+            data-motion-phase="entering"
+            className={MOTION_CONTENT_SWAP_CLASS_NAME}
+          >
+            <p className="text-sm">{successMessage}</p>
+          </SurfaceCard>
+        ) : null}
+        {error ? (
+          <SurfaceCard
+            variant="info"
+            tone="danger"
+            padding="compact"
+            data-motion-phase="entering"
+            className={MOTION_CONTENT_SWAP_CLASS_NAME}
+          >
+            <p className="text-sm">{error}</p>
+          </SurfaceCard>
+        ) : null}
+      </div>
     </FormDialogShell>
   );
 }

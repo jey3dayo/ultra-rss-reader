@@ -89,6 +89,7 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByText("Today")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Today" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /First Article/i })).toBeInTheDocument();
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
