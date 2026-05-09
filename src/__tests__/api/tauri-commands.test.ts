@@ -729,6 +729,7 @@ describe("safeInvoke response validation", () => {
   });
 
   it("returns error when response shape is invalid", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") return [{ id: "acc-1" }]; // missing fields
       return null;
@@ -736,8 +737,35 @@ describe("safeInvoke response validation", () => {
     const result = await listAccounts();
     expect(Result.isFailure(result)).toBe(true);
     const error = Result.unwrapError(result);
-    expect(error.type).toBe("UserVisible");
-    expect(error.message).toContain("validation failed");
+    expect(error.type).toBe("Diagnostics");
+    expect(error.message).toBe("Response validation failed. See diagnostics for details.");
+    expect(error.message).not.toContain("acc-1");
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[tauri-commands] list_accounts response validation failed:",
+      expect.stringContaining("name"),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it("caps response validation diagnostics detail", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") return [{ id: 1, kind: 2, name: 3, server_url: 4, username: 5 }];
+      return null;
+    });
+
+    const result = await listAccounts();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({
+      type: "Diagnostics",
+      message: "Response validation failed. See diagnostics for details.",
+    });
+    const diagnosticDetail = errorSpy.mock.calls[0]?.[1];
+    expect(typeof diagnosticDetail).toBe("string");
+    expect(diagnosticDetail).toContain("more issue(s) omitted");
+    expect(diagnosticDetail.length).toBeLessThanOrEqual(243);
+    errorSpy.mockRestore();
   });
 
   it("validates account command group AccountDto responses", async () => {
@@ -761,7 +789,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -783,7 +811,7 @@ describe("safeInvoke response validation", () => {
 
     expect(Result.isFailure(result)).toBe(true);
     const error = Result.unwrapError(result);
-    expect(error.type).toBe("UserVisible");
+    expect(error.type).toBe("Diagnostics");
     expect(error.message).toContain("validation failed");
   });
 
@@ -799,7 +827,7 @@ describe("safeInvoke response validation", () => {
 
     expect(Result.isFailure(result)).toBe(true);
     const error = Result.unwrapError(result);
-    expect(error.type).toBe("UserVisible");
+    expect(error.type).toBe("Diagnostics");
     expect(error.message).toContain("validation failed");
   });
 
@@ -838,7 +866,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -865,7 +893,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -891,7 +919,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -928,7 +956,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -952,7 +980,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -983,7 +1011,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -1016,7 +1044,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -1048,7 +1076,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -1071,7 +1099,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -1103,7 +1131,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -1126,7 +1154,7 @@ describe("safeInvoke response validation", () => {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
-      expect(error.type).toBe("UserVisible");
+      expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
   });
@@ -1163,12 +1191,31 @@ describe("safeInvoke response validation", () => {
     const result = await getPreferences();
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).type).toBe("UserVisible");
+    expect(Result.unwrapError(result).type).toBe("Diagnostics");
     expect(Result.unwrapError(result).message).toContain("validation failed");
   });
 });
 
 describe("safeInvoke args validation", () => {
+  it("rejects blank command ids before invoking Tauri", async () => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await listFeeds("   ");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toMatchObject({
+      type: "UserVisible",
+      message: "Command validation failed: accountId: Command id must not be blank",
+    });
+    expect(invoked).toBe(false);
+  });
+
   it("accepts setPreference values that match known preference schemas", async () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "set_preference") {
@@ -1340,7 +1387,6 @@ describe("safeInvoke args validation", () => {
           total: 0,
           succeeded: 0,
           failed: [],
-          errors: [],
           warnings: [],
         };
       }
@@ -1361,7 +1407,6 @@ describe("safeInvoke args validation", () => {
           total: 1,
           succeeded: 1,
           failed: [],
-          errors: [],
           warnings: [],
         };
       }

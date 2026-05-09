@@ -11,6 +11,7 @@ const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION
 const preferenceValueMaxBytes = 1024;
 const textEncoder = new TextEncoder();
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
+const nonBlankTrimmedIdSchema = z.string().trim().min(1, { message: "Command id must not be blank" });
 const optionalNonBlankTrimmedStringSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim() : value),
   z.string().min(1).optional(),
@@ -40,13 +41,13 @@ const httpUrlSchema = z
   });
 
 // --- listFolders / listFeeds ---
-export const listFoldersArgs = z.object({ accountId: z.string() });
-export const listFeedsArgs = z.object({ accountId: z.string() });
+export const listFoldersArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
+export const listFeedsArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- listArticles ---
 export const listArticlesArgs = z
   .object({
-    feedId: z.string(),
+    feedId: nonBlankTrimmedIdSchema,
     unreadOnly: z.boolean().optional(),
     starredOnly: z.boolean().optional(),
     offset: paginationOffsetSchema.optional(),
@@ -59,7 +60,7 @@ export const listArticlesArgs = z
 
 // --- listAccountArticles ---
 export const listAccountArticlesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   unreadOnly: z.boolean().optional(),
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
@@ -67,12 +68,12 @@ export const listAccountArticlesArgs = z.object({
 
 // --- listFeedArticleSummaries ---
 export const listFeedArticleSummariesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
 });
 
 // --- listFolderArticles ---
 export const listFolderArticlesArgs = z.object({
-  folderId: z.string(),
+  folderId: nonBlankTrimmedIdSchema,
   mode: articleListModeSchema.optional(),
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
@@ -80,14 +81,14 @@ export const listFolderArticlesArgs = z.object({
 
 // --- listStarredArticles ---
 export const listStarredArticlesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
 });
 
 // --- listRecentArticles ---
 export const listRecentArticlesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   mode: articleListModeSchema.optional(),
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
@@ -95,12 +96,12 @@ export const listRecentArticlesArgs = z.object({
 
 // --- countAccountUnreadArticles ---
 export const countAccountUnreadArticlesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
 });
 
 // --- countAccountStarredArticles ---
 export const countAccountStarredArticlesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
 });
 
 const oldUnreadScopeKindSchema = z.enum(["account", "feed", "folder"]);
@@ -109,22 +110,22 @@ export type OldUnreadScopeKind = z.infer<typeof oldUnreadScopeKindSchema>;
 export type OldUnreadDays = z.infer<typeof oldUnreadDaysSchema>;
 
 // --- markAccountRead ---
-export const markAccountReadArgs = z.object({ accountId: z.string() });
+export const markAccountReadArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- old unread articles ---
 export const oldUnreadArticlesArgs = z.object({
   scopeKind: oldUnreadScopeKindSchema,
-  targetId: z.string(),
+  targetId: nonBlankTrimmedIdSchema,
   olderThanDays: oldUnreadDaysSchema,
 });
 
 // --- unstarAccountArticles ---
-export const unstarAccountArticlesArgs = z.object({ accountId: z.string() });
+export const unstarAccountArticlesArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 export const cleanupFeedIntegrityOrphansArgs = z.object({ dryRun: z.boolean() });
 
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   query: nonBlankTrimmedStringSchema,
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
@@ -132,36 +133,36 @@ export const searchArticlesArgs = z.object({
 
 // --- markArticleRead ---
 export const markArticleReadArgs = z.object({
-  articleId: z.string(),
+  articleId: nonBlankTrimmedIdSchema,
   read: z.boolean().optional(),
 });
 
 // --- article view history ---
 export const recordArticleViewArgs = z.object({
-  accountId: z.string(),
-  articleId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
+  articleId: nonBlankTrimmedIdSchema,
 });
 
 export const clearArticleViewHistoryArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
 });
 
 // --- markArticlesRead ---
 export const markArticlesReadArgs = z.object({
-  articleIds: z.array(z.string()).nonempty(),
+  articleIds: z.array(nonBlankTrimmedIdSchema).nonempty(),
 });
 
 // --- toggleArticleStar ---
 export const toggleArticleStarArgs = z.object({
-  articleId: z.string(),
+  articleId: nonBlankTrimmedIdSchema,
   starred: z.boolean(),
 });
 
 // --- markFeedRead ---
-export const markFeedReadArgs = z.object({ feedId: z.string() });
+export const markFeedReadArgs = z.object({ feedId: nonBlankTrimmedIdSchema });
 
 // --- markFolderRead ---
-export const markFolderReadArgs = z.object({ folderId: z.string() });
+export const markFolderReadArgs = z.object({ folderId: nonBlankTrimmedIdSchema });
 
 // --- addAccount ---
 const localAddAccountArgs = z.object({
@@ -189,7 +190,7 @@ const syncIntervalSecsSchema = z.number().int().min(60).max(86_400);
 const keepReadItemsDaysSchema = z.number().int().min(1).max(3650);
 
 export const updateAccountSyncArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   syncIntervalSecs: syncIntervalSecsSchema,
   syncOnStartup: z.boolean(),
   syncOnWake: z.boolean(),
@@ -198,7 +199,7 @@ export const updateAccountSyncArgs = z.object({
 
 // --- updateAccountCredentials ---
 export const updateAccountCredentialsArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   serverUrl: optionalNonBlankTrimmedStringSchema,
   username: optionalNonBlankTrimmedStringSchema,
   password: z.string().optional(),
@@ -206,16 +207,16 @@ export const updateAccountCredentialsArgs = z.object({
 
 // --- renameAccount ---
 export const renameAccountArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   name: z.string(),
 });
 
 // --- syncAccount ---
-export const syncAccountArgs = z.object({ accountId: z.string() });
-export const getAccountSyncStatusArgs = z.object({ accountId: z.string() });
+export const syncAccountArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
+export const getAccountSyncStatusArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- syncFeed ---
-export const syncFeedArgs = z.object({ feedId: z.string() });
+export const syncFeedArgs = z.object({ feedId: nonBlankTrimmedIdSchema });
 
 // --- startup sync ---
 export const startupSyncArgs = z.object({
@@ -223,44 +224,44 @@ export const startupSyncArgs = z.object({
 });
 
 // --- testAccountConnection ---
-export const testAccountConnectionArgs = z.object({ accountId: z.string() });
+export const testAccountConnectionArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- deleteAccount ---
-export const deleteAccountArgs = z.object({ accountId: z.string() });
+export const deleteAccountArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- discoverFeeds ---
 export const discoverFeedsArgs = z.object({ url: nonBlankTrimmedStringSchema });
 
 // --- addLocalFeed ---
 export const addLocalFeedArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   url: nonBlankTrimmedStringSchema,
 });
 
 // --- createFolder ---
 export const createFolderArgs = z.object({
-  accountId: z.string(),
+  accountId: nonBlankTrimmedIdSchema,
   name: nonBlankTrimmedStringSchema,
 });
 
 // --- deleteFeed ---
-export const deleteFeedArgs = z.object({ feedId: z.string() });
+export const deleteFeedArgs = z.object({ feedId: nonBlankTrimmedIdSchema });
 
 // --- renameFeed ---
 export const renameFeedArgs = z.object({
-  feedId: z.string(),
+  feedId: nonBlankTrimmedIdSchema,
   title: z.string(),
 });
 
 // --- updateFeedFolder ---
 export const updateFeedFolderArgs = z.object({
-  feedId: z.string(),
+  feedId: nonBlankTrimmedIdSchema,
   folderId: nullableBlankStringToNullSchema,
 });
 
 // --- updateFeedDisplaySettings ---
 export const updateFeedDisplaySettingsArgs = z.object({
-  feedId: z.string(),
+  feedId: nonBlankTrimmedIdSchema,
   readerMode: FeedDisplayModeSchema,
   webPreviewMode: FeedDisplayModeSchema,
 });
@@ -301,7 +302,7 @@ export const setBrowserWebviewBoundsArgs = z.object({
 });
 
 // --- exportOpml ---
-export const exportOpmlArgs = z.object({ accountId: z.string() });
+export const exportOpmlArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- setPreference ---
 export const setPreferenceArgs = z
@@ -357,41 +358,41 @@ export const createTagArgs = z.object({
 
 // --- renameTag ---
 export const renameTagArgs = z.object({
-  tagId: z.string(),
+  tagId: nonBlankTrimmedIdSchema,
   name: z.string(),
   color: z.string().nullish(),
 });
 
 // --- deleteTag ---
-export const deleteTagArgs = z.object({ tagId: z.string() });
+export const deleteTagArgs = z.object({ tagId: nonBlankTrimmedIdSchema });
 
 // --- tagArticle ---
 export const tagArticleArgs = z.object({
-  articleId: z.string(),
-  tagId: z.string(),
+  articleId: nonBlankTrimmedIdSchema,
+  tagId: nonBlankTrimmedIdSchema,
 });
 
 // --- untagArticle ---
 export const untagArticleArgs = z.object({
-  articleId: z.string(),
-  tagId: z.string(),
+  articleId: nonBlankTrimmedIdSchema,
+  tagId: nonBlankTrimmedIdSchema,
 });
 
 // --- getArticleTags ---
-export const getArticleTagsArgs = z.object({ articleId: z.string() });
+export const getArticleTagsArgs = z.object({ articleId: nonBlankTrimmedIdSchema });
 
 // --- listArticlesByTag ---
 export const listArticlesByTagArgs = z.object({
-  tagId: z.string(),
+  tagId: nonBlankTrimmedIdSchema,
   mode: articleListModeSchema.optional(),
   offset: paginationOffsetSchema.optional(),
   limit: paginationLimitSchema.optional(),
-  accountId: z.string().optional(),
+  accountId: nonBlankTrimmedIdSchema.optional(),
 });
 
 // --- getTagArticleCounts ---
 export const getTagArticleCountsArgs = z.object({
-  accountId: z.string().optional(),
+  accountId: nonBlankTrimmedIdSchema.optional(),
 });
 
 // --- mute keywords ---
@@ -401,11 +402,11 @@ export const createMuteKeywordArgs = z.object({
 });
 
 export const deleteMuteKeywordArgs = z.object({
-  muteKeywordId: z.string(),
+  muteKeywordId: nonBlankTrimmedIdSchema,
 });
 
 export const updateMuteKeywordArgs = z.object({
-  muteKeywordId: z.string(),
+  muteKeywordId: nonBlankTrimmedIdSchema,
   scope: MuteKeywordScopeSchema,
 });
 

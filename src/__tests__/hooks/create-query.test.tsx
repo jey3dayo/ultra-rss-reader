@@ -85,6 +85,26 @@ describe("createQuery", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("emits diagnostics if a disabled generated query is forced to refetch", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(() => useGeneratedQuery(null), {
+      wrapper,
+    });
+
+    const refetchResult = await result.current.refetch();
+
+    expect(refetchResult.error).toMatchObject({ message: "Query id is required when the query is enabled." });
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith("[createQuery] queryFn called while generated query is disabled:", {
+      queryKey: "items",
+    });
+
+    warnSpy.mockRestore();
+  });
+
   it("trims query ids before building the cache key and calling the fetcher", async () => {
     const queryWrapper = createQueryWrapper();
     const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));

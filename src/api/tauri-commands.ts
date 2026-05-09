@@ -160,6 +160,19 @@ type SchemaBackedInvokeOptions<R extends z.ZodType> = InvokeArgsOptions & {
 type GenericInvokeOptions = InvokeArgsOptions;
 
 const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+const VALIDATION_ISSUE_LIMIT = 3;
+const VALIDATION_DETAIL_MAX_LENGTH = 240;
+const RESPONSE_VALIDATION_MESSAGE = "Response validation failed. See diagnostics for details.";
+
+class ResponseValidationError extends Error {
+  readonly cause: z.ZodError;
+
+  constructor(cause: z.ZodError) {
+    super(RESPONSE_VALIDATION_MESSAGE);
+    this.name = "ResponseValidationError";
+    this.cause = cause;
+  }
+}
 
 function redactUrlToken(value: string): string {
   const trailingPunctuation = value.match(/[),.;!?]+$/)?.[0] ?? "";
@@ -189,6 +202,25 @@ function runtimeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function formatZodIssuePath(path: ReadonlyArray<PropertyKey>): string {
+  return path.length > 0 ? path.join(".") : "<root>";
+}
+
+function limitValidationDetail(detail: string): string {
+  return detail.length <= VALIDATION_DETAIL_MAX_LENGTH ? detail : `${detail.slice(0, VALIDATION_DETAIL_MAX_LENGTH)}...`;
+}
+
+function formatZodIssues(error: z.ZodError): string {
+  const issues = error.issues.slice(0, VALIDATION_ISSUE_LIMIT).map((issue) => {
+    return `${formatZodIssuePath(issue.path)}: ${issue.message}`;
+  });
+  const omittedCount = error.issues.length - issues.length;
+  if (omittedCount > 0) {
+    issues.push(`${omittedCount} more issue(s) omitted`);
+  }
+  return limitValidationDetail(redactSensitiveRuntimeMessage(issues.join(", ")));
+}
+
 function redactAppError(error: AppError): AppError {
   return {
     ...error,
@@ -197,14 +229,21 @@ function redactAppError(error: AppError): AppError {
 }
 
 function toAppError(cmd: string, error: unknown): AppError {
+  if (error instanceof ResponseValidationError) {
+    const detail = formatZodIssues(error.cause);
+    console.error(`[tauri-commands] ${cmd} response validation failed:`, detail);
+    return {
+      type: "Diagnostics",
+      message: RESPONSE_VALIDATION_MESSAGE,
+    };
+  }
+
   if (error instanceof z.ZodError) {
-    const detail = redactSensitiveRuntimeMessage(
-      error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
-    );
-    console.error(`[tauri-commands] ${cmd} validation failed:`, detail);
+    const detail = formatZodIssues(error);
+    console.error(`[tauri-commands] ${cmd} args validation failed:`, detail);
     return {
       type: "UserVisible",
-      message: `Response validation failed: ${detail}`,
+      message: `Command validation failed: ${detail}`,
     };
   }
   const result = AppErrorSchema.safeParse(error);
@@ -236,7 +275,14 @@ async function invokeWithResponseSchema<R extends z.ZodType>(
 ): Promise<z.output<R>> {
   const validatedArgs = validateInvokeArgs(options, args);
   const raw = await invoke<unknown>(cmd, validatedArgs);
-  return parseWithSchema(options.response, raw);
+  try {
+    return parseWithSchema(options.response, raw);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new ResponseValidationError(error);
+    }
+    throw error;
+  }
 }
 
 async function invokeWithoutResponseSchema<T>(

@@ -16,13 +16,12 @@ export function createQuery<TData, TId extends string | null>(
 ) {
   return function useGeneratedQuery(id: TId) {
     const queryId = normalizeQueryId(id);
-    return useQuery({
+    return useQuery<TData, Error, TData, [string, string | null]>({
       queryKey: [queryKey, queryId],
       queryFn: () => {
         if (queryId === null) {
-          return Promise.resolve(Result.fail({ message: "Query id is required when the query is enabled." })).then(
-            Result.unwrap,
-          );
+          console.warn("[createQuery] queryFn called while generated query is disabled:", { queryKey });
+          return Promise.reject(new Error("Query id is required when the query is enabled."));
         }
 
         return fetcher(queryId).then(Result.unwrap());

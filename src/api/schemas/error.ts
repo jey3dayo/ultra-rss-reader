@@ -7,6 +7,7 @@ const appErrorMessageSchema = z.string().refine((message) => message.trim().leng
 export const AppErrorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("UserVisible"), message: appErrorMessageSchema }).strict(),
   z.object({ type: z.literal("Retryable"), message: appErrorMessageSchema }).strict(),
+  z.object({ type: z.literal("Diagnostics"), message: appErrorMessageSchema }).strict(),
 ]);
 
 export type AppError = z.infer<typeof AppErrorSchema>;
