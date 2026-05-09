@@ -362,6 +362,36 @@ describe("performUpdateCheck", () => {
     warnSpy.mockRestore();
   });
 
+  it("disposes updater event listeners on unmount", async () => {
+    const disposeProgressListener = vi.fn();
+    const disposeReadyListener = vi.fn();
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockListen.mockImplementation(async (eventName: string) => {
+      if (eventName === "update-download-progress") {
+        return disposeProgressListener;
+      }
+      if (eventName === "update-ready") {
+        return disposeReadyListener;
+      }
+      return () => {};
+    });
+
+    const {
+      updaterModule: { useUpdater },
+    } = await getUpdaterModuleAndUiStore();
+
+    const { unmount } = renderHook(() => useUpdater());
+    await flushAsyncWork();
+
+    expect(mockListen).toHaveBeenCalledWith("update-download-progress", expect.any(Function));
+    expect(mockListen).toHaveBeenCalledWith("update-ready", expect.any(Function));
+
+    unmount();
+
+    expect(disposeProgressListener).toHaveBeenCalledTimes(1);
+    expect(disposeReadyListener).toHaveBeenCalledTimes(1);
+  });
+
   it("skips update checks in browser dev mock preview", async () => {
     window.__DEV_BROWSER_MOCKS__ = true;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = true;

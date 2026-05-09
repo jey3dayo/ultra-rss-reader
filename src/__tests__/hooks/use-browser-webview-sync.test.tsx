@@ -349,4 +349,34 @@ describe("useBrowserWebviewSync", () => {
     });
     expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
   });
+
+  it("cleans up bounds observers and window resize listeners on unmount", async () => {
+    const disconnect = vi.fn();
+    class TestResizeObserver {
+      observe = vi.fn();
+      disconnect = disconnect;
+    }
+    vi.stubGlobal("ResizeObserver", TestResizeObserver);
+    const removeEventListener = vi.spyOn(window, "removeEventListener");
+    const { element } = createHostElement();
+
+    const { unmount } = renderHook(() => {
+      const hostRef = useRef<HTMLDivElement | null>(element);
+
+      useBrowserWebviewBoundsSync({
+        browserUrl,
+        hostRef,
+        waitForBrowserWebviewListeners: async () => {},
+        syncBrowserWebview: vi.fn(),
+        showSurfaceFailure: vi.fn(),
+      });
+    });
+
+    unmount();
+
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(removeEventListener).toHaveBeenCalledWith("resize", expect.any(Function), undefined);
+
+    removeEventListener.mockRestore();
+  });
 });
