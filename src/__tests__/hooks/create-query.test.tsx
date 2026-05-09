@@ -79,7 +79,7 @@ describe("createQuery", () => {
     expect(result.current.fetchStatus).toBe("idle");
     expect(fetcher).not.toHaveBeenCalled();
 
-    rerender({ id: "   " });
+    expect(() => rerender({ id: "   " })).not.toThrow();
 
     expect(result.current.fetchStatus).toBe("idle");
     expect(fetcher).not.toHaveBeenCalled();
