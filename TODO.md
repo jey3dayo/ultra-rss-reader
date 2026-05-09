@@ -380,6 +380,31 @@
   - `accountId` trim 後 empty の時は query disabled、queryFn 直実行時も明示 error になることを focused hook test で固定する
   - generic `createQuery` whitespace guard や account sync status query key drift とは分け、account unread count hook の id boundary だけを扱う
 
+- [ ] feed display override partial invalid contract 候補を追加する
+  - `src/lib/articles/article-display.ts` の `resolveFeedDisplayOverrides` が `reader_mode` / `web_preview_mode` の片方だけ invalid でも両方 `inherit` に戻すため、valid axis まで落としてよいか確認する
+  - 片方 invalid 時に valid axis を維持するか、両軸 fallback を仕様として残すかを `article-display.test.ts` に明示する
+  - feed display mode optimistic cancel や backend display mode validation とは分け、frontend display override parser の partial invalid policy だけを扱う
+
+- [ ] retained article blank id guard 候補を追加する
+  - `src/lib/articles/article-retention.ts` の `addRetainedArticle` が blank / whitespace-only article id も retained set に追加できるため、入力境界を固定する
+  - `getRetainedArticleIdsAfterSelectingArticle` と direct `addRetainedArticle` の両方で blank id を no-op または explicit error にするかを focused test で決める
+  - auto mark rollback や retained cleanup candidate とは分け、retained article id の最小 invariant だけを扱う
+
+- [ ] data attribute query selector guard 候補を追加する
+  - `src/lib/dom/data-attribute.ts` の `queryElementByDataAttribute` が attribute name を selector 文字列へ直接埋め込むため、想定外の attribute name で selector error が漏れないか確認する
+  - `data-*` 以外を reject / null fallback にするか、call site constant 前提として test で固定するかを `data-attribute` 専用 test で決める
+  - reader focus retry helper や article/sidebar navigation behavior とは分け、DOM data attribute helper の入力境界だけを扱う
+
+- [ ] ui error message getter isolation 候補を追加する
+  - `src/lib/ui/errors.ts` の `getErrorMessage` が `Reflect.get(error, "message")` を直接呼ぶため、message getter が throw する unknown error object で fallback できるか確認する
+  - throwing getter / symbol message / non-string message の扱いを `errors.test.ts` に追加し、toast 表示側へ例外が漏れない contract を固定する
+  - feature-specific error copy や AppError DTO invariant とは分け、unknown error projection helper だけを扱う
+
+- [ ] preferred account id trim boundary 候補を追加する
+  - `src/lib/account/account-selection.ts` の `getPreferredAccountId` が saved account id を trim せず比較するため、storage 由来の whitespace 付き id を fallback するか正規化するか確認する
+  - `" acc-2 "` / whitespace-only / duplicate account id の期待値を `account-selection.test.ts` に追加し、初期選択の fallback contract を固定する
+  - settings modal navigation や sidebar account selection lifecycle とは分け、preferred account id helper の入力正規化だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
