@@ -158,13 +158,15 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   it("returns fresh default fixture clones from list commands", async () => {
-    const accounts = await invoke<typeof sampleAccounts>("list_accounts");
-    const feeds = await invoke<typeof sampleFeeds>("list_feeds", {
-      accountId: "acc-1",
-    });
-    const articles = await invoke<typeof sampleArticles>("list_articles", {
-      feedId: "feed-1",
-    });
+    const [accounts, feeds, articles] = await Promise.all([
+      invoke<typeof sampleAccounts>("list_accounts"),
+      invoke<typeof sampleFeeds>("list_feeds", {
+        accountId: "acc-1",
+      }),
+      invoke<typeof sampleArticles>("list_articles", {
+        feedId: "feed-1",
+      }),
+    ]);
     const account = accounts[0];
     const feed = feeds[0];
     const article = articles[0];
@@ -182,9 +184,15 @@ describe("tauri-commands with mockIPC", () => {
     feed.title = "Mutated Feed";
     article.title = "Mutated Article";
 
-    expect(await invoke("list_accounts")).toEqual(sampleAccounts);
-    expect(await invoke("list_feeds", { accountId: "acc-1" })).toEqual(sampleAcc1Feeds);
-    expect(await invoke("list_articles", { feedId: "feed-1" })).toEqual(sampleArticles);
+    const [freshAccounts, freshFeeds, freshArticles] = await Promise.all([
+      invoke("list_accounts"),
+      invoke("list_feeds", { accountId: "acc-1" }),
+      invoke("list_articles", { feedId: "feed-1" }),
+    ]);
+
+    expect(freshAccounts).toEqual(sampleAccounts);
+    expect(freshFeeds).toEqual(sampleAcc1Feeds);
+    expect(freshArticles).toEqual(sampleArticles);
   });
 
   describe("listAccounts", () => {
@@ -575,8 +583,10 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      const supportResult = await checkBrowserEmbedSupport(url);
-      const webviewResult = await createOrUpdateBrowserWebview(url, browserBounds);
+      const [supportResult, webviewResult] = await Promise.all([
+        checkBrowserEmbedSupport(url),
+        createOrUpdateBrowserWebview(url, browserBounds),
+      ]);
 
       expect(Result.isFailure(supportResult)).toBe(true);
       expect(Result.unwrapError(supportResult).message).toContain("validation failed");

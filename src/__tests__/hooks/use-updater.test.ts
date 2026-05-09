@@ -25,6 +25,11 @@ async function getUiStore() {
   return useUiStore;
 }
 
+async function getUpdaterModuleAndUiStore() {
+  const [updaterModule, useUiStore] = await Promise.all([import("@/hooks/use-updater"), getUiStore()]);
+  return { updaterModule, useUiStore };
+}
+
 async function flushAsyncWork(): Promise<void> {
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -80,8 +85,10 @@ describe("performUpdateCheck", () => {
     const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { runManualUpdateCheck, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
@@ -148,8 +155,10 @@ describe("performUpdateCheck", () => {
   it("shows a fallback toast that keeps the current version when download fails", async () => {
     mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("network down")));
 
-    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
@@ -177,8 +186,10 @@ describe("performUpdateCheck", () => {
       .mockResolvedValueOnce(Result.fail(testUserVisibleAppError("network down")));
     mockCheckForUpdate.mockResolvedValue(Result.succeed({ version: "1.2.4", body: null }));
 
-    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
@@ -213,8 +224,10 @@ describe("performUpdateCheck", () => {
     await changeTestLanguage("en");
     mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
 
-    const { runManualUpdateCheck, showRestartToast, showUpdateAvailableToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { runManualUpdateCheck, showRestartToast, showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
@@ -236,8 +249,10 @@ describe("performUpdateCheck", () => {
   });
 
   it("uses the current locale for manual update check failure and no-update toasts", async () => {
-    const { runManualUpdateCheck } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { runManualUpdateCheck },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -258,8 +273,10 @@ describe("performUpdateCheck", () => {
     const deferred = createDeferred<ReturnType<typeof Result.succeed<null>>>();
     mockDownloadAndInstallUpdate.mockReturnValue(deferred.promise);
 
-    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
@@ -279,8 +296,10 @@ describe("performUpdateCheck", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockCheckForUpdate.mockResolvedValue(Result.fail(error));
 
-    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { runManualUpdateCheck, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
@@ -302,8 +321,10 @@ describe("performUpdateCheck", () => {
     const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const { useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
     const showToast = vi.fn();
     useUiStore.setState({ showToast });
@@ -324,8 +345,10 @@ describe("performUpdateCheck", () => {
     const error = testUserVisibleAppError("network down");
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const { useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     const { unmount } = renderHook(() => useUpdater());
@@ -346,8 +369,10 @@ describe("performUpdateCheck", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockCheckForUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("updater unavailable")));
 
-    const { runManualUpdateCheck, useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { runManualUpdateCheck, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
@@ -376,8 +401,10 @@ describe("performUpdateCheck", () => {
     mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("network down")));
     mockCheckForUpdate.mockResolvedValue(Result.succeed({ version: "1.2.4", body: null }));
 
-    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showUpdateAvailableToast("1.2.3");
@@ -401,8 +428,10 @@ describe("performUpdateCheck", () => {
   it("keeps the prepared update pending when restart command fails", async () => {
     mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError("restart failed")));
 
-    const { showRestartToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showRestartToast();
@@ -431,8 +460,10 @@ describe("performUpdateCheck", () => {
     };
     mockRestartApp.mockResolvedValue(Result.fail(runtimeError));
 
-    const { showRestartToast } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     showRestartToast();
@@ -461,8 +492,10 @@ describe("performUpdateCheck", () => {
       return () => {};
     });
 
-    const { useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
@@ -516,8 +549,10 @@ describe("performUpdateCheck", () => {
       return () => {};
     });
 
-    const { useUpdater } = await import("@/hooks/use-updater");
-    const useUiStore = await getUiStore();
+    const {
+      updaterModule: { useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       toastMessage: {
