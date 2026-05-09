@@ -315,4 +315,81 @@ describe("useArticleAutoMark", () => {
       expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
+
+  it("keeps newer auto mark state when a stale delayed mutation fails", () => {
+    const showToast = vi.fn();
+    const addRecentlyRead = vi.fn();
+    const mutationCallbacks = new Map<
+      string,
+      NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>
+    >();
+    const mutate: AutoMarkMutate = (variables, options) => {
+      if (options?.onError) {
+        mutationCallbacks.set(variables.id, options.onError);
+      }
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          showToast,
+          addRecentlyRead,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    rerender(
+      createParams({
+        articleId: "art-2",
+        afterReading: "immediately",
+        viewMode: "unread",
+        retainArticle: useUiStore.getState().retainArticle,
+        setRead,
+        showToast,
+        addRecentlyRead,
+      }),
+    );
+
+    act(() => {
+      mutationCallbacks
+        .get("art-1")
+        ?.(
+          new Error("Failed stale article"),
+          { id: "art-1", read: true },
+          undefined,
+          createMutationContext(),
+        );
+    });
+
+    rerender(
+      createParams({
+        articleId: "art-2",
+        afterReading: "immediately",
+        viewMode: "unread",
+        retainArticle: useUiStore.getState().retainArticle,
+        setRead,
+        showToast,
+        addRecentlyRead,
+      }),
+    );
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(2);
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-2"]));
+    expect(addRecentlyRead).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Failed stale article");
+  });
 });
