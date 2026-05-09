@@ -106,4 +106,48 @@ describe("useArticleListNavigation", () => {
     expect(selectArticle).toHaveBeenCalledWith(nextArticle.id, { navigationDirection: 1 });
     expect(button).toHaveFocus();
   });
+
+  it("falls back to the first article for stale selections and does not wrap past the last article", () => {
+    const selectArticle = vi.fn();
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const firstButton = document.createElement("button");
+    const lastButton = document.createElement("button");
+
+    firstButton.setAttribute("data-article-id", sampleArticles[0].id);
+    lastButton.setAttribute("data-article-id", sampleArticles[1].id);
+    list.append(firstButton, lastButton);
+    document.body.append(list);
+    Object.defineProperty(viewport, "clientHeight", { value: 200 });
+    Object.defineProperty(viewport, "scrollHeight", { value: 400 });
+
+    const { result, rerender } = renderHook(
+      ({ selectedArticleId }) =>
+        useArticleListNavigation({
+          filteredArticles: [sampleArticles[0], sampleArticles[1]],
+          selectedArticleId,
+          selectArticle,
+          listRef: { current: list },
+          viewportRef: { current: viewport },
+        }),
+      {
+        initialProps: {
+          selectedArticleId: "missing-article",
+        },
+      },
+    );
+
+    result.current(1);
+
+    expect(selectArticle).toHaveBeenLastCalledWith(sampleArticles[0].id, { navigationDirection: 1 });
+    expect(firstButton).toHaveFocus();
+
+    rerender({
+      selectedArticleId: sampleArticles[1].id,
+    });
+    result.current(1);
+
+    expect(selectArticle).toHaveBeenLastCalledWith(sampleArticles[1].id, { navigationDirection: 1 });
+    expect(lastButton).toHaveFocus();
+  });
 });
