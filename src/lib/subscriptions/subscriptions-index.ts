@@ -163,19 +163,19 @@ export function buildVisibleSubscriptionRows({
 }): SubscriptionListRow[] {
   const normalizedQuery = normalizeSubscriptionSearchText(searchQuery);
 
-  return rows
-    .filter(
-      (row) =>
-        rowMatchesSubscriptionSummaryFilter(row, activeSummaryFilter) &&
-        rowMatchesSubscriptionDecisionVisibility({
-          row,
-          activeSummaryFilter,
-          keptFeedIds,
-          deferredFeedIds,
-        }) &&
-        rowMatchesSubscriptionSearch(row, normalizedQuery),
-    )
-    .sort((left, right) => compareSubscriptionRows(left, right, sortKey));
+  const visibleRows = rows.filter(
+    (row) =>
+      rowMatchesSubscriptionSummaryFilter(row, activeSummaryFilter) &&
+      rowMatchesSubscriptionDecisionVisibility({
+        row,
+        activeSummaryFilter,
+        keptFeedIds,
+        deferredFeedIds,
+      }) &&
+      rowMatchesSubscriptionSearch(row, normalizedQuery),
+  );
+  visibleRows.sort((left, right) => compareSubscriptionRows(left, right, sortKey));
+  return visibleRows;
 }
 
 export function buildSubscriptionsIndexSummary({
@@ -420,7 +420,8 @@ export function buildSubscriptionListGroups(
     });
   }
 
-  return Array.from(groups.values()).sort((left, right) => {
+  const sortedGroups = Array.from(groups.values());
+  sortedGroups.sort((left, right) => {
     const labelOrder = left.label.localeCompare(right.label);
     if (labelOrder !== 0) {
       return labelOrder;
@@ -432,6 +433,7 @@ export function buildSubscriptionListGroups(
 
     return left.key < right.key ? -1 : 1;
   });
+  return sortedGroups;
 }
 
 function getSubscriptionFolderGroupKey(folderId: string): string {

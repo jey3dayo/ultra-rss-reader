@@ -39,7 +39,9 @@ export function groupFeedsByFolder(feeds: FeedDto[]): GroupedFeeds {
 }
 
 export function sortFeedsByPreference(feeds: FeedDto[], _sortPreference?: SortSubscriptions): FeedDto[] {
-  return [...feeds].sort((a, b) => a.title.localeCompare(b.title));
+  const sortedFeeds = feeds.slice();
+  sortedFeeds.sort((a, b) => a.title.localeCompare(b.title));
+  return sortedFeeds;
 }
 
 export function countFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {

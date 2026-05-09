@@ -35,7 +35,9 @@ export function useSidebarFeedTree({
   );
 
   const sortedFolderList = useMemo(() => {
-    return [...folderList].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedFolders = folderList.slice();
+    sortedFolders.sort((a, b) => a.name.localeCompare(b.name));
+    return sortedFolders;
   }, [folderList]);
 
   const sortFeeds = useCallback(

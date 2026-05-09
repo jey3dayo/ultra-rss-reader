@@ -89,6 +89,14 @@ describe("sortFeedsByPreference", () => {
     expect(sortFeedsByPreference(feeds, "alphabetical").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
   });
 
+  it("does not reorder the caller-owned feeds array", () => {
+    const originalOrder = feeds.map((feed) => feed.id);
+
+    sortFeedsByPreference(feeds, "alphabetical");
+
+    expect(feeds.map((feed) => feed.id)).toEqual(originalOrder);
+  });
+
   it("keeps feeds alphabetical even when the preference is oldest_first", () => {
     expect(sortFeedsByPreference(feeds, "oldest_first").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
   });
