@@ -171,6 +171,16 @@ function extractUrlPort(url: string) {
   return Number(new URL(url).port);
 }
 
+function extractStorybookDevCommandPorts(source: string) {
+  return [...source.matchAll(/\bstorybook(?:\.ps1)?\s+dev\s+-p\s+(\d+)/g)]
+    .map((match) => Number(match[1]))
+    .sort((left, right) => left - right);
+}
+
+function extractPnpmScriptName(command: string) {
+  return command.match(/^pnpm\s+([A-Za-z0-9:_-]+)$/)?.[1] ?? "";
+}
+
 function extractPlaywrightOutputDir(source: string) {
   return source.match(/\boutputDir:\s*"([^"]+)"/)?.[1] ?? "";
 }
@@ -220,13 +230,7 @@ function extractCargoPackageVersion(source: string) {
 }
 
 function markdownFilesUnderDocs() {
-  const topLevelDocs = [
-    "AGENTS.md",
-    "README.md",
-    "CLAUDE.md",
-    ".claude/rules/README.md",
-    "docs/README.md",
-  ];
+  const topLevelDocs = ["AGENTS.md", "README.md", "CLAUDE.md", ".claude/rules/README.md", "docs/README.md"];
   const docsFiles = readdirSync(join(repoRoot, "docs")).flatMap((entry) => {
     const path = join("docs", entry);
     const fullPath = join(repoRoot, path);
@@ -958,18 +962,28 @@ describe("repository static contracts", () => {
     const storybookPlaywrightConfig = readRepoFile("playwright.storybook.config.ts");
     const packageScripts = expectPackageJsonStringRecord("scripts");
     const storybookBaseUrl = storybookPlaywrightConfig.match(/\bbaseURL:\s*"([^"]+)"/)?.[1] ?? "";
+    const storybookWebServerCommand =
+      storybookPlaywrightConfig.match(/\bconst storybookCommand =[\s\S]*?:\s*"([^"]+)";/)?.[1] ?? "";
     const storybookWebServerUrl =
       storybookPlaywrightConfig.match(/\bwebServer:\s*{[^}]*\burl:\s*"([^"]+)"/s)?.[1] ?? "";
     const storybookReuseExistingServer =
       storybookPlaywrightConfig.match(/\breuseExistingServer:\s*(true|false)/)?.[1] ?? "";
+    const storybookPort = extractUrlPort(storybookBaseUrl);
     const storySources = readdirSync(join(repoRoot, "src/components/storybook"))
       .filter((entry) => /^ui-reference-.+\.stories\.tsx$/.test(entry))
       .map((entry) => readRepoFile(join("src/components/storybook", entry)));
 
     expect(packageScripts.storybook).toBe("storybook dev -p 6006 --no-open");
-    expect(storybookPlaywrightConfig).toContain(':"pnpm storybook"'.replace(":", ": "));
-    expect(extractUrlPort(storybookBaseUrl)).toBe(6006);
+    expect(storybookPlaywrightConfig).toContain("const storybookCommand = isWindows");
+    expect(storybookPlaywrightConfig).toContain(': "pnpm storybook"');
+    expect(extractStorybookDevCommandPorts([storybookPlaywrightConfig, packageScripts.storybook].join("\n"))).toEqual([
+      storybookPort,
+      storybookPort,
+    ]);
+    expect(packageScripts[extractPnpmScriptName(storybookWebServerCommand)]).toBe(packageScripts.storybook);
+    expect(storybookPort).toBe(6006);
     expect(storybookWebServerUrl).toBe(storybookBaseUrl);
+    expect(extractUrlPort(storybookWebServerUrl)).toBe(storybookPort);
     expect(storybookReuseExistingServer).toBe("false");
     expect([...uiReferenceCanvasStoryIds].sort()).toEqual(storySources.flatMap(extractStorybookCanvasIds).sort());
   });
