@@ -445,7 +445,7 @@ describe("ArticleTagPickerView", () => {
     expect(input).toHaveFocus();
   });
 
-  it("supports Home and End listbox navigation across available tags", async () => {
+  it("supports Arrow, Home, and End listbox navigation across available tags", async () => {
     const user = userEvent.setup();
 
     render(
@@ -483,6 +483,12 @@ describe("ArticleTagPickerView", () => {
     });
 
     middleOption.focus();
+    expect(middleOption).toHaveFocus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(lastOption).toHaveFocus();
+
+    await user.keyboard("{ArrowUp}");
     expect(middleOption).toHaveFocus();
 
     await user.keyboard("{End}");
