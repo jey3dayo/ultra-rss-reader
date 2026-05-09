@@ -40,10 +40,8 @@ describe("account setup session", () => {
   });
 
   it("keeps verifying and account sessions as distinct type contracts", () => {
-    const verificationState =
-      "verifying" satisfies AccountSetupVerificationSessionState;
-    const trackedAccountState =
-      "syncing" satisfies AccountSetupTrackedAccountSessionState;
+    const verificationState = "verifying" satisfies AccountSetupVerificationSessionState;
+    const trackedAccountState = "syncing" satisfies AccountSetupTrackedAccountSessionState;
     const sessionState = verificationState satisfies AccountSetupSessionState;
 
     const verificationSession = {
@@ -95,9 +93,7 @@ describe("account setup session", () => {
   });
 
   it("keeps account setup status updates scoped to the owning account", () => {
-    useUiStore
-      .getState()
-      .startAccountSetup("acc-1", { owner: "account-detail" });
+    useUiStore.getState().startAccountSetup("acc-1", { owner: "account-detail" });
 
     useUiStore.getState().markAccountSetupFailed("acc-2", "Wrong account");
     useUiStore.getState().markAccountSetupSucceeded("acc-2");
@@ -120,9 +116,7 @@ describe("account setup session", () => {
 
   it("retries with the existing owner and cancel clears the session", () => {
     useUiStore.getState().startAccountSetup("acc-1", { owner: "add-account" });
-    useUiStore
-      .getState()
-      .markAccountSetupFailed("acc-1", "Initial sync failed");
+    useUiStore.getState().markAccountSetupFailed("acc-1", "Initial sync failed");
 
     useUiStore.getState().startAccountSetup("acc-1");
 
@@ -158,9 +152,7 @@ describe("account setup session", () => {
   });
 
   it("trims account ids before starting or updating account setup sessions while preserving the existing owner", () => {
-    useUiStore
-      .getState()
-      .startAccountSetup("  acc-trimmed  ", { owner: "account-detail" });
+    useUiStore.getState().startAccountSetup("  acc-trimmed  ", { owner: "account-detail" });
 
     expect(useUiStore.getState().accountSetupSession).toEqual({
       accountId: "acc-trimmed",
@@ -168,9 +160,7 @@ describe("account setup session", () => {
       state: "syncing",
     });
 
-    useUiStore
-      .getState()
-      .markAccountSetupFailed("  acc-trimmed  ", "Sync failed");
+    useUiStore.getState().markAccountSetupFailed("  acc-trimmed  ", "Sync failed");
 
     expect(useUiStore.getState().accountSetupSession).toEqual({
       accountId: "acc-trimmed",

@@ -84,4 +84,21 @@ describe("createQuery", () => {
     expect(result.current.fetchStatus).toBe("idle");
     expect(fetcher).not.toHaveBeenCalled();
   });
+
+  it("trims query ids before building the cache key and calling the fetcher", async () => {
+    const queryWrapper = createQueryWrapper();
+    const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(() => useGeneratedQuery(" item-1\n"), {
+      wrapper: queryWrapper.wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "item-1" });
+    });
+    expect(fetcher).toHaveBeenCalledWith("item-1");
+    expect(queryWrapper.queryClient.getQueryState(["items", "item-1"])).toBeDefined();
+    expect(queryWrapper.queryClient.getQueryState(["items", " item-1\n"])).toBeUndefined();
+  });
 });

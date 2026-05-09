@@ -4,6 +4,7 @@ import type {
   AccountDto,
   AccountSyncStatusDto,
   ArticleDto,
+  DatabaseInfoDto,
   FeedArticleSummaryDto,
   MuteKeywordDto,
   TagDto,
@@ -253,6 +254,8 @@ function createDefaultHandler(): MockHandler {
         return null;
       case "set_mute_auto_mark_read":
         return null;
+      case "get_preferences":
+        return {};
       case "set_preference":
         return null;
       case "get_tag_article_counts":
@@ -291,6 +294,12 @@ function createDefaultHandler(): MockHandler {
         return null;
       case "get_platform_info":
         return structuredClone(mockPlatformInfo);
+      case "get_database_info":
+        return {
+          db_size_bytes: 1024,
+          wal_size_bytes: 256,
+          total_size_bytes: 1280,
+        } satisfies DatabaseInfoDto;
       case "get_dev_runtime_options":
         return {
           dev_intent: null,
@@ -341,6 +350,8 @@ function createDefaultHandler(): MockHandler {
           failed: [],
           warnings: [],
         };
+      case "check_for_update":
+        return null;
       default:
         throw new Error(`Unhandled Tauri mock command: ${cmd}`);
     }

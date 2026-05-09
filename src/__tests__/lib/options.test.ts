@@ -20,10 +20,7 @@ describe("getOptionLabelByValue", () => {
   });
 
   it("resolves empty option labels for null and empty values", () => {
-    const optionsWithEmpty = [
-      { value: "", label: "Use default" },
-      ...options,
-    ] as const;
+    const optionsWithEmpty = [{ value: "", label: "Use default" }, ...options] as const;
 
     expect(getOptionLabelByValue(optionsWithEmpty, "")).toBe("Use default");
     expect(getOptionLabelByValue(optionsWithEmpty, "   ")).toBe("Use default");
@@ -36,8 +33,6 @@ describe("getOptionLabelByValue", () => {
       { value: "preview", label: "Duplicate preview" },
     ] as const;
 
-    expect(getOptionLabelByValue(optionsWithDuplicate, "preview")).toBe(
-      "Preview",
-    );
+    expect(getOptionLabelByValue(optionsWithDuplicate, "preview")).toBe("Preview");
   });
 });

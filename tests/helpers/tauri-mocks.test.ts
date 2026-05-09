@@ -3,12 +3,22 @@ import { resolve } from "node:path";
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { FeedIntegrityCleanupDtoSchema } from "@/api/schemas/feed-integrity";
 import {
+  DatabaseInfoDtoSchema,
+  FeedArticleSummaryDtoListSchema,
+  FeedIntegrityCleanupDtoSchema,
+  PreferencesDtoSchema,
+  UpdateInfoDtoSchema,
+} from "@/api/schemas";
+import {
+  checkForUpdate,
   cleanupFeedIntegrityOrphans,
+  getDatabaseInfo,
   getPlatformInfo,
+  getPreferences,
   listAccounts,
   listArticles,
+  listFeedArticleSummaries,
   listFeeds,
   listFolders,
 } from "@/api/tauri-commands";
@@ -164,6 +174,18 @@ describe("setupTauriMocks fixture isolation", () => {
     });
   });
 
+  it("returns schema-valid default responses for low-risk frontend commands", async () => {
+    const feedSummaries = Result.unwrap(await listFeedArticleSummaries("acc-1"));
+    const preferences = Result.unwrap(await getPreferences());
+    const databaseInfo = Result.unwrap(await getDatabaseInfo());
+    const updateInfo = Result.unwrap(await checkForUpdate());
+
+    expect(FeedArticleSummaryDtoListSchema.parse(feedSummaries)).toEqual(feedSummaries);
+    expect(PreferencesDtoSchema.parse(preferences)).toEqual(preferences);
+    expect(DatabaseInfoDtoSchema.parse(databaseInfo)).toEqual(databaseInfo);
+    expect(UpdateInfoDtoSchema.nullable().parse(updateInfo)).toEqual(updateInfo);
+  });
+
   it("rejects invalid cleanup responses through the command response schema", async () => {
     teardownTauriMocks();
     setupTauriMocks((cmd) => {
@@ -257,7 +279,6 @@ describe("setupTauriMocks fixture isolation", () => {
     const frontendCommands = extractFrontendTauriCommands();
     const intentionallyUnhandledCommands = [
       "add_to_reading_list",
-      "check_for_update",
       "copy_to_clipboard",
       "create_folder",
       "delete_feed",
@@ -265,8 +286,6 @@ describe("setupTauriMocks fixture isolation", () => {
       "download_and_install_update",
       "export_opml",
       "get_article_tags",
-      "get_database_info",
-      "get_preferences",
       "list_articles_by_tag",
       "mark_feed_read",
       "mark_folder_read",

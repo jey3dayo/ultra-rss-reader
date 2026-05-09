@@ -90,6 +90,34 @@ describe("window-events", () => {
     expect(onDetail).toHaveBeenCalledWith({ direction: 1 });
   });
 
+  it("ignores custom event details when the detail guard throws", () => {
+    const guardError = new Error("malformed detail");
+    const onDetail = vi.fn();
+    const listener = createCustomEventDetailListener((_detail: unknown): _detail is never => {
+      throw guardError;
+    }, onDetail);
+
+    expect(() => listener(new CustomEvent("navigate", { detail: { direction: 1 } }))).not.toThrow();
+
+    expect(onDetail).not.toHaveBeenCalled();
+  });
+
+  it("preserves custom event handler exceptions after the detail guard accepts", () => {
+    const handlerError = new Error("handler failed");
+    const listener = createCustomEventDetailListener(
+      (detail): detail is { direction: 1 | -1 } =>
+        typeof detail === "object" &&
+        detail !== null &&
+        "direction" in detail &&
+        (detail.direction === 1 || detail.direction === -1),
+      () => {
+        throw handlerError;
+      },
+    );
+
+    expect(() => listener(new CustomEvent("navigate", { detail: { direction: 1 } }))).toThrow(handlerError);
+  });
+
   it("unbinds registered window events", () => {
     const onPing = vi.fn();
     const cleanup = bindWindowEvents([{ type: "test-window-events-ping", listener: onPing }]);
@@ -169,5 +197,29 @@ describe("window-events", () => {
     expect(target.removeEventListener).toHaveBeenNthCalledWith(1, "keydown", keyboardListener, keyboardOptions);
     expect(target.removeEventListener).toHaveBeenNthCalledWith(2, "pointerdown", pointerListener, pointerOptions);
     expect(target.removeEventListener).toHaveBeenNthCalledWith(3, "app:event", customListener, customOptions);
+  });
+
+  it("continues removing later listeners when one cleanup throws", () => {
+    const cleanupError = new Error("remove failed");
+    const target = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn((type: string) => {
+        if (type === "first-event") {
+          throw cleanupError;
+        }
+      }),
+    };
+    const firstListener = vi.fn();
+    const secondListener = vi.fn();
+    const cleanup = bindWindowEvents([
+      { target, type: "first-event", listener: firstListener },
+      { target, type: "second-event", listener: secondListener },
+    ]);
+
+    expect(cleanup).toThrow(cleanupError);
+
+    expect(target.removeEventListener).toHaveBeenCalledTimes(2);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(1, "first-event", firstListener, undefined);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(2, "second-event", secondListener, undefined);
   });
 });

@@ -6,19 +6,13 @@ import { createElement } from "react";
 export type StoryArgs = Record<string, unknown>;
 type StoryParameters = Record<string, unknown>;
 type StoryGlobals = Record<string, unknown>;
-type StoryRenderContext<TArgs extends StoryArgs> = Pick<
-  StoryContext<TArgs>,
-  "args" | "parameters" | "globals"
->;
+type StoryRenderContext<TArgs extends StoryArgs> = Pick<StoryContext<TArgs>, "args" | "parameters" | "globals">;
 type StoryRenderContextUpdate<TArgs extends StoryArgs> = {
   args?: Partial<TArgs>;
   parameters?: StoryParameters;
   globals?: StoryGlobals;
 };
-type StoryRender<TArgs extends StoryArgs> = (
-  args: TArgs,
-  context: StoryContext<TArgs>,
-) => ReactNode;
+type StoryRender<TArgs extends StoryArgs> = (args: TArgs, context: StoryContext<TArgs>) => ReactNode;
 type ResolvedStoryFromStorybookBoundary<TArgs extends StoryArgs> = {
   args: TArgs;
   context: StoryContext<TArgs>;
@@ -63,20 +57,14 @@ function mergeStoryRenderContext<TArgs extends StoryArgs>(
   ) as StoryContext<TArgs>;
 }
 
-function isStoryDecorator<TArgs extends StoryArgs>(
-  decorator: unknown,
-): decorator is StoryDecorator<TArgs> {
+function isStoryDecorator<TArgs extends StoryArgs>(decorator: unknown): decorator is StoryDecorator<TArgs> {
   return typeof decorator === "function";
 }
 
 function collectStoryDecorators<TArgs extends StoryArgs>(
   decorators: StoryMeta<TArgs>["decorators"],
 ): StoryDecorator<TArgs>[] {
-  const candidateDecorators = Array.isArray(decorators)
-    ? decorators
-    : decorators
-      ? [decorators]
-      : [];
+  const candidateDecorators = Array.isArray(decorators) ? decorators : decorators ? [decorators] : [];
   const storyDecorators: StoryDecorator<TArgs>[] = [];
 
   for (const decorator of candidateDecorators) {
@@ -98,19 +86,12 @@ function resolveStoryFromStorybookBoundary<TArgs extends StoryArgs>(
     ...(story.parameters ?? {}),
   };
   const globals = { ...(meta.globals ?? {}), ...(story.globals ?? {}) };
-  const context = createStoryRenderContext(
-    args,
-    parameters,
-    globals,
-  ) as StoryContext<TArgs>;
+  const context = createStoryRenderContext(args, parameters, globals) as StoryContext<TArgs>;
 
   return {
     args,
     context,
-    decorators: [
-      ...collectStoryDecorators<TArgs>(meta.decorators),
-      ...collectStoryDecorators<TArgs>(story.decorators),
-    ],
+    decorators: [...collectStoryDecorators<TArgs>(meta.decorators), ...collectStoryDecorators<TArgs>(story.decorators)],
   } satisfies ResolvedStoryFromStorybookBoundary<TArgs>;
 }
 
@@ -121,14 +102,8 @@ function assertRenderStoryOptionsFromCallBoundary(
     return;
   }
 
-  if (
-    typeof options !== "object" ||
-    options === null ||
-    Array.isArray(options)
-  ) {
-    throw new TypeError(
-      "renderStory third argument must be Testing Library RenderOptions.",
-    );
+  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+    throw new TypeError("renderStory third argument must be Testing Library RenderOptions.");
   }
 }
 
@@ -152,19 +127,11 @@ export function renderStory<TArgs extends StoryArgs>(
   options?: RenderOptions,
 ) {
   assertRenderStoryOptionsFromCallBoundary(options);
-  const { context, decorators } = resolveStoryFromStorybookBoundary(
-    meta,
-    story,
-  );
+  const { context, decorators } = resolveStoryFromStorybookBoundary(meta, story);
   const renderStoryFn = story.render ?? meta.render;
   const renderResolvedStory = (storyContext: StoryContext<TArgs>) =>
-    renderStoryFn
-      ? renderStoryFn(storyContext.args, storyContext)
-      : createElement(meta.component, storyContext.args);
-  const renderDecoratedStory = (
-    decoratorIndex: number,
-    storyContext: StoryContext<TArgs>,
-  ): ReactNode => {
+    renderStoryFn ? renderStoryFn(storyContext.args, storyContext) : createElement(meta.component, storyContext.args);
+  const renderDecoratedStory = (decoratorIndex: number, storyContext: StoryContext<TArgs>): ReactNode => {
     const decorator = decorators[decoratorIndex];
 
     if (decorator === undefined) {
@@ -172,11 +139,7 @@ export function renderStory<TArgs extends StoryArgs>(
     }
 
     return decorator(
-      (update) =>
-        renderDecoratedStory(
-          decoratorIndex + 1,
-          mergeStoryRenderContext(storyContext, update),
-        ),
+      (update) => renderDecoratedStory(decoratorIndex + 1, mergeStoryRenderContext(storyContext, update)),
       storyContext,
     );
   };

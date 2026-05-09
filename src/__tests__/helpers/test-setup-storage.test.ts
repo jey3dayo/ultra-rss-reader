@@ -31,6 +31,10 @@ function callStorageRemoveItem(storage: Storage, key: unknown) {
   Reflect.apply(storage.removeItem, storage, [key]);
 }
 
+function readStorageProperty(storage: Storage, key: PropertyKey): unknown {
+  return Reflect.get(storage, key);
+}
+
 describe("test setup storage fallback", () => {
   afterEach(() => {
     restoreDescriptor(window, "localStorage", originalWindowLocalStorageDescriptor);
@@ -139,5 +143,42 @@ describe("test setup storage fallback", () => {
     callStorageRemoveItem(storage, null);
 
     expect(storage.length).toBe(0);
+  });
+
+  it("exposes MemoryStorage item values through DOM Storage named getters", () => {
+    const storage = new MemoryStorage();
+
+    storage.setItem("article-id", "article-1");
+    callStorageMethod(storage.setItem, storage, 42, false);
+    storage.setItem("article-id", "article-2");
+
+    expect(readStorageProperty(storage, "article-id")).toBe("article-2");
+    expect(readStorageProperty(storage, "42")).toBe("false");
+
+    storage.removeItem("article-id");
+
+    expect(readStorageProperty(storage, "article-id")).toBeUndefined();
+
+    storage.setItem("article-id", "article-3");
+
+    expect(readStorageProperty(storage, "article-id")).toBe("article-3");
+
+    storage.clear();
+
+    expect(readStorageProperty(storage, "article-id")).toBeUndefined();
+    expect(readStorageProperty(storage, "42")).toBeUndefined();
+  });
+
+  it("keeps MemoryStorage API getters available when item keys collide with Storage members", () => {
+    const storage = new MemoryStorage();
+
+    storage.setItem("length", "5");
+    storage.setItem("getItem", "value");
+
+    expect(storage.length).toBe(2);
+    expect(readStorageProperty(storage, "length")).toBe(2);
+    expect(readStorageProperty(storage, "getItem")).toBe(storage.getItem);
+    expect(storage.getItem("length")).toBe("5");
+    expect(storage.getItem("getItem")).toBe("value");
   });
 });

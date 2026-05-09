@@ -1,17 +1,8 @@
-import {
-  resetTauriRuntimeFlags,
-  setTauriRuntimePresent,
-} from "@tests/helpers/tauri-runtime";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  hasTauriRuntime,
-  shouldUseDesktopOverlayTitlebar,
-} from "@/lib/window/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 
-const originalUserAgentDataDescriptor = Object.getOwnPropertyDescriptor(
-  navigator,
-  "userAgentData",
-);
+const originalUserAgentDataDescriptor = Object.getOwnPropertyDescriptor(navigator, "userAgentData");
 
 function stubUserAgentDataPlatform(platform: string) {
   Object.defineProperty(navigator, "userAgentData", {
@@ -26,11 +17,7 @@ function restoreUserAgentDataPlatform() {
     return;
   }
 
-  Object.defineProperty(
-    navigator,
-    "userAgentData",
-    originalUserAgentDataDescriptor,
-  );
+  Object.defineProperty(navigator, "userAgentData", originalUserAgentDataDescriptor);
 }
 
 describe("window-chrome", () => {
@@ -88,19 +75,16 @@ describe("window-chrome", () => {
     ["MacIntel", "Win32", true],
     ["Windows", "MacIntel", false],
     ["", "MacIntel", false],
-  ])(
-    "keeps unknown-platform Tauri chrome fallback deterministic when userAgentData platform is %s and navigator platform is %s",
-    (userAgentDataPlatform, navigatorPlatform, expected) => {
-      setTauriRuntimePresent();
-      vi.spyOn(navigator, "platform", "get").mockReturnValue(navigatorPlatform);
-      stubUserAgentDataPlatform(userAgentDataPlatform);
+  ])("keeps unknown-platform Tauri chrome fallback deterministic when userAgentData platform is %s and navigator platform is %s", (userAgentDataPlatform, navigatorPlatform, expected) => {
+    setTauriRuntimePresent();
+    vi.spyOn(navigator, "platform", "get").mockReturnValue(navigatorPlatform);
+    stubUserAgentDataPlatform(userAgentDataPlatform);
 
-      expect(
-        shouldUseDesktopOverlayTitlebar({
-          platformKind: "unknown",
-          hasTauriRuntime: hasTauriRuntime(),
-        }),
-      ).toBe(expected);
-    },
-  );
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: "unknown",
+        hasTauriRuntime: hasTauriRuntime(),
+      }),
+    ).toBe(expected);
+  });
 });

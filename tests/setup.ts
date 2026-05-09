@@ -4,6 +4,7 @@ import "@testing-library/jest-dom/vitest";
 
 export class MemoryStorage implements Storage {
   #data = new Map<string, string>();
+  #definedPropertyKeys = new Set<string>();
 
   get length(): number {
     return this.#data.size;
@@ -11,6 +12,10 @@ export class MemoryStorage implements Storage {
 
   clear(): void {
     this.#data.clear();
+    for (const key of this.#definedPropertyKeys) {
+      Reflect.deleteProperty(this, key);
+    }
+    this.#definedPropertyKeys.clear();
   }
 
   getItem(key: string): string | null {
@@ -22,11 +27,30 @@ export class MemoryStorage implements Storage {
   }
 
   removeItem(key: string): void {
-    this.#data.delete(String(key));
+    const storageKey = String(key);
+    this.#data.delete(storageKey);
+    if (this.#definedPropertyKeys.delete(storageKey)) {
+      Reflect.deleteProperty(this, storageKey);
+    }
   }
 
   setItem(key: string, value: string): void {
-    this.#data.set(String(key), String(value));
+    const storageKey = String(key);
+    this.#data.set(storageKey, String(value));
+    this.#ensureNamedProperty(storageKey);
+  }
+
+  #ensureNamedProperty(key: string): void {
+    if (this.#definedPropertyKeys.has(key) || key in this) {
+      return;
+    }
+
+    Object.defineProperty(this, key, {
+      configurable: true,
+      enumerable: true,
+      get: () => this.getItem(key) ?? undefined,
+    });
+    this.#definedPropertyKeys.add(key);
   }
 }
 

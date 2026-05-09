@@ -44,14 +44,39 @@ export function createCustomEventDetailListener<T>(
     }
 
     const detail: unknown = event.detail;
-    if (isDetail(detail)) {
-      handleEvent(detail);
+    let acceptedDetail: T;
+    try {
+      if (!isDetail(detail)) {
+        return;
+      }
+      acceptedDetail = detail;
+    } catch {
+      return;
     }
+
+    handleEvent(acceptedDetail);
   };
 }
 
 export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
   const registeredBindings: RegisteredWindowEventBinding[] = [];
+
+  const cleanupRegisteredBindings = (options: { reverse?: boolean } = {}) => {
+    let cleanupError: unknown;
+    const bindingsToCleanup = options.reverse ? registeredBindings.slice().reverse() : registeredBindings;
+
+    for (const { target, type, listener, options } of bindingsToCleanup) {
+      try {
+        target.removeEventListener(type, listener, options);
+      } catch (error) {
+        cleanupError ??= error;
+      }
+    }
+
+    if (cleanupError !== undefined) {
+      throw cleanupError;
+    }
+  };
 
   try {
     for (const { target = window, type, listener, options } of bindings) {
@@ -59,16 +84,13 @@ export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
       registeredBindings.push({ target, type, listener, options });
     }
   } catch (error) {
-    for (let index = registeredBindings.length - 1; index >= 0; index -= 1) {
-      const { target, type, listener, options } = registeredBindings[index];
-      target.removeEventListener(type, listener, options);
+    try {
+      cleanupRegisteredBindings({ reverse: true });
+    } catch {
+      // Preserve the original registration failure; cleanup best-effort already ran.
     }
     throw error;
   }
 
-  return () => {
-    for (const { target, type, listener, options } of registeredBindings) {
-      target.removeEventListener(type, listener, options);
-    }
-  };
+  return cleanupRegisteredBindings;
 }
