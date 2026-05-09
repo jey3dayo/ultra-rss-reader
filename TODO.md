@@ -267,25 +267,10 @@
   - `preferences-store.ts` は schema と永続化 contract があるため、UI store 分割とは同じバッチに混ぜない
   - store selector の import 先が多いため、まずは type alias / action group の棚卸しだけ行い、挙動変更は避ける
 
-- [ ] P3 Storybook UI reference 分割候補を別バッチで見直す
-  - `ui-reference-canvas-specimens.tsx` が大きくなっているため、foundations / controls / workspace / settings / navigation の specimen 群へ分割できるか確認する
-  - visual specimen の copy や className 変更はデザイン差分になるため、まずは export / import 境界だけを整理する
-  - `storybook-explorer-organization.test.ts` が期待する構成を先に確認し、story title / canvas 名を変えない
-
-- [ ] P2 shared workspace layout contract 整理候補を別バッチで見直す
-  - `workspace-pane-layout.ts` と `app-layout.tsx` の pane sizing / shell boundary / responsive constraints を、shared layout contract と app shell usage に分けられるか確認する
-  - layout token や CSS class の変更は visual impact があるため、まずは型・helper配置と tests の責務整理に限定する
-  - app shell の overlay / debug HUD / modal collision とは別バッチにする
-
 - [ ] P1 Rust DB repository test 候補を別バッチで追加する
   - sqlite account / feed / folder / article / tag / sync state repository の境界値を、migration 適用済み DB fixture で固定する
   - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
   - 既存 integration test が広い場合は、repository ごとの小さい fixture helper を先に作る
-
-- [ ] P1 updater / release readiness 検証候補を別バッチで見直す
-  - `.github/workflows/release.yml`、`src-tauri/tauri.conf.json`、`updater_commands.rs` の updater 設定・署名・fallback を確認する
-  - local test で固定できる設定検証と、実 release artifact が必要な検証を分ける
-  - release note / manual verification docs への反映は、実際の release 作業とは別コミットにする
 
 - [ ] P0 provider / sync flow boundary 整理候補を別バッチで見直す
   - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
@@ -296,11 +281,6 @@
   - `docs/feed-content-privacy.md` の方針に沿って、reader mode remote image / frame / sanitizer version の実測観点を整理する
   - CSP や sanitizer を一括で締めず、provider compatibility と Web Preview 影響を分けて検証する
   - privacy mode や tracking pixel 対策を入れる場合は、settings UI と Rust sanitizer の境界を別々に扱う
-
-- [ ] P2 GitHub workflow / issue template 整理候補を別バッチで見直す
-  - `.github/workflows/*` と issue templates の label / release-readiness / manual-verification 表現を、運用ラベルの source of truth に揃える
-  - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
-  - release workflow の artifact matrix と updater signing は、docs 更新だけでなく実 release dry-run の観点を残す
 
 - [ ] P0 credentials / keyring verification 候補を別バッチで整理する
   - `src-tauri/src/infra/keyring_store.rs` と account detail credentials editor の保存/更新/削除/restart 復元を、native keyring と dev credentials で分けて検証する
@@ -316,11 +296,6 @@
   - `src-tauri/src/infra/feed_discovery.rs`、`opml_commands.rs`、add feed dialog actions の URL normalization / discovered feed option / folder assignment を分けて確認する
   - discovery failure と submit failure は表示 copy と retry 導線が違うため、dialog view props 整理とは混ぜない
   - 実 network が必要な確認は manual verification に回し、parser/DTO/command response は fixture test で固定する
-
-- [ ] P2 workspace pane / mobile recovery layout 候補を別バッチで見直す
-  - `workspace-pane-layout.ts`、`app-layout.tsx`、mobile pane recovery の pane sizing / focus target / back affordance を棚卸しする
-  - desktop 3-pane layout と mobile recovery は責務が違うため、responsive class 変更より先に layout state の contract test を追加する
-  - browser overlay geometry と Debug HUD overlay は別バッチに残し、ここでは reader pane と settings modal の shell boundary に限定する
 
 - [ ] P1 provider normalizer / account DTO contract 候補を別バッチで検証する
   - `src-tauri/src/infra/provider/normalizer.rs`、provider traits、account DTO schema の display name / icon URL / capability flags を対応表で確認する
