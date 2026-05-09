@@ -156,20 +156,19 @@ function filterByViewMode(
 }
 
 export function areArticleListsEquivalent(left: ArticleDto[], right: ArticleDto[]): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  return left.every((article, index) => {
-    const candidate = right[index];
-    return (
-      candidate !== undefined &&
-      article.id === candidate.id &&
-      article.is_read === candidate.is_read &&
-      article.is_starred === candidate.is_starred &&
-      article.title === candidate.title
-    );
-  });
+  return (
+    left.length === right.length &&
+    left.every((article, index) => {
+      const candidate = right[index];
+      return (
+        candidate !== undefined &&
+        article.id === candidate.id &&
+        article.is_read === candidate.is_read &&
+        article.is_starred === candidate.is_starred &&
+        article.title === candidate.title
+      );
+    })
+  );
 }
 
 export function collectRetainedArticlesFromSources(params: {
