@@ -1,5 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import {
+  requireSampleArticle,
+  requireSampleReadArticle,
+  requireSampleStarredArticle,
+  requireSampleUnreadArticle,
+} from "@tests/helpers/reader-fixtures";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
@@ -238,8 +244,16 @@ describe("article-list utils", () => {
   });
 
   it("filters search results to the selected tag source", () => {
-    const taggedArticle = { ...sampleArticles[0], id: "tagged-match", feed_id: "feed-1" };
-    const untaggedArticle = { ...sampleArticles[1], id: "untagged-match", feed_id: "feed-1" };
+    const taggedArticle = {
+      ...sampleArticles[0],
+      id: "tagged-match",
+      feed_id: "feed-1",
+    };
+    const untaggedArticle = {
+      ...sampleArticles[1],
+      id: "untagged-match",
+      feed_id: "feed-1",
+    };
 
     const result = selectVisibleArticles({
       articles: [],
@@ -755,7 +769,7 @@ describe("article-list utils", () => {
   });
 
   it("returns unread ids and unread count from the currently visible list", () => {
-    expect(getUnreadArticleIds(sampleArticles)).toEqual(["art-1"]);
+    expect(getUnreadArticleIds(sampleArticles)).toEqual([requireSampleUnreadArticle().id]);
     expect(countUnreadArticles(sampleArticles)).toBe(1);
     expect(countStarredArticles(sampleArticles)).toBe(1);
   });
@@ -813,22 +827,24 @@ describe("article-list utils", () => {
   });
 
   it("retains the selected starred smart-view row in all mode", () => {
-    const retainedArticleIds = new Set(["art-1"]);
+    const retainedArticleIds = new Set([requireSampleUnreadArticle().id]);
+    const selectedArticle = requireSampleStarredArticle();
     const result = resolveEffectiveRetainedArticleIds({
       sourcePlan: buildTestSourcePlan({
         sourceFilter: "starred",
         effectiveViewMode: "all",
       }),
       retainedArticleIds,
-      selectedArticleId: "art-2",
+      selectedArticleId: selectedArticle.id,
     });
 
-    expect([...result]).toEqual(["art-1", "art-2"]);
+    expect([...result]).toEqual([requireSampleUnreadArticle().id, selectedArticle.id]);
     expect(result).not.toBe(retainedArticleIds);
   });
 
   it("reuses retained article ids when selected row retention is unnecessary", () => {
-    const retainedArticleIds = new Set(["art-1"]);
+    const retainedArticleIds = new Set([requireSampleUnreadArticle().id]);
+    const selectedArticle = requireSampleReadArticle();
 
     expect(
       resolveEffectiveRetainedArticleIds({
@@ -837,7 +853,7 @@ describe("article-list utils", () => {
           effectiveViewMode: "unread",
         }),
         retainedArticleIds,
-        selectedArticleId: "art-2",
+        selectedArticleId: selectedArticle.id,
       }),
     ).toBe(retainedArticleIds);
     expect(
@@ -847,15 +863,15 @@ describe("article-list utils", () => {
           effectiveViewMode: "all",
         }),
         retainedArticleIds,
-        selectedArticleId: "art-2",
+        selectedArticleId: selectedArticle.id,
       }),
     ).toBe(retainedArticleIds);
   });
 
   it("returns the adjacent article id", () => {
-    const result = getAdjacentArticleId(sampleArticles, "art-1", 1);
+    const result = getAdjacentArticleId(sampleArticles, requireSampleArticle("art-1").id, 1);
 
-    expect(Result.unwrap(result)).toBe("art-2");
+    expect(Result.unwrap(result)).toBe(requireSampleArticle("art-2").id);
   });
 
   it("keeps navigation similarity limited to pure adjacent id lookup", () => {

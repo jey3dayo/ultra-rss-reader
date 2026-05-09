@@ -1,9 +1,4 @@
-import type {
-  listArticles,
-  listFeeds,
-  listFolders,
-  listTags,
-} from "@/api/tauri-commands";
+import type { listArticles, listFeeds, listFolders, listTags } from "@/api/tauri-commands";
 import {
   type CommandListItem,
   cloneFixtureSeed,
@@ -108,14 +103,10 @@ export const sampleArticleTagSeeds: ReadonlyFixtureSeed<ArticleTagFixture> = [
   },
 ];
 
-export const sampleFolders: MutableTestFixture<FolderFixture> =
-  cloneFixtureSeed(sampleFolderSeeds);
-export const sampleFeeds: MutableTestFixture<FeedFixture> =
-  cloneFixtureSeed(sampleFeedSeeds);
-export const sampleArticles: MutableTestFixture<ArticleFixture> =
-  cloneFixtureSeed(sampleArticleSeeds);
-export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> =
-  cloneFixtureSeed(sampleArticleTagSeeds);
+export const sampleFolders: MutableTestFixture<FolderFixture> = cloneFixtureSeed(sampleFolderSeeds);
+export const sampleFeeds: MutableTestFixture<FeedFixture> = cloneFixtureSeed(sampleFeedSeeds);
+export const sampleArticles: MutableTestFixture<ArticleFixture> = cloneFixtureSeed(sampleArticleSeeds);
+export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> = cloneFixtureSeed(sampleArticleTagSeeds);
 
 export function createSampleFeeds(): MutableTestFixture<FeedFixture> {
   return cloneFixtureSeed(sampleFeedSeeds);
@@ -143,12 +134,8 @@ export function requireSampleFeed(feedId: FeedFixture["id"]): FeedFixture {
   return feed;
 }
 
-export function requireSampleArticle(
-  articleId: ArticleFixture["id"],
-): ArticleFixture {
-  const article = sampleArticles.find(
-    (sampleArticle) => sampleArticle.id === articleId,
-  );
+export function requireSampleArticle(articleId: ArticleFixture["id"]): ArticleFixture {
+  const article = sampleArticles.find((sampleArticle) => sampleArticle.id === articleId);
 
   if (!article) {
     throw new Error(`Expected sample article fixture for ${articleId}`);
@@ -158,9 +145,7 @@ export function requireSampleArticle(
 }
 
 export function requireSampleUnreadArticle(): ArticleFixture {
-  const article = sampleArticles.find(
-    (sampleArticle) => !sampleArticle.is_read,
-  );
+  const article = sampleArticles.find((sampleArticle) => !sampleArticle.is_read);
 
   if (!article) {
     throw new Error("Expected unread sample article fixture");
@@ -180,9 +165,7 @@ export function requireSampleReadArticle(): ArticleFixture {
 }
 
 export function requireSampleStarredArticle(): ArticleFixture {
-  const article = sampleArticles.find(
-    (sampleArticle) => sampleArticle.is_starred,
-  );
+  const article = sampleArticles.find((sampleArticle) => sampleArticle.is_starred);
 
   if (!article) {
     throw new Error("Expected starred sample article fixture");
@@ -191,10 +174,7 @@ export function requireSampleStarredArticle(): ArticleFixture {
   return article;
 }
 
-export function collectFeedIdsByAccount(
-  feeds: readonly FeedFixture[],
-  accountId: string | undefined,
-): Set<string> {
+export function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId: string | undefined): Set<string> {
   const feedIds = new Set<string>();
 
   for (const feed of feeds) {
@@ -221,9 +201,7 @@ export function listArticlesByFeedId(
   return selectedArticles;
 }
 
-export function listSampleFeedsByAccountId(
-  accountId: string | undefined,
-): FeedFixture[] {
+export function listSampleFeedsByAccountId(accountId: string | undefined): FeedFixture[] {
   const selectedFeeds: FeedFixture[] = [];
 
   for (const feed of sampleFeeds) {
@@ -235,15 +213,11 @@ export function listSampleFeedsByAccountId(
   return selectedFeeds;
 }
 
-export function listSampleArticlesByFeedId(
-  feedId: string | undefined,
-): ArticleFixture[] {
+export function listSampleArticlesByFeedId(feedId: string | undefined): ArticleFixture[] {
   return listArticlesByFeedId(sampleArticles, feedId);
 }
 
-export function listSampleArticlesByAccountId(
-  accountId: string | undefined,
-): ArticleFixture[] {
+export function listSampleArticlesByAccountId(accountId: string | undefined): ArticleFixture[] {
   return listArticlesByAccountId({
     articles: sampleArticles,
     feeds: sampleFeeds,

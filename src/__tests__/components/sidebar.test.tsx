@@ -198,6 +198,30 @@ const queryFeedButton = (feedId: string): HTMLButtonElement | null => {
   return element;
 };
 
+type SidebarNavigationTargetGetter = () => HTMLButtonElement[];
+
+async function moveFocusDownThroughSidebarTargets(getTargets: SidebarNavigationTargetGetter, steps: number) {
+  // Roving focus is order-dependent: each ArrowDown must observe the focus state produced by the previous key event.
+  let sequence = Promise.resolve();
+
+  for (let index = 0; index < steps; index += 1) {
+    sequence = sequence.then(async () => {
+      const currentTarget = getTargets()[index];
+      const nextTarget = getTargets()[index + 1];
+      if (currentTarget === undefined || nextTarget === undefined) {
+        throw new Error(`Expected sidebar navigation target pair at index ${index}`);
+      }
+      expect(currentTarget).toHaveFocus();
+      fireEvent.keyDown(currentTarget, { key: "ArrowDown" });
+      await waitFor(() => {
+        expect(nextTarget).toHaveFocus();
+      });
+    });
+  }
+
+  await sequence;
+}
+
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
@@ -1353,6 +1377,7 @@ describe("Sidebar", () => {
 
     expect(await screen.findByRole("button", { name: "Move to Work" })).toBeInTheDocument();
 
+    // These clicks intentionally stay sequential because the second click depends on the collapsed state from the first.
     await user.click(screen.getByRole("button", { name: "Subscriptions" }));
     await user.click(screen.getByRole("button", { name: "Subscriptions" }));
 
@@ -1673,8 +1698,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await screen.findByText("Alpha Feed");
-    await screen.findByText("Tech");
+    await Promise.all([screen.findByText("Alpha Feed"), screen.findByText("Tech")]);
     const getTargets = () =>
       Array.from(document.querySelectorAll<HTMLButtonElement>('[data-sidebar-navigation-target="true"]')).filter(
         (target) => !target.closest('[aria-hidden="true"]'),
@@ -1683,15 +1707,7 @@ describe("Sidebar", () => {
     expect(getTargets().length).toBeGreaterThanOrEqual(8);
     getTargets()[0]?.focus();
 
-    for (let index = 0; index < 6; index += 1) {
-      const currentTarget = getTargets()[index];
-      const nextTarget = getTargets()[index + 1];
-      expect(currentTarget).toHaveFocus();
-      fireEvent.keyDown(currentTarget, { key: "ArrowDown" });
-      await waitFor(() => {
-        expect(nextTarget).toHaveFocus();
-      });
-    }
+    await moveFocusDownThroughSidebarTargets(getTargets, 6);
 
     const currentTarget = getTargets()[6];
     const previousTarget = getTargets()[5];
