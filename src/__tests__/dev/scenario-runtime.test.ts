@@ -32,7 +32,9 @@ vi.mock("@/dev/scenarios", () => ({
 
 function expectResultValue<T, E>(result: Result.Result<T, E>): T {
   if (Result.isFailure(result)) {
-    throw new Error(`Expected success result, received failure: ${JSON.stringify(result.error)}`);
+    throw new Error(
+      `Expected success result, received failure: ${JSON.stringify(result.error)}`,
+    );
   }
 
   return result.value;
@@ -40,7 +42,9 @@ function expectResultValue<T, E>(result: Result.Result<T, E>): T {
 
 function expectResultError<T, E>(result: Result.Result<T, E>): E {
   if (!Result.isFailure(result)) {
-    throw new Error(`Expected failure result, received success: ${JSON.stringify(result.value)}`);
+    throw new Error(
+      `Expected failure result, received success: ${JSON.stringify(result.value)}`,
+    );
   }
 
   return result.error;
@@ -57,7 +61,9 @@ describe("dev-scenario-runtime", () => {
   });
 
   it("keeps the static import registry aligned with every dev scenario id", () => {
-    expect(Object.keys(DEV_SCENARIO_MODULE_IMPORTERS).toSorted()).toEqual([...DEV_SCENARIO_IDS].toSorted());
+    expect(Object.keys(DEV_SCENARIO_MODULE_IMPORTERS).toSorted()).toEqual(
+      [...DEV_SCENARIO_IDS].toSorted(),
+    );
   });
 
   it("returns a typed failure outside dev builds", async () => {
@@ -82,11 +88,17 @@ describe("dev-scenario-runtime", () => {
     vi.stubEnv("DEV", false);
 
     const loadScenarios = loadRuntimeDevScenarios();
-    const runScenario = runRuntimeDevScenario(DEV_SCENARIO_ID.openSubscriptionsIndex);
+    const runScenario = runRuntimeDevScenario(
+      DEV_SCENARIO_ID.openSubscriptionsIndex,
+    );
 
     await Promise.all([
-      expect(loadScenarios).rejects.toThrow("Dev scenarios runtime is unavailable outside dev builds."),
-      expect(runScenario).rejects.toThrow("Dev scenarios runtime is unavailable outside dev builds."),
+      expect(loadScenarios).rejects.toThrow(
+        "Dev scenarios runtime is unavailable outside dev builds.",
+      ),
+      expect(runScenario).rejects.toThrow(
+        "Dev scenarios runtime is unavailable outside dev builds.",
+      ),
     ]);
   });
 
@@ -100,7 +112,8 @@ describe("dev-scenario-runtime", () => {
 
     expect(expectResultError(result)).toEqual({
       type: "invalid_module",
-      message: "Dev scenarios module does not match the expected runtime interface.",
+      message:
+        "Dev scenarios module does not match the expected runtime interface.",
     });
   });
 
@@ -117,6 +130,7 @@ describe("dev-scenario-runtime", () => {
     vi.stubEnv("DEV", true);
     devScenariosModuleMock.module = {};
 
+    // Cache reset is the contract under test here, so these load attempts must remain sequential.
     const invalidResult = await loadRuntimeDevScenariosResult();
 
     resetDevScenariosModuleCacheForTests();
@@ -139,9 +153,13 @@ describe("dev-scenario-runtime", () => {
   it("retries module loading after a transient import failure", async () => {
     vi.stubEnv("DEV", true);
     const importScenarioModule = vi
-      .spyOn(DEV_SCENARIO_MODULE_IMPORTERS, DEV_SCENARIO_ID.openSubscriptionsIndex)
+      .spyOn(
+        DEV_SCENARIO_MODULE_IMPORTERS,
+        DEV_SCENARIO_ID.openSubscriptionsIndex,
+      )
       .mockRejectedValueOnce(new Error("Temporary import failure"));
 
+    // Retry behavior depends on the first rejected import being observed before the second load.
     const failedResult = await loadRuntimeDevScenariosResult();
     const retriedResult = await loadRuntimeDevScenariosResult();
 
@@ -155,9 +173,10 @@ describe("dev-scenario-runtime", () => {
 
   it("returns module_load_failed with a string rejection message when the dynamic import rejects", async () => {
     vi.stubEnv("DEV", true);
-    vi.spyOn(DEV_SCENARIO_MODULE_IMPORTERS, DEV_SCENARIO_ID.openSubscriptionsIndex).mockRejectedValueOnce(
-      "String import failure",
-    );
+    vi.spyOn(
+      DEV_SCENARIO_MODULE_IMPORTERS,
+      DEV_SCENARIO_ID.openSubscriptionsIndex,
+    ).mockRejectedValueOnce("String import failure");
 
     const result = await loadRuntimeDevScenariosResult();
 
@@ -171,6 +190,7 @@ describe("dev-scenario-runtime", () => {
     vi.stubEnv("DEV", true);
     devScenariosModuleMock.module = {};
 
+    // Invalid-module recovery depends on the first load not poisoning the next one.
     const invalidResult = await loadRuntimeDevScenariosResult();
     devScenariosModuleMock.module = {
       listDevScenarios: vi.fn(() => []),
@@ -180,31 +200,31 @@ describe("dev-scenario-runtime", () => {
 
     expect(expectResultError(invalidResult)).toEqual({
       type: "invalid_module",
-      message: "Dev scenarios module does not match the expected runtime interface.",
+      message:
+        "Dev scenarios module does not match the expected runtime interface.",
     });
     expect(expectResultValue(retriedResult)).toEqual([]);
   });
 
-  it.each([
-    undefined,
-    "",
-    new Error(""),
-  ] as const)("uses the runtime fallback message when module listing throws %s", async (thrownValue) => {
-    vi.stubEnv("DEV", true);
-    devScenariosModuleMock.module = {
-      listDevScenarios: vi.fn(() => {
-        throw thrownValue;
-      }),
-      runDevScenario: vi.fn(async () => {}),
-    };
+  it.each([undefined, "", new Error("")] as const)(
+    "uses the runtime fallback message when module listing throws %s",
+    async (thrownValue) => {
+      vi.stubEnv("DEV", true);
+      devScenariosModuleMock.module = {
+        listDevScenarios: vi.fn(() => {
+          throw thrownValue;
+        }),
+        runDevScenario: vi.fn(async () => {}),
+      };
 
-    const result = await loadRuntimeDevScenariosResult();
+      const result = await loadRuntimeDevScenariosResult();
 
-    expect(expectResultError(result)).toEqual({
-      type: "module_load_failed",
-      message: "Unknown dev scenario runtime error.",
-    });
-  });
+      expect(expectResultError(result)).toEqual({
+        type: "module_load_failed",
+        message: "Unknown dev scenario runtime error.",
+      });
+    },
+  );
 
   it("returns module_load_failed when scenario listing throws an Error", async () => {
     vi.stubEnv("DEV", true);
@@ -232,7 +252,9 @@ describe("dev-scenario-runtime", () => {
       }),
     };
 
-    const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
+    const result = await runRuntimeDevScenarioResult(
+      DEV_SCENARIO_ID.openSubscriptionsIndex,
+    );
 
     expect(expectResultError(result)).toEqual({
       type: "scenario_failed",
@@ -240,26 +262,27 @@ describe("dev-scenario-runtime", () => {
     });
   });
 
-  it.each([
-    undefined,
-    "",
-    new Error(""),
-  ] as const)("uses the runtime fallback message when the scenario runner rejects %s", async (thrownValue) => {
-    vi.stubEnv("DEV", true);
-    devScenariosModuleMock.module = {
-      listDevScenarios: vi.fn(() => []),
-      runDevScenario: vi.fn(async () => {
-        throw thrownValue;
-      }),
-    };
+  it.each([undefined, "", new Error("")] as const)(
+    "uses the runtime fallback message when the scenario runner rejects %s",
+    async (thrownValue) => {
+      vi.stubEnv("DEV", true);
+      devScenariosModuleMock.module = {
+        listDevScenarios: vi.fn(() => []),
+        runDevScenario: vi.fn(async () => {
+          throw thrownValue;
+        }),
+      };
 
-    const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
+      const result = await runRuntimeDevScenarioResult(
+        DEV_SCENARIO_ID.openSubscriptionsIndex,
+      );
 
-    expect(expectResultError(result)).toEqual({
-      type: "scenario_failed",
-      message: "Unknown dev scenario runtime error.",
-    });
-  });
+      expect(expectResultError(result)).toEqual({
+        type: "scenario_failed",
+        message: "Unknown dev scenario runtime error.",
+      });
+    },
+  );
 
   it("rejects promise wrappers with the scenario failure fallback message", async () => {
     vi.stubEnv("DEV", true);
@@ -270,8 +293,8 @@ describe("dev-scenario-runtime", () => {
       }),
     };
 
-    await expect(runRuntimeDevScenario(DEV_SCENARIO_ID.openSubscriptionsIndex)).rejects.toThrow(
-      "Unknown dev scenario runtime error.",
-    );
+    await expect(
+      runRuntimeDevScenario(DEV_SCENARIO_ID.openSubscriptionsIndex),
+    ).rejects.toThrow("Unknown dev scenario runtime error.");
   });
 });
