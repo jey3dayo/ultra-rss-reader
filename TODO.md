@@ -100,16 +100,6 @@
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
   - retention days、max rows、account/feed delete cascade、clear history command の count contract を Rust test にする
 
-- [ ] P2 account unread count と feed unread count の reconciliation policy を作る
-  - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-account-unread-count.ts`
-  - feed unread_count は denormalized で、article mutation や sync failure 後に account total とズレる可能性がある
-  - recalculation command、startup repair、sync completion のどこで count consistency を保証するか決め、mismatch fixture の repair test を追加する
-
-- [ ] P2 capabilities/default.json の permission 最小化を feature matrix と照合する
-  - 対象: `src-tauri/capabilities/default.json`, `src-tauri/src/commands/*.rs`, `src/hooks/*.ts`
-  - clipboard/opener/updater/window permission が広く見えるため、使っていない permission が残ると Tauri capability の意図が drift する
-  - frontend invoke/use site と permission list を照合し、unused permission を削るか理由をコメント/contract test に残す
-
 - [ ] P1 feed folder drag/drop の optimistic rollback を latest-only にする
   - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
   - feed を folder A -> B -> C と連続移動した時、古い mutation failure が後から来ると `previousFeedsQueries` で最新の folder state を巻き戻し得る
@@ -175,11 +165,6 @@
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
 
-- [ ] P1 account delete 後の reader selection / article cache cleanup を account scope で固定する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/stores/ui-store.ts`, `src/hooks/use-articles.ts`
-  - account delete 成功後に accounts/feed queries は invalidation するが、reader の selected feed/article/tag や retained/recentlyRead cache が削除 account を指し続けると、次の操作が missing id で落ちやすい
-  - delete account 後の selected account/feed/article/tag、browser overlay、article cache の cleanup/fallback を component/store test で固定する
-
 - [ ] P1 updater progress / ready event を download session 単位で検証する
   - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`
   - updater event に request/session id がないため、失敗後の再試行や duplicate listener で古い `update-download-progress` / `update-ready` が現在の toast を上書きする可能性がある
@@ -209,11 +194,6 @@
   - 対象: `src/hooks/use-updater.ts`
   - startup silent check と manual check が同じ `checkInFlight` を共有するため、manual click が silent startup の失敗/成功結果に相乗りした時の toast 方針が分かりにくい
   - startup in-flight 中 manual click、manual in-flight 中 startup effect、failure/success/null result の toast behavior を hook/lib test にする
-
-- [ ] P2 account setup session owner の state transition matrix を固定する
-  - 対象: `src/stores/ui-store.ts`, `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/hooks/account-detail`
-  - `accountSetupSession` は add-account と account-detail の両方から owner 付きで触るため、verifying/syncing/failed/succeeded の遷移が崩れると別画面の setup state を上書きしやすい
-  - owner mismatch、same account retry、different account start、clear during verifying の store test を追加する
 
 - [ ] P2 dev scenario helper の delayed replay timer cleanup を固定する
   - 対象: `src/dev/scenarios/helpers.ts`, `src/dev/scenarios/runner.ts`
@@ -245,11 +225,6 @@
   - remote subscription から folder が消えた時に existing local folder を保持する helper があり、remote 側の folder removal を反映するのか local override とみなすのか曖昧
   - remote folder present/missing/empty、local manual move 後 sync、remote deleted folder の conflict policy を provider sync test にする
 
-- [ ] P2 feed unread count の negative / overflow DTO を backend でも防ぐ
-  - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/commands/dto.rs`, `src/api/schemas/feed.ts`
-  - frontend schema は nonnegative count を期待するが DB column は破損や migration drift で negative/large value を返し得るため、DTO 化時の責務が曖昧
-  - negative unread_count、large count、recalculate failure、muted unread exclusion の Rust/TS schema test を追加する
-
 - [ ] P2 update_feed_display_settings の `inherit` / default preference 解決を account/feed context で固定する
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
   - feed の reader/web preview mode と account/default preference が別経路で解決されるため、`inherit` 表示と実際の article/browser behavior がズレやすい
@@ -260,25 +235,10 @@
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
 
-- [ ] P1 native injected browser bridge の global EventTarget monkey patch を互換性検証する
-  - 対象: `src-tauri/src/browser_webview.rs`
-  - focus override script が child webview 内で `EventTarget.prototype.addEventListener/removeEventListener` を wrap するため、対象ページの framework や third-party script と衝突すると embedded browser だけクリック/keyboard が壊れやすい
-  - idempotent install、listener option passthrough、remove symmetry、page-defined patched EventTarget との順序、disable preference の recovery を manual verification と JS fixture で固定する
-
-- [ ] P1 browser bridge script の injected command payload を session/URL 単位で stale ignore する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`
-  - child webview 内 script は back/forward/close を native command へ直接送るため、WebView recreate 後に古い page script から command が届くと現在 overlay state と別セッションの操作が混ざる可能性がある
-  - browser session id、target URL、window label の照合を入れるか、native 側 idempotent no-op とするか決め、recreate直後の late command test を追加する
-
 - [ ] P2 app shell lazy preload failure の retry/backoff を一度だけにする
   - 対象: `src/components/app-shell.tsx`
   - settings modal preload が failure を console に出すだけだと、chunk outage や asset path 破損時に hover/focus のたびに同じ preload が失敗し続け、原因が diagnostics に残りにくい
   - preload failure cache、manual retry、reload action、production/dev logging の behavior を app shell test にする
-
-- [ ] P3 native browser bridge JS source を fixture snapshot で最小限固定する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/browser_webview/*`
-  - Rust string 内の injected JS は quote/brace/feature flag の regression が compile 時に見えにくく、今後 bridge action が増えるほど review 負荷が上がる
-  - source を helper/fixture 化するか、重要 token と syntax parse smoke を test にし、全量 snapshot ではなく bridge API contract だけ固定する
 
 - [ ] P2 mute settings auto-mark optimistic rollback を latest-only にする
   - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`
