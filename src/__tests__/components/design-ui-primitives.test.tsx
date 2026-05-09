@@ -25,22 +25,49 @@ import {
 } from "@/constants";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
+const motionCss = globalCss.slice(globalCss.indexOf("@keyframes vertical-wipe"), globalCss.indexOf("\n\nhtml,\nbody"));
+
+const extractUniqueMatches = (source: string, pattern: RegExp) => {
+  const values = new Set<string>();
+
+  for (const match of source.matchAll(pattern)) {
+    const value = match[1];
+
+    if (value !== undefined) {
+      values.add(value);
+    }
+  }
+
+  return Array.from(values).sort();
+};
+
+const expectGlobalCssToContain = (...snippets: readonly string[]) => {
+  for (const snippet of snippets) {
+    expect(globalCss).toContain(snippet);
+  }
+};
 
 const expectGlobalCssToContainMotionContract = () => {
+  expect(extractUniqueMatches(motionCss, /\.((?:motion|t)-[A-Za-z0-9_-]+|is-animating)\b/g)).toEqual(
+    [...MOTION_CLASS_NAMES].sort(),
+  );
+  expect(extractUniqueMatches(motionCss, /@keyframes ([A-Za-z0-9_-]+)/g)).toEqual([...MOTION_KEYFRAMES_NAMES].sort());
+  expect(extractUniqueMatches(motionCss, /\[(data-[A-Za-z0-9_-]+)/g)).toEqual([...MOTION_DATA_ATTRIBUTES].sort());
+
   for (const className of MOTION_CLASS_NAMES) {
-    expect(globalCss).toContain(`.${className}`);
+    expectGlobalCssToContain(`.${className}`);
   }
 
   for (const keyframesName of MOTION_KEYFRAMES_NAMES) {
-    expect(globalCss).toContain(`@keyframes ${keyframesName}`);
+    expectGlobalCssToContain(`@keyframes ${keyframesName}`);
   }
 
   for (const dataAttribute of MOTION_DATA_ATTRIBUTES) {
-    expect(globalCss).toContain(`[${dataAttribute}`);
+    expectGlobalCssToContain(`[${dataAttribute}`);
   }
 
   for (const selector of MOTION_GLOBAL_CSS_CONTRACT_SELECTORS) {
-    expect(globalCss).toContain(selector);
+    expectGlobalCssToContain(selector);
   }
 };
 
@@ -88,32 +115,31 @@ describe("Design-themed UI primitives", () => {
 
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("bg-surface-1", "border-border");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
-    expect(globalCss).toContain("--motion-duration-disclosure: 200ms;");
-    expect(globalCss).toContain("--motion-duration-popup: 160ms;");
-    expect(globalCss).toContain("--motion-duration-resize: 260ms;");
-    expect(globalCss).toContain("--motion-duration-theme: 180ms;");
-    expect(globalCss).toContain("--motion-duration-contextual: 180ms;");
-    expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
-    expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
-    expect(globalCss).toContain("--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);");
+    expectGlobalCssToContain(
+      "--motion-duration-disclosure: 200ms;",
+      "--motion-duration-popup: 160ms;",
+      "--motion-duration-resize: 260ms;",
+      "--motion-duration-theme: 180ms;",
+      "--motion-duration-contextual: 180ms;",
+      "--motion-duration-content-swap: 180ms;",
+      "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
+      "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
+    );
     expectGlobalCssToContainMotionContract();
-    expect(globalCss).toContain("@starting-style");
-    expect(globalCss).toContain(`.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
+    expectGlobalCssToContain("@starting-style", `.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
     expect(globalCss).not.toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );
-    expect(globalCss).toContain("border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);");
-    expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`);
-    expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-old(root)");
-    expect(globalCss).toContain("html.vertical-wipe-transition::view-transition-new(root)");
-    expect(globalCss).toContain("animation: vertical-wipe 0.75s ease-in-out forwards;");
-    expect(globalCss).toContain("will-change: clip-path;");
-    expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(globalCss).toContain(
+    expectGlobalCssToContain(
+      "border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
+      `.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`,
+      "html.vertical-wipe-transition::view-transition-old(root)",
+      "html.vertical-wipe-transition::view-transition-new(root)",
+      "animation: vertical-wipe 0.75s ease-in-out forwards;",
+      "will-change: clip-path;",
+      "@media (prefers-reduced-motion: reduce)",
       `.${MOTION_ARTICLE_SLIDE_CLASS_NAME}[${MOTION_DATA_DIRECTION_ATTRIBUTE}="${MOTION_DIRECTION_NEXT}"],`,
-    );
-    expect(globalCss).toContain(
       `.${MOTION_ARTICLE_SLIDE_CLASS_NAME}[${MOTION_DATA_DIRECTION_ATTRIBUTE}="${MOTION_DIRECTION_PREV}"],`,
     );
     expect(globalCss).not.toContain(":root.theme-transitioning body");
@@ -167,10 +193,12 @@ describe("Design-themed UI primitives", () => {
 
     expect(overlay).toHaveClass("bg-dialog-overlay", "bg-dialog-scrim", "supports-backdrop-filter:backdrop-blur-sm");
     expect(overlay).toHaveClass(MOTION_POPUP_OVERLAY_CLASS_NAME);
-    expect(globalCss).toContain("--color-dialog-overlay: var(--dialog-overlay);");
-    expect(globalCss).toContain("--dialog-overlay: rgba(38, 37, 30, 0.18);");
-    expect(globalCss).toContain(":root.dark {");
-    expect(globalCss).toContain("--dialog-overlay: rgba(28, 25, 21, 0.6);");
+    expectGlobalCssToContain(
+      "--color-dialog-overlay: var(--dialog-overlay);",
+      "--dialog-overlay: rgba(38, 37, 30, 0.18);",
+      ":root.dark {",
+      "--dialog-overlay: rgba(28, 25, 21, 0.6);",
+    );
     expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(
       "bg-surface-2",
       "border",
@@ -204,9 +232,11 @@ describe("Design-themed UI primitives", () => {
       "bg-dialog-scrim-readable",
       "supports-backdrop-filter:backdrop-blur-none",
     );
-    expect(globalCss).toContain("--color-dialog-overlay-readable: var(--dialog-overlay-readable);");
-    expect(globalCss).toContain("--dialog-overlay-readable: rgba(242, 241, 237, 0.6);");
-    expect(globalCss).toContain("--dialog-overlay-readable: rgba(28, 25, 21, 0.72);");
+    expectGlobalCssToContain(
+      "--color-dialog-overlay-readable: var(--dialog-overlay-readable);",
+      "--dialog-overlay-readable: rgba(242, 241, 237, 0.6);",
+      "--dialog-overlay-readable: rgba(28, 25, 21, 0.72);",
+    );
   });
 
   it("uses the readable scrim token for command palette dialogs", () => {
