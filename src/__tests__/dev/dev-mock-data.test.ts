@@ -132,4 +132,19 @@ describe("dev mock data", () => {
     });
     expect(listDevMockFixtureBoundaryKeys("browser")).toEqual(["articles"]);
   });
+
+  it("keeps dev fixture boundaries aligned with seed groups and usage surfaces", () => {
+    const seedGroups = new Set(Object.keys(mockDataSeeds));
+
+    for (const fixtureKeys of Object.values(DEV_MOCK_FIXTURE_BOUNDARIES)) {
+      expect(fixtureKeys.every((fixtureKey) => seedGroups.has(fixtureKey))).toBe(true);
+    }
+
+    expect(listDevMockFixtureBoundaryKeys("reader")).toEqual(
+      expect.arrayContaining(["accounts", "folders", "feeds", "articles", "tags", "articleTags"]),
+    );
+    expect(listDevMockFixtureBoundaryKeys("settings")).not.toEqual(expect.arrayContaining(["articles", "articleTags"]));
+    expect(listDevMockFixtureBoundaryKeys("browser")).toEqual(["articles"]);
+    expect(listDevMockFixtureBoundaryKeys("subscriptions")).not.toEqual(expect.arrayContaining(["tags", "articleTags"]));
+  });
 });
