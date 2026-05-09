@@ -130,11 +130,6 @@
   - URL parsing failure が helper / context menu / add feed flow で別々に処理され、invalid URL の user-facing copy と log policy が揺れやすい
   - malformed URL / protocol-relative URL / throwing URL constructor 相当の contract test を追加する
 
-- [ ] P2 Tauri dev Vite manager timeout diagnostics を改善する
-  - 対象: `scripts/tauri-dev-vite-manager.ts`
-  - port wait timeout や Vite start failure が発生した時、既存 process / stale listener / Node version のどれが原因かログから切り分けにくい
-  - timeout error に checked port / command / elapsed ms / next action を含める script test を追加する
-
 - [ ] P3 story/runtime mock window global cleanup を追加する
   - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
@@ -244,16 +239,6 @@
   - 対象: `src/dev/intent.ts`, `src/dev/use-resolved-dev-intent.ts`
   - runtime dev options の promise/error cache が失敗後に stale になった時、dev intent を直しても再読込まで復旧しない可能性がある
   - failure cache clear / retry trigger / dev-only warning の contract を test で固定する
-
-- [ ] P2 seed dev database open handle diagnostics を補強する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`
-  - DB open handle 検出で process 名や handle path が不十分な場合、ユーザーがどの app を閉じるべきか判断しにくい
-  - lsof unavailable / process list permission denied / WAL only open の error message を script test で固定する
-
-- [ ] P2 windows dispatch env/path failure diagnostics を補強する
-  - 対象: `scripts/windows-command-dispatch.ts`, `scripts/lib/windows-dispatch.ts`, `scripts/tauri-cli-dispatch.ts`
-  - Windows/WSL dispatch は path conversion と process spawn failure が混ざりやすく、CI で拾えないローカル問題になりやすい
-  - missing executable、path with spaces、spawn EACCES の message と exit code contract を script test で固定する
 
 - [ ] P0 tag mutation invalidation unhandled rejection を修正する
   - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/tag-context-menu.tsx`
@@ -577,11 +562,6 @@
   - dev/browser tests で固定できる fallback と packaged app manual verification が必要な挙動を分ける
   - capability JSON の permission 変更は runtime wrapper 整理とは別コミットにする
 
-- [ ] P2 scripts dispatch contract 整理候補を別バッチで見直す
-  - `tauri-cli-dispatch.ts` / `windows-command-dispatch.ts` / `windows-dispatch.ts` の WSL/Windows path/env handling を test fixture と実行 contract に分ける
-  - seed dev DB script は安全確認・backup・process check を優先し、dispatch helper の refactor と混ぜない
-  - CI で拾える dry-run test とローカル実機検証が必要な path conversion を分ける
-
 - [ ] P2 GitHub workflow / issue template 整理候補を別バッチで見直す
   - `.github/workflows/*` と issue templates の label / release-readiness / manual-verification 表現を、運用ラベルの source of truth に揃える
   - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
@@ -606,11 +586,6 @@
   - `src-tauri/src/menu.rs` の check menu item toggle と frontend preference state が、view filter / sort unread / group by feed でズレないか確認する
   - menu action emit の contract test と、実 native menu の checked 表示確認を分ける
   - i18n label や shortcut 表示変更は locale/copy batch に残し、ここでは state sync と event ordering だけを見る
-
-- [ ] P1 Rust domain error mapping test 候補を別バッチで追加する
-  - `src-tauri/src/domain/error.rs` の reqwest / sqlite / provider error mapping を、ユーザー向け actionable message と internal kind の境界で固定する
-  - DNS / timeout / auth / rate limit / malformed response を provider sync flow と混ぜず、domain error の pure test として追加する
-  - copy の文面変更は locale/copy 扱いにし、ここでは error category と recovery guidance の有無を確認する
 
 - [ ] P1 tag / mute settings contract 整理候補を別バッチで見直す
   - tag settings、reader tag list、article tag picker、mute settings の command/schema/hook/view contract を、tag と mute で分けて棚卸しする
@@ -701,7 +676,3 @@
   - `account-setup-session.types.ts`、add account controller、accounts nav の setup session lock を、wizard flow と settings navigation で分けて棚卸しする
   - duplicate submit / navigation away / failed credential verification はデータ破損につながるため、UI copy より先に state machine の境界を固定する
   - service picker の visual や provider icon 変更は含めず、setup session ownership と cancel/retry contract に限定する
-
-- [ ] P2 mute settings reducer transition contract 候補を別バッチで追加する
-  - `src/components/settings/mute-settings.tsx` 周辺で add / edit / delete modal state transition と draft reset の契約を focused test で固定する
-  - mute SQL/Rust match parity、auto mark preference guard、settings copy は別スコープに残す
