@@ -27,7 +27,7 @@ function SidebarFeedTreeSkeletonRow({
 
 export function SidebarFeedTreeSkeleton({ label }: SidebarFeedTreeSkeletonProps) {
   return (
-    <div data-testid="sidebar-feed-tree-skeleton" role="status" aria-live="polite" className="px-2 py-2">
+    <div data-testid="sidebar-feed-tree-skeleton" role="status" aria-live="polite" className="p-2">
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="space-y-1">
         <SidebarFeedTreeSkeletonRow countWidthClassName="w-7" />

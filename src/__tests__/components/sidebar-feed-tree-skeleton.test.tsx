@@ -6,7 +6,7 @@ describe("SidebarFeedTreeSkeleton", () => {
   it("keeps the row rhythm and icon skeleton shape stable", () => {
     const { container } = render(<SidebarFeedTreeSkeleton label="Loading feeds" />);
 
-    expect(screen.getByRole("status")).toHaveClass("px-2", "py-2");
+    expect(screen.getByRole("status")).toHaveClass("p-2");
     expect(screen.getByText("Loading feeds")).toHaveClass("sr-only");
 
     const rows = container.querySelectorAll(".rounded-md.px-2.py-1\\.5");
