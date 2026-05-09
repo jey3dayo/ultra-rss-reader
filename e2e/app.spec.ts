@@ -1,6 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectMeasurableBox } from "./helpers/measurable-box";
-import { disposeRuntimeErrorGuard, expectNoPageErrors, installRuntimeErrorGuard } from "./helpers/runtime-error-guard";
+import {
+  disposeRuntimeErrorGuard,
+  expectNoRuntimeErrors,
+  installRuntimeErrorGuard,
+} from "./helpers/runtime-error-guard";
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
@@ -49,7 +53,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
   test.afterEach(async ({ page }) => {
     try {
-      expectNoPageErrors(page);
+      expectNoRuntimeErrors(page);
     } finally {
       disposeRuntimeErrorGuard(page);
     }

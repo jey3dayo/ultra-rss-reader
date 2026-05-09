@@ -1,5 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
-import { expectNoStorybookRuntimeErrorDom, installRuntimeErrorGuard } from "../helpers/runtime-error-guard";
+import {
+  expectNoRuntimeErrors,
+  expectNoStorybookRuntimeErrorDom,
+  installRuntimeErrorGuard,
+} from "../helpers/runtime-error-guard";
 
 const updateToastTestIds = [
   "reference-update-toast-download-0",
@@ -20,7 +24,7 @@ async function openShellOverlayStory(page: Page) {
     }).toPass({ timeout: 120000, intervals: [1000, 2000, 5000] });
 
     await expectNoStorybookRuntimeErrorDom(page);
-    expect(runtimeErrors.pageErrors).toEqual([]);
+    expectNoRuntimeErrors(page);
   } finally {
     runtimeErrors.dispose();
   }
