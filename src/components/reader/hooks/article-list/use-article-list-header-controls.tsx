@@ -18,13 +18,17 @@ export type ArticleListHeaderControlAvailability = {
   showCloseSearch: boolean;
 };
 
+function hasConcreteResolvedFeedId(resolvedFeedId: string | null): boolean {
+  return resolvedFeedId !== null && resolvedFeedId.trim().length > 0;
+}
+
 export function resolveArticleListHeaderControlAvailability({
   layoutMode,
   sidebarOpen,
   resolvedFeedId,
   showSearch,
 }: ArticleListHeaderControlAvailabilityInput): ArticleListHeaderControlAvailability {
-  const hasResolvedFeedId = resolvedFeedId !== null && resolvedFeedId.trim().length > 0;
+  const hasResolvedFeedId = hasConcreteResolvedFeedId(resolvedFeedId);
 
   return {
     showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",

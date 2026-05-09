@@ -67,6 +67,22 @@ describe("ArticleListHeader", () => {
       resolveArticleListHeaderControlAvailability({
         layoutMode: "wide",
         sidebarOpen: false,
+        resolvedFeedId: "",
+        showSearch: false,
+      }),
+    ).toEqual({
+      showSidebarButton: true,
+      isSidebarTogglePressed: false,
+      showFeedDisplaySelect: false,
+      showMarkAllRead: true,
+      showSearchToggle: true,
+      showCloseSearch: false,
+    });
+
+    expect(
+      resolveArticleListHeaderControlAvailability({
+        layoutMode: "wide",
+        sidebarOpen: false,
         resolvedFeedId: "   ",
         showSearch: false,
       }),
