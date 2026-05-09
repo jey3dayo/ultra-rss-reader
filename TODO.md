@@ -30,20 +30,10 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P1 browser injected bridge listener lifecycle を検証する
-  - 対象: `src-tauri/src/browser_webview.rs`
-  - injected script が `window.addEventListener` と focus override を入れるため、navigation / reload / recreate 時に listener が重複しないか実機寄りに確認する
-  - bridge install idempotence、mouse back/forward in-flight、close in-flight の contract test または manual verification を追加する
-
 - [ ] P2 reader focus DOM selector drift を検出する
   - 対象: `src/lib/reader-focus.ts`, reader list/sidebar/account pane components
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
-
-- [ ] P1 browser webview focus native command failure policy を整理する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
-  - `webview.set_focus()` / Windows foreground API の戻り値を複数箇所で無視しており、overlay open 後に focus が戻らない packaged app 問題の原因が残らない
-  - focus failure を UI に出すか diagnostics-only にするか決め、platform 別に expected failure と unexpected failure の log policy を固定する
 
 - [ ] P2 article list retained snapshot duplicate identity contract を固定する
   - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`
@@ -54,11 +44,6 @@
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/build.rs`
   - app data dir 作成 / DB init / log cleanup で `expect` / `panic` / silent remove failure が混在しており、packaged startup failure の user-facing message が揺れやすい
   - app data permission denied、DB open failure、log cleanup permission denied の message と recovery guidance を native test / manual verification に分ける
-
-- [ ] P1 same-URL webview timeout 世代管理を追加する
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src-tauri/src/browser_webview.rs`
-  - webview load timeout が URL 文字列だけで古い load と新しい reload/reopen を区別すると、同じ URL の再読込で stale timer が新しい webview を fallback close し得る
-  - same URL reload、close -> reopen same URL、slow load completed after timeout の generation id contract を native/frontend event test にする
 
 - [ ] P1 child webview command invoke 権限を検証する
   - 対象: `src-tauri/capabilities/default.json`, `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
