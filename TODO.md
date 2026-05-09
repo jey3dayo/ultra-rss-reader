@@ -312,11 +312,6 @@
   - menu action emit の contract test と、実 native menu の checked 表示確認を分ける
   - i18n label や shortcut 表示変更は locale/copy batch に残し、ここでは state sync と event ordering だけを見る
 
-- [ ] P1 tag / mute settings contract 整理候補を別バッチで見直す
-  - tag settings、reader tag list、article tag picker、mute settings の command/schema/hook/view contract を、tag と mute で分けて棚卸しする
-  - `tag-color-picker` や tag chip の visual token 変更は避け、まずは create/rename/delete と count 更新のデータ契約を固定する
-  - mute keyword scope と article filtering は reader 表示に直結するため、settings form props local 化とは別バッチにする
-
 - [ ] P0 credentials / keyring verification 候補を別バッチで整理する
   - `src-tauri/src/infra/keyring_store.rs` と account detail credentials editor の保存/更新/削除/restart 復元を、native keyring と dev credentials で分けて検証する
   - `.env` や実 credential 値は扱わず、存在確認・失敗種別・fallback 表示の contract test と packaged manual verification に分ける
