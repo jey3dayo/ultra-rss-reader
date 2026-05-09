@@ -72,6 +72,26 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     expect(result).toEqual(new Set(["folder-unread"]));
   });
 
+  it("uses the provided feed filter as the unread startup candidate boundary", () => {
+    const result = resolveSidebarStartupExpandedFolderIds({
+      startupFolderExpansion: "unread_folders",
+      folderList: folders,
+      feedList: [makeFeed({ id: "feed-read", folder_id: "folder-read", unread_count: 1 })],
+    });
+
+    expect(result).toEqual(new Set(["folder-read"]));
+  });
+
+  it("does not expand unread folders that are outside the provided feed filter", () => {
+    const result = resolveSidebarStartupExpandedFolderIds({
+      startupFolderExpansion: "unread_folders",
+      folderList: folders,
+      feedList: [makeFeed({ id: "feed-read", folder_id: "folder-read", unread_count: 0 })],
+    });
+
+    expect(result).toEqual(new Set());
+  });
+
   it("keeps all folders collapsed for the collapsed startup policy", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "all_collapsed",
@@ -101,6 +121,35 @@ describe("useSidebarStartupFolderExpansion", () => {
 
       return expandedFolderIds;
     });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set(["folder-unread"]));
+    });
+  });
+
+  it("waits for last selected account feeds and folders before applying startup expansion", async () => {
+    const { result, rerender } = renderHook(
+      ({ feedsReady, foldersReady }: { feedsReady: boolean; foldersReady: boolean }) => {
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "acc-1",
+          expandedFolderIds,
+          feedList: feedsReady ? [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })] : [],
+          folderList: foldersReady ? folders : [],
+          startupFolderExpansion: "unread_folders",
+          feedsReady,
+          foldersReady,
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        });
+
+        return expandedFolderIds;
+      },
+      { initialProps: { feedsReady: false, foldersReady: false } },
+    );
+
+    expect(result.current).toEqual(new Set());
+
+    rerender({ feedsReady: true, foldersReady: true });
 
     await waitFor(() => {
       expect(result.current).toEqual(new Set(["folder-unread"]));
