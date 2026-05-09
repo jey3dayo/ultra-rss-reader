@@ -61,6 +61,17 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
     expect(result).toEqual(new Set(["folder-restored"]));
   });
 
+  it("uses unread startup candidates separately from restored user folder toggles", () => {
+    const result = resolveSidebarStartupExpandedFolderIds({
+      startupFolderExpansion: "unread_folders",
+      folderList: folders,
+      feedList: [makeFeed({ id: "feed-unread", folder_id: "folder-unread", unread_count: 2 })],
+      storedFolderIds: ["folder-restored"],
+    });
+
+    expect(result).toEqual(new Set(["folder-unread"]));
+  });
+
   it("keeps all folders collapsed for the collapsed startup policy", () => {
     const result = resolveSidebarStartupExpandedFolderIds({
       startupFolderExpansion: "all_collapsed",
@@ -154,6 +165,48 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     await waitFor(() => {
       expect(result.current).toEqual(new Set(["folder-acc-2"]));
+    });
+  });
+
+  it("does not persist startup restore before user-triggered folder toggles", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify({
+        "acc-1": ["folder-restored"],
+      }),
+    );
+
+    const { result, rerender } = renderHook(
+      ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "acc-1",
+          expandedFolderIds,
+          feedList: [],
+          folderList: folders,
+          startupFolderExpansion: "restore_previous",
+          feedsReady: true,
+          foldersReady: true,
+          setExpandedFolders: vi.fn(),
+        });
+
+        return expandedFolderIds;
+      },
+      { initialProps: { expandedFolderIds: new Set<string>() } },
+    );
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set());
+    });
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
+      "acc-1": ["folder-restored"],
+    });
+
+    rerender({ expandedFolderIds: new Set(["folder-read"]) });
+
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
+        "acc-1": ["folder-read"],
+      });
     });
   });
 

@@ -296,6 +296,66 @@ describe("getVisibleSidebarFeedTreeData", () => {
     ]);
   });
 
+  it("keeps last selected folder visible without treating selection as folder expansion", () => {
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: folders,
+      feedsByFolder,
+      visibleFolderFeedsById: new Map([
+        ["folder-1", []],
+        ["folder-2", []],
+      ]),
+      expandedFolderIds: new Set(),
+      selectedFolderId: "folder-2",
+      selectedFeedId: null,
+      grayscaleFavicons: false,
+      viewMode: "unread",
+      starredCountByFeedId: new Map(),
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels).toMatchObject([
+      {
+        id: "folder-2",
+        isExpanded: false,
+        isSelected: true,
+        feeds: [],
+      },
+    ]);
+  });
+
+  it("keeps last selected feed separate from folder expansion state", () => {
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: folders,
+      feedsByFolder,
+      visibleFolderFeedsById: new Map([["folder-1", feeds.slice(0, 2)]]),
+      expandedFolderIds: new Set(),
+      selectedFolderId: null,
+      selectedFeedId: "feed-a",
+      grayscaleFavicons: false,
+      viewMode: "all",
+      starredCountByFeedId: new Map(),
+      hideEmptyFoldersInCurrentView: false,
+    });
+
+    expect(folderModels).toMatchObject([
+      {
+        id: "folder-1",
+        isExpanded: false,
+        isSelected: false,
+        feeds: [
+          { id: "feed-a", isSelected: true },
+          { id: "feed-b", isSelected: false },
+        ],
+      },
+      {
+        id: "folder-2",
+        isExpanded: false,
+        isSelected: false,
+        feeds: [],
+      },
+    ]);
+  });
+
   it("uses visible feed count as folder badge in starred mode", () => {
     const folderModels = buildSidebarFeedTreeFolders({
       sortedFolderList: folders,
