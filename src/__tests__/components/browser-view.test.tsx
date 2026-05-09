@@ -531,7 +531,8 @@ describe("BrowserView", () => {
       backgroundImage: "var(--browser-overlay-shell-veil)",
     });
     expect(screen.getByTestId("browser-overlay-stage-shell")).toBeInTheDocument();
-    expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-overlay-stage-shell")).not.toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);
+    expect(screen.getByTestId("browser-overlay-stage")).not.toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);
     expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
     const chrome = screen.getByTestId("browser-overlay-chrome");
@@ -559,6 +560,7 @@ describe("BrowserView", () => {
     expect(closeButton).toBeInTheDocument();
     expect(closeSurface).not.toBeNull();
     expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
+    expect(chrome).not.toHaveClass(MOTION_BROWSER_OVERLAY_CLASS_NAME);
     expect(backButton).toBeEnabled();
     expect(forwardButton).toBeDisabled();
     expect(reloadButton).toBeInTheDocument();

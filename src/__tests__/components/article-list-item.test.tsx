@@ -678,6 +678,9 @@ describe("ArticleListItem", () => {
     );
 
     expect(screen.getByText("First Article")).toHaveClass("font-semibold", "text-foreground");
+    expect(screen.getByRole("option", { name: "First Article (unread)" })).not.toHaveClass(
+      "motion-static-hover-surface",
+    );
     expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground/72");
     expect(screen.getByText("A hello world article")).toHaveClass("text-foreground/68");
 
