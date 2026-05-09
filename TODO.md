@@ -79,16 +79,6 @@
   - React Doctor / Knip が rename feed dialog view の unused type を検出しており、view props local 化後も controller/state type が残っている可能性がある
   - dialog open state、submit params、URL field model、folder select contract、view-only props を整理する
 
-- [ ] P1 article content の `SanitizedArticleHtml` brand を runtime boundary として固定する
-  - 対象: `src/components/reader/article-content-view.tsx`, `src/lib/content/html.ts`, `src-tauri/src/infra/sanitizer.rs`
-  - `SanitizedArticleHtml` は型 brand だけで runtime では通常の string なので、未 sanitize HTML が `fromSanitizedArticleHtml` 経由で混入しても検出しにくい
-  - backend sanitizer 済み DTO、frontend test fixture、view-local helper の境界を分け、raw HTML を渡す test helper には明示名を付ける
-
-- [ ] P3 requestAnimationFrame / setTimeout flush helper を UI tests で共通化する
-  - 対象: `src/__tests__/components/article-view.test.tsx`, `src/__tests__/components/sidebar.test.tsx`, `src/__tests__/hooks/use-updater.test.ts`, `src/__tests__/hooks/use-app-icon-theme.test.tsx`
-  - `await new Promise((resolve) => setTimeout(resolve, 0))` が複数 test にあり、fake timer / real timer の混在で flake の原因になりやすい
-  - `flushTimers` / `flushMicrotasks` / `flushRaf` helper を分け、real timer 前提の test を明示する
-
 - [ ] P2 startup main webview focus restore の async spawn を lifecycle-aware にする
   - 対象: `src-tauri/src/lib.rs`, `src/components/app-shell.tsx`, `src/hooks/use-screen-snapshot.ts`
   - startup focus restore は `tauri::async_runtime::spawn` + sleep 後に main window/webview を探すため、window close や slow startup で stale focus warning が出やすい
