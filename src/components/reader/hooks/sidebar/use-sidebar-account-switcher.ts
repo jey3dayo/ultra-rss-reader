@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useReducer,
+  useRef,
+} from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { focusAccountItem } from "../../account-switcher-menu";
 import { isOutsideElement } from "../../dom-target";
@@ -49,7 +56,10 @@ function sidebarAccountSwitcherReducer(
 }
 
 export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
-  const [state, dispatch] = useReducer(sidebarAccountSwitcherReducer, initialSidebarAccountSwitcherState);
+  const [state, dispatch] = useReducer(
+    sidebarAccountSwitcherReducer,
+    initialSidebarAccountSwitcherState,
+  );
   const { isAccountListOpen } = state;
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
@@ -77,29 +87,55 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
   useEffect(() => {
     if (!isAccountListOpen) return;
 
-    const handler = (event: MouseEvent) => {
-      if (isOutsideElement(accountDropdownRef.current, event.target)) {
+    const handleOutsideTarget = (target: EventTarget | null) => {
+      if (isOutsideElement(accountDropdownRef.current, target)) {
         dispatch({ type: "set-account-list-open", value: false });
       }
     };
+    const handlePointerOutside = (
+      event: MouseEvent | PointerEvent | TouchEvent,
+    ) => {
+      handleOutsideTarget(event.target);
+    };
+    const handleFocusOutside = (event: FocusEvent) => {
+      handleOutsideTarget(event.relatedTarget);
+    };
 
-    const ownerDocument = accountDropdownRef.current?.ownerDocument ?? getRuntimeDocument();
+    const ownerDocument =
+      accountDropdownRef.current?.ownerDocument ?? getRuntimeDocument();
     if (!ownerDocument) {
       return;
     }
 
+    const listenerEntries = [
+      ["pointerdown", handlePointerOutside],
+      ["mousedown", handlePointerOutside],
+      ["touchstart", handlePointerOutside],
+      ["focusout", handleFocusOutside],
+    ] as const;
+
     try {
-      ownerDocument.addEventListener("mousedown", handler);
+      for (const [eventName, handler] of listenerEntries) {
+        ownerDocument.addEventListener(eventName, handler);
+      }
     } catch (error) {
-      console.warn("Failed to bind sidebar account switcher outside-click listener.", error);
+      console.warn(
+        "Failed to bind sidebar account switcher outside-click listener.",
+        error,
+      );
       return;
     }
 
     return () => {
       try {
-        ownerDocument.removeEventListener("mousedown", handler);
+        for (const [eventName, handler] of listenerEntries) {
+          ownerDocument.removeEventListener(eventName, handler);
+        }
       } catch (error) {
-        console.warn("Failed to cleanup sidebar account switcher outside-click listener.", error);
+        console.warn(
+          "Failed to cleanup sidebar account switcher outside-click listener.",
+          error,
+        );
       }
     };
   }, [isAccountListOpen]);
@@ -153,7 +189,8 @@ export function useAccountSwitcherViewModel({
     () => accounts.findIndex((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId],
   );
-  const selectedAccountName = selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null;
+  const selectedAccountName =
+    selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null;
   const hasMultipleAccounts = selectedIndex >= 0 && accounts.length > 1;
   const canOpenAccountList = hasMultipleAccounts;
 
@@ -165,7 +202,13 @@ export function useAccountSwitcherViewModel({
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [accounts.length, hasMultipleAccounts, isExpanded, itemRefs, selectedIndex]);
+  }, [
+    accounts.length,
+    hasMultipleAccounts,
+    isExpanded,
+    itemRefs,
+    selectedIndex,
+  ]);
 
   return {
     selectedAccountName,

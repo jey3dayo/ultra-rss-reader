@@ -49,6 +49,34 @@ describe("useSidebarAccountSwitcher", () => {
     expect(result.current.isAccountListOpen).toBe(false);
   });
 
+  it("closes the account list on outside pointer, touch, and focus transitions", () => {
+    const dropdown = document.createElement("div");
+    const inside = document.createElement("button");
+    const outside = document.createElement("button");
+    dropdown.append(inside);
+    document.body.append(dropdown, outside);
+    const { result } = renderHook(() => useSidebarAccountSwitcher());
+    setRef(result.current.accountDropdownRef, dropdown);
+
+    act(() => {
+      result.current.toggleAccountList();
+    });
+    fireEvent.pointerDown(outside);
+    expect(result.current.isAccountListOpen).toBe(false);
+
+    act(() => {
+      result.current.toggleAccountList();
+    });
+    fireEvent.touchStart(outside);
+    expect(result.current.isAccountListOpen).toBe(false);
+
+    act(() => {
+      result.current.toggleAccountList();
+    });
+    fireEvent.focusOut(inside, { relatedTarget: outside });
+    expect(result.current.isAccountListOpen).toBe(false);
+  });
+
   it("keeps the account list open on inside mousedown", () => {
     const dropdown = document.createElement("div");
     const item = document.createElement("button");
@@ -64,6 +92,28 @@ describe("useSidebarAccountSwitcher", () => {
 
     fireEvent.mouseDown(item);
 
+    expect(result.current.isAccountListOpen).toBe(true);
+  });
+
+  it("keeps the account list open on inside pointer, touch, and focus transitions", () => {
+    const dropdown = document.createElement("div");
+    const firstItem = document.createElement("button");
+    const secondItem = document.createElement("button");
+    dropdown.append(firstItem, secondItem);
+    document.body.append(dropdown);
+    const { result } = renderHook(() => useSidebarAccountSwitcher());
+    setRef(result.current.accountDropdownRef, dropdown);
+
+    act(() => {
+      result.current.toggleAccountList();
+    });
+    fireEvent.pointerDown(firstItem);
+    expect(result.current.isAccountListOpen).toBe(true);
+
+    fireEvent.touchStart(firstItem);
+    expect(result.current.isAccountListOpen).toBe(true);
+
+    fireEvent.focusOut(firstItem, { relatedTarget: secondItem });
     expect(result.current.isAccountListOpen).toBe(true);
   });
 
@@ -103,7 +153,9 @@ describe("useSidebarAccountSwitcher", () => {
       scheduledCallbacks.push(callback);
       return 88;
     });
-    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
     const focusSpy = vi.spyOn(trigger, "focus");
     const { result } = renderHook(() => useSidebarAccountSwitcher());
     setRef(result.current.accountTriggerRef, trigger);
@@ -127,13 +179,20 @@ describe("useSidebarAccountSwitcher", () => {
   it("keeps the account list mounted when outside-click listener binding fails", () => {
     const error = new Error("document listener blocked");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    vi.spyOn(document, "addEventListener").mockImplementation((type, listener, options) => {
-      if (type === "mousedown") {
-        throw error;
-      }
+    vi.spyOn(document, "addEventListener").mockImplementation(
+      (type, listener, options) => {
+        if (type === "mousedown" || type === "pointerdown") {
+          throw error;
+        }
 
-      return EventTarget.prototype.addEventListener.call(document, type, listener, options);
-    });
+        return EventTarget.prototype.addEventListener.call(
+          document,
+          type,
+          listener,
+          options,
+        );
+      },
+    );
     const { result } = renderHook(() => useSidebarAccountSwitcher());
 
     expect(() => {
@@ -143,7 +202,10 @@ describe("useSidebarAccountSwitcher", () => {
     }).not.toThrow();
 
     expect(result.current.isAccountListOpen).toBe(true);
-    expect(warn).toHaveBeenCalledWith("Failed to bind sidebar account switcher outside-click listener.", error);
+    expect(warn).toHaveBeenCalledWith(
+      "Failed to bind sidebar account switcher outside-click listener.",
+      error,
+    );
   });
 
   it("resolves the fallback title when the selected account is missing", () => {
@@ -198,10 +260,12 @@ describe("useSidebarAccountSwitcher", () => {
     const firstItem = document.createElement("button");
     const secondItem = document.createElement("button");
     const itemRefs = { current: [firstItem, secondItem] };
-    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      callback(0);
-      return 0;
-    });
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 0;
+      });
 
     document.body.append(firstItem, secondItem);
 
