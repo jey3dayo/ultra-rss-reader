@@ -205,11 +205,6 @@
   - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
   - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
 
-- [ ] folder selection focus frame cleanup 候補を追加する
-  - `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts` の new folder input focus 用 `requestAnimationFrame` を reset / unmount 時に cancel する
-  - use-folder-selection または add/rename dialog hook test で作成モード開始後 frame 前に閉じても stale focus が走らないことを確認する
-  - add feed discovery race とは分け、folder selection focus cleanup だけを扱う
-
 - [ ] settings preference key type boundary 候補を追加する
   - `src/stores/preferences-store.types.ts` の `setPref: (key: string, value: string)` を known preference key / shortcut key の contract に寄せる
   - `src/__tests__/stores/preferences-store.test.ts` または dedicated type contract で unknown key が型で止まることを `expectTypeOf` / `@ts-expect-error` で固定する
@@ -234,11 +229,6 @@
   - `src/components/reader/sidebar-header-view.tsx` の `useUiStore` / `usePlatformStore` / `hasTauriRuntime()` 直参照を controller 由来 props へ寄せる
   - `useSidebarHeaderProps` 側で `isMobile` / `useDesktopOverlay` を解決し、view test は props-only rendering に寄せる
   - sidebar layout 再設計とは分け、header view の runtime 判定分離だけを扱う
-
-- [ ] tag dialog autofocus shared boundary 候補を追加する
-  - `src/components/reader/create-tag-dialog-view.tsx` と `src/components/reader/rename-tag-dialog-view.tsx` の translation / input ref / open 時 autofocus frame の重複を整理する
-  - create / rename tag dialog view test で open 時 focus/select と unmount 前後の frame cleanup を確認する
-  - article tag picker close focus cleanup とは分け、tag dialog の autofocus boundary だけを扱う
 
 - [ ] article list header label prop boundary 候補を追加する
   - `src/components/reader/article-list-header.tsx` の `useTranslation("reader")` 直参照を controller / view props の `labels` へ寄せる
@@ -279,11 +269,6 @@
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
   - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
   - tag settings UI validation とは分け、repository/domain invariant だけを扱う
-
-- [ ] open log directory error copy contract 候補を追加する
-  - `src-tauri/src/commands/log_commands.rs` と `src/components/settings/hooks/use-data-settings-controller.ts` で log directory open failure が UI 上で二重説明にならないようにする
-  - Rust test で command error message は短い action context に留め、TS test で localized toast が `Failed to open... Failed to open...` のように重複しないことを固定する
-  - data settings stale size race とは分け、open log dir failure copy だけを扱う
 
 - [ ] reqwest retryable error redaction 候補を追加する
   - `src-tauri/src/domain/error.rs` の unknown reqwest error fallback が raw URL / query を user-visible `Retryable` message に流さないようにする
