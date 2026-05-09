@@ -84,11 +84,6 @@
   - React Doctor / Knip が rename feed dialog view の unused type を検出しており、view props local 化後も controller/state type が残っている可能性がある
   - dialog open state、submit params、URL field model、folder select contract、view-only props を整理する
 
-- [ ] P2 feed-edit-submit / feed-query-cache unused type を feed mutation helper contract として整理する
-  - 対象: `src/components/reader/feed-edit-submit.ts`, `src/components/reader/feed-query-cache.ts`, `src/hooks/use-delete-feed.ts`, `src/components/reader/hooks/feed-dialogs/*`
-  - React Doctor / Knip が feed edit submit と feed query cache の unused type を検出しており、mutation submit payload と cache update helper が分離できていない可能性がある
-  - add/rename/delete feed の submit result、optimistic update、rollback、query cache patch の owner を決める
-
 - [ ] P1 article content の `SanitizedArticleHtml` brand を runtime boundary として固定する
   - 対象: `src/components/reader/article-content-view.tsx`, `src/lib/content/html.ts`, `src-tauri/src/infra/sanitizer.rs`
   - `SanitizedArticleHtml` は型 brand だけで runtime では通常の string なので、未 sanitize HTML が `fromSanitizedArticleHtml` 経由で混入しても検出しにくい
