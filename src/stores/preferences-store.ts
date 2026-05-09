@@ -172,8 +172,12 @@ function applyFontSize(size: string): void {
   root.classList.add(cls);
 }
 
+function getNavigatorLanguage(): string | undefined {
+  return typeof navigator === "undefined" ? undefined : navigator.language;
+}
+
 function applyLanguage(language: ReturnType<typeof parseLanguagePreference>): void {
-  i18n.changeLanguage(resolveUiLanguage(language, navigator.language));
+  i18n.changeLanguage(resolveUiLanguage(language, getNavigatorLanguage()));
 }
 
 function applyDefaultLoadFallback(): void {

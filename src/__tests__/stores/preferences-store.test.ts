@@ -440,6 +440,21 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("falls back to English when applying the system language without navigator", () => {
+    const changeLanguage = vi.spyOn(i18n, "changeLanguage");
+
+    vi.stubGlobal("navigator", undefined);
+
+    try {
+      usePreferencesStore.getState().setPref("language", "system");
+
+      expect(changeLanguage).toHaveBeenCalledWith("en");
+    } finally {
+      changeLanguage.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("keeps the bootstrapped theme and mirrored cache when loading preferences fails", async () => {
     vi.mocked(getPreferences).mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
     document.documentElement.classList.add("dark");

@@ -1,6 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
-import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import {
+  sampleAccounts,
+  sampleArticles,
+  sampleFeeds,
+} from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import {
@@ -69,7 +73,9 @@ import {
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
-type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
+type CommandSuccess<TCommand> = TCommand extends (
+  ...args: infer _Args
+) => Result.ResultAsync<infer Output, unknown>
   ? Output
   : never;
 
@@ -80,7 +86,9 @@ const responseValidationBrowserBounds: BrowserWebviewBounds = {
   height: 720,
 };
 
-const sampleAcc1Feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
+const sampleAcc1Feeds = sampleFeeds.filter(
+  (feed) => feed.account_id === "acc-1",
+);
 const sampleAcc1Articles = sampleArticles.filter((article) =>
   sampleAcc1Feeds.some((feed) => feed.id === article.feed_id),
 );
@@ -119,7 +127,10 @@ describe("tauri-commands with mockIPC", () => {
       getPlatformInfo(),
       triggerSync(),
       triggerAutomaticSync(),
-      createOrUpdateBrowserWebview("https://example.com/article", browserBounds),
+      createOrUpdateBrowserWebview(
+        "https://example.com/article",
+        browserBounds,
+      ),
       addLocalFeed("acc-1", "https://example.com/feed.xml"),
       listTags(),
       createTag("Later", "#6f8eb8"),
@@ -129,7 +140,9 @@ describe("tauri-commands with mockIPC", () => {
     expect(Result.unwrap(accountsResult)).toEqual(sampleAccounts);
     expect(Result.unwrap(feedsResult)).toEqual(sampleAcc1Feeds);
     expect(Result.unwrap(articlesResult)).toEqual(sampleArticles);
-    expect(Result.unwrap(recentArticlesResult).map((article) => article.id)).toEqual(["art-2", "art-1"]);
+    expect(
+      Result.unwrap(recentArticlesResult).map((article) => article.id),
+    ).toEqual(["art-2", "art-1"]);
     expect(Result.unwrap(platformInfoResult).kind).toBe("windows");
     expect(Result.unwrap(syncResult)).toMatchObject({
       synced: true,
@@ -183,8 +196,12 @@ describe("tauri-commands with mockIPC", () => {
     article.title = "Mutated Article";
 
     expect(await invoke("list_accounts")).toEqual(sampleAccounts);
-    expect(await invoke("list_feeds", { accountId: "acc-1" })).toEqual(sampleAcc1Feeds);
-    expect(await invoke("list_articles", { feedId: "feed-1" })).toEqual(sampleArticles);
+    expect(await invoke("list_feeds", { accountId: "acc-1" })).toEqual(
+      sampleAcc1Feeds,
+    );
+    expect(await invoke("list_articles", { feedId: "feed-1" })).toEqual(
+      sampleArticles,
+    );
   });
 
   describe("listAccounts", () => {
@@ -220,10 +237,12 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      expect(Result.unwrap(await discoverFeeds("https://example.com"))).toEqual([
-        { url: "https://example.com/feed.xml", title: "Main Feed" },
-        { url: "https://example.com/atom.xml", title: "" },
-      ]);
+      expect(Result.unwrap(await discoverFeeds("https://example.com"))).toEqual(
+        [
+          { url: "https://example.com/feed.xml", title: "Main Feed" },
+          { url: "https://example.com/atom.xml", title: "" },
+        ],
+      );
     });
 
     it("rejects invalid discovered feed command response URLs", async () => {
@@ -268,13 +287,19 @@ describe("tauri-commands with mockIPC", () => {
   describe("listFolderArticles", () => {
     it("returns unread articles for a given folder", async () => {
       setupTauriMocks((cmd, args) => {
-        if (cmd === "list_folder_articles" && args.folderId === "folder-1" && args.mode === "unread") {
+        if (
+          cmd === "list_folder_articles" &&
+          args.folderId === "folder-1" &&
+          args.mode === "unread"
+        ) {
           return [sampleArticles[0]];
         }
         return undefined;
       });
 
-      const value = Result.unwrap(await listFolderArticles("folder-1", "unread"));
+      const value = Result.unwrap(
+        await listFolderArticles("folder-1", "unread"),
+      );
       expect(value.map((article) => article.id)).toEqual(["art-1"]);
     });
   });
@@ -287,7 +312,9 @@ describe("tauri-commands with mockIPC", () => {
     });
 
     it("returns recently viewed articles filtered by mode", async () => {
-      const value = Result.unwrap(await listRecentArticles("acc-1", undefined, undefined, "unread"));
+      const value = Result.unwrap(
+        await listRecentArticles("acc-1", undefined, undefined, "unread"),
+      );
       expect(value.map((article) => article.id)).toEqual(["art-1"]);
     });
 
@@ -295,18 +322,44 @@ describe("tauri-commands with mockIPC", () => {
       Result.unwrap(await recordArticleView("acc-1", "art-1"));
       Result.unwrap(await clearArticleViewHistory("acc-1"));
     });
+
+    it("rejects negative clear history counts", async () => {
+      setupTauriMocks((cmd) => {
+        if (cmd === "clear_article_view_history") {
+          return -1;
+        }
+        return undefined;
+      });
+
+      const result = await clearArticleViewHistory("acc-1");
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+    });
   });
 
   describe("tag article commands", () => {
     it("passes mode when listing articles by tag", async () => {
       setupTauriMocks((cmd, args) => {
-        if (cmd === "list_articles_by_tag" && args.tagId === "tag-1" && args.mode === "starred") {
+        if (
+          cmd === "list_articles_by_tag" &&
+          args.tagId === "tag-1" &&
+          args.mode === "starred"
+        ) {
           return [sampleArticles[1]];
         }
         return undefined;
       });
 
-      const value = Result.unwrap(await listArticlesByTag("tag-1", undefined, undefined, "acc-1", "starred"));
+      const value = Result.unwrap(
+        await listArticlesByTag(
+          "tag-1",
+          undefined,
+          undefined,
+          "acc-1",
+          "starred",
+        ),
+      );
       expect(value.map((article) => article.id)).toEqual(["art-2"]);
     });
   });
@@ -333,6 +386,34 @@ describe("tauri-commands with mockIPC", () => {
     it("returns unread count for a given account", async () => {
       const value = Result.unwrap(await countAccountUnreadArticles("acc-1"));
       expect(value).toBe(1);
+    });
+
+    it("rejects negative count-style responses", async () => {
+      const countCommandCases = [
+        [
+          "count_account_unread_articles",
+          () => countAccountUnreadArticles("acc-1"),
+        ],
+        [
+          "count_old_unread_articles",
+          () => countOldUnreadArticles("feed", "feed-1", 30),
+        ],
+      ] as const;
+
+      setupTauriMocks((cmd) => {
+        if (countCommandCases.some(([command]) => command === cmd)) {
+          return -1;
+        }
+        return undefined;
+      });
+
+      for (const [command, runCommand] of countCommandCases) {
+        const result = await runCommand();
+        expect(Result.isFailure(result), command).toBe(true);
+        expect(Result.unwrapError(result).message).toContain(
+          "validation failed",
+        );
+      }
     });
   });
 
@@ -398,7 +479,9 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      const value = Result.unwrap(await createMuteKeyword("Kindle Unlimited", "title"));
+      const value = Result.unwrap(
+        await createMuteKeyword("Kindle Unlimited", "title"),
+      );
       expect(value.scope).toBe("title");
     });
 
@@ -474,7 +557,9 @@ describe("tauri-commands with mockIPC", () => {
     });
 
     it("counts and marks old unread articles", async () => {
-      const count = Result.unwrap(await countOldUnreadArticles("feed", "feed-1", 30));
+      const count = Result.unwrap(
+        await countOldUnreadArticles("feed", "feed-1", 30),
+      );
 
       expect(count).toBe(1);
       Result.unwrap(await markOldUnreadRead("feed", "feed-1", 30));
@@ -487,7 +572,12 @@ describe("tauri-commands with mockIPC", () => {
 
   describe("browser webview commands", () => {
     it("creates or updates the dedicated browser webview window", async () => {
-      const value = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds));
+      const value = Result.unwrap(
+        await createOrUpdateBrowserWebview(
+          "https://example.com/article",
+          browserBounds,
+        ),
+      );
 
       expect(value).toEqual({
         url: "https://example.com/article",
@@ -520,8 +610,15 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      Result.unwrap(await checkBrowserEmbedSupport(" https://example.com/article "));
-      Result.unwrap(await createOrUpdateBrowserWebview(" https://example.com/article ", browserBounds));
+      Result.unwrap(
+        await checkBrowserEmbedSupport(" https://example.com/article "),
+      );
+      Result.unwrap(
+        await createOrUpdateBrowserWebview(
+          " https://example.com/article ",
+          browserBounds,
+        ),
+      );
     });
 
     it.each([
@@ -531,24 +628,37 @@ describe("tauri-commands with mockIPC", () => {
       "file:///tmp/article.html",
       "https://example.com/article\nnext",
       "https://example.com/article\rnext",
-    ])("rejects invalid browser command URL %j before invoking Tauri", async (url) => {
-      const invokedCommands: string[] = [];
-      setupTauriMocks((cmd) => {
-        if (cmd === "check_browser_embed_support" || cmd === "create_or_update_browser_webview") {
-          invokedCommands.push(cmd);
-        }
-        return undefined;
-      });
+    ])(
+      "rejects invalid browser command URL %j before invoking Tauri",
+      async (url) => {
+        const invokedCommands: string[] = [];
+        setupTauriMocks((cmd) => {
+          if (
+            cmd === "check_browser_embed_support" ||
+            cmd === "create_or_update_browser_webview"
+          ) {
+            invokedCommands.push(cmd);
+          }
+          return undefined;
+        });
 
-      const supportResult = await checkBrowserEmbedSupport(url);
-      const webviewResult = await createOrUpdateBrowserWebview(url, browserBounds);
+        const supportResult = await checkBrowserEmbedSupport(url);
+        const webviewResult = await createOrUpdateBrowserWebview(
+          url,
+          browserBounds,
+        );
 
-      expect(Result.isFailure(supportResult)).toBe(true);
-      expect(Result.unwrapError(supportResult).message).toContain("validation failed");
-      expect(Result.isFailure(webviewResult)).toBe(true);
-      expect(Result.unwrapError(webviewResult).message).toContain("validation failed");
-      expect(invokedCommands).toEqual([]);
-    });
+        expect(Result.isFailure(supportResult)).toBe(true);
+        expect(Result.unwrapError(supportResult).message).toContain(
+          "validation failed",
+        );
+        expect(Result.isFailure(webviewResult)).toBe(true);
+        expect(Result.unwrapError(webviewResult).message).toContain(
+          "validation failed",
+        );
+        expect(invokedCommands).toEqual([]);
+      },
+    );
 
     it("rejects invalid browser webview bounds before invoking Tauri", async () => {
       let invoked = false;
@@ -559,10 +669,13 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      const result = await createOrUpdateBrowserWebview("https://example.com/article", {
-        ...browserBounds,
-        width: 0,
-      });
+      const result = await createOrUpdateBrowserWebview(
+        "https://example.com/article",
+        {
+          ...browserBounds,
+          width: 0,
+        },
+      );
 
       expect(Result.isFailure(result)).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
@@ -630,8 +743,12 @@ describe("tauri-commands with custom handler", () => {
 
 describe("safeInvoke response validation", () => {
   it("keeps schema-backed command return types derived from response schemas", () => {
-    expectTypeOf<CommandSuccess<typeof listAccounts>>().toEqualTypeOf<AccountDto[]>();
-    expectTypeOf<CommandSuccess<typeof checkForUpdate>>().toEqualTypeOf<UpdateInfoDto | null>();
+    expectTypeOf<CommandSuccess<typeof listAccounts>>().toEqualTypeOf<
+      AccountDto[]
+    >();
+    expectTypeOf<
+      CommandSuccess<typeof checkForUpdate>
+    >().toEqualTypeOf<UpdateInfoDto | null>();
     expectTypeOf<CommandSuccess<typeof openLogDir>>().toEqualTypeOf<null>();
   });
 
@@ -651,8 +768,20 @@ describe("safeInvoke response validation", () => {
     const invalidAccountDto = { id: "acc-1", kind: "Local" };
     const accountCommandCases = [
       ["add_account", () => addAccount("Local", "Local")],
-      ["update_account_sync", () => updateAccountSync("acc-1", 3600, true, false, 30)],
-      ["update_account_credentials", () => updateAccountCredentials("acc-1", "https://example.com", "user", "secret")],
+      [
+        "update_account_sync",
+        () => updateAccountSync("acc-1", 3600, true, false, 30),
+      ],
+      [
+        "update_account_credentials",
+        () =>
+          updateAccountCredentials(
+            "acc-1",
+            "https://example.com",
+            "user",
+            "secret",
+          ),
+      ],
       ["rename_account", () => renameAccount("acc-1", "Renamed")],
       ["test_account_connection", () => testAccountConnection("acc-1")],
     ] as const;
@@ -751,7 +880,10 @@ describe("safeInvoke response validation", () => {
     };
     const feedCommandCases = [
       ["list_feeds", () => listFeeds("acc-1")],
-      ["add_local_feed", () => addLocalFeed("acc-1", "https://example.com/feed.xml")],
+      [
+        "add_local_feed",
+        () => addLocalFeed("acc-1", "https://example.com/feed.xml"),
+      ],
     ] as const;
 
     setupTauriMocks((cmd) => {
@@ -778,7 +910,10 @@ describe("safeInvoke response validation", () => {
       ["delete_feed", () => deleteFeed("feed-1")],
       ["rename_feed", () => renameFeed("feed-1", "Renamed")],
       ["update_feed_folder", () => updateFeedFolder("feed-1", null)],
-      ["update_feed_display_settings", () => updateFeedDisplaySettings("feed-1", "inherit", "off")],
+      [
+        "update_feed_display_settings",
+        () => updateFeedDisplaySettings("feed-1", "inherit", "off"),
+      ],
     ] as const;
 
     setupTauriMocks((cmd) => {
@@ -807,7 +942,10 @@ describe("safeInvoke response validation", () => {
     };
     const muteKeywordCommandCases = [
       ["list_mute_keywords", () => listMuteKeywords()],
-      ["create_mute_keyword", () => createMuteKeyword("Kindle Unlimited", "title")],
+      [
+        "create_mute_keyword",
+        () => createMuteKeyword("Kindle Unlimited", "title"),
+      ],
       ["update_mute_keyword", () => updateMuteKeyword("mute-1", "body")],
     ] as const;
 
@@ -834,7 +972,11 @@ describe("safeInvoke response validation", () => {
     const browserStateCommandCases = [
       [
         "create_or_update_browser_webview",
-        () => createOrUpdateBrowserWebview("https://example.com", responseValidationBrowserBounds),
+        () =>
+          createOrUpdateBrowserWebview(
+            "https://example.com",
+            responseValidationBrowserBounds,
+          ),
       ],
       ["go_back_browser_webview", () => goBackBrowserWebview()],
       ["go_forward_browser_webview", () => goForwardBrowserWebview()],
@@ -864,7 +1006,10 @@ describe("safeInvoke response validation", () => {
 
   it("validates browser webview command group null responses", async () => {
     const browserNullCommandCases = [
-      ["set_browser_webview_bounds", () => setBrowserWebviewBounds(responseValidationBrowserBounds)],
+      [
+        "set_browser_webview_bounds",
+        () => setBrowserWebviewBounds(responseValidationBrowserBounds),
+      ],
       ["focus_browser_webview", () => focusBrowserWebview()],
       ["close_browser_webview", () => closeBrowserWebview()],
     ] as const;
@@ -911,7 +1056,9 @@ describe("safeInvoke args validation", () => {
     const result = await setPreference("theme", "midnight");
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: theme");
+    expect(Result.unwrapError(result).message).toContain(
+      "Invalid value for preference key: theme",
+    );
     expect(invoked).toBe(false);
   });
 
@@ -954,7 +1101,9 @@ describe("safeInvoke args validation", () => {
     const result = await setPreference("shortcut_unknown_action", "x");
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("Invalid preference key: shortcut_unknown_action");
+    expect(Result.unwrapError(result).message).toContain(
+      "Invalid preference key: shortcut_unknown_action",
+    );
     expect(invoked).toBe(false);
   });
 
@@ -970,7 +1119,9 @@ describe("safeInvoke args validation", () => {
     const result = await setPreference("shortcut_next_article", "   ");
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: shortcut_next_article");
+    expect(Result.unwrapError(result).message).toContain(
+      "Invalid value for preference key: shortcut_next_article",
+    );
     expect(invoked).toBe(false);
   });
 
@@ -985,7 +1136,9 @@ describe("safeInvoke args validation", () => {
       return null;
     });
 
-    Result.unwrap(await addToReadingList('https://example.com/article?title="quoted"'));
+    Result.unwrap(
+      await addToReadingList('https://example.com/article?title="quoted"'),
+    );
   });
 
   it("trims Reading List URLs before invoking Tauri", async () => {
@@ -1103,47 +1256,76 @@ describe("safeInvoke args validation", () => {
       return null;
     });
 
-    Result.unwrap(await updateAccountCredentials("acc-1", " https://example.com ", " user ", " secret "));
+    Result.unwrap(
+      await updateAccountCredentials(
+        "acc-1",
+        " https://example.com ",
+        " user ",
+        " secret ",
+      ),
+    );
   });
 
-  it.each([
-    "",
-    "   ",
-  ] as const)("allows account credential password %j without trimming before invoking Tauri", async (password) => {
-    setupTauriMocks((cmd, args) => {
-      if (cmd === "update_account_credentials") {
-        expect(args).toEqual({
-          accountId: "acc-1",
-          serverUrl: "https://example.com",
-          username: "user",
+  it.each(["", "   "] as const)(
+    "allows account credential password %j without trimming before invoking Tauri",
+    async (password) => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "update_account_credentials") {
+          expect(args).toEqual({
+            accountId: "acc-1",
+            serverUrl: "https://example.com",
+            username: "user",
+            password,
+          });
+          return sampleAccounts[0];
+        }
+        return null;
+      });
+
+      Result.unwrap(
+        await updateAccountCredentials(
+          "acc-1",
+          "https://example.com",
+          "user",
           password,
-        });
-        return sampleAccounts[0];
-      }
-      return null;
-    });
-
-    Result.unwrap(await updateAccountCredentials("acc-1", "https://example.com", "user", password));
-  });
+        ),
+      );
+    },
+  );
 
   it.each([
-    ["serverUrl", () => updateAccountCredentials("acc-1", "   ", "user", "secret")],
-    ["username", () => updateAccountCredentials("acc-1", "https://example.com", "   ", "secret")],
-  ] as const)("rejects blank account credential %s before invoking Tauri", async (_field, runCommand) => {
-    let invoked = false;
-    setupTauriMocks((cmd) => {
-      if (cmd === "update_account_credentials") {
-        invoked = true;
-      }
-      return null;
-    });
+    [
+      "serverUrl",
+      () => updateAccountCredentials("acc-1", "   ", "user", "secret"),
+    ],
+    [
+      "username",
+      () =>
+        updateAccountCredentials(
+          "acc-1",
+          "https://example.com",
+          "   ",
+          "secret",
+        ),
+    ],
+  ] as const)(
+    "rejects blank account credential %s before invoking Tauri",
+    async (_field, runCommand) => {
+      let invoked = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "update_account_credentials") {
+          invoked = true;
+        }
+        return null;
+      });
 
-    const result = await runCommand();
+      const result = await runCommand();
 
-    expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("validation failed");
-    expect(invoked).toBe(false);
-  });
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expect(invoked).toBe(false);
+    },
+  );
 
   it("passes nonblank clipboard text without trimming before invoking Tauri", async () => {
     setupTauriMocks((cmd, args) => {
@@ -1159,21 +1341,24 @@ describe("safeInvoke args validation", () => {
     Result.unwrap(await copyToClipboard(" copied text "));
   });
 
-  it.each(["", "   "])("rejects blank clipboard text %j before invoking Tauri", async (text) => {
-    let invoked = false;
-    setupTauriMocks((cmd) => {
-      if (cmd === "copy_to_clipboard") {
-        invoked = true;
-      }
-      return null;
-    });
+  it.each(["", "   "])(
+    "rejects blank clipboard text %j before invoking Tauri",
+    async (text) => {
+      let invoked = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "copy_to_clipboard") {
+          invoked = true;
+        }
+        return null;
+      });
 
-    const result = await copyToClipboard(text);
+      const result = await copyToClipboard(text);
 
-    expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("validation failed");
-    expect(invoked).toBe(false);
-  });
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expect(invoked).toBe(false);
+    },
+  );
 
   it.each([
     "",
@@ -1181,21 +1366,24 @@ describe("safeInvoke args validation", () => {
     "https://example.com/article\nnext",
     "mailto:hello@example.com",
     "file:///tmp/article.html",
-  ])("rejects invalid open-in-browser URL %j before invoking Tauri", async (url) => {
-    let invoked = false;
-    setupTauriMocks((cmd) => {
-      if (cmd === "open_in_browser") {
-        invoked = true;
-      }
-      return null;
-    });
+  ])(
+    "rejects invalid open-in-browser URL %j before invoking Tauri",
+    async (url) => {
+      let invoked = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "open_in_browser") {
+          invoked = true;
+        }
+        return null;
+      });
 
-    const result = await openInBrowser(url, false);
+      const result = await openInBrowser(url, false);
 
-    expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("validation failed");
-    expect(invoked).toBe(false);
-  });
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expect(invoked).toBe(false);
+    },
+  );
 
   it("rejects blank create folder names before invoking Tauri", async () => {
     let invoked = false;
@@ -1289,7 +1477,11 @@ describe("safeInvoke args validation", () => {
       return null;
     });
 
-    Result.unwrap(await openExternalUrl("mailto:?subject=First&body=https%3A%2F%2Fexample.com"));
+    Result.unwrap(
+      await openExternalUrl(
+        "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
+      ),
+    );
   });
 
   it("trims external URL command args before invoking Tauri", async () => {
@@ -1342,7 +1534,9 @@ describe("setupTauriMocks validates args for custom handler", () => {
       return null;
     });
 
-    await expect(invoke("mark_article_read", { articleId: 123 })).rejects.toThrow();
+    await expect(
+      invoke("mark_article_read", { articleId: 123 }),
+    ).rejects.toThrow();
     expect(invoked).toBe(false);
   });
 });

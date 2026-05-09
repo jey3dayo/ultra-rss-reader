@@ -710,17 +710,23 @@ describe("primitive command result schemas", () => {
 });
 
 describe("PreferencesDtoSchema", () => {
-  it("accepts string preference maps and rejects non-string values", () => {
+  it("accepts known, shortcut, and unknown string preference keys while rejecting invalid records", () => {
     expect(
       PreferencesDtoSchema.parse({
         theme: "dark",
+        shortcut_next_article: "j",
+        custom_backend_preference: "preserved",
         debug_web_preview_url: "",
       }),
     ).toEqual({
       theme: "dark",
+      shortcut_next_article: "j",
+      custom_backend_preference: "preserved",
       debug_web_preview_url: "",
     });
 
+    expect(() => PreferencesDtoSchema.parse({ "": "blank" })).toThrow();
+    expect(() => PreferencesDtoSchema.parse({ "   ": "blank" })).toThrow();
     expect(() => PreferencesDtoSchema.parse({ theme: null })).toThrow();
     expect(() => PreferencesDtoSchema.parse({ theme: true })).toThrow();
   });
