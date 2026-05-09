@@ -22,8 +22,10 @@ import {
   createTag,
   deleteAccount,
   deleteFeed,
+  deleteMuteKeyword,
   deleteTag,
   discoverFeeds,
+  exportOpml,
   focusBrowserWebview,
   getAccountSyncStatus,
   getArticleTags,
@@ -46,6 +48,7 @@ import {
   markAccountRead,
   markAccountStarredRead,
   markArticleRead,
+  markArticlesRead,
   markFeedRead,
   markFolderRead,
   markOldUnreadRead,
@@ -64,6 +67,7 @@ import {
   setPreference,
   tagArticle,
   testAccountConnection,
+  toggleArticleStar,
   triggerAutomaticSync,
   triggerStartupSync,
   triggerSync,
@@ -1234,6 +1238,73 @@ describe("safeInvoke args validation", () => {
     expect(Result.unwrapError(result)).toMatchObject({
       type: "UserVisible",
       message: "Command validation failed: accountId: Command id must not be blank",
+    });
+    expect(invoked).toBe(false);
+  });
+
+  it.each([
+    ["accountId", "list_folders", () => listFolders("   ")],
+    ["accountId", "list_feeds", () => listFeeds("   ")],
+    ["feedId", "list_articles", () => listArticles("   ")],
+    ["accountId", "list_account_articles", () => listAccountArticles("   ")],
+    ["folderId", "list_folder_articles", () => listFolderArticles("   ")],
+    ["accountId", "list_starred_articles", () => listStarredArticles("   ")],
+    ["accountId", "list_recent_articles", () => listRecentArticles("   ")],
+    ["accountId", "count_account_unread_articles", () => countAccountUnreadArticles("   ")],
+    ["accountId", "count_account_starred_articles", () => countAccountStarredArticles("   ")],
+    ["accountId", "mark_account_read", () => markAccountRead("   ")],
+    ["accountId", "mark_account_starred_read", () => markAccountStarredRead("   ")],
+    ["targetId", "count_old_unread_articles", () => countOldUnreadArticles("feed", "   ", 7)],
+    ["targetId", "mark_old_unread_read", () => markOldUnreadRead("feed", "   ", 7)],
+    ["accountId", "unstar_account_articles", () => unstarAccountArticles("   ")],
+    ["accountId", "search_articles", () => searchArticles("   ", "rust")],
+    ["articleId", "mark_article_read", () => markArticleRead("   ")],
+    ["accountId", "record_article_view", () => recordArticleView("   ", "article-1")],
+    ["articleId", "record_article_view", () => recordArticleView("acc-1", "   ")],
+    ["accountId", "clear_article_view_history", () => clearArticleViewHistory("   ")],
+    ["articleIds.0", "mark_articles_read", () => markArticlesRead(["   "])],
+    ["articleId", "toggle_article_star", () => toggleArticleStar("   ", true)],
+    ["feedId", "mark_feed_read", () => markFeedRead("   ")],
+    ["folderId", "mark_folder_read", () => markFolderRead("   ")],
+    ["accountId", "update_account_sync", () => updateAccountSync("   ", 3600, true, false, 30)],
+    ["accountId", "update_account_credentials", () => updateAccountCredentials("   ", "https://example.com", "alice")],
+    ["accountId", "rename_account", () => renameAccount("   ", "Local")],
+    ["accountId", "test_account_connection", () => testAccountConnection("   ")],
+    ["accountId", "delete_account", () => deleteAccount("   ")],
+    ["accountId", "get_account_sync_status", () => getAccountSyncStatus("   ")],
+    ["accountId", "add_local_feed", () => addLocalFeed("   ", "https://example.com/feed.xml")],
+    ["accountId", "create_folder", () => createFolder("   ", "Reading")],
+    ["feedId", "delete_feed", () => deleteFeed("   ")],
+    ["feedId", "rename_feed", () => renameFeed("   ", "Title")],
+    ["feedId", "update_feed_folder", () => updateFeedFolder("   ", "folder-1")],
+    ["feedId", "update_feed_display_settings", () => updateFeedDisplaySettings("   ", "inherit", "inherit")],
+    ["accountId", "export_opml", () => exportOpml("   ")],
+    ["tagId", "rename_tag", () => renameTag("   ", "News")],
+    ["tagId", "delete_tag", () => deleteTag("   ")],
+    ["articleId", "tag_article", () => tagArticle("   ", "tag-1")],
+    ["tagId", "tag_article", () => tagArticle("article-1", "   ")],
+    ["articleId", "untag_article", () => untagArticle("   ", "tag-1")],
+    ["tagId", "untag_article", () => untagArticle("article-1", "   ")],
+    ["articleId", "get_article_tags", () => getArticleTags("   ")],
+    ["tagId", "list_articles_by_tag", () => listArticlesByTag("   ")],
+    ["accountId", "list_articles_by_tag", () => listArticlesByTag("tag-1", undefined, undefined, "   ")],
+    ["muteKeywordId", "update_mute_keyword", () => updateMuteKeyword("   ", "title")],
+    ["muteKeywordId", "delete_mute_keyword", () => deleteMuteKeyword("   ")],
+  ] as const)("rejects blank %s for %s before invoking Tauri", async (fieldName, commandName, runCommand) => {
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === commandName) {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await runCommand();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toMatchObject({
+      type: "UserVisible",
+      message: `Command validation failed: ${fieldName}: Command id must not be blank`,
     });
     expect(invoked).toBe(false);
   });
