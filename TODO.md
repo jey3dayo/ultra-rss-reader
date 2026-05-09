@@ -1153,6 +1153,26 @@
   - 対象候補: `use-updater.test.ts` / `tauri-commands.test.ts` / `sidebar.test.tsx` / `scenario-runtime.test.ts`
   - production code の async policy とは分け、test runtime の無駄な waterfall cleanup だけを扱う
 
+- [ ] react-doctor toSorted immutable cleanup 候補を追加する
+  - `react-doctor/js-tosorted-immutable` の `[...array].sort()` を `toSorted()` へ寄せ、sort 前後の mutation contract を明確にする
+  - 対象候補: `storybook-explorer-organization.test.ts` / `repo-contracts.test.ts` / `subscriptions-index.ts` / `dev/scenarios/helpers.ts`
+  - Node / browser runtime compatibility を repo の target に合わせて確認し、必要なら test-only と runtime code を別バッチに分ける
+
+- [ ] react-doctor async loop concurrency 候補を追加する
+  - `react-doctor/async-await-in-loop` のうち、独立実行できる script/dev helper の loop await を `Promise.all` 系へ寄せる
+  - 対象候補: `scripts/tauri-dev-vite-manager.ts` / `scripts/tauri-cli-dispatch.ts` / `scripts/seed-dev-db-from-prod.ts` / `src/dev/scenarios/helpers.ts`
+  - 順序依存がある database seed / dispatch check は先に dependency を明文化し、test async waterfall cleanup とは分ける
+
+- [ ] react-doctor article-list length guard 候補を追加する
+  - `src/lib/articles/article-list.ts` の `.every()` 比較に length guard を足し、長さ不一致時に早期 return する
+  - `src/__tests__/lib/article-list.test.ts` で same length / different length / same IDs different order の boundary を固定する
+  - article list navigation や selection helper cleanup とは分け、`js-length-check-first` の一点だけを扱う
+
+- [ ] react-doctor dev mock min-max cleanup 候補を追加する
+  - `src/dev/mocks.ts` の min/max 用 `sort()[0]` を `Math.min` / `Math.max` または single-pass reduce へ寄せる
+  - dev mock の generated timestamp / article order / scenario fixture が変わらないことを `dev-mock-data` 系 test で確認する
+  - dev mock combine-iterations cleanup とは分け、`js-min-max-loop` の一点だけを扱う
+
 - [ ] react-doctor dev scenario dynamic import 候補を追加する
   - `src/dev/scenario-runtime.ts` の dynamic import path を bundler が静的解析できる manifest / registry import へ寄せる
   - dev scenario ID 追加時に import registry から漏れない contract test を追加する
