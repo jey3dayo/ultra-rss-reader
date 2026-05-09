@@ -95,11 +95,6 @@
   - `add_local_feed` は feed 保存後に初回 sync へ進むため、初回記事取得が失敗した時に「追加失敗だが feed は残る」状態になり得る
   - feed persisted + initial sync failed の rollback / partial success / retry 導線を決め、user feedback と DB 状態を Rust test で固定する
 
-- [ ] P1 dev credentials file store の atomic write / lost update 契約を固定する
-  - 対象: `src-tauri/src/infra/keyring_store.rs`
-  - dev credentials が `std::fs::write` 直書きだと、書き込み中断や並行 set/delete で JSON 破損・lost update になり得る
-  - `write_dev_store` を temp file + rename か lock 方針へ寄せ、partial write、permission failure、連続 set/delete の test を追加する
-
 - [ ] P1 dependency security audit gate を CI / release preflight へ入れるか決める
   - 対象: `mise.toml`, `.github/workflows/ci.yml`, `package.json`, `src-tauri/Cargo.toml`
   - frozen install と build はあるが、npm/Cargo の既知脆弱性 gate が未固定だと、release 直前まで supply-chain risk に気づけない

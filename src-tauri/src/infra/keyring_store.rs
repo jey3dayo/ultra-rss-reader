@@ -2,8 +2,10 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::platform::{PlatformInfo, PlatformKind};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
 
 const SERVICE: &str = "ultra-rss-reader";
+static DEV_CREDENTIALS_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 // ---------------------------------------------------------------------------
 // Dev file-based credential store (bypasses OS Keychain)
@@ -164,11 +166,22 @@ fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainRes
     }
     let json = serde_json::to_string_pretty(store)
         .map_err(|e| DomainError::Keychain(format!("Failed to serialize dev store: {e}")))?;
-    std::fs::write(path, &json)
+    let temp_path = dev_store_temp_path(path);
+    std::fs::write(&temp_path, &json)
         .map_err(|e| DomainError::Keychain(format!("Failed to write dev store: {e}")))?;
     #[cfg(unix)]
-    set_dev_store_owner_only_permissions(path)?;
+    set_dev_store_owner_only_permissions(&temp_path)?;
+    std::fs::rename(&temp_path, path)
+        .map_err(|e| DomainError::Keychain(format!("Failed to replace dev store: {e}")))?;
     Ok(())
+}
+
+fn dev_store_temp_path(path: &Path) -> PathBuf {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("dev-credentials.json");
+    path.with_file_name(format!(".{file_name}.tmp"))
 }
 
 #[cfg(unix)]
@@ -250,6 +263,9 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
 
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
+        let _guard = DEV_CREDENTIALS_STORE_LOCK
+            .lock()
+            .map_err(|e| DomainError::Keychain(format!("Failed to lock dev store: {e}")))?;
         let mut store = read_dev_store(&path)?;
         store.insert(account_id.to_string(), password.to_string());
         write_dev_store(&path, &store)?;
@@ -294,6 +310,9 @@ pub fn get_password(account_id: &str) -> DomainResult<String> {
 
 pub fn delete_password(account_id: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
+        let _guard = DEV_CREDENTIALS_STORE_LOCK
+            .lock()
+            .map_err(|e| DomainError::Keychain(format!("Failed to lock dev store: {e}")))?;
         return delete_dev_password_at_path(&path, account_id);
     }
 
@@ -561,6 +580,38 @@ mod tests {
             .expect("repeated missing dev credential cleanup should stay a no-op");
 
         assert_eq!(super::read_dev_store(&path).unwrap(), store);
+    }
+
+    #[test]
+    fn write_dev_store_replaces_via_temp_file_without_leaving_staging_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let temp_path = super::dev_store_temp_path(&path);
+        let mut first_store = HashMap::new();
+        first_store.insert("account-a".to_string(), "secret-a".to_string());
+        let mut second_store = HashMap::new();
+        second_store.insert("account-b".to_string(), "secret-b".to_string());
+
+        super::write_dev_store(&path, &first_store)
+            .expect("initial dev credential store write should succeed");
+        super::write_dev_store(&path, &second_store)
+            .expect("replacement dev credential store write should succeed");
+
+        assert_eq!(super::read_dev_store(&path).unwrap(), second_store);
+        assert!(
+            !temp_path.exists(),
+            "successful atomic replacement should not leave the staging file behind"
+        );
+    }
+
+    #[test]
+    fn dev_store_temp_path_stays_next_to_final_store() {
+        let path = Path::new("/tmp/ultra-rss-reader/dev-credentials.json");
+
+        assert_eq!(
+            super::dev_store_temp_path(path),
+            PathBuf::from("/tmp/ultra-rss-reader/.dev-credentials.json.tmp")
+        );
     }
 
     #[test]
