@@ -144,6 +144,31 @@ mod tests {
     }
 
     #[test]
+    fn preserves_remote_reader_images_without_allowing_frames() {
+        let input = r#"
+            <p>Article body</p>
+            <img src="https://cdn.example.com/body.jpg" alt="Body image">
+            <iframe src="https://publisher.example.com/embed"></iframe>
+            <object data="https://publisher.example.com/embed"></object>
+        "#;
+
+        let output = sanitize_html(input);
+
+        assert!(
+            output.contains(r#"src="https://cdn.example.com/body.jpg""#),
+            "reader-mode remote images are currently compatibility-first: {output}",
+        );
+        assert!(!output.contains("<iframe"));
+        assert!(!output.contains("<object"));
+        assert!(!output.contains("publisher.example.com/embed"));
+    }
+
+    #[test]
+    fn records_current_sanitizer_contract_version() {
+        assert_eq!(SANITIZER_VERSION, 1);
+    }
+
+    #[test]
     fn preserves_responsive_picture_sources_and_image_attributes() {
         let input = r#"
             <picture>

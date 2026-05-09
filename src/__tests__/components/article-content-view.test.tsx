@@ -96,4 +96,20 @@ describe("ArticleContentView", () => {
     expect(container.querySelector("script")).toBeNull();
     expect(container.querySelector("[onclick]")).toBeNull();
   });
+
+  it("keeps reader remote images separate from Web Preview frame behavior", () => {
+    const { container } = render(
+      <ArticleContentView
+        thumbnailUrl="https://cdn.example.com/thumbnail.jpg"
+        contentHtml={fromSanitizedArticleHtml(
+          "<p>Article body</p><img src='https://cdn.example.com/body.jpg' alt='Body image' />",
+        )}
+      />,
+    );
+
+    expect(screen.getByAltText("")).toHaveAttribute("src", "https://cdn.example.com/thumbnail.jpg");
+    expect(screen.getByRole("img", { name: "Body image" })).toHaveAttribute("src", "https://cdn.example.com/body.jpg");
+    expect(container.querySelector("iframe")).toBeNull();
+    expect(container.querySelector("[data-browser-webview-iframe]")).toBeNull();
+  });
 });

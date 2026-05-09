@@ -105,5 +105,8 @@ settings UI.
 ## Related Files
 
 - `src-tauri/tauri.conf.json`
+- `src-tauri/src/infra/sanitizer.rs`
+- `src/components/reader/article-content-view.tsx`
+- `src/__tests__/components/article-content-view.test.tsx`
 - `README.md`
 - `docs/release-manual-verification.md`
