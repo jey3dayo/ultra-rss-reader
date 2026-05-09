@@ -1,16 +1,11 @@
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import {
-  createUiOpenCloseToggleStateHook,
-  createUiStoreSliceHook,
-} from "../use-ui-store-slice";
+import { createUiOpenCloseToggleStateHook, createUiStoreSliceHook } from "../use-ui-store-slice";
 
-const useCommandPaletteOpenCloseState = createUiOpenCloseToggleStateHook(
-  (state) => ({
-    open: state.commandPaletteOpen,
-    closeCommandPalette: state.closeCommandPalette,
-  }),
-);
+const useCommandPaletteOpenCloseState = createUiOpenCloseToggleStateHook((state) => ({
+  open: state.commandPaletteOpen,
+  closeCommandPalette: state.closeCommandPalette,
+}));
 
 const useCommandPaletteUiStoreSlice = createUiStoreSliceHook((state) => ({
   openShortcutsHelp: state.openShortcutsHelp,

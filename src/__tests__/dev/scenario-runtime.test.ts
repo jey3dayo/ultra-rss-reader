@@ -41,9 +41,7 @@ describe("dev-scenario-runtime", () => {
   });
 
   it("keeps the static import registry aligned with every dev scenario id", () => {
-    expect(Object.keys(DEV_SCENARIO_MODULE_IMPORTERS).sort()).toEqual(
-      [...DEV_SCENARIO_IDS].sort(),
-    );
+    expect(Object.keys(DEV_SCENARIO_MODULE_IMPORTERS).sort()).toEqual([...DEV_SCENARIO_IDS].sort());
   });
 
   it("returns a typed failure outside dev builds", async () => {
@@ -68,17 +66,11 @@ describe("dev-scenario-runtime", () => {
     vi.stubEnv("DEV", false);
 
     const loadScenarios = loadRuntimeDevScenarios();
-    const runScenario = runRuntimeDevScenario(
-      DEV_SCENARIO_ID.openSubscriptionsIndex,
-    );
+    const runScenario = runRuntimeDevScenario(DEV_SCENARIO_ID.openSubscriptionsIndex);
 
     await Promise.all([
-      expect(loadScenarios).rejects.toThrow(
-        "Dev scenarios runtime is unavailable outside dev builds.",
-      ),
-      expect(runScenario).rejects.toThrow(
-        "Dev scenarios runtime is unavailable outside dev builds.",
-      ),
+      expect(loadScenarios).rejects.toThrow("Dev scenarios runtime is unavailable outside dev builds."),
+      expect(runScenario).rejects.toThrow("Dev scenarios runtime is unavailable outside dev builds."),
     ]);
   });
 
@@ -92,8 +84,7 @@ describe("dev-scenario-runtime", () => {
 
     expect(Result.unwrapError(result)).toEqual({
       type: "invalid_module",
-      message:
-        "Dev scenarios module does not match the expected runtime interface.",
+      message: "Dev scenarios module does not match the expected runtime interface.",
     });
   });
 
@@ -132,10 +123,7 @@ describe("dev-scenario-runtime", () => {
   it("retries module loading after a transient import failure", async () => {
     vi.stubEnv("DEV", true);
     const importScenarioModule = vi
-      .spyOn(
-        DEV_SCENARIO_MODULE_IMPORTERS,
-        DEV_SCENARIO_ID.openSubscriptionsIndex,
-      )
+      .spyOn(DEV_SCENARIO_MODULE_IMPORTERS, DEV_SCENARIO_ID.openSubscriptionsIndex)
       .mockRejectedValueOnce(new Error("Temporary import failure"));
 
     const failedResult = await loadRuntimeDevScenariosResult();
@@ -162,8 +150,7 @@ describe("dev-scenario-runtime", () => {
 
     expect(Result.unwrapError(invalidResult)).toEqual({
       type: "invalid_module",
-      message:
-        "Dev scenarios module does not match the expected runtime interface.",
+      message: "Dev scenarios module does not match the expected runtime interface.",
     });
     expect(Result.unwrap(retriedResult)).toEqual([]);
   });
@@ -194,9 +181,7 @@ describe("dev-scenario-runtime", () => {
       }),
     };
 
-    const result = await runRuntimeDevScenarioResult(
-      DEV_SCENARIO_ID.openSubscriptionsIndex,
-    );
+    const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
 
     expect(Result.unwrapError(result)).toEqual({
       type: "scenario_failed",
@@ -213,9 +198,7 @@ describe("dev-scenario-runtime", () => {
       }),
     };
 
-    const result = await runRuntimeDevScenarioResult(
-      DEV_SCENARIO_ID.openSubscriptionsIndex,
-    );
+    const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
 
     expect(Result.unwrapError(result)).toEqual({
       type: "scenario_failed",

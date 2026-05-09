@@ -8,7 +8,6 @@ import type { VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import type { Ref } from "react";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import packageJson from "../../../package.json";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { Button, buttonVariants } from "@/components/ui/button";
 import type { CollapsibleContentProps, CollapsibleProps, CollapsibleTriggerProps } from "@/components/ui/collapsible";
@@ -37,6 +36,7 @@ import type {
   SelectTriggerProps,
   SelectValueProps,
 } from "@/components/ui/select";
+import packageJson from "../../../package.json";
 
 describe("UI wrapper public API", () => {
   it("keeps Button and buttonVariants as the public styled Base UI Button surface", () => {

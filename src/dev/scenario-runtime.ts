@@ -25,16 +25,12 @@ export type DevScenarioRuntimeError =
 
 let devScenariosModulePromise: Promise<DevScenariosModule> | null = null;
 
-const DEV_SCENARIOS_UNAVAILABLE_MESSAGE =
-  "Dev scenarios runtime is unavailable outside dev builds.";
-const UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE =
-  "Unknown dev scenario runtime error.";
+const DEV_SCENARIOS_UNAVAILABLE_MESSAGE = "Dev scenarios runtime is unavailable outside dev builds.";
+const UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE = "Unknown dev scenario runtime error.";
 
 class InvalidDevScenariosModuleError extends Error {
   constructor() {
-    super(
-      "Dev scenarios module does not match the expected runtime interface.",
-    );
+    super("Dev scenarios module does not match the expected runtime interface.");
   }
 }
 
@@ -55,18 +51,11 @@ function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
 }
 
 function isDevScenariosModule(value: unknown): value is DevScenariosModule {
-  return (
-    isRecord(value) &&
-    typeof value.listDevScenarios === "function" &&
-    typeof value.runDevScenario === "function"
-  );
+  return isRecord(value) && typeof value.listDevScenarios === "function" && typeof value.runDevScenario === "function";
 }
 
 async function importDevScenariosModule(): Promise<DevScenariosModule> {
-  const module: unknown =
-    await DEV_SCENARIO_MODULE_IMPORTERS[
-      DEV_SCENARIO_ID.openSubscriptionsIndex
-    ]();
+  const module: unknown = await DEV_SCENARIO_MODULE_IMPORTERS[DEV_SCENARIO_ID.openSubscriptionsIndex]();
   if (!isDevScenariosModule(module)) {
     throw new InvalidDevScenariosModuleError();
   }
@@ -84,10 +73,7 @@ function toDevScenarioRuntimeException(error: DevScenarioRuntimeError): Error {
   return new Error(error.message);
 }
 
-function loadDevScenariosModuleResult(): Result.ResultAsync<
-  DevScenariosModule,
-  DevScenarioRuntimeError
-> {
+function loadDevScenariosModuleResult(): Result.ResultAsync<DevScenariosModule, DevScenarioRuntimeError> {
   if (!import.meta.env.DEV) {
     return Promise.resolve(
       Result.fail({

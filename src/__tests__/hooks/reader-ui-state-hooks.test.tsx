@@ -31,12 +31,8 @@ describe("reader UI state hooks", () => {
     expect(result.current.browserUrl).toBe("https://example.com/article");
     expect(result.current.viewMode).toBe("starred");
     expect(result.current.afterReading).toBe("after_1s");
-    expect(result.current.closeBrowser).toBe(
-      useUiStore.getState().closeBrowser,
-    );
-    expect(result.current.clearArticle).toBe(
-      useUiStore.getState().clearArticle,
-    );
+    expect(result.current.closeBrowser).toBe(useUiStore.getState().closeBrowser);
+    expect(result.current.clearArticle).toBe(useUiStore.getState().clearArticle);
 
     act(() => {
       result.current.closeBrowser();
@@ -82,12 +78,8 @@ describe("reader UI state hooks", () => {
     expect(result.current.shortcutPrefs).toEqual({
       shortcut_open_command_palette: "Meta+K",
     });
-    expect(result.current.closeCommandPalette).toBe(
-      useUiStore.getState().closeCommandPalette,
-    );
-    expect(result.current.selectArticle).toBe(
-      useUiStore.getState().selectArticle,
-    );
+    expect(result.current.closeCommandPalette).toBe(useUiStore.getState().closeCommandPalette);
+    expect(result.current.selectArticle).toBe(useUiStore.getState().selectArticle);
 
     act(() => {
       result.current.closeCommandPalette();

@@ -1014,6 +1014,33 @@ describe("repository static contracts", () => {
     );
   });
 
+  it("classifies knip file-level cleanup candidates by their runtime owner", () => {
+    const packageScripts = expectPackageJsonStringRecord("scripts");
+    const knipConfig = expectPackageJsonKnipEntryConfig();
+    const settingsModalSource = readRepoFile("src/components/settings/settings-modal.tsx");
+    const addAccountFormSource = readRepoFile("src/components/settings/add-account-form.tsx");
+    const addAccountControllerSource = readRepoFile("src/components/settings/add-account/controller.tsx");
+    const accountConfigFormSource = readRepoFile("src/components/settings/add-account/account-config-form.tsx");
+    const accountConfigFormViewSource = readRepoFile(
+      "src/components/settings/add-account/account-config-form-view.tsx",
+    );
+    const addAccountFormStorySource = readRepoFile("src/components/settings/add-account/add-account-form.stories.tsx");
+    const addAccountFormViewTestSource = readRepoFile("src/__tests__/components/add-account-form-view.test.tsx");
+
+    expect(packageScripts["test:storybook:e2e"]).toContain("--config playwright.storybook.config.ts");
+    expect(knipConfig.entry).toEqual(
+      expect.arrayContaining(["playwright.storybook.config.ts", "src/dev/scenarios/index.ts"]),
+    );
+    expect(settingsModalSource).toContain('import { AddAccountForm } from "@/components/settings/add-account-form"');
+    expect(addAccountFormSource).toContain('from "@/components/settings/add-account/controller"');
+    expect(addAccountControllerSource).toContain('from "./account-config-form"');
+    expect(accountConfigFormSource).toContain('from "./account-config-form-view"');
+    expect(accountConfigFormViewSource).toContain('from "./form-view.types"');
+    expect(addAccountFormStorySource).toContain('from "./controller"');
+    expect(addAccountFormViewTestSource).toContain('from "@/components/settings/add-account/account-config-form-view"');
+    expect(addAccountFormViewTestSource).toContain('from "@/components/settings/add-account/form-view"');
+  });
+
   it("keeps Storybook, Vite, and Vitest aliases aligned", () => {
     const expectedAliases = {
       "@": "src",
@@ -1421,9 +1448,14 @@ describe("repository static contracts", () => {
     });
 
     expect(runtimeGuardIndex).toBeGreaterThanOrEqual(0);
-    expect(scenarioRuntime).toContain('return Promise.resolve(Result.fail({ type: "unavailable"');
-    expect(scenarioRuntime).toContain('const loadDevScenariosRegistryModule = () => import("@/dev/scenarios")');
-    expect(scenarioRuntime).toContain("} as const satisfies Record<DevScenarioId, () => Promise<unknown>>;");
+    expect(scenarioRuntime).toContain("return Promise.resolve(");
+    expect(scenarioRuntime).toContain('type: "unavailable"');
+    expect(scenarioRuntime).toContain(
+      'import { DEV_SCENARIO_MODULE_IMPORTERS } from "@/dev/scenarios/import-registry"',
+    );
+    expect(readRepoFile("src/dev/scenarios/import-registry.ts")).toContain(
+      "} as const satisfies Record<DevScenarioId, () => Promise<unknown>>;",
+    );
     expect(eagerScenarioImports).toEqual([]);
   });
 

@@ -18,10 +18,8 @@ export const DEV_SCENARIO_MODULE_IMPORTERS = {
   [DEV_SCENARIO_ID.openSettingsDebug]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openSettingsAccounts]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openSettingsAccountsAdd]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss]:
-    loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]:
-    loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openCommandPalette]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openShortcutsHelp]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openWebPreviewGeometryCheck]: loadDevScenariosRegistryModule,

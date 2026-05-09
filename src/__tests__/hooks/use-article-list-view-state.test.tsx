@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
-import { useArticleListViewState } from "@/components/reader/hooks/article-list/use-article-list-view-state";
 import type { UseArticleListViewStateParams } from "@/components/reader/article-list.types";
+import { useArticleListViewState } from "@/components/reader/hooks/article-list/use-article-list-view-state";
 
 describe("useArticleListViewState", () => {
   it("derives unread smart-view labels and locks the unread footer mode", () => {

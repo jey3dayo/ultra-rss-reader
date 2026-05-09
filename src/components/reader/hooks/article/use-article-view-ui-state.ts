@@ -1,9 +1,6 @@
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import {
-  createUiOpenCloseToggleStateHook,
-  createUiStoreSliceHook,
-} from "../use-ui-store-slice";
+import { createUiOpenCloseToggleStateHook, createUiStoreSliceHook } from "../use-ui-store-slice";
 
 const useArticleViewOpenCloseState = createUiOpenCloseToggleStateHook((s) => ({
   closeBrowser: s.closeBrowser,
@@ -25,9 +22,7 @@ const useArticleViewUiStoreSlice = createUiStoreSliceHook((s) => ({
 export function useArticleViewUiState() {
   const openCloseState = useArticleViewOpenCloseState();
   const uiState = useArticleViewUiStoreSlice();
-  const afterReading = usePreferencesStore((s) =>
-    resolvePreferenceValue(s.prefs, "after_reading"),
-  );
+  const afterReading = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "after_reading"));
 
   return {
     ...openCloseState,

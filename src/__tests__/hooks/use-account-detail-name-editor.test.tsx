@@ -1,5 +1,5 @@
-import { act, renderHook } from "@testing-library/react";
 import { Result } from "@praha/byethrow";
+import { act, renderHook } from "@testing-library/react";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
