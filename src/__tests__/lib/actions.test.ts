@@ -584,6 +584,27 @@ describe("executeAction", () => {
       expect(setPref).toHaveBeenCalledWith("group_by", "date");
     });
 
+    it("keeps native checked menu toggles aligned with frontend preference toggles", async () => {
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
+      const { prefs, setPref } = usePreferencesStore.getState();
+
+      prefs.reading_sort = "newest_first";
+      prefs.group_by = "date";
+      vi.mocked(setPref).mockClear();
+      executeAction("toggle-sort-unread");
+      executeAction("toggle-group-by-feed");
+      expect(setPref).toHaveBeenNthCalledWith(1, "reading_sort", "oldest_first");
+      expect(setPref).toHaveBeenNthCalledWith(2, "group_by", "feed");
+
+      prefs.reading_sort = "oldest_first";
+      prefs.group_by = "feed";
+      vi.mocked(setPref).mockClear();
+      executeAction("toggle-sort-unread");
+      executeAction("toggle-group-by-feed");
+      expect(setPref).toHaveBeenNthCalledWith(1, "reading_sort", "newest_first");
+      expect(setPref).toHaveBeenNthCalledWith(2, "group_by", "date");
+    });
+
     it("sets theme to dark", async () => {
       const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
       const { setPref } = usePreferencesStore.getState();

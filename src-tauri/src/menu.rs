@@ -494,6 +494,19 @@ mod tests {
     }
 
     #[test]
+    fn checked_menu_items_emit_preference_toggle_actions() {
+        let contracts = [
+            ("view-sort-unread", "toggle-sort-unread"),
+            ("view-group-by-feed", "toggle-group-by-feed"),
+        ];
+
+        for (menu_id, action_id) in contracts {
+            assert!(is_toggle_check_menu_item(menu_id), "{menu_id}");
+            assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
+        }
+    }
+
+    #[test]
     fn check_for_updates_menu_availability_ignores_updater_initialization_availability() {
         assert!(is_check_for_updates_menu_available(true));
         assert!(is_check_for_updates_menu_available(false));
