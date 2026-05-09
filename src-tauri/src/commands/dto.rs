@@ -476,6 +476,22 @@ mod tests {
     }
 
     #[test]
+    fn app_error_message_normalizer_falls_back_for_blank_messages() {
+        assert_eq!(
+            super::non_empty_app_error_message(String::new()),
+            "An application error occurred"
+        );
+        assert_eq!(
+            super::non_empty_app_error_message("   ".to_string()),
+            "An application error occurred"
+        );
+        assert_eq!(
+            super::non_empty_app_error_message("visible message".to_string()),
+            "visible message"
+        );
+    }
+
+    #[test]
     fn platform_info_dto_serializes_expected_ipc_shape() {
         let dto = PlatformInfoDto {
             kind: PlatformKindDto::Macos,
