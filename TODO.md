@@ -165,11 +165,6 @@
   - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
   - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
 
-- [ ] similarity browser view harness props reuse 候補を追加する
-  - `UseBrowserViewControllerParams` と `BrowserViewHarnessProps` が 96% 類似なので、browser view test harness が controller params を再定義していないか確認する
-  - test-only override props だけを local type に残し、controller input contract は production type import または helper builder へ寄せる
-  - browser controller behavior 変更とは分け、test harness props duplication だけを扱う
-
 - [ ] similarity not-found error display type review 候補を追加する
   - `ArticleNotFoundStateViewProps` と `AccountDetailError` が 94.8% 類似なので、message/title/action を持つ not-found/error display shape を共有すべきか確認する
   - 共通化する場合は shared display state type に留め、article not-found copy と account detail toast/error copy は各 feature に残す
