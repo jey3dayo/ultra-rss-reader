@@ -59,7 +59,7 @@ describe("SmartViewContextMenuContent", () => {
       isSelected: true,
     });
 
-    expect(screen.getByRole("menuitem", { name: "mark_all_as_read" })).toHaveAttribute(
+    expect(screen.getByRole("menuitem", { name: "Mark all as read" })).toHaveAttribute(
       "data-action-id",
       "smart-unread-mark-all-read",
     );
@@ -74,11 +74,11 @@ describe("SmartViewContextMenuContent", () => {
       isSelected: true,
     });
 
-    expect(screen.getByRole("menuitem", { name: "mark_all_as_read" })).toHaveAttribute(
+    expect(screen.getByRole("menuitem", { name: "Mark all as read" })).toHaveAttribute(
       "data-action-id",
       "smart-starred-mark-all-read",
     );
-    expect(screen.getByRole("menuitem", { name: "unstar_all" })).toHaveAttribute(
+    expect(screen.getByRole("menuitem", { name: "Unstar all" })).toHaveAttribute(
       "data-action-id",
       "smart-starred-unstar-all",
     );
@@ -93,7 +93,7 @@ describe("SmartViewContextMenuContent", () => {
       isSelected: true,
     });
 
-    expect(screen.getByRole("menuitem", { name: "clear_recent_history" })).toHaveAttribute(
+    expect(screen.getByRole("menuitem", { name: "Clear history" })).toHaveAttribute(
       "data-action-id",
       "smart-recent-clear-history",
     );
@@ -108,13 +108,13 @@ describe("SmartViewContextMenuContent", () => {
       isSelected: true,
     });
 
-    fireEvent.click(screen.getByRole("menuitem", { name: "clear_recent_history" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Clear history" }));
 
     expect(clearArticleViewHistoryMutateMock).not.toHaveBeenCalled();
     expect(useUiStore.getState().confirmDialog).toEqual(
       expect.objectContaining({
         open: true,
-        actionLabel: "clear_recent_history",
+        actionLabel: "Clear history",
         variant: "warning",
       }),
     );
