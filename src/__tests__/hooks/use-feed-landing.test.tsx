@@ -1,9 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import {
-  createQueryWrapper,
-  createWrapper,
-} from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,20 +19,13 @@ function listAccountFeedsWithLandingMode(accountId: string | undefined) {
       continue;
     }
 
-    feeds.push(
-      feed.id === "feed-1"
-        ? { ...feed, reader_mode: "on", web_preview_mode: "on" }
-        : feed,
-    );
+    feeds.push(feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed);
   }
 
   return feeds;
 }
 
-function listFeedArticlesWithFirstArticleUrl(
-  feedId: string | undefined,
-  url: string | null,
-) {
+function listFeedArticlesWithFirstArticleUrl(feedId: string | undefined, url: string | null) {
   const articles: (typeof sampleArticles)[number][] = [];
 
   for (const article of sampleArticles) {
@@ -78,13 +68,9 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         default:
           return undefined;
       }
@@ -118,17 +104,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "missing_account",
     });
     expect(useUiStore.getState().selection).toEqual({ type: "all" });
@@ -139,17 +121,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("missing-feed");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "feed_not_found",
       feedId: "missing-feed",
     });
@@ -170,17 +148,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "temporary feed list failure",
@@ -194,9 +168,7 @@ describe("useFeedLanding", () => {
         case "list_feeds":
           return listAccountFeedsWithLandingMode(args.accountId);
         case "list_articles":
-          return sampleArticles.filter(
-            (article) => article.feed_id === args.feedId,
-          );
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         default:
           return undefined;
       }
@@ -248,9 +220,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           return listReadFeedArticles(args.feedId);
         default:
@@ -284,14 +254,10 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           return sampleArticles.filter(
-            (article) =>
-              article.feed_id === args.feedId &&
-              (!args.starredOnly || article.is_starred),
+            (article) => article.feed_id === args.feedId && (!args.starredOnly || article.is_starred),
           );
         default:
           return undefined;
@@ -320,9 +286,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           throw new Error("temporary list failure");
         default:
@@ -356,9 +320,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           throw new Error("temporary list failure");
         default:
@@ -374,9 +336,7 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
@@ -391,9 +351,7 @@ describe("useFeedLanding", () => {
       expect(useUiStore.getState().contentMode).toBe("empty");
     });
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "temporary list failure",
@@ -407,15 +365,11 @@ describe("useFeedLanding", () => {
         throw new Error("message getter failed");
       },
     } satisfies AppError;
-    const listArticlesSpy = vi
-      .spyOn(tauriCommands, "listArticles")
-      .mockResolvedValueOnce(Result.fail(unsafeError));
+    const listArticlesSpy = vi.spyOn(tauriCommands, "listArticles").mockResolvedValueOnce(Result.fail(unsafeError));
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         default:
           return undefined;
       }
@@ -425,17 +379,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "Unknown error",
@@ -447,9 +397,7 @@ describe("useFeedLanding", () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return sampleFeeds.filter(
-            (feed) => feed.account_id === args.accountId,
-          );
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
           throw { message: Symbol("landing failed") };
         default:
@@ -461,17 +409,13 @@ describe("useFeedLanding", () => {
       wrapper: createWrapper(),
     });
 
-    let landingResult:
-      | Awaited<ReturnType<(typeof result)["current"]>>
-      | undefined;
+    let landingResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
     await act(async () => {
       landingResult = await result.current("feed-1");
     });
 
     expect(landingResult).toSatisfy(Result.isFailure);
-    expect(
-      Result.unwrapError(landingResult as NonNullable<typeof landingResult>),
-    ).toEqual({
+    expect(Result.unwrapError(landingResult as NonNullable<typeof landingResult>)).toEqual({
       type: "landing_fetch_failed",
       feedId: "feed-1",
       message: "Unknown error",

@@ -4,11 +4,11 @@ import { sampleAccounts } from "@tests/helpers/fixtures";
 import { renderStory } from "@tests/helpers/render-story";
 import { createRef, type RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { AccountSwitcherView } from "@/components/reader/account-switcher-view";
 import accountSwitcherStories, {
   Expanded as AccountSwitcherExpanded,
   SingleAccount as AccountSwitcherSingleAccount,
 } from "@/components/reader/account-switcher-view.stories";
-import { AccountSwitcherView } from "@/components/reader/account-switcher-view";
 
 function createAccountItemRefs(): RefObject<Array<HTMLButtonElement | null>> {
   const current: Array<HTMLButtonElement | null> = [];
