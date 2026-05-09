@@ -3,12 +3,17 @@ import { join } from "node:path";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PlatformInfoSchema } from "@/api/schemas";
 import {
+  BROWSER_RUNTIME_EVENT_CONTRACT,
   BROWSER_SURFACE_ISSUE_KINDS,
   BROWSER_WINDOW_EVENTS,
   type BrowserSurfaceIssueKind,
   type BrowserWindowEventName,
 } from "@/constants/browser";
-import { APP_EVENTS, type AppEventName } from "@/constants/events";
+import {
+  APP_EVENTS,
+  APP_RUNTIME_EVENT_CONTRACT,
+  type AppEventName,
+} from "@/constants/events";
 import {
   MOTION_CLASS_NAMES,
   MOTION_DATA_ATTRIBUTES,
@@ -35,6 +40,7 @@ import {
 import {
   LEGACY_STORAGE_KEYS,
   type LegacyStorageKey,
+  STORAGE_RUNTIME_KEY_CONTRACT,
   STORAGE_KEY_POLICIES,
   STORAGE_KEYS,
   type StorageKey,
@@ -45,7 +51,10 @@ function expectNoDuplicates(values: readonly string[]) {
   expect(new Set(values).size).toBe(values.length);
 }
 
-const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
+const globalCss = readFileSync(
+  join(process.cwd(), "src/styles/global.css"),
+  "utf8",
+);
 
 describe("constants source of truth", () => {
   it("derives app event names from APP_EVENTS", () => {
@@ -55,16 +64,48 @@ describe("constants source of truth", () => {
     expectTypeOf<AppEventName>().toEqualTypeOf<(typeof eventNames)[number]>();
   });
 
+  it("classifies app runtime events by runtime boundary", () => {
+    expect(APP_RUNTIME_EVENT_CONTRACT).toEqual({
+      publicWindowEvents: [
+        APP_EVENTS.navigateArticle,
+        APP_EVENTS.navigateFeed,
+        APP_EVENTS.debugInputTrace,
+        APP_EVENTS.browserDebugGeometry,
+      ],
+      publicTauriEvents: [APP_EVENTS.menuAction],
+    });
+    expectNoDuplicates([
+      ...APP_RUNTIME_EVENT_CONTRACT.publicWindowEvents,
+      ...APP_RUNTIME_EVENT_CONTRACT.publicTauriEvents,
+    ]);
+  });
+
   it("derives browser window event names from BROWSER_WINDOW_EVENTS", () => {
     const eventNames = Object.values(BROWSER_WINDOW_EVENTS);
 
     expectNoDuplicates(eventNames);
-    expectTypeOf<BrowserWindowEventName>().toEqualTypeOf<(typeof eventNames)[number]>();
+    expectTypeOf<BrowserWindowEventName>().toEqualTypeOf<
+      (typeof eventNames)[number]
+    >();
+  });
+
+  it("classifies browser window events as public Tauri runtime events", () => {
+    expect(BROWSER_RUNTIME_EVENT_CONTRACT).toEqual({
+      publicTauriEvents: [
+        BROWSER_WINDOW_EVENTS.stateChanged,
+        BROWSER_WINDOW_EVENTS.closed,
+        BROWSER_WINDOW_EVENTS.fallback,
+        BROWSER_WINDOW_EVENTS.diagnostics,
+      ],
+    });
+    expectNoDuplicates(BROWSER_RUNTIME_EVENT_CONTRACT.publicTauriEvents);
   });
 
   it("derives browser surface issue kinds from BROWSER_SURFACE_ISSUE_KINDS", () => {
     expectNoDuplicates(BROWSER_SURFACE_ISSUE_KINDS);
-    expectTypeOf<BrowserSurfaceIssueKind>().toEqualTypeOf<(typeof BROWSER_SURFACE_ISSUE_KINDS)[number]>();
+    expectTypeOf<BrowserSurfaceIssueKind>().toEqualTypeOf<
+      (typeof BROWSER_SURFACE_ISSUE_KINDS)[number]
+    >();
   });
 
   it("derives storage keys from STORAGE_KEYS while keeping legacy keys separate", () => {
@@ -73,14 +114,40 @@ describe("constants source of truth", () => {
 
     expectNoDuplicates(storageKeys);
     expect(storageKeys.every((key) => key.startsWith("ultra-rss:"))).toBe(true);
-    expect(storageKeys.some((key) => (legacyStorageKeys as readonly string[]).includes(key))).toBe(false);
+    expect(
+      storageKeys.some((key) =>
+        (legacyStorageKeys as readonly string[]).includes(key),
+      ),
+    ).toBe(false);
     expectTypeOf<StorageKey>().toEqualTypeOf<(typeof storageKeys)[number]>();
-    expectTypeOf<LegacyStorageKey>().toEqualTypeOf<(typeof legacyStorageKeys)[number]>();
+    expectTypeOf<LegacyStorageKey>().toEqualTypeOf<
+      (typeof legacyStorageKeys)[number]
+    >();
+  });
+
+  it("classifies storage runtime keys by visibility and legacy status", () => {
+    expect(STORAGE_RUNTIME_KEY_CONTRACT).toEqual({
+      privateStorageKeys: [
+        STORAGE_KEYS.theme,
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+      testFixtureKeys: [],
+      deprecatedAliases: [LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt],
+    });
+    expectNoDuplicates(STORAGE_RUNTIME_KEY_CONTRACT.privateStorageKeys);
+    expectNoDuplicates(STORAGE_RUNTIME_KEY_CONTRACT.deprecatedAliases);
+    expect(STORAGE_RUNTIME_KEY_CONTRACT.testFixtureKeys).toEqual([]);
   });
 
   it("classifies storage keys as runtime tokens with explicit policies", () => {
-    expect(Object.keys(STORAGE_KEY_POLICIES)).toEqual(Object.keys(STORAGE_KEYS));
-    expectTypeOf<keyof typeof STORAGE_KEY_POLICIES>().toEqualTypeOf<StorageKeyName>();
+    expect(Object.keys(STORAGE_KEY_POLICIES)).toEqual(
+      Object.keys(STORAGE_KEYS),
+    );
+    expectTypeOf<
+      keyof typeof STORAGE_KEY_POLICIES
+    >().toEqualTypeOf<StorageKeyName>();
   });
 
   it("classifies motion constants as design tokens", () => {
@@ -89,9 +156,15 @@ describe("constants source of truth", () => {
     expectNoDuplicates(MOTION_DATA_ATTRIBUTES);
     expectNoDuplicates(MOTION_GLOBAL_CSS_CONTRACT_SELECTORS);
     expectNoDuplicates(MOTION_TRANSITION_TOKEN_DECLARATIONS);
-    expectTypeOf<MotionClassName>().toEqualTypeOf<(typeof MOTION_CLASS_NAMES)[number]>();
-    expectTypeOf<MotionKeyframesName>().toEqualTypeOf<(typeof MOTION_KEYFRAMES_NAMES)[number]>();
-    expectTypeOf<MotionDataAttribute>().toEqualTypeOf<(typeof MOTION_DATA_ATTRIBUTES)[number]>();
+    expectTypeOf<MotionClassName>().toEqualTypeOf<
+      (typeof MOTION_CLASS_NAMES)[number]
+    >();
+    expectTypeOf<MotionKeyframesName>().toEqualTypeOf<
+      (typeof MOTION_KEYFRAMES_NAMES)[number]
+    >();
+    expectTypeOf<MotionDataAttribute>().toEqualTypeOf<
+      (typeof MOTION_DATA_ATTRIBUTES)[number]
+    >();
     expectTypeOf<MotionGlobalCssContractSelector>().toEqualTypeOf<
       (typeof MOTION_GLOBAL_CSS_CONTRACT_SELECTORS)[number]
     >();
@@ -107,9 +180,21 @@ describe("constants source of truth", () => {
   });
 
   it("uses platform constants as the platform-kind and capability source of truth", () => {
-    expect(PlatformInfoSchema.parse({ kind: "macos", capabilities: DEFAULT_PLATFORM_CAPABILITIES }).kind).toBe("macos");
-    expect(() => PlatformInfoSchema.parse({ kind: "ios", capabilities: DEFAULT_PLATFORM_CAPABILITIES })).toThrowError();
-    expect(Object.keys(SHORTCUT_MODIFIER_BY_PLATFORM)).toEqual([...PLATFORM_KINDS]);
+    expect(
+      PlatformInfoSchema.parse({
+        kind: "macos",
+        capabilities: DEFAULT_PLATFORM_CAPABILITIES,
+      }).kind,
+    ).toBe("macos");
+    expect(() =>
+      PlatformInfoSchema.parse({
+        kind: "ios",
+        capabilities: DEFAULT_PLATFORM_CAPABILITIES,
+      }),
+    ).toThrowError();
+    expect(Object.keys(SHORTCUT_MODIFIER_BY_PLATFORM)).toEqual([
+      ...PLATFORM_KINDS,
+    ]);
     expect(Object.keys(DEFAULT_PLATFORM_CAPABILITIES)).toEqual([
       "supports_reading_list",
       "supports_background_browser_open",
@@ -117,12 +202,20 @@ describe("constants source of truth", () => {
       "supports_native_browser_navigation",
       "uses_dev_file_credentials",
     ]);
-    expectTypeOf<PlatformKind>().toEqualTypeOf<(typeof PLATFORM_KINDS)[number]>();
-    expectTypeOf<PlatformCapabilityName>().toEqualTypeOf<keyof typeof DEFAULT_PLATFORM_CAPABILITIES>();
-    expectTypeOf<PlatformCapabilities>().toEqualTypeOf<typeof DEFAULT_PLATFORM_CAPABILITIES>();
+    expectTypeOf<PlatformKind>().toEqualTypeOf<
+      (typeof PLATFORM_KINDS)[number]
+    >();
+    expectTypeOf<PlatformCapabilityName>().toEqualTypeOf<
+      keyof typeof DEFAULT_PLATFORM_CAPABILITIES
+    >();
+    expectTypeOf<PlatformCapabilities>().toEqualTypeOf<
+      typeof DEFAULT_PLATFORM_CAPABILITIES
+    >();
     expectTypeOf<PlatformCapabilityDefault>().toEqualTypeOf<
       (typeof DEFAULT_PLATFORM_CAPABILITIES)[PlatformCapabilityName]
     >();
-    expectTypeOf<DefaultPlatformInfo>().toEqualTypeOf<typeof DEFAULT_PLATFORM_INFO>();
+    expectTypeOf<DefaultPlatformInfo>().toEqualTypeOf<
+      typeof DEFAULT_PLATFORM_INFO
+    >();
   });
 });
