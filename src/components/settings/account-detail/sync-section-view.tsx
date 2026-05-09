@@ -47,6 +47,10 @@ type AccountSelectRowProps = {
   control: AccountSelectControl;
 };
 
+function clampProgressValue(value: number): number {
+  return Math.min(Math.max(value, 0), 100);
+}
+
 export function AccountSyncSectionView({
   heading,
   note,
@@ -65,6 +69,8 @@ export function AccountSyncSectionView({
   secondaryActionLabel,
   onSecondaryAction,
 }: AccountSyncSectionViewProps) {
+  const normalizedProgressValue = typeof progressValue === "number" ? clampProgressValue(progressValue) : null;
+
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
       <AccountSelectRow control={syncInterval} />
@@ -97,16 +103,16 @@ export function AccountSyncSectionView({
             aria-label={progressLabel}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={typeof progressValue === "number" ? Math.round(progressValue) : undefined}
+            aria-valuenow={normalizedProgressValue === null ? undefined : Math.round(normalizedProgressValue)}
             className="h-1.5 overflow-hidden rounded-full bg-surface-3"
           >
-            {typeof progressValue === "number" ? (
+            {normalizedProgressValue === null ? (
+              <div className="h-full w-1/3 rounded-full bg-accent/70" />
+            ) : (
               <div
                 className="h-full rounded-full bg-accent"
-                style={{ width: `${Math.min(Math.max(progressValue, 0), 100)}%` }}
+                style={{ width: `${normalizedProgressValue}%` }}
               />
-            ) : (
-              <div className="h-full w-1/3 rounded-full bg-accent/70" />
             )}
           </div>
         </div>

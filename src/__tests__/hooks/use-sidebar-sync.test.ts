@@ -151,6 +151,24 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(resolveSidebarSyncProgressPayload({ payload: "not-progress" })).toBeNull();
   });
 
+  it("accepts missing account ids and out-of-range completed counts for store normalization", () => {
+    expect(
+      resolveSidebarSyncProgressPayload({
+        payload: {
+          ...syncProgressPayload,
+          completed: 4,
+          account_id: undefined,
+          account_name: undefined,
+        },
+      }),
+    ).toEqual({
+      ...syncProgressPayload,
+      completed: 4,
+      account_id: undefined,
+      account_name: undefined,
+    });
+  });
+
   it("accepts wrapped and raw sync warning payloads but ignores unknown payloads", () => {
     const syncWarningPayload = [
       {

@@ -154,6 +154,75 @@ describe("useUiStore", () => {
     void uiState.account_name;
   });
 
+  it("normalizes sync progress counts at the store boundary", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_all",
+      total: 2,
+      completed: 5,
+      account_id: "acc-1",
+      account_name: "FreshRSS",
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        active: true,
+        total: 2,
+        completed: 2,
+        currentAccountName: "FreshRSS",
+      }),
+    );
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_all",
+      total: -2,
+      completed: -1,
+      account_id: "acc-2",
+      account_name: null,
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        active: true,
+        total: 0,
+        completed: 0,
+        currentAccountName: "FreshRSS",
+      }),
+    );
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1", "acc-2"]));
+  });
+
+  it("keeps sync active account ids unchanged when account progress omits the account id", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_all",
+      total: 2,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "FreshRSS",
+    });
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_finished",
+      kind: "manual_all",
+      total: 2,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        active: true,
+        total: 2,
+        completed: 1,
+        currentAccountName: "FreshRSS",
+      }),
+    );
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+  });
+
   it("openCommandPalette sets true", () => {
     useUiStore.getState().openCommandPalette();
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);

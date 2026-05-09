@@ -156,6 +156,42 @@ describe("AccountSyncSectionView", () => {
     expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
   });
 
+  it("clamps determinate sync progress aria value to the progressbar range", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Syncing"
+        progressLabel="3 of 2 completed"
+        progressValue={150}
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("progressbar", { name: "3 of 2 completed" })).toHaveAttribute("aria-valuenow", "100");
+  });
+
   it("renders indeterminate sync progress without a numeric value", () => {
     render(
       <AccountSyncSectionView

@@ -89,6 +89,14 @@ function clearToastDismissTimer(): void {
   }
 }
 
+function normalizeSyncProgressCounts(event: Pick<SyncProgressEventDto, "total" | "completed">) {
+  const total = Math.max(0, event.total);
+  return {
+    total,
+    completed: Math.min(Math.max(0, event.completed), total),
+  };
+}
+
 type UiState = {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -703,6 +711,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     })),
   applySyncProgress: (event) =>
     set((state) => {
+      const counts = normalizeSyncProgressCounts(event);
       const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
       if (event.account_id) {
         if (event.stage === "account_finished" || event.stage === "finished") {
@@ -731,8 +740,8 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
           active: true,
           kind: event.kind,
           stage: event.stage,
-          total: event.total,
-          completed: event.completed,
+          total: counts.total,
+          completed: counts.completed,
           currentAccountName: event.account_name ?? state.syncProgress.currentAccountName,
           activeAccountIds,
         },
