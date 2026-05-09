@@ -11,6 +11,7 @@ import {
   ArticleDtoListSchema,
   BrowserWebviewStateSchema,
   CountResponseSchema,
+  commandArgsSchemas,
   DatabaseInfoDtoSchema,
   DevRuntimeOptionsSchema,
   DiscoveredFeedDtoListSchema,
@@ -30,7 +31,6 @@ import {
   TagArticleCountsSchema,
   TagDtoListSchema,
   TagDtoSchema,
-  commandArgsSchemas,
 } from "@/api/schemas";
 import {
   addLocalFeed,
@@ -78,8 +78,8 @@ import {
   syncFeed,
   testAccountConnection,
   triggerAutomaticSync,
-  triggerSync,
   triggerStartupSync,
+  triggerSync,
   updateAccountCredentials,
   vacuumDatabase,
 } from "@/api/tauri-commands";
@@ -87,6 +87,14 @@ import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles } from "@/dev/mock-data";
 import { DEV_MOCK_PLATFORM_INFO, setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
+
+type DevMockDiagnosticsTestWindow = Window & {
+  __ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__?: Array<{
+    kind: "unknown-command";
+    command: string;
+    message: string;
+  }>;
+};
 
 describe("setupDevMocks", () => {
   const browserBounds: BrowserWebviewBounds = {
@@ -101,6 +109,8 @@ describe("setupDevMocks", () => {
     delete window.__TAURI_INTERNALS__;
     delete window.__DEV_BROWSER_MOCKS__;
     delete window.__ULTRA_RSS_BROWSER_MOCKS__;
+    delete (window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__;
+    document.getElementById("ultra-rss-dev-mock-diagnostics")?.remove();
   });
 
   afterEach(() => {
@@ -108,6 +118,8 @@ describe("setupDevMocks", () => {
     delete window.__TAURI_INTERNALS__;
     delete window.__DEV_BROWSER_MOCKS__;
     delete window.__ULTRA_RSS_BROWSER_MOCKS__;
+    delete (window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__;
+    document.getElementById("ultra-rss-dev-mock-diagnostics")?.remove();
     vi.unstubAllEnvs();
   });
 
@@ -330,20 +342,26 @@ describe("setupDevMocks", () => {
     expect(PlatformInfoSchema.parse(Result.unwrap(await getPlatformInfo()))).toBeDefined();
     expect(PreferencesDtoSchema.parse(Result.unwrap(await getPreferences()))).toBeDefined();
 
-    const browserState = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds));
+    const browserState = Result.unwrap(
+      await createOrUpdateBrowserWebview("https://example.com/article", browserBounds),
+    );
     expect(BrowserWebviewStateSchema.parse(browserState)).toEqual(browserState);
     expect(BrowserWebviewStateSchema.parse(Result.unwrap(await goBackBrowserWebview()))).toBeDefined();
     expect(BrowserWebviewStateSchema.parse(Result.unwrap(await goForwardBrowserWebview()))).toBeDefined();
     expect(BrowserWebviewStateSchema.parse(Result.unwrap(await reloadBrowserWebview()))).toBeDefined();
 
-    expect(DiscoveredFeedDtoListSchema.parse(Result.unwrap(await discoverFeeds("https://schema.example.com")))).toBeDefined();
+    expect(
+      DiscoveredFeedDtoListSchema.parse(Result.unwrap(await discoverFeeds("https://schema.example.com"))),
+    ).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await triggerSync()))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await triggerStartupSync("acc-freshrss")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await syncAccount("acc-freshrss")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
     expect(StringResponseSchema.parse(Result.unwrap(await exportOpml("acc-freshrss")))).toContain("<opml");
-    expect(CountResponseSchema.parse(Result.unwrap(await clearArticleViewHistory("acc-freshrss")))).toBeGreaterThanOrEqual(0);
+    expect(
+      CountResponseSchema.parse(Result.unwrap(await clearArticleViewHistory("acc-freshrss"))),
+    ).toBeGreaterThanOrEqual(0);
     expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await getDatabaseInfo()))).toBeDefined();
     expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await vacuumDatabase()))).toBeDefined();
   });
@@ -579,6 +597,19 @@ describe("setupDevMocks", () => {
     expect(Object.keys(commandArgsSchemas).filter((command) => !mockedCommands.has(command))).toEqual([]);
   });
 
+  it("keeps every response-schema command covered by the browser-only mock switch", () => {
+    const [mockSource, commandSource] = [
+      readFileSync(resolve(process.cwd(), "src/dev/mocks.ts"), "utf8"),
+      readFileSync(resolve(process.cwd(), "src/api/tauri-commands.ts"), "utf8"),
+    ];
+    const mockedCommands = new Set([...mockSource.matchAll(/case "([^"]+)"/g)].map((match) => match[1]));
+    const responseSchemaCommands = new Set(
+      [...commandSource.matchAll(/safeInvoke\(\s*"([^"]+)"\s*,\s*\{[^}]*response:/gs)].map((match) => match[1]),
+    );
+
+    expect([...responseSchemaCommands].filter((command) => !mockedCommands.has(command))).toEqual([]);
+  });
+
   it("parses every schema-validated browser-only command at the mock IPC boundary", () => {
     const source = readFileSync(resolve(process.cwd(), "src/dev/mocks.ts"), "utf8");
     const parsedCommands = new Set(
@@ -590,8 +621,29 @@ describe("setupDevMocks", () => {
 
   it("rejects unknown browser-only commands instead of returning a null success", async () => {
     setupDevMocks();
+    const diagnosticEvents: unknown[] = [];
+    window.addEventListener("ultra-rss-dev-mock-diagnostics", (event) => {
+      diagnosticEvents.push((event as CustomEvent).detail);
+    });
 
     await expect(invoke("unknown_dev_command")).rejects.toThrow("[dev-mocks] Unknown command: unknown_dev_command");
+    expect((window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__).toEqual([
+      {
+        kind: "unknown-command",
+        command: "unknown_dev_command",
+        message: "[dev-mocks] Unknown command: unknown_dev_command",
+      },
+    ]);
+    expect(diagnosticEvents).toEqual([
+      {
+        kind: "unknown-command",
+        command: "unknown_dev_command",
+        message: "[dev-mocks] Unknown command: unknown_dev_command",
+      },
+    ]);
+    expect(document.querySelector('[data-testid="dev-mock-diagnostics-canvas"]')?.textContent).toBe(
+      "[dev-mocks] Unknown command: unknown_dev_command",
+    );
   });
 
   it("validates raw browser-only IPC payloads at the mock command boundary", async () => {

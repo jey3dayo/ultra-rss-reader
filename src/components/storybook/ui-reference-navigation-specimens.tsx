@@ -1,5 +1,6 @@
 import { List, Settings2 } from "lucide-react";
 import { useState } from "react";
+import { FeedDtoListSchema, FolderDtoSchema } from "@/api/schemas";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { FolderSectionView } from "@/components/reader/folder-section";
 import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions";
@@ -58,14 +59,14 @@ const ACCOUNT_CARDS: AccountNavItem[] = [
   { id: "acc-3", name: "Local", kind: "local", isActive: false },
 ];
 
-const NAV_SAMPLE_FOLDER: FolderDto = {
+const NAV_SAMPLE_FOLDER: FolderDto = FolderDtoSchema.parse({
   id: "folder-interior",
   account_id: "acc-1",
   name: "Interior",
   sort_order: 0,
-};
+});
 
-const NAV_SAMPLE_FEEDS: FeedDto[] = [
+const NAV_SAMPLE_FEEDS: FeedDto[] = FeedDtoListSchema.parse([
   {
     id: "feed-diy",
     account_id: "acc-1",
@@ -90,7 +91,7 @@ const NAV_SAMPLE_FEEDS: FeedDto[] = [
     reader_mode: "on",
     web_preview_mode: "off",
   },
-];
+]);
 
 const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
 
