@@ -38,7 +38,7 @@ type ReactDoctorReport = {
   summary: ReactDoctorSummary;
 };
 
-type KnipIssueBucket = Record<string, unknown[]>;
+type KnipIssueBucket = Record<string, unknown>;
 
 type KnipReport = {
   issues: KnipIssueBucket[];

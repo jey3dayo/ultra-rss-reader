@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
-import { resetRuntimeDiagnosticOnceSuppressionForTests, RUNTIME_DIAGNOSTIC_POLICIES } from "@/lib/runtime/diagnostics";
+import { RUNTIME_DIAGNOSTIC_POLICIES, resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

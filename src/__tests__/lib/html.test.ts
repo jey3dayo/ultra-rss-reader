@@ -83,9 +83,9 @@ describe("applyReaderContentPrivacyPolicy", () => {
         '<p><a href="https://example.com/article" rel="opener">Read</a><picture><source srcset="https://cdn.example.com/hero.webp 1x"><img src="https://cdn.example.com/hero.jpg" alt="Hero"></picture></p>',
       ),
     ).toContain('rel="noopener noreferrer"');
-    expect(
-      applyReaderContentPrivacyPolicy('<img src="https://cdn.example.com/hero.jpg" alt="Hero">'),
-    ).toContain('referrerpolicy="no-referrer"');
+    expect(applyReaderContentPrivacyPolicy('<img src="https://cdn.example.com/hero.jpg" alt="Hero">')).toContain(
+      'referrerpolicy="no-referrer"',
+    );
   });
 
   it("keeps sanitized HTML unchanged when DOMParser is unavailable", () => {

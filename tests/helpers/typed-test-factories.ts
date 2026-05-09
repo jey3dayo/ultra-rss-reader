@@ -1,5 +1,5 @@
-import { vi } from "vitest";
 import type { KeyboardEvent } from "react";
+import { vi } from "vitest";
 
 type KeyboardEventFactoryOptions = {
   key: string;

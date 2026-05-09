@@ -362,7 +362,12 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
     const clickTraceListener = createMouseEventListener((event) => {
       dispatch({
         type: "append-trace",
-        value: formatRawClickTrace(event.clientX, event.clientY, describeDebugHudEventTarget(event.target), event.target),
+        value: formatRawClickTrace(
+          event.clientX,
+          event.clientY,
+          describeDebugHudEventTarget(event.target),
+          event.target,
+        ),
       });
     });
 
