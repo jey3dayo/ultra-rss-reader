@@ -110,6 +110,31 @@
   - `createTauriMockCallRecorder` の handler fallback と args validation order を helper test で固定し、必要なら `ValidatedMockTauriCommandCall` のような別名へ分ける
   - tauri mock call recorder helper の挙動追加とは分け、test helper type boundary だけを扱う
 
+- [ ] TypeScript safeInvoke schema overload cleanup 候補を追加する
+  - `src/api/tauri-commands.ts` の `safeInvoke` overload が schema-aware return と generic return を混在させている点を整理する
+  - `InvokeSchemas` / `InvokeArgsSchema` / `Record<string, unknown>` args の責務を分け、schema 付き command は `z.output<R>` を source of truth にする
+  - command behavior は変えず、IPC wrapper の型境界と overload readability だけを扱う
+
+- [ ] TypeScript preference record typing cleanup 候補を追加する
+  - `src/schemas/preferences.ts` の `preferenceDefaults: Record<string, string>` / `hiddenPreferenceDefaults` / `KeyboardShortcutPrefs` の string map 境界を見直す
+  - known preference key、shortcut preference key、unknown backend passthrough key を別 type で表現できるか確認する
+  - preference normalization behavior は変えず、Record string map の責務分割だけを扱う
+
+- [ ] TypeScript query key literal type cleanup 候補を追加する
+  - `use-articles.ts` / `use-feed-landing.ts` / `use-update-feed-folder.ts` / `query-invalidation.ts` に散らばる query key literal を typed helper へ寄せられるか確認する
+  - account/feed/folder/tag/recent/search query key の tuple shape を source of truth 化し、cache patch と invalidation の drift を防ぐ
+  - TanStack Query behavior は変えず、query key type surface と literal duplication だけを扱う
+
+- [ ] TypeScript commandArgsSchemas typed map 候補を追加する
+  - `src/api/schemas/commands.ts` の `commandArgsSchemas: Record<string, z.ZodType<Record<string, unknown>>>` を command name union と紐づく typed map にできるか確認する
+  - `safeInvoke` / `validateArgs` / schema contract test が未知 command と既知 command を型上でも区別できるか棚卸しする
+  - IPC validation behavior は変えず、command schema registry の型精度だけを扱う
+
+- [ ] TypeScript constants literal source-of-truth 候補を追加する
+  - `src/constants/events.ts` / `browser.ts` / `storage.ts` / `platform.ts` の `as const` literal から導く union type が不足していないか確認する
+  - event name、storage key、browser surface literal、platform capability defaults を手書き string union と重複させない方針へ寄せる
+  - constants 値の変更や migration は含めず、literal-derived type export と consumer typing だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
