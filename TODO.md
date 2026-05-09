@@ -285,11 +285,6 @@
   - sequential await warning 25 件は order-dependent contract test と独立処理の performance issue が混在している
   - order が必要な test は理由を明示し、独立 command / fixture setup は `Promise.all` / `Promise.allSettled` 化して flake と実行時間を下げる
 
-- [ ] P2 seed-dev-db script の independent await を Promise.all 化できるか検証する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
-  - React Doctor の `async-parallel` が script 内の 3 sequential await を検出しており、dev data refresh が不要に遅くなる可能性がある
-  - DB connection、backup/read、transform、write の依存関係を明確にし、独立処理だけ並列化して error diagnostics を維持する
-
 - [ ] P3 React Compiler 未導入状態の採用判断メモを作る
   - 対象: `CLAUDE.md`, `.claude/rules/*`, `TODO.md`, `vite.config.ts`
   - React Doctor は React 19.2.6 を検出している一方で React Compiler は未検出なので、今後の memoization / effect cleanup の判断基準が compiler 有無で揺れやすい
@@ -414,11 +409,6 @@
   - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`, `src/__tests__/hooks/use-updater.test.ts`
   - React Doctor / Knip が updater hook/schema 周辺に unused export/type を検出しており、別エージェントの updater schema 差分と衝突しやすい
   - hook result、test fixture、schema parse helper、Tauri command wrapper を分類し、public API と fixture を別名で明確にする
-
-- [ ] P2 seed-dev-db script の exported helper を CLI boundary と test boundary に分ける
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
-  - React Doctor / Knip が seed script の unused export と async parallel warning を検出しており、CLI 実行用関数と unit test 用 helper が同じ surface に出ている
-  - CLI main、pure transform、DB adapter、test fixture helper を分離し、export は test が使う pure helper に限定する
 
 - [ ] P2 article-display helper の unused type を sanitized article view contract と揃える
   - 対象: `src/lib/articles/article-display.ts`, `src/lib/articles/article-view.ts`, `src/components/reader/article-content-view.tsx`
