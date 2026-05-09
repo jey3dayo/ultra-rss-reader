@@ -6,10 +6,18 @@ import { getAccountSyncStatus } from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 
 export function useAccountSyncStatuses<T extends { id: string }>(accounts: readonly T[] | undefined) {
-  const accountIds = useMemo(
-    () => Array.from(new Set((accounts ?? []).map((account) => account.id.trim()).filter(Boolean))),
-    [accounts],
-  );
+  const accountIds = useMemo(() => {
+    const uniqueAccountIds = new Set<string>();
+
+    for (const account of accounts ?? []) {
+      const accountId = account.id.trim();
+      if (accountId) {
+        uniqueAccountIds.add(accountId);
+      }
+    }
+
+    return Array.from(uniqueAccountIds);
+  }, [accounts]);
   const queries = useQueries({
     queries: accountIds.map((accountId) => ({
       queryKey: accountSyncStatusQueryKey(accountId),

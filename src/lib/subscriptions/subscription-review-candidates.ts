@@ -159,7 +159,13 @@ export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReview
 }
 
 export function buildFolderNameByIdMap(folders: FolderDto[]): Map<string, string> {
-  return new Map(folders.map((folder) => [folder.id, folder.name]));
+  const folderNameById = new Map<string, string>();
+
+  for (const folder of folders) {
+    folderNameById.set(folder.id, folder.name);
+  }
+
+  return folderNameById;
 }
 
 function clampNonnegativeCount(value: number): number {
@@ -187,63 +193,67 @@ export function buildSubscriptionReviewCandidates({
 }: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
   const folderNameById = buildFolderNameByIdMap(folders);
   const summaryByFeedId = buildFeedArticleSummaryByFeedIdMap(feedArticleSummaries);
+  const candidates: SubscriptionReviewCandidate[] = [];
 
-  return feeds
-    .filter((feed) => !hiddenFeedIds.has(feed.id))
-    .map((feed) => {
-      const summary = summaryByFeedId.get(feed.id);
-      const latestArticleAt = summary?.latest_article_at ?? null;
+  for (const feed of feeds) {
+    if (hiddenFeedIds.has(feed.id)) {
+      continue;
+    }
 
-      const latestArticleDate = parseDateInput(latestArticleAt);
-      const staleDays = latestArticleDate === null ? null : Math.max(0, differenceInDays(now, latestArticleDate));
-      const unreadCount = clampNonnegativeCount(feed.unread_count);
-      const starredCount = clampNonnegativeCount(summary?.starred_count ?? 0);
-      const hasFetchedArticle = latestArticleAt !== null;
-      const reasonKeys: SubscriptionReviewReasonKey[] = [];
+    const summary = summaryByFeedId.get(feed.id);
+    const latestArticleAt = summary?.latest_article_at ?? null;
 
-      if (staleDays != null && staleDays >= 90) {
-        reasonKeys.push("stale_90d");
-      }
-      if (hasFetchedArticle && unreadCount === 0) {
-        reasonKeys.push("no_unread");
-      }
-      if (hasFetchedArticle && starredCount === 0) {
-        reasonKeys.push("no_stars");
-      }
+    const latestArticleDate = parseDateInput(latestArticleAt);
+    const staleDays = latestArticleDate === null ? null : Math.max(0, differenceInDays(now, latestArticleDate));
+    const unreadCount = clampNonnegativeCount(feed.unread_count);
+    const starredCount = clampNonnegativeCount(summary?.starred_count ?? 0);
+    const hasFetchedArticle = latestArticleAt !== null;
+    const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
-      return {
-        feedId: feed.id,
-        title: feed.title,
-        folderId: feed.folder_id,
-        folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
-        latestArticleAt,
-        staleDays,
-        unreadCount,
-        starredCount,
-        reasonKeys,
-      } satisfies SubscriptionReviewCandidate;
-    })
-    .sort((left, right) => {
-      const staleDelta = (right.staleDays ?? -1) - (left.staleDays ?? -1);
-      if (staleDelta !== 0) {
-        return staleDelta;
-      }
+    if (staleDays != null && staleDays >= 90) {
+      reasonKeys.push("stale_90d");
+    }
+    if (hasFetchedArticle && unreadCount === 0) {
+      reasonKeys.push("no_unread");
+    }
+    if (hasFetchedArticle && starredCount === 0) {
+      reasonKeys.push("no_stars");
+    }
 
-      const reasonDelta = right.reasonKeys.length - left.reasonKeys.length;
-      if (reasonDelta !== 0) {
-        return reasonDelta;
-      }
-
-      const unreadDelta = left.unreadCount - right.unreadCount;
-      if (unreadDelta !== 0) {
-        return unreadDelta;
-      }
-
-      const starredDelta = left.starredCount - right.starredCount;
-      if (starredDelta !== 0) {
-        return starredDelta;
-      }
-
-      return left.title.localeCompare(right.title);
+    candidates.push({
+      feedId: feed.id,
+      title: feed.title,
+      folderId: feed.folder_id,
+      folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
+      latestArticleAt,
+      staleDays,
+      unreadCount,
+      starredCount,
+      reasonKeys,
     });
+  }
+
+  return candidates.sort((left, right) => {
+    const staleDelta = (right.staleDays ?? -1) - (left.staleDays ?? -1);
+    if (staleDelta !== 0) {
+      return staleDelta;
+    }
+
+    const reasonDelta = right.reasonKeys.length - left.reasonKeys.length;
+    if (reasonDelta !== 0) {
+      return reasonDelta;
+    }
+
+    const unreadDelta = left.unreadCount - right.unreadCount;
+    if (unreadDelta !== 0) {
+      return unreadDelta;
+    }
+
+    const starredDelta = left.starredCount - right.starredCount;
+    if (starredDelta !== 0) {
+      return starredDelta;
+    }
+
+    return left.title.localeCompare(right.title);
+  });
 }

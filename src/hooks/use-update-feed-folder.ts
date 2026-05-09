@@ -40,6 +40,11 @@ export function useUpdateFeedFolder() {
     },
     onError: (error, variables, context) => {
       for (const [queryKey, previousFeeds] of context?.previousFeedsQueries ?? []) {
+        const previousFeedById = new Map<string, FeedDto>();
+        for (const previousFeed of previousFeeds ?? []) {
+          previousFeedById.set(previousFeed.id, previousFeed);
+        }
+
         qc.setQueryData<FeedDto[]>(queryKey, (currentFeeds) => {
           if (!currentFeeds) {
             return previousFeeds;
@@ -50,7 +55,7 @@ export function useUpdateFeedFolder() {
               return feed;
             }
 
-            return previousFeeds?.find((previousFeed) => previousFeed.id === variables.feedId) ?? feed;
+            return previousFeedById.get(variables.feedId) ?? feed;
           });
         });
       }
