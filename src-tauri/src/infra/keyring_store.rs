@@ -1,10 +1,16 @@
 use crate::domain::error::{DomainError, DomainResult};
 use crate::platform::{PlatformInfo, PlatformKind};
 use std::collections::HashMap;
+use std::fs::{File, OpenOptions};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 
 const SERVICE: &str = "ultra-rss-reader";
+const DEV_CREDENTIALS_MAX_BYTES: u64 = 64 * 1024;
+const DEV_CREDENTIALS_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
+const DEV_CREDENTIALS_LOCK_RETRY_DELAY: Duration = Duration::from_millis(25);
 static DEV_CREDENTIALS_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 // ---------------------------------------------------------------------------
@@ -148,10 +154,24 @@ where
     )
 }
 
-fn read_dev_store(path: &PathBuf) -> DomainResult<HashMap<String, String>> {
+fn read_dev_store(path: &Path) -> DomainResult<HashMap<String, String>> {
+    match std::fs::metadata(path) {
+        Ok(metadata) if metadata.len() > DEV_CREDENTIALS_MAX_BYTES => {
+            return Err(DomainError::Keychain(format!(
+                "Dev store exceeds maximum size of {DEV_CREDENTIALS_MAX_BYTES} bytes"
+            )));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(HashMap::new()),
+        Err(error) => {
+            return Err(DomainError::Keychain(format!(
+                "Failed to read dev store metadata: {error}"
+            )));
+        }
+    }
+
     match std::fs::read_to_string(path) {
-        Ok(content) => serde_json::from_str(&content)
-            .map_err(|e| DomainError::Keychain(format!("Failed to parse dev store: {e}"))),
+        Ok(content) => parse_dev_store_json(&content),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(HashMap::new()),
         Err(error) => Err(DomainError::Keychain(format!(
             "Failed to read dev store: {error}"
@@ -159,13 +179,36 @@ fn read_dev_store(path: &PathBuf) -> DomainResult<HashMap<String, String>> {
     }
 }
 
-fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainResult<()> {
+fn parse_dev_store_json(content: &str) -> DomainResult<HashMap<String, String>> {
+    let value: serde_json::Value = serde_json::from_str(content)
+        .map_err(|e| DomainError::Keychain(format!("Failed to parse dev store: {e}")))?;
+    let object = value.as_object().ok_or_else(|| {
+        DomainError::Keychain("Failed to parse dev store: expected JSON object".to_string())
+    })?;
+    let mut store = HashMap::with_capacity(object.len());
+    for (key, value) in object {
+        let password = value.as_str().ok_or_else(|| {
+            DomainError::Keychain(format!(
+                "Failed to parse dev store: value for key '{key}' must be a string"
+            ))
+        })?;
+        store.insert(key.clone(), password.to_string());
+    }
+    Ok(store)
+}
+
+fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> DomainResult<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
             .map_err(|e| DomainError::Keychain(format!("Failed to create dev store dir: {e}")))?;
     }
     let json = serde_json::to_string_pretty(store)
         .map_err(|e| DomainError::Keychain(format!("Failed to serialize dev store: {e}")))?;
+    if json.len() as u64 > DEV_CREDENTIALS_MAX_BYTES {
+        return Err(DomainError::Keychain(format!(
+            "Dev store exceeds maximum size of {DEV_CREDENTIALS_MAX_BYTES} bytes"
+        )));
+    }
     let temp_path = dev_store_temp_path(path);
     std::fs::write(&temp_path, &json)
         .map_err(|e| DomainError::Keychain(format!("Failed to write dev store: {e}")))?;
@@ -181,7 +224,93 @@ fn dev_store_temp_path(path: &Path) -> PathBuf {
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("dev-credentials.json");
-    path.with_file_name(format!(".{file_name}.tmp"))
+    let thread_id = format!("{:?}", std::thread::current().id())
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .collect::<String>();
+    path.with_file_name(format!(
+        ".{file_name}.{}.{}.tmp",
+        std::process::id(),
+        thread_id
+    ))
+}
+
+fn dev_store_lock_path(path: &Path) -> PathBuf {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("dev-credentials.json");
+    path.with_file_name(format!(".{file_name}.lock"))
+}
+
+#[derive(Debug)]
+struct DevStoreFileLock {
+    path: PathBuf,
+    _file: File,
+}
+
+impl DevStoreFileLock {
+    fn acquire(store_path: &Path) -> DomainResult<Self> {
+        Self::acquire_with_timeout(
+            store_path,
+            DEV_CREDENTIALS_LOCK_TIMEOUT,
+            DEV_CREDENTIALS_LOCK_RETRY_DELAY,
+        )
+    }
+
+    fn acquire_with_timeout(
+        store_path: &Path,
+        timeout: Duration,
+        retry_delay: Duration,
+    ) -> DomainResult<Self> {
+        let lock_path = dev_store_lock_path(store_path);
+        if let Some(parent) = lock_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                DomainError::Keychain(format!("Failed to create dev store lock dir: {e}"))
+            })?;
+        }
+
+        let deadline = Instant::now() + timeout;
+        loop {
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&lock_path)
+            {
+                Ok(file) => {
+                    return Ok(Self {
+                        path: lock_path,
+                        _file: file,
+                    })
+                }
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    if Instant::now() >= deadline {
+                        return Err(DomainError::Keychain(format!(
+                            "Timed out waiting for dev store lock: {}",
+                            lock_path.display()
+                        )));
+                    }
+                    std::thread::sleep(retry_delay);
+                }
+                Err(error) => {
+                    return Err(DomainError::Keychain(format!(
+                        "Failed to acquire dev store lock: {error}"
+                    )));
+                }
+            }
+        }
+    }
+}
+
+impl Drop for DevStoreFileLock {
+    fn drop(&mut self) {
+        if let Err(error) = std::fs::remove_file(&self.path) {
+            tracing::warn!(
+                "Failed to release dev credentials store lock {}: {error}",
+                self.path.display()
+            );
+        }
+    }
 }
 
 #[cfg(unix)]
@@ -204,7 +333,18 @@ where
     })
 }
 
-fn delete_dev_password_at_path(path: &PathBuf, account_id: &str) -> DomainResult<()> {
+fn with_dev_store_lock<T, F>(path: &Path, operation: F) -> DomainResult<T>
+where
+    F: FnOnce() -> DomainResult<T>,
+{
+    let _process_guard = DEV_CREDENTIALS_STORE_LOCK
+        .lock()
+        .map_err(|e| DomainError::Keychain(format!("Failed to lock dev store: {e}")))?;
+    let _file_guard = DevStoreFileLock::acquire(path)?;
+    operation()
+}
+
+fn delete_dev_password_at_path(path: &Path, account_id: &str) -> DomainResult<()> {
     let mut store = read_dev_store(path)?;
     store.remove(account_id);
     write_dev_store(path, &store)
@@ -214,13 +354,32 @@ fn delete_dev_password_at_path(path: &PathBuf, account_id: &str) -> DomainResult
 // OS Keychain helpers
 // ---------------------------------------------------------------------------
 
+fn keyring_force_delete_fallback_warning(status: &str, stderr: &str) -> String {
+    format!(
+        "keyring force-delete fallback failed status={} stderr={}",
+        status,
+        stderr.trim()
+    )
+}
+
 /// Delete a keychain entry via the `security` CLI, bypassing ACL restrictions
 /// that prevent the keyring crate from deleting entries created by a differently-signed binary.
 #[cfg(target_os = "macos")]
 fn force_delete_keychain_entry(account_id: &str) {
-    let _ = std::process::Command::new("security")
+    match std::process::Command::new("security")
         .args(["delete-generic-password", "-s", SERVICE, "-a", account_id])
-        .output();
+        .output()
+    {
+        Ok(output) if output.status.success() => {}
+        Ok(output) => tracing::warn!(
+            "{}",
+            keyring_force_delete_fallback_warning(
+                &output.status.to_string(),
+                &String::from_utf8_lossy(&output.stderr)
+            )
+        ),
+        Err(error) => tracing::warn!("keyring force-delete fallback failed to run: {error}"),
+    }
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -263,12 +422,11 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
 
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
-        let _guard = DEV_CREDENTIALS_STORE_LOCK
-            .lock()
-            .map_err(|e| DomainError::Keychain(format!("Failed to lock dev store: {e}")))?;
-        let mut store = read_dev_store(&path)?;
-        store.insert(account_id.to_string(), password.to_string());
-        write_dev_store(&path, &store)?;
+        with_dev_store_lock(&path, || {
+            let mut store = read_dev_store(&path)?;
+            store.insert(account_id.to_string(), password.to_string());
+            write_dev_store(&path, &store)
+        })?;
         return verify_saved_password(account_id, password);
     }
 
@@ -310,10 +468,7 @@ pub fn get_password(account_id: &str) -> DomainResult<String> {
 
 pub fn delete_password(account_id: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
-        let _guard = DEV_CREDENTIALS_STORE_LOCK
-            .lock()
-            .map_err(|e| DomainError::Keychain(format!("Failed to lock dev store: {e}")))?;
-        return delete_dev_password_at_path(&path, account_id);
+        return with_dev_store_lock(&path, || delete_dev_password_at_path(&path, account_id));
     }
 
     let entry = keyring::Entry::new(SERVICE, account_id)
@@ -567,6 +722,16 @@ mod tests {
     }
 
     #[test]
+    fn keyring_force_delete_fallback_warning_includes_status_and_stderr() {
+        let warning = super::keyring_force_delete_fallback_warning("exit status: 44", " denied\n");
+
+        assert_eq!(
+            warning,
+            "keyring force-delete fallback failed status=exit status: 44 stderr=denied"
+        );
+    }
+
+    #[test]
     fn delete_dev_password_at_path_is_idempotent_for_missing_entries() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("dev-credentials.json");
@@ -586,7 +751,6 @@ mod tests {
     fn write_dev_store_replaces_via_temp_file_without_leaving_staging_copy() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("dev-credentials.json");
-        let temp_path = super::dev_store_temp_path(&path);
         let mut first_store = HashMap::new();
         first_store.insert("account-a".to_string(), "secret-a".to_string());
         let mut second_store = HashMap::new();
@@ -599,7 +763,11 @@ mod tests {
 
         assert_eq!(super::read_dev_store(&path).unwrap(), second_store);
         assert!(
-            !temp_path.exists(),
+            dir.path().read_dir().unwrap().all(|entry| !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".tmp")),
             "successful atomic replacement should not leave the staging file behind"
         );
     }
@@ -607,10 +775,28 @@ mod tests {
     #[test]
     fn dev_store_temp_path_stays_next_to_final_store() {
         let path = Path::new("/tmp/ultra-rss-reader/dev-credentials.json");
+        let temp_path = super::dev_store_temp_path(path);
+
+        assert_eq!(temp_path.parent(), path.parent());
+        assert!(temp_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with(".dev-credentials.json."));
+        assert!(temp_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .ends_with(".tmp"));
+    }
+
+    #[test]
+    fn dev_store_lock_path_stays_next_to_final_store() {
+        let path = Path::new("/tmp/ultra-rss-reader/dev-credentials.json");
 
         assert_eq!(
-            super::dev_store_temp_path(path),
-            PathBuf::from("/tmp/ultra-rss-reader/.dev-credentials.json.tmp")
+            super::dev_store_lock_path(path),
+            PathBuf::from("/tmp/ultra-rss-reader/.dev-credentials.json.lock")
         );
     }
 
@@ -670,6 +856,101 @@ mod tests {
 
         assert!(matches!(error, DomainError::Keychain(_)));
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "{not-json");
+    }
+
+    #[test]
+    fn read_dev_store_rejects_non_object_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        std::fs::write(&path, r#"["secret"]"#).unwrap();
+
+        let error =
+            super::read_dev_store(&path).expect_err("dev credentials must stay a JSON object");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Failed to parse dev store: expected JSON object"
+        );
+    }
+
+    #[test]
+    fn read_dev_store_rejects_non_string_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        std::fs::write(&path, r#"{"account":123}"#).unwrap();
+
+        let error =
+            super::read_dev_store(&path).expect_err("dev credential values must stay strings");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Failed to parse dev store: value for key 'account' must be a string"
+        );
+    }
+
+    #[test]
+    fn read_dev_store_rejects_oversized_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        std::fs::write(
+            &path,
+            "x".repeat(super::DEV_CREDENTIALS_MAX_BYTES as usize + 1),
+        )
+        .unwrap();
+
+        let error =
+            super::read_dev_store(&path).expect_err("oversized dev credentials must fail closed");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Dev store exceeds maximum size of 65536 bytes"
+        );
+    }
+
+    #[test]
+    fn write_dev_store_rejects_oversized_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let mut store = HashMap::new();
+        store.insert(
+            "account".to_string(),
+            "x".repeat(super::DEV_CREDENTIALS_MAX_BYTES as usize),
+        );
+
+        let error = super::write_dev_store(&path, &store)
+            .expect_err("oversized dev credentials must not be written");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Dev store exceeds maximum size of 65536 bytes"
+        );
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn dev_store_file_lock_blocks_concurrent_process_writers() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let first_lock = super::DevStoreFileLock::acquire(&path)
+            .expect("first process should acquire the dev store lock");
+
+        let error = super::DevStoreFileLock::acquire_with_timeout(
+            &path,
+            std::time::Duration::from_millis(5),
+            std::time::Duration::from_millis(1),
+        )
+        .expect_err("second process should observe the existing lock");
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "Keychain error: Timed out waiting for dev store lock: {}",
+                super::dev_store_lock_path(&path).display()
+            )
+        );
+        drop(first_lock);
+        super::DevStoreFileLock::acquire(&path)
+            .expect("dev store lock should be reusable after release");
     }
 
     #[test]
