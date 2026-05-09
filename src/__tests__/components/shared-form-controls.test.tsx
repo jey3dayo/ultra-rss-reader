@@ -98,6 +98,31 @@ describe("shared form controls", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("guards direct submit activation while loading even when submitDisabled is false", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <FormActionButtons
+        cancelLabel="Cancel"
+        submitLabel="Save"
+        submittingLabel="Saving"
+        loading={true}
+        submitDisabled={false}
+        onCancel={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const submitButton = screen.getByRole("button", { name: "Saving" });
+
+    expect(submitButton).toBeDisabled();
+
+    await user.click(submitButton);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("renders the shared form dialog shell with separated header, body, and footer", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
@@ -412,6 +437,31 @@ describe("shared form controls", () => {
     await user.click(screen.getByRole("combobox", { name: "Display mode" }));
 
     expect(screen.queryByRole("option", { name: "Standard" })).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores disabled labeled select option clicks when the row is controlled open", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <LabeledSelectRow
+        label="Display mode"
+        name="display-mode"
+        value="preview"
+        options={[
+          { value: "standard", label: "Standard" },
+          { value: "preview", label: "Preview" },
+        ]}
+        disabled
+        open
+        onChange={onChange}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    await user.click(await screen.findByRole("option", { name: "Standard" }));
+
     expect(onChange).not.toHaveBeenCalled();
   });
 

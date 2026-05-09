@@ -44,15 +44,25 @@ export type BrowserDebugGeometryRow = {
   value: string;
 };
 
+const BROWSER_GEOMETRY_UNAVAILABLE_VALUE = "n/a";
+
 export function createBrowserDebugGeometrySnapshot(
   snapshot: BrowserDebugGeometrySnapshot,
 ): BrowserDebugGeometrySnapshot {
   return snapshot;
 }
 
+function formatFiniteNumber(value: number, formatter: (finiteValue: number) => string) {
+  if (!Number.isFinite(value)) {
+    return BROWSER_GEOMETRY_UNAVAILABLE_VALUE;
+  }
+
+  return formatter(value);
+}
+
 function formatRatio(value: number, total: number) {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) {
-    return "n/a";
+    return BROWSER_GEOMETRY_UNAVAILABLE_VALUE;
   }
 
   return `${((value / total) * 100).toFixed(BROWSER_GEOMETRY_PERCENT_FRACTION_DIGITS)}%`;
@@ -75,19 +85,11 @@ function formatRectDelta(from: BrowserDebugGeometryRect, to: BrowserDebugGeometr
 }
 
 function formatRoundedNumber(value: number) {
-  if (!Number.isFinite(value)) {
-    return "n/a";
-  }
-
-  return String(Math.round(value));
+  return formatFiniteNumber(value, (finiteValue) => String(Math.round(finiteValue)));
 }
 
 function formatScaleFactor(value: number) {
-  if (!Number.isFinite(value)) {
-    return "n/a";
-  }
-
-  return value.toFixed(BROWSER_GEOMETRY_SCALE_FACTOR_FRACTION_DIGITS);
+  return formatFiniteNumber(value, (finiteValue) => finiteValue.toFixed(BROWSER_GEOMETRY_SCALE_FACTOR_FRACTION_DIGITS));
 }
 
 function formatLane(lane: BrowserDebugGeometryLayoutDiagnostics["lane"]) {

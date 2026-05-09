@@ -3,7 +3,15 @@ export type OptionWithLabel = {
   label: string;
 };
 
-export function getOptionLabelByValue(options: readonly OptionWithLabel[], value: string | null) {
+const UNKNOWN_OPTION_LABEL = "Unknown";
+
+export function getOptionLabelByValue(
+  options: readonly OptionWithLabel[],
+  value: string | null,
+) {
   const normalizedValue = value?.trim() ?? "";
-  return options.find((option) => option.value === normalizedValue)?.label ?? normalizedValue;
+  return (
+    options.find((option) => option.value === normalizedValue)?.label ??
+    (normalizedValue || UNKNOWN_OPTION_LABEL)
+  );
 }
