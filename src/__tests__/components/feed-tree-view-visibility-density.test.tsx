@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { type FeedTreeFeedViewModel, FeedTreeView } from "@/components/reader/feed-tree-view";
+import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import { FeedTreeView } from "@/components/reader/feed-tree-view";
 
 const baseFeed: FeedTreeFeedViewModel = {
   id: "feed-1",

@@ -45,7 +45,7 @@ type ArticleToolbarViewProps = {
 
 export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
 
-export type ArticleToolbarActionResolverInput = {
+type ArticleToolbarActionResolverInput = {
   hasArticle: boolean;
   hasUrl: boolean;
   showCopyLinkPreference: boolean;
@@ -53,7 +53,7 @@ export type ArticleToolbarActionResolverInput = {
   layoutMode: ArticleToolbarLayoutMode;
 };
 
-export type ArticleToolbarActionResolverResult = {
+type ArticleToolbarActionResolverResult = {
   canToggleRead: boolean;
   canToggleStar: boolean;
   showCopyLinkButton: boolean;

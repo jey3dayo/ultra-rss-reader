@@ -24,7 +24,7 @@ type InvalidateArticleQueriesOptions = {
 
 type QueryInvalidationKey = readonly [string];
 type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
-export type QueryInvalidationFailure = {
+type QueryInvalidationFailure = {
   queryKey: QueryKey;
   error: unknown;
 };

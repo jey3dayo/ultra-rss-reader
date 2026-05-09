@@ -8,13 +8,6 @@ import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
 import { FeedTreeUnfolderedSection } from "./feed-tree-unfoldered-section";
 import { getSidebarDensityTokens } from "./sidebar-density";
 
-export type {
-  ActiveDropTarget,
-  FeedTreeFeedViewModel,
-  FeedTreeFolderViewModel,
-  FeedTreeViewProps,
-} from "./feed-tree.types";
-
 export function FeedTreeView({
   isOpen,
   sidebarDensity = "normal",

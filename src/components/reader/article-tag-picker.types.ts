@@ -1,6 +1,6 @@
 import type { TagViewItem } from "@/lib/tags.types";
 
-export type ArticleTagPickerViewLabels = {
+type ArticleTagPickerViewLabels = {
   sectionTitle?: string;
   sectionHint?: string;
   addTag: string;

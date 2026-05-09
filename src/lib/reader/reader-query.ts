@@ -21,7 +21,7 @@ type DisabledReaderQuery = {
   source: "disabled";
   reason: DisabledReaderQueryReason;
 };
-export type ReaderQueryResult = ReaderQuery | DisabledReaderQuery;
+type ReaderQueryResult = ReaderQuery | DisabledReaderQuery;
 
 export type ReaderSourceKind = "none" | "account" | "folder" | "feed" | "tag" | "recent";
 
