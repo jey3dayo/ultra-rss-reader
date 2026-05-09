@@ -9,28 +9,44 @@ type UseBrowserDebugGeometryEventsParams = {
   nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
 };
 
+function dispatchBrowserDebugGeometryEvent(detail: ReturnType<typeof createBrowserDebugGeometrySnapshot> | null) {
+  try {
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail }));
+  } catch (error) {
+    console.warn("Failed to dispatch browser debug geometry event.", error);
+  }
+}
+
 export function useBrowserDebugGeometryEvents({
   showDiagnostics,
   layoutDiagnostics,
   nativeDiagnostics,
 }: UseBrowserDebugGeometryEventsParams) {
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.dispatchEvent !== "function") {
+      return undefined;
+    }
+
     if (!showDiagnostics) {
-      window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail: null }));
+      if (import.meta.env.DEV) {
+        dispatchBrowserDebugGeometryEvent(null);
+      }
       return;
     }
 
-    window.dispatchEvent(
-      new CustomEvent(APP_EVENTS.browserDebugGeometry, {
-        detail: createBrowserDebugGeometrySnapshot({
-          layoutDiagnostics,
-          nativeDiagnostics,
-        }),
+    if (!import.meta.env.DEV) {
+      return undefined;
+    }
+
+    dispatchBrowserDebugGeometryEvent(
+      createBrowserDebugGeometrySnapshot({
+        layoutDiagnostics,
+        nativeDiagnostics,
       }),
     );
 
     return () => {
-      window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail: null }));
+      dispatchBrowserDebugGeometryEvent(null);
     };
   }, [layoutDiagnostics, nativeDiagnostics, showDiagnostics]);
 }

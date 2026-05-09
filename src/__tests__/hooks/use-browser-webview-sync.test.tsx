@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserWebviewBoundsSync } from "@/components/reader/hooks/browser/use-browser-webview-bounds-sync";
 import { useBrowserWebviewSync } from "@/components/reader/hooks/browser/use-browser-webview-sync";
@@ -90,6 +90,10 @@ describe("useBrowserWebviewSync", () => {
     setBrowserWebviewBoundsMock.mockResolvedValue(Result.succeed(null));
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ ...useUiStore.getInitialState(), browserUrl });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("focuses the webview after creating it even when focus retention is disabled", async () => {
@@ -322,6 +326,38 @@ describe("useBrowserWebviewSync", () => {
     await vi.waitFor(() => {
       expect(showSurfaceFailure).toHaveBeenCalledWith(error);
     });
+  });
+
+  it("surfaces browser listener readiness timeouts instead of waiting forever", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const showSurfaceFailure = vi.fn();
+    const syncBrowserWebview = vi.fn();
+    const { element } = createHostElement();
+
+    renderHook(() => {
+      const hostRef = useRef<HTMLDivElement | null>(element);
+
+      useBrowserWebviewBoundsSync({
+        browserUrl,
+        hostRef,
+        waitForBrowserWebviewListeners: () => new Promise(() => {}),
+        syncBrowserWebview,
+        showSurfaceFailure,
+      });
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_500);
+    });
+
+    await vi.waitFor(() => {
+      expect(showSurfaceFailure).toHaveBeenCalledWith({
+        type: "Retryable",
+        message: "Webプレビューの初期化に時間がかかっています。再試行してください。",
+      });
+    });
+    expect(syncBrowserWebview).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("surfaces rejected browser sync calls from layout observers", async () => {

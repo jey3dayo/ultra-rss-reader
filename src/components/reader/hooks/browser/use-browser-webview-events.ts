@@ -59,7 +59,12 @@ function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewState 
   return result.success ? result.data : null;
 }
 
-function warnMalformedBrowserWebviewEvent(eventName: string, payload: unknown) {
+function warnMalformedBrowserWebviewEvent(warnedMalformedEventNames: Set<string>, eventName: string, payload: unknown) {
+  if (warnedMalformedEventNames.has(eventName)) {
+    return;
+  }
+
+  warnedMalformedEventNames.add(eventName);
   console.warn(`Ignored malformed embedded browser webview ${eventName} payload:`, payload);
 }
 
@@ -71,15 +76,21 @@ export function useBrowserWebviewEvents({
   onDiagnostics,
 }: UseBrowserWebviewEventsParams): UseBrowserWebviewEventsResult {
   const listenerReadyRef = useRef<Promise<void> | null>(null);
+  const warnedMalformedEventNamesRef = useRef<Set<string>>(new Set());
 
   useLayoutEffect(() => {
     let cancelled = false;
+    warnedMalformedEventNamesRef.current.clear();
     const listenerGroup = createTauriListenerGroup([
       listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
         if (cancelled) return;
         const nextState = parseBrowserWebviewStatePayload(payload);
         if (!nextState) {
-          warnMalformedBrowserWebviewEvent(BROWSER_WINDOW_EVENTS.stateChanged, payload);
+          warnMalformedBrowserWebviewEvent(
+            warnedMalformedEventNamesRef.current,
+            BROWSER_WINDOW_EVENTS.stateChanged,
+            payload,
+          );
           return;
         }
         onStateChanged(nextState);
@@ -87,7 +98,11 @@ export function useBrowserWebviewEvents({
       listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
         if (cancelled) return;
         if (!isBrowserWebviewFallbackPayload(payload)) {
-          warnMalformedBrowserWebviewEvent(BROWSER_WINDOW_EVENTS.fallback, payload);
+          warnMalformedBrowserWebviewEvent(
+            warnedMalformedEventNamesRef.current,
+            BROWSER_WINDOW_EVENTS.fallback,
+            payload,
+          );
           return;
         }
         onFallback(payload);
@@ -101,7 +116,11 @@ export function useBrowserWebviewEvents({
             listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
               if (cancelled) return;
               if (!isBrowserDebugGeometryNativeDiagnostics(payload)) {
-                warnMalformedBrowserWebviewEvent(BROWSER_WINDOW_EVENTS.diagnostics, payload);
+                warnMalformedBrowserWebviewEvent(
+                  warnedMalformedEventNamesRef.current,
+                  BROWSER_WINDOW_EVENTS.diagnostics,
+                  payload,
+                );
                 return;
               }
               onDiagnostics(payload);

@@ -243,4 +243,42 @@ describe("useBrowserWebviewEvents", () => {
     expect(onDiagnostics).not.toHaveBeenCalled();
     expect(consoleWarn).toHaveBeenCalledTimes(3);
   });
+
+  it("warns once per malformed native event type to avoid noisy payload floods", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    listenMock.mockResolvedValue(vi.fn());
+
+    const { result } = renderHook(() =>
+      useBrowserWebviewEvents({
+        showDiagnostics: true,
+        onStateChanged: vi.fn(),
+        onFallback: vi.fn(),
+        onClosed: vi.fn(),
+        onDiagnostics: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+
+    getListener(BROWSER_WINDOW_EVENTS.stateChanged)({ payload: null });
+    getListener(BROWSER_WINDOW_EVENTS.stateChanged)({ payload: "still malformed" });
+    getListener(BROWSER_WINDOW_EVENTS.fallback)({ payload: null });
+    getListener(BROWSER_WINDOW_EVENTS.fallback)({ payload: ["still malformed"] });
+    getListener(BROWSER_WINDOW_EVENTS.diagnostics)({ payload: null });
+    getListener(BROWSER_WINDOW_EVENTS.diagnostics)({ payload: ["still malformed"] });
+
+    const malformedPayloadMessages = consoleWarn.mock.calls
+      .map(([message]) => message)
+      .filter(
+        (message) => typeof message === "string" && message.includes("Ignored malformed embedded browser webview"),
+      );
+
+    expect(malformedPayloadMessages).toEqual([
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload:`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.fallback} payload:`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.diagnostics} payload:`,
+    ]);
+  });
 });

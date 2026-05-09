@@ -635,6 +635,41 @@ describe("BrowserView", () => {
     expect(() => view.unmount()).not.toThrow();
   });
 
+  it("clears a pending theme wipe timer on unmount without leaving stale overlay state", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    const view = render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("browser-overlay-shell")).toHaveAttribute("data-open", "true");
+    });
+
+    act(() => {
+      usePreferencesStore.getState().setPref("theme", "dark");
+    });
+
+    expect(screen.getByTestId("browser-theme-wipe-overlay")).toBeInTheDocument();
+
+    view.unmount();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(750);
+    });
+
+    expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
+    clearTimeoutSpy.mockRestore();
+  });
+
   it("wraps custom toolbar actions in the shared action shell", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 

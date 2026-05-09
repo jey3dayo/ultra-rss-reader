@@ -5,6 +5,9 @@ import { bindWindowEvents } from "@/lib/window/window-events";
 
 const BROWSER_WEBVIEW_BOUNDS_SYNC_FAILED_MESSAGE =
   "Webプレビューの表示位置を更新できませんでした。再試行してください。";
+const BROWSER_WEBVIEW_LISTENER_READY_TIMEOUT_MS = 1_500;
+const BROWSER_WEBVIEW_LISTENER_READY_TIMEOUT_MESSAGE =
+  "Webプレビューの初期化に時間がかかっています。再試行してください。";
 
 type UseBrowserWebviewBoundsSyncParams = {
   browserUrl: string | null;
@@ -37,6 +40,28 @@ function toBrowserWebviewBoundsSyncError(error: unknown): AppError {
   };
 }
 
+function createBrowserWebviewListenerReadyTimeout(): AppError {
+  return {
+    type: "Retryable",
+    message: BROWSER_WEBVIEW_LISTENER_READY_TIMEOUT_MESSAGE,
+  };
+}
+
+function waitWithBrowserWebviewListenerReadyTimeout(waitForBrowserWebviewListeners: () => Promise<void>) {
+  let timeoutId: number | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(createBrowserWebviewListenerReadyTimeout());
+    }, BROWSER_WEBVIEW_LISTENER_READY_TIMEOUT_MS);
+  });
+
+  return Promise.race([waitForBrowserWebviewListeners(), timeout]).finally(() => {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+  });
+}
+
 export function useBrowserWebviewBoundsSync({
   browserUrl,
   hostRef,
@@ -57,7 +82,7 @@ export function useBrowserWebviewBoundsSync({
 
       const syncBounds = (mode: "create" | "resize") => {
         void (async () => {
-          await waitForBrowserWebviewListeners();
+          await waitWithBrowserWebviewListenerReadyTimeout(waitForBrowserWebviewListeners);
           if (cancelled || !isCurrent()) {
             return;
           }

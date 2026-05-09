@@ -57,6 +57,7 @@ function BrowserThemeWipeOverlay() {
   const systemTheme = useSystemTheme();
   const resolvedTheme = themePreference === "system" ? systemTheme : themePreference;
   const cleanupTimeoutRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   const previousResolvedThemeRef = useRef<typeof resolvedTheme | null>(null);
   const [wipeKey, setWipeKey] = useState(0);
 
@@ -81,6 +82,9 @@ function BrowserThemeWipeOverlay() {
     }
     cleanupTimeoutRef.current = window.setTimeout(() => {
       cleanupTimeoutRef.current = null;
+      if (!mountedRef.current) {
+        return;
+      }
       setWipeKey(0);
     }, BROWSER_THEME_WIPE_DURATION_MS);
 
@@ -89,8 +93,10 @@ function BrowserThemeWipeOverlay() {
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (cleanupTimeoutRef.current !== null) {
         window.clearTimeout(cleanupTimeoutRef.current);
+        cleanupTimeoutRef.current = null;
       }
     };
   }, []);

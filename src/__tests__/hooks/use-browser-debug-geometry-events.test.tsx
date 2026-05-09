@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useBrowserDebugGeometryEvents } from "@/components/reader/hooks/browser/use-browser-debug-geometry-events";
 import { APP_EVENTS } from "@/constants/events";
 import type { BrowserDebugGeometrySnapshot } from "@/lib/browser/browser-debug-geometry";
@@ -39,6 +39,11 @@ function listenToBrowserDebugGeometry(listener: (detail: BrowserDebugGeometryDet
 }
 
 describe("useBrowserDebugGeometryEvents", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   it("publishes a null reset when diagnostics are initially disabled", () => {
     const details: BrowserDebugGeometryDetail[] = [];
     const stopListening = listenToBrowserDebugGeometry((detail) => {
@@ -91,5 +96,49 @@ describe("useBrowserDebugGeometryEvents", () => {
     } finally {
       stopListening();
     }
+  });
+
+  it("does not publish debug geometry events outside dev builds", () => {
+    vi.stubEnv("DEV", false);
+    const details: BrowserDebugGeometryDetail[] = [];
+    const stopListening = listenToBrowserDebugGeometry((detail) => {
+      details.push(detail);
+    });
+
+    try {
+      const { unmount } = renderHook(() =>
+        useBrowserDebugGeometryEvents({
+          showDiagnostics: true,
+          layoutDiagnostics: null,
+          nativeDiagnostics: null,
+        }),
+      );
+
+      unmount();
+
+      expect(details).toEqual([]);
+    } finally {
+      stopListening();
+    }
+  });
+
+  it("does not throw when the window event boundary is unavailable", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const dispatchEvent = vi.spyOn(window, "dispatchEvent").mockImplementation(() => {
+      throw new Error("dispatch unavailable");
+    });
+
+    expect(() =>
+      renderHook(() =>
+        useBrowserDebugGeometryEvents({
+          showDiagnostics: false,
+          layoutDiagnostics: null,
+          nativeDiagnostics: null,
+        }),
+      ),
+    ).not.toThrow();
+
+    expect(warn).toHaveBeenCalledWith("Failed to dispatch browser debug geometry event.", expect.any(Error));
+    dispatchEvent.mockRestore();
   });
 });
