@@ -158,4 +158,17 @@ describe("DebugSettings", () => {
     expect(screen.getByText(/Production credentials are not copied/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /seed/i })).not.toBeInTheDocument();
   });
+
+  it("hides Dev data seed guidance outside dev builds", async () => {
+    vi.stubEnv("DEV", false);
+    try {
+      render(<DebugSettings />, { wrapper: createWrapper() });
+
+      expect(await screen.findByText("OS keyring")).toBeInTheDocument();
+      expect(screen.queryByText("Dev data seed")).not.toBeInTheDocument();
+      expect(screen.queryByText("mise run app:dev:seed-from-prod")).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

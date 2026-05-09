@@ -153,8 +153,8 @@ describe("useDebugSettingsViewProps", () => {
     ]);
   });
 
-  it("surfaces the Dev data seed command and safety notes without wiring execution", () => {
-    const props = createProps();
+  it("surfaces the Dev data seed command and safety notes only for dev builds without wiring execution", () => {
+    const props = createProps({ devBuild: true });
 
     const devDataSection = props.sections.find((section) => section.id === "debug-dev-data");
 
@@ -184,5 +184,11 @@ describe("useDebugSettingsViewProps", () => {
         value: expect.stringContaining("not copied"),
       }),
     ]);
+  });
+
+  it("omits the Dev data seed guidance outside dev builds", () => {
+    const props = createProps({ devBuild: false });
+
+    expect(props.sections.find((section) => section.id === "debug-dev-data")).toBeUndefined();
   });
 });
