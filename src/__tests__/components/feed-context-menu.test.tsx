@@ -3,11 +3,12 @@ import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as tauriCommands from "@/api/tauri-commands";
 import { FeedContextMenuContent } from "@/components/reader/feed-context-menu";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef } = vi.hoisted(() => ({
+const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef, updateFeedDisplaySettingsMock } = vi.hoisted(() => ({
   deleteFeedMutateAsyncMock: vi.fn(),
   unsubscribeDialogPropsRef: {
     current: null as null | {
@@ -16,6 +17,7 @@ const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef } = vi.hoisted(() =
       onConfirm: () => void;
     },
   },
+  updateFeedDisplaySettingsMock: vi.fn(),
 }));
 
 vi.mock("@/components/reader/feed-context-menu-view", () => ({
@@ -23,16 +25,21 @@ vi.mock("@/components/reader/feed-context-menu-view", () => ({
     openSiteLabel,
     hasUnreadArticles,
     onOpenSite,
+    onSetDisplayPreset,
     onUnsubscribe,
   }: {
     openSiteLabel: string;
     hasUnreadArticles: boolean;
     onOpenSite: () => void;
+    onSetDisplayPreset: (value: string) => void;
     onUnsubscribe: () => void;
   }) => (
     <>
       <button type="button" data-has-unread-articles={String(hasUnreadArticles)} onClick={onOpenSite}>
         {openSiteLabel}
+      </button>
+      <button type="button" onClick={() => onSetDisplayPreset("preview")}>
+        Preview
       </button>
       <button type="button" onClick={onUnsubscribe}>
         Unsubscribe…
@@ -66,16 +73,18 @@ vi.mock("@/hooks/use-delete-feed", () => ({
 }));
 
 vi.mock("@/hooks/use-update-feed-display-mode", () => ({
-  useUpdateFeedDisplaySettings: () => vi.fn(),
+  useUpdateFeedDisplaySettings: () => updateFeedDisplaySettingsMock,
 }));
 
 describe("FeedContextMenuContent", () => {
   let calls: MockTauriCommandCall[] = [];
 
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     unsubscribeDialogPropsRef.current = null;
     deleteFeedMutateAsyncMock.mockResolvedValue(undefined);
+    updateFeedDisplaySettingsMock.mockResolvedValue(true);
     calls = [];
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState(useUiStore.getInitialState());
@@ -130,6 +139,35 @@ describe("FeedContextMenuContent", () => {
     expect(calls).toContainEqual({
       cmd: "open_in_browser",
       args: { url: "https://example.com", background: false },
+    });
+  });
+
+  it("surfaces rejected open site commands with a toast", async () => {
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
+    vi.spyOn(tauriCommands, "openInBrowser").mockRejectedValue(new Error("Native command rejected"));
+
+    render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open example.com" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith("Native command rejected");
+    });
+  });
+
+  it("surfaces rejected display preset updates with a toast while keeping the optimistic action fire-and-forget", async () => {
+    const showToast = vi.fn();
+    updateFeedDisplaySettingsMock.mockRejectedValue(new Error("Preference write failed"));
+    useUiStore.setState({ showToast });
+
+    render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+
+    await waitFor(() => {
+      expect(updateFeedDisplaySettingsMock).toHaveBeenCalledWith("feed-1", "on", "on");
+      expect(showToast).toHaveBeenCalledWith("Preference write failed");
     });
   });
 

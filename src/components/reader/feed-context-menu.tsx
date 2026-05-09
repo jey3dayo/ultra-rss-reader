@@ -15,6 +15,7 @@ import {
   resolveFeedDisplayPreset,
 } from "@/lib/articles/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";
@@ -76,15 +77,20 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     const url = feed.site_url || feed.url;
     if (url) {
       const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      openInBrowser(url, bg).then((result) =>
-        Result.pipe(
-          result,
-          Result.inspectError((e) => {
-            console.error("Failed to open site:", e);
-            showToast(e.message);
-          }),
-        ),
-      );
+      void openInBrowser(url, bg)
+        .then((result) =>
+          Result.pipe(
+            result,
+            Result.inspectError((e) => {
+              console.error("Failed to open site:", e);
+              showToast(e.message);
+            }),
+          ),
+        )
+        .catch((error: unknown) => {
+          console.error("Failed to open site:", error);
+          showToast(getErrorMessage(error));
+        });
     }
   }, [feed.site_url, feed.url, showToast]);
 
@@ -105,9 +111,11 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }
 
       const nextModes = displayPresetToTriStateModes(value);
-      void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
+      void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode).catch((error: unknown) => {
+        showToast(getErrorMessage(error));
+      });
     },
-    [feed.id, updateFeedDisplaySettings],
+    [feed.id, showToast, updateFeedDisplaySettings],
   );
 
   const handleOpenUnsubscribeDialog = useCallback(() => {

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
+import { useUiStore } from "@/stores/ui-store";
 
 const markFolderReadMutate = vi.fn();
 const updateFeedDisplaySettingsMock = vi.fn();
@@ -20,7 +21,10 @@ const translations = new Map<string, string>([
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => translations.get(key) ?? key,
+    t: (key: string, options?: { message?: string }) => {
+      const translated = translations.get(key) ?? key;
+      return options?.message ? `${translated}:${options.message}` : translated;
+    },
   }),
 }));
 
@@ -44,6 +48,7 @@ vi.mock("@/hooks/use-update-feed-display-mode", () => ({
 describe("FolderContextMenuContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   it("confirms marking every folder feed as read", async () => {
@@ -119,6 +124,47 @@ describe("FolderContextMenuContent", () => {
     await waitFor(() => {
       expect(updateFeedDisplaySettingsMock).toHaveBeenNthCalledWith(1, "feed-1", "on", "on");
       expect(updateFeedDisplaySettingsMock).toHaveBeenNthCalledWith(2, "feed-2", "on", "on");
+    });
+  });
+
+  it("surfaces rejected folder display preset updates with a toast", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    const folder: FolderDto = {
+      id: "folder-1",
+      account_id: "acc-1",
+      name: "Work",
+      sort_order: 0,
+    };
+    const feeds: FeedDto[] = [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: "folder-1",
+        remote_id: null,
+        title: "Alpha",
+        url: "https://example.com/alpha.xml",
+        site_url: "https://example.com/alpha",
+        unread_count: 2,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ];
+
+    updateFeedDisplaySettingsMock.mockRejectedValue(new Error("Preference write failed"));
+    useUiStore.setState({ showToast });
+
+    render(
+      <ContextMenu.Root open>
+        <FolderContextMenuContent folder={folder} folderUnread={6} feeds={feeds} />
+      </ContextMenu.Root>,
+    );
+
+    await user.click(screen.getByRole("menuitem", { name: "Preview" }));
+
+    await waitFor(() => {
+      expect(updateFeedDisplaySettingsMock).toHaveBeenCalledWith("feed-1", "on", "on");
+      expect(showToast).toHaveBeenCalledWith("failed_to_update_display_settings:Preference write failed");
     });
   });
 

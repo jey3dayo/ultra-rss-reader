@@ -11,6 +11,8 @@ import {
   isFeedDisplayPresetOption,
   resolveFolderDisplayPreset,
 } from "@/lib/articles/article-display";
+import { getErrorMessage } from "@/lib/ui/errors";
+import { useUiStore } from "@/stores/ui-store";
 import { FolderContextMenuView } from "./folder-context-menu-view";
 
 type FolderContextMenuContentProps = {
@@ -38,6 +40,7 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
   const markFolderRead = useMarkFolderRead();
   const markOldUnreadRead = useOldUnreadReadAction("folder", folder.id);
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
+  const showToast = useUiStore((state) => state.showToast);
   const selectedDisplayPreset = resolveFolderDisplayPreset(feeds);
   const displayPresetOptions = buildFeedDisplayPresetOptions({
     default: t("display_mode_default"),
@@ -64,9 +67,11 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
       const nextModes = displayPresetToTriStateModes(value);
       await Promise.all(
         feeds.map((feed) => updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode)),
+      ).catch((error: unknown) =>
+        showToast(t("failed_to_update_display_settings", { message: getErrorMessage(error) })),
       );
     },
-    [feeds, updateFeedDisplaySettings],
+    [feeds, showToast, t, updateFeedDisplaySettings],
   );
 
   return (

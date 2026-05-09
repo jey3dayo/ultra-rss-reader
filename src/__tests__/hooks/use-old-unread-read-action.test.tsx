@@ -42,6 +42,8 @@ const countOldUnreadArticlesMock = vi.mocked(countOldUnreadArticles);
 describe("useOldUnreadReadAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    markOldUnreadReadMutate.mockReset();
+    countOldUnreadArticlesMock.mockReset();
     useUiStore.setState(useUiStore.getInitialState());
   });
 
@@ -91,5 +93,52 @@ describe("useOldUnreadReadAction", () => {
       }),
     );
     expect(showToast).toHaveBeenCalledWith("Failed to mark old unread");
+  });
+
+  it("shows a toast and does not mutate when old unread count returns Result.fail", async () => {
+    const showToast = vi.fn();
+    countOldUnreadArticlesMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "Count failed" }));
+    useUiStore.setState({
+      showConfirm: vi.fn(),
+      showToast,
+    });
+
+    const { result } = renderHook(() => useOldUnreadReadAction("folder", "folder-1"));
+
+    await act(async () => {
+      await result.current(14);
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Count failed");
+    expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { scopeKind: "account" as const, targetId: "acc-1" },
+    { scopeKind: "folder" as const, targetId: "folder-1" },
+    { scopeKind: "feed" as const, targetId: "feed-1" },
+  ])("passes $scopeKind scope to the confirmed old unread mutation", async ({ scopeKind, targetId }) => {
+    const showToast = vi.fn();
+    countOldUnreadArticlesMock.mockResolvedValue(Result.succeed(2));
+    useUiStore.setState({
+      showConfirm: (_message, onConfirm) => {
+        onConfirm();
+      },
+      showToast,
+    });
+
+    const { result } = renderHook(() => useOldUnreadReadAction(scopeKind, targetId));
+
+    await act(async () => {
+      await result.current(60);
+    });
+
+    expect(markOldUnreadReadMutate).toHaveBeenCalledWith(
+      { scopeKind, targetId, olderThanDays: 60 },
+      expect.objectContaining({
+        onError: expect.any(Function),
+      }),
+    );
+    expect(showToast).not.toHaveBeenCalled();
   });
 });
