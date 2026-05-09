@@ -22,6 +22,20 @@ const initialArticleListSearchState: ArticleListSearchState = {
   debouncedQuery: "",
 };
 
+function scheduleSearchFocusRetry(focus: () => void): void {
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(focus);
+  }
+
+  const scheduleTimeout =
+    typeof window !== "undefined" && typeof window.setTimeout === "function"
+      ? window.setTimeout.bind(window)
+      : typeof setTimeout === "function"
+        ? setTimeout
+        : null;
+  scheduleTimeout?.(focus, 0);
+}
+
 function articleListSearchReducer(
   state: ArticleListSearchState,
   action: ArticleListSearchAction,
@@ -87,8 +101,7 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const focusSearchInput = useCallback(() => {
     const focus = () => searchInputRef.current?.focus({ preventScroll: true });
     focus();
-    requestAnimationFrame(focus);
-    window.setTimeout(focus, 0);
+    scheduleSearchFocusRetry(focus);
   }, []);
 
   const openSearch = useCallback(() => {

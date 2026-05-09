@@ -111,9 +111,11 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }
 
       const nextModes = displayPresetToTriStateModes(value);
-      void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode).catch((error: unknown) => {
-        showToast(getErrorMessage(error));
-      });
+      void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode).catch(
+        (error: unknown) => {
+          showToast(getErrorMessage(error));
+        },
+      );
     },
     [feed.id, showToast, updateFeedDisplaySettings],
   );

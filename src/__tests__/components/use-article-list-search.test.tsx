@@ -103,6 +103,33 @@ describe("useArticleListSearch", () => {
     expect(result.current.showSearch).toBe(true);
   });
 
+  it("opens search when retry focus runtime APIs are unavailable", () => {
+    vi.stubGlobal("requestAnimationFrame", undefined);
+    vi.spyOn(window, "setTimeout").mockImplementation(undefined as never);
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    expect(() => {
+      act(() => {
+        result.current.openSearch();
+      });
+    }).not.toThrow();
+
+    expect(result.current.showSearch).toBe(true);
+  });
+
+  it("does not throw when search opens before the input is mounted", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    expect(result.current.searchInputRef.current).toBeNull();
+    expect(() => {
+      act(() => {
+        result.current.openSearch();
+      });
+    }).not.toThrow();
+
+    expect(result.current.showSearch).toBe(true);
+  });
+
   it("closes search and clears the debounced query immediately", () => {
     const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
