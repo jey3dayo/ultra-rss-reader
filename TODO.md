@@ -85,25 +85,10 @@
   - native browser diagnostics flag が startup preference だけを読む場合、settings で Debug HUD を切り替えても native emit が即時追従しない可能性がある
   - preference update event / app restart required / frontend-only HUD のどれを正にするか決め、debug diagnostics の manual verification に残す
 
-- [ ] P0 release tag と app/package/Cargo version の一致を release workflow で固定する
-  - 対象: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `.github/workflows/release.yml`
-  - release tag と app/package/Cargo version がズレると、別バージョンの artifact を正規 release として配布できる
-  - release workflow で tag、package version、Tauri bundle version、Cargo package version の parity を検証し、不一致なら artifact 作成前に失敗させる
-
-- [ ] P0 add_local_feed の部分保存 rollback / partial success 契約を固定する
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/sync_providers.rs`, `src/hooks/use-add-feed.ts`
-  - `add_local_feed` は feed 保存後に初回 sync へ進むため、初回記事取得が失敗した時に「追加失敗だが feed は残る」状態になり得る
-  - feed persisted + initial sync failed の rollback / partial success / retry 導線を決め、user feedback と DB 状態を Rust test で固定する
-
 - [ ] P1 dependency security audit gate を CI / release preflight へ入れるか決める
   - 対象: `mise.toml`, `.github/workflows/ci.yml`, `package.json`, `src-tauri/Cargo.toml`
   - frozen install と build はあるが、npm/Cargo の既知脆弱性 gate が未固定だと、release 直前まで supply-chain risk に気づけない
   - `pnpm audit` / Rust audit 相当を CI、release preflight、manual only のどこで落とすか決め、許容/除外リストの運用も TODO 化する
-
-- [ ] P1 GitHub Actions の tag pin / SHA pin 方針を release workflow から固定する
-  - 対象: `.github/workflows/ci.yml`, `.github/workflows/release.yml`
-  - workflow actions が version tag 固定だけだと、release workflow の supply-chain 面が tag 移動や upstream 変更に依存する
-  - release job だけ SHA pin するか全 workflow へ広げるかを決め、action pinning policy と更新手順を test / lint で検出できる形にする
 
 - [ ] P1 Tauri unstable feature を release build で許可する条件を棚卸しする
   - 対象: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/browser_webview.rs`
@@ -144,16 +129,6 @@
   - 対象: `src/components/reader/article-list-screen-view.tsx`, `src/components/reader/article-groups-view.tsx`, `src/components/reader/article-list-item.tsx`
   - `role="listbox"` 配下の group header / wrapper / option の関係が曖昧だと、日付グループ見出しが支援技術へ安定して伝わらない可能性がある
   - `role="group"` / `aria-labelledby` / option 構造の方針を決め、grouped article list の accessibility contract test を追加する
-
-- [ ] P2 settings navigation の selection semantics を整理する
-  - 対象: `src/components/settings/settings-nav-view.tsx`, `src/components/settings/accounts-nav-view.tsx`, `src/components/shared/nav-row-button.tsx`
-  - settings modal 内のカテゴリ/アカウント切替が `aria-current` と `aria-pressed` を併用しており、navigation / tabs / radio 相当の操作モデルが曖昧
-  - 現行 keyboard 操作を維持するか arrow key selection を足すか決め、selected state の role/aria contract を test で固定する
-
-- [ ] P2 mute keyword auto mark read の long transaction / partial failure contract を固定する
-  - 対象: `src-tauri/src/commands/mute_keyword_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
-  - mute keyword 作成・更新時に全 account の muted unread を mark read するため、対象記事が多い時の long transaction、途中失敗、UI feedback の境界が曖昧になりやすい
-  - preference enabled 時の対象 account snapshot、partial failure、large article set の処理方針を Rust test / manual verification に分けて固定する
 
 - [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
   - 対象: `docs/feed-content-privacy.md`, `TODO.md`
