@@ -448,6 +448,7 @@ const storybookStoryHelperExportAllowlist = new Set([
   "src/components/storybook/ui-reference-shell-overlay-canvas.stories.tsx:ShellOverlayCanvas",
   "src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx:ViewSpecimensCanvas",
 ]);
+const officialTauriV2ConfigSchemaUrl = "https://schema.tauri.app/config/2";
 const workflowUsesRefAllowlist = new Set(["dtolnay/rust-toolchain@stable"]);
 const workflowLocalReusableActionAllowlist = new Set<string>();
 const maintainerManagedLabelSet = new Set<string>(maintainerManagedLabels);
@@ -807,10 +808,16 @@ describe("repository static contracts", () => {
     const misePnpmVersion = extractMiseToolVersion(miseSource, "npm:pnpm");
 
     expect(packageJson.engines.node).toBe("24");
+    expect(Object.keys(packageJson.engines).sort()).toEqual(["node", "pnpm"]);
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
+    expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
     expect(packageManagerVersion).toBe("10.33.4");
     expect(misePnpmVersion).toBe(packageManagerVersion);
+  });
+
+  it("keeps the base Tauri config on the official v2 schema URL", () => {
+    expect(tauriConfig.$schema).toBe(officialTauriV2ConfigSchemaUrl);
   });
 
   it("keeps markdown format and lint tasks on the same glob inventory", () => {
@@ -1517,6 +1524,12 @@ describe("repository static contracts", () => {
   });
 
   it("keeps issue affected areas aligned with automatic area labels", () => {
+    const bugAffectedAreaOptions = extractIssueTemplateCheckboxLabels(issueBugTemplate, "areas");
+
+    expect(bugAffectedAreaOptions).toContain("ワークフロー / 設定 (GitHub Actions / mise / tooling)");
+    expect(
+      [".github/workflows/ci.yml", "mise.toml"].flatMap((path) => extractLabelerLabelsForPath(labelerConfig, path)),
+    ).toEqual(expect.arrayContaining(["ci", "maintenance-family"]));
     expect(new Set(automaticAffectedAreaLabelParity.map(({ templateName }) => templateName))).toEqual(
       new Set(pathLabelableAffectedAreaTemplateNames),
     );
