@@ -8,16 +8,22 @@ import {
   buildOpmlExportFilename,
   useAccountDetailDangerZone,
 } from "@/components/settings/hooks/account-detail/use-account-detail-danger-zone";
+import { queryKeys } from "@/lib/query/query-invalidation";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { deleteAccountMock, exportOpmlMock } = vi.hoisted(() => ({
+const { deleteAccountMock, exportOpmlMock, getPreferencesMock, setPreferenceMock } = vi.hoisted(() => ({
   deleteAccountMock: vi.fn(),
   exportOpmlMock: vi.fn(),
+  getPreferencesMock: vi.fn(),
+  setPreferenceMock: vi.fn(),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({
   deleteAccount: deleteAccountMock,
   exportOpml: exportOpmlMock,
+  getPreferences: getPreferencesMock,
+  setPreference: setPreferenceMock,
 }));
 
 function createDeferred<T>() {
@@ -48,10 +54,15 @@ describe("useAccountDetailDangerZone", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     exportOpmlMock.mockReset();
     deleteAccountMock.mockReset();
+    getPreferencesMock.mockReset();
+    setPreferenceMock.mockReset();
+    setPreferenceMock.mockResolvedValue(Result.succeed(null));
     useUiStore.setState(useUiStore.getInitialState());
+    usePreferencesStore.setState({ prefs: {}, loaded: false });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
@@ -62,6 +73,7 @@ describe("useAccountDetailDangerZone", () => {
       value: originalRevokeObjectUrl,
     });
     useUiStore.setState(useUiStore.getInitialState());
+    usePreferencesStore.setState({ prefs: {}, loaded: false });
   });
 
   it("builds a safe OPML filename and falls back when the account name is empty or only forbidden characters", () => {
@@ -100,5 +112,157 @@ describe("useAccountDetailDangerZone", () => {
     await secondExport;
 
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the account snapshot from export start for the OPML command and filename", async () => {
+    const exportResult = createDeferred<ReturnType<typeof Result.succeed<string>>>();
+    const clickedDownloads: string[] = [];
+    exportOpmlMock.mockReturnValue(exportResult.promise);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      clickedDownloads.push(this.download);
+    });
+    const firstAccount = { ...sampleAccounts[0], id: "acc-1", name: "Local Work" };
+    const secondAccount = { ...sampleAccounts[0], id: "acc-2", name: "Local Personal" };
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailDangerZone({
+          account,
+          queryClient: createTestQueryClient(),
+          t,
+          onAccountDeleted: vi.fn(),
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    const exportOpmlPromise = result.current.handleExportOpml();
+    rerender({ account: secondAccount });
+
+    exportResult.resolve(Result.succeed("<opml />"));
+    await exportOpmlPromise;
+
+    expect(exportOpmlMock).toHaveBeenCalledWith(firstAccount.id);
+    expect(clickedDownloads).toEqual(["Local Work-feeds.opml"]);
+  });
+
+  it("revokes the previous OPML object URL before replacing it and revokes the active URL on unmount", async () => {
+    const createObjectUrlMock = vi.fn().mockReturnValueOnce("blob:first").mockReturnValueOnce("blob:second");
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectUrlMock,
+    });
+    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
+    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
+
+    const { result, unmount } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleExportOpml();
+    });
+    await act(async () => {
+      await result.current.handleExportOpml();
+    });
+    unmount();
+
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:first");
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:second");
+  });
+
+  it("revokes the active OPML object URL after the download grace period", async () => {
+    vi.useFakeTimers();
+    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
+    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleExportOpml();
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");
+  });
+
+  it("invalidates reader article caches after account delete succeeds", async () => {
+    deleteAccountMock.mockResolvedValue(Result.succeed(null));
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], sampleAccounts);
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const onAccountDeleted = vi.fn();
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "article-1",
+      contentMode: "reader",
+      recentlyReadIds: new Set(["article-1"]),
+      retainedArticleIds: new Set(["article-1"]),
+    });
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1" },
+      loaded: true,
+    });
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient,
+        t,
+        onAccountDeleted,
+      }),
+    );
+
+    act(() => {
+      result.current.handleRequestDelete();
+    });
+    await act(async () => {
+      await useUiStore.getState().confirmDialog.onConfirm?.();
+    });
+
+    expect(deleteAccountMock).toHaveBeenCalledWith("acc-1");
+    expect(onAccountDeleted).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-2");
+    expect(useUiStore.getState().selection).toEqual({ type: "all" });
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+    expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+    expect(usePreferencesStore.getState().prefs.selected_account_id).toBe("acc-2");
+    expect(setPreferenceMock).toHaveBeenCalledWith("selected_account_id", "acc-2");
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["accounts"],
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.feeds.root,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.articles.root,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.accountArticles.root,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.folderArticles.root,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.root,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.tagArticleCounts.root,
+    });
   });
 });

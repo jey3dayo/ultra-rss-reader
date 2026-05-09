@@ -777,6 +777,10 @@ describe("useUiStore", () => {
       selection: { type: "feed", feedId: "feed-1" },
       selectedArticleId: "article-1",
       contentMode: "reader",
+      browserUrl: "https://example.com/deleted-account",
+      browserNavigationState: { canGoBack: true, canGoForward: true },
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: "next-article",
       viewMode: "starred",
       focusedPane: "content",
       recentlyReadIds: new Set(["article-1"]),
@@ -790,6 +794,10 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().selection).toEqual({ type: "all" });
     expect(useUiStore.getState().selectedArticleId).toBeNull();
     expect(useUiStore.getState().contentMode).toBe("empty");
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    expect(useUiStore.getState().browserNavigationState).toBeNull();
+    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+    expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
     expect(useUiStore.getState().viewMode).toBe("unread");
     expect(useUiStore.getState().focusedPane).toBe("list");
     expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());

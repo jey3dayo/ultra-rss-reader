@@ -17,10 +17,19 @@ export type ReaderQuery =
   | { source: "recent"; scope: AccountReaderScope; filter: ReaderFilter };
 
 export type DisabledReaderQueryReason = "missing_account" | "invalid_selection";
-export type DisabledReaderQuery = { source: "disabled"; reason: DisabledReaderQueryReason };
+export type DisabledReaderQuery = {
+  source: "disabled";
+  reason: DisabledReaderQueryReason;
+};
 export type ReaderQueryResult = ReaderQuery | DisabledReaderQuery;
 
-export type ReaderSourceKind = "none" | "account" | "folder" | "feed" | "tag" | "recent";
+export type ReaderSourceKind =
+  | "none"
+  | "account"
+  | "folder"
+  | "feed"
+  | "tag"
+  | "recent";
 
 export type ReaderSourcePlan = {
   query: ReaderQuery | null;
@@ -38,6 +47,40 @@ export type ReaderSourcePlan = {
   effectiveViewMode: ReaderFilter;
   preservesRecentOrder: boolean;
 };
+
+export type ReaderSelectionAvailability = {
+  feedIds?: ReadonlySet<string>;
+  folderIds?: ReadonlySet<string>;
+  tagIds?: ReadonlySet<string>;
+};
+
+export function shouldRecoverUnavailableReaderSelection(
+  selection: ReaderQuerySelection,
+  availability: ReaderSelectionAvailability,
+): boolean {
+  if (selection.type === "feed") {
+    return (
+      availability.feedIds !== undefined &&
+      !availability.feedIds.has(selection.feedId)
+    );
+  }
+
+  if (selection.type === "folder") {
+    return (
+      availability.folderIds !== undefined &&
+      !availability.folderIds.has(selection.folderId)
+    );
+  }
+
+  if (selection.type === "tag") {
+    return (
+      availability.tagIds !== undefined &&
+      !availability.tagIds.has(selection.tagId)
+    );
+  }
+
+  return false;
+}
 
 function resolveEffectiveViewMode(
   selection: ReaderQuerySelection,
@@ -138,7 +181,9 @@ export function resolveReaderQuery(
   };
 }
 
-function buildDisabledReaderSourcePlan(viewMode: ReaderFilter): ReaderSourcePlan {
+function buildDisabledReaderSourcePlan(
+  viewMode: ReaderFilter,
+): ReaderSourcePlan {
   return {
     query: null,
     sourceKind: "none",
@@ -166,7 +211,11 @@ export function resolveReaderSourcePlan(
   if (query.source === "disabled") {
     return buildDisabledReaderSourcePlan(viewMode);
   }
-  const effectiveViewMode = resolveEffectiveViewMode(selection, viewMode, query);
+  const effectiveViewMode = resolveEffectiveViewMode(
+    selection,
+    viewMode,
+    query,
+  );
 
   if (query.source === "recent") {
     return {

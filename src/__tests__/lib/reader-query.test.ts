@@ -5,6 +5,7 @@ import {
   type ReaderQuerySelection,
   resolveReaderQuery,
   resolveReaderSourcePlan,
+  shouldRecoverUnavailableReaderSelection,
 } from "@/lib/reader/reader-query";
 
 function expectedReaderQuery(query: ReaderQuery): ReaderQuery {
@@ -13,17 +14,23 @@ function expectedReaderQuery(query: ReaderQuery): ReaderQuery {
 
 describe("resolveReaderQuery", () => {
   it("normalizes smart views to account-scoped reader queries", () => {
-    expect(resolveReaderQuery({ type: "smart", kind: "unread" }, "all", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "smart", kind: "unread" }, "all", "acc-1"),
+    ).toEqual({
       source: "articles",
       scope: { type: "account", accountId: "acc-1" },
       filter: "unread",
     });
-    expect(resolveReaderQuery({ type: "smart", kind: "starred" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "smart", kind: "starred" }, "unread", "acc-1"),
+    ).toEqual({
       source: "articles",
       scope: { type: "account", accountId: "acc-1" },
       filter: "starred",
     });
-    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "acc-1"),
+    ).toEqual({
       source: "recent",
       scope: { type: "account", accountId: "acc-1" },
       filter: "all",
@@ -39,12 +46,16 @@ describe("resolveReaderQuery", () => {
   });
 
   it("normalizes recent smart view with footer filters to recent account queries", () => {
-    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "smart", kind: "recent" }, "unread", "acc-1"),
+    ).toEqual({
       source: "recent",
       scope: { type: "account", accountId: "acc-1" },
       filter: "unread",
     });
-    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "starred", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "smart", kind: "recent" }, "starred", "acc-1"),
+    ).toEqual({
       source: "recent",
       scope: { type: "account", accountId: "acc-1" },
       filter: "starred",
@@ -52,17 +63,27 @@ describe("resolveReaderQuery", () => {
   });
 
   it("normalizes regular folder, feed, and tag selections to unread mode", () => {
-    expect(resolveReaderQuery({ type: "folder", folderId: "folder-1" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery(
+        { type: "folder", folderId: "folder-1" },
+        "unread",
+        "acc-1",
+      ),
+    ).toEqual({
       source: "articles",
       scope: { type: "folder", folderId: "folder-1" },
       filter: "unread",
     });
-    expect(resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", "acc-1"),
+    ).toEqual({
       source: "articles",
       scope: { type: "feed", feedId: "feed-1" },
       filter: "unread",
     });
-    expect(resolveReaderQuery({ type: "tag", tagId: "tag-1" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "tag", tagId: "tag-1" }, "unread", "acc-1"),
+    ).toEqual({
       source: "articles",
       scope: { type: "tag", tagId: "tag-1" },
       filter: "unread",
@@ -70,17 +91,31 @@ describe("resolveReaderQuery", () => {
   });
 
   it("normalizes folder, feed, and tag selections in starred context to starred mode", () => {
-    expect(resolveReaderQuery({ type: "folder", folderId: "folder-1" }, "starred", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery(
+        { type: "folder", folderId: "folder-1" },
+        "starred",
+        "acc-1",
+      ),
+    ).toEqual({
       source: "articles",
       scope: { type: "folder", folderId: "folder-1" },
       filter: "starred",
     });
-    expect(resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "starred", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery(
+        { type: "feed", feedId: "feed-1" },
+        "starred",
+        "acc-1",
+      ),
+    ).toEqual({
       source: "articles",
       scope: { type: "feed", feedId: "feed-1" },
       filter: "starred",
     });
-    expect(resolveReaderQuery({ type: "tag", tagId: "tag-1" }, "starred", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "tag", tagId: "tag-1" }, "starred", "acc-1"),
+    ).toEqual({
       source: "articles",
       scope: { type: "tag", tagId: "tag-1" },
       filter: "starred",
@@ -92,7 +127,9 @@ describe("resolveReaderQuery", () => {
       source: "disabled",
       reason: "missing_account",
     });
-    expect(resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", null)).toEqual({
+    expect(
+      resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", null),
+    ).toEqual({
       source: "disabled",
       reason: "missing_account",
     });
@@ -103,7 +140,9 @@ describe("resolveReaderQuery", () => {
       source: "disabled",
       reason: "missing_account",
     });
-    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "\n")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "\n"),
+    ).toEqual({
       source: "disabled",
       reason: "missing_account",
     });
@@ -115,19 +154,31 @@ describe("resolveReaderQuery", () => {
   });
 
   it("treats blank feed, folder, and tag scope ids as invalid selections", () => {
-    expect(resolveReaderQuery({ type: "feed", feedId: " " }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "feed", feedId: " " }, "unread", "acc-1"),
+    ).toEqual({
       source: "disabled",
       reason: "invalid_selection",
     });
-    expect(resolveReaderQuery({ type: "folder", folderId: "\n" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "folder", folderId: "\n" }, "unread", "acc-1"),
+    ).toEqual({
       source: "disabled",
       reason: "invalid_selection",
     });
-    expect(resolveReaderQuery({ type: "tag", tagId: "" }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery({ type: "tag", tagId: "" }, "unread", "acc-1"),
+    ).toEqual({
       source: "disabled",
       reason: "invalid_selection",
     });
-    expect(resolveReaderQuery({ type: "feed", feedId: " feed-1 " }, "unread", "acc-1")).toEqual({
+    expect(
+      resolveReaderQuery(
+        { type: "feed", feedId: " feed-1 " },
+        "unread",
+        "acc-1",
+      ),
+    ).toEqual({
       source: "articles",
       scope: { type: "feed", feedId: "feed-1" },
       filter: "unread",
@@ -320,7 +371,9 @@ describe("resolveReaderSourcePlan", () => {
     ];
 
     for (const { selection, viewMode, expected } of cases) {
-      expect(resolveReaderSourcePlan(selection, viewMode, "acc-1")).toMatchObject(expected);
+      expect(
+        resolveReaderSourcePlan(selection, viewMode, "acc-1"),
+      ).toMatchObject(expected);
     }
   });
 
@@ -424,13 +477,19 @@ describe("resolveReaderSourcePlan", () => {
     ];
 
     for (const testCase of cases) {
-      expect(resolveReaderSourcePlan(testCase.selection, testCase.viewMode, "acc-1")).toMatchObject(testCase.expected);
+      expect(
+        resolveReaderSourcePlan(testCase.selection, testCase.viewMode, "acc-1"),
+      ).toMatchObject(testCase.expected);
     }
-    expect(new Set(cases.map((testCase) => testCase.expected.sourceKey)).size).toBe(cases.length);
+    expect(
+      new Set(cases.map((testCase) => testCase.expected.sourceKey)).size,
+    ).toBe(cases.length);
   });
 
   it("returns disabled ids and null query when account selection cannot be resolved", () => {
-    expect(resolveReaderSourcePlan({ type: "all" }, "unread", null)).toMatchObject({
+    expect(
+      resolveReaderSourcePlan({ type: "all" }, "unread", null),
+    ).toMatchObject({
       query: null,
       sourceKind: "none",
       sourceKey: "none",
@@ -441,23 +500,39 @@ describe("resolveReaderSourcePlan", () => {
       effectiveViewMode: "unread",
       preservesRecentOrder: false,
     });
-    expect(resolveReaderSourcePlan({ type: "all" }, "unread", "   ")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan({ type: "all" }, "unread", "   "),
+    ).toMatchObject({
       query: null,
       sourceKind: "none",
       sourceKey: "none",
     });
-    expect(resolveReaderSourcePlan({ type: "feed", feedId: "   " }, "unread", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan(
+        { type: "feed", feedId: "   " },
+        "unread",
+        "acc-1",
+      ),
+    ).toMatchObject({
       query: null,
       sourceKind: "none",
       sourceKey: "none",
     });
-    expect(resolveReaderSourcePlan({ type: "folder", folderId: "\n\t" }, "starred", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan(
+        { type: "folder", folderId: "\n\t" },
+        "starred",
+        "acc-1",
+      ),
+    ).toMatchObject({
       query: null,
       sourceKind: "none",
       sourceKey: "none",
       effectiveViewMode: "starred",
     });
-    expect(resolveReaderSourcePlan({ type: "tag", tagId: "" }, "all", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan({ type: "tag", tagId: "" }, "all", "acc-1"),
+    ).toMatchObject({
       query: null,
       sourceKind: "none",
       sourceKey: "none",
@@ -466,13 +541,25 @@ describe("resolveReaderSourcePlan", () => {
   });
 
   it("keeps smart starred source filtering separate from the footer display filter", () => {
-    expect(resolveReaderSourcePlan({ type: "smart", kind: "starred" }, "all", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan(
+        { type: "smart", kind: "starred" },
+        "all",
+        "acc-1",
+      ),
+    ).toMatchObject({
       sourceKind: "account",
       sourceKey: "account:acc-1:articles:starred",
       accountMode: "starred",
       effectiveViewMode: "all",
     });
-    expect(resolveReaderSourcePlan({ type: "smart", kind: "starred" }, "unread", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan(
+        { type: "smart", kind: "starred" },
+        "unread",
+        "acc-1",
+      ),
+    ).toMatchObject({
       sourceKind: "account",
       sourceKey: "account:acc-1:articles:starred",
       accountMode: "starred",
@@ -481,17 +568,77 @@ describe("resolveReaderSourcePlan", () => {
   });
 
   it("keeps smart unread source filtering ahead of footer display filters", () => {
-    expect(resolveReaderSourcePlan({ type: "smart", kind: "unread" }, "all", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan(
+        { type: "smart", kind: "unread" },
+        "all",
+        "acc-1",
+      ),
+    ).toMatchObject({
       sourceKind: "account",
       sourceKey: "account:acc-1:articles:unread",
       accountMode: "unread",
       effectiveViewMode: "unread",
     });
-    expect(resolveReaderSourcePlan({ type: "smart", kind: "unread" }, "starred", "acc-1")).toMatchObject({
+    expect(
+      resolveReaderSourcePlan(
+        { type: "smart", kind: "unread" },
+        "starred",
+        "acc-1",
+      ),
+    ).toMatchObject({
       sourceKind: "account",
       sourceKey: "account:acc-1:articles:unread",
       accountMode: "unread",
       effectiveViewMode: "unread",
     });
+  });
+});
+
+describe("shouldRecoverUnavailableReaderSelection", () => {
+  it("recovers selected feed, folder, and tag ids only after the matching inventory is loaded and missing", () => {
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "feed", feedId: "feed-missing" },
+        { feedIds: new Set(["feed-1"]) },
+      ),
+    ).toBe(true);
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "folder", folderId: "folder-missing" },
+        { folderIds: new Set(["folder-1"]) },
+      ),
+    ).toBe(true);
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "tag", tagId: "tag-missing" },
+        { tagIds: new Set(["tag-1"]) },
+      ),
+    ).toBe(true);
+
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "feed", feedId: "feed-1" },
+        {},
+      ),
+    ).toBe(false);
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "folder", folderId: "folder-1" },
+        { folderIds: new Set(["folder-1"]) },
+      ),
+    ).toBe(false);
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "all" },
+        { feedIds: new Set() },
+      ),
+    ).toBe(false);
+    expect(
+      shouldRecoverUnavailableReaderSelection(
+        { type: "smart", kind: "unread" },
+        { feedIds: new Set(), folderIds: new Set(), tagIds: new Set() },
+      ),
+    ).toBe(false);
   });
 });

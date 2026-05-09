@@ -2,21 +2,49 @@ import { useEffect, useMemo, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useAccountArticles, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
-import { useArticlesByTag } from "@/hooks/use-tags";
+import { useArticlesByTag, useTags } from "@/hooks/use-tags";
 import {
   collectRetainedArticlesFromSources,
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
   type RetainedArticlesSnapshot,
 } from "@/lib/articles/article-list";
-import { type ReaderSourceKind, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
+import {
+  type ReaderSelectionAvailability,
+  type ReaderSourceKind,
+  resolveReaderSourcePlan,
+  shouldRecoverUnavailableReaderSelection,
+} from "@/lib/reader/reader-query";
+import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleListSourcesParams, UseArticleListSourcesResult } from "../../article-list.types";
 
 type ArticleListPrimarySourceSnapshot = {
   contextKey: string;
   articles: ArticleDto[] | undefined;
 };
+
+function recoverStaleReaderSelection(selection: UseArticleListSourcesParams["selection"]): void {
+  const currentSelection = useUiStore.getState().selection;
+  if (currentSelection.type !== selection.type) {
+    return;
+  }
+
+  if (selection.type === "feed" && currentSelection.feedId !== selection.feedId) {
+    return;
+  }
+
+  if (selection.type === "folder" && currentSelection.folderId !== selection.folderId) {
+    return;
+  }
+
+  if (selection.type === "tag" && currentSelection.tagId !== selection.tagId) {
+    return;
+  }
+
+  useUiStore.getState().selectAll();
+}
 
 function resolvePrimarySourceArticles(params: {
   sourceKind: ReaderSourceKind;
@@ -86,6 +114,8 @@ export function useArticleListSources({
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
   const sourcePlan = resolveReaderSourcePlan(selection, viewMode, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
+  const { data: folders } = useFolders(selectedAccountId);
+  const { data: tags } = useTags();
   const { data: allFeedArticles } = useArticles(sourcePlan.feedId, {
     mode: "all",
   });
@@ -115,6 +145,18 @@ export function useArticleListSources({
   const { snapshot: feedsSnapshot } = useScreenSnapshot(feedsSnapshotCandidate, feedsSnapshotCandidate !== null);
   const adoptedFeedsSnapshot = adoptSnapshotByKey(feedsSnapshot, "accountId", selectedAccountId);
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
+
+  useEffect(() => {
+    const availability: ReaderSelectionAvailability = {
+      ...(feeds !== undefined ? { feedIds: new Set(feeds.map((feed) => feed.id)) } : {}),
+      ...(folders !== undefined ? { folderIds: new Set(folders.map((folder) => folder.id)) } : {}),
+      ...(tags !== undefined ? { tagIds: new Set(tags.map((tag) => tag.id)) } : {}),
+    };
+    if (shouldRecoverUnavailableReaderSelection(selection, availability)) {
+      recoverStaleReaderSelection(selection);
+    }
+  }, [feeds, folders, selection, tags]);
+
   const accountSelectionArticles = sourcePlan.sourceKind === "recent" ? recentArticles : accountArticles;
   const primarySourceArticles = resolvePrimarySourceArticles({
     sourceKind: sourcePlan.sourceKind,

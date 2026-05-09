@@ -4,7 +4,12 @@ import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
-import { invalidateFeedQueries, invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
+import {
+  invalidateArticleQueries,
+  invalidateFeedQueries,
+  invalidateQueryKeysLogOnly,
+} from "@/lib/query/query-invalidation";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
@@ -42,6 +47,8 @@ export function useAccountDetailDangerZone({
   const showConfirm = useUiStore((state) => state.showConfirm);
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
   const showDeleteError = createAccountDetailErrorToast(t, "account.failed_to_delete");
+  const savedAccountId = usePreferencesStore((state) => state.prefs.selected_account_id ?? "");
+  const setPref = usePreferencesStore((state) => state.setPref);
 
   const revokePendingExportUrl = useCallback(() => {
     if (pendingExportUrlTimerRef.current !== null) {
@@ -62,10 +69,14 @@ export function useAccountDetailDangerZone({
       return;
     }
 
+    const exportAccountSnapshot = {
+      id: account.id,
+      name: account.name,
+    };
     exportInFlightRef.current = true;
     try {
       Result.pipe(
-        await exportOpml(account.id),
+        await exportOpml(exportAccountSnapshot.id),
         Result.inspectError(showExportError),
         Result.inspect((opmlString) => {
           const blob = new Blob([opmlString], { type: "application/xml" });
@@ -73,7 +84,7 @@ export function useAccountDetailDangerZone({
           const url = URL.createObjectURL(blob);
           const anchor = document.createElement("a");
           anchor.href = url;
-          anchor.download = buildOpmlExportFilename(account.name);
+          anchor.download = buildOpmlExportFilename(exportAccountSnapshot.name);
           pendingExportUrlRef.current = url;
           try {
             anchor.click();
@@ -95,8 +106,22 @@ export function useAccountDetailDangerZone({
       await deleteAccount(account.id),
       Result.inspectError(showDeleteError),
       Result.inspect(() => {
+        const accounts = queryClient.getQueryData<AccountDetailAccount[]>(["accounts"]) ?? [];
+        const remainingAccountIds = accounts
+          .filter((cachedAccount) => cachedAccount.id !== account.id)
+          .map((cachedAccount) => cachedAccount.id);
+        const fallbackAccountId = remainingAccountIds[0] ?? "";
+
+        useUiStore.getState().handleAccountDeleted(account.id, remainingAccountIds);
+        if (savedAccountId.trim() === account.id) {
+          setPref("selected_account_id", fallbackAccountId);
+        }
+
         invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
         invalidateFeedQueries(queryClient, { includeFolders: false });
+        invalidateArticleQueries(queryClient, {
+          includeTagArticleCounts: true,
+        });
         onAccountDeleted();
       }),
     );

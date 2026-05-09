@@ -9,6 +9,7 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 const {
   useFeedsMock,
+  useFoldersMock,
   useArticlesMock,
   useAccountArticlesMock,
   useFeedStarredArticlesMock,
@@ -16,8 +17,10 @@ const {
   useStarredArticlesMock,
   useRecentArticlesMock,
   useArticlesByTagMock,
+  useTagsMock,
 } = vi.hoisted(() => ({
   useFeedsMock: vi.fn(),
+  useFoldersMock: vi.fn(),
   useArticlesMock: vi.fn(),
   useAccountArticlesMock: vi.fn(),
   useFeedStarredArticlesMock: vi.fn(),
@@ -25,10 +28,15 @@ const {
   useStarredArticlesMock: vi.fn(),
   useRecentArticlesMock: vi.fn(),
   useArticlesByTagMock: vi.fn(),
+  useTagsMock: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-feeds", () => ({
   useFeeds: (...args: unknown[]) => useFeedsMock(...args),
+}));
+
+vi.mock("@/hooks/use-folders", () => ({
+  useFolders: (...args: unknown[]) => useFoldersMock(...args),
 }));
 
 vi.mock("@/hooks/use-articles", () => ({
@@ -42,6 +50,7 @@ vi.mock("@/hooks/use-articles", () => ({
 
 vi.mock("@/hooks/use-tags", () => ({
   useArticlesByTag: (...args: unknown[]) => useArticlesByTagMock(...args),
+  useTags: (...args: unknown[]) => useTagsMock(...args),
 }));
 
 type MatrixMode = ViewMode;
@@ -77,6 +86,25 @@ function filterMatrixMode(articles: ArticleDto[], mode: MatrixMode): ArticleDto[
 describe("useArticleListSources", () => {
   beforeEach(() => {
     useFeedsMock.mockReturnValue({ data: sampleFeeds });
+    useFoldersMock.mockReturnValue({
+      data: [
+        {
+          id: "folder-1",
+          account_id: "acc-1",
+          name: "Folder 1",
+          sort_order: 0,
+        },
+        {
+          id: "folder-2",
+          account_id: "acc-1",
+          name: "Folder 2",
+          sort_order: 1,
+        },
+      ],
+    });
+    useTagsMock.mockReturnValue({
+      data: [{ id: "tag-1", name: "Important", color: "#ff0000" }],
+    });
     useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
       data:
         options?.mode === "unread"
@@ -110,12 +138,18 @@ describe("useArticleListSources", () => {
       data: sampleArticles.filter((article) => article.is_starred),
       isLoading: false,
     });
-    useFolderArticlesMock.mockReturnValue({ data: undefined, isLoading: false });
+    useFolderArticlesMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    });
     useStarredArticlesMock.mockReturnValue({
       data: sampleArticles.filter((article) => article.is_starred),
       isLoading: false,
     });
-    useRecentArticlesMock.mockReturnValue({ data: [sampleArticles[1], sampleArticles[0]], isLoading: false });
+    useRecentArticlesMock.mockReturnValue({
+      data: [sampleArticles[1], sampleArticles[0]],
+      isLoading: false,
+    });
   });
 
   it("requests unread-only feed articles when the feed view is unread", () => {
@@ -163,7 +197,9 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(useAccountArticlesMock).toHaveBeenCalledWith("acc-1", { mode: "unread" });
+    expect(useAccountArticlesMock).toHaveBeenCalledWith("acc-1", {
+      mode: "unread",
+    });
   });
 
   it("requests recent articles for the smart recent view", () => {
@@ -179,7 +215,9 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1", { mode: "all" });
+    expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1", {
+      mode: "all",
+    });
     expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["art-2", "art-1"]);
   });
 
@@ -196,11 +234,16 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1", { mode: "starred" });
+    expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1", {
+      mode: "starred",
+    });
   });
 
   it("reports folder source loading separately from account article loading", () => {
-    useAccountArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
+    useAccountArticlesMock.mockReturnValue({
+      data: sampleArticles,
+      isLoading: false,
+    });
     useFolderArticlesMock.mockReturnValue({ data: undefined, isLoading: true });
 
     const { result } = renderHook(
@@ -242,7 +285,10 @@ describe("useArticleListSources", () => {
   });
 
   it("reports recent source loading separately from account article loading", () => {
-    useAccountArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
+    useAccountArticlesMock.mockReturnValue({
+      data: sampleArticles,
+      isLoading: false,
+    });
     useRecentArticlesMock.mockReturnValue({ data: undefined, isLoading: true });
 
     const { result } = renderHook(
@@ -274,7 +320,9 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(useArticlesByTagMock).toHaveBeenCalledWith("tag-1", "acc-1", { mode: "starred" });
+    expect(useArticlesByTagMock).toHaveBeenCalledWith("tag-1", "acc-1", {
+      mode: "starred",
+    });
   });
 
   it("matches docs/reader-article-scope-matrix.md counts for source, scope, and filter combinations", () => {
@@ -466,7 +514,15 @@ describe("useArticleListSources", () => {
       data:
         options?.mode === "unread"
           ? currentArticles
-          : [sampleArticles[0], { ...sampleArticles[1], id: "art-3", is_read: false, is_starred: false }],
+          : [
+              sampleArticles[0],
+              {
+                ...sampleArticles[1],
+                id: "art-3",
+                is_read: false,
+                is_starred: false,
+              },
+            ],
       isLoading: false,
     }));
 
