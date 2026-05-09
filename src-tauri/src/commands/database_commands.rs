@@ -28,6 +28,28 @@ impl From<DatabaseInfo> for DatabaseInfoDto {
     }
 }
 
+#[derive(Debug)]
+struct DatabaseMaintenanceGuard<'a>(&'a AtomicBool);
+
+impl Drop for DatabaseMaintenanceGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+fn start_database_maintenance(
+    syncing: &AtomicBool,
+) -> Result<DatabaseMaintenanceGuard<'_>, AppError> {
+    syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .map(|_| DatabaseMaintenanceGuard(syncing))
+        .map_err(|_| AppError::UserVisible {
+            message:
+                "Database optimization is unavailable while syncing. Try again after sync completes."
+                    .to_string(),
+        })
+}
+
 #[tauri::command]
 pub fn get_database_info(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
     get_database_info_inner(&state.db)
@@ -47,11 +69,7 @@ fn vacuum_database_inner(
     db: &Mutex<DbManager>,
     syncing: &AtomicBool,
 ) -> Result<DatabaseInfoDto, AppError> {
-    if syncing.load(Ordering::SeqCst) {
-        return Err(AppError::UserVisible {
-            message: "Database optimization is unavailable while syncing. Try again after sync completes.".to_string(),
-        });
-    }
+    let _maintenance_guard = start_database_maintenance(syncing)?;
 
     let mut db = try_lock_db(db)?;
     Ok(db.vacuum().map_err(AppError::from)?.into())
@@ -62,7 +80,9 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
-    use crate::commands::database_commands::{get_database_info_inner, vacuum_database_inner};
+    use crate::commands::database_commands::{
+        get_database_info_inner, start_database_maintenance, vacuum_database_inner,
+    };
     use crate::commands::dto::AppError;
     use crate::infra::db::connection::DbManager;
 
@@ -125,7 +145,47 @@ mod tests {
 
         assert!(
             !syncing.load(Ordering::SeqCst),
-            "vacuum should not mutate the sync flag"
+            "vacuum should release the maintenance flag after errors"
+        );
+    }
+
+    #[test]
+    fn database_maintenance_guard_blocks_new_sync_and_releases_on_drop() {
+        let syncing = AtomicBool::new(false);
+
+        {
+            let _guard = start_database_maintenance(&syncing).unwrap();
+            assert!(
+                syncing.load(Ordering::SeqCst),
+                "maintenance should reserve the shared sync flag"
+            );
+        }
+
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "maintenance should release the shared sync flag"
+        );
+    }
+
+    #[test]
+    fn database_maintenance_guard_returns_syncing_error_when_flag_is_reserved() {
+        let syncing = AtomicBool::new(true);
+
+        let error =
+            start_database_maintenance(&syncing).expect_err("reserved flag should block vacuum");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(
+                    message,
+                    "Database optimization is unavailable while syncing. Try again after sync completes."
+                );
+            }
+            other => panic!("expected user-visible syncing error, got {other:?}"),
+        }
+        assert!(
+            syncing.load(Ordering::SeqCst),
+            "failed maintenance start should not clear another operation's flag"
         );
     }
 }

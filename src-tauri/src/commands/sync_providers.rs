@@ -84,6 +84,29 @@ fn upsert_articles_in_current_transaction(
     Ok(())
 }
 
+fn save_local_feed_sync_result_in_current_transaction(
+    conn: &rusqlite::Connection,
+    account_id: &AccountId,
+    feed: &Feed,
+    articles: &[Article],
+    next_state: &SyncState,
+) -> Result<(), AppError> {
+    if !articles.is_empty() {
+        upsert_articles_in_current_transaction(conn, articles)?;
+        let candidate_ids = articles
+            .iter()
+            .map(|article| article.id.clone())
+            .collect::<Vec<ArticleId>>();
+        mark_muted_unread_as_read_with_conn(conn, account_id, Some(&candidate_ids))?;
+        let feed_repo = SqliteFeedRepository::new(conn);
+        feed_repo.recalculate_unread_count(&feed.id)?;
+    }
+
+    let sync_state_repo = SqliteSyncStateRepository::new(conn);
+    sync_state_repo.save(next_state)?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ProviderSyncOutcome {
     pub warnings: Vec<ProviderSyncWarning>,
@@ -254,8 +277,10 @@ pub(super) async fn sync_local_feed(
         )
         .await?;
 
-    if !result.not_modified {
-        let articles: Vec<Article> = result
+    let articles: Vec<Article> = if result.not_modified {
+        Vec::new()
+    } else {
+        result
             .entries
             .iter()
             .map(|entry| {
