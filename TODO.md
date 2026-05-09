@@ -175,11 +175,6 @@
   - Windows / non-Windows dispatch test で許可 command と拒否 command の判定が変わらないことを固定する
   - script async waterfall とは分け、CLI dispatch lookup performance だけを扱う
 
-- [ ] sidebar header runtime prop boundary 候補を追加する
-  - `src/components/reader/sidebar-header-view.tsx` の `useUiStore` / `usePlatformStore` / `hasTauriRuntime()` 直参照を controller 由来 props へ寄せる
-  - `useSidebarHeaderProps` 側で `isMobile` / `useDesktopOverlay` を解決し、view test は props-only rendering に寄せる
-  - sidebar layout 再設計とは分け、header view の runtime 判定分離だけを扱う
-
 - [ ] similarity reader UI state hook factory 候補を追加する
   - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
   - 共通化する場合は public hook return names を保ち、article view と command palette の focused hook test で state transition が変わらないことを固定する
