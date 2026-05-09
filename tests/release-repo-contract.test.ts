@@ -26,6 +26,16 @@ const extractTomlString = (source: string, key: string): string => {
   return value;
 };
 
+const extractReleaseCacheBlock = (source: string): string => {
+  const value = source.match(
+    /- uses: actions\/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae\n(?<block>(?: {8}.+\n?)*)/,
+  )?.groups?.block;
+  if (!value) {
+    throw new Error("Missing release pnpm cache block");
+  }
+  return value;
+};
+
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
@@ -42,6 +52,38 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("release tag ${releaseTag}");
     expect(releaseWorkflow).toContain("src-tauri/tauri.conf.json version");
     expect(releaseWorkflow).toContain("src-tauri/Cargo.toml version");
+  });
+
+  it("serializes tag push and manual release runs by release tag", () => {
+    expect(releaseWorkflow).toContain(
+      "group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}",
+    );
+    expect(releaseWorkflow).toContain("cancel-in-progress: false");
+    expect(releaseWorkflow).toContain("workflow_dispatch");
+    expect(releaseWorkflow).toContain("push:");
+    expect(releaseWorkflow).toContain('tags: ["v*"]');
+  });
+
+  it("checks release source and version parity before artifact creation", () => {
+    expect(releaseWorkflow).toContain("Validate release source");
+    expect(releaseWorkflow).toContain(
+      'git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
+    );
+    expect(releaseWorkflow).toContain('tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"');
+    expect(releaseWorkflow).toContain('checkout_sha="$(git rev-parse HEAD)"');
+    expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
+      releaseWorkflow.indexOf("Resolve pnpm store path"),
+    );
+    expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action"),
+    );
+  });
+
+  it("keeps release dependency cache exact-lockfile only", () => {
+    const releaseCacheBlock = extractReleaseCacheBlock(releaseWorkflow);
+
+    expect(releaseCacheBlock).toContain("key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}");
+    expect(releaseCacheBlock).not.toContain("restore-keys:");
   });
 
   it("keeps release artifact display metadata source-of-truth explicit", () => {
