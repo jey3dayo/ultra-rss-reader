@@ -365,11 +365,6 @@
   - sequential await warning 25 件は order-dependent contract test と独立処理の performance issue が混在している
   - order が必要な test は理由を明示し、独立 command / fixture setup は `Promise.all` / `Promise.allSettled` 化して flake と実行時間を下げる
 
-- [ ] P2 account detail name editor の await placement を skip path 優先で整理する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-name-editor.ts`
-  - React Doctor の `async-defer-await` が、early return で使わない await が先に走る箇所を検出している
-  - 同名 submit、blank/trimmed name、saving中再submit、mutation reject、focus restore の順序を崩さず、skip path が同期的に抜けるようにする
-
 - [ ] P2 seed-dev-db script の independent await を Promise.all 化できるか検証する
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
   - React Doctor の `async-parallel` が script 内の 3 sequential await を検出しており、dev data refresh が不要に遅くなる可能性がある
@@ -540,11 +535,6 @@
   - React Doctor / Knip が `use-articles` に unused export と mutation invalidation warning の両方を出しており、公開 hook API と cache update 責務が同時に膨らんでいる
   - external import、test-only helper、mutation helper、query key helperを分類し、cache update が必要な public mutation だけを残す
 
-- [ ] P2 account-detail editor focus helper の unused export を focus restore contract と照合する
-  - 対象: `src/components/settings/hooks/account-detail/account-detail-editor-focus.ts`, `src/components/settings/account-detail/*`, `src/__tests__/hooks/use-account-detail-sync-status-rows.test.tsx`
-  - React Doctor / Knip が account detail editor focus helper の unused export を検出しており、name editor / service config editor の focus restore 仕様が helper とずれている可能性がある
-  - rename submit、cancel、validation error、sync status update、account switch 時の focus owner を確認して dead helper を削る
-
 - [ ] P2 browser URL effect helper の unused export を browser controller contract と合わせる
   - 対象: `src/components/reader/hooks/browser/use-browser-url-effect.ts`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/components/reader/browser-view.types.ts`
   - React Doctor / Knip が browser URL effect helper を unused export として検出しており、browserUrl state と native webview navigation event の責務境界が見えにくい
@@ -665,11 +655,6 @@
   - `SanitizedArticleHtml` は型 brand だけで runtime では通常の string なので、未 sanitize HTML が `fromSanitizedArticleHtml` 経由で混入しても検出しにくい
   - backend sanitizer 済み DTO、frontend test fixture、view-local helper の境界を分け、raw HTML を渡す test helper には明示名を付ける
 
-- [ ] P2 article browser action error category を message substring 依存から code-first に寄せる
-  - 対象: `src/components/reader/article-browser-actions.ts`, `src/lib/runtime/clipboard.ts`, `src/__tests__/components/article-browser-actions.test.ts`
-  - copy/open/read-later action は error message 文字列から category を推定しており、翻訳や backend message 変更で toast category がずれやすい
-  - AppError code、clipboard category、invalid URL、permission denied、runtime unavailable、unknown error の contract を code-first にする
-
 - [ ] P2 article-list-item presentation helper の export を test-only / production API に分ける
   - 対象: `src/components/reader/article-list-item.tsx`, `src/__tests__/components/article-list-item.test.tsx`, `src/lib/articles/article-view.ts`
   - `resolveArticleListItemPresentation` が component file から export されており、test 目的の pure helper と production component API の境界が曖昧になりやすい
@@ -739,11 +724,6 @@
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `CLAUDE.md`
   - `FRESHRSS_URL` / `FRESHRSS_USER` / `FRESHRSS_PASS` を `expect` する live test があり、通常 CI と手元検証の境界が曖昧だと secret 依存 test が混ざりやすい
   - ignored test marker、manual live command、secret redaction、missing env skip message、recorded fixture fallback を整理する
-
-- [ ] P2 local provider URL downgrade / private host redirect policy を command args schema と共有する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, `src/api/schemas/commands.ts`, `src/components/settings/add-account/*`
-  - local provider は http/https downgrade や localhost/private host を扱う test を持つが、frontend URL validation と差が出ると add feed だけ通る/落ちる状態になりやすい
-  - http->https、https->http、localhost、127.0.0.1、private IP、redirect chain の validation parity を固定する
 
 - [ ] P2 keyring integration tests の credential cleanup を account id collision に強くする
   - 対象: `src-tauri/tests/integration_test.rs`, `src-tauri/src/infra/keyring_store.rs`, `src-tauri/src/commands/account_commands.rs`
