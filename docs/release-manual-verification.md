@@ -30,7 +30,21 @@ Confirm:
 - Basic article read/unread and star actions still round-trip correctly.
 - The verification record contains only pass/fail status and sanitized account labels, not credential values.
 
-### 2. Native Keyring Verification
+### 2. Published Release Install Verification
+
+Install the published release artifact downloaded from GitHub Releases. Do not use `mise run app:install` for this step.
+
+Confirm and record:
+
+- Release artifact name and source release URL
+- Release asset digest, for example `sha256:<digest>`
+- Codesign result, for example `codesign --verify --deep --strict --verbose=2 <app>`
+- Gatekeeper result, for example `spctl --assess --type execute --verbose <app>`
+- Installed app version shown by the packaged app
+
+`mise run app:install` is only a local build/install helper. It rebuilds from the current checkout and may re-sign the local macOS app after copying it into `/Applications`; it is not evidence that the published release artifact, notarization, or Gatekeeper path works.
+
+### 3. Native Keyring Verification
 
 Run the packaged app on the target OS with normal credentials storage enabled.
 
@@ -42,7 +56,7 @@ Confirm:
 - Removing the account leaves the app in a clean state and does not block re-adding it.
 - A failed credential save leaves the account list and keyring in a retryable state.
 
-### 3. Packaged Updater Verification
+### 4. Packaged Updater Verification
 
 Use an installed older build plus a signed draft release.
 
@@ -54,7 +68,7 @@ Confirm:
 - If updater verification fails, the app stays on the current version and surfaces a useful error.
 - After a failed download or install, a manual recheck can start a fresh updater flow.
 
-### 4. Packaged Startup Verification
+### 5. Packaged Startup Verification
 
 Start the packaged app from a clean user data profile when possible, then repeat once with an existing profile from the previous release.
 
@@ -65,7 +79,18 @@ Confirm:
 - A migration failure message points to the backup location and tells the verifier to preserve logs before retrying.
 - Quitting and reopening the app does not require manual cleanup of `-wal` or `-shm` files.
 
-### 5. Log and Recovery Sanity Check
+### 6. Packaged App Icon and Badge Verification
+
+Run the packaged app on the target OS. This is a visual OS integration check; do not change icon assets or icon design as part of this pass.
+
+Confirm:
+
+- On macOS, unread badge changes are reflected on the Dock icon and clear when unread badge display is disabled.
+- On Windows, unread badge changes are reflected on the taskbar icon and clear when unread badge display is disabled.
+- Runtime window icon replacement follows the selected light, dark, or system theme when the platform reports support for it.
+- Runtime icon or badge failures do not block startup, account sync, article reading, or later badge/theme updates.
+
+### 7. Log and Recovery Sanity Check
 
 From the packaged build, use the in-app log-directory flow or `get_log_dir`.
 
@@ -82,9 +107,14 @@ Confirm:
 Write down:
 
 - OS and build version verified
+- Published release artifact name and release URL
+- Release asset digest
+- Codesign verification result
+- Gatekeeper assessment result
 - Whether `mise run test:live` passed
 - Whether native keyring verification passed
 - Whether packaged updater verification passed
+- Whether packaged app icon and badge verification passed
 - Where the supporting logs or screenshots were saved, if any
 
 If something fails during this checklist, continue from [incident-runbook.md](./incident-runbook.md) instead of improvising ad-hoc recovery steps.

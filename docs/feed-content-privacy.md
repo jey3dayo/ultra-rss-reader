@@ -46,6 +46,62 @@ Recommended order:
 2. Separate reader-mode privacy controls from Web Preview behavior instead of treating them as one switch.
 3. Consider mitigations such as explicit privacy modes, remote-image blocking in reader mode, or tracking-pixel countermeasures only after the compatibility impact is understood.
 
+## Privacy Hardening Measurement Plan
+
+Use this as the minimum design batch before changing CSP, sanitizer behavior, or
+settings UI.
+
+### Reader Mode Remote Images
+
+- Record whether sanitized reader articles load remote `http:` / `https:`
+  images for each supported provider fixture or live account.
+- Include normal inline images, thumbnails used inside article bodies, missing
+  image fallbacks, and 1x1 or otherwise invisible tracking-pixel candidates.
+- Compare readability before and after any proposed reader-only image
+  restriction; do not treat Web Preview success as evidence that reader mode is
+  unaffected.
+- Keep provider compatibility notes separate from privacy-risk notes so one
+  provider-specific breakage does not force a global CSP decision.
+
+### Frames And Web Preview
+
+- Treat app-content frames and Web Preview as separate surfaces when measuring
+  impact.
+- For reader mode, confirm whether sanitized content can introduce frame-like
+  embeds after Rust sanitization and whether those embeds are rendered by the
+  frontend article pane.
+- For Web Preview, verify publisher pages still load, navigate, and expose the
+  expected browser controls when `frame-src` behavior is changed in an isolated
+  experiment.
+- Do not use a Web Preview regression as direct evidence against a reader-mode
+  privacy control; record it as embedded-browser compatibility impact.
+
+### Sanitizer Version And Migration
+
+- Record the current `SANITIZER_VERSION`, the tested sanitizer rule set, and
+  whether existing saved articles require re-sanitization.
+- Measure new-sync articles and previously saved articles separately; saved
+  content can keep older `content_sanitized` until a migration or re-sanitize
+  path updates it.
+- Keep text extraction and search-index behavior in scope only as compatibility
+  checks; do not mix search ranking changes into a privacy hardening batch.
+- If a privacy mode requires sanitizer changes, design the settings UI,
+  frontend rendering behavior, and Rust sanitizer versioning as separate
+  implementation steps.
+
+## Verification Checklist
+
+- [ ] Reader mode: remote image loads, blocked-image readability, thumbnail
+  behavior, and tracking-pixel candidates are recorded per provider.
+- [ ] Reader mode: sanitized frame-like embeds are checked independently from
+  Web Preview.
+- [ ] Web Preview: publisher page load, navigation, and browser controls are
+  checked separately from reader-mode article rendering.
+- [ ] Sanitizer: `SANITIZER_VERSION`, saved-article behavior, new-sync behavior,
+  and re-sanitize needs are recorded before implementation.
+- [ ] Packaging: any privacy change that affects remote content is verified in a
+  packaged Tauri build before release.
+
 ## Related Files
 
 - `src-tauri/tauri.conf.json`

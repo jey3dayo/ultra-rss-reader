@@ -9,6 +9,31 @@
   - 既存の `mise run app:dev:seed-from-prod` を前提に、デバッグ画面から誤操作なく呼べる UX と確認導線を設計する
   - Dev 側 DB のバックアップ場所、アプリ再起動、credentials はコピーされないことを UI 上で明示する
 
+- [ ] preferences error message stringification guard 候補を追加する
+  - `src/stores/preferences-store.ts` の `resolveErrorMessage()` が `String(error)` fallback を直接呼ぶため、throwing `toString` を持つ unknown error で persist failure toast 自体が落ちないか確認する
+  - `src/__tests__/stores/preferences-store.test.ts` で `setPreference` reject / `Result.fail` の error object が安全に fallback message へ落ちることを固定する
+  - menu event payload logging guard とは分け、preference persist failure の error normalization だけを扱う
+
+- [ ] preferences system theme listener compatibility 候補を追加する
+  - `src/stores/preferences-store.ts` の `applyTheme("system")` が `MediaQueryList.addEventListener` / `removeEventListener` 前提なので、旧 API の `addListener` だけを持つ runtime や mocked WebView で落ちないか確認する
+  - `src/__tests__/stores/preferences-store.test.ts` で `addEventListener` 不在 / throw 時の fallback と cleanup 方針を固定する
+  - system theme listener cleanup contract や app icon hook の matchMedia guard とは分け、preferences store の MediaQueryList API 互換だけを扱う
+
+- [ ] preferences setPref latest-only failure surface 候補を追加する
+  - `src/stores/preferences-store.ts` の `setPref()` は rapid toggle 時に古い persist failure が後から toast を出せるため、latest request 以外の失敗通知を出すかどうかを決める
+  - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
+  - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
+
+- [ ] preferences language navigator fallback 候補を追加する
+  - `src/stores/preferences-store.ts` の `applyLanguage()` が `navigator.language` を直接参照するため、特殊 WebView / test runtime で `navigator` または `language` が取れない時の fallback を固定する
+  - `src/__tests__/stores/preferences-store.test.ts` と `src/__tests__/lib/ui-language.test.ts` で `undefined` locale は `en` fallback、`ja-*` locale は `ja` の既存 contract を維持する
+  - language option label や i18n reset cleanup とは分け、preferences store から `resolveUiLanguage` へ渡す locale boundary だけを扱う
+
+- [ ] preferences DTO record boundary 候補を追加する
+  - `src/api/schemas/preferences.ts` の `PreferencesDtoSchema` が任意 key/value string をそのまま通すため、blank key / whitespace key / non-string value を frontend response DTO としてどう扱うか固定する
+  - `src/__tests__/api/schemas.test.ts` または dedicated preferences schema test で known key、shortcut key、unknown passthrough key、blank key の期待値を分けて確認する
+  - SQLite preference repository key invariant や settings preference key type boundary とは分け、frontend API response schema の record boundary だけを扱う
+
 - [ ] datetime formatter invalid locale guard 候補を追加する
   - `src/lib/datetime.ts` の `formatHourMinute` / `formatShortDate` / `formatShortDateTime` / `formatLongDate` / `formatMediumDate` が malformed locale を受けた時の挙動を固定する
   - `src/__tests__/lib/datetime.test.ts` で invalid locale tag は throw せず fallback locale へ落とすか、呼び出し側 validation 必須として現仕様を明示する
@@ -49,16 +74,6 @@
   - `src/__tests__/lib/sync-result-feedback.test.ts` で blank name を除外するか account id fallback にするかを固定し、重複 name dedupe の既存挙動を保つ
   - sync result DTO schema message invariant とは分け、UI feedback helper の account label projection だけを扱う
 
-- [ ] subscription review future latest date guard 候補を追加する
-  - `src/lib/subscriptions/subscription-review-candidates.ts` の `staleDays` が未来日付で負数になった時の ranking / reason fact 表示を固定する
-  - `src/__tests__/lib/subscription-review-candidates.test.ts` で future `latest_article_at` は stale reason を付けず、表示 fact に負数日数を出さないことを確認する
-  - cleanup recommendation policy や invalid date display とは分け、review candidate pure helper の future date boundary だけを扱う
-
-- [ ] shortcut key map duplicate collision guard 候補を追加する
-  - `src/lib/keyboard/keyboard-shortcuts.ts` の `buildKeyToActionMap()` は同じ key が複数 action に割り当たると後勝ちで上書きするため、custom shortcut collision の方針を固定する
-  - `src/__tests__/lib/keyboard-shortcuts.test.ts` で duplicate custom key を検出して無効化するか、現仕様維持なら winner action を明示する
-  - shortcut recording UI や native menu accelerator collision とは分け、frontend key-to-action map の collision boundary だけを扱う
-
 - [ ] account DTO identity/display field schema 候補を追加する
   - `src/api/schemas/account.ts` の `AccountDtoSchema` が `id` / `kind` / `name` / optional `display_name` を blank string のまま通すため、response DTO としての最小 invariant を固定する
   - `src/__tests__/api/schemas.test.ts` で blank id/name/display_name を reject または trim/fallback する方針を追加し、Rust DTO field parity test は維持する
@@ -84,6 +99,131 @@
   - `src/__tests__/api/tauri-commands.test.ts` または `src/__tests__/api/schemas.test.ts` で `null -> 0` は維持しつつ `-1` / fractional / `Infinity` の扱いを固定する
   - sidebar starred badge display や feed-level starred counts とは分け、count_account_starred_articles response schema だけを扱う
 
+- [ ] breakpoint layout preference normalization 候補を追加する
+  - `src/hooks/use-breakpoint.ts` の `resolvePreferredLayoutMode()` が `" compact "` や uppercase 値を invalid として wide 扱いするため、preferences schema default と同じ正規化方針に寄せるか確認する
+  - `src/__tests__/hooks/use-breakpoint.test.ts` で whitespace / uppercase / unknown layout preference の期待値を固定する
+  - responsive breakpoint 数値や mobile layout recovery とは分け、layout preference string の入力正規化だけを扱う
+
+- [ ] confirm mark all read count boundary 候補を追加する
+  - `src/hooks/use-confirm-mark-all-read.ts` が `count === 0` だけを no-op にするため、negative / `NaN` / `Infinity` count で confirm copy や `onConfirm` が走らないか固定する
+  - `src/__tests__/hooks/use-confirm-mark-all-read.test.tsx` を追加し、nonpositive / nonfinite count は no-op、positive count だけが confirm または direct confirm になることを確認する
+  - mark-all-read command schema や feed/folder unread count affordance とは分け、confirmation hook の count boundary だけを扱う
+
+- [ ] menu event unknown payload formatting guard 候補を追加する
+  - `src/hooks/use-menu-events.ts` の debug trace / warn が unknown payload を template literal へ直接入れるため、Symbol や throwing `toString` で handler が落ちないか確認する
+  - `src/__tests__/hooks/use-menu-events.test.tsx` で non-string payload は action dispatch せず、safe string fallback で warn/debug できることを固定する
+  - app action registry source-of-truth や native menu emitted action parity とは分け、menu event payload の logging boundary だけを扱う
+
+- [ ] generated mutation invalidate error surface 候補を追加する
+  - `src/hooks/create-mutation.ts` の `onSuccess` で `invalidate()` が throw した時、mutation 成功自体を失敗扱いにするか、error boundary へ出すかを決める
+  - `src/__tests__/hooks/create-mutation.test.tsx` で mutationFn success 後の invalidate throw が toastなし reject / console warn / no-op のどれになるか固定する
+  - query key literal cleanup や individual hook invalidation target とは分け、generated mutation helper の post-success error surface だけを扱う
+
+- [ ] delete feed hook blank payload guard 候補を追加する
+  - `src/hooks/use-delete-feed.ts` が blank `feedId` / blank `title` をそのまま command と toast に渡せるため、UI hook boundary で拒否するか caller contract として明示する
+  - `src/__tests__/hooks/use-delete-feed.test.tsx` で whitespace-only feed id は command を呼ばず、blank title success toast は fallback label または existing copy を明示する
+  - delete feed command schema や dev mock cascade cleanup とは分け、frontend delete feed mutation hook の input boundary だけを扱う
+
+- [ ] command palette recent history duplicate projection 候補を追加する
+  - `src/components/reader/hooks/command-palette/use-command-palette-data.ts` が persisted history をそのまま recent actions/resources へ投影するため、同一 `feed:` / `tag:` / `article:` entry が複数表示されないか固定する
+  - `src/__tests__/components/command-palette.test.tsx` で duplicate history entry を seed し、recent group の表示が一意になるか、storage cleanup 側の責務として明示する
+  - command history storage schema cleanup や max size cap とは分け、command palette view data projection の重複表示だけを扱う
+
+- [ ] command palette runtime production loader guard 候補を追加する
+  - `src/components/reader/hooks/command-palette/use-command-palette-runtime.ts` の DEV scenario loader が production env で呼ばれないことを focused test として固定する
+  - `src/__tests__/hooks/use-command-palette-runtime.test.tsx` で `vi.stubEnv("DEV", false)` 時に `loadRuntimeDevScenarios` が未呼び出しで、`devScenarios` が空のままになることを確認する
+  - dev scenario dynamic import registry や runtime error surface とは分け、production guard の hook boundary だけを扱う
+
+- [ ] sidebar subscription sort preference contract 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` が `sortSubscriptions` を受け取りつつ `_sortSubscriptions` として未使用なので、設定値を適用するか alphabetical 固定の廃止済み contract として整理する
+  - `src/__tests__/components/use-sidebar-feed-tree.test.tsx` と `src/__tests__/components/sidebar-feed-tree-helpers.test.ts` で `newest_first` / `alphabetical` の期待値を明示する
+  - folder `sort_order` や backend folder ordering とは分け、sidebar feed list の subscription sort preference だけを扱う
+
+- [ ] sidebar feed drag disabled start guard 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts` の `handleDragStartFeed` が `canDragFeeds` / `isFeedsSectionOpen` を見ずに一度 drag state を立てるため、disabled 時に start 自体を無視するか effect cleanup 前提にするか固定する
+  - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` で folder なし / section closed / feed missing の start と active drop target の期待値を追加する
+  - pointer drag threshold や visual drop target とは分け、repository update 前の hook state guard だけを扱う
+
+- [ ] sidebar feed drag drop rejection surface 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-feed-tree-props.ts` が `void handleDropToFolder(folderId)` で async drop を fire-and-forget するため、`moveFeedToFolder` reject 時に unhandled rejection にならないか確認する
+  - `src/__tests__/components/use-sidebar-feed-drag-state.test.tsx` または feed tree props focused test で drop failure 時も drag state cleanup と error surface の方針を固定する
+  - feed move mutation toast や backend folder assignment validation とは分け、frontend drag/drop callback の async failure boundary だけを扱う
+
+- [ ] subscription review duplicate summary policy 候補を追加する
+  - `src/lib/subscriptions/subscription-review-candidates.ts` の `buildSubscriptionReviewCandidates` が `feedArticleSummaries` を `Map(feed_id)` 化するため、同一 feed の重複 summary が来た時の勝ち順を固定する
+  - `src/__tests__/lib/subscription-review-candidates.test.ts` で duplicate `feed_id` の latest/starred count を last-wins / first-wins / invalid input のどれにするか明示する
+  - feed article summary query invalidation や duplicate feed policy とは分け、review candidate helper の summary projection だけを扱う
+
+- [ ] subscription candidate map duplicate feed id 候補を追加する
+  - `src/lib/subscriptions/subscriptions-index.ts` の `buildSubscriptionReviewCandidateMap` が duplicate candidate `feedId` を後勝ちにするため、同一 feed candidate が複数渡らない前提を test で固定する
+  - `src/__tests__/lib/subscriptions-index.test.ts` で duplicate candidate 入力時の map value と summary count の扱いを明示する
+  - review candidate ranking や hidden feed filtering とは分け、candidate map helper の duplicate key contract だけを扱う
+
+- [ ] subscription folder name lookup duplicate policy 候補を追加する
+  - `src/lib/subscriptions/subscription-review-candidates.ts` の `buildFolderNameByIdMap` が duplicate folder id を後勝ちにするため、DTO invariant 前提か UI helper 側で first-wins にするか決める
+  - `src/__tests__/lib/subscription-review-candidates.test.ts` で duplicate folder id / blank folder name の folder label projection を固定する
+  - folder DTO schema や OPML folder import とは分け、subscription review helper の folder name lookup だけを扱う
+
+- [ ] subscription summary card count boundary 候補を追加する
+  - `src/lib/subscriptions/subscriptions-index.ts` の `buildSubscriptionSummaryCards` が negative / nonfinite count をそのまま string と caption に渡せるため、summary count の入力境界を固定する
+  - `src/__tests__/lib/subscriptions-index.test.ts` で `totalCount` / `reviewCount` / `staleCount` の negative / `NaN` / `Infinity` を reject するか 0 fallback にするか明示する
+  - subscriptions overview visual layout とは分け、summary card helper の numeric boundary だけを扱う
+
+- [ ] subscription row search normalization 候補を追加する
+  - `src/lib/subscriptions/subscriptions-index.ts` の `buildVisibleSubscriptionRows` が title / feed URL / site URL / folder name を simple lowercase で検索するため、全角・濁点・accent・URL whitespace の扱いを固定する
+  - `src/__tests__/lib/subscriptions-index.test.ts` で mixed-case 以外の Unicode query と whitespace-padded URL/title の期待値を追加する
+  - search input UI や summary filter scroll reset とは分け、subscription row pure search helper の normalization だけを扱う
+
+- [ ] shortcut blank preference mapping guard 候補を追加する
+  - `src/lib/keyboard/keyboard-shortcuts.ts` の `buildKeyToActionMap` が preference override `""` / whitespace-only をそのまま key として登録できるため、blank shortcut を無効扱いにするか default fallback にするか固定する
+  - `src/__tests__/lib/keyboard-shortcuts.test.ts` で `shortcut_next_article: ""` / `"   "` の map entry と resolver の期待値を追加する
+  - backend shortcut preference validation や recording UI とは分け、frontend resolver map の blank preference boundary だけを扱う
+
+- [ ] keyboard lowercase target tag guard 候補を追加する
+  - `src/lib/keyboard/keyboard-shortcuts.ts` の resolver は `targetTag === "INPUT" | "TEXTAREA"` 前提なので、小文字 `input` / `textarea` を渡す caller でも text input として扱うか明示する
+  - `src/__tests__/lib/keyboard-shortcuts.test.ts` で lowercase tag と `targetIsTextEditing` の優先順位を固定する
+  - `use-keyboard.ts` の DOM target extraction や open settings input guard とは分け、pure resolver の tag normalization だけを扱う
+
+- [ ] global shortcut opt-out boundary 候補を追加する
+  - `src/hooks/use-keyboard.ts` が `[data-disable-global-shortcuts="true"]` 配下の keydown を無視する contract を、reader/settings 内の embedded control 用に固定する
+  - `src/__tests__/hooks/use-keyboard.test.tsx` で opt-out wrapper 配下の `m` / `/` / `Escape` が article action・search・clear に伝播しないことを確認する
+  - keyboard listener subscription stability や browser overlay Escape ownership とは分け、DOM opt-out attribute の境界だけを扱う
+
+- [ ] reader focus aria-disabled target guard 候補を追加する
+  - `src/lib/reader-focus.ts` の focus helper が `disabled` 属性だけを避けるため、`aria-disabled="true"` の sidebar/list/account pane target を focus 対象にするか決める
+  - `src/__tests__/lib/reader-focus.test.ts` で selected target が `aria-disabled` の時に fallback へ進むか、focusable target として許可するかを固定する
+  - component 側の disabled styling や keyboard navigation policy とは分け、reader focus helper の target eligibility だけを扱う
+
+- [ ] reader focus scrollIntoView failure guard 候補を追加する
+  - `src/lib/reader-focus.ts` / `src/lib/account/account-pane-navigation.ts` の focus path が `scrollIntoView` 例外で全体失敗しないか確認する
+  - `src/__tests__/lib/reader-focus.test.ts` と `src/__tests__/lib/account-pane-navigation.test.ts` で throwing `scrollIntoView` 時も focus 成功扱いにするか、false を返すかを固定する
+  - navigation math や retry helper 共通化とは分け、focus 後スクロールの failure boundary だけを扱う
+
+- [ ] app query client mutation retry policy 候補を追加する
+  - `src/lib/query/query-client.ts` は query retry だけを `false` にしているため、app runtime の mutation retry を TanStack default 任せにするか明示的に `false` にするか固定する
+  - `src/__tests__/lib/query-client.test.ts` で production `queryClient` の `defaultOptions.mutations?.retry` を確認し、test / Storybook provider 方針との揺れをなくす
+  - React Query staleTime や individual mutation retry policy とは分け、app shared query client の default retry contract だけを扱う
+
+- [ ] query invalidation rejection surface 候補を追加する
+  - `src/lib/query/query-invalidation.ts` の `invalidateQueryKeys()` が `void queryClient.invalidateQueries(...)` で rejection を捨てるため、unhandled rejection / console warn / no-op の方針を決める
+  - `src/__tests__/lib/query-invalidation.test.ts` で `invalidateQueries` が reject する query key が混じっても後続 key の invalidation が走るか、failure を表面化するかを固定する
+  - generated mutation `onSuccess` の invalidate throw surface とは分け、shared invalidation helper の async rejection だけを扱う
+
+- [ ] startup sync legacy migration write failure 候補を追加する
+  - `src/lib/sync/startup-sync-storage.ts` の legacy timestamp migration で prefixed key への `setItem` が失敗した時、valid legacy timestamp を throttling に使うか全体 missing 扱いにするか固定する
+  - `src/__tests__/lib/startup-sync-storage.test.ts` で valid legacy key + throwing `setItem` / `removeItem` の期待値を追加する
+  - startup sync storage getter guard や storage key rename とは分け、legacy migration 中の partial storage failure だけを扱う
+
+- [ ] manual sync request-start callback failure 候補を追加する
+  - `src/lib/sync/manual-sync.ts` の `triggerManualSyncWithCooldownResult(onRequestStart)` で `onRequestStart` が throw した時に `triggerSync` / cooldown / caller rejection をどう扱うか固定する
+  - `src/__tests__/lib/manual-sync.test.ts` で throwing `onRequestStart` が command 実行前に止まるのか、error callback へ流れるのかを明示する
+  - cooldown listener isolation や triggerSync Result.fail 後の cooldown behavior とは分け、request-start callback の failure boundary だけを扱う
+
+- [ ] updater download promise rejection cleanup 候補を追加する
+  - `src/hooks/use-updater.ts` の `startDownload()` が `downloadAndInstallUpdate().then(...)` 前提なので、command が Result ではなく promise reject した時に `downloadInFlight` が戻るか確認する
+  - `src/__tests__/hooks/use-updater.test.ts` で rejected download promise 後に fallback toast が出ること、再クリック/再確認で次の download/check が可能なことを固定する
+  - progress payload schema や restart failure toast とは分け、download command promise rejection の cleanup だけを扱う
+
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
@@ -105,85 +245,20 @@
 
 ## 次の並列バッチ候補
 
-- [ ] TypeScript type surface inventory 候補を追加する
-  - `CLAUDE.md` の Type Surface Policy に沿って、`.types.ts` / exported `Props` / `Params` / `Result` / schema-derived DTO type の inventory を作る
-  - `src/components/reader/*types.ts`、`src/components/settings/*types.ts`、`src/lib/**/*.types.ts`、`src/stores/*.types.ts` を owner / consumer count / runtime boundary で分類する
-  - いきなり移動せず、public contract / feature-local / local-only / schema-derived の 4 区分へ分けて後続 worker scope を確定する
+- [ ] TypeScript feature-local `.types.ts` split 候補を追加する
+  - feature-local 候補: `src/components/reader/feed-tree.types.ts`、`sidebar.types.ts`、`sidebar-feed-section.types.ts`、`article-list.types.ts`、`browser-view.types.ts`、`command-palette.types.ts`、`add-feed-dialog.types.ts`、`rename-feed-dialog.types.ts`、`src/components/settings/settings-page.types.ts`、`settings-nav.types.ts`、`settings-modal.types.ts`、`account-detail/types.ts`
+  - Props / Params / Result が同じ file に混在している箇所を、view contract / controller contract / hook-local contract の小バッチに分けて整理する
+  - runtime behavior は変えず、feature 内 consumer が多い型の責務分割と name clarity だけを扱う
 
-- [ ] TypeScript type/interface convention cleanup 候補を追加する
-  - `interface` と `type` の使い分けを `CLAUDE.md` の方針へ寄せ、augmentation 目的以外の object shape は `type` alias へ寄せる
-  - 対象候補: `src/stores/preferences-store.types.ts` / `src/stores/ui-store.ts` / `src/lib/keyboard/keyboard-shortcuts.ts` / `src/vite-env.d.ts`
-  - declaration merging が必要な `ImportMetaEnv` / `Window` / i18next module augmentation は残し、型名と export surface のみを整理する
+- [ ] TypeScript local-only exported Props/Params/Result 候補を追加する
+  - local-only 候補: `src/components/settings/add-account/form-view.types.ts`、`src/components/reader/account-switcher.types.ts`、`article-view.types.ts`、`sidebar-sync.types.ts`、`sidebar-controller.types.ts`、`sidebar-runtime.types.ts`、`sidebar-sources.types.ts`、`sidebar-tag-items.types.ts`、`article-actions.types.ts`
+  - exported `*Props` / `Use*Params` / `Use*Result` の consumer が 1 runtime component / 1 hook group / story-only に閉じるものを owner file へ戻せるか確認する
+  - public contract 候補とは分け、localized type の export 削減だけを扱う
 
-- [ ] TypeScript React view props locality 候補を追加する
-  - exported `*Props` のうち runtime consumer が 1 component / 1 story / 1 test に閉じているものを local type へ戻せるか棚卸しする
-  - 対象候補: `article-list.types.ts` / `sidebar.types.ts` / `browser-view.types.ts` / `settings-page.types.ts` / `account-detail/types.ts`
-  - view contract と hook/controller contract を同じ `.types.ts` に混ぜず、移動は feature 単位の小バッチに分ける
-
-- [ ] TypeScript hook params/result colocation 候補を追加する
-  - `Use*Params` / `Use*Result` が hook-local なのに `.types.ts` へ残っている箇所を、hook file local へ戻すか shared controller contract として残すか判断する
-  - 対象候補: reader article-list hooks、sidebar hooks、browser hooks、settings account-detail hooks
-  - hook return を view props と兼用している箇所は名前を分け、`Params` / `Result` / `ViewProps` の責務を明確化する
-
-- [ ] TypeScript schema-derived type duplication 候補を追加する
-  - Tauri IPC / localStorage / app-config の runtime schema から導ける型を手書き type と重複させていないか確認する
-  - 対象候補: `src/api/schemas/*`、`src/schemas/*`、`src/api/tauri-commands.ts`、`tests/helpers/fixtures.ts`
-  - `z.output` / `z.infer` / command wrapper return type を source of truth にし、view model が intentionally different な場合だけ別名 type を残す
-
-- [ ] TypeScript assertion and narrowing cleanup 候補を追加する
-  - `as Record<string, string>` / `as StoryContext<TArgs>` / DOM event `as CustomEvent` などの assertion を boundary helper へ閉じ込められるか確認する
-  - 対象候補: `src/__tests__/config/repo-contracts.test.ts` / `tests/helpers/render-story.tsx` / `src/__tests__/hooks/use-browser-debug-geometry-events.test.tsx`
-  - production code では `unknown` + narrow / schema parse / `satisfies` を優先し、test helper assertion は proof が局所化された helper 名へ寄せる
-
-- [ ] TypeScript reader selection alias cleanup 候補を追加する
-  - `article-list.types.ts` の `ArticleListLayoutMode` / `ArticleListSelection` / `ArticleListViewMode` が root domain type の別名を増やしていないか確認する
-  - `src/lib/reader/reader-selection.types.ts` / `src/lib/layout/layout-state.types.ts` / `src/lib/reader/view-mode.types.ts` を source of truth にし、必要なら import 側を直接参照へ寄せる
-  - reader selection behavior は変えず、alias surface と type name drift の整理だけを扱う
-
-- [ ] TypeScript sidebar inline import type cleanup 候補を追加する
-  - `sidebar.types.ts` にある `import("./...").Type` 形式を named type import か小さな local alias へ整理し、params type の読みやすさを上げる
-  - `SidebarControllerSectionsParams` の責務が大きすぎる場合は account / smart views / content / header params に分ける候補を洗う
-  - sidebar controller behavior は変えず、type import surface と params grouping だけを扱う
-
-- [ ] TypeScript settings page control union cleanup 候補を追加する
-  - `settings-page.types.ts` の `SettingsPageControlBase` / `SettingsPageControl` union を、control `type` ごとの必須 field が読み取りやすい形へ整理する
-  - `text` と `action` の action props 重複、`id: string` / `name: string` の意味差分、`actionSize` の共有可否を確認する
-  - settings page rendering は変えず、control union の誤用防止と type name 整理だけを扱う
-
-- [ ] TypeScript Storybook render helper assertion cleanup 候補を追加する
-  - `tests/helpers/render-story.tsx` の `as StoryContext<TArgs>` / `as TArgs` / decorators assertion を、typed builder helper に閉じ込める
-  - Storybook `parameters` / `globals` / decorators merge の runtime contract を focused test で固定する
-  - individual story fixture 変更とは分け、render-story test helper の type boundary だけを扱う
-
-- [ ] TypeScript browser debug custom event guard 候補を追加する
-  - `use-browser-debug-geometry-events.test.tsx` の `event as CustomEvent<BrowserDebugGeometrySnapshot | null>` を small guard / typed listener helper へ寄せる
-  - `APP_EVENTS.browserDebugGeometry` の detail shape が `null` または snapshot であることを test helper 側で明示する
-  - browser debug event production hook は変えず、test listener の narrowing と assertion locality だけを扱う
-
-- [ ] TypeScript toast/display state type boundary 候補を追加する
-  - `src/lib/ui/toast.types.ts` と `src/lib/ui/display-state.types.ts` の `message` / `title` / `action` shape を共有すべきか、意図的に別 contract として残すか確認する
-  - 共通化する場合は action label/callback の最小型だけに限定し、toast severity / progress / update variant は toast 専用に残す
-  - not-found display type review とは分け、shared UI feedback action shape の型境界だけを扱う
-
-- [ ] TypeScript account setup session union cleanup 候補を追加する
-  - `src/lib/account/account-setup-session.types.ts` の `AccountSetupSessionOwner` / `AccountSetupSessionState` / verifying vs account session union を、discriminated union として読みやすい名前へ整理する
-  - add-account と account-detail の setup session lock が `accountId` 必須/不要を型で表現できているか focused test と store usage で確認する
-  - account setup flow behavior は変えず、session type name と state narrowing だけを扱う
-
-- [ ] TypeScript sync progress event boundary 候補を追加する
-  - `src/lib/sync/sync-progress.types.ts` の event payload が Rust/Tauri 由来の snake_case と UI state の camelCase を同じ file で扱っている点を整理する
-  - `SyncProgressEvent` は runtime event DTO、`SyncProgressState` は UI store state として名前や file placement を分けられるか確認する
-  - sync progress UI copy や scheduler behavior とは分け、event DTO / UI state type boundary だけを扱う
-
-- [ ] TypeScript UI wrapper props public API 候補を追加する
-  - `src/components/ui/scroll-area.types.ts` と `src/components/shared/dialog.types.ts` が public wrapper contract として十分小さいか、component file local へ戻すべきか判断する
-  - Base UI wrapper props は public API として残す方針に沿い、`ScrollAreaProps` の extra props と `ConfirmDialogVariant` の reuse consumer を確認する
-  - primitive migration とは分け、UI wrapper/shared dialog の type surface 明文化だけを扱う
-
-- [ ] TypeScript tauri mock recorder type boundary 候補を追加する
-  - `tests/helpers/tauri-types.ts` の `MockTauriCommandCall.args: Record<string, unknown>` を schema validation 後 args と raw args のどちらとして扱うか明確化する
-  - `createTauriMockCallRecorder` の handler fallback と args validation order を helper test で固定し、必要なら `ValidatedMockTauriCommandCall` のような別名へ分ける
-  - tauri mock call recorder helper の挙動追加とは分け、test helper type boundary だけを扱う
+- [ ] TypeScript schema-derived DTO boundary 候補を追加する
+  - schema-derived 候補: `AccountDto` / `ArticleDto` / `FeedDto` / `FolderDto` / `TagDto` / `MuteKeywordDto` / `PreferencesDto` / `BrowserWebviewState` を import する reader/settings/lib/store types と、手書き `SyncProgressEventDto`
+  - DTO alias や view model が `z.output` / `z.infer` / `api/tauri-commands` の source of truth と重複していないか確認し、UI 専用 shape は `*ViewModel` / `*UiState` として意図を明確にする
+  - IPC / localStorage / app-config schema の validation 変更とは分け、type source-of-truth と DTO/UI state boundary だけを扱う
 
 - [ ] TypeScript safeInvoke schema overload cleanup 候補を追加する
   - `src/api/tauri-commands.ts` の `safeInvoke` overload が schema-aware return と generic return を混在させている点を整理する
@@ -2269,7 +2344,7 @@
   - account detail credentials validation とは分け、copy failure feedback copy だけを扱う
 
 - [ ] settings action aria label contract 候補を追加する
-  - `src/components/settings/settings-page-view.tsx` と `src/components/settings/shortcuts-settings-view.tsx` の ``${actionLabel}: ${label}`` 直組みを locale/control props へ寄せる
+  - `src/components/settings/settings-page-view.tsx` と `src/components/settings/shortcuts-settings-view.tsx` の `${actionLabel}: ${label}` 直組みを locale/control props へ寄せる
   - view test で `actionAriaLabel` / `resetAriaLabel` props が優先され、controller test で `ja` の aria label が locale key 由来になることを確認する
   - settings nav/page/modal contract 再設計とは分け、action button aria label だけを扱う
 

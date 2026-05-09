@@ -171,7 +171,7 @@ mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 mise run app:dev      # Launch the native app in repository dev mode
 mise run app:dev:native-keyring     # Launch the native app in dev mode with the OS keyring backend
-mise run app:install  # Build and install the current-platform packaged app
+mise run app:install  # Build, locally re-sign, and install the current checkout; not published release verification
 mise run app:dev:signed              # macOS-only: build, codesign, and run the dev binary (no Keychain dialog)
 mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
 mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL
@@ -188,6 +188,7 @@ Always run `mise run check` before committing.
 - `mise run build:storybook` is the static Storybook build gate. Run it with `mise run test:storybook:e2e` before relying on a Storybook fixture in a review or release note.
 - `mise run test:live` is opt-in and requires real FreshRSS credentials from `.env`.
 - Features that depend on OS services such as updater installation and native keyring behavior still need platform-specific manual verification. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before tagging a release or sharing a packaged build.
+- Published release install verification must use the artifact from GitHub Releases and record its digest, codesign result, and Gatekeeper result. `mise run app:install` rebuilds from the current checkout and may locally re-sign the app, so it is not a substitute for published artifact verification.
 
 ### Verification Matrix
 

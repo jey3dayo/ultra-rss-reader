@@ -6,6 +6,7 @@ Use this page as the entry point for repository documentation outside the main [
 
 - [../README.md](../README.md): current product overview, architecture, commands, and verification guidance
 - [../CLAUDE.md](../CLAUDE.md): short agent-facing workflow guidance
+- [../RTK.md](../RTK.md): repository command execution policy and RTK usage guidance
 - [../TODO.md](../TODO.md): active and upcoming tasks only
 - [../CHANGELOG.md](../CHANGELOG.md): completed user-visible changes
 
@@ -15,6 +16,7 @@ Use this page as the entry point for repository documentation outside the main [
 - [incident-runbook.md](./incident-runbook.md): shortest path to logs, backups, and failure-specific triage when the app is already failing
 - [feed-content-privacy.md](./feed-content-privacy.md): source of truth for feed-content privacy expectations and the current CSP policy
 - [reader-keyboard-navigation.md](./reader-keyboard-navigation.md): source of truth for reader pane keyboard navigation, focus return behavior, and focus styling contracts
+- [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
 
 ## Project Guidance
 
