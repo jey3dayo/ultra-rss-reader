@@ -525,11 +525,6 @@
   - React Doctor / Knip が add-account form 周辺の unused type を検出しており、form view props と service setup controller contract が同じ層に残りやすい
   - submit payload、validation state、service config view props、navigation callback、cancel/retry contract を分ける
 
-- [ ] P2 service-picker unused type を add-account service catalog contract と合わせる
-  - 対象: `src/components/settings/add-account/service-picker.tsx`, `src/components/settings/add-account/services.ts`, `src/components/settings/add-account/services.types.ts`
-  - React Doctor / Knip が service picker / service types に unused type を検出しており、service catalog、picker view model、account config schema が過剰に公開されている可能性がある
-  - picker-only props は local、catalog entry は service module、config schema type は account-config form 側に寄せる
-
 - [ ] P2 settings preference type の unused surface を preference schema と view props に分ける
   - 対象: `src/components/settings/settings-preference.types.ts`, `src/schemas/preferences.ts`, `src/components/settings/general-settings-view.tsx`
   - React Doctor / Knip が settings preference type と schema に unused type/export を検出しており、schema-derived type と view option type が重複しやすい
