@@ -75,21 +75,6 @@
   - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
   - `docs/feed-content-privacy.md` の checklist と TODO の実行単位を対応させ、manual verification を reader thumbnail / sanitized body / Web Preview に分割する
 
-- [ ] P1 feed/folder 一括既読を transaction 化して partial write を防ぐ
-  - 対象: `src-tauri/src/commands/article_commands.rs`
-  - `mark_feed_read` / `mark_folder_read` が既読化、unread count 再計算、pending mutation 追加を 1 transaction にしていないため、途中失敗で local state、remote sync queue、count がズレ得る
-  - pending mutation insert failure を注入する Rust test を追加し、feed count と mutation queue まで同時 commit する helper へ寄せる
-
-- [ ] P1 account/old-unread/starred bulk 操作の partial write を防ぐ
-  - 対象: `src-tauri/src/commands/article_commands.rs`
-  - `mark_rows_read` / `bulk_unstar_account_articles` が複数 update と pending mutation queue を非 transaction で実行するため、大量件数や制約エラー時に一部だけ永続化され得る
-  - queue 保存失敗時に article state が戻ることを contract test 化し、bulk helper を transaction 受け取りに寄せる
-
-- [ ] P1 star toggle の local state と pending mutation を同一 commit にする
-  - 対象: `src-tauri/src/commands/article_commands.rs`
-  - `toggle_article_star_with_conn` は article 更新後に pending mutation を追加するため、pending mutation だけ失敗すると remote に反映されない starred state が残る
-  - blank/invalid remote id や pending table failure を注入し、`mark_article_read_with_conn` と同じく transaction 内 queue にする
-
 - [ ] P1 manual full sync の並列設計と single DB mutex の噛み合わせを検証する
   - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/commands/mod.rs`
   - account sync は `join_all` で並列化される一方、DB は `Mutex<DbManager>` で直列化されるため、長い write 中に他 account や UI read が詰まりやすい
@@ -100,40 +85,10 @@
   - `vacuum_database` は開始時に `syncing` を読むだけで自分では sync guard を取らないため、直後に sync が始まると DB lock 待ちと UI 進捗が不自然になり得る
   - vacuum lock 中に sync 開始を競合させる test を追加し、vacuum 用 guard か sync 側の maintenance 検出を入れる
 
-- [ ] P1 global shortcut が dialog/modal 中に背後の reader state を変えない contract を作る
-  - 対象: `src/hooks/use-keyboard.ts`, `src/components/app-shell.tsx`
-  - `settingsOpen` / `confirmDialog.open` / `shortcutsHelpOpen` などを見ず capture の `keydown` を処理すると、設定や確認ダイアログ上で command palette や reader action が重なり得る
-  - modal open 時に reader/global shortcut が無効化される test を追加し、許可する shortcut は dialog scoped のみにする
-
-- [ ] P1 feed display 設定の optimistic rollback を latest-only にする
-  - 対象: `src/hooks/use-update-feed-display-mode.ts`
-  - 連続変更時に先行 request が後から失敗すると `previousFeedsQueries` を無条件に戻し、後続成功済みの reader/web preview mode を消せる
-  - deferred promise で `A -> B fail` と `B -> C success` を逆順 settle させる test を追加し、feedId ごとの mutation generation か現在値比較 rollback にする
-
-- [ ] P1 article read/star cache patch を out-of-order 成功に強くする
-  - 対象: `src/hooks/use-articles.ts`
-  - `setRead` / `toggleStar` は成功順に cache patch するため、star on が遅延して star off より後に成功すると `starredArticles` に古い状態を再挿入し得る
-  - 同一 article の toggle 2 回を逆順 resolve する hook test を追加し、articleId ごとの latest mutation id か server revision で stale patch を捨てる
-
-- [ ] P1 feed landing の optimistic restore を latest-only にする
-  - 対象: `src/hooks/use-feed-landing.ts`
-  - feed A の landing が `previousUiState` を保持した後に feed B が成功しても、A の fetch 失敗が後から来ると B の選択を巻き戻せる
-  - A/B 並行 landing で A だけ後失敗させる test を追加し、landing request generation を store/hook に持って最新でない restore を無視する
-
-- [ ] P1 feed discovery / local provider redirect policy の cross-scheme downgrade を固定する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`
-  - initial URL が `https` でも redirect 先が `http` の場合にどこまで許すかが曖昧だと、feed discovery と actual fetch の security posture がズレる
-  - https -> http、http -> https、public -> private、public -> localhost redirect の policy を discovery/provider 両方の Rust test で固定する
-
 - [ ] P1 sanitizer で許可した media/source/link attribute の privacy policy を固定する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
   - sanitizer が `source` の `srcset` / `sizes` / `media` などを許可するため、将来 article body rendering が media を増やした時に remote request 面積が広がりやすい
   - reader body で実際に描画される tag/attribute と CSP/privacy doc を照合し、media tag を残す/落とす/手動検証へ分ける
-
-- [ ] P1 release workflow の manual dispatch と tag push の concurrency collision を検証する
-  - 対象: `.github/workflows/release.yml`
-  - `concurrency` が release workflow 単位だと、tag push と manual dispatch が近いタイミングで走った時に片方が cancel され、draft release や artifact が中途半端に残る可能性がある
-  - tag 名を含む concurrency group にするか manual dispatch を禁止するか決め、同一 tag の再実行/キャンセル時の cleanup 手順を release checklist に入れる
 
 - [ ] P2 local feed sync の article upsert と sync_state 保存を atomic にする
   - 対象: `src-tauri/src/commands/sync_providers.rs`
@@ -165,11 +120,6 @@
   - feed item の article URL は open/copy/browser preview に流れるため、`https://user:pass@host`、fragment token、control char をどこで落とすか未固定だと privacy と UI 表示が揺れる
   - normalizer、ArticleDtoSchema、open/copy action のどこで sanitize するか決め、credential-in-URL と invalid URL の fixture を追加する
 
-- [ ] P2 feed discovery の response content-type / body size policy を固定する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`
-  - discovery と local provider fetch の content-type 許容、HTML parse、RSS parse、body size 上限がズレると、巨大 HTML や binary response で latency/memory が悪化しやすい
-  - text/html、XML、binary、missing content-type、large body の response fixture で discovery/provider の expected behavior を固定する
-
 - [ ] P2 Windows Rust test scope が integration_test だけになっている理由を固定する
   - 対象: `mise.toml`, `.github/workflows/ci.yml`
   - Windows の `test:rust` が `--test integration_test` のみに絞られており、unit tests が Windows 固有の path/keyring/OS 差を拾わない可能性がある
@@ -180,20 +130,10 @@
   - `actionlint -shellcheck=` で shellcheck integration を切っているため、workflow 内 shell script の引用や未定義変数の問題を拾いにくい
   - shellcheck を導入するか、workflow script を外部 script 化して lint するか決め、CI shell の最小 gate を追加する
 
-- [ ] P2 release preflight が branch/tag source を検証してから artifact を作るようにする
-  - 対象: `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`
-  - manual `release_tag` と checkout ref の関係が曖昧だと、意図しない commit から正しい tag 名の artifact を作る運用事故が起き得る
-  - tag object の target sha、workflow ref、package version を preflight で照合し、不一致なら tauri-action 前に失敗させる
-
 - [ ] P3 schema_version を single-row contract に寄せる
   - 対象: `src-tauri/migrations/*.sql`, `src-tauri/src/infra/db/migration.rs`
   - 古い migration は `INSERT`、近い migration は `DELETE FROM schema_version` + insert で、helper は single row 前提のため、新規 migration 追加時に履歴/現行値の扱いが揺れやすい
   - migration 後 `schema_version` が 1 row だけで latest になる contract test を追加し、以後は `set_schema_version` 相当の書き方へ統一する
-
-- [ ] P3 confirm dialog の confirm callback に in-flight/error 境界を追加する
-  - 対象: `src/components/app-confirm-dialog.tsx`
-  - `onConfirm` を呼んで即 close するだけなので、同期 throw なら close されず、async destructive action の in-flight 表示や二重実行 policy も共有されていない
-  - throwing callback と double confirm の component test を追加し、共有 confirm に `confirming` guard を持たせるか callback は内部で例外を吸収する contract にする
 
 - [ ] P3 auto mark read の同一 article 再自動既読 policy を固定する
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`
@@ -360,16 +300,6 @@
   - folder options は duplicate id を落とすが duplicate name や selected folder deleted の表示方針が未固定だと、add/rename feed dialog の folder assignment が分かりにくい
   - duplicate name、blank name fallback、selected folder missing、新規 folder 作成中の account switch を view/helper test にする
 
-- [ ] P2 browser webview request state reset と native event race を固定する
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-request-state.ts`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`
-  - `browserUrl` change 時に fallback flag と sync state を即 reset するため、古い native `loaded/error/closed` event が後から来ると新しい request の state に混ざる可能性がある
-  - URL/request id ごとの event filtering を追加するか、old event ignore policy を hook test で固定する
-
-- [ ] P2 browser webview listener cleanup failure 後の duplicate event policy を固定する
-  - 対象: `src/lib/runtime/tauri-event-listeners.ts`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`
-  - cleanup が throw した listener は残存する可能性があり、再open後に duplicate event が来ると progress/state が二重更新され得る
-  - cleanup failure injection、reopen overlay、duplicate loaded/closed event の idempotence test を追加する
-
 - [ ] P2 query client global retry=false の transient failure UX を棚卸しする
   - 対象: `src/lib/query/query-client.ts`, `src/hooks/use-account-sync-status.ts`, `src/hooks/use-articles.ts`
   - 全 query の retry が false のため、一時的な DB busy/runtime unavailable が即 error 表示になり、手動 retry 導線がない view では stale/empty に見えやすい
@@ -519,16 +449,6 @@
   - 対象: `src/App.tsx`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src-tauri/src/service/sync_scheduler.rs`
   - foreground 復帰時に wake sync、startup throttle、manual sync、updater install gate が近いタイミングで動くため、UI では idle に見えて native 側だけ busy になりやすい
   - app wake、manual sync click、update-ready、scheduler tick を組み合わせた integration test / manual verification checklist を作る
-
-- [ ] P2 `bindWindowEvents` cleanup throw が React unmount を壊さないようにする
-  - 対象: `src/lib/window/window-events.ts`, `src/components/settings/hooks/use-scroll-overflow-state.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`
-  - cleanup 時の `removeEventListener` throw を再throw すると、unmount や effect cleanup が例外で止まり、後続 listener cleanup が不完全になる可能性がある
-  - cleanup failure を aggregate/log-only にするか呼び出し元で握るか決め、multiple cleanup failure と partial cleanup の unit test を追加する
-
-- [ ] P2 scroll overflow observer の high-frequency mutation / layout read 負荷を測る
-  - 対象: `src/components/settings/hooks/use-scroll-overflow-state.ts`, `src/components/settings/settings-modal-view.tsx`
-  - MutationObserver が subtree/attributes/characterData を広く監視し、そのたびに `scrollHeight/clientHeight` を読むため、settings の大きな form や transition 中に layout thrash が出やすい
-  - large settings content、rapid input typing、ResizeObserver absent の計測を行い、debounce / content-only observe / explicit dependency 更新に分ける
 
 - [ ] P2 article auto-mark read の stale error rollback を latest article/viewMode で guard する
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`, `src/stores/ui-store.ts`
@@ -680,11 +600,6 @@
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
 
-- [ ] P2 preference typo suggestion の edit distance cost を large key set で固定する
-  - 対象: `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - preference key が増えるほど typo suggestion の edit distance 計算と候補選定が drift し、間違った key を推奨する可能性がある
-  - similar shortcut key、debug key、selected account key、unknown long key の suggestion/no-suggestion contract を test にする
-
 - [ ] P2 external opener の `mailto:` 許可と article link opener の許可差を明文化する
   - 対象: `src/api/schemas/commands.ts`, `src/components/reader/article-reader-body.tsx`, `src/components/reader/article-browser-actions.ts`
   - `plugin:opener|open_url` は `mailto:` を許す一方、`open_in_browser` / Reading List / WebView は http(s) のみで、どの UI action が mailto を許すか分かりにくい
@@ -700,16 +615,6 @@
   - stale target を no-op/成功扱いにする操作では、toast を出さないのか「既に削除済み」と出すのかが feature ごとに揺れやすい
   - feed/tag/account/article の already-deleted copy、diagnostics-only policy、user-visible policy を locale key と component test で固定する
 
-- [ ] P1 feed tree pointer drag が window 外 release で stuck しないようにする
-  - 対象: `src/components/reader/hooks/feed-tree/use-feed-tree-drag.ts`, `src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts`
-  - pointer capture を使わず window の `pointerup` / `pointercancel` に依存しているため、drag 中に pointer が別 window / WebView / OS 領域へ出ると `isPointerTracking` や drag overlay が残る可能性がある
-  - pointer capture、blur/visibilitychange cleanup、Escape cleanup、unmount cleanup のどれを正にするか決め、outside-window release と lost pointer capture の component test を追加する
-
-- [ ] P1 feed tree drag drop 中の async move 失敗時に visual hover / suppression を残さない
-  - 対象: `src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`, `src/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression.ts`
-  - drop outcome は async move を呼んだ後も click suppression と drag end の境界が分かれ、mutation reject 時に hover target や suppressed click が次操作へ残ると誤選択が起きやすい
-  - move success、move reject、same target no-op、drop直後 click の順序を test 化し、visual cleanup と data rollback の責務を分ける
-
 - [ ] P1 fullscreen toggle の unhandled rejection を global action boundary で吸収する
   - 対象: `src/lib/actions.ts`, `src/lib/window/windows.ts`, `src/hooks/use-keyboard.ts`, `src/hooks/use-menu-events.ts`
   - `toggleFullscreen()` を fire-and-forget で呼び、`setWindowFullscreen` reject を catch していないため、native menu / keyboard 経由で unhandled rejection が出ても toast や diagnostics に残らない
@@ -724,26 +629,6 @@
   - 対象: `src-tauri/src/browser_webview.rs`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`
   - child webview 内 script は back/forward/close を native command へ直接送るため、WebView recreate 後に古い page script から command が届くと現在 overlay state と別セッションの操作が混ざる可能性がある
   - browser session id、target URL、window label の照合を入れるか、native 側 idempotent no-op とするか決め、recreate直後の late command test を追加する
-
-- [ ] P1 keyring force-delete fallback の stderr / exit status を diagnostics へ残す
-  - 対象: `src-tauri/src/infra/keyring_store.rs`
-  - macOS dev build の ACL mismatch 対策で `security delete-generic-password` を実行しているが、結果を捨てているため、force-delete 自体の失敗と second `set_password` failure の原因が切り分けにくい
-  - security CLI missing、No such keychain item、permission denied、stderr with account id の redaction と diagnostics message を Rust test / manual verification にする
-
-- [ ] P2 dev credentials store の cross-process write collision を防ぐ
-  - 対象: `src-tauri/src/infra/keyring_store.rs`
-  - dev credential store は process 内 Mutex と固定 temp path `.<file>.tmp` に依存しており、dev app と test/別 process が同時に書くと temp file rename が競合し得る
-  - process id / random suffix temp path、file lock、atomic rename failure retry のどれを採るか決め、並行 write と stale temp file の Rust test を追加する
-
-- [ ] P2 dev credentials JSON の size / key / value schema を固定する
-  - 対象: `src-tauri/src/infra/keyring_store.rs`
-  - dev credential store は `HashMap<String, String>` として読むため、巨大 JSON、blank account id、control char、長大 password が入った時の memory/diagnostics/上書き方針が未固定
-  - max file size、max entries、blank key rejection、corrupted JSON preserve、oversized value error の contract test を追加する
-
-- [ ] P2 sidebar expanded folders localStorage の raw size / corrupted payload cleanup を固定する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/schemas/storage.ts`, `src/constants/storage.ts`
-  - schema は account/folder 数を絞るが、巨大 raw JSON や object depth が深い payload を parse する前の上限がないため、起動時 sidebar 初期化で UI thread を止めやすい
-  - max raw bytes、parse failure cleanup、schema failure cleanup、quota exceeded write の behavior を unit test にする
 
 - [ ] P2 command palette recent resource が削除済み target を表示し続けないようにする
   - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`, `src/components/reader/hooks/command-palette/use-command-palette-data.ts`, `src/components/reader/command-palette-history.ts`
@@ -769,11 +654,6 @@
   - 対象: `src/components/app-shell.tsx`
   - settings modal preload が failure を console に出すだけだと、chunk outage や asset path 破損時に hover/focus のたびに同じ preload が失敗し続け、原因が diagnostics に残りにくい
   - preload failure cache、manual retry、reload action、production/dev logging の behavior を app shell test にする
-
-- [ ] P2 browser webview load timeout と native loaded event の late arrival policy を固定する
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-load-timeout.ts`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`
-  - load timeout 後に native `loaded` が届いた場合、surface failure を残すのか復旧扱いにするのかが曖昧だと、低速 network で overlay state が揺れやすい
-  - timeout -> late loaded、timeout -> error、retry open、close before timeout の state transition を hook test にする
 
 - [ ] P2 app action event dispatch の CustomEvent detail schema を listener 側と照合する
   - 対象: `src/lib/actions.ts`, `src/hooks/use-keyboard.ts`, `src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts`
