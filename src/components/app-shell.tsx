@@ -186,11 +186,11 @@ type FocusDebugHudProps = {
 type DebugHudDocumentBoundary = {
   readonly activeElement?: unknown;
   readonly body?: unknown;
-  readonly defaultView?: Pick<Window, "HTMLElement"> | null;
+  readonly defaultView?: (Window & { readonly HTMLElement?: typeof HTMLElement }) | null;
 };
 
 function isDebugHudHtmlElement(value: unknown, ownerDocument: DebugHudDocumentBoundary): value is HTMLElement {
-  const HtmlElement =
+  const HtmlElement: typeof HTMLElement | null =
     ownerDocument.defaultView?.HTMLElement ?? (typeof HTMLElement !== "undefined" ? HTMLElement : null);
   return HtmlElement !== null && value instanceof HtmlElement;
 }
