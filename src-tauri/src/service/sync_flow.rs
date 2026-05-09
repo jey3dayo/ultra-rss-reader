@@ -255,6 +255,8 @@ mod tests {
         pushed: Mutex<Vec<Mutation>>,
     }
 
+    struct DeltaSyncProvider;
+
     struct FakePendingMutationRepository {
         pending: Vec<PendingMutation>,
         deleted_ids: Mutex<Vec<Vec<i64>>>,
@@ -444,6 +446,63 @@ mod tests {
         }
     }
 
+    #[async_trait]
+    impl FeedProvider for DeltaSyncProvider {
+        fn kind(&self) -> ProviderKind {
+            ProviderKind::FreshRss
+        }
+
+        fn capabilities(&self) -> ProviderCapabilities {
+            ProviderCapabilities {
+                supports_folders: true,
+                supports_starring: true,
+                supports_search: true,
+                supports_delta_sync: true,
+                supports_remote_state: true,
+            }
+        }
+
+        async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+            unreachable!("sync_account must reject delta-sync providers before authentication")
+        }
+
+        async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+            unreachable!("sync_account must reject delta-sync providers before subscriptions sync")
+        }
+
+        async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+            unreachable!("sync_account must reject delta-sync providers before folders sync")
+        }
+
+        async fn pull_entries(
+            &self,
+            _scope: PullScope,
+            _cursor: Option<SyncCursor>,
+        ) -> DomainResult<PullResult> {
+            unreachable!("sync_account must reject delta-sync providers before entry sync")
+        }
+
+        async fn pull_state(&self) -> DomainResult<RemoteState> {
+            unreachable!("sync_account must reject delta-sync providers before state sync")
+        }
+
+        async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+            unreachable!("sync_account must reject delta-sync providers before mutation push")
+        }
+
+        async fn create_subscription(
+            &self,
+            _url: &str,
+            _folder: Option<&str>,
+        ) -> DomainResult<RemoteSubscription> {
+            unreachable!("sync_account must not manage provider subscriptions")
+        }
+
+        async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            unreachable!("sync_account must not manage provider subscriptions")
+        }
+    }
+
     impl PendingMutationRepository for FakePendingMutationRepository {
         fn find_by_account(&self, _account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
             Ok(self.pending.clone())
@@ -518,6 +577,44 @@ mod tests {
             DomainError::Validation(message)
                 if message.contains("commands::sync_providers")
         ));
+    }
+
+    #[tokio::test]
+    async fn sync_account_rejects_delta_sync_providers_before_orchestration_side_effects() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId::new();
+        let provider = DeltaSyncProvider;
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = FakePendingMutationRepository {
+            pending: vec![PendingMutation {
+                id: Some(1),
+                account_id: account_id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "remote-entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            }],
+            deleted_ids: Mutex::new(Vec::new()),
+        };
+
+        let error = sync_account(
+            &account_id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message)
+                if message.contains("commands::sync_providers")
+        ));
+        assert!(pending_repo.deleted_ids.lock().unwrap().is_empty());
     }
 
     #[tokio::test]
