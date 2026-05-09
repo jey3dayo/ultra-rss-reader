@@ -64,11 +64,6 @@
   - `src/__tests__/components/article-tag-chips.test.tsx` で duplicate assigned tag、duplicate allTags、blank tag id を追加し、dedupe / caller invariant / schema rejection の境界を明示する
   - article tag picker mutation failure や keyboard/focus contract とは分け、picker list projection の tag identity boundary だけを扱う
 
-- [ ] command search repeated prefix boundary 候補を追加する
-  - `src/components/reader/hooks/command-palette/use-command-search.ts` の `parsePrefix()` が先頭1文字だけを prefix として扱うため、`">>sync"` / `"@@feed"` / `"##tag"` を query に残すか正規化するか固定する
-  - `src/__tests__/hooks/use-command-search.test.ts` で repeated prefix、prefix 間 whitespace、unknown prefix-like character の期待値を追加する
-  - command palette history parser や resource filtering ranking とは分け、search input prefix parser の文字列境界だけを扱う
-
 - [ ] dom target shadow boundary contract 候補を追加する
   - `src/components/reader/dom-target.ts` の `isOutsideElement()` が `element.contains(target)` だけで判定するため、Shadow DOM 内 target や composed event path を outside と扱うか確認する
   - `src/__tests__/components/dom-target.test.ts` で open shadow root 内の button、detached node、host element を追加し、click-outside helper の DOM boundary を固定する
@@ -83,11 +78,6 @@
   - `src/stores/preferences-store.ts` の `setPref()` は rapid toggle 時に古い persist failure が後から toast を出せるため、latest request 以外の失敗通知を出すかどうかを決める
   - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
   - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
-
-- [ ] account setup session blank id guard 候補を追加する
-  - `src/stores/ui-store.ts` の `startAccountSetup` / `markAccountSetupFailed` / `markAccountSetupSucceeded` が blank account id を session state に入れない contract を固定する
-  - `src/__tests__/lib/account-setup-session.test.ts` で whitespace-only id は no-op、trim 後 id は既存 owner を維持することを確認する
-  - add account verification lock や account detail sync retry flow とは分け、account setup session state の id boundary だけを扱う
 
 - [ ] breakpoint layout preference normalization 候補を追加する
   - `src/hooks/use-breakpoint.ts` の `resolvePreferredLayoutMode()` が `" compact "` や uppercase 値を invalid として wide 扱いするため、preferences schema default と同じ正規化方針に寄せるか確認する
