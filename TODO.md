@@ -80,10 +80,20 @@
   - account sync は `join_all` で並列化される一方、DB は `Mutex<DbManager>` で直列化されるため、長い write 中に他 account や UI read が詰まりやすい
   - 複数 account sync 中に list/count command が返る時間を測り、並列度制限、DB operation queue、read path の busy/error policy を固定する
 
+- [ ] P1 vacuum と sync 開始の race を database maintenance guard で整理する
+  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`
+  - `vacuum_database` は開始時に `syncing` を読むだけで自分では sync guard を取らないため、直後に sync が始まると DB lock 待ちと UI 進捗が不自然になり得る
+  - vacuum lock 中に sync 開始を競合させる test を追加し、vacuum 用 guard か sync 側の maintenance 検出を入れる
+
 - [ ] P1 sanitizer で許可した media/source/link attribute の privacy policy を固定する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
   - sanitizer が `source` の `srcset` / `sizes` / `media` などを許可するため、将来 article body rendering が media を増やした時に remote request 面積が広がりやすい
   - reader body で実際に描画される tag/attribute と CSP/privacy doc を照合し、media tag を残す/落とす/手動検証へ分ける
+
+- [ ] P2 local feed sync の article upsert と sync_state 保存を atomic にする
+  - 対象: `src-tauri/src/commands/sync_providers.rs`
+  - articles/count は保存済みだが validator `sync_state` 保存だけ失敗すると、次回同じ feed を再取得し、逆方向の不整合も将来 refactor で入りやすい
+  - `sync_state` table failure test で記事保存済み時の state 方針を固定し、article upsert、mute auto-read、count、state を service transaction へまとめる
 
 - [ ] P2 pending_mutations の duplicate row を DB 制約で防ぐ
   - 対象: `src-tauri/migrations/V1__initial.sql`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
@@ -135,6 +145,21 @@
   - provider 由来 URL が外部ブラウザ/open command に流れるため、`javascript:`、`file:`, credential-in-URL、control char をどこで拒否するか未固定だと OS opener 境界で事故りやすい
   - frontend action と Rust opener command の両方で allowed scheme を固定し、invalid URL は toast だけで native invoke しない contract test を追加する
 
+- [ ] P1 updater install/restart 中の sync・DB write gate を固定する
+  - 対象: `src/hooks/use-updater.ts`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`
+  - update download/install は restart を伴う一方、manual/automatic sync や DB maintenance が走っている時の禁止・待機・中断方針が見えにくい
+  - installing update 中の sync 開始、sync 中の update install、download failure after ready state の UI/command contract test を追加する
+
+- [ ] P1 updater manifest の channel / prerelease / downgrade policy を固定する
+  - 対象: `src-tauri/tauri.conf.json`, `src-tauri/tauri.release.conf.json`, `src/api/schemas/update-info.ts`, `src/hooks/use-updater.ts`
+  - update endpoint が `latest.json` 固定のため、prerelease、downgrade、same version、platform mismatch の扱いが曖昧だと release 運用で誤配信に気づきにくい
+  - fake update manifest で newer/same/older/prerelease/platform mismatch を固定し、UI 表示と install 可否を schema test にする
+
+- [ ] P1 browser webview event payload の schema validation を Rust/TS で揃える
+  - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`, `src-tauri/src/browser_webview.rs`
+  - native event payload は frontend schema と Rust emit shape がズレると malformed event warning で止まり、browser overlay の state だけ stale になり得る
+  - Rust event fixture と TS schema fixture を同じケースで照合し、unknown stage、missing URL、malformed bounds の recovery を固定する
+
 - [ ] P2 article view history cleanup / retention policy を決める
   - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
@@ -144,6 +169,11 @@
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/api/schemas/feed-integrity.ts`
   - orphan cleanup は destructive なので、dry-run と実削除の count 差、concurrent feed delete、sync 中実行の扱いが曖昧だと DB repair 操作で事故りやすい
   - dry-run直後の状態変化、sync中拒否、deleted count と orphan count の一致を Rust/TS schema test で固定する
+
+- [ ] P2 reader selection が削除済み feed/folder/tag を指す時の recovery を固定する
+  - 対象: `src/stores/ui-store.ts`, `src/lib/reader/reader-query.ts`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
+  - feed/folder/tag 削除後に selection が stale id を指すと disabled query や empty view に落ちるが、どこで all/unread へ戻すかが分かれやすい
+  - selected feed deleted、selected folder deleted、selected tag deleted、account switch の recovery を store/hook test で固定する
 
 - [ ] P2 account unread count と feed unread count の reconciliation policy を作る
   - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-account-unread-count.ts`
@@ -215,6 +245,16 @@
   - native sync が途中で error/abort して `sync-completed` を emit しない場合、frontend の `syncProgress.active` が残り manual sync が無効化され続ける可能性がある
   - timeout recovery、manual clear、next started event での reset のどれを正にするか決め、missing completed event の store/hook test を追加する
 
+- [ ] P1 Reading List command の AppleScript stderr を user-facing error に直出ししない
+  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/components/reader/article-browser-actions.ts`
+  - `osascript` failure stderr をそのまま `UserVisible` message に含めると、URL や OS 固有の内部情報が toast/log に出る可能性がある
+  - stderr は diagnostics/log に寄せ、UI には分類済み message を出す contract test を追加する
+
+- [ ] P1 clipboard write の text category と size limit を固定する
+  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/clipboard.ts`, `src/components/reader/article-browser-actions.ts`
+  - clipboard command は任意 text を受けるため、巨大 text、credential-like value、multiline URL をどこで拒否するか未固定だと copy action の責務が広がる
+  - article link、server URL、debug text の category ごとに max length / multiline / secret-like pattern の扱いを分け、unit test にする
+
 - [ ] P1 debug input trace が typed key や target text を記録しすぎないようにする
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug-input-trace.ts`, `src/components/settings/debug-settings.tsx`
   - Debug HUD の raw keyboard/pointer trace は入力欄や URL/credential field の target description を扱うため、debug log 上に sensitive interaction が残る可能性がある
@@ -224,6 +264,11 @@
   - 対象: `src-tauri/src/commands/log_commands.rs`, `src-tauri/src/lib.rs`, `docs/feed-content-privacy.md`
   - log dir はユーザーが直接開けるため、sync error、browser diagnostics、debug trace に URL query や account data が残ると support 共有時に漏えいしやすい
   - log redaction 対象、retention、manual support 手順を checklist 化し、代表ログに secret-like string が出ない test を追加する
+
+- [ ] P2 selected_account_id preference が stale の時に DB mirror を修復する
+  - 対象: `src/lib/account/account-selection.ts`, `src/stores/preferences-store.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
+  - `getPreferredAccountId` は missing saved id を先頭 account へ fallback するが、DB preference 自体を直さない場合、起動ごとに stale id を読み続ける
+  - account delete、import後 account id 変更、blank saved id の時に selected_account_id を修復するか read-time fallback に留めるか test で固定する
 
 - [ ] P2 account switcher outside-click listener の pointer/touch/focusout coverage を確認する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts`
@@ -274,6 +319,11 @@
   - 対象: `src/components/app-confirm-dialog.tsx`, `src/hooks/use-delete-feed.ts`, `src/components/reader/article-list.tsx`, `src/components/settings/mute-settings.tsx`
   - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
   - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
+
+- [ ] P1 OPML import の duplicate URL merge / skip / overwrite policy を固定する
+  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/opml.rs`, `src/dev/mocks.ts`
+  - OPML に同一 URL、同一 title 別 URL、同一 URL 別 folder が含まれる時に、既存 feed とどう merge するかが曖昧だと import 後の unread/folder 整合性が崩れやすい
+  - duplicate within file、existing feed collision、folder move を import summary にどう出すか決め、Rust command test と dev mock parity test を追加する
 
 - [ ] P1 app root missing / lazy chunk failure の user-visible fallback を固定する
   - 対象: `src/main.tsx`, `src/components/app-shell.tsx`
@@ -344,6 +394,11 @@
   - 対象: `src/dev/mocks.ts`, `src/dev/scenario-runtime.ts`, `src/components/debug`
   - unknown command は throw するだけなので、Storybook/dev preview 上では白画面や console only になり、mock coverage drift の発見が遅れやすい
   - unknown command を diagnostics panel に集約するか test failure 専用に留めるか決め、dev runtime test を追加する
+
+- [ ] P1 account delete 後の reader selection / article cache cleanup を account scope で固定する
+  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/stores/ui-store.ts`, `src/hooks/use-articles.ts`
+  - account delete 成功後に accounts/feed queries は invalidation するが、reader の selected feed/article/tag や retained/recentlyRead cache が削除 account を指し続けると、次の操作が missing id で落ちやすい
+  - delete account 後の selected account/feed/article/tag、browser overlay、article cache の cleanup/fallback を component/store test で固定する
 
 - [ ] P1 account OPML export の stale account snapshot と object URL lifecycle を固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
@@ -425,6 +480,11 @@
   - `DEV_` / `VITE_` / `TAURI_` / `RUST_` prefix を広く転送し、suffix で secret を落としているため、suffix に当たらない token-like env が Windows 側へ漏れる可能性がある
   - explicit allowlist、masked diagnostics、secret-like value detection、`DEV_CREDENTIALS` 例外の扱いを script test にする
 
+- [ ] P2 OPML generate の XML writer `expect` を production boundary として棚卸しする
+  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
+  - in-memory XML writer の `expect` は通常落ちない前提だが、export command の user-facing boundary で panic になる箇所が増えると support 時の原因が残りにくい
+  - writer failure を Result に変える必要があるか評価し、panic acceptable なら理由を contract test/comment に残す
+
 - [ ] P3 UI store toast timer を store lifecycle / test isolation として整理する
   - 対象: `src/stores/ui-store.ts`, `src/__tests__/stores/ui-store.test.ts`
   - module-level `toastTimer` は store reset や test isolation と別 lifecycle なので、テスト間や HMR 中に古い timer が新しい toast を消す可能性がある
@@ -479,6 +539,11 @@
   - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/tag_commands.rs`
   - TS 側は `MAX_IPC_PAGINATION_LIMIT`、Rust 側は `MAX_TAG_ARTICLE_LIST_LIMIT` を別定義しており、片方だけ変わると tag view だけ挙動がズレる
   - tag article limit の TS/Rust fixture、boundary 200、over-limit error message を schema contract test にする
+
+- [ ] P2 OPML import の folder sort_order を max+1 にするか len 基準を明記する
+  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
+  - OPML import は existing folder count から sort_order を始めるため、既存 sort_order に gap/large value/duplicate がある DB では並び順が衝突しやすい
+  - existing sort_order gaps、duplicate sort_order、deleted folder gap、multi-folder import の expected order を Rust test で固定する
 
 - [ ] P2 GReader remote folder removal が local folder assignment を残す条件を固定する
   - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`
@@ -589,6 +654,21 @@
   - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`
   - auto-mark toggle は store を先に書き換えて失敗時に previous value を戻すため、ON -> OFF 連続操作で古い failure が最新設定を巻き戻す可能性がある
   - deferred mutation で ON failure / OFF success を逆順 settle させる component test を追加し、revision guard または current value compare rollback にする
+
+- [ ] P2 updater pending update handle を version/source 付きで検証する
+  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`
+  - `check_for_update` の cached `Update` を `download_and_install_update` が再利用するため、manual check と startup check が近いタイミングで走ると、UI が見せた version と install 対象の対応が見えにくい
+  - cached version、check source、created_at を持つか fresh check mandatory にするか決め、stale cached update / newer check failure / download no update の test を追加する
+
+- [ ] P2 updater DOWNLOADING guard を panic-safe / cancellation-safe にする
+  - 対象: `src-tauri/src/commands/updater_commands.rs`
+  - `DOWNLOADING` は `do_download_and_install` の正常な `Result` 後に false へ戻す形なので、将来 panic/cancel 経路が入ると update download が永続的に in-progress 扱いになり得る
+  - RAII guard、panic catch、test-only injected panic の方針を決め、guard reset と duplicate download rejection の Rust test を追加する
+
+- [ ] P2 restart_app command の return contract と frontend toast 方針を固定する
+  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/api/schemas/commands.ts`
+  - Rust command は `Result` を返さず即 `app.restart()` するため、frontend の schema/Result 境界では restart failure・no-op・dev runtime fallback の扱いが見えにくい
+  - restart unavailable、dev mode reload、packaged restart success の expected behavior を command schema / hook test / manual verification に分ける
 
 - [ ] P2 database size 表示の WAL/SHM/total 定義を UI と schema で揃える
   - 対象: `src-tauri/src/commands/database_commands.rs`, `src/api/schemas/database-info.ts`, `src/components/settings/hooks/use-data-settings-controller.ts`
@@ -1274,6 +1354,171 @@
   - 対象: `src/__tests__/hooks/use-browser-webview-events.test.tsx`, `TODO.md`, `mise.toml`
   - React Doctor diff scan は毎回 `use-browser-webview-events.test.tsx:315` の 1 件だけを返しており、TODO 追加のたびに同じ P1 が再発見されている
   - current diff blocker として担当者を決め、修正後は React Doctor diff scan で 0 warning を確認し、以後の TODO 追加では再掲しない
+
+- [ ] P1 article content の `SanitizedArticleHtml` brand を runtime boundary として固定する
+  - 対象: `src/components/reader/article-content-view.tsx`, `src/lib/content/html.ts`, `src-tauri/src/infra/sanitizer.rs`
+  - `SanitizedArticleHtml` は型 brand だけで runtime では通常の string なので、未 sanitize HTML が `fromSanitizedArticleHtml` 経由で混入しても検出しにくい
+  - backend sanitizer 済み DTO、frontend test fixture、view-local helper の境界を分け、raw HTML を渡す test helper には明示名を付ける
+
+- [ ] P2 article browser action error category を message substring 依存から code-first に寄せる
+  - 対象: `src/components/reader/article-browser-actions.ts`, `src/lib/runtime/clipboard.ts`, `src/__tests__/components/article-browser-actions.test.ts`
+  - copy/open/read-later action は error message 文字列から category を推定しており、翻訳や backend message 変更で toast category がずれやすい
+  - AppError code、clipboard category、invalid URL、permission denied、runtime unavailable、unknown error の contract を code-first にする
+
+- [ ] P2 article-list-item presentation helper の export を test-only / production API に分ける
+  - 対象: `src/components/reader/article-list-item.tsx`, `src/__tests__/components/article-list-item.test.tsx`, `src/lib/articles/article-view.ts`
+  - `resolveArticleListItemPresentation` が component file から export されており、test 目的の pure helper と production component API の境界が曖昧になりやすい
+  - view model helper と component props を分け、read/starred/selected/thumbnail/muted 表示の contract test を維持する
+
+- [ ] P2 feed favicon fallback の layout shift / broken image contract を固定する
+  - 対象: `src/components/shared/feed-favicon.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/feed-tree-row.tsx`
+  - remote favicon failure 時の fallback、grayscale、size variant、title initials の扱いが崩れると reader row と feed tree でアイコン幅や alt 表示が揺れやすい
+  - broken URL、empty title、long CJK title、grayscale unread/read、size variant の component test を追加する
+
+- [ ] P2 preferences DTO schema と domain preference schema の strictness drift を潰す
+  - 対象: `src/api/schemas/preferences.ts`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
+  - backend DTO は `z.record(string,string)` + `superRefine`、domain schema は known key / shortcut / passthrough を持っており、unknown key や retired key の扱いが二重管理になりやすい
+  - blank key、reserved `shortcut_` prefix、retired backend key、max key length、UTF-8 byte limit、unknown passthrough の contract を揃える
+
+- [ ] P2 test setup storage shim の descriptor restore contract を全 storage test と揃える
+  - 対象: `tests/setup.ts`, `src/__tests__/helpers/test-setup-storage.test.ts`, `src/__tests__/lib/startup-sync-storage.test.ts`
+  - global/window の `localStorage` / `sessionStorage` descriptor を test setup で差し替えるため、他 test の spy や getter throw が restore されないと後続 test が壊れやすい
+  - descriptor restore、getter throw、working localStorage + broken sessionStorage、parallel test isolation の helper policy を明文化する
+
+- [ ] P2 `ts-expect-error` を negative contract test と legacy escape に分類する
+  - 対象: `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.test.tsx`, `src/__tests__/components/*surface*.test.tsx`, `src/__tests__/components/settings-nav-view.test.tsx`
+  - `ts-expect-error` が runtime boundary fixture と design surface negative test に混在しており、型改善後に残った不要 suppression を見逃しやすい
+  - negative type contract と legacy escape を分類し、残すものは理由と対象型を短く統一する
+
+- [ ] P2 `as unknown as` event / observer casts を typed test factory に寄せる
+  - 対象: `src/__tests__/hooks/use-account-detail-name-editor.test.tsx`, `src/__tests__/hooks/use-scroll-overflow-state.test.tsx`, `src/__tests__/hooks/use-command-palette-data.test.tsx`
+  - DOM event や Observer callback を `as unknown as` で作っており、必要プロパティ不足でも test が型上通ってしまう
+  - keyboard event factory、ResizeObserver factory、MutationObserver factory、hook result fixture を作り、cast 箇所を集約する
+
+- [ ] P2 test の `window.__TAURI_INTERNALS__` 注入を story/runtime helper に一本化する
+  - 対象: `tests/helpers/tauri-runtime.ts`, `src/components/storybook/story-tauri-runtime.ts`, `src/__tests__/components/*runtime*.test.tsx`, `src/__tests__/dev/dev-mocks.test.ts`
+  - Tauri internals の Object.defineProperty が test/story/dev mock に分散しており、descriptor restore や mock shape がずれると runtime 判定だけが壊れやすい
+  - install/restore helper、readonly descriptor、missing invoke、partial internals、Storybook decorator parity の test を追加する
+
+- [ ] P2 navigator platform stub を window chrome / app shell test helper に集約する
+  - 対象: `src/lib/window/window-chrome.ts`, `src/__tests__/app.test.tsx`, `src/__tests__/components/app-shell.test.tsx`, `src/__tests__/components/design-shared-components.test.tsx`
+  - `window.navigator.platform` の descriptor mutation が複数 test にあり、restore漏れや `userAgentData.platform` との優先順位差を見落としやすい
+  - platform stub helper、userAgentData優先、Mac overlay、Windows/Linux fallback、restore failure の test を追加する
+
+- [ ] P2 sidebar startup folder expansion localStorage schema を account/folder identity contract にする
+  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.tsx`, `src/constants/storage.ts`
+  - expanded folders は localStorage JSON に account -> folder ids を保存するため、account削除、folder削除、巨大JSON、invalid shape、storage write failure で stale expansion が残りやすい
+  - missing account pruning、missing folder pruning、oversized payload cleanup、write failure UI維持、migration version の test を追加する
+
+- [ ] P2 browser view timer cleanup を close motion / webview cleanup / load timeout で統一する
+  - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/hooks/article/use-article-browser-overlay-close.ts`, `src/components/reader/hooks/browser/use-browser-webview-load-timeout.ts`, `src/components/reader/hooks/browser/use-browser-webview-cleanup.ts`
+  - browser overlay は close motion、cleanup delay、load timeout の timer が別々にあり、rapid open/close や unmount で stale timer が native command を再発火しやすい
+  - timer registry、generation guard、unmount cleanup、timer unavailable、reopen before timeout の hook/component test を追加する
+
+- [ ] P2 browser view action の fire-and-forget native sync を rejection surface 化する
+  - 対象: `src/components/reader/hooks/browser/use-browser-view-actions.ts`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`, `src/components/reader/browser-view.types.ts`
+  - `void syncBrowserWebview(...)` や focus restore の非同期失敗が console/error に散りやすく、overlay stuck state と user-visible toast の境界が曖昧になっている
+  - create/focus/reload/back/forward/close の failure category、toast対象、diagnostics対象、retry可否を整理する
+
+- [ ] P2 article list search focus timer を rapid open/close と unmount で stale focus しないようにする
+  - 対象: `src/components/reader/hooks/article-list/use-article-list-search.ts`, `src/components/reader/article-list-header-search.tsx`
+  - search open 時の `setTimeout(focus, 0)` が rapid toggle や unmount 後に走ると、別 pane へ focus が戻った後に検索入力へ奪い返す可能性がある
+  - generation guard、timer cleanup、Escape close、locale label変更、header unmount の component test を追加する
+
+- [ ] P2 account detail OPML export URL lifecycle を timer cleanup / revoke ordering で固定する
+  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/components/settings/account-detail/*`
+  - OPML export は object URL を作って timer で revoke するため、account switch、modal close、二重 export、download cancel で stale URL や premature revoke が起きやすい
+  - previous URL revoke、unmount revoke、rapid export、filename sanitize、download click failure の hook test を追加する
+
+- [ ] P2 app/window event listener tests を bindWindowEvents helper coverage に寄せる
+  - 対象: `src/__tests__/lib/actions.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`, `src/__tests__/hooks/use-browser-overlay-shortcuts.test.tsx`, `src/lib/window/window-events.ts`
+  - window.add/removeEventListener の手書き test が多く、capture/options/cleanup failure の contract が各 test でばらつきやすい
+  - bind helper、event detail factory、cleanup assertion、duplicate listener防止、throwing target の shared test を作る
+
+- [ ] P3 requestAnimationFrame / setTimeout flush helper を UI tests で共通化する
+  - 対象: `src/__tests__/components/article-view.test.tsx`, `src/__tests__/components/sidebar.test.tsx`, `src/__tests__/hooks/use-updater.test.ts`, `src/__tests__/hooks/use-app-icon-theme.test.tsx`
+  - `await new Promise((resolve) => setTimeout(resolve, 0))` が複数 test にあり、fake timer / real timer の混在で flake の原因になりやすい
+  - `flushTimers` / `flushMicrotasks` / `flushRaf` helper を分け、real timer 前提の test を明示する
+
+- [ ] P1 Rust DB mutex poison を user-visible recovery と diagnostics に分類する
+  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/commands/*`, `src-tauri/src/infra/db/*`
+  - DB access は `Mutex<DbManager>` 経由が多く、panic 後の poisoned mutex がそのまま command failure / panic のどちらで表面化するかが見えにくい
+  - lock failure message、restart guidance、safe read-only fallback、panic-injected test、user-facing error redaction を固定する
+
+- [ ] P1 app startup の `expect` / `panic` surface を migration failure と通常 IO failure で分ける
+  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/migration.rs`
+  - app data dir 作成、DB 初期化、window titlebar 設定などで `expect` / `panic` が混在しており、migration recovery と通常 IO failure の案内がずれやすい
+  - migration failure、permission denied、disk full、titlebar unsupported、app data dir missing の startup diagnostics を追加する
+
+- [ ] P2 startup main webview focus restore の async spawn を lifecycle-aware にする
+  - 対象: `src-tauri/src/lib.rs`, `src/components/app-shell.tsx`, `src/hooks/use-screen-snapshot.ts`
+  - startup focus restore は `tauri::async_runtime::spawn` + sleep 後に main window/webview を探すため、window close や slow startup で stale focus warning が出やすい
+  - app handle drop、main window missing、webview missing、permission denied、retry不要条件の Rust test / manual verification を追加する
+
+- [ ] P2 native menu emit failure を frontend action diagnostics と同じ分類にする
+  - 対象: `src-tauri/src/menu.rs`, `src/hooks/use-menu-events.ts`, `src/lib/actions.ts`
+  - menu action emit failure は Rust 側 tracing に閉じるため、frontend action registry 側の unknown/no-op diagnostics と集約されない
+  - emit failure、unknown menu id、window missing、listener missing、frontend handler throw の parity test を追加する
+
+- [ ] P2 OPML parser の malformed XML error を import command / UI toast と揃える
+  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/components/settings/account-detail/*`
+  - parser は文字列 error を返し、import command / UI 側でどの粒度の user-facing message にするかが曖昧になりやすい
+  - missing root、non-opml root、truncated XML、invalid encoding、huge file、duplicate URL の error category を固定する
+
+- [ ] P2 OPML export の invalid XML char replacement を feed title / folder title / account title で揃える
+  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
+  - OPML export は invalid control char を置換するが、head title、folder title、feed title、xmlUrl/htmlUrl のどこまで同じ policy か見えにくい
+  - control char、emoji、CJK、ampersand、empty title、very long title の round-trip test を追加する
+
+- [ ] P2 live FreshRSS tests の env prerequisite を ignored/manual test contract に分ける
+  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `CLAUDE.md`
+  - `FRESHRSS_URL` / `FRESHRSS_USER` / `FRESHRSS_PASS` を `expect` する live test があり、通常 CI と手元検証の境界が曖昧だと secret 依存 test が混ざりやすい
+  - ignored test marker、manual live command、secret redaction、missing env skip message、recorded fixture fallback を整理する
+
+- [ ] P2 local provider URL downgrade / private host redirect policy を command args schema と共有する
+  - 対象: `src-tauri/src/infra/provider/local.rs`, `src/api/schemas/commands.ts`, `src/components/settings/add-account/*`
+  - local provider は http/https downgrade や localhost/private host を扱う test を持つが、frontend URL validation と差が出ると add feed だけ通る/落ちる状態になりやすい
+  - http->https、https->http、localhost、127.0.0.1、private IP、redirect chain の validation parity を固定する
+
+- [ ] P2 dev file credentials flag の env alias と platform info 表示を同期する
+  - 対象: `src-tauri/src/platform/mod.rs`, `src/stores/platform-store.ts`, `src/components/settings/debug-settings-view.tsx`
+  - dev credentials capability は Rust env 判定から platform info に出るため、env alias 追加や truthy 判定変更が frontend 表示とずれやすい
+  - truthy/falsy env、legacy alias、packaged app、dev app、debug settings label、schema parse の contract test を追加する
+
+- [ ] P2 keyring integration tests の credential cleanup を account id collision に強くする
+  - 対象: `src-tauri/tests/integration_test.rs`, `src-tauri/src/infra/keyring_store.rs`, `src-tauri/src/commands/account_commands.rs`
+  - integration test は keyring password を実際に set/delete するため、固定 account id や panic 中断で credential が残ると次回 test / 手元環境に影響する
+  - unique test account id、drop cleanup、panic cleanup、missing keyring、delete failure warning の方針を固定する
+
+- [ ] P2 sync provider test fixture の DB lock scope を helper 化する
+  - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/tests/integration_test.rs`
+  - sync provider tests は `db.lock().unwrap()` と repo setup が大量にあり、lock scope が長くなると async boundary へ持ち込みやすい
+  - setup helper、read/write lock scope、drop before await、poison handling、fixture account/feed/article 作成を共通化する
+
+- [ ] P2 GReader auth failure の credential redaction を provider / DomainError / UI で一貫させる
+  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/domain/error.rs`, `src/components/settings/add-account/account-config-form.tsx`
+  - auth failure は URL/user/password と provider message をまたぐため、DomainError 変換や frontend validation error で credential が混ざると危険
+  - invalid credentials、server URL with userinfo、token response error、HTML error body、network error の redaction test を追加する
+
+- [ ] P2 pending mutation remote id cleanup を sync_flow / repository / integration test で一本化する
+  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/tests/integration_test.rs`
+  - pending mutation cleanup は deleted ids、read/starred push、remote_entry_id を跨ぐため、片方の flow だけ cleanup されると重複 push / stale delete が残りやすい
+  - partial push success、provider reject、post-write DB failure、duplicate remote id、account scoped cleanup の integration test を追加する
+
+- [ ] P2 browser bridge injected JS の mouse button handling を frontend mouse navigation と parity 化する
+  - 対象: `src-tauri/src/browser_webview.rs`, `src/hooks/use-mouse-navigation.ts`, `src/__tests__/hooks/use-mouse-navigation.test.tsx`
+  - child webview injected bridge も mouse back/forward を扱い、frontend window handler と defaultPrevented / modifier / target 条件がずれる可能性がある
+  - button 3/4、mousedown/up ordering、preventDefault 済み event、input/contenteditable、bridge invoke failure の parity test を追加する
+
+- [ ] P2 native browser bridge close command の beforeunload / page script failure を分類する
+  - 対象: `src-tauri/src/browser_webview.rs`, `src/components/reader/hooks/browser/use-browser-webview-cleanup.ts`, `src/components/reader/hooks/article/use-article-browser-overlay-close.ts`
+  - injected `closeBrowserPreview` は page script / invoke / close sequencing に依存するため、beforeunload や page error で frontend overlay state と native webview がずれやすい
+  - page script throw、invoke reject、double close、native already closed、frontend close event missing の diagnostics を追加する
+
+- [ ] P3 Rust test unwrap policy を production boundary と fixture boundary に分ける
+  - 対象: `src-tauri/src/**/*.rs`, `src-tauri/tests/**/*.rs`, `CLAUDE.md`
+  - Rust tests には `unwrap` / `expect` が多く、fixture setup と production behavior assertion が混ざると panic message が調査しづらい
+  - fixture-only unwrap 許容、production boundary は error assertion、panic message naming、helper `expect_ok` の採用可否を決める
 
 - [ ] P1 global mouse side-button navigation が modal / overlay 背後を操作しないようにする
   - 対象: `src/hooks/use-mouse-navigation.ts`, `src/components/app-shell.tsx`, `src/lib/actions.ts`
