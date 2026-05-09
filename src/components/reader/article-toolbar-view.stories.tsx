@@ -29,9 +29,13 @@ const meta = {
     labels: {
       closeView: "Close view",
       toggleRead: "Toggle read",
+      toggleReadShort: "Read",
       toggleStar: "Toggle star",
+      toggleStarShort: "Star",
       previewToggleOff: "Open Web Preview",
+      previewToggleOffShort: "Preview",
       previewToggleOn: "Close Web Preview",
+      previewToggleOnShort: "Close",
       copyLink: "Copy link",
       openInExternalBrowser: "Open in external browser",
       moreActions: "More actions",

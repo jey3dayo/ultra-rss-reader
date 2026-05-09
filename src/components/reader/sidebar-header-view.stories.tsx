@@ -84,5 +84,9 @@ export const DenseNarrowViewport: Story = {
     syncButtonText: "同期",
     addFeedButtonLabel: "購読フィードを追加",
     addFeedButtonText: "追加",
+    displayState: {
+      layout: "mobile",
+      titlebar: "standard",
+    },
   },
 };

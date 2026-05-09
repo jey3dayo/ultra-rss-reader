@@ -55,9 +55,9 @@ export function SidebarHeaderView({
   onAddFeed,
   syncButtonLabel,
   syncTooltipLabel,
-  syncButtonText: _syncButtonText,
+  syncButtonText,
   addFeedButtonLabel,
-  addFeedButtonText: _addFeedButtonText,
+  addFeedButtonText,
   displayState,
   syncState,
   actionAvailability,
@@ -72,7 +72,7 @@ export function SidebarHeaderView({
   const isAddFeedDisabled = actionAvailability?.addFeed === "disabled";
   const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName = "hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:px-0";
-  const mobileHeaderActionButtonClassName = "size-11";
+  const mobileHeaderActionButtonClassName = "h-11 min-w-11 gap-1.5 px-3 text-xs font-medium";
 
   useEffect(() => {
     return () => {
@@ -132,6 +132,7 @@ export function SidebarHeaderView({
           )}
         >
           <RefreshCw className={cn("size-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
+          {isMobile && <span>{syncButtonText}</span>}
         </IconToolbarButton>
         <IconToolbarButton
           label={addFeedButtonLabel}
@@ -140,6 +141,7 @@ export function SidebarHeaderView({
           className={cn(headerActionButtonClassName, isMobile ? mobileHeaderActionButtonClassName : "w-11")}
         >
           <Plus className="size-4" />
+          {isMobile && <span>{addFeedButtonText}</span>}
         </IconToolbarButton>
       </div>
     </div>

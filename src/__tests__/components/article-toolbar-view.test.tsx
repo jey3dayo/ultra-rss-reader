@@ -880,12 +880,12 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Toggle read" })).not.toHaveTextContent("Read");
-    expect(screen.getByRole("button", { name: "Toggle star" })).not.toHaveTextContent("Star");
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).not.toHaveTextContent("Preview");
-    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("size-9", "rounded-md");
-    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("size-9", "rounded-md");
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("size-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveTextContent("Read");
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveTextContent("Star");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveTextContent("Preview");
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("h-9", "min-w-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("h-9", "min-w-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("h-9", "min-w-9", "rounded-md");
     expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass(
       "bg-[var(--semantic-tone-unread-surface)]",
       "hover:bg-[var(--semantic-tone-unread-surface)]",
@@ -1010,8 +1010,8 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Close Web Preview" })).not.toHaveTextContent("Close");
-    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("size-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveTextContent("Close");
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("h-9", "min-w-9", "rounded-md");
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass(
       "bg-primary/12",
       "hover:bg-primary/12",
