@@ -5,7 +5,7 @@ import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
 import actionsSource from "@/lib/actions.ts?raw";
-import { APP_ACTIONS } from "@/lib/app-actions";
+import { APP_ACTION_REGISTRY, APP_ACTIONS } from "@/lib/app-actions";
 import { keyboardEvents, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 import menuSource from "../../../src-tauri/src/menu.rs?raw";
@@ -943,6 +943,12 @@ describe("executeAction", () => {
   });
 
   describe("isAppAction", () => {
+    it("derives the runtime action list from the grouped action registry", () => {
+      const registryActions = Object.values(APP_ACTION_REGISTRY).flat();
+
+      expect(APP_ACTIONS).toEqual(registryActions);
+    });
+
     it("keeps the runtime action registry duplicate-free", () => {
       expect(new Set(APP_ACTIONS).size).toBe(APP_ACTIONS.length);
     });
