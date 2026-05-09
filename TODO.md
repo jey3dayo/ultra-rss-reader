@@ -455,6 +455,31 @@
   - optional `now` param か small helper extraction で `isToday` 判定を注入可能にし、同日 / 前日 / invalid timestamp を `account-sync-status-format.test.ts` で固定する
   - account detail status row copy や retry formatting とは分け、last success label の clock dependency だけを扱う
 
+- [ ] frontend browser command URL schema parity 候補を追加する
+  - `src/api/schemas/commands.ts` の `checkBrowserEmbedSupportArgs.url` と `createOrUpdateBrowserWebviewArgs.url` が `z.string()` のままなので、`open_in_browser` / Reading List と同等の http(s) URL schema に寄せる
+  - `src/__tests__/api/tauri-commands.test.ts` で blank / whitespace / `mailto:` / `file:` / newline URL が Tauri invoke 前に止まることを固定する
+  - Rust 側 `check_browser_embed_support` validation とは分け、frontend IPC args schema の parity だけを扱う
+
+- [ ] update feed folder nullable id schema 候補を追加する
+  - `src/api/schemas/commands.ts` の `updateFeedFolderArgs.folderId` が `z.string().nullable()` のため、`""` や whitespace-only folder id を nullable contract としてどう扱うか決める
+  - blank を `null` に正規化するか validation error にするかを `updateFeedFolder("feed-1", "   ")` の focused test で固定する
+  - sidebar grouping / blank folder id 表示ロジックとは分け、`update_feed_folder` IPC args 境界だけを扱う
+
+- [ ] startup sync preferred account schema 候補を追加する
+  - `src/api/schemas/commands.ts` の `startupSyncArgs.preferredAccountId` が whitespace-only を許すため、trim 後 blank を拒否するか `undefined` 相当に落とす
+  - `triggerStartupSync("   ")` の挙動を `src/__tests__/api/tauri-commands.test.ts` で固定し、invalid account id を sync command に渡さない
+  - preferred account id helper / startup sync storage getter とは分け、startup sync IPC args schema だけを扱う
+
+- [ ] update account credentials args schema 候補を追加する
+  - `src/api/schemas/commands.ts` の `updateAccountCredentialsArgs` で `serverUrl` / `username` / `password` が optional `z.string()` のままなので、空白入力と trim の責務を決める
+  - `serverUrl` / `username` は trim / blank rejection を検討し、`password` は意図せず trim しない contract を test で固定する
+  - Rust 側 keyring 保存順序や account existence check とは分け、frontend credentials IPC args schema だけを扱う
+
+- [ ] copy to clipboard command payload schema 候補を追加する
+  - `src/api/schemas/commands.ts` の `copyToClipboardArgs.text` が blank / whitespace-only をそのまま通すため、runtime helper と低レベル command wrapper の責務を揃える
+  - payload は勝手に trim せず、whitespace-only だけ invoke 前に拒否する schema / test を追加する
+  - article share menu や readonly field copy の成功 toast とは分け、`copy_to_clipboard` IPC args 境界だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
