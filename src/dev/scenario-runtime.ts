@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
+import { DEV_SCENARIO_MODULE_IMPORTERS } from "@/dev/scenarios/import-registry";
 
 export type RuntimeDevScenario = {
   id: DevScenarioId;
@@ -24,41 +25,16 @@ export type DevScenarioRuntimeError =
 
 let devScenariosModulePromise: Promise<DevScenariosModule> | null = null;
 
-const DEV_SCENARIOS_UNAVAILABLE_MESSAGE = "Dev scenarios runtime is unavailable outside dev builds.";
-const UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE = "Unknown dev scenario runtime error.";
-
-const loadDevScenariosRegistryModule = () => import("@/dev/scenarios");
-
-const DEV_SCENARIO_MODULE_IMPORTERS = {
-  [DEV_SCENARIO_ID.openSubscriptionsIndex]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openWebPreviewUrl]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openFeedFirstArticle]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openTagView]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsGeneral]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsAppearance]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsMute]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsReading]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsTags]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsShortcuts]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsActions]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsData]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsDebug]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsAccounts]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsAccountsAdd]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openCommandPalette]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openShortcutsHelp]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openWebPreviewGeometryCheck]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.openAddFeedDialog]: loadDevScenariosRegistryModule,
-  [DEV_SCENARIO_ID.syncAllSmoke]: loadDevScenariosRegistryModule,
-} as const satisfies Record<DevScenarioId, () => Promise<unknown>>;
-
-export const DEV_SCENARIO_RUNTIME_IMPORTERS_FOR_TESTS = DEV_SCENARIO_MODULE_IMPORTERS;
+const DEV_SCENARIOS_UNAVAILABLE_MESSAGE =
+  "Dev scenarios runtime is unavailable outside dev builds.";
+const UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE =
+  "Unknown dev scenario runtime error.";
 
 class InvalidDevScenariosModuleError extends Error {
   constructor() {
-    super("Dev scenarios module does not match the expected runtime interface.");
+    super(
+      "Dev scenarios module does not match the expected runtime interface.",
+    );
   }
 }
 
@@ -79,11 +55,18 @@ function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
 }
 
 function isDevScenariosModule(value: unknown): value is DevScenariosModule {
-  return isRecord(value) && typeof value.listDevScenarios === "function" && typeof value.runDevScenario === "function";
+  return (
+    isRecord(value) &&
+    typeof value.listDevScenarios === "function" &&
+    typeof value.runDevScenario === "function"
+  );
 }
 
 async function importDevScenariosModule(): Promise<DevScenariosModule> {
-  const module: unknown = await DEV_SCENARIO_MODULE_IMPORTERS[DEV_SCENARIO_ID.openSubscriptionsIndex]();
+  const module: unknown =
+    await DEV_SCENARIO_MODULE_IMPORTERS[
+      DEV_SCENARIO_ID.openSubscriptionsIndex
+    ]();
   if (!isDevScenariosModule(module)) {
     throw new InvalidDevScenariosModuleError();
   }
@@ -101,9 +84,17 @@ function toDevScenarioRuntimeException(error: DevScenarioRuntimeError): Error {
   return new Error(error.message);
 }
 
-function loadDevScenariosModuleResult(): Result.ResultAsync<DevScenariosModule, DevScenarioRuntimeError> {
+function loadDevScenariosModuleResult(): Result.ResultAsync<
+  DevScenariosModule,
+  DevScenarioRuntimeError
+> {
   if (!import.meta.env.DEV) {
-    return Promise.resolve(Result.fail({ type: "unavailable", message: DEV_SCENARIOS_UNAVAILABLE_MESSAGE }));
+    return Promise.resolve(
+      Result.fail({
+        type: "unavailable",
+        message: DEV_SCENARIOS_UNAVAILABLE_MESSAGE,
+      }),
+    );
   }
 
   return Result.try({
@@ -150,7 +141,10 @@ export async function runRuntimeDevScenarioResult(
     try: async () => {
       await Result.unwrap(moduleResult).runDevScenario(id);
     },
-    catch: (error) => ({ type: "scenario_failed", message: toErrorMessage(error) }),
+    catch: (error) => ({
+      type: "scenario_failed",
+      message: toErrorMessage(error),
+    }),
   });
 }
 
