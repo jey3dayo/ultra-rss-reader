@@ -362,7 +362,7 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{
-        add_local_feed_with_db, create_folder_in_db, delete_feed_in_db,
+        add_local_feed_with_db, create_folder_in_db, delete_feed_in_db, lock_db,
         recalculate_feed_unread_count_in_db, rename_feed_in_db, update_feed_display_settings_in_db,
         update_feed_folder_in_db, validate_add_local_feed_account_in_db,
     };
@@ -588,10 +588,10 @@ mod tests {
     }
 
     #[test]
-    fn create_folder_serial_local_commands_do_not_duplicate_sort_order() {
+    fn create_folder_command_db_lock_serializes_sort_order_allocation() {
         let db = Arc::new(Mutex::new(test_db()));
         let account_id = {
-            let db = db.lock().unwrap();
+            let db = lock_db(&db).unwrap();
             insert_test_account(&db, "Primary")
         };
         let start = Arc::new(Barrier::new(2));
@@ -602,7 +602,7 @@ mod tests {
 
             thread::spawn(move || {
                 start.wait();
-                let db = db.lock().unwrap();
+                let db = lock_db(&db).unwrap();
                 create_folder_in_db(&db, account_id, name.to_string()).unwrap()
             })
         });
@@ -621,7 +621,7 @@ mod tests {
             vec![0, 1]
         );
 
-        let db = db.lock().unwrap();
+        let db = lock_db(&db).unwrap();
         let duplicate_order_count: i64 = db
             .reader()
             .query_row(
