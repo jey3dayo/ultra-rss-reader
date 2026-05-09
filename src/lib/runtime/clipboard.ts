@@ -28,7 +28,13 @@ function hasClipboardErrorToken(message: string, token: string): boolean {
 
 export function resolveClipboardErrorCategory(message: string): ClipboardErrorCategory {
   const normalized = message.toLowerCase();
-  if (normalized.includes("permission") || normalized.includes("denied") || normalized.includes("not allowed")) {
+  if (
+    normalized.includes("permission") ||
+    normalized.includes("denied") ||
+    normalized.includes("not allowed") ||
+    normalized.includes("insecure context") ||
+    normalized.includes("secure context")
+  ) {
     return "permission_denied";
   }
   if (
