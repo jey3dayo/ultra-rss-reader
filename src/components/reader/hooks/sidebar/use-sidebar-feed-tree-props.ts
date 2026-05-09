@@ -26,13 +26,17 @@ export function useSidebarFeedTreeProps({
 }: SidebarFeedTreePropsParams): SidebarFeedTreeProps {
   const handleDropToFolderRequest = useCallback(
     (folderId: string) => {
-      void handleDropToFolder(folderId);
+      void handleDropToFolder(folderId).catch((error: unknown) => {
+        console.error("Failed to move feed to folder:", error);
+      });
     },
     [handleDropToFolder],
   );
 
   const handleDropToUnfolderedRequest = useCallback(() => {
-    void handleDropToUnfoldered();
+    void handleDropToUnfoldered().catch((error: unknown) => {
+      console.error("Failed to move feed to unfoldered:", error);
+    });
   }, [handleDropToUnfoldered]);
 
   return {

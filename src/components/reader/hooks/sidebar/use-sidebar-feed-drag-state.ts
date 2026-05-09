@@ -16,17 +16,35 @@ export function useSidebarFeedDragState({
     setActiveDropTarget(null);
   }, []);
 
-  const handleDragStartFeed = useCallback((feedId: string) => {
-    setDraggedFeedId(feedId);
-  }, []);
+  const handleDragStartFeed = useCallback(
+    (feedId: string) => {
+      if (!canDragFeeds || !isFeedsSectionOpen || !feedById.has(feedId)) {
+        return;
+      }
 
-  const handleDragEnterFolder = useCallback((folderId: string) => {
-    setActiveDropTarget({ kind: "folder", folderId });
-  }, []);
+      setDraggedFeedId(feedId);
+    },
+    [canDragFeeds, feedById, isFeedsSectionOpen],
+  );
+
+  const handleDragEnterFolder = useCallback(
+    (folderId: string) => {
+      if (!draggedFeedId) {
+        return;
+      }
+
+      setActiveDropTarget({ kind: "folder", folderId });
+    },
+    [draggedFeedId],
+  );
 
   const handleDragEnterUnfoldered = useCallback(() => {
+    if (!draggedFeedId) {
+      return;
+    }
+
     setActiveDropTarget({ kind: "unfoldered" });
-  }, []);
+  }, [draggedFeedId]);
 
   const handleDropToFolder = useCallback(
     async (folderId: string) => {
