@@ -35,14 +35,16 @@ describe("useDeleteFeed", () => {
 
     const { result } = renderHook(() => useDeleteFeed(), { wrapper });
 
-    await result.current.mutateAsync({ feedId: "feed-1", title: "Tech Blog", onSuccess });
+    await result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: "Tech Blog", onSuccess });
 
     expect(deleteFeedSpy).toHaveBeenCalledWith("feed-1");
     await waitFor(() => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["accountArticles"] });
-      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feedArticleSummaries.root });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+        queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex("acc-1"),
+      });
     });
     expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
     expect(onSuccess).toHaveBeenCalledTimes(1);
@@ -54,7 +56,9 @@ describe("useDeleteFeed", () => {
 
     const { result } = renderHook(() => useDeleteFeed(), { wrapper });
 
-    await expect(result.current.mutateAsync({ feedId: "feed-1", title: "Tech Blog", onError })).rejects.toBeDefined();
+    await expect(
+      result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: "Tech Blog", onError }),
+    ).rejects.toBeDefined();
 
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");

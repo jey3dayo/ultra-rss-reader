@@ -8,7 +8,7 @@ export function useFeedArticleSummaries(accountId: string | null) {
   const enabled = !!trimmedAccountId;
 
   return useQuery({
-    queryKey: queryKeys.feedArticleSummaries.byAccount(trimmedAccountId),
+    queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex(accountId),
     queryFn: () => {
       if (!trimmedAccountId) {
         throw new Error("accountId is required when the query is enabled.");

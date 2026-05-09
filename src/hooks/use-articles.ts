@@ -28,7 +28,12 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
-import { invalidateArticleQueries, queryKeys } from "@/lib/query/query-invalidation";
+import {
+  ARTICLE_CACHE_QUERY_ROOTS,
+  getReaderArticleQueryMode,
+  invalidateArticleQueries,
+  queryKeys,
+} from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 export type SetReadMutationInput = {
@@ -134,16 +139,7 @@ function indexArticleDtosById(data: unknown): Map<string, ArticleDto> {
 }
 
 function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | null {
-  const articleCacheRoots: readonly QueryKey[] = [
-    queryKeys.articles.root,
-    queryKeys.accountArticles.root,
-    queryKeys.articlesByTag.root,
-    queryKeys.search.root,
-    queryKeys.starredArticles.root,
-    queryKeys.recentArticles.root,
-  ] as const;
-
-  for (const queryKey of articleCacheRoots) {
+  for (const queryKey of ARTICLE_CACHE_QUERY_ROOTS) {
     const matches = qc.getQueriesData<unknown>({ queryKey });
     for (const [, data] of matches) {
       const article = indexArticleDtosById(data).get(articleId);
@@ -159,7 +155,9 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
 function resolveAccountIdsForArticle(qc: QueryClient, feedId: string): string[] {
   const accountIds = new Set<string>();
 
-  for (const [, data] of qc.getQueriesData<unknown>({ queryKey: queryKeys.feeds.root })) {
+  for (const [, data] of qc.getQueriesData<unknown>({
+    queryKey: queryKeys.feeds.root,
+  })) {
     if (!Array.isArray(data)) {
       continue;
     }
@@ -204,8 +202,7 @@ function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, opt
 }
 
 function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
-  const options = queryKey[2];
-  if (options && typeof options === "object" && "mode" in options && options.mode === "unread" && nextArticle.is_read) {
+  if (getReaderArticleQueryMode(queryKey) === "unread" && nextArticle.is_read) {
     return false;
   }
 

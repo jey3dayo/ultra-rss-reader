@@ -293,6 +293,7 @@ export function SubscriptionsIndexPage() {
           onConfirm={() => {
             void deleteFeedMutation.mutateAsync({
               feedId: deleteTargetFeed.id,
+              accountId: deleteTargetFeed.account_id,
               title: deleteTargetFeed.title,
               onSuccess: () => {
                 setDeleteTargetFeed(null);

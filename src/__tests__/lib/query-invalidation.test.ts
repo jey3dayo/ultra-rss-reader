@@ -1,6 +1,8 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import {
+  ARTICLE_CACHE_QUERY_ROOTS,
+  getReaderArticleQueryMode,
   invalidateArticleQueries,
   invalidateFeedQueries,
   invalidateSyncCompletedQueries,
@@ -24,6 +26,8 @@ describe("query-invalidation", () => {
     expect(queryKeys.accountArticles.byAccountPrefix("acc-1")).toEqual(["accountArticles", "acc-1"]);
     expect(queryKeys.feedArticleSummaries.root).toEqual(["feedArticleSummaries"]);
     expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual(["feedArticleSummaries", "acc-1"]);
+    expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" acc-1 ")).toEqual(["feedArticleSummaries", "acc-1"]);
+    expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" ")).toEqual(["feedArticleSummaries", null]);
     expect(queryKeys.folderArticles.byFolder("folder-1", "starred")).toEqual([
       "folderArticles",
       "folder-1",
@@ -31,6 +35,26 @@ describe("query-invalidation", () => {
     ]);
     expect(queryKeys.recentArticles.byAccount("acc-1", "all")).toEqual(["recentArticles", "acc-1", { mode: "all" }]);
     expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual(["search", "acc-1", "fresh"]);
+  });
+
+  it("keeps article cache patch roots aligned with invalidation roots", () => {
+    expect(ARTICLE_CACHE_QUERY_ROOTS).toEqual([
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.search.root,
+      queryKeys.starredArticles.root,
+      queryKeys.recentArticles.root,
+    ]);
+  });
+
+  it("reads reader article query modes from typed query key shapes", () => {
+    expect(getReaderArticleQueryMode(queryKeys.articles.byFeed("feed-1", "unread"))).toBe("unread");
+    expect(getReaderArticleQueryMode(queryKeys.accountArticles.byAccount("acc-1", "starred"))).toBe("starred");
+    expect(getReaderArticleQueryMode(queryKeys.folderArticles.byFolder("folder-1", "all"))).toBe("all");
+    expect(getReaderArticleQueryMode(queryKeys.recentArticles.byAccount("acc-1", "all"))).toBe("all");
+    expect(getReaderArticleQueryMode(queryKeys.accountArticles.byAccountPrefix("acc-1"))).toBeNull();
+    expect(getReaderArticleQueryMode(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toBeNull();
   });
 
   it("keeps feed invalidation target keys explicit", () => {
@@ -84,7 +108,9 @@ describe("query-invalidation", () => {
 
     expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["feeds"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["accountUnreadCount"],
+    });
   });
 
   it("invalidates article query keys by default", () => {

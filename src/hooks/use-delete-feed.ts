@@ -7,6 +7,7 @@ import { useUiStore } from "@/stores/ui-store";
 
 type DeleteFeedArgs = {
   feedId: string;
+  accountId: string | null;
   title: string;
   onSuccess?: () => void;
   onError?: () => void;
@@ -25,7 +26,9 @@ export function useDeleteFeed() {
     onSuccess: (_data, variables) => {
       invalidateFeedQueries(queryClient, { includeFolders: false, includeAccountUnreadCount: true });
       void queryClient.invalidateQueries({ queryKey: ["accountArticles"] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.feedArticleSummaries.root });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex(variables.accountId),
+      });
       showToast(t("unsubscribed_from", { title: variables.title }));
       variables.onSuccess?.();
     },

@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 type InvalidateFeedQueriesOptions = {
@@ -22,6 +22,11 @@ type InvalidateArticleQueriesOptions = {
 };
 
 type QueryInvalidationKey = readonly [string];
+type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
+
+function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions {
+  return { mode };
+}
 
 export const QUERY_KEY_ROOTS = {
   feeds: ["feeds"],
@@ -47,18 +52,19 @@ export const queryKeys = {
   },
   articles: {
     root: QUERY_KEY_ROOTS.articles,
-    byFeed: (feedId: string | null, mode: ReaderFilter) => [QUERY_KEY_ROOTS.articles[0], feedId, { mode }] as const,
+    byFeed: (feedId: string | null, mode: ReaderFilter) =>
+      [QUERY_KEY_ROOTS.articles[0], feedId, readerArticleModeOptions(mode)] as const,
   },
   accountArticles: {
     root: QUERY_KEY_ROOTS.accountArticles,
     byAccountPrefix: (accountId: string) => [QUERY_KEY_ROOTS.accountArticles[0], accountId] as const,
     byAccount: (accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.accountArticles[0], accountId, { mode }] as const,
+      [QUERY_KEY_ROOTS.accountArticles[0], accountId, readerArticleModeOptions(mode)] as const,
   },
   folderArticles: {
     root: QUERY_KEY_ROOTS.folderArticles,
     byFolder: (folderId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.folderArticles[0], folderId, { mode }] as const,
+      [QUERY_KEY_ROOTS.folderArticles[0], folderId, readerArticleModeOptions(mode)] as const,
   },
   starredArticles: {
     root: QUERY_KEY_ROOTS.starredArticles,
@@ -67,7 +73,7 @@ export const queryKeys = {
   recentArticles: {
     root: QUERY_KEY_ROOTS.recentArticles,
     byAccount: (accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.recentArticles[0], accountId, { mode }] as const,
+      [QUERY_KEY_ROOTS.recentArticles[0], accountId, readerArticleModeOptions(mode)] as const,
   },
   accountUnreadCount: {
     root: QUERY_KEY_ROOTS.accountUnreadCount,
@@ -93,8 +99,19 @@ export const queryKeys = {
   feedArticleSummaries: {
     root: QUERY_KEY_ROOTS.feedArticleSummaries,
     byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feedArticleSummaries[0], accountId] as const,
+    subscriptionsIndex: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.feedArticleSummaries[0], accountId?.trim() || null] as const,
   },
 } as const;
+
+export const ARTICLE_CACHE_QUERY_ROOTS = [
+  queryKeys.articles.root,
+  queryKeys.accountArticles.root,
+  queryKeys.articlesByTag.root,
+  queryKeys.search.root,
+  queryKeys.starredArticles.root,
+  queryKeys.recentArticles.root,
+] as const satisfies ReadonlyArray<QueryInvalidationKey>;
 
 export type FeedQueryKey = typeof queryKeys.feeds.root | ReturnType<typeof queryKeys.feeds.byAccount>;
 export type ArticleQueryKey = typeof queryKeys.articles.root | ReturnType<typeof queryKeys.articles.byFeed>;
@@ -111,6 +128,24 @@ export type RecentArticlesQueryKey =
 export type SearchArticlesQueryKey =
   | typeof queryKeys.search.root
   | ReturnType<typeof queryKeys.search.byAccountAndQuery>;
+
+export type ReaderArticleModeQueryKey =
+  | ReturnType<typeof queryKeys.articles.byFeed>
+  | ReturnType<typeof queryKeys.accountArticles.byAccount>
+  | ReturnType<typeof queryKeys.folderArticles.byFolder>
+  | ReturnType<typeof queryKeys.recentArticles.byAccount>;
+
+export function getReaderArticleQueryMode(queryKey: QueryKey): ReaderFilter | null {
+  const options = queryKey[2];
+  if (options && typeof options === "object" && "mode" in options) {
+    const mode = Reflect.get(options, "mode");
+    if (mode === "all" || mode === "unread" || mode === "starred") {
+      return mode;
+    }
+  }
+
+  return null;
+}
 
 type InvalidationTarget<TOption extends string> = {
   option: TOption;

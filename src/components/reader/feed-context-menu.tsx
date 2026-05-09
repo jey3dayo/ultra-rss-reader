@@ -128,6 +128,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     try {
       await deleteFeedMutation.mutateAsync({
         feedId: feed.id,
+        accountId: feed.account_id,
         title: feed.title,
         onSuccess: () => dispatch({ type: "set-unsubscribe-dialog", value: false }),
       });
