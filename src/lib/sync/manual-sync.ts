@@ -8,6 +8,9 @@ const MANUAL_SYNC_COOLDOWN_MS = 15_000;
 let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 const manualSyncCooldownListeners = new Set<() => void>();
+let manualSyncCooldownListenerErrorReporter: (
+  errors: readonly unknown[],
+) => void = reportManualSyncCooldownListenerErrors;
 
 function reportManualSyncCooldownListenerErrors(errors: readonly unknown[]) {
   console.error("Manual sync cooldown listeners failed:", errors);
@@ -15,7 +18,9 @@ function reportManualSyncCooldownListenerErrors(errors: readonly unknown[]) {
 
 export function notifyManualSyncCooldownListeners(
   listeners: Iterable<() => void>,
-  onListenerErrors: (errors: readonly unknown[]) => void = reportManualSyncCooldownListenerErrors,
+  onListenerErrors: (
+    errors: readonly unknown[],
+  ) => void = reportManualSyncCooldownListenerErrors,
 ) {
   const errors: unknown[] = [];
 
@@ -33,7 +38,10 @@ export function notifyManualSyncCooldownListeners(
 }
 
 function emitManualSyncCooldownChanged() {
-  notifyManualSyncCooldownListeners(manualSyncCooldownListeners);
+  notifyManualSyncCooldownListeners(
+    manualSyncCooldownListeners,
+    manualSyncCooldownListenerErrorReporter,
+  );
 }
 
 function setManualSyncCooldownUntil(nextCooldownUntil: number) {
@@ -70,6 +78,16 @@ export function subscribeManualSyncCooldown(listener: () => void) {
   };
 }
 
+export function setManualSyncCooldownListenerErrorReporterForDiagnostics(
+  reporter: (errors: readonly unknown[]) => void,
+) {
+  manualSyncCooldownListenerErrorReporter = reporter;
+  return () => {
+    manualSyncCooldownListenerErrorReporter =
+      reportManualSyncCooldownListenerErrors;
+  };
+}
+
 export function isManualSyncCoolingDown() {
   return manualSyncCooldownTimer !== null;
 }
@@ -81,7 +99,9 @@ type TriggerManualSyncWithCooldownParams = {
   onError: (error: AppError) => void;
 };
 
-export type TriggerManualSyncWithCooldownError = AppError | { type: "cooling_down" };
+export type TriggerManualSyncWithCooldownError =
+  | AppError
+  | { type: "cooling_down" };
 
 export async function triggerManualSyncWithCooldownResult(
   onRequestStart?: () => void,
@@ -92,7 +112,10 @@ export async function triggerManualSyncWithCooldownResult(
 
   onRequestStart?.();
   const result = await triggerSync();
-  if (Result.isSuccess(result) || Result.unwrapError(result).type === "Retryable") {
+  if (
+    Result.isSuccess(result) ||
+    Result.unwrapError(result).type === "Retryable"
+  ) {
     setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
   }
   return result;
@@ -127,4 +150,6 @@ export function resetManualSyncCooldownForTests() {
   }
   manualSyncCooldownUntil = 0;
   manualSyncCooldownListeners.clear();
+  manualSyncCooldownListenerErrorReporter =
+    reportManualSyncCooldownListenerErrors;
 }

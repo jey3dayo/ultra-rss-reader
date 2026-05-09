@@ -3,6 +3,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   isSidebarSyncCompletedPayload,
+  resetSidebarSyncDiagnosticsForTests,
   resolveSidebarLastSyncedLabel,
   resolveSidebarSyncProgressPayload,
   resolveSidebarSyncWarningPayload,
@@ -11,6 +12,7 @@ import {
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import {
   getManualSyncCooldownUntil,
+  setManualSyncCooldownListenerErrorReporterForDiagnostics,
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
@@ -18,7 +20,9 @@ import {
 type EventCallback = (event: unknown) => void;
 type Cleanup = () => void;
 
-const listenMock = vi.hoisted(() => vi.fn<(eventName: string, callback: EventCallback) => Promise<Cleanup>>());
+const listenMock = vi.hoisted(() =>
+  vi.fn<(eventName: string, callback: EventCallback) => Promise<Cleanup>>(),
+);
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
@@ -26,6 +30,9 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 vi.mock("@/lib/sync/manual-sync", () => ({
   getManualSyncCooldownUntil: vi.fn(() => 0),
+  setManualSyncCooldownListenerErrorReporterForDiagnostics: vi.fn(
+    () => () => {},
+  ),
   subscribeManualSyncCooldown: vi.fn(() => () => {}),
   triggerManualSyncWithCooldown: vi.fn(),
 }));
@@ -49,7 +56,9 @@ const syncProgressPayload = {
 } as const;
 
 function getRegisteredListener(eventName: string): EventCallback {
-  const call = listenMock.mock.calls.find(([registeredEventName]) => registeredEventName === eventName);
+  const call = listenMock.mock.calls.find(
+    ([registeredEventName]) => registeredEventName === eventName,
+  );
   if (!call) {
     throw new Error(`Missing listener for ${eventName}`);
   }
@@ -82,7 +91,11 @@ describe("resolveSidebarLastSyncedLabel", () => {
     vi.restoreAllMocks();
     listenMock.mockReset().mockResolvedValue(() => {});
     vi.mocked(getManualSyncCooldownUntil).mockReturnValue(0);
+    vi.mocked(
+      setManualSyncCooldownListenerErrorReporterForDiagnostics,
+    ).mockReturnValue(() => {});
     vi.mocked(subscribeManualSyncCooldown).mockReturnValue(() => {});
+    resetSidebarSyncDiagnosticsForTests();
   });
 
   afterEach(() => {
@@ -118,10 +131,14 @@ describe("resolveSidebarLastSyncedLabel", () => {
   it("invalidates account sync statuses when manual sync reports an error", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
-    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onError({ type: "UserVisible", message: "boom" });
-    });
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(
+      async (params) => {
+        params.onError({ type: "UserVisible", message: "boom" });
+      },
+    );
 
     const { result } = renderHook(
       () =>
@@ -145,10 +162,25 @@ describe("resolveSidebarLastSyncedLabel", () => {
   });
 
   it("accepts wrapped and raw sync progress payloads but ignores unknown payloads", () => {
-    expect(resolveSidebarSyncProgressPayload({ payload: syncProgressPayload })).toEqual(syncProgressPayload);
-    expect(resolveSidebarSyncProgressPayload(syncProgressPayload)).toEqual(syncProgressPayload);
-    expect(resolveSidebarSyncProgressPayload({ payload: { ...syncProgressPayload, total: -1 } })).toBeNull();
-    expect(resolveSidebarSyncProgressPayload({ payload: "not-progress" })).toBeNull();
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    expect(
+      resolveSidebarSyncProgressPayload({ payload: syncProgressPayload }),
+    ).toEqual(syncProgressPayload);
+    expect(resolveSidebarSyncProgressPayload(syncProgressPayload)).toEqual(
+      syncProgressPayload,
+    );
+    expect(
+      resolveSidebarSyncProgressPayload({
+        payload: { ...syncProgressPayload, total: -1 },
+      }),
+    ).toBeNull();
+    expect(
+      resolveSidebarSyncProgressPayload({ payload: "not-progress" }),
+    ).toBeNull();
+    expect(consoleWarn).toHaveBeenCalledOnce();
   });
 
   it("accepts missing account ids and out-of-range completed counts for store normalization", () => {
@@ -170,6 +202,9 @@ describe("resolveSidebarLastSyncedLabel", () => {
   });
 
   it("accepts wrapped and raw sync warning payloads but ignores unknown payloads", () => {
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     const syncWarningPayload = [
       {
         account_id: "acc-1",
@@ -178,40 +213,75 @@ describe("resolveSidebarLastSyncedLabel", () => {
       },
     ];
 
-    expect(resolveSidebarSyncWarningPayload({ payload: syncWarningPayload })).toEqual(syncWarningPayload);
-    expect(resolveSidebarSyncWarningPayload(syncWarningPayload)).toEqual(syncWarningPayload);
-    expect(resolveSidebarSyncWarningPayload({ payload: [{ account_id: "acc-1" }] })).toBeNull();
-    expect(resolveSidebarSyncWarningPayload({ payload: "not-warnings" })).toBeNull();
+    expect(
+      resolveSidebarSyncWarningPayload({ payload: syncWarningPayload }),
+    ).toEqual(syncWarningPayload);
+    expect(resolveSidebarSyncWarningPayload(syncWarningPayload)).toEqual(
+      syncWarningPayload,
+    );
+    expect(
+      resolveSidebarSyncWarningPayload({ payload: [{ account_id: "acc-1" }] }),
+    ).toBeNull();
+    expect(
+      resolveSidebarSyncWarningPayload({ payload: "not-warnings" }),
+    ).toBeNull();
+    expect(consoleWarn).toHaveBeenCalledOnce();
   });
 
   it("accepts null sync completed payloads but rejects malformed payloads", () => {
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
     expect(isSidebarSyncCompletedPayload({ payload: null })).toBe(true);
     expect(isSidebarSyncCompletedPayload(null)).toBe(true);
     expect(isSidebarSyncCompletedPayload({ payload: undefined })).toBe(false);
     expect(isSidebarSyncCompletedPayload({ payload: {} })).toBe(false);
+    expect(consoleWarn).toHaveBeenCalledOnce();
   });
 
-  it("ignores malformed sync progress events without applying progress", () => {
+  it("reports malformed sync progress events once without applying progress", () => {
     const { wrapper } = createQueryWrapper();
     const applySyncProgress = vi.fn();
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
 
-    renderHook(() => useSidebarSync(createSyncHookParams({ applySyncProgress })), { wrapper });
+    renderHook(
+      () => useSidebarSync(createSyncHookParams({ applySyncProgress })),
+      { wrapper },
+    );
 
     act(() => {
-      getRegisteredListener("sync-progress")({ payload: { ...syncProgressPayload, completed: Number.NaN } });
+      getRegisteredListener("sync-progress")({
+        payload: { ...syncProgressPayload, completed: Number.NaN },
+      });
+      getRegisteredListener("sync-progress")({
+        payload: { ...syncProgressPayload, stage: "unknown" },
+      });
       getRegisteredListener("sync-progress")({ payload: syncProgressPayload });
     });
 
     expect(applySyncProgress).toHaveBeenCalledTimes(1);
     expect(applySyncProgress).toHaveBeenCalledWith(syncProgressPayload);
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Ignored malformed sync-progress payload: payloadType=object issue=completed",
+    );
   });
 
-  it("ignores malformed sync completed events without clearing progress or invalidating", () => {
+  it("reports malformed sync completed events without clearing progress or invalidating", () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     const clearSyncProgress = vi.fn();
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
 
-    renderHook(() => useSidebarSync(createSyncHookParams({ clearSyncProgress })), { wrapper });
+    renderHook(
+      () => useSidebarSync(createSyncHookParams({ clearSyncProgress })),
+      { wrapper },
+    );
 
     act(() => {
       getRegisteredListener("sync-completed")({ payload: { completed: true } });
@@ -223,16 +293,24 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: accountSyncStatusQueryKey(),
     });
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Ignored malformed sync-completed payload: payloadType=object issue=",
+    );
   });
 
   it("logs account sync status invalidation failures after sync completion", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidationError = new Error("sync status cache refresh failed");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(
+      invalidationError,
+    );
     const clearSyncProgress = vi.fn();
 
-    renderHook(() => useSidebarSync(createSyncHookParams({ clearSyncProgress })), { wrapper });
+    renderHook(
+      () => useSidebarSync(createSyncHookParams({ clearSyncProgress })),
+      { wrapper },
+    );
 
     act(() => {
       getRegisteredListener("sync-completed")({ payload: null });
@@ -247,12 +325,17 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
   });
 
-  it("ignores malformed sync warning events without invalidating or showing a toast", () => {
+  it("reports malformed sync warning events without invalidating or showing a toast", () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     const showToast = vi.fn();
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
 
-    renderHook(() => useSidebarSync(createSyncHookParams({ showToast })), { wrapper });
+    renderHook(() => useSidebarSync(createSyncHookParams({ showToast })), {
+      wrapper,
+    });
 
     act(() => {
       getRegisteredListener("sync-warning")({
@@ -267,6 +350,78 @@ describe("resolveSidebarLastSyncedLabel", () => {
 
     expect(invalidateQueriesSpy).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Ignored malformed sync-warning payload: payloadType=array issue=0.message",
+    );
+  });
+
+  it("clears stuck sync progress when sync-completed is missing", async () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const clearSyncProgress = vi.fn();
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    renderHook(
+      () =>
+        useSidebarSync(
+          createSyncHookParams({
+            syncProgress: {
+              active: true,
+              kind: "manual_all",
+              stage: "account_started",
+              total: 2,
+              completed: 1,
+              currentAccountName: "Account 1",
+              activeAccountIds: new Set(["acc-1"]),
+            },
+            clearSyncProgress,
+          }),
+        ),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(clearSyncProgress).toHaveBeenCalledTimes(1);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accountSyncStatusQueryKey(),
+    });
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Cleared stuck sync progress after missing sync-completed event:",
+      {
+        kind: "manual_all",
+        stage: "account_started",
+        total: 2,
+        completed: 1,
+        activeAccountCount: 1,
+      },
+    );
+  });
+
+  it("connects manual sync cooldown listener aggregation to diagnostics", () => {
+    const restoreReporter = vi.fn();
+    vi.mocked(
+      setManualSyncCooldownListenerErrorReporterForDiagnostics,
+    ).mockReturnValue(restoreReporter);
+    const { wrapper } = createQueryWrapper();
+
+    const { unmount } = renderHook(
+      () => useSidebarSync(createSyncHookParams()),
+      { wrapper },
+    );
+
+    expect(
+      setManualSyncCooldownListenerErrorReporterForDiagnostics,
+    ).toHaveBeenCalledWith(expect.any(Function));
+
+    unmount();
+
+    expect(restoreReporter).toHaveBeenCalledOnce();
   });
 
   it("cleans up the sidebar cooldown interval on unmount", () => {
@@ -277,13 +432,18 @@ describe("resolveSidebarLastSyncedLabel", () => {
     const clearIntervalSpy = vi.spyOn(window, "clearInterval");
     const { wrapper } = createQueryWrapper();
 
-    const { unmount } = renderHook(() => useSidebarSync(createSyncHookParams()), { wrapper });
+    const { unmount } = renderHook(
+      () => useSidebarSync(createSyncHookParams()),
+      { wrapper },
+    );
 
     expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 1_000);
 
     unmount();
 
-    expect(clearIntervalSpy).toHaveBeenCalledWith(setIntervalSpy.mock.results[0]?.value);
+    expect(clearIntervalSpy).toHaveBeenCalledWith(
+      setIntervalSpy.mock.results[0]?.value,
+    );
   });
 
   it("keeps rendering when the sidebar cooldown interval runtime is unavailable", () => {
@@ -291,17 +451,25 @@ describe("resolveSidebarLastSyncedLabel", () => {
     vi.setSystemTime(new Date("2026-04-30T00:00:00.000Z"));
     vi.mocked(getManualSyncCooldownUntil).mockReturnValue(Date.now() + 15_000);
     const intervalError = new Error("interval unavailable");
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     vi.spyOn(window, "setInterval").mockImplementation(() => {
       throw intervalError;
     });
     const clearIntervalSpy = vi.spyOn(window, "clearInterval");
     const { wrapper } = createQueryWrapper();
 
-    const { result, unmount } = renderHook(() => useSidebarSync(createSyncHookParams()), { wrapper });
+    const { result, unmount } = renderHook(
+      () => useSidebarSync(createSyncHookParams()),
+      { wrapper },
+    );
 
     expect(result.current.isSyncCoolingDown).toBe(true);
-    expect(consoleWarn).toHaveBeenCalledWith("Sidebar sync cooldown interval unavailable:", intervalError);
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Sidebar sync cooldown interval unavailable:",
+      intervalError,
+    );
 
     unmount();
 
