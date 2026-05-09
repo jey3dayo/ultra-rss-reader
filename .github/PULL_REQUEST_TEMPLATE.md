@@ -32,7 +32,7 @@
 - [ ] リント違反 0 件 (`mise run check` の `lint`)
 - [ ] 全テスト成功 (`mise run check` の `test`)
 - [ ] フォーマッター適用済み (`mise run check` の `format`)
-- [ ] release / native / Storybook 影響時: `mise run ci` または focused test を確認内容へ記録
+- [ ] release / native / Storybook / manual verification / release readiness 影響時: `mise run ci` または focused test を確認内容へ記録
 - [ ] 環境変数の変更時: `.env` を暗号化 (`dotenvx encrypt`)
 
 ---

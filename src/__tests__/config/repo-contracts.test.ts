@@ -1178,7 +1178,7 @@ describe("repository static contracts", () => {
       "リント違反 0 件 (`mise run check` の `lint`)",
       "全テスト成功 (`mise run check` の `test`)",
       "フォーマッター適用済み (`mise run check` の `format`)",
-      "release / native / Storybook 影響時: `mise run ci` または focused test を確認内容へ記録",
+      "release / native / Storybook / manual verification / release readiness 影響時: `mise run ci` または focused test を確認内容へ記録",
       "環境変数の変更時: `.env` を暗号化 (`dotenvx encrypt`)",
     ];
 
@@ -1193,6 +1193,9 @@ describe("repository static contracts", () => {
     for (const impactScope of ["release", "native", "Storybook"] as const) {
       expect(pullRequestTemplate).toContain(impactScope);
       expect(agents).toContain(impactScope);
+    }
+    for (const prOnlyImpactScope of ["manual verification", "release readiness"] as const) {
+      expect(pullRequestTemplate).toContain(prOnlyImpactScope);
     }
 
     expect(pullRequestTemplate).toContain("focused test");
@@ -1417,6 +1420,7 @@ describe("repository static contracts", () => {
     expect(updaterCommands).toContain("guard.take()");
     expect(updaterCommands).toContain("updater.check()");
     expect(updaterCommands).toContain('message: "No update available".to_string()');
+    expect(readRepoFile(".github/workflows/release.yml")).toContain("--config src-tauri/tauri.release.conf.json --ci");
     expect(readRepoFile("docs/release-manual-verification.md")).toContain("packaged updater verification passed");
   });
 
@@ -1593,6 +1597,12 @@ describe("repository static contracts", () => {
         .flatMap(extractIssueTemplateDefaultLabels)
         .filter((label) => label !== "category/tests" && maintainerManagedLabelSet.has(label)),
     ).toEqual([]);
+    expect(issueTemplates.flatMap(extractIssueTemplateDefaultLabels)).not.toEqual(
+      expect.arrayContaining(["manual-verification", "release-readiness"]),
+    );
+    expect(extractIssueTemplateCheckboxLabels(issueTestTemplate, "follow-up-labels")).toEqual(
+      expect.arrayContaining(["manual-verification が必要", "release-readiness に入る"]),
+    );
     expect(prInsightsLabelerWorkflow).toContain("uses: jey3dayo/pr-insights-labeler@v1.11.1");
     expect(prInsightsLabelerWorkflow).toContain('file_size_limit: "100KB"');
     expect(prInsightsLabelerWorkflow).toContain('pr_files_limit: "50"');
