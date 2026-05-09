@@ -977,6 +977,62 @@
   - iframe smoke 前に project / version / story registry health check を追加するか、runbook contract を固定する
   - Playwright artifact separation とは分け、Storybook server freshness だけを扱う
 
+- [ ] react-doctor critical errors 候補を追加する
+  - `npx -y react-doctor@latest . --verbose` で出た `react-doctor/no-eval` と `react-hooks/rules-of-hooks` を先に潰す
+  - `src/__tests__/app/theme-bootstrap-script.test.ts` の `new Function` 実行を script 挙動確認用の安全な helper へ置き換える
+  - `src/components/reader/article-toolbar-view.stories.tsx` の anonymous decorator hook を named component / hook 境界へ寄せる
+  - score regression を防ぐため、修正後に `react-doctor --diff` と該当 test / Storybook smoke を確認する
+
+- [ ] react-doctor Tailwind size shorthand 候補を追加する
+  - `react-doctor/design-no-redundant-size-axes` の `w-N h-N` を view scope ごとに `size-N` へ置き換える
+  - まず `article-empty-state-view` / `article-tag-picker` / `feed-tree-row` / `settings` small icons を小さな worker scope に分ける
+  - Storybook specimen と test fixture は別バッチにし、UI 表示差分が出ないことを focused component test で確認する
+
+- [ ] react-doctor React 19 forwardRef cleanup 候補を追加する
+  - `react-doctor/no-react19-deprecated-apis` の対象 wrapper から不要な `forwardRef` を外す
+  - 対象: `shortcuts-settings-view` / `article-tag-picker-buttons` / `sidebar-nav-button` / `account-switcher-view` / `reader-inline-action-button` / `settings-content-layout` / `nav-row-button`
+  - public wrapper API と ref forwarding contract を壊さないよう component test 付きで worker 分割する
+
+- [ ] react-doctor mutation invalidation 候補を追加する
+  - `src/hooks/use-tags.ts` と `src/hooks/use-articles.ts` の `useMutation` / `createMutation` に cache update contract を明示する
+  - `useTagArticle` / article mutation 系で stale tag/article data が残らない invalidation を focused hook test で固定する
+  - pending mutation backend contract とは分け、TanStack Query cache consistency だけを扱う
+
+- [ ] react-doctor browser-view state effects 候補を追加する
+  - `src/components/reader/browser-view.tsx` の cascading setState / state-only handler / trivial `useMemo` を整理する
+  - reducer 化する state と `useRef` 化する render 非依存 state を分け、browser surface state test を追加する
+  - Browser WebView geometry 数値や native bounds 挙動は触らず、React state/effect の形だけを扱う
+
+- [ ] react-doctor App visibility handler ref 候補を追加する
+  - `src/App.tsx` の visibilitychange listener が handler identity 変更で再購読される点を ref-based event handler へ寄せる
+  - sync-on-wake の in-flight guard と hidden duration 判定が変わらない test を追加する
+  - startup sync / Tauri listener invalidation とは分け、DOM event subscription stability だけを扱う
+
+- [ ] react-doctor article content danger boundary 候補を追加する
+  - `src/components/reader/article-content-view.tsx` の `dangerouslySetInnerHTML` を sanitizer contract とセットで再確認する
+  - Rust sanitizer 済みであることを TS 側の branded/sanitized HTML 型または schema 境界で表現できるか検討する
+  - HTML rendering の挙動変更は避け、danger boundary の documentation / type contract と sanitizer regression test に限定する
+
+- [ ] react-doctor dead code type surface 候補を追加する
+  - `knip/types` / `knip/exports` の unused type/export を feature ごとに棚卸しする
+  - `article-list.types.ts` / `browser-view.types.ts` / `command-palette.types.ts` など広い contract は一括削除せず参照範囲ごとに分ける
+  - public wrapper API と Storybook helper export は allowlist 化し、実 dead code だけを削除する
+
+- [ ] react-doctor iterable performance 候補を追加する
+  - `js-combine-iterations` / `js-set-map-lookups` / `js-index-maps` を runtime hot path から優先して潰す
+  - 対象候補: `src/lib/articles/article-list.ts` / `src/lib/subscriptions/subscriptions-index.ts` / `src/components/reader/hooks/command-palette/use-command-palette-data.ts`
+  - test-only fixture や dev mock は後回しにし、同一入力で出力順が変わらない pure helper test を追加する
+
+- [ ] react-doctor immutable sort cleanup 候補を追加する
+  - `js-tosorted-immutable` の `[...array].sort()` を runtime file から `toSorted()` へ寄せる
+  - 対象候補: `src/lib/sidebar/sidebar.ts` / `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` / `src/lib/subscriptions/subscriptions-index.ts`
+  - ES target / runtime support を確認し、test fixture の sort cleanup とは別バッチにする
+
+- [ ] react-doctor form preventDefault review 候補を追加する
+  - `src/components/settings/add-account/account-config-form-view.tsx` と `src/components/settings/add-account/form-view.tsx` の submit handling を review する
+  - Tauri desktop app として progressive enhancement 指摘をそのまま直すか、button-driven form contract として明示するか判断する
+  - add account URL validation とは分け、form semantics と keyboard submit contract だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
