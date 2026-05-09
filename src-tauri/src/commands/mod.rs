@@ -27,6 +27,8 @@ use crate::infra::db::connection::DbManager;
 const BROWSER_URL_SCHEME_ERROR: &str = "Only http:// and https:// URLs are supported";
 const DATABASE_BUSY_ERROR: &str =
     "Database is busy. Wait for the current operation to finish and try again.";
+const DATABASE_POISONED_ERROR: &str =
+    "Database state needs recovery. Restart the application and check diagnostics if it happens again.";
 pub(crate) const DATABASE_MAINTENANCE_BUSY_ERROR: &str =
     "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
@@ -69,9 +71,12 @@ pub(crate) fn try_lock_db(db: &Mutex<DbManager>) -> Result<MutexGuard<'_, DbMana
         Err(TryLockError::WouldBlock) => Err(AppError::UserVisible {
             message: DATABASE_BUSY_ERROR.to_string(),
         }),
-        Err(TryLockError::Poisoned(error)) => Err(AppError::UserVisible {
-            message: format!("Lock error: {error}"),
-        }),
+        Err(TryLockError::Poisoned(error)) => {
+            tracing::error!("Database mutex poisoned: {error}");
+            Err(AppError::UserVisible {
+                message: DATABASE_POISONED_ERROR.to_string(),
+            })
+        }
     }
 }
 
@@ -87,7 +92,7 @@ pub struct AppState {
 mod tests {
     use std::sync::Mutex;
 
-    use super::{try_lock_db, DATABASE_BUSY_ERROR};
+    use super::{try_lock_db, DATABASE_BUSY_ERROR, DATABASE_POISONED_ERROR};
     use crate::commands::dto::AppError;
     use crate::infra::db::connection::DbManager;
 
@@ -104,6 +109,30 @@ mod tests {
         match error {
             AppError::UserVisible { message } => {
                 assert_eq!(message, DATABASE_BUSY_ERROR);
+            }
+            other => panic!("expected user-visible error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn try_lock_db_returns_recovery_message_when_poisoned() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let poison_result = std::panic::catch_unwind(|| {
+            let _guard = db.lock().unwrap();
+            panic!("poison test database lock");
+        });
+        assert!(poison_result.is_err());
+
+        let error = match try_lock_db(&db) {
+            Ok(_) => panic!("poisoned DB should return an error"),
+            Err(error) => error,
+        };
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, DATABASE_POISONED_ERROR);
+                assert!(!message.contains("poison"));
+                assert!(!message.contains("Lock error"));
             }
             other => panic!("expected user-visible error, got {other:?}"),
         }

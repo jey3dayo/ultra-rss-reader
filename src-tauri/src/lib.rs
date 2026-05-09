@@ -44,6 +44,13 @@ fn main_window_title_bar_style() -> tauri::TitleBarStyle {
     }
 }
 
+fn redacted_path_label(path: &std::path::Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| format!("[redacted parent]/{name}"))
+        .unwrap_or_else(|| "[redacted path]".to_string())
+}
+
 fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -> String {
     let backups_dir = db_path
         .parent()
@@ -52,21 +59,51 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
     match error {
         DomainError::Migration(_) => format!(
             "Failed to initialize database: {error}\n\
-             Database path: {}\n\
+             Database file: {}\n\
              Backup directory: {}\n\
              The database may already have been restored automatically. Do not delete the database file.\n\
              If the application still does not start, close it and restore the newest backup from the backup directory to the database path.\n\
              Please update the application or contact support.",
-            db_path.display(),
-            backups_dir.display()
+            redacted_path_label(db_path),
+            redacted_path_label(&backups_dir)
         ),
         _ => format!(
             "Failed to initialize database: {error}\n\
-             Database path: {}\n\
-             If the problem persists, try deleting the database file and restarting.",
-            db_path.display()
+             Database file: {}\n\
+             Check OS permissions and available disk space, then restart the application.",
+            redacted_path_label(db_path)
         ),
     }
+}
+
+fn database_init_panic_message(error: &DomainError, db_path: &std::path::Path) -> String {
+    match error {
+        DomainError::Migration(_) => database_init_error_message(error, db_path),
+        _ => format!(
+            "Failed to initialize database during startup filesystem access: {error}\n\
+             Database file: {}\n\
+             Check OS permissions and available disk space, then restart the application.",
+            redacted_path_label(db_path)
+        ),
+    }
+}
+
+fn startup_app_data_dir_error_message(error: &impl std::fmt::Display) -> String {
+    format!(
+        "Failed to resolve app data directory during startup filesystem access: {error}. \
+         Check OS permissions and restart the application."
+    )
+}
+
+fn startup_app_data_dir_create_error_message(
+    path: &std::path::Path,
+    error: &impl std::fmt::Display,
+) -> String {
+    format!(
+        "Failed to create app data directory during startup filesystem access: {error}. \
+         Directory: {}. Check OS permissions and available disk space, then restart the application.",
+        redacted_path_label(path)
+    )
 }
 
 fn startup_preferences_or_default(
@@ -258,14 +295,16 @@ pub fn run() {
             let app_data_dir = app
                 .path()
                 .app_data_dir()
-                .expect("Failed to resolve app data dir");
-            std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
+                .map_err(|error| startup_app_data_dir_error_message(&error))?;
+            std::fs::create_dir_all(&app_data_dir).map_err(|error| {
+                startup_app_data_dir_create_error_message(&app_data_dir, &error)
+            })?;
             let db_path = app_data_dir.join("ultra-rss-reader.db");
             let db = match DbManager::new(&db_path) {
                 Ok(db) => db,
                 Err(e) => {
                     tracing::error!("Database initialization failed: {e}");
-                    panic!("{}", database_init_error_message(&e, &db_path));
+                    panic!("{}", database_init_panic_message(&e, &db_path));
                 }
             };
 
@@ -417,11 +456,12 @@ mod tests {
 
     use super::{
         cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
-        cleanup_old_logs_remove_warning, database_init_error_message,
-        main_window_title_bar_uses_overlay, startup_focus_main_thread_warning,
-        startup_main_webview_focus_warning, startup_main_window_focus_warning,
-        startup_main_window_show_warning, startup_preferences_or_default,
-        startup_preferences_read_warning_message,
+        cleanup_old_logs_remove_warning, database_init_error_message, database_init_panic_message,
+        main_window_title_bar_uses_overlay, redacted_path_label,
+        startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
+        startup_focus_main_thread_warning, startup_main_webview_focus_warning,
+        startup_main_window_focus_warning, startup_main_window_show_warning,
+        startup_preferences_or_default, startup_preferences_read_warning_message,
     };
     use crate::domain::error::DomainError;
 
@@ -463,8 +503,68 @@ mod tests {
         );
 
         assert!(
-            message.contains("try deleting the database file"),
-            "non-migration init errors should keep the existing recovery guidance: {message}"
+            message.contains("Check OS permissions and available disk space"),
+            "non-migration init errors should explain filesystem recovery: {message}"
+        );
+    }
+
+    #[test]
+    fn user_facing_startup_paths_are_redacted_to_file_labels() {
+        let path = Path::new("/Users/example/Library/Application Support/app/ultra-rss-reader.db");
+        let message = database_init_error_message(
+            &DomainError::Migration("migration failed".to_string()),
+            path,
+        );
+
+        assert!(message.contains("[redacted parent]/ultra-rss-reader.db"));
+        assert!(message.contains("[redacted parent]/backups"));
+        assert!(!message.contains("/Users/example"));
+    }
+
+    #[test]
+    fn database_init_panic_classifies_migration_and_filesystem_failures() {
+        let db_path = Path::new("/Users/example/app/ultra-rss-reader.db");
+        let migration = database_init_panic_message(
+            &DomainError::Migration("duplicate column".to_string()),
+            db_path,
+        );
+        let persistence = database_init_panic_message(
+            &DomainError::Persistence("permission denied".to_string()),
+            db_path,
+        );
+
+        assert!(migration.contains("restore the newest backup"));
+        assert!(!migration.contains("startup filesystem access"));
+        assert!(persistence.contains("startup filesystem access"));
+        assert!(persistence.contains("permission denied"));
+        assert!(!persistence.contains("/Users/example"));
+    }
+
+    #[test]
+    fn startup_filesystem_messages_are_recoverable_and_path_redacted() {
+        let resolve_error =
+            std::io::Error::new(std::io::ErrorKind::NotFound, "base directory unavailable");
+        let create_error =
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied");
+
+        let resolve_message = startup_app_data_dir_error_message(&resolve_error);
+        let create_message = startup_app_data_dir_create_error_message(
+            Path::new("/Users/example/Library/Application Support/app"),
+            &create_error,
+        );
+
+        assert!(resolve_message.contains("startup filesystem access"));
+        assert!(resolve_message.contains("Check OS permissions"));
+        assert!(create_message.contains("[redacted parent]/app"));
+        assert!(create_message.contains("available disk space"));
+        assert!(!create_message.contains("/Users/example"));
+    }
+
+    #[test]
+    fn redacted_path_label_uses_only_final_component() {
+        assert_eq!(
+            redacted_path_label(Path::new("/Users/example/app/app.log")),
+            "[redacted parent]/app.log"
         );
     }
 

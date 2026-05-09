@@ -86,23 +86,36 @@ fn restore_old_path(final_path: &Path) -> PathBuf {
     PathBuf::from(name)
 }
 
+pub(crate) fn redacted_path_label(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| format!("[redacted parent]/{name}"))
+        .unwrap_or_else(|| "[redacted path]".to_string())
+}
+
 fn copy_backup_file_atomic(src: &Path, dest: &Path) -> DomainResult<()> {
     let temp_dest = temp_backup_path(dest);
     if temp_dest.exists() {
         fs::remove_file(&temp_dest).map_err(|e| {
             DomainError::Migration(format!(
                 "Failed to remove stale temporary backup {}: {e}",
-                temp_dest.display()
+                redacted_path_label(&temp_dest)
             ))
         })?;
     }
     fs::copy(src, &temp_dest).map_err(|e| {
         let _ = fs::remove_file(&temp_dest);
-        DomainError::Migration(format!("Failed to backup {}: {e}", src.display()))
+        DomainError::Migration(format!(
+            "Failed to backup {}: {e}",
+            redacted_path_label(src)
+        ))
     })?;
     fs::rename(&temp_dest, dest).map_err(|e| {
         let _ = fs::remove_file(&temp_dest);
-        DomainError::Migration(format!("Failed to finalize backup {}: {e}", dest.display()))
+        DomainError::Migration(format!(
+            "Failed to finalize backup {}: {e}",
+            redacted_path_label(dest)
+        ))
     })?;
     Ok(())
 }
@@ -115,7 +128,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
     fs::create_dir_all(&dir).map_err(|e| {
         DomainError::Migration(format!(
             "Failed to create backup directory {}: {e}",
-            dir.display()
+            redacted_path_label(&dir)
         ))
     })?;
 
@@ -173,7 +186,7 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
             fs::remove_file(&temp_dest).map_err(|e| {
                 DomainError::Migration(format!(
                     "Failed to remove stale temporary restore {}: {e}",
-                    temp_dest.display()
+                    redacted_path_label(&temp_dest)
                 ))
             })?;
         }
@@ -181,7 +194,10 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
             for staged_path in &staged_paths {
                 let _ = fs::remove_file(staged_path);
             }
-            DomainError::Migration(format!("Failed to stage restore {}: {e}", src.display()))
+            DomainError::Migration(format!(
+                "Failed to stage restore {}: {e}",
+                redacted_path_label(src)
+            ))
         })?;
         staged_paths.push(temp_dest);
     }
@@ -199,7 +215,7 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
             fs::remove_file(&old_path).map_err(|e| {
                 DomainError::Migration(format!(
                     "Failed to remove stale restore rollback file {}: {e}",
-                    old_path.display()
+                    redacted_path_label(&old_path)
                 ))
             })?;
         }
@@ -211,7 +227,10 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
                 for (rollback_dest, rollback_old_path) in old_paths.iter().rev() {
                     let _ = fs::rename(rollback_old_path, rollback_dest);
                 }
-                DomainError::Migration(format!("Failed to prepare restore {}: {e}", dest.display()))
+                DomainError::Migration(format!(
+                    "Failed to prepare restore {}: {e}",
+                    redacted_path_label(&dest)
+                ))
             })?;
             old_paths.push((dest, old_path));
         }
@@ -221,7 +240,7 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
         fs::rename(temp_backup_path(dest), dest).map_err(|e| {
             DomainError::Migration(format!(
                 "Failed to finalize restore {}: {e}",
-                dest.display()
+                redacted_path_label(dest)
             ))
         })
     });
@@ -385,6 +404,14 @@ mod tests {
         assert_eq!(
             temp_backup_path(path),
             PathBuf::from("/tmp/backups/app_v2_20260330T000000.db.tmp")
+        );
+    }
+
+    #[test]
+    fn redacted_path_label_keeps_only_file_name_for_user_facing_diagnostics() {
+        assert_eq!(
+            redacted_path_label(Path::new("/Users/example/app/backups/app_v2.db")),
+            "[redacted parent]/app_v2.db"
         );
     }
 

@@ -354,6 +354,7 @@ async fn add_local_feed_with_provider(
 
     {
         let db = lock_db(db)?;
+        validate_add_local_feed_duplicate_url_in_db(&db, &account_id, &feed.url)?;
         let feed_repo = SqliteFeedRepository::new(db.writer());
         feed_repo.save(&feed)?;
     }
@@ -391,6 +392,20 @@ async fn add_local_feed_with_provider(
     let mut updated_feed = persisted_feed;
     updated_feed.unread_count = unread_count;
     Ok(FeedDto::from(updated_feed))
+}
+
+fn validate_add_local_feed_duplicate_url_in_db(
+    db: &DbManager,
+    account_id: &AccountId,
+    url: &str,
+) -> Result<(), AppError> {
+    let feed_repo = SqliteFeedRepository::new(db.reader());
+    if feed_repo.find_by_url(account_id, url)?.is_some() {
+        return Err(AppError::UserVisible {
+            message: "Feed URL is already subscribed".into(),
+        });
+    }
+    Ok(())
 }
 
 fn rollback_added_feed(db: &Mutex<DbManager>, feed_id: &FeedId, error: &AppError) {
@@ -491,7 +506,8 @@ mod tests {
         add_local_feed_with_db, add_local_feed_with_provider, classify_update_feed_folder_error,
         create_folder_in_db, delete_feed_in_db, lock_db, recalculate_feed_unread_count_in_db,
         rename_feed_in_db, update_feed_display_settings_in_db, update_feed_folder_in_db,
-        validate_add_local_feed_account_in_db, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
+        validate_add_local_feed_account_in_db, validate_add_local_feed_duplicate_url_in_db,
+        UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
     };
     use crate::commands::dto::AppError;
     use crate::domain::error::DomainError;
@@ -929,6 +945,22 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn add_local_feed_duplicate_url_preflight_rejects_existing_subscription() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        insert_test_feed(&db, &account_id);
+
+        let error =
+            validate_add_local_feed_duplicate_url_in_db(&db, &account_id, "http://example.com/rss")
+                .expect_err("duplicate URL should be rejected before save");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed URL is already subscribed"
+        ));
+    }
+
     #[tokio::test]
     async fn add_local_feed_rejects_missing_account_before_network_request() {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -1080,6 +1112,59 @@ mod tests {
                 .unwrap()
         };
         assert_eq!(saved_feed_count, 0);
+    }
+
+    #[tokio::test]
+    async fn add_local_feed_rejects_duplicate_url_without_deleting_existing_feed() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(SAMPLE_RSS)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            let account_id = insert_test_account(&db_guard, "Primary");
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                    params!["existing-feed", account_id.0, "Existing", feed_url],
+                )
+                .unwrap();
+            account_id
+        };
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error =
+            add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
+                .await
+                .expect_err("duplicate URL should reject add feed");
+
+        mock.assert_async().await;
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed URL is already subscribed"
+        ));
+
+        let saved_feed_count: i64 = {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .reader()
+                .query_row(
+                    "SELECT COUNT(*) FROM feeds WHERE account_id = ?1 AND url = ?2",
+                    params![account_id.0, feed_url],
+                    |row| row.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(saved_feed_count, 1);
     }
 
     #[test]

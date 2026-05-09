@@ -99,9 +99,7 @@ impl DbManager {
                     if let Err(restore_err) = super::backup::restore_backup(db_path, backup_file) {
                         return Err(DomainError::Migration(format!(
                             "Migration failed ({e}) and automatic restore failed ({restore_err}). \
-                             Close the application and restore the backup manually from {} to {}.",
-                            backup_file.display(),
-                            db_path.display()
+                             Close the application and restore the backup manually from the backup directory to the database file."
                         )));
                     }
 
@@ -111,7 +109,7 @@ impl DbManager {
                          Backup: {}. If the application still does not start, close it and restore \
                          the newest backup over the database file manually.",
                         super::migration::LATEST_VERSION,
-                        backup_file.display()
+                        super::backup::redacted_path_label(backup_file)
                     )))
                 } else {
                     Err(DomainError::Migration(format!(
@@ -531,6 +529,14 @@ mod tests {
         assert!(
             err_msg.contains("restored to v5"),
             "Error should mention restore: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("[redacted parent]/test_v5_"),
+            "Error should include redacted backup label: {err_msg}"
+        );
+        assert!(
+            !err_msg.contains(dir.path().to_string_lossy().as_ref()),
+            "Error should not include the full backup path: {err_msg}"
         );
 
         // Verify backup was restored — data should be intact

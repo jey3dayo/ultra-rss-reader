@@ -59,6 +59,7 @@ export function MuteSettings() {
   const setMuteAutoMarkRead = useSetMuteAutoMarkRead();
   const updateMuteKeyword = useUpdateMuteKeyword();
   const ruleScopeUpdateRevisionRef = useRef<Record<string, number>>({});
+  const autoMarkReadRevisionRef = useRef(0);
   const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
   const { keyword, scope, confirmRule } = state;
   const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
@@ -129,6 +130,8 @@ export function MuteSettings() {
   };
 
   const handleAutoMarkReadChange = async (checked: boolean) => {
+    const revision = autoMarkReadRevisionRef.current + 1;
+    autoMarkReadRevisionRef.current = revision;
     const previousValue = autoMarkReadEnabled;
     usePreferencesStore.setState((state) => ({
       prefs: { ...state.prefs, mute_auto_mark_read: String(checked) },
@@ -137,6 +140,9 @@ export function MuteSettings() {
     try {
       await setMuteAutoMarkRead.mutateAsync({ enabled: checked });
     } catch (error) {
+      if (autoMarkReadRevisionRef.current !== revision) {
+        return;
+      }
       usePreferencesStore.setState((state) => ({
         prefs: { ...state.prefs, mute_auto_mark_read: String(previousValue) },
       }));

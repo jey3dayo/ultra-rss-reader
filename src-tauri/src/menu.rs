@@ -112,6 +112,10 @@ fn is_reading_list_menu_available() -> bool {
     cfg!(target_os = "macos")
 }
 
+fn menu_action_emit_failure_diagnostic(action: &str, error: &impl std::fmt::Display) -> String {
+    format!("Frontend action diagnostics: native menu failed to emit action '{action}': {error}")
+}
+
 fn is_sort_unread_checked(prefs: &HashMap<String, String>) -> bool {
     prefs
         .get("reading_sort")
@@ -358,7 +362,7 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     }
 
     if let Err(e) = app.emit(MENU_ACTION_EVENT, action) {
-        tracing::error!("Failed to emit {} '{}': {}", MENU_ACTION_EVENT, action, e);
+        tracing::error!("{}", menu_action_emit_failure_diagnostic(action, &e));
     }
 }
 
@@ -369,8 +373,8 @@ mod tests {
     use super::{
         is_check_for_updates_menu_available, is_group_by_feed_checked,
         is_reading_list_menu_available, is_sort_unread_checked, is_toggle_check_menu_item,
-        item_menu_label, item_menu_shortcut_hint, native_menu_accelerator, resolve_menu_action,
-        MENU_ACTION_EVENT,
+        item_menu_label, item_menu_shortcut_hint, menu_action_emit_failure_diagnostic,
+        native_menu_accelerator, resolve_menu_action, MENU_ACTION_EVENT,
     };
 
     #[test]
@@ -525,6 +529,16 @@ mod tests {
             Some("add-to-reading-list")
         );
         assert!(!is_toggle_check_menu_item("share-reading-list"));
+    }
+
+    #[test]
+    fn native_menu_emit_failure_uses_frontend_action_diagnostics_category() {
+        let message = menu_action_emit_failure_diagnostic("sync-all", &"emit failed");
+
+        assert!(message.contains("Frontend action diagnostics"));
+        assert!(message.contains("native menu failed to emit action"));
+        assert!(message.contains("sync-all"));
+        assert!(message.contains("emit failed"));
     }
 
     #[test]
