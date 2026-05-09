@@ -22,17 +22,11 @@ describe("renderStory", () => {
           return createElement("span", null, label);
         },
         args: { label: "meta" },
-        decorators: [
-          createDecorator("meta-first"),
-          createDecorator("meta-second"),
-        ],
+        decorators: [createDecorator("meta-first"), createDecorator("meta-second")],
       },
       {
         args: { label: "story" },
-        decorators: [
-          createDecorator("story-first"),
-          createDecorator("story-second"),
-        ],
+        decorators: [createDecorator("story-first"), createDecorator("story-second")],
       },
     );
 
@@ -48,9 +42,7 @@ describe("renderStory", () => {
       "component:story",
     ]);
     expect(
-      Array.from(container.querySelectorAll("[data-decorator]")).map((node) =>
-        node.getAttribute("data-decorator"),
-      ),
+      Array.from(container.querySelectorAll("[data-decorator]")).map((node) => node.getAttribute("data-decorator")),
     ).toEqual(["meta-first", "meta-second", "story-first", "story-second"]);
   });
 
@@ -84,8 +76,7 @@ describe("renderStory", () => {
 
     renderStory<{ label: string; tone: string }>(
       {
-        component: ({ label }: { label: string; tone: string }) =>
-          createElement("span", null, label),
+        component: ({ label }: { label: string; tone: string }) => createElement("span", null, label),
         args: { label: "meta", tone: "neutral" },
         parameters: { layout: "centered", viewport: "desktop" },
         globals: { locale: "en", theme: "light" },
@@ -137,5 +128,21 @@ describe("renderStory", () => {
       label: "story",
       tone: "neutral",
     });
+  });
+
+  it("rejects non-options values passed as the third argument", () => {
+    expect(() =>
+      renderStory(
+        {
+          component: ({ label }: { label: string }) => createElement("span", null, label),
+          args: { label: "base" },
+        },
+        {
+          args: { label: "story" },
+        },
+        // @ts-expect-error This fixes the runtime boundary for JS or incorrectly typed callers.
+        true,
+      ),
+    ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");
   });
 });
