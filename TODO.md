@@ -260,6 +260,31 @@
   - Rust command 側に同じ上限を持たせるか、TS fallback policy として明示するかを schema / command test で固定する
   - dev scenario window resize verification や runtime options failed-cache retry とは分け、dev runtime option DTO の size boundary だけを扱う
 
+- [ ] SQLite feed mutation affected-row contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_feed.rs` の `delete` / `rename` / `update_folder` / `update_display_settings` が対象 feed 不在や folder account mismatch を 0 row update の成功として返す点を確認する
+  - repository では no-op を許すか、command 層で `Feed not found` / `Folder not found` へ変換するかを focused Rust test で固定する
+  - feed display mode validation や duplicate URL upsert とは分け、mutation の affected-row semantics だけを扱う
+
+- [ ] SQLite tag article link affected-row contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_tag.rs` の `tag_article` / `untag_article` が duplicate / missing link / missing article/tag をどう扱うかを明示する
+  - `INSERT OR IGNORE` と `DELETE` 0 row の意図を repository test 名で固定し、必要なら command 層だけ user-visible error にする
+  - article tag picker の mutation failure UI とは分け、tag repository の link mutation contract だけを扱う
+
+- [ ] SQLite mute keyword Unicode casefold policy 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_mute_keyword.rs` の Rust matcher は `to_ascii_lowercase`、SQL matcher は SQLite `lower()` を使うため、非 ASCII 大文字小文字や全角/半角の方針を固定する
+  - Unicode casefold / normalization を入れるか、ASCII-only matching として明示するかを Rust matcher と SQL matcher の parity test に追加する
+  - mute keyword create trim / IPC schema trim とは分け、matching policy の文字種境界だけを扱う
+
+- [ ] SQLite preference repository key invariant 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_preference.rs` の `set` が blank key / whitespace key を repository 直利用で保存できる点を確認する
+  - command 層の allowlist に依存する方針で残すか、repository 側でも key trim / reject を行うかを preference repository test で固定する
+  - shortcut preference value validation や known preference type cleanup とは分け、preferences table key invariant だけを扱う
+
+- [ ] create folder sort_order race contract 候補を追加する
+  - `src-tauri/src/commands/feed_commands.rs` の `create_folder_in_db` が既存 folder 数から `sort_order` を決めてから `save` するため、同時作成時の duplicate order 方針を確認する
+  - command-level transaction / unique constraint / 後段 renumber のどれで整合性を保つかを repository or command test で固定する
+  - folder account validation や OPML folder cache とは分け、local folder 作成時の sort_order allocation だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
