@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildSidebarAccountStatusLabels,
   useSidebarAccountStatusLabels,
@@ -111,5 +111,48 @@ describe("useSidebarAccountStatusLabels", () => {
         },
       }),
     ).toEqual({});
+  });
+
+  it("omits blank account ids and ignores statuses that have no account projection", () => {
+    expect(
+      buildSidebarAccountStatusLabels({
+        accounts: [{ id: "acc-1" }, { id: "" }, { id: "   " }],
+        accountSyncStatuses: {
+          "": { next_retry_at: "2026-04-13T03:15:00Z" },
+          "   ": { next_retry_at: "2026-04-13T03:15:00Z" },
+          "acc-1": { next_retry_at: null },
+          "acc-ghost": { next_retry_at: "2026-04-13T03:15:00Z" },
+        },
+        language: "en",
+        labels: {
+          scheduledAt: (time) => `scheduled:${time}`,
+          scheduledSoon: "scheduled soon",
+        },
+      }),
+    ).toEqual({});
+  });
+
+  it("projects duplicate account ids once with first-id wins behavior", () => {
+    const retryAt = "2026-04-13T03:15:00Z";
+    const retryTime = formatAccountSyncRetryTime(retryAt, "en");
+    const scheduledAt = vi.fn((time: string) => `scheduled:${time}`);
+
+    expect(
+      buildSidebarAccountStatusLabels({
+        accounts: [{ id: "acc-1" }, { id: "acc-1" }, { id: "acc-2" }],
+        accountSyncStatuses: {
+          "acc-1": { next_retry_at: retryAt },
+          "acc-2": { next_retry_at: null },
+        },
+        language: "en",
+        labels: {
+          scheduledAt,
+          scheduledSoon: "scheduled soon",
+        },
+      }),
+    ).toEqual({
+      "acc-1": `scheduled:${retryTime}`,
+    });
+    expect(scheduledAt).toHaveBeenCalledTimes(1);
   });
 });

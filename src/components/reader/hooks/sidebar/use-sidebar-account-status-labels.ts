@@ -14,18 +14,25 @@ export function buildSidebarAccountStatusLabels(params: {
   };
 }): Record<string, string> {
   const { accounts, accountSyncStatuses, language, labels } = params;
+  const seenAccountIds = new Set<string>();
+  const accountStatusLabels: Record<string, string> = {};
 
-  return Object.fromEntries(
-    (accounts ?? []).flatMap((account) => {
-      const syncStatus = accountSyncStatuses[account.id];
-      if (!syncStatus?.next_retry_at) {
-        return [];
-      }
+  for (const account of accounts ?? []) {
+    if (account.id.trim().length === 0 || seenAccountIds.has(account.id)) {
+      continue;
+    }
+    seenAccountIds.add(account.id);
 
-      const retryTime = formatAccountSyncRetryTime(syncStatus.next_retry_at, language);
-      return [[account.id, retryTime ? labels.scheduledAt(retryTime) : labels.scheduledSoon]];
-    }),
-  );
+    const syncStatus = accountSyncStatuses[account.id];
+    if (!syncStatus?.next_retry_at) {
+      continue;
+    }
+
+    const retryTime = formatAccountSyncRetryTime(syncStatus.next_retry_at, language);
+    accountStatusLabels[account.id] = retryTime ? labels.scheduledAt(retryTime) : labels.scheduledSoon;
+  }
+
+  return accountStatusLabels;
 }
 
 export function useSidebarAccountStatusLabels(accounts: SidebarAccountStatusLabelsParams) {

@@ -105,6 +105,37 @@ describe("resolveSidebarAccountSelectionAction", () => {
     });
   });
 
+  it("normalizes whitespace-padded selected account ids before deciding restore or persist", () => {
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: true,
+        selectedAccountId: " acc-1 ",
+        savedAccountId: "acc-2",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({ type: "noop" });
+  });
+
+  it("treats whitespace-only selected account ids as missing and restores the saved account", () => {
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: true,
+        selectedAccountId: "   ",
+        savedAccountId: "acc-2",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({
+      type: "restore",
+      accountId: "acc-2",
+      focusedPane: "list",
+      persistPreference: false,
+    });
+  });
+
   it("does nothing while the dev intent forces the web preview flow", () => {
     expect(
       resolveSidebarAccountSelectionAction({

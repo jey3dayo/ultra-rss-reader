@@ -13,6 +13,11 @@ type SidebarAccountSelectionAction =
       persistPreference: boolean;
     };
 
+function normalizeSelectedAccountId(selectedAccountId: string | null): string | null {
+  const normalizedSelectedAccountId = selectedAccountId?.trim() ?? null;
+  return normalizedSelectedAccountId && normalizedSelectedAccountId.length > 0 ? normalizedSelectedAccountId : null;
+}
+
 export function resolveSidebarAccountSelectionAction({
   accounts,
   preferencesLoaded,
@@ -35,7 +40,9 @@ export function resolveSidebarAccountSelectionAction({
     };
   }
 
-  const hasValidSelection = selectedAccountId !== null && accounts.some((account) => account.id === selectedAccountId);
+  const normalizedSelectedAccountId = normalizeSelectedAccountId(selectedAccountId);
+  const hasValidSelection =
+    normalizedSelectedAccountId !== null && accounts.some((account) => account.id === normalizedSelectedAccountId);
   if (hasValidSelection || activeDevIntent === DEV_SCENARIO_ID.openWebPreviewUrl) {
     return { type: "noop" };
   }

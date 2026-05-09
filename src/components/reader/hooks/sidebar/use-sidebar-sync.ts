@@ -2,7 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
-import type { AccountSyncWarning } from "@/api/schemas/sync-result";
+import { z } from "zod";
+import { type AccountSyncWarning, AccountSyncWarningSchema } from "@/api/schemas/sync-result";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
@@ -35,7 +36,18 @@ type SidebarSyncState = {
 };
 
 type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
-type TauriPayloadEvent<T> = { payload: T };
+
+const SyncProgressEventSchema = z.object({
+  stage: z.enum(["started", "account_started", "account_finished", "finished"]),
+  kind: z.enum(["manual_all", "manual_account", "automatic"]),
+  total: z.number().int().nonnegative().finite(),
+  completed: z.number().int().nonnegative().finite(),
+  account_id: z.string().nullable().optional(),
+  account_name: z.string().nullable().optional(),
+  success: z.boolean().nullable().optional(),
+});
+
+const SyncWarningPayloadSchema = z.array(AccountSyncWarningSchema);
 
 function createInitialSidebarSyncState() {
   return {
@@ -52,8 +64,18 @@ function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction):
   }
 }
 
-function extractTauriEventPayload<T>(event: T | TauriPayloadEvent<T>): T {
+function extractTauriEventPayload(event: unknown): unknown {
   return typeof event === "object" && event !== null && "payload" in event ? event.payload : event;
+}
+
+export function resolveSidebarSyncProgressPayload(event: unknown): SidebarSyncProgressPayload | null {
+  const result = SyncProgressEventSchema.safeParse(extractTauriEventPayload(event));
+  return result.success ? result.data : null;
+}
+
+export function resolveSidebarSyncWarningPayload(event: unknown): SidebarSyncWarningPayload | null {
+  const result = SyncWarningPayloadSchema.safeParse(extractTauriEventPayload(event));
+  return result.success ? result.data : null;
 }
 
 export function resolveSidebarLastSyncedLabel({
@@ -164,7 +186,10 @@ export function useSidebarSync({
   useEffect(() => {
     return attachTauriListeners([
       listen<SidebarSyncProgressPayload>("sync-progress", (event) => {
-        const payload = extractTauriEventPayload<SidebarSyncProgressPayload>(event);
+        const payload = resolveSidebarSyncProgressPayload(event);
+        if (!payload) {
+          return;
+        }
         applySyncProgress(payload);
       }),
       listen("sync-completed", () => {
@@ -172,7 +197,10 @@ export function useSidebarSync({
         invalidateAccountSyncStatuses();
       }),
       listen<SidebarSyncWarningPayload>("sync-warning", (event) => {
-        const payload = extractTauriEventPayload<SidebarSyncWarningPayload>(event);
+        const payload = resolveSidebarSyncWarningPayload(event);
+        if (!payload) {
+          return;
+        }
         if (payload.length > 0) {
           invalidateAccountSyncStatuses();
           showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
