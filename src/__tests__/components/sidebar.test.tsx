@@ -2730,7 +2730,9 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
-    expect(trigger).toHaveFocus();
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
   });
 
   it("keeps the account switcher visible on mobile when restoring a saved account", async () => {
