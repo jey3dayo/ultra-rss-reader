@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  installStoryRuntimeTauriInternals,
+  removeStoryRuntimeTauriInternals,
   setAppLikeScenarioStoryRuntime,
   setComponentIsolationStoryRuntime,
   setStoryTauriRuntimeMissing,
@@ -63,6 +65,42 @@ describe("story Tauri runtime helper", () => {
     });
   });
 
+  it("installs readonly Tauri internals and restores the previous descriptor", () => {
+    const previousInternals = { existing: true };
+    const restorePreviousRuntime = installStoryRuntimeTauriInternals(previousInternals);
+
+    const restoreRuntime = installStoryRuntimeTauriInternals({}, { writable: false });
+
+    expect(window.__TAURI_INTERNALS__).toEqual({});
+    expect(Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__")).toMatchObject({
+      configurable: true,
+      writable: false,
+      value: {},
+    });
+
+    restoreRuntime();
+
+    expect(window.__TAURI_INTERNALS__).toBe(previousInternals);
+    expect(Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__")).toMatchObject({
+      configurable: true,
+      writable: true,
+      value: previousInternals,
+    });
+
+    restorePreviousRuntime();
+  });
+
+  it("keeps missing invoke and partial Tauri internals as caller-owned shapes", () => {
+    const partialInternals = { metadata: { currentWindow: { label: "main" } } };
+
+    const restoreRuntime = installStoryRuntimeTauriInternals(partialInternals);
+
+    expect(window.__TAURI_INTERNALS__).toBe(partialInternals);
+    expect("invoke" in partialInternals).toBe(false);
+
+    restoreRuntime();
+  });
+
   it("names component isolation and app-like scenario runtime responsibilities", () => {
     setAppLikeScenarioStoryRuntime();
 
@@ -75,11 +113,7 @@ describe("story Tauri runtime helper", () => {
 
   it("restores previous runtime globals after app-like story runtime setup", () => {
     const previousInternals = { existing: true };
-    Object.defineProperty(window, "__TAURI_INTERNALS__", {
-      configurable: true,
-      writable: false,
-      value: previousInternals,
-    });
+    const restorePreviousRuntime = installStoryRuntimeTauriInternals(previousInternals, { writable: false });
     window.__DEV_BROWSER_MOCKS__ = true;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
 
@@ -99,10 +133,12 @@ describe("story Tauri runtime helper", () => {
       writable: false,
       value: previousInternals,
     });
+
+    restorePreviousRuntime();
   });
 
   it("restores an absent runtime descriptor after component-isolation setup", () => {
-    delete window.__TAURI_INTERNALS__;
+    removeStoryRuntimeTauriInternals();
     delete window.__DEV_BROWSER_MOCKS__;
     delete window.__ULTRA_RSS_BROWSER_MOCKS__;
 
@@ -117,5 +153,17 @@ describe("story Tauri runtime helper", () => {
     expect(Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__")).toBeUndefined();
     expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toBeUndefined();
     expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toBeUndefined();
+  });
+
+  it("removes Tauri internals through the shared runtime helper", () => {
+    installStoryRuntimeTauriInternals();
+
+    const restoreRuntime = removeStoryRuntimeTauriInternals();
+
+    expect(Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__")).toBeUndefined();
+
+    restoreRuntime();
+
+    expect(window.__TAURI_INTERNALS__).toEqual({});
   });
 });

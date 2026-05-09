@@ -3,21 +3,11 @@ import { renderStory } from "@tests/helpers/render-story";
 import { afterEach, describe, expect, it } from "vitest";
 import addAccountFormMeta, { FreshRSSConfig } from "@/components/settings/add-account/add-account-form.stories";
 import workspaceHeaderMeta, { BrowserPreview, MacDesktop } from "@/components/shared/workspace-header.stories";
-
-const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
-
-function restoreTauriInternals() {
-  if (originalTauriInternalsDescriptor) {
-    Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
-    return;
-  }
-
-  delete window.__TAURI_INTERNALS__;
-}
+import { removeStoryRuntimeTauriInternals } from "@/components/storybook/story-tauri-runtime";
 
 describe("Storybook decorator runtime provider parity", () => {
   afterEach(() => {
-    restoreTauriInternals();
+    removeStoryRuntimeTauriInternals();
   });
 
   it("renders decorator-wrapped add-account stories with the story query provider", () => {

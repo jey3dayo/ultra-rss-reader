@@ -35,6 +35,15 @@ function restoreStoryRuntimeSnapshot(snapshot: StoryRuntimeSnapshot) {
   restoreWindowDescriptor("__ULTRA_RSS_BROWSER_MOCKS__", snapshot.ultraRssBrowserMocksDescriptor);
 }
 
+function setStoryRuntimeBrowserMockFlag(name: "__DEV_BROWSER_MOCKS__" | "__ULTRA_RSS_BROWSER_MOCKS__", value: boolean) {
+  Object.defineProperty(window, name, {
+    configurable: true,
+    writable: true,
+    enumerable: true,
+    value,
+  });
+}
+
 export function installStoryRuntimeTauriInternals(
   tauriInternals: object = {},
   options: StoryTauriRuntimeInternalsOptions = {},
@@ -47,8 +56,8 @@ export function installStoryRuntimeTauriInternals(
     value: tauriInternals,
   });
 
-  window.__DEV_BROWSER_MOCKS__ = false;
-  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+  setStoryRuntimeBrowserMockFlag("__DEV_BROWSER_MOCKS__", false);
+  setStoryRuntimeBrowserMockFlag("__ULTRA_RSS_BROWSER_MOCKS__", false);
 
   return () => restoreStoryRuntimeSnapshot(snapshot);
 }
@@ -57,8 +66,8 @@ export function removeStoryRuntimeTauriInternals(): RestoreStoryRuntime {
   const snapshot = captureStoryRuntimeSnapshot();
 
   delete window.__TAURI_INTERNALS__;
-  window.__DEV_BROWSER_MOCKS__ = false;
-  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+  setStoryRuntimeBrowserMockFlag("__DEV_BROWSER_MOCKS__", false);
+  setStoryRuntimeBrowserMockFlag("__ULTRA_RSS_BROWSER_MOCKS__", false);
 
   return () => restoreStoryRuntimeSnapshot(snapshot);
 }

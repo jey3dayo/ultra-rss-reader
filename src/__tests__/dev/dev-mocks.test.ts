@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { clearMocks } from "@tauri-apps/api/mocks";
+import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AccountDtoListSchema,
@@ -177,22 +178,33 @@ describe("setupDevMocks", () => {
   });
 
   it("does not install browser-only mock globals when Tauri is already installed", () => {
-    Object.defineProperty(window, "__TAURI_INTERNALS__", {
-      configurable: true,
-      writable: true,
-      value: {},
-    });
+    setTauriRuntimePresent();
 
     const restoreDevMocks = setupDevMocks();
 
-    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toBeUndefined();
-    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toBeUndefined();
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
 
     restoreDevMocks();
 
     expect(window.__TAURI_INTERNALS__).toEqual({});
-    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toBeUndefined();
-    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toBeUndefined();
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
+  });
+
+  it("does not install browser-only mock globals for partial Tauri internals without invoke", () => {
+    setTauriRuntimePresent();
+
+    const restoreDevMocks = setupDevMocks();
+
+    expect(window.__TAURI_INTERNALS__).toEqual({});
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
+
+    restoreDevMocks();
+
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(false);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(false);
   });
 
   it("returns a settled browser state for browser-only UI checks", async () => {
