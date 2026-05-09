@@ -40,6 +40,59 @@ describe("AppConfirmDialog", () => {
     });
   });
 
+  it("keeps an async confirm action in flight and ignores duplicate confirms", async () => {
+    const user = userEvent.setup();
+    let resolveConfirm: (() => void) | null = null;
+    const onConfirm = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveConfirm = resolve;
+        }),
+    );
+    useUiStore.getState().showConfirm("Apply this action?", onConfirm, { actionLabel: "Apply" });
+
+    render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().confirmDialog.open).toBe(true);
+
+    await act(async () => {
+      resolveConfirm?.();
+    });
+
+    expect(useUiStore.getState().confirmDialog).toEqual({
+      open: false,
+      message: "",
+      actionLabel: null,
+      variant: "default",
+      icon: null,
+      onConfirm: null,
+    });
+  });
+
+  it("keeps the confirm dialog open when the confirm action fails", async () => {
+    const user = userEvent.setup();
+    const error = new Error("confirm failed");
+    const onConfirm = vi.fn(() => Promise.reject(error));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    useUiStore.getState().showConfirm("Apply this action?", onConfirm, { actionLabel: "Apply" });
+
+    try {
+      render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+      await user.click(screen.getByRole("button", { name: "Apply" }));
+
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().confirmDialog.open).toBe(true);
+      expect(consoleError).toHaveBeenCalledWith("Failed to run confirm dialog action.", error);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("cancels and closes without running the confirm action", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();

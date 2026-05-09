@@ -34,6 +34,11 @@ function isTextEditingTarget(target: Element | null): boolean {
   );
 }
 
+function isGlobalShortcutBlockedByModal(): boolean {
+  const state = useUiStore.getState();
+  return state.settingsOpen || state.confirmDialog.open || state.shortcutsHelpOpen || state.commandPaletteOpen;
+}
+
 export function useKeyboard() {
   const selectedArticleId = useUiStore((state) => state.selectedArticleId);
   const contentMode = useUiStore((state) => state.contentMode);
@@ -54,6 +59,10 @@ export function useKeyboard() {
 
       const targetElement = e.target instanceof Element ? e.target : null;
       if (targetElement?.closest('[data-disable-global-shortcuts="true"]')) {
+        return;
+      }
+
+      if (isGlobalShortcutBlockedByModal()) {
         return;
       }
 

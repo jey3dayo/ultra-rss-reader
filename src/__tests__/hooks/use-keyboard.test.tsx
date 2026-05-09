@@ -185,6 +185,43 @@ describe("useKeyboard", () => {
     }
   });
 
+  it.each([
+    ["confirm dialog", { confirmDialog: { ...useUiStore.getInitialState().confirmDialog, open: true } }],
+    ["settings modal", { settingsOpen: true }],
+    ["shortcuts help modal", { shortcutsHelpOpen: true }],
+    ["command palette modal", { commandPaletteOpen: true }],
+  ] as const)("ignores global shortcuts while the %s is open", (_label, modalState) => {
+    const toggleReadSpy = vi.fn();
+    const focusSearchSpy = vi.fn();
+    window.addEventListener(keyboardEvents.toggleRead, toggleReadSpy);
+    window.addEventListener(keyboardEvents.focusSearch, focusSearchSpy);
+
+    try {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+        ...modalState,
+      });
+
+      const { unmount } = renderHook(() => useKeyboard());
+
+      fireEvent.keyDown(window, { key: "m" });
+      fireEvent.keyDown(window, { key: "/" });
+      fireEvent.keyDown(window, { key: "Escape" });
+
+      expect(toggleReadSpy).not.toHaveBeenCalled();
+      expect(focusSearchSpy).not.toHaveBeenCalled();
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+
+      unmount();
+    } finally {
+      window.removeEventListener(keyboardEvents.toggleRead, toggleReadSpy);
+      window.removeEventListener(keyboardEvents.focusSearch, focusSearchSpy);
+    }
+  });
+
   it("cleans up the previous global keydown listener before resubscribing to state-dependent shortcuts", () => {
     const addEventListener = vi.spyOn(window, "addEventListener");
     const removeEventListener = vi.spyOn(window, "removeEventListener");
