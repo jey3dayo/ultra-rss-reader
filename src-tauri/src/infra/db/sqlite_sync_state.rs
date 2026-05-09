@@ -176,6 +176,32 @@ mod tests {
     }
 
     #[test]
+    fn save_rejects_missing_account_on_migration_applied_db() {
+        let db = test_db();
+        let account_id = AccountId("missing-account".to_string());
+        let repo = SqliteSyncStateRepository::new(db.writer());
+
+        let result = repo.save(&SyncState {
+            account_id: account_id.clone(),
+            scope_key: SyncStateScopeKey::scheduler().as_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        });
+
+        assert!(result.is_err());
+        assert!(repo
+            .get(&account_id, SyncStateScopeKey::scheduler())
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
     fn save_updates_existing() {
         let db = test_db();
         let account_id = insert_test_account(&db);
