@@ -132,6 +132,13 @@ describe("useKeyboard", () => {
       expect(getKeydownAddCount()).toBe(1);
       expect(getKeydownRemoveCount()).toBe(0);
 
+      act(() => {
+        useUiStore.setState({ sidebarOpen: false });
+      });
+
+      expect(getKeydownAddCount()).toBe(1);
+      expect(getKeydownRemoveCount()).toBe(0);
+
       unmount();
       expect(getKeydownRemoveCount()).toBe(1);
     } finally {

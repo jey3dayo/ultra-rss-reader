@@ -115,4 +115,52 @@ describe("useSidebarFeedNavigation", () => {
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();
   });
+
+  it("cancels stale feed focus frames when selection changes before the frame runs", () => {
+    const setExpandedFolders = vi.fn();
+    const selectFeed = vi.fn();
+    const button = document.createElement("button");
+    const focusSpy = vi.spyOn(button, "focus");
+    const scrollIntoView = vi.fn();
+    const scheduledCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 42;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+
+    button.setAttribute("data-feed-id", "feed-2");
+    button.scrollIntoView = scrollIntoView;
+    document.body.append(button);
+
+    const { rerender, unmount } = renderHook(
+      ({ selectedFeedId }: { selectedFeedId: string }) =>
+        useSidebarFeedNavigation({
+          orderedFeedIds: ["feed-1", "feed-2", "feed-3"],
+          selectedFeedId,
+          expandedFolderIds: new Set(),
+          getFeedFolderId: () => null,
+          setExpandedFolders,
+          selectFeed,
+        }),
+      { initialProps: { selectedFeedId: "feed-1" } },
+    );
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }));
+    rerender({ selectedFeedId: "feed-3" });
+    const frameCallback = scheduledCallbacks[0];
+    if (!frameCallback) {
+      throw new Error("Expected scheduled focus callback");
+    }
+    frameCallback(0);
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
+    expect(focusSpy).not.toHaveBeenCalled();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    unmount();
+    button.remove();
+    requestAnimationFrameSpy.mockRestore();
+    cancelAnimationFrameSpy.mockRestore();
+  });
 });

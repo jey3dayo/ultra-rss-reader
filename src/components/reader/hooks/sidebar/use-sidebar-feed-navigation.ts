@@ -21,7 +21,16 @@ export function useSidebarFeedNavigation({
   const latestExpandedFolderIdsRef = useRef(expandedFolderIds);
   const latestSelectedFeedIdRef = useRef(selectedFeedId);
   const pendingFocusFrameRef = useRef<number | null>(null);
+  const pendingFocusFeedIdRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
+
+  const cancelPendingFocusFrame = useCallback(() => {
+    if (pendingFocusFrameRef.current !== null) {
+      cancelAnimationFrame(pendingFocusFrameRef.current);
+      pendingFocusFrameRef.current = null;
+      pendingFocusFeedIdRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     latestExpandedFolderIdsRef.current = expandedFolderIds;
@@ -29,19 +38,19 @@ export function useSidebarFeedNavigation({
 
   useEffect(() => {
     latestSelectedFeedIdRef.current = selectedFeedId;
-  }, [selectedFeedId]);
+    if (pendingFocusFeedIdRef.current !== null && pendingFocusFeedIdRef.current !== selectedFeedId) {
+      cancelPendingFocusFrame();
+    }
+  }, [cancelPendingFocusFrame, selectedFeedId]);
 
   useEffect(() => {
     isMountedRef.current = true;
 
     return () => {
       isMountedRef.current = false;
-      if (pendingFocusFrameRef.current !== null) {
-        cancelAnimationFrame(pendingFocusFrameRef.current);
-        pendingFocusFrameRef.current = null;
-      }
+      cancelPendingFocusFrame();
     };
-  }, []);
+  }, [cancelPendingFocusFrame]);
 
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
@@ -61,12 +70,15 @@ export function useSidebarFeedNavigation({
       }
 
       selectFeed(resolvedNextFeedId);
-      if (pendingFocusFrameRef.current !== null) {
-        cancelAnimationFrame(pendingFocusFrameRef.current);
-      }
+      cancelPendingFocusFrame();
+      pendingFocusFeedIdRef.current = resolvedNextFeedId;
       pendingFocusFrameRef.current = requestAnimationFrame(() => {
         pendingFocusFrameRef.current = null;
+        pendingFocusFeedIdRef.current = null;
         if (!isMountedRef.current) {
+          return;
+        }
+        if (latestSelectedFeedIdRef.current !== resolvedNextFeedId) {
           return;
         }
 
@@ -83,7 +95,7 @@ export function useSidebarFeedNavigation({
         nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
       });
     },
-    [getFeedFolderId, orderedFeedIds, selectFeed, setExpandedFolders],
+    [cancelPendingFocusFrame, getFeedFolderId, orderedFeedIds, selectFeed, setExpandedFolders],
   );
 
   useEffect(() => {
