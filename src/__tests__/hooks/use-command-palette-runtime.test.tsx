@@ -1,13 +1,15 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteRuntime } from "@/components/reader/hooks/command-palette/use-command-palette-runtime";
-import { loadRuntimeDevScenarios } from "@/dev/scenario-runtime";
+import type { loadRuntimeDevScenarios } from "@/dev/scenario-runtime";
 
-vi.mock("@/dev/scenario-runtime", () => ({
-  loadRuntimeDevScenarios: vi.fn(),
+const { loadRuntimeDevScenariosMock } = vi.hoisted(() => ({
+  loadRuntimeDevScenariosMock: vi.fn<() => ReturnType<typeof loadRuntimeDevScenarios>>(),
 }));
 
-const loadRuntimeDevScenariosMock = vi.mocked(loadRuntimeDevScenarios);
+vi.mock("@/dev/scenario-runtime", () => ({
+  loadRuntimeDevScenarios: loadRuntimeDevScenariosMock,
+}));
 
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};

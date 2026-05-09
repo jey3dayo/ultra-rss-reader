@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from "react";
 import { useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
-import { loadRuntimeDevScenarios, type RuntimeDevScenario } from "@/dev/scenario-runtime";
+import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 
 type UseCommandPaletteRuntimeParams = {
   open: boolean;
@@ -29,6 +29,15 @@ const initialCommandPaletteRuntimeState: CommandPaletteRuntimeState = {
   input: "",
   devScenarios: [],
 };
+
+async function loadCommandPaletteRuntimeDevScenarios(): Promise<RuntimeDevScenario[]> {
+  if (!import.meta.env.DEV) {
+    return [];
+  }
+
+  const { loadRuntimeDevScenarios } = await import("@/dev/scenario-runtime");
+  return loadRuntimeDevScenarios();
+}
 
 function commandPaletteRuntimeReducer(
   state: CommandPaletteRuntimeState,
@@ -64,7 +73,7 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
 
     let cancelled = false;
 
-    void loadRuntimeDevScenarios()
+    void loadCommandPaletteRuntimeDevScenarios()
       .then((scenarios) => {
         if (!cancelled) {
           dispatch({ type: "set-dev-scenarios", value: scenarios });
