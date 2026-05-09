@@ -33,6 +33,7 @@ import {
   getReaderArticleQueryMode,
   invalidateArticleQueries,
   queryKeys,
+  resolveArticleInvalidationQueryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 
@@ -107,6 +108,10 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
   qc.setQueriesData({ queryKey: queryKeys.recentArticles.root }, updateArticleArray);
   qc.setQueriesData({ queryKey: queryKeys.articlesByTag.root }, updateArticleArray);
   qc.setQueriesData({ queryKey: queryKeys.search.root }, updateArticleArray);
+}
+
+export function resolveArticleMutationInvalidationQueryKeys() {
+  return resolveArticleInvalidationQueryKeys({ includeTagArticleCounts: true });
 }
 
 function invalidateArticleMutationQueries(qc: QueryClient) {

@@ -247,6 +247,8 @@ describe("article tag mutations", () => {
   it("marks article and tag assignment caches stale after assigning a tag", async () => {
     vi.spyOn(tauriCommands, "tagArticle").mockResolvedValue(Result.succeed(null));
     queryClient.setQueryData(["articleTags", "art-1"], [{ id: "tag-1", name: "Review", color: null }]);
+    queryClient.setQueryData(["articlesByTag", "tag-1", "acc-1", { mode: "all" }], sampleArticles);
+    queryClient.setQueryData(["tagArticleCounts", "acc-1"], { "tag-1": 1 });
     queryClient.setQueryData(["articles", "feed-1", { mode: "all" }], sampleArticles);
     queryClient.setQueryData(["accountArticles", "acc-1", { mode: "all" }], sampleArticles);
 
@@ -255,6 +257,8 @@ describe("article tag mutations", () => {
     await result.current.mutateAsync({ articleId: "art-1", tagId: "tag-2" });
 
     expect(queryClient.getQueryState(["articleTags", "art-1"])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["articles", "feed-1", { mode: "all" }])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["accountArticles", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
   });

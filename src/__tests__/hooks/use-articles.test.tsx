@@ -7,6 +7,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
+  resolveArticleMutationInvalidationQueryKeys,
   useAccountArticles,
   useAccountStarredCount,
   useArticles,
@@ -24,6 +25,24 @@ const sampleFeedsForAccountOne = sampleFeeds.map((feed) => ({
   ...feed,
   account_id: "acc-1",
 }));
+
+describe("article mutation cache contract", () => {
+  it("keeps article mutation invalidation roots aligned with query cache roots", () => {
+    expect(resolveArticleMutationInvalidationQueryKeys()).toEqual([
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.feeds.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+    ]);
+  });
+});
 
 describe("useToggleStar", () => {
   let queryClient: QueryClient;
@@ -361,12 +380,14 @@ describe("useSetRead", () => {
   it("marks tag article counts stale after changing article read state", async () => {
     vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
 
+    queryClient.setQueryData(["articlesByTag", "tag-1", "acc-1", { mode: "all" }], sampleArticles);
     queryClient.setQueryData(["tagArticleCounts", "acc-1"], { "tag-1": 1 });
 
     const { result } = renderHook(() => useSetRead(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-1", read: true });
 
+    expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
   });
 });
