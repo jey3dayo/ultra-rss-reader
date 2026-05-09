@@ -84,6 +84,22 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, acc-2, acc-3" });
   });
 
+  it("trims failed account names before projecting them to feedback text", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 3,
+        succeeded: 0,
+        failed: [
+          { account_id: "acc-1", account_name: "  FreshRSS  ", message: "boom" },
+          { account_id: "acc-2", account_name: "FreshRSS", message: "boom again" },
+          { account_id: "acc-3", account_name: "  Local", message: "local boom" },
+        ],
+        warnings: [],
+      }),
+    ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, Local" });
+  });
+
   it("summarizes warning-only sync results", () => {
     expect(
       summarizeSyncResult({
