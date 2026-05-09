@@ -303,6 +303,37 @@ describe("useReadingSettingsViewProps", () => {
     expect(clearHistoryMutateMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "   ",
+    "\n",
+  ])("disables recent history clearing and skips confirm when selected account id is blank %#", (selectedAccountId) => {
+    const showConfirm = vi.fn();
+    useUiStore.setState({ selectedAccountId, showConfirm });
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t,
+          prefs: {},
+          setPref: vi.fn(),
+          devIntent: null,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(getActionControl(result.current, "clear-recent-articles")).toEqual(
+      expect.objectContaining({
+        disabled: true,
+      }),
+    );
+
+    getActionControl(result.current, "clear-recent-articles").onAction?.();
+
+    expect(showConfirm).not.toHaveBeenCalled();
+    expect(clearHistoryMutateMock).not.toHaveBeenCalled();
+  });
+
   it("maps ja recent history action aria labels from locale keys", () => {
     const tJa = i18n.getFixedT("ja", "settings");
 

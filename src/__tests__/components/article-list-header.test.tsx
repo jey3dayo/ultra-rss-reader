@@ -62,6 +62,22 @@ describe("ArticleListHeader", () => {
       showSearchToggle: true,
       showCloseSearch: false,
     });
+
+    expect(
+      resolveArticleListHeaderControlAvailability({
+        layoutMode: "wide",
+        sidebarOpen: false,
+        resolvedFeedId: "   ",
+        showSearch: false,
+      }),
+    ).toEqual({
+      showSidebarButton: true,
+      isSidebarTogglePressed: false,
+      showFeedDisplaySelect: false,
+      showMarkAllRead: true,
+      showSearchToggle: true,
+      showCloseSearch: false,
+    });
   });
 
   it("keeps sidebar controls as toggle on wide and open-only on compact and mobile", () => {
@@ -160,6 +176,14 @@ describe("ArticleListHeader", () => {
         },
       },
     );
+
+    expect(result.current.feedModeControl).toBeNull();
+
+    rerender({ resolvedFeedId: "" });
+
+    expect(result.current.feedModeControl).toBeNull();
+
+    rerender({ resolvedFeedId: "   " });
 
     expect(result.current.feedModeControl).toBeNull();
 

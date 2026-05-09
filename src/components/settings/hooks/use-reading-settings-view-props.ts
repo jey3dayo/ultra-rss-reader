@@ -33,6 +33,7 @@ export function useReadingSettingsViewProps({
   const openLinksPreference = resolvePreferenceValue(prefs, "open_links");
   const opensInDefaultBrowser = openLinksPreference === "default_browser";
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  const hasSelectedAccountId = selectedAccountId !== null && selectedAccountId.trim().length > 0;
   const showToast = useUiStore((state) => state.showToast);
   const showConfirm = useUiStore((state) => state.showConfirm);
   const clearHistory = useClearArticleViewHistory();
@@ -49,14 +50,16 @@ export function useReadingSettingsViewProps({
       ]
     : [];
   const handleClearRecentArticles = useCallback(() => {
-    if (!selectedAccountId) {
+    const accountId = selectedAccountId;
+
+    if (accountId === null || accountId.trim().length === 0) {
       return;
     }
 
     showConfirm(
       t("reading.confirm_clear_recent_articles"),
       () => {
-        clearHistory.mutate(selectedAccountId, {
+        clearHistory.mutate(accountId, {
           onSuccess: () => showToast(t("reading.clear_recent_articles_success")),
           onError: (error) =>
             showToast(
@@ -164,7 +167,7 @@ export function useReadingSettingsViewProps({
             actionLabel: t("reading.clear_recent_articles"),
             actionAriaLabel: t("reading.clear_recent_articles_aria_label"),
             onAction: handleClearRecentArticles,
-            disabled: !selectedAccountId || clearHistory.isPending,
+            disabled: !hasSelectedAccountId || clearHistory.isPending,
           },
         ],
       },

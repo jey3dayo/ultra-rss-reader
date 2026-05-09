@@ -44,8 +44,13 @@ export function buildArticleListBodyEmptyState({
   trimmedDebouncedQuery,
   handleCloseSearch,
 }: BuildArticleListBodyEmptyStateParams): ArticleListBodyEmptyStateProps {
-  const emptyStateVariant =
-    setupEmptyState === "no-accounts" ? "hidden" : setupEmptyState === "none" ? "default" : "setup";
+  const emptyStateVariant = isSearchEmptyState
+    ? "default"
+    : setupEmptyState === "no-accounts"
+      ? "hidden"
+      : setupEmptyState === "none"
+        ? "default"
+        : "setup";
   const emptyMessage = isSearchEmptyState
     ? t("search_no_results_title", { query: trimmedDebouncedQuery })
     : setupEmptyState === "no-accounts"

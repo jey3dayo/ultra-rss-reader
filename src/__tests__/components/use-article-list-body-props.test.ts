@@ -25,6 +25,29 @@ describe("buildArticleListBodyEmptyState", () => {
     });
   });
 
+  it.each([
+    "no-accounts",
+    "no-feeds",
+  ] as const)("uses search empty state copy and action before setup state when setup is %s", (setupEmptyState) => {
+    const handleCloseSearch = vi.fn();
+
+    const props = buildArticleListBodyEmptyState({
+      t,
+      isSearchEmptyState: true,
+      setupEmptyState,
+      trimmedDebouncedQuery: "rss",
+      handleCloseSearch,
+    });
+
+    expect(props).toEqual({
+      emptyStateVariant: "default",
+      emptyMessage: t("search_no_results_title", { query: "rss" }),
+      emptyDescription: t("search_no_results_description"),
+      emptyActionLabel: t("clear_search_action"),
+      onEmptyAction: handleCloseSearch,
+    });
+  });
+
   it("hides the setup empty state before accounts exist", () => {
     const props = buildArticleListBodyEmptyState({
       t,

@@ -24,10 +24,12 @@ export function resolveArticleListHeaderControlAvailability({
   resolvedFeedId,
   showSearch,
 }: ArticleListHeaderControlAvailabilityInput): ArticleListHeaderControlAvailability {
+  const hasResolvedFeedId = resolvedFeedId !== null && resolvedFeedId.trim().length > 0;
+
   return {
     showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",
     isSidebarTogglePressed: layoutMode === "wide" ? sidebarOpen : undefined,
-    showFeedDisplaySelect: resolvedFeedId !== null,
+    showFeedDisplaySelect: hasResolvedFeedId,
     showMarkAllRead: true,
     showSearchToggle: true,
     showCloseSearch: showSearch,
