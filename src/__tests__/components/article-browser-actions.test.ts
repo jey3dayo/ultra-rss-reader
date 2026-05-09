@@ -1,5 +1,6 @@
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
+import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
@@ -7,6 +8,7 @@ import {
   addArticleToReadingList,
   categorizeArticleActionError,
   copyArticleLink,
+  normalizeArticleExternalBrowserUrl,
   openArticleInExternalBrowser,
   openUrlInExternalBrowser,
   resolveArticleActionErrorCategory,
@@ -108,19 +110,18 @@ describe("article-browser-actions", () => {
     expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
   });
 
-  it.each([
-    "mailto:hello@example.com",
-    "file:///tmp/article.html",
-    "https://example.com/article\nnext",
-  ])("projects invalid article link clipboard text without invoking Tauri: %j", async (url) => {
-    await copyArticleLink(url, {
-      showToast,
-      successMessage: "Link copied",
-    });
+  it.each(["mailto:hello@example.com", "file:///tmp/article.html", "https://example.com/article\nnext"])(
+    "projects invalid article link clipboard text without invoking Tauri: %j",
+    async (url) => {
+      await copyArticleLink(url, {
+        showToast,
+        successMessage: "Link copied",
+      });
 
-    expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
-  });
+      expect(calls).toEqual([]);
+      expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
+    },
+  );
 
   it("shows a success toast after adding a link to the reading list", async () => {
     setupTauriMocks((cmd, args) => {
@@ -207,6 +208,53 @@ describe("article-browser-actions", () => {
       args: { url: "https://example.com/article", background: false },
     });
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["https://example.com/article", "https://example.com/article"],
+    [" http://example.com/article ", "http://example.com/article"],
+  ])("normalizes article external-browser URLs: %j", (input, expected) => {
+    const result = normalizeArticleExternalBrowserUrl(input);
+
+    expect(result).toSatisfy(Result.isSuccess);
+    expect(Result.unwrap(result)).toBe(expected);
+  });
+
+  it.each(["mailto:hello@example.com", "file:///tmp/article.html", "javascript:alert('owned')", "/relative"])(
+    "rejects non-http article external-browser URLs before invoking Tauri: %j",
+    async (url) => {
+      setupTauriMocks((cmd, args) => {
+        calls.push({ cmd, args });
+        return undefined;
+      });
+
+      const result = await openUrlInExternalBrowser(url, {
+        background: false,
+        showToast,
+        errorLabel: "Failed to open in browser",
+      });
+
+      expect(result).toSatisfy(Result.isFailure);
+      expect(calls).toEqual([]);
+      expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+    },
+  );
+
+  it("rejects article external-browser URLs with credentials before invoking Tauri", async () => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+
+    const result = await openUrlInExternalBrowser("https://user:pass@example.com/article", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(result).toSatisfy(Result.isFailure);
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
   });
 
   it("opens an article in the background when the background preference is enabled", async () => {
@@ -296,10 +344,10 @@ describe("article-browser-actions", () => {
       "Failed to open in browser:",
       expect.objectContaining({
         category: "invalid_url",
-        message: expect.stringContaining("Only http:// and https:// URLs are supported"),
+        message: "Only http:// and https:// URLs are supported",
       }),
     );
-    expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Only http:// and https:// URLs are supported"));
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
   });
 
   it("classifies action error categories shared by copy and open actions", () => {

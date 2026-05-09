@@ -23,6 +23,10 @@ type OpenExternalBrowserParams = {
   errorLabel: string;
 };
 
+const ARTICLE_EXTERNAL_BROWSER_ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
+const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
+
 function isArticleActionErrorCategory(value: unknown): value is ArticleActionErrorCategory {
   return (
     value === "runtime_unavailable" ||
@@ -62,6 +66,35 @@ function toArticleActionError(error: unknown): ArticleActionError {
     message,
     category: resolveArticleActionErrorCategory(message),
   };
+}
+
+function toInvalidArticleUrlError(message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE): ArticleActionError {
+  return {
+    type: "UserVisible",
+    message,
+    category: "invalid_url",
+  };
+}
+
+export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<string, ArticleActionError> {
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return Result.fail(toInvalidArticleUrlError());
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedUrl);
+    if (!ARTICLE_EXTERNAL_BROWSER_ALLOWED_PROTOCOLS.has(parsedUrl.protocol)) {
+      return Result.fail(toInvalidArticleUrlError());
+    }
+    if (parsedUrl.username || parsedUrl.password) {
+      return Result.fail(toInvalidArticleUrlError(ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE));
+    }
+
+    return Result.succeed(parsedUrl.href);
+  } catch {
+    return Result.fail(toInvalidArticleUrlError());
+  }
 }
 
 export function resolveArticleActionErrorCategory(message: string): ArticleActionErrorCategory {
@@ -166,7 +199,16 @@ export function openUrlInExternalBrowser(
   url: string,
   { background, showToast, errorLabel }: OpenExternalBrowserParams,
 ) {
-  return runExternalBrowserOperation(() => openInBrowser(url, background), { showToast, errorLabel });
+  const normalizedUrlResult = normalizeArticleExternalBrowserUrl(url);
+  if (Result.isFailure(normalizedUrlResult)) {
+    const actionError = Result.unwrapError(normalizedUrlResult);
+    console.error(`${errorLabel}:`, actionError);
+    showToast(actionError.message);
+    return Promise.resolve(Result.fail(actionError));
+  }
+
+  const normalizedUrl = Result.unwrap(normalizedUrlResult);
+  return runExternalBrowserOperation(() => openInBrowser(normalizedUrl, background), { showToast, errorLabel });
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {

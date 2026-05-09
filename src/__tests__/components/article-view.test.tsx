@@ -467,6 +467,91 @@ describe("ArticleView", () => {
     });
   });
 
+  it("resolves relative sanitized article links against the article URL before opening externally", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "open_in_browser":
+        case "update_feed_display_settings":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <ArticlePane
+        article={{
+          ...primaryArticle,
+          url: "https://example.com/posts/current",
+          content_sanitized: '<p><a href="../from-content?x=1#section">Read more</a></p>',
+        }}
+        feed={primaryFeed}
+        feedName="Feed One"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    calls.length = 0;
+    await userEvent.setup().click(screen.getByRole("link", { name: "Read more" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: {
+          url: "https://example.com/from-content?x=1#section",
+          background: false,
+        },
+      });
+    });
+  });
+
+  it("rejects mailto sanitized article links before invoking the external browser", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "update_feed_display_settings":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <ArticlePane
+        article={{
+          ...primaryArticle,
+          content_sanitized: '<p><a href="mailto:hello@example.com">Email author</a></p>',
+        }}
+        feed={primaryFeed}
+        feedName="Feed One"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    calls.length = 0;
+    await userEvent.setup().click(screen.getByRole("link", { name: "Email author" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Only http:// and https:// URLs are supported",
+      });
+    });
+    expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(0);
+  });
+
   it("keeps the embedded browser preview toggle available when action_open_browser is false", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
