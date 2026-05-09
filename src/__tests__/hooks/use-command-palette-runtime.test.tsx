@@ -84,6 +84,15 @@ describe("useCommandPaletteRuntime", () => {
     ]);
   });
 
+  it("does not load runtime dev scenarios outside development builds", () => {
+    vi.stubEnv("DEV", false);
+
+    const { result } = renderHook(() => useCommandPaletteRuntime({ open: true }));
+
+    expect(loadRuntimeDevScenariosMock).not.toHaveBeenCalled();
+    expect(result.current.devScenarios).toEqual([]);
+  });
+
   it("ignores a successful dev scenario load after unmount", async () => {
     const deferred = createDeferred<Awaited<ReturnType<typeof loadRuntimeDevScenarios>>>();
     loadRuntimeDevScenariosMock.mockReturnValueOnce(deferred.promise);

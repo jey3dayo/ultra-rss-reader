@@ -8,6 +8,11 @@ describe("parsePrefix", () => {
     ["prefix trailing whitespace", ">   refresh", { prefix: ">", query: "refresh" }],
     ["prefix only", "   #   ", { prefix: "#", query: "" }],
     ["normal search query", "   search feeds", { prefix: null, query: "search feeds" }],
+    ["repeated action prefix", ">>sync", { prefix: ">", query: ">sync" }],
+    ["repeated feed prefix", "@@feed", { prefix: "@", query: "@feed" }],
+    ["repeated tag prefix", "##tag", { prefix: "#", query: "#tag" }],
+    ["whitespace between repeated prefixes", ">   >sync", { prefix: ">", query: ">sync" }],
+    ["unknown prefix-like character", "$feed", { prefix: null, query: "$feed" }],
   ] as const)("parses %s", (_label, input, expected) => {
     expect(parsePrefix(input)).toEqual(expected);
   });

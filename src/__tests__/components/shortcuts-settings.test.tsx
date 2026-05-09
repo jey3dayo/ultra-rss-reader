@@ -148,15 +148,15 @@ describe("ShortcutsSettings", () => {
 
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("button", { name: "Reset to Defaults: Next article" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut to defaults" })).toBeEnabled();
     expect(
       screen.getByRole("button", {
-        name: "Reset to Defaults: Previous article",
+        name: "Reset Previous article shortcut to defaults",
       }),
     ).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Reset to Defaults: Open settings" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset Open settings shortcut to defaults" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Reset to Defaults: Next article" }));
+    await user.click(screen.getByRole("button", { name: "Reset Next article shortcut to defaults" }));
 
     expect(setPref).toHaveBeenCalledTimes(1);
     expect(setPref).toHaveBeenCalledWith("shortcut_next_article", "j");
