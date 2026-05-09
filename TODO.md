@@ -35,25 +35,10 @@
   - unused type 67 件、unused export 58 件が出ており、公開 contract と dead surface が混ざると型配置整理や import 移動のたびに判断コストが増える
   - public API、test helper、storybook/dev-only、real dead code に分類し、worker 単位で削除または contract test へ明示する
 
-- [ ] P2 React Doctor unused type を settings view contract 単位で整理する
-  - 対象: `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/actions-settings-view.tsx`, `src/components/settings/mute-settings-view.tsx`, `src/components/settings/settings-preference.types.ts`, `src/components/settings/add-account/services.types.ts`
-  - unused type warning が settings view と add-account contract に散っており、view-local props と public settings contract が混ざったまま残りやすい
-  - local type 化、export削除、view contractとして残す型の命名を分け、settings-nav/page/modal 再設計バッチとは衝突しない単位で進める
-
-- [ ] P2 React Doctor unused type を reader / query helper 単位で整理する
-  - 対象: `src/components/reader/article-toolbar-view.tsx`, `src/components/reader/feed-tree-view.tsx`, `src/components/reader/rename-feed-dialog-view.tsx`, `src/components/reader/article-tag-picker.types.ts`, `src/components/reader/sidebar-sources.types.ts`, `src/lib/reader/reader-query.ts`, `src/lib/query/query-invalidation.ts`
-  - reader 側の unused type は view-local props、query helper contract、hook result が混在しており、一括削除すると public surface を壊しやすい
-  - component-local props は colocate、query/helper の export は参照元を確認し、barrel / contract test で必要なものだけ残す
-
 - [ ] P2 e2e app sequential await を test isolation と並列化可否で分類する
   - 対象: `e2e/app.spec.ts`, `src/__tests__/dev/scenario-runtime.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
   - React Doctor の `server-sequential-independent-await` が e2e と hook test に出ており、独立 setup を直列実行していると Playwright / Vitest の待ち時間が増える
   - browser state 共有、fixture isolation、user event ordering、screenshot timing に依存しない await だけ並列化する
-
-- [ ] P3 test-only `.toSorted()` 一括移行バッチを node-target gate 後に作る
-  - 対象: `src/__tests__/**/*.test.ts`, `src/__tests__/**/*.test.tsx`, `tests/helpers/*`
-  - React Doctor の `.toSorted()` warning 29 件の大半は test-only なので、runtime target 確認後に production 変更と分けて一括処理できる
-  - test helper bulk rewrite、Node 24 support、snapshot order stability、readability regression の review checklist を用意する
 
 - [ ] P3 overlay / drag / inert の CSS token を scattered z-index から semantic layer へ寄せる
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
