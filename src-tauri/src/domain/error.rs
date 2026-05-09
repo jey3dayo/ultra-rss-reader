@@ -297,6 +297,30 @@ mod tests {
     }
 
     #[test]
+    fn fallback_network_errors_do_not_surface_sensitive_url_parts_as_retryable_messages() {
+        let message = classify_network_error(NetworkErrorClassificationInput {
+            message: "request failed for https://example.test/feed?token=secret-token&api_key=raw-key#access-token",
+            ..NetworkErrorClassificationInput::default()
+        });
+
+        assert!(!message.is_empty());
+        assert!(!message.contains("secret-token"));
+        assert!(!message.contains("raw-key"));
+        assert!(!message.contains("access-token"));
+
+        match AppError::from(DomainError::Network(message)) {
+            AppError::Retryable { message } => {
+                assert!(!message.contains("secret-token"));
+                assert!(!message.contains("raw-key"));
+                assert!(!message.contains("access-token"));
+            }
+            AppError::UserVisible { message } => {
+                panic!("network fallback errors should remain retryable: {message}");
+            }
+        }
+    }
+
+    #[test]
     fn loopback_probe_checks_all_resolved_addresses_before_classifying_connectivity_failure() {
         let listener =
             TcpListener::bind("127.0.0.1:0").expect("listener should bind to an ephemeral port");
