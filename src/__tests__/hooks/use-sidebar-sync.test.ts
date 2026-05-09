@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  isSidebarSyncCompletedPayload,
   resolveSidebarLastSyncedLabel,
   resolveSidebarSyncProgressPayload,
   resolveSidebarSyncWarningPayload,
@@ -155,6 +156,13 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(resolveSidebarSyncWarningPayload({ payload: "not-warnings" })).toBeNull();
   });
 
+  it("accepts null sync completed payloads but rejects malformed payloads", () => {
+    expect(isSidebarSyncCompletedPayload({ payload: null })).toBe(true);
+    expect(isSidebarSyncCompletedPayload(null)).toBe(true);
+    expect(isSidebarSyncCompletedPayload({ payload: undefined })).toBe(false);
+    expect(isSidebarSyncCompletedPayload({ payload: {} })).toBe(false);
+  });
+
   it("ignores malformed sync progress events without applying progress", () => {
     const { wrapper } = createQueryWrapper();
     const applySyncProgress = vi.fn();
@@ -168,6 +176,25 @@ describe("resolveSidebarLastSyncedLabel", () => {
 
     expect(applySyncProgress).toHaveBeenCalledTimes(1);
     expect(applySyncProgress).toHaveBeenCalledWith(syncProgressPayload);
+  });
+
+  it("ignores malformed sync completed events without clearing progress or invalidating", () => {
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const clearSyncProgress = vi.fn();
+
+    renderHook(() => useSidebarSync(createSyncHookParams({ clearSyncProgress })), { wrapper });
+
+    act(() => {
+      getRegisteredListener("sync-completed")({ payload: { completed: true } });
+      getRegisteredListener("sync-completed")({ payload: null });
+    });
+
+    expect(clearSyncProgress).toHaveBeenCalledTimes(1);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accountSyncStatusQueryKey(),
+    });
   });
 
   it("ignores malformed sync warning events without invalidating or showing a toast", () => {

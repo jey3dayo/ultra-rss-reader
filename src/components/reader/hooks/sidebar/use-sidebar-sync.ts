@@ -22,6 +22,7 @@ import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
 
 type SidebarSyncProgressPayload = SyncProgressEventDto;
 type SidebarSyncWarningPayload = AccountSyncWarning[];
+type SidebarSyncCompletedPayload = null;
 
 type SidebarSyncParams = {
   selectedAccountId: string | null;
@@ -48,6 +49,7 @@ const SyncProgressEventSchema = z.object({
 });
 
 const SyncWarningPayloadSchema = z.array(AccountSyncWarningSchema);
+const SyncCompletedPayloadSchema = z.null();
 
 function createInitialSidebarSyncState() {
   return {
@@ -76,6 +78,11 @@ export function resolveSidebarSyncProgressPayload(event: unknown): SidebarSyncPr
 export function resolveSidebarSyncWarningPayload(event: unknown): SidebarSyncWarningPayload | null {
   const result = SyncWarningPayloadSchema.safeParse(extractTauriEventPayload(event));
   return result.success ? result.data : null;
+}
+
+export function isSidebarSyncCompletedPayload(event: unknown): boolean {
+  const result = SyncCompletedPayloadSchema.safeParse(extractTauriEventPayload(event));
+  return result.success;
 }
 
 export function resolveSidebarLastSyncedLabel({
@@ -192,7 +199,10 @@ export function useSidebarSync({
         }
         applySyncProgress(payload);
       }),
-      listen("sync-completed", () => {
+      listen<SidebarSyncCompletedPayload>("sync-completed", (event) => {
+        if (!isSidebarSyncCompletedPayload(event)) {
+          return;
+        }
         clearSyncProgress();
         invalidateAccountSyncStatuses();
       }),
