@@ -315,11 +315,6 @@
   - port owner 判定が command line の Vite 文字列中心なので、同じ port を使う別 repo の Vite を停止してしまう可能性がある
   - cwd/project root/package name を判定に含めるか user confirmation に逃がし、same repo / other repo / unknown command line の test を追加する
 
-- [ ] P3 rAF focus helper の unavailable / throwing fallback を共通化する
-  - 対象: `src/components/reader/hooks/*`, `src/components/settings/hooks/account-detail/account-detail-editor-focus.ts`, `src/lib/reader-focus.ts`
-  - requestAnimationFrame + setTimeout fallback が複数箇所に分散し、unavailable/throwing/cancel cleanup の扱いが少しずつ違うため、focus regression の原因が散らばりやすい
-  - shared helper 化するか contract test のみ置くか決め、主要 focus hooks の behavior matrix を作る
-
 - [ ] P1 local feed 追加の duplicate URL race と rollback cleanup を固定する
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`
   - `add_local_feed` は fetch 後に DB 保存するため、同じ URL の並行追加や初期 sync 失敗 rollback で duplicate feed / orphan article / UI selected feed が残りやすい
