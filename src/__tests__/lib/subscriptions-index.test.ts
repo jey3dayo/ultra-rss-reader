@@ -224,10 +224,11 @@ describe("subscriptions index helpers", () => {
       resolveSelectedSubscriptionCandidate({
         selectedRow: {
           feed: feeds[0],
+          folderId: "folder-work",
           folderName: "Work",
           latestArticleAt: firstCandidate.latestArticleAt,
-          starredCount: firstCandidate.starredCount,
           status: { tone: "medium", labelKey: "stale_90d" },
+          reasonTooltipKey: "stale_90d",
         },
         candidateMap,
       }),
