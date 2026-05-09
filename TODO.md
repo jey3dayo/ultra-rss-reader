@@ -832,6 +832,71 @@
   - 失敗 artifact が互いに上書きされないことを config test で固定する
   - Storybook runtime guard とは分け、E2E artifact path の config contract だけを扱う
 
+- [ ] mute keyword create trim contract 候補を追加する
+  - `src/components/settings/mute-settings.tsx` の keyword 作成時に `keyword.trim()` を command へ渡す契約を固定する
+  - 前後空白だけで 3 文字判定をすり抜けないことを `src/__tests__/components/mute-settings.test.tsx` で確認する
+  - mute scope reducer や backend schema とは分け、settings create form の入力境界だけを扱う
+
+- [ ] mute keyword scope race guard 候補を追加する
+  - `src/components/settings/mute-settings.tsx` の saved rule scope 連続変更に revision guard を追加するか、現仕様を test で固定する
+  - 古い `updateMuteKeyword` 成功が後勝ちしない component / hook test を追加する
+  - tag rename/delete pending guard とは分け、mute rule scope update の race だけを扱う
+
+- [ ] tag create in-flight guard 候補を追加する
+  - `src/components/settings/tags-settings.tsx` の tag 作成に同期的な in-flight guard を追加する
+  - disabled 反映前の click / Enter 連打で `createTag` が二重実行されないことを component test で確認する
+  - tag picker create focus contract とは分け、settings tag creation の submit guard だけを扱う
+
+- [ ] account detail OPML export filename guard 候補を追加する
+  - `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts` の OPML export に連打 guard と安全な fallback filename を追加する
+  - 空文字・禁止文字だけの account 名でも `feeds.opml` などへ落ちる hook test を追加する
+  - OPML import/export backend serialization とは分け、account detail export action の UI guard だけを扱う
+
+- [ ] account detail credentials copy trim 候補を追加する
+  - `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts` の server URL copy で draft 値を trim する
+  - 空白のみなら `copyToClipboard` に渡さない focused test を追加する
+  - credentials save validation とは分け、copy action の入力境界だけを扱う
+
+- [ ] pending mutation type axis contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_pending_mutation.rs` の `save` が同一 `remote_entry_id` の別種 mutation を消すか共存させるかを固定する
+  - read / unread と star / unstar を別軸で相殺できる repository test を追加する
+  - manual article read transaction とは分け、pending mutation dedupe key の contract だけを扱う
+
+- [ ] remote state pending type separation 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_article.rs` の `apply_remote_state` で pending 種別ごとの remote state 適用範囲を分ける
+  - read pending が star state まで止めないこと、star pending が read state まで止めないことを repository test で固定する
+  - GReader pending mutation DB error とは分け、remote state reconcile の pending type handling だけを扱う
+
+- [ ] GReader item id pagination limit warning 候補を追加する
+  - `src-tauri/src/infra/provider/greader.rs` の `pull_all_item_ids` が max pages 到達時に continuation 残存を成功扱いしない contract を追加する
+  - partial state を warning / error のどちらにするか provider test で固定する
+  - sync scheduler backoff とは分け、GReader item id pagination limit だけを扱う
+
+- [ ] local feed validator retention contract 候補を追加する
+  - `src-tauri/src/commands/sync_providers.rs` の local feed sync で 200 応答かつ ETag / Last-Modified 欠落時に既存 validator を消すか維持するか固定する
+  - `sync_local_feed` の state contract test を追加する
+  - local provider HTTP status classification とは分け、local feed sync cursor retention だけを扱う
+
+- [ ] recent viewed mute exclusion contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_article.rs` の `find_recently_viewed_by_account` で muted article を出すか除外するかを固定する
+  - article list / search / recent view の mute keyword exclusion parity を repository test で確認する
+  - subscriptions detail recent articles とは分け、recently viewed query の mute handling だけを扱う
+
+- [ ] dev mock DTO schema contract 候補を追加する
+  - `src/dev/mock-data.ts` の `mockAccounts` / `mockFeeds` / `mockArticles` / `mockTags` を DTO schema で parse する test を追加する
+  - dev fixture drift を `src/__tests__/dev/dev-mock-data.test.ts` で検出する
+  - Tauri mock fixture fresh clone とは分け、browser dev mock data の schema parity だけを扱う
+
+- [ ] test i18n language reset contract 候補を追加する
+  - `tests/helpers/i18n-setup.ts` に test ごとの language reset contract を追加する
+  - `i18n.changeLanguage("ja")` 後の後続 test に言語状態が漏れないことを helper test で確認する
+  - locale key registration とは分け、test helper の isolation だけを扱う
+
+- [ ] external URL command schema trim 候補を追加する
+  - `src/api/schemas/commands.ts` の `openExternalUrlArgs` / `addToReadingListArgs` で URL の leading / trailing space を trim または reject する方針を固定する
+  - command schema test で blank / whitespace-wrapped URL の境界を確認する
+  - share action URL target contract とは分け、Tauri command args schema の URL boundary だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
