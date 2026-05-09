@@ -56,11 +56,11 @@ describe("ShortcutsHelpModal", () => {
 
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
-    expect(await screen.findByRole("dialog", { name: "shortcuts_help.title" })).toBeInTheDocument();
-    const input = screen.getByPlaceholderText("shortcuts_help.placeholder");
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    const input = screen.getByPlaceholderText("Search shortcuts…");
     await user.type(input, "settings");
 
-    const option = await screen.findByRole("option", { name: /shortcuts\.open_settings/ });
+    const option = await screen.findByRole("option", { name: /open settings/i });
     expect(option).toHaveTextContent("Ctrl .");
     expect(screen.getByText("?").closest("kbd")).toHaveClass("text-foreground-soft", "bg-surface-1/72");
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
@@ -75,7 +75,7 @@ describe("ShortcutsHelpModal", () => {
 
     const emptyStatus = await screen.findByRole("status");
     expect(emptyStatus).toHaveAttribute("aria-live", "polite");
-    expect(emptyStatus).toHaveTextContent("shortcuts_help.no_results");
+    expect(emptyStatus).toHaveTextContent("No shortcuts found");
 
     await user.clear(input);
     await user.type(input, "settings");
@@ -118,27 +118,27 @@ describe("ShortcutsHelpModal", () => {
 
     renderShortcutsHelpModal(<ControlledShortcutsHelpModal />);
 
-    const input = await screen.findByPlaceholderText("shortcuts_help.placeholder");
+    const input = await screen.findByPlaceholderText("Search shortcuts…");
     await waitFor(() => expect(input).toHaveFocus());
     await waitFor(() =>
-      expect(screen.getByRole("option", { name: /shortcuts\.next_article/ })).toHaveAttribute("aria-selected", "true"),
+      expect(screen.getByRole("option", { name: /next article/i })).toHaveAttribute("aria-selected", "true"),
     );
     expect(scrollIntoView).toHaveBeenCalled();
 
     await user.type(input, "settings");
-    expect(await screen.findByRole("option", { name: /shortcuts\.open_settings/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /shortcuts\.next_article/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /open settings/i })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /next article/i })).not.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "shortcuts_help.title" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument());
 
     scrollIntoView.mockClear();
     await user.click(screen.getByRole("button", { name: "Open help" }));
 
-    const reopenedInput = await screen.findByPlaceholderText("shortcuts_help.placeholder");
+    const reopenedInput = await screen.findByPlaceholderText("Search shortcuts…");
     await waitFor(() => expect(reopenedInput).toHaveFocus());
     expect(reopenedInput).toHaveValue("");
-    const selectedShortcut = await screen.findByRole("option", { name: /shortcuts\.next_article/ });
+    const selectedShortcut = await screen.findByRole("option", { name: /next article/i });
     await waitFor(() => expect(selectedShortcut).toHaveAttribute("aria-selected", "true"));
     expect(scrollIntoView).toHaveBeenCalled();
   });

@@ -198,6 +198,38 @@ describe("useArticleStatusActions", () => {
     expect(showToast).toHaveBeenCalledWith("Failed to mark read");
   });
 
+  it("keeps recently-read state unchanged when marking unread fails", () => {
+    const addRecentlyRead = vi.fn();
+    const removeRecentlyRead = vi.fn();
+    const showToast = vi.fn();
+    const mutate: SetReadMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to mark unread"), variables, undefined, createMutationContext());
+    };
+    const setRead: UseArticleStatusActionsParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions(
+        createParams({
+          isRead: true,
+          addRecentlyRead,
+          removeRecentlyRead,
+          setRead,
+          showToast,
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.setReadStatus(false);
+    });
+
+    expect(addRecentlyRead).not.toHaveBeenCalled();
+    expect(removeRecentlyRead).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Failed to mark unread");
+  });
+
   it("shows a toast without status success copy when starring fails", () => {
     const showToast = vi.fn();
     const retainArticle = vi.fn();
@@ -226,5 +258,37 @@ describe("useArticleStatusActions", () => {
     expect(showToast).toHaveBeenCalledWith("Failed to star");
     expect(showToast).not.toHaveBeenCalledWith("starred");
     expect(retainArticle).not.toHaveBeenCalled();
+  });
+
+  it("does not retain the article when unstarring fails in unread mode", () => {
+    const showToast = vi.fn();
+    const retainArticle = vi.fn();
+    const mutate: ToggleStarMutate = (variables, options) => {
+      options?.onError?.(new Error("Failed to unstar"), variables, undefined, createMutationContext());
+    };
+    const toggleStar: UseArticleStatusActionsParams["toggleStar"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions(
+        createParams({
+          isStarred: true,
+          retainArticle,
+          retainOnUnstar: true,
+          showToast,
+          toggleStar,
+          viewMode: "unread",
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.setStarStatus(false, { showStatusToast: true });
+    });
+
+    expect(retainArticle).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Failed to unstar");
+    expect(showToast).not.toHaveBeenCalledWith("unstarred");
   });
 });
