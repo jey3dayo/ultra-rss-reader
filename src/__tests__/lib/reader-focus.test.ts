@@ -8,6 +8,8 @@ import {
   focusSelectedAccountPaneTarget,
   focusSelectedSidebarTarget,
   focusSidebarSmartViewTargetWhenReady,
+  getReaderFocusBooleanSelector,
+  getSidebarSmartViewKindSelector,
   isArticleListPaneTarget,
   isArticleListRowTarget,
   isSidebarPaneTarget,
@@ -31,6 +33,22 @@ describe("reader-focus", () => {
     expect(focusSelectedSidebarTarget()).toBe(true);
 
     expect(selectedTarget).toHaveFocus();
+  });
+
+  it("keeps reader focus boolean selector contracts tied to exported attributes", () => {
+    expect(getReaderFocusBooleanSelector(SIDEBAR_SELECTED_TARGET_ATTRIBUTE)).toBe(
+      '[data-sidebar-selected-target="true"]',
+    );
+    expect(getReaderFocusBooleanSelector(SIDEBAR_FALLBACK_TARGET_ATTRIBUTE)).toBe(
+      '[data-sidebar-fallback-target="true"]',
+    );
+    expect(getReaderFocusBooleanSelector(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE)).toBe(
+      '[data-account-pane-selected-target="true"]',
+    );
+    expect(getReaderFocusBooleanSelector(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE)).toBe(
+      '[data-account-pane-navigation-target="true"]',
+    );
+    expect(getSidebarSmartViewKindSelector("unread")).toBe('[data-sidebar-smart-view-kind="unread"]');
   });
 
   it("falls back to the sidebar fallback target when the selected target cannot receive focus", () => {
@@ -149,6 +167,33 @@ describe("reader-focus", () => {
     expect(row).toHaveFocus();
   });
 
+  it("does not focus stale article row retry targets after a newer retry starts", () => {
+    vi.useFakeTimers();
+    const staleRow = createButton({ "data-article-id": "article-1", role: "option" });
+    const currentRow = createButton({ "data-article-id": "article-2", role: "option" });
+
+    focusArticleListRowTargetWhenReady("article-1", 2);
+    focusArticleListRowTargetWhenReady("article-2", 2);
+
+    document.body.append(staleRow, currentRow);
+    vi.advanceTimersByTime(50);
+
+    expect(currentRow).toHaveFocus();
+    expect(staleRow).not.toHaveFocus();
+  });
+
+  it("cleans up pending article row retry timers before unmounted targets appear", () => {
+    vi.useFakeTimers();
+    const row = createButton({ "data-article-id": "article-1", role: "option" });
+    const cleanup = focusArticleListRowTargetWhenReady("article-1", 2);
+
+    cleanup();
+    document.body.append(row);
+    vi.advanceTimersByTime(50);
+
+    expect(row).not.toHaveFocus();
+  });
+
   it("focuses the article content pane", () => {
     const articlePane = createDiv({ "data-article-content-pane": "true", tabindex: "0" });
     document.body.append(articlePane);
@@ -173,6 +218,21 @@ describe("reader-focus", () => {
 
     expect(smartViewTarget).toHaveFocus();
     expect(selectedTarget).not.toHaveFocus();
+  });
+
+  it("does not focus stale sidebar smart view retry targets after a newer retry starts", () => {
+    vi.useFakeTimers();
+    const staleSmartViewTarget = createButton({ [SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE]: "recent" });
+    const currentSmartViewTarget = createButton({ [SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE]: "unread" });
+
+    focusSidebarSmartViewTargetWhenReady("recent", 2);
+    focusSidebarSmartViewTargetWhenReady("unread", 2);
+
+    document.body.append(staleSmartViewTarget, currentSmartViewTarget);
+    vi.advanceTimersByTime(50);
+
+    expect(currentSmartViewTarget).toHaveFocus();
+    expect(staleSmartViewTarget).not.toHaveFocus();
   });
 
   it("identifies reader pane keyboard targets without exposing selectors to callers", () => {

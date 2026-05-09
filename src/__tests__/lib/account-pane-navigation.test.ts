@@ -5,7 +5,7 @@ import {
   normalizePaneNavigationKey,
   selectCurrentAccountPaneTargetAndFocusSidebar,
 } from "@/lib/account/account-pane-navigation";
-import { ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("account-pane-navigation", () => {
@@ -37,7 +37,7 @@ describe("account-pane-navigation", () => {
 
   it("rejects blank account pane account ids before selecting an account", () => {
     const button = document.createElement("button");
-    button.setAttribute("data-account-pane-navigation-target", "true");
+    button.setAttribute(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, "true");
     button.setAttribute(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE, "true");
     button.setAttribute(ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE, "   ");
     document.body.append(button);
@@ -74,7 +74,7 @@ describe("account-pane-navigation", () => {
 
   it("trims account pane account ids before selecting an account", () => {
     const button = document.createElement("button");
-    button.setAttribute("data-account-pane-navigation-target", "true");
+    button.setAttribute(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, "true");
     button.setAttribute(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE, "true");
     button.setAttribute(ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE, " acc-1 ");
     document.body.append(button);
@@ -87,7 +87,7 @@ describe("account-pane-navigation", () => {
 
 function createAccountPaneButton(params: { selected?: boolean; ariaDisabled?: boolean }): HTMLButtonElement {
   const button = document.createElement("button");
-  button.setAttribute("data-account-pane-navigation-target", "true");
+  button.setAttribute(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, "true");
   if (params.selected) {
     button.setAttribute(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE, "true");
   }

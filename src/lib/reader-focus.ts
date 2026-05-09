@@ -16,6 +16,21 @@ export type ReaderFocusTargetAttribute =
 export type SidebarSmartViewKindAttribute = typeof SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE;
 export type ReaderFocusAttribute = ReaderFocusTargetAttribute | SidebarSmartViewKindAttribute;
 export type ReaderFocusReturnAction = "focus-sidebar" | "focus-list";
+type ReaderFocusRetryGenerationKey = "article-list-row" | "sidebar-smart-view";
+export type ReaderFocusRetryCleanup = () => void;
+
+const readerFocusRetryGenerations: Record<ReaderFocusRetryGenerationKey, number> = {
+  "article-list-row": 0,
+  "sidebar-smart-view": 0,
+};
+
+export function getReaderFocusBooleanSelector(attribute: ReaderFocusTargetAttribute): string {
+  return `[${attribute}="true"]`;
+}
+
+export function getSidebarSmartViewKindSelector(kind: SmartViewKind): string {
+  return `[${SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE}="${kind}"]`;
+}
 
 export function isReaderFocusTargetDisabled(target: HTMLElement): boolean {
   return target.hasAttribute("disabled") || target.getAttribute("aria-disabled") === "true";
@@ -44,21 +59,42 @@ function focusFirstAvailableTarget(targets: Array<HTMLElement | null>): boolean 
 }
 
 function focusTargetWhenReady(params: {
+  generationKey: ReaderFocusRetryGenerationKey;
   focusTarget: () => boolean;
   focusFallback: () => void;
-  retry: () => void;
+  retry: (attemptsRemaining: number) => ReaderFocusRetryCleanup;
   attemptsRemaining: number;
-}) {
+}): ReaderFocusRetryCleanup {
+  readerFocusRetryGenerations[params.generationKey] += 1;
+  const generation = readerFocusRetryGenerations[params.generationKey];
+  let timeoutId: number | null = null;
+  const cleanup = () => {
+    if (readerFocusRetryGenerations[params.generationKey] === generation) {
+      readerFocusRetryGenerations[params.generationKey] += 1;
+    }
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
   if (params.focusTarget()) {
-    return;
+    return cleanup;
   }
 
   if (params.attemptsRemaining <= 1) {
     params.focusFallback();
-    return;
+    return cleanup;
   }
 
-  window.setTimeout(params.retry, 50);
+  timeoutId = window.setTimeout(() => {
+    if (readerFocusRetryGenerations[params.generationKey] !== generation) {
+      return;
+    }
+    timeoutId = null;
+    params.retry(params.attemptsRemaining - 1);
+  }, 50);
+  return cleanup;
 }
 
 export function isSidebarPaneTarget(target: Element | null): boolean {
@@ -133,13 +169,17 @@ export function focusArticleListRowTarget(selectedArticleId: string | null): boo
   return false;
 }
 
-export function focusArticleListRowTargetWhenReady(selectedArticleId: string | null, attemptsRemaining = 12): void {
-  focusTargetWhenReady({
+export function focusArticleListRowTargetWhenReady(
+  selectedArticleId: string | null,
+  attemptsRemaining = 12,
+): ReaderFocusRetryCleanup {
+  return focusTargetWhenReady({
+    generationKey: "article-list-row",
     focusTarget: () => focusArticleListRowTarget(selectedArticleId),
     focusFallback: () => {
       focusArticleListTarget(selectedArticleId);
     },
-    retry: () => focusArticleListRowTargetWhenReady(selectedArticleId, attemptsRemaining - 1),
+    retry: (nextAttemptsRemaining) => focusArticleListRowTargetWhenReady(selectedArticleId, nextAttemptsRemaining),
     attemptsRemaining,
   });
 }
@@ -159,8 +199,8 @@ export function focusSelectedSidebarTarget(): boolean {
   }
 
   return focusFirstAvailableTarget([
-    document.querySelector<HTMLElement>(`[${SIDEBAR_SELECTED_TARGET_ATTRIBUTE}="true"]`),
-    document.querySelector<HTMLElement>(`[${SIDEBAR_FALLBACK_TARGET_ATTRIBUTE}="true"]`),
+    document.querySelector<HTMLElement>(getReaderFocusBooleanSelector(SIDEBAR_SELECTED_TARGET_ATTRIBUTE)),
+    document.querySelector<HTMLElement>(getReaderFocusBooleanSelector(SIDEBAR_FALLBACK_TARGET_ATTRIBUTE)),
   ]);
 }
 
@@ -169,15 +209,19 @@ export function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
     return false;
   }
 
-  const target = document.querySelector<HTMLElement>(`[${SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE}="${kind}"]`);
+  const target = document.querySelector<HTMLElement>(getSidebarSmartViewKindSelector(kind));
   return target ? focusElement(target) : false;
 }
 
-export function focusSidebarSmartViewTargetWhenReady(kind: SmartViewKind, attemptsRemaining = 12): void {
-  focusTargetWhenReady({
+export function focusSidebarSmartViewTargetWhenReady(
+  kind: SmartViewKind,
+  attemptsRemaining = 12,
+): ReaderFocusRetryCleanup {
+  return focusTargetWhenReady({
+    generationKey: "sidebar-smart-view",
     focusTarget: () => focusSidebarSmartViewTarget(kind),
     focusFallback: focusSelectedSidebarTarget,
-    retry: () => focusSidebarSmartViewTargetWhenReady(kind, attemptsRemaining - 1),
+    retry: (nextAttemptsRemaining) => focusSidebarSmartViewTargetWhenReady(kind, nextAttemptsRemaining),
     attemptsRemaining,
   });
 }
@@ -188,7 +232,7 @@ export function focusSelectedAccountPaneTarget(): boolean {
   }
 
   return focusFirstAvailableTarget([
-    document.querySelector<HTMLElement>(`[${ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE}="true"]`),
-    document.querySelector<HTMLElement>(`[${ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE}="true"]`),
+    document.querySelector<HTMLElement>(getReaderFocusBooleanSelector(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE)),
+    document.querySelector<HTMLElement>(getReaderFocusBooleanSelector(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE)),
   ]);
 }

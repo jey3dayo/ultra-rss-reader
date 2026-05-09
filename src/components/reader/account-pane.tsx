@@ -42,9 +42,15 @@ export function AccountPane() {
       return;
     }
 
-    requestAnimationFrame(() => {
-      focusSelectedAccountPaneTarget();
+    const animationFrameId = requestAnimationFrame(() => {
+      if (accountPaneOpen) {
+        focusSelectedAccountPaneTarget();
+      }
     });
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
   }, [accountPaneOpen]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
