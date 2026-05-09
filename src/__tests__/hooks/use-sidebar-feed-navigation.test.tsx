@@ -180,13 +180,7 @@ describe("useSidebarFeedNavigation", () => {
     const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
 
     const { rerender, unmount } = renderHook(
-      ({
-        orderedFeedIds,
-        selectedFeedId,
-      }: {
-        orderedFeedIds: string[];
-        selectedFeedId: string;
-      }) =>
+      ({ orderedFeedIds, selectedFeedId }: { orderedFeedIds: string[]; selectedFeedId: string }) =>
         useSidebarFeedNavigation({
           orderedFeedIds,
           selectedFeedId,
@@ -195,7 +189,9 @@ describe("useSidebarFeedNavigation", () => {
           setExpandedFolders,
           selectFeed,
         }),
-      { initialProps: { orderedFeedIds: ["account-a-feed-1", "account-a-feed-2"], selectedFeedId: "account-a-feed-1" } },
+      {
+        initialProps: { orderedFeedIds: ["account-a-feed-1", "account-a-feed-2"], selectedFeedId: "account-a-feed-1" },
+      },
     );
 
     window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }));

@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/articles/article-list";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
@@ -21,6 +21,12 @@ export function useArticleListNavigation({
   listRef,
   viewportRef,
 }: UseArticleListNavigationParams) {
+  const focusRequestGenerationRef = useRef(0);
+
+  useEffect(() => {
+    focusRequestGenerationRef.current += 1;
+  }, [filteredArticles]);
+
   const focusArticleRow = useCallback(
     (articleId: string, direction: 1 | -1) => {
       const viewport = viewportRef.current;
@@ -65,6 +71,8 @@ export function useArticleListNavigation({
       }
 
       const articleId = Result.unwrap(nextArticleId);
+      const focusRequestGeneration = focusRequestGenerationRef.current + 1;
+      focusRequestGenerationRef.current = focusRequestGeneration;
 
       selectArticle(articleId, { navigationDirection: direction });
 
@@ -77,6 +85,10 @@ export function useArticleListNavigation({
       }
 
       window.requestAnimationFrame(() => {
+        if (focusRequestGenerationRef.current !== focusRequestGeneration) {
+          return;
+        }
+
         focusArticleRow(articleId, direction);
       });
     },

@@ -72,8 +72,15 @@ export function useArticleListEffects({
     }
 
     const focusTargetRow = requestAnimationFrame(() => {
-      targetRow.focus({ preventScroll: true });
-      targetRow.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+      const currentTargetRow = listRef.current
+        ? queryElementByDataAttribute<HTMLElement>(listRef.current, "data-article-id", targetArticleId)
+        : null;
+      if (!currentTargetRow || currentTargetRow !== targetRow) {
+        return;
+      }
+
+      currentTargetRow.focus({ preventScroll: true });
+      currentTargetRow.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     });
 
     return () => {
