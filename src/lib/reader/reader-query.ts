@@ -16,6 +16,10 @@ export type ReaderQuery =
   | { source: "articles"; scope: ArticleReaderScope; filter: ReaderFilter }
   | { source: "recent"; scope: AccountReaderScope; filter: ReaderFilter };
 
+export type DisabledReaderQueryReason = "missing_account" | "invalid_selection";
+export type DisabledReaderQuery = { source: "disabled"; reason: DisabledReaderQueryReason };
+export type ReaderQueryResult = ReaderQuery | DisabledReaderQuery;
+
 export type ReaderSourceKind = "none" | "account" | "folder" | "feed" | "tag" | "recent";
 
 export type ReaderSourcePlan = {
@@ -66,10 +70,10 @@ export function resolveReaderQuery(
   selection: ReaderQuerySelection,
   viewMode: ReaderFilter,
   selectedAccountId: string | null,
-): ReaderQuery | null {
+): ReaderQueryResult {
   const accountId = normalizeReaderScopeId(selectedAccountId);
   if (accountId === null) {
-    return null;
+    return { source: "disabled", reason: "missing_account" };
   }
 
   if (selection.type === "smart") {
@@ -91,7 +95,7 @@ export function resolveReaderQuery(
   if (selection.type === "feed") {
     const feedId = normalizeReaderScopeId(selection.feedId);
     if (feedId === null) {
-      return null;
+      return { source: "disabled", reason: "invalid_selection" };
     }
 
     return {
@@ -104,7 +108,7 @@ export function resolveReaderQuery(
   if (selection.type === "folder") {
     const folderId = normalizeReaderScopeId(selection.folderId);
     if (folderId === null) {
-      return null;
+      return { source: "disabled", reason: "invalid_selection" };
     }
 
     return {
@@ -117,7 +121,7 @@ export function resolveReaderQuery(
   if (selection.type === "tag") {
     const tagId = normalizeReaderScopeId(selection.tagId);
     if (tagId === null) {
-      return null;
+      return { source: "disabled", reason: "invalid_selection" };
     }
 
     return {
@@ -159,7 +163,7 @@ export function resolveReaderSourcePlan(
   selectedAccountId: string | null,
 ): ReaderSourcePlan {
   const query = resolveReaderQuery(selection, viewMode, selectedAccountId);
-  if (query === null) {
+  if (query.source === "disabled") {
     return buildDisabledReaderSourcePlan(viewMode);
   }
   const effectiveViewMode = resolveEffectiveViewMode(selection, viewMode, query);

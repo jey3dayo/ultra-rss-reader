@@ -187,6 +187,11 @@ describe("formatArticleDate", () => {
     expect(() => formatArticleDate("2026-03-25T10:00:00Z", locale)).not.toThrow();
     expect(formatArticleDate("2026-03-25T10:00:00Z", locale)).toContain("AT");
   });
+
+  it("falls back when formatting with an invalid locale tag directly", () => {
+    expect(() => formatArticleDate("2026-03-25T10:00:00Z", "en_US")).not.toThrow();
+    expect(formatArticleDate("2026-03-25T10:00:00Z", "en_US")).toContain("AT");
+  });
 });
 
 describe("resolveArticleDateLocale", () => {

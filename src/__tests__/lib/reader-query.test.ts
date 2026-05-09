@@ -82,14 +82,26 @@ describe("resolveReaderQuery", () => {
     });
   });
 
-  it("returns null when there is no selected account", () => {
-    expect(resolveReaderQuery({ type: "all" }, "unread", null)).toBeNull();
-    expect(resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", null)).toBeNull();
+  it("returns a disabled query when there is no selected account", () => {
+    expect(resolveReaderQuery({ type: "all" }, "unread", null)).toEqual({
+      source: "disabled",
+      reason: "missing_account",
+    });
+    expect(resolveReaderQuery({ type: "feed", feedId: "feed-1" }, "unread", null)).toEqual({
+      source: "disabled",
+      reason: "missing_account",
+    });
   });
 
   it("treats blank selected account ids as unresolved", () => {
-    expect(resolveReaderQuery({ type: "all" }, "unread", "   ")).toBeNull();
-    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "\n")).toBeNull();
+    expect(resolveReaderQuery({ type: "all" }, "unread", "   ")).toEqual({
+      source: "disabled",
+      reason: "missing_account",
+    });
+    expect(resolveReaderQuery({ type: "smart", kind: "recent" }, "all", "\n")).toEqual({
+      source: "disabled",
+      reason: "missing_account",
+    });
     expect(resolveReaderQuery({ type: "all" }, "unread", " acc-1 ")).toEqual({
       source: "articles",
       scope: { type: "account", accountId: "acc-1" },
@@ -97,10 +109,19 @@ describe("resolveReaderQuery", () => {
     });
   });
 
-  it("treats blank feed, folder, and tag scope ids as unresolved", () => {
-    expect(resolveReaderQuery({ type: "feed", feedId: " " }, "unread", "acc-1")).toBeNull();
-    expect(resolveReaderQuery({ type: "folder", folderId: "\n" }, "unread", "acc-1")).toBeNull();
-    expect(resolveReaderQuery({ type: "tag", tagId: "" }, "unread", "acc-1")).toBeNull();
+  it("treats blank feed, folder, and tag scope ids as invalid selections", () => {
+    expect(resolveReaderQuery({ type: "feed", feedId: " " }, "unread", "acc-1")).toEqual({
+      source: "disabled",
+      reason: "invalid_selection",
+    });
+    expect(resolveReaderQuery({ type: "folder", folderId: "\n" }, "unread", "acc-1")).toEqual({
+      source: "disabled",
+      reason: "invalid_selection",
+    });
+    expect(resolveReaderQuery({ type: "tag", tagId: "" }, "unread", "acc-1")).toEqual({
+      source: "disabled",
+      reason: "invalid_selection",
+    });
     expect(resolveReaderQuery({ type: "feed", feedId: " feed-1 " }, "unread", "acc-1")).toEqual({
       source: "articles",
       scope: { type: "feed", feedId: "feed-1" },
