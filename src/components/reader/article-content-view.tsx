@@ -1,9 +1,13 @@
 // biome-ignore-all lint/security/noDangerouslySetInnerHtml: ArticleContentView is the sanitized HTML rendering boundary.
 import { useMemo } from "react";
 import { normalizeArticleRemoteImageUrl } from "@/lib/articles/article-view";
-import { applyReaderContentPrivacyPolicy, normalizeArticleBodyHtml } from "@/lib/content/html";
-
-declare const sanitizedArticleHtmlBrand: unique symbol;
+import {
+  applyReaderContentPrivacyPolicy,
+  fromSanitizedArticleHtml,
+  fromSanitizedArticleHtmlDto,
+  normalizeArticleBodyHtml,
+  type SanitizedArticleHtml,
+} from "@/lib/content/html";
 
 /**
  * HTML that has crossed the Rust sanitizer boundary as `content_sanitized`.
@@ -11,13 +15,7 @@ declare const sanitizedArticleHtmlBrand: unique symbol;
  * ArticleContentView intentionally does not sanitize again in React; callers must
  * brand only Rust-sanitized article bodies before passing them to this danger boundary.
  */
-export type SanitizedArticleHtml = string & {
-  readonly [sanitizedArticleHtmlBrand]: true;
-};
-
-export function fromSanitizedArticleHtml(contentHtml: string): SanitizedArticleHtml {
-  return contentHtml as SanitizedArticleHtml;
-}
+export { fromSanitizedArticleHtml, fromSanitizedArticleHtmlDto, type SanitizedArticleHtml };
 
 type ArticleContentViewProps = {
   thumbnailUrl?: string | null;

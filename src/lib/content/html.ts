@@ -1,3 +1,29 @@
+declare const sanitizedArticleHtmlBrand: unique symbol;
+
+/**
+ * Article body HTML that has crossed the Rust sanitizer boundary as
+ * `content_sanitized`.
+ */
+export type SanitizedArticleHtml = string & {
+  readonly [sanitizedArticleHtmlBrand]: true;
+};
+
+export type SanitizedArticleHtmlDto = {
+  readonly content_sanitized: string;
+};
+
+export function fromSanitizedArticleHtmlDto(article: SanitizedArticleHtmlDto): SanitizedArticleHtml {
+  return article.content_sanitized as SanitizedArticleHtml;
+}
+
+/**
+ * @deprecated Prefer `fromSanitizedArticleHtmlDto` at runtime boundaries. This
+ * string helper exists for focused tests and legacy local callers.
+ */
+export function fromSanitizedArticleHtml(contentSanitized: string): SanitizedArticleHtml {
+  return contentSanitized as SanitizedArticleHtml;
+}
+
 /**
  * Strip HTML tags from a string and return plain text.
  *

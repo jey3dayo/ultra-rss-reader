@@ -1,16 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ArticleContentView, fromSanitizedArticleHtml } from "@/components/reader/article-content-view";
+import {
+  ArticleContentView,
+  fromSanitizedArticleHtml,
+  fromSanitizedArticleHtmlDto,
+  type SanitizedArticleHtml,
+} from "@/components/reader/article-content-view";
 import articleContentViewStories from "@/components/reader/article-content-view.stories";
+
+function dangerouslyBrandRawArticleHtmlForViewTest(rawHtml: string): SanitizedArticleHtml {
+  return fromSanitizedArticleHtml(rawHtml);
+}
 
 describe("ArticleContentView", () => {
   it("renders a thumbnail and sanitized html content", () => {
     const { container } = render(
       <ArticleContentView
         thumbnailUrl="https://example.com/thumbnail.png"
-        contentHtml={fromSanitizedArticleHtml(
-          "<p>Hello <strong>world</strong> <a href='https://example.com'>link</a></p>",
-        )}
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized: "<p>Hello <strong>world</strong> <a href='https://example.com'>link</a></p>",
+        })}
       />,
     );
 
@@ -30,7 +39,9 @@ describe("ArticleContentView", () => {
   });
 
   it("omits the thumbnail wrapper when no image is provided", () => {
-    const { container } = render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<p>Only text</p>")} />);
+    const { container } = render(
+      <ArticleContentView contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")} />,
+    );
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Only text")).toBeInTheDocument();
@@ -40,7 +51,7 @@ describe("ArticleContentView", () => {
     const { container, rerender } = render(
       <ArticleContentView
         thumbnailUrl="http://example.com/thumbnail.png"
-        contentHtml={fromSanitizedArticleHtml("<p>Only text</p>")}
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
       />,
     );
 
@@ -49,7 +60,7 @@ describe("ArticleContentView", () => {
     rerender(
       <ArticleContentView
         thumbnailUrl="data:image/svg+xml,<svg></svg>"
-        contentHtml={fromSanitizedArticleHtml("<p>Only text</p>")}
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
       />,
     );
 
@@ -60,9 +71,10 @@ describe("ArticleContentView", () => {
     const { container } = render(
       <ArticleContentView
         feedName="葬送のフリーレン"
-        contentHtml={fromSanitizedArticleHtml(
-          "<p>葬送のフリーレン</p><p>本文です</p><figure><p><img src='https://example.com/panel.png' alt='' /></p></figure>",
-        )}
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            "<p>葬送のフリーレン</p><p>本文です</p><figure><p><img src='https://example.com/panel.png' alt='' /></p></figure>",
+        })}
       />,
     );
 
@@ -75,7 +87,7 @@ describe("ArticleContentView", () => {
     render(
       <ArticleContentView
         feedName="葬送のフリーレン"
-        contentHtml={fromSanitizedArticleHtml("<p>第147話 英雄のいない地</p><p>本文です</p>")}
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>第147話 英雄のいない地</p><p>本文です</p>")}
       />,
     );
 
@@ -84,12 +96,14 @@ describe("ArticleContentView", () => {
   });
 
   it("hides placeholder null article bodies", () => {
-    const { container, rerender } = render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("null")} />);
+    const { container, rerender } = render(
+      <ArticleContentView contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("null")} />,
+    );
 
     expect(screen.queryByText("null")).not.toBeInTheDocument();
     expect(container.querySelector(".prose")?.textContent?.trim()).toBe("");
 
-    rerender(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<p>null</p>")} />);
+    rerender(<ArticleContentView contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>null</p>")} />);
 
     expect(screen.queryByText("null")).not.toBeInTheDocument();
     expect(container.querySelector(".prose")?.textContent?.trim()).toBe("");
@@ -100,14 +114,22 @@ describe("ArticleContentView", () => {
     expect(articleContentViewStories.args?.thumbnailUrl).not.toMatch(/^https?:\/\//);
   });
 
-  it("keeps sanitized HTML branding as a type-only danger boundary", () => {
+  it("brands article content from the sanitized backend DTO boundary", () => {
+    const sanitizedDto = {
+      content_sanitized: "<p data-source='rust-sanitizer'>Safe <em>content</em></p>",
+    };
+
+    expect(fromSanitizedArticleHtmlDto(sanitizedDto)).toBe(sanitizedDto.content_sanitized);
+  });
+
+  it("keeps the legacy raw string brand helper isolated for explicit local tests", () => {
     const sanitizedHtml = "<p data-source='rust-sanitizer'>Safe <em>content</em></p>";
 
-    expect(fromSanitizedArticleHtml(sanitizedHtml)).toBe(sanitizedHtml);
+    expect(dangerouslyBrandRawArticleHtmlForViewTest(sanitizedHtml)).toBe(sanitizedHtml);
   });
 
   it("does not re-sanitize content at the React danger boundary", () => {
-    const rustSanitizedHtml = fromSanitizedArticleHtml(
+    const rustSanitizedHtml = dangerouslyBrandRawArticleHtmlForViewTest(
       "<p>Safe body</p><a href='https://example.com/article' rel='noopener noreferrer'>Read more</a>",
     );
 
@@ -123,9 +145,9 @@ describe("ArticleContentView", () => {
     const { container } = render(
       <ArticleContentView
         thumbnailUrl="https://cdn.example.com/thumbnail.jpg"
-        contentHtml={fromSanitizedArticleHtml(
-          "<p>Article body</p><img src='https://cdn.example.com/body.jpg' alt='Body image' />",
-        )}
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized: "<p>Article body</p><img src='https://cdn.example.com/body.jpg' alt='Body image' />",
+        })}
       />,
     );
 

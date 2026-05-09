@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { applyReaderContentPrivacyPolicy, normalizeArticleBodyHtml, stripHtmlTags } from "@/lib/content/html";
+import {
+  applyReaderContentPrivacyPolicy,
+  fromSanitizedArticleHtmlDto,
+  normalizeArticleBodyHtml,
+  stripHtmlTags,
+} from "@/lib/content/html";
+
+describe("fromSanitizedArticleHtmlDto", () => {
+  it("brands the backend content_sanitized DTO field without accepting raw article body by default", () => {
+    const article = {
+      content_sanitized: "<p>Backend sanitized body</p>",
+    };
+
+    expect(fromSanitizedArticleHtmlDto(article)).toBe(article.content_sanitized);
+  });
+});
 
 describe("stripHtmlTags", () => {
   it("returns empty string for empty input", () => {
