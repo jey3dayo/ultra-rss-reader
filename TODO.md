@@ -55,11 +55,6 @@
   - old unread count fetch と confirm action の間で unread count が変わった時、confirm message と実行結果のズレが起き得る
   - count fetch failure / count becomes zero / action reject の user feedback を focused test で固定する
 
-- [ ] P2 account detail export object URL cleanup を固定する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
-  - OPML export の object URL revoke が timer 依存で、download click failure / unmount / rapid export で URL cleanup が漏れないか未固定
-  - createObjectURL / revokeObjectURL / anchor click failure を runtime boundary test で固定する
-
 - [ ] P2 feed URL normalization failure copy を整理する
   - 対象: `src/lib/feed/feed.ts`, `src/components/reader/feed-context-menu.tsx`, add feed dialog actions
   - URL parsing failure が helper / context menu / add feed flow で別々に処理され、invalid URL の user-facing copy と log policy が揺れやすい
@@ -79,11 +74,6 @@
   - 対象: `src/components/reader/hooks/article/use-article-actions.ts`, `src/components/reader/article-browser-actions.ts`
   - open external / copy link / add to reading list は fire-and-forget 入口だが、toast と log の粒度が action ごとに揺れる可能性がある
   - invalid URL、native reject、clipboard unavailable、reading list unsupported の user feedback を同じ contract へ寄せる
-
-- [ ] P2 settings account detail copy server URL failure を補強する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-view-props.tsx`, `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
-  - server URL copy は view props から `void controller.handleCopyServerUrl()` で呼ばれ、clipboard rejection と missing URL の扱いが見えにくい
-  - copy success / unavailable / empty server URL の toast contract を focused test で固定する
 
 - [ ] P2 app foreground window show/focus error policy を整理する
   - 対象: `src-tauri/src/lib.rs`
@@ -114,11 +104,6 @@
   - 対象: `src/hooks/use-badge.ts`, `src/hooks/use-account-unread-count.ts`, `src/hooks/use-feeds.ts`
   - badge count は feed unread sum / account unread count をそのまま native command に渡すため、negative / nonfinite / stale selected account の時の表示契約が未固定
   - negative unread count、account switch during pending badge apply、native `setBadgeCount` unavailable の latest-only contract を hook test にする
-
-- [ ] P1 settings content reset key contract を固定する
-  - 対象: `src/components/settings/hooks/use-settings-modal-view-props.tsx`, `src/components/settings/settings-modal.tsx`
-  - settings content remount key が `JSON.stringify()` 依存で、add account initial kind や account id の null/empty/string 差分が form reset に直結する
-  - account -> add account -> provider preselect -> account detail へ戻る遷移で、draft が残る/消える条件を focused test で固定する
 
 - [ ] P1 browser webview native emit failure diagnostics を補強する
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
