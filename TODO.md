@@ -292,11 +292,6 @@
   - local test で固定できる設定検証と、実 release artifact が必要な検証を分ける
   - release note / manual verification docs への反映は、実際の release 作業とは別コミットにする
 
-- [ ] P2 locale / copy contract 整理候補を別バッチで見直す
-  - reader / settings / native menu / updater の表示文言が、同じ概念に対して異なるキー名や表現を使っていないか棚卸しする
-  - `ja-locales` / `ui-language` 系 tests に、キー存在だけでなく reader/preview/external browser の意味差分を固定する assertion を追加する
-  - copy 変更は UI regression になりやすいため、型整理や layout 変更とは混ぜない
-
 - [ ] P0 provider / sync flow boundary 整理候補を別バッチで見直す
   - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
   - pending mutation / sync state / account sync status はデータ整合性に関わるため、UI sync feedback の型整理とは混ぜない
@@ -311,16 +306,6 @@
   - `.github/workflows/*` と issue templates の label / release-readiness / manual-verification 表現を、運用ラベルの source of truth に揃える
   - labeler config と PR insights の自動付与は既存運用に影響するため、CI workflow 変更とは別バッチにする
   - release workflow の artifact matrix と updater signing は、docs 更新だけでなく実 release dry-run の観点を残す
-
-- [ ] P2 reader context menu action 整理候補を別バッチで見直す
-  - article item / article list background / feed / folder / smart view / account の context menu action を、action id と呼び出し hook の対応表として棚卸しする
-  - mark all read / old unread read / open in browser / copy link は scope 判定が違うため、UI props 整理とは混ぜず action contract test を優先する
-  - Base UI context menu の className や visual token 変更は別バッチにし、まずは既存 menu item の enabled/disabled 条件を固定する
-
-- [ ] P2 reader focus navigation contract test 候補を別バッチで追加する
-  - sidebar -> list -> article pane -> browser overlay の focus return を、keyboard event と selected target の契約として小さい test に分ける
-  - `reader-focus` helper、article list keydown handler、sidebar controller の責務を混ぜず、復帰先ごとに fixture を作る
-  - scroll / requestAnimationFrame / setTimeout の実装詳細は直接固定せず、最終的な active element と selected state を assertion にする
 
 - [ ] P1 native menu checked state 同期候補を別バッチで検証する
   - `src-tauri/src/menu.rs` の check menu item toggle と frontend preference state が、view filter / sort unread / group by feed でズレないか確認する
