@@ -988,6 +988,31 @@
   - まず `article-empty-state-view` / `article-tag-picker` / `feed-tree-row` / `settings` small icons を小さな worker scope に分ける
   - Storybook specimen と test fixture は別バッチにし、UI 表示差分が出ないことを focused component test で確認する
 
+- [ ] react-doctor settings size shorthand runtime batch 候補を追加する
+  - `settings-modal-view` / `settings-row` / `actions-settings-view` / `accounts-nav-view` / `tags-settings-view` の runtime icon sizing を `size-N` へ寄せる
+  - settings surface focused test で button/icon の accessible name と visible state が変わらないことを確認する
+  - Storybook settings specimen とは分け、settings runtime view の `w-N h-N` cleanup だけを扱う
+
+- [ ] react-doctor reader toolbar size shorthand batch 候補を追加する
+  - `article-toolbar-view` / `article-list-header-actions` / `article-share-menu` / `browser-surface-state-card` の icon sizing を `size-N` へ寄せる
+  - reader toolbar / article header focused test で主要 action の表示と aria state が変わらないことを確認する
+  - toolbar action taxonomy とは分け、reader action icon の size shorthand cleanup だけを扱う
+
+- [ ] react-doctor shared surface size shorthand batch 候補を追加する
+  - `feed-detail-panel` / `workspace-header` / `tag-chip` / `copyable-text-field` / `article-filter-toggle-button` の equal width/height 指定を `size-N` へ寄せる
+  - shared component focused test で layout class 以外の behavior が変わらないことを固定する
+  - UI primitive API 変更とは分け、shared surface component の visual utility cleanup だけを扱う
+
+- [ ] react-doctor Storybook size shorthand batch 候補を追加する
+  - `ui-reference-canvas-specimens` / `ui-reference-settings-workspace-canvas.stories` / settings story files の `w-N h-N` を `size-N` へ寄せる
+  - Storybook canvas smoke で reference specimen が crash しないことを確認する
+  - runtime component cleanup とは分け、Storybook/demo-only size utility cleanup だけを扱う
+
+- [ ] react-doctor test fixture size shorthand batch 候補を追加する
+  - `src/__tests__/components/icon-toolbar-control.test.tsx` など test-only JSX fixture の `w-N h-N` を `size-N` へ寄せる
+  - snapshot / role assertion に影響しないことを focused test で確認する
+  - production UI cleanup とは分け、test fixture JSX の Tailwind utility cleanup だけを扱う
+
 - [ ] react-doctor React 19 forwardRef cleanup 候補を追加する
   - `react-doctor/no-react19-deprecated-apis` の対象 wrapper から不要な `forwardRef` を外す
   - 対象: `shortcuts-settings-view` / `article-tag-picker-buttons` / `sidebar-nav-button` / `account-switcher-view` / `reader-inline-action-button` / `settings-content-layout` / `nav-row-button`
@@ -1017,6 +1042,21 @@
   - `knip/types` / `knip/exports` の unused type/export を feature ごとに棚卸しする
   - `article-list.types.ts` / `browser-view.types.ts` / `command-palette.types.ts` など広い contract は一括削除せず参照範囲ごとに分ける
   - public wrapper API と Storybook helper export は allowlist 化し、実 dead code だけを削除する
+
+- [ ] react-doctor i18n / schema barrel dead export 候補を追加する
+  - `src/lib/i18n-resources.ts` / `src/lib/i18n.ts` / `src/api/schemas/index.ts` / schema barrels の `knip/types` / `knip/exports` 指摘を実参照と public barrel に分類する
+  - locale/schema contract test が import path 変更で壊れないことを確認し、public barrel と実 dead export を分けて整理する
+  - reader view type surface cleanup とは分け、i18n/schema barrel の dead export 判断だけを扱う
+
+- [ ] react-doctor UI primitive dead export allowlist 候補を追加する
+  - `src/components/ui/button.tsx` / `dialog.tsx` / `input.tsx` / `select.tsx` / `scroll-area.tsx` / `collapsible.tsx` の unused type/export 指摘を wrapper public API として残すか削るか判断する
+  - shared primitive contract test または knip allowlist で意図した public export を固定する
+  - Base UI / primitive migration とは分け、現行 UI wrapper の export surface 明文化だけを扱う
+
+- [ ] react-doctor Tauri command schema dead export 候補を追加する
+  - `src/api/tauri-commands.ts` / `src/api/schemas/commands.ts` / `platform-info.ts` / `feed-integrity.ts` の unused export 指摘を command boundary ごとに棚卸しする
+  - invoke wrapper tests が必要な schema を直接 import しているかを確認し、未使用 command schema だけ削除または allowlist 化する
+  - IPC validation task とは分け、Tauri command/schema export surface の dead code cleanup だけを扱う
 
 - [ ] react-doctor iterable performance 候補を追加する
   - `js-combine-iterations` / `js-set-map-lookups` / `js-index-maps` を runtime hot path から優先して潰す
