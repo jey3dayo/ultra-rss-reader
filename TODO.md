@@ -717,6 +717,61 @@
   - repo の外部コマンド実行方針を docs index から見つけられる 1 行追加に限定する
   - AGENTS router contract や markdown link scan 拡張とは分け、docs index の案内漏れだけを扱う
 
+- [ ] article tag picker create focus contract 候補を追加する
+  - `src/components/reader/article-tag-picker-popover.tsx` で新規 tag 作成後に picker を閉じるか開いたままにするかを固定する
+  - `src/__tests__/components/article-tag-picker-view.test.tsx` で Enter 作成後の draft reset と focus 復帰を確認する
+  - tag assignment failure handling とは分け、create success 後の picker UI contract だけを扱う
+
+- [ ] article share mailto fallback 候補を追加する
+  - `src/components/reader/article-share-menu.tsx` の mail share で title / url が空または長文の時の subject / body fallback を固定する
+  - `src/__tests__/components/article-share-menu.test.tsx` で encode と失敗 toast の境界を追加する
+  - external browser / reading list command とは分け、mailto 生成の入力境界だけを扱う
+
+- [ ] article action shortcut URL null guard 候補を追加する
+  - `src/components/reader/hooks/article/use-article-action-shortcuts.ts` で Web Preview 表示中の URL なし記事に対する `b` / copy / reading list shortcut を no-op にする
+  - selected article null / URL null の hook test を追加し、toast を出すか silent no-op にするかを固定する
+  - toolbar action resolver や share menu fallback とは分け、shortcut handler の URL guard だけを扱う
+
+- [ ] subscriptions index filter scroll reset 候補を追加する
+  - `src/components/subscriptions-index/use-subscriptions-index-state.ts` で summary filter / search 変更時に `listScrollTop` を保持するか 0 に戻すかを固定する
+  - page state の return restore と衝突しない focused test を追加する
+  - decision flow や nested dialog handling とは分け、subscriptions list scroll contract だけを扱う
+
+- [ ] subscriptions detail invalid date display 候補を追加する
+  - `src/components/subscriptions-index/subscription-detail-pane.tsx` で `metrics.latestArticleAt` が null / invalid 相当の時に出す表示を localized empty に寄せる
+  - `src/__tests__/components/subscription-detail-pane.test.tsx` で date formatter 境界を確認する
+  - review candidate ranking とは分け、detail metrics 表示の空値 contract だけを扱う
+
+- [ ] shortcuts recording reset guard 候補を追加する
+  - `src/components/settings/shortcuts-settings-view.tsx` で shortcut recording 中に全リセット / row reset を押せるか禁止するかを固定する
+  - recording 中の reset disabled と key capture 干渉を focused view test で確認する
+  - shortcut preference control char guard とは分け、settings view 操作 guard だけを扱う
+
+- [ ] OPML import transaction contract 候補を追加する
+  - `src-tauri/src/commands/opml_commands.rs` の OPML import を transaction 化し、途中の folder / feed 保存失敗で部分作成が残らない contract を追加する
+  - account / folder validation とは分け、import command の atomicity だけを Rust test で固定する
+  - UI copy や feed discovery とは混ぜない
+
+- [ ] OPML export deterministic order 候補を追加する
+  - `src-tauri/src/commands/opml_commands.rs` の export で folder 内 feed / top-level feed の順序を title / id で deterministic にする
+  - 入力順に依存しない helper test を追加し、snapshot drift を減らす
+  - import transaction や folder matching とは分け、export serialization order だけを扱う
+
+- [ ] add local feed account preflight 候補を追加する
+  - `src-tauri/src/commands/feed_commands.rs` の `add_local_feed` で network fetch 前に `account_id` 存在と Local account であることを検証する
+  - 無効 account で外部 request しない command test を追加する
+  - URL validation や duplicate feed policy とは分け、account preflight だけを扱う
+
+- [ ] delete account keyring order 候補を追加する
+  - `src-tauri/src/commands/account_commands.rs` の `delete_account` で DB 削除失敗時に credential だけ失われない順序または rollback contract を固定する
+  - keyring delete failure / DB delete failure の helper test を追加する
+  - update credentials orphan secret guard とは分け、account deletion の secret cleanup 順序だけを扱う
+
+- [ ] Storybook alias parity contract 候補を追加する
+  - `.storybook/main.ts` と `vite.config.ts` / `vitest.config.ts` の alias 設定が drift しない contract を `src/__tests__/config/repo-contracts.test.ts` に追加する
+  - Storybook だけ import 解決が壊れる状態を config test で検出する
+  - Storybook E2E runtime guard とは分け、config alias parity だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
