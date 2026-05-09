@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import type { KeyboardEvent, RefObject } from "react";
@@ -310,18 +311,4 @@ function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputEl
     configurable: true,
     value: input,
   });
-}
-
-function createDeferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T | PromiseLike<T>) => void;
-  reject: (reason?: unknown) => void;
-} {
-  let resolveDeferred: (value: T | PromiseLike<T>) => void = () => {};
-  let rejectDeferred: (reason?: unknown) => void = () => {};
-  const promise = new Promise<T>((resolve, reject) => {
-    resolveDeferred = resolve;
-    rejectDeferred = reject;
-  });
-  return { promise, resolve: resolveDeferred, reject: rejectDeferred };
 }
