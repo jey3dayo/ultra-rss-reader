@@ -185,6 +185,31 @@
   - maximize 解除、retry delay、center 呼び出しの順序が変わらないことを scenario runner test で固定する
   - Browser WebView geometry や dev intent window size parsing とは分け、dev scenario の window resize verification だけを扱う
 
+- [ ] Storybook UI reference category file completion 候補を追加する
+  - `ui-reference-control-specimens.ts` / `foundation-specimens.ts` / `settings-specimens.ts` などが re-export だけになっているため、実体を category file へ移せるか確認する
+  - `ui-reference-canvas-specimens.tsx` は shared primitives と共通 helper だけに絞り、canvas story の import path は category file のまま保つ
+  - visual copy や className 変更とは分け、UI reference specimen の ownership 移動だけを扱う
+
+- [ ] Storybook Explorer order source-of-truth 候補を追加する
+  - `.storybook/preview` の `storySort.order` と `storybook-explorer-organization.test.ts` の `uiReferenceTitles` / group lists が drift しないよう、期待順の source-of-truth を整理する
+  - preview config を直接 import する test は残しつつ、重複した title literal を registry helper か shared constant へ寄せられるか確認する
+  - story title rename や Explorer taxonomy 変更とは分け、Storybook order contract の literal duplication だけを扱う
+
+- [ ] UI reference specimen anchor id contract 候補を追加する
+  - `ui-reference-canvas-specimens.tsx` に散らばる `data-testid="reference-*"` を、canvas smoke / unit test が参照する anchor と装飾用 ID に分類する
+  - 主要 specimen anchor が missing / duplicate にならない contract を `ui-reference-specimen-registry.test.ts` か専用 test に追加する
+  - visual regression や screenshot 更新とは分け、UI reference test anchor の保守性だけを扱う
+
+- [ ] command primitive empty live-region contract 候補を追加する
+  - `src/components/ui/command.tsx` の `CommandEmpty` が `role="status"` / `aria-live="polite"` を持つ wrapper を返す contract を component test で固定する
+  - command palette results と shortcuts help の no-results 表示で、空でない時に live region が残らないことを確認する
+  - command palette action taxonomy や search ranking とは分け、empty state a11y contract だけを扱う
+
+- [ ] stacked select field null/disabled contract 候補を追加する
+  - `src/components/shared/stacked-select-field.tsx` の `onValueChange` が `null` を捨てる契約と、`disabled` 時に selection callback が発火しない契約を focused test で固定する
+  - generated `labelId` と explicit `labelId` の `aria-labelledby` が drift しないことも shared field test に追加する
+  - folder select / rename feed の business logic とは分け、shared stacked select field の primitive contract だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
