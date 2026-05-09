@@ -432,6 +432,86 @@
   - 非 string filter 後の重複ケースを `src/__tests__/schemas/storage.test.ts` に追加する
   - startup folder expansion UI ではなく、localStorage 復元 schema の正規化だけを扱う
 
+- [ ] keyboard open settings input guard 候補を追加する
+  - `src/lib/keyboard/keyboard-shortcuts.ts` で `open_settings` の単キー remap が入力欄フォーカス中に発火しない contract を追加する
+  - 既定の `Cmd+,` は入力中でも許可しつつ、単キー custom shortcut は `ignored_input` にする
+  - shortcut recording Alt key contract とは分け、実行時 resolver の text input guard だけを扱う
+
+- [ ] app icon theme matchMedia guard 候補を追加する
+  - `src/hooks/use-app-icon-theme.ts` で `theme === "system"` の時も `window.matchMedia` の存在を guard する
+  - preview / test / 特殊 WebView で `matchMedia` 不在でも fallback できる hook contract を追加する
+  - updater runtime unavailable とは別に、app icon theme hook の browser API guard に限定する
+
+- [ ] feed context menu open site failure toast 候補を追加する
+  - `src/components/reader/feed-context-menu.tsx` の open site 失敗を `console.error` だけで終わらせない
+  - article browser action 側と同じく user-visible toast を出し、failure case の component test を追加する
+  - 既読・スター mutation error feedback とは分け、外部ブラウザ起動失敗だけを扱う
+
+- [ ] smart view clear history confirm 候補を追加する
+  - `src/components/reader/smart-view-context-menu.tsx` の `Recently viewed` / `Clear history` を即 mutate ではなく confirm 経由にする
+  - `Unstar all` と同じ destructive action contract として view / handler test を更新する
+  - shared confirm dialog pending guard とは分け、recent history clear の確認有無だけを扱う
+
+- [ ] subscriptions section empty folder actions 候補を追加する
+  - `src/components/reader/subscriptions-section-context-menu.tsx` で folder 0 件時の expand / collapse all を no-op 表示にしない
+  - `src/components/reader/subscriptions-section-context-menu-view.tsx` に disabled / hidden contract を追加する
+  - sidebar expanded folder storage dedupe とは別に、空 folder 時の context menu action 状態だけを扱う
+
+- [ ] feed / folder mark-all-read zero affordance 候補を追加する
+  - `src/components/reader/feed-context-menu-view.tsx` と `src/components/reader/folder-context-menu-view.tsx` で unread count 0 件時の `Mark all as read` を無効化または非表示にする
+  - feed / folder unread count から disabled prop を渡し、view test で no-op confirm を避ける contract を固定する
+  - mark read error feedback とは分け、0 件時の context menu affordance だけを扱う
+
+- [ ] article command pagination guard 候補を追加する
+  - `src-tauri/src/commands/article_commands.rs` の `list_articles` / `list_account_articles` / `list_recent_articles` / `search_articles` で極端な `limit` を clamp または reject する
+  - 共通 `Pagination` 生成 helper と上限 test を追加する
+  - tag article list limit guard とは別に、article command 一覧系 pagination だけを扱う
+
+- [ ] article pending mutation query error contract 候補を追加する
+  - `src-tauri/src/commands/article_commands.rs` の `maybe_queue_mutation` で `query_row(...).ok()` による DB error の握りつぶしをやめる
+  - `OptionalExtension::optional()?` 相当に寄せ、`QueryReturnedNoRows` 以外は error として返す contract を追加する
+  - GReader pending mutation DB error contract とは別に、article command 側の pending mutation 判定だけを扱う
+
+- [ ] manual sync warning event parity 候補を追加する
+  - `src-tauri/src/commands/sync_commands.rs` で manual all / account / feed sync でも warnings が空でなければ `SYNC_WARNING_EVENT` を emit する
+  - `trigger_automatic_sync` だけ warning event を出す状態を helper / test で揃える
+  - scheduler abnormal state や provider internal warning とは分け、manual command event parity だけを扱う
+
+- [ ] account credentials orphan secret guard 候補を追加する
+  - `src-tauri/src/commands/account_commands.rs` の `update_account_credentials` で DB 上の account 存在確認前に keyring password を保存しない
+  - account 取得後に保存するか、DB 更新失敗時に rollback する contract test を追加する
+  - frontend credentials URL validation とは分け、backend command の secret 保存順序だけを扱う
+
+- [ ] account name duplicate normalization 候補を追加する
+  - `src-tauri/src/commands/account_commands.rs` の add / rename account 重複判定を case-insensitive に揃える
+  - `Work` と `work` のような視認上近い重複を拒否する command contract を追加する
+  - account detail editor validation とは分け、account command の name uniqueness だけを扱う
+
+- [ ] shortcut preference control character guard 候補を追加する
+  - `src-tauri/src/commands/preference_commands.rs` の shortcut preference value で改行や制御文字を保存できないようにする
+  - `is_valid_shortcut_preference_value` に control char / newline rejection test を追加する
+  - frontend shortcut recording とは分け、backend preference boundary の値検証だけを扱う
+
+- [ ] command history storage blank cleanup 候補を追加する
+  - `src/schemas/storage.ts` の `CommandHistoryStorageSchema` で空文字や whitespace-only の履歴 ID を破棄する
+  - `src/__tests__/hooks/use-command-history.test.ts` と schema test で corrupted localStorage cleanup を固定する
+  - command palette recents 表示復帰とは分け、永続化 schema の blank value cleanup だけを扱う
+
+- [ ] test setup storage getter fallback 候補を追加する
+  - `tests/setup.ts` の `ensureWorkingStorage()` で `window.localStorage` / `sessionStorage` getter 自体が投げるケースを扱う
+  - SecurityError などの getter failure 時に `MemoryStorage` を注入する小テストを追加する
+  - Tauri mock strictness とは分け、test setup の Storage polyfill resilience だけを扱う
+
+- [ ] seed dev DB env blank fallback 候補を追加する
+  - `scripts/seed-dev-db-from-prod.ts` の `ULTRA_RSS_PROD_APP_DATA_DIR` / `ULTRA_RSS_DEV_APP_DATA_DIR` で blank env を unset と同じ扱いにする
+  - 空文字なら platform default に fallback する helper contract を script test で固定する
+  - seed cleanup や debug UI 導線とは分け、seed script env parsing の一点修正に限定する
+
+- [ ] Windows dispatch secret env filter 候補を追加する
+  - `scripts/lib/windows-dispatch.ts` の WSL PowerShell dispatch で `TAURI_` prefix を丸ごと encoded command line に渡さない
+  - dev 実行に必要な allowlist か `*_KEY` / `*_TOKEN` / `*_PASSWORD` 除外 contract を追加する
+  - release workflow preflight とは分け、ローカル Windows dispatch の secret exposure 防止だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
