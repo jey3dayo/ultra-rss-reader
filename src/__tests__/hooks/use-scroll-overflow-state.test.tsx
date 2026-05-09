@@ -27,6 +27,30 @@ function setScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeig
   });
 }
 
+function setTrackedScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeight: number) {
+  const readCounts = {
+    clientHeight: 0,
+    scrollHeight: 0,
+  };
+
+  Object.defineProperty(element, "clientHeight", {
+    configurable: true,
+    get: () => {
+      readCounts.clientHeight += 1;
+      return clientHeight;
+    },
+  });
+  Object.defineProperty(element, "scrollHeight", {
+    configurable: true,
+    get: () => {
+      readCounts.scrollHeight += 1;
+      return scrollHeight;
+    },
+  });
+
+  return readCounts;
+}
+
 function mockObservers() {
   const resizeObservers: ResizeObserverMockInstance[] = [];
   const mutationObservers: MutationObserverMockInstance[] = [];
@@ -233,7 +257,11 @@ describe("useScrollOverflowState", () => {
 
   it("observes content children added after observer setup", () => {
     const { resizeObservers, mutationObservers } = mockObservers();
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+    let animationFrameCallback: FrameRequestCallback | null = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      animationFrameCallback = callback;
+      return 1;
+    });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
@@ -253,6 +281,9 @@ describe("useScrollOverflowState", () => {
     act(() => {
       mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
     });
+    act(() => {
+      animationFrameCallback?.(0);
+    });
 
     expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(content);
     expect(result.current.hasOverflow).toBe(true);
@@ -265,7 +296,11 @@ describe("useScrollOverflowState", () => {
 
   it("updates overflow when content child is added and then resized", () => {
     const { resizeObservers } = mockObservers();
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+    let animationFrameCallback: FrameRequestCallback | null = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      animationFrameCallback = callback;
+      return 1;
+    });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
@@ -283,6 +318,9 @@ describe("useScrollOverflowState", () => {
     act(() => {
       resizeObservers[0]?.callback([], resizeObservers[0] as unknown as ResizeObserver);
     });
+    act(() => {
+      animationFrameCallback?.(0);
+    });
 
     expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(content);
     expect(result.current.hasOverflow).toBe(true);
@@ -290,7 +328,11 @@ describe("useScrollOverflowState", () => {
 
   it("updates overflow when content child is replaced and then resized", () => {
     const { resizeObservers, mutationObservers } = mockObservers();
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+    let animationFrameCallback: FrameRequestCallback | null = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      animationFrameCallback = callback;
+      return 1;
+    });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
     const initialContent = document.createElement("div");
@@ -313,6 +355,9 @@ describe("useScrollOverflowState", () => {
     act(() => {
       mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
     });
+    act(() => {
+      animationFrameCallback?.(0);
+    });
 
     expect(resizeObservers[0]?.unobserve).toHaveBeenCalledWith(initialContent);
     expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(replacementContent);
@@ -323,7 +368,49 @@ describe("useScrollOverflowState", () => {
     act(() => {
       resizeObservers[0]?.callback([], resizeObservers[0] as unknown as ResizeObserver);
     });
+    act(() => {
+      animationFrameCallback?.(0);
+    });
 
     expect(result.current.hasOverflow).toBe(true);
+  });
+
+  it("coalesces high-frequency mutation overflow reads into one scheduled measurement", () => {
+    const { mutationObservers } = mockObservers();
+    let animationFrameCallback: FrameRequestCallback | null = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      animationFrameCallback = callback;
+      return 1;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const viewport = document.createElement("div");
+    viewport.appendChild(document.createElement("div"));
+    const readCounts = setTrackedScrollMetrics(viewport, 100, 140);
+
+    const { result } = renderHook(() => useScrollOverflowState("settings"));
+
+    act(() => {
+      result.current.viewportRef(viewport);
+    });
+
+    expect(result.current.hasOverflow).toBe(true);
+    expect(readCounts.scrollHeight).toBe(1);
+    expect(readCounts.clientHeight).toBe(1);
+
+    act(() => {
+      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
+      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
+      mutationObservers[0]?.callback([], mutationObservers[0] as unknown as MutationObserver);
+    });
+
+    expect(readCounts.scrollHeight).toBe(1);
+    expect(readCounts.clientHeight).toBe(1);
+
+    act(() => {
+      animationFrameCallback?.(0);
+    });
+
+    expect(readCounts.scrollHeight).toBe(2);
+    expect(readCounts.clientHeight).toBe(2);
   });
 });

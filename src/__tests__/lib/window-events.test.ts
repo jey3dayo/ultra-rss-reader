@@ -199,8 +199,9 @@ describe("window-events", () => {
     expect(target.removeEventListener).toHaveBeenNthCalledWith(3, "app:event", customListener, customOptions);
   });
 
-  it("continues removing later listeners when one cleanup throws", () => {
+  it("continues removing later listeners without rethrowing when one cleanup throws", () => {
     const cleanupError = new Error("remove failed");
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const target = {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn((type: string) => {
@@ -216,10 +217,11 @@ describe("window-events", () => {
       { target, type: "second-event", listener: secondListener },
     ]);
 
-    expect(cleanup).toThrow(cleanupError);
+    expect(cleanup).not.toThrow();
 
     expect(target.removeEventListener).toHaveBeenCalledTimes(2);
     expect(target.removeEventListener).toHaveBeenNthCalledWith(1, "first-event", firstListener, undefined);
     expect(target.removeEventListener).toHaveBeenNthCalledWith(2, "second-event", secondListener, undefined);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to remove window event listener.", cleanupError);
   });
 });

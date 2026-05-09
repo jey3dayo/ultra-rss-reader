@@ -80,6 +80,16 @@ export function useScrollOverflowState(dependency: unknown) {
         value: viewport.scrollHeight > viewport.clientHeight + 1,
       });
     };
+    let pendingMeasurementFrame: OverflowMeasurementFrame | null = null;
+    const scheduleUpdateOverflow = () => {
+      if (pendingMeasurementFrame) {
+        return;
+      }
+      pendingMeasurementFrame = scheduleOverflowMeasurement(() => {
+        pendingMeasurementFrame = null;
+        updateOverflow();
+      });
+    };
 
     updateOverflow();
     const measurementFrame = scheduleOverflowMeasurement(() => {
@@ -91,6 +101,7 @@ export function useScrollOverflowState(dependency: unknown) {
       return () => {
         isActive = false;
         measurementFrame.cancel();
+        pendingMeasurementFrame?.cancel();
         removeWindowEvents();
       };
     }
@@ -110,14 +121,14 @@ export function useScrollOverflowState(dependency: unknown) {
     };
     resizeObserver = new ResizeObserver(() => {
       observeContentElement();
-      updateOverflow();
+      scheduleUpdateOverflow();
     });
     const mutationObserver =
       typeof MutationObserver === "undefined"
         ? null
         : new MutationObserver(() => {
             observeContentElement();
-            updateOverflow();
+            scheduleUpdateOverflow();
           });
 
     resizeObserver.observe(viewport);
@@ -132,6 +143,7 @@ export function useScrollOverflowState(dependency: unknown) {
     return () => {
       isActive = false;
       measurementFrame.cancel();
+      pendingMeasurementFrame?.cancel();
       removeWindowEvents();
       mutationObserver?.disconnect();
       resizeObserver.disconnect();
