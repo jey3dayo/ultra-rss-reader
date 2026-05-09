@@ -60,6 +60,31 @@
   - 対象候補: `src/__tests__/config/repo-contracts.test.ts` / `tests/helpers/render-story.tsx` / `src/__tests__/hooks/use-browser-debug-geometry-events.test.tsx`
   - production code では `unknown` + narrow / schema parse / `satisfies` を優先し、test helper assertion は proof が局所化された helper 名へ寄せる
 
+- [ ] TypeScript reader selection alias cleanup 候補を追加する
+  - `article-list.types.ts` の `ArticleListLayoutMode` / `ArticleListSelection` / `ArticleListViewMode` が root domain type の別名を増やしていないか確認する
+  - `src/lib/reader/reader-selection.types.ts` / `src/lib/layout/layout-state.types.ts` / `src/lib/reader/view-mode.types.ts` を source of truth にし、必要なら import 側を直接参照へ寄せる
+  - reader selection behavior は変えず、alias surface と type name drift の整理だけを扱う
+
+- [ ] TypeScript sidebar inline import type cleanup 候補を追加する
+  - `sidebar.types.ts` にある `import("./...").Type` 形式を named type import か小さな local alias へ整理し、params type の読みやすさを上げる
+  - `SidebarControllerSectionsParams` の責務が大きすぎる場合は account / smart views / content / header params に分ける候補を洗う
+  - sidebar controller behavior は変えず、type import surface と params grouping だけを扱う
+
+- [ ] TypeScript settings page control union cleanup 候補を追加する
+  - `settings-page.types.ts` の `SettingsPageControlBase` / `SettingsPageControl` union を、control `type` ごとの必須 field が読み取りやすい形へ整理する
+  - `text` と `action` の action props 重複、`id: string` / `name: string` の意味差分、`actionSize` の共有可否を確認する
+  - settings page rendering は変えず、control union の誤用防止と type name 整理だけを扱う
+
+- [ ] TypeScript Storybook render helper assertion cleanup 候補を追加する
+  - `tests/helpers/render-story.tsx` の `as StoryContext<TArgs>` / `as TArgs` / decorators assertion を、typed builder helper に閉じ込める
+  - Storybook `parameters` / `globals` / decorators merge の runtime contract を focused test で固定する
+  - individual story fixture 変更とは分け、render-story test helper の type boundary だけを扱う
+
+- [ ] TypeScript browser debug custom event guard 候補を追加する
+  - `use-browser-debug-geometry-events.test.tsx` の `event as CustomEvent<BrowserDebugGeometrySnapshot | null>` を small guard / typed listener helper へ寄せる
+  - `APP_EVENTS.browserDebugGeometry` の detail shape が `null` または snapshot であることを test helper 側で明示する
+  - browser debug event production hook は変えず、test listener の narrowing と assertion locality だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
