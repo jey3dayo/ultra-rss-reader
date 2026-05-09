@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import preview, { STORYBOOK_PREVIEW_BACKGROUND_TOKEN } from "../../../.storybook/preview";
+import * as storybookIndexPayload from "../../../e2e/storybook/storybook-index-payload";
 import {
   createStorybookStoryIdIndex,
   getDuplicateStorybookStoryIdDiagnostics,
@@ -130,6 +131,18 @@ function escapeRegExp(value: string): string {
 }
 
 describe("Storybook Explorer organization", () => {
+  it("keeps Storybook index payload public helpers explicit", () => {
+    expect(Object.keys(storybookIndexPayload).sort()).toEqual([
+      "createStorybookStoryIdIndex",
+      "getDuplicateStorybookStoryIdDiagnostics",
+      "getStorybookIframeStoryId",
+      "getStorybookIframeUrl",
+      "getStorybookIndexStoryIds",
+      "sortedStorybookStoryIds",
+      "uiReferenceCanvasStoryIds",
+    ]);
+  });
+
   it("defines an explicit Storybook Explorer order", () => {
     expect(preview.parameters?.options?.storySort).toMatchObject({
       order: STORYBOOK_EXPLORER_ORDER,

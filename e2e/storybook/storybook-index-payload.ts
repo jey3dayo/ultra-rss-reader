@@ -24,7 +24,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function getStorybookIndexEntries(payload: unknown): Record<string, unknown> {
+function getStorybookIndexEntries(payload: unknown): Record<string, unknown> {
   if (!isRecord(payload) || !isRecord(payload.entries)) {
     throw new Error(storybookIndexEntriesErrorMessage);
   }
@@ -36,7 +36,7 @@ function isStorybookIndexEntry(value: unknown): value is StorybookIndexEntry {
   return isRecord(value) && typeof value.id === "string";
 }
 
-export function getStorybookIndexStoryIdsFromEntries(entries: Record<string, unknown>): string[] {
+function getStorybookIndexStoryIdsFromEntries(entries: Record<string, unknown>): string[] {
   return Object.values(entries).flatMap((entry) => {
     if (!isStorybookIndexEntry(entry)) {
       throw new Error(storybookIndexEntryIdErrorMessage);
