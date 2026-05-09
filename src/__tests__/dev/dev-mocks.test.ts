@@ -159,15 +159,16 @@ describe("setupDevMocks", () => {
     expect(starredArticles[0]?.is_starred).toBe(true);
   });
 
-  it("applies mute filtering before recent article pagination", async () => {
+  it("applies mute filtering before recent article pagination without underfilling the page", async () => {
     setupDevMocks();
 
+    Result.unwrap(await recordArticleView("acc-freshrss", "art-3"));
     Result.unwrap(await createMuteKeyword("Havendock", "title"));
 
-    const firstPage = Result.unwrap(await listRecentArticles("acc-freshrss", 0, 1));
-    const secondPage = Result.unwrap(await listRecentArticles("acc-freshrss", 1, 1));
+    const firstPage = Result.unwrap(await listRecentArticles("acc-freshrss", 0, 2));
+    const secondPage = Result.unwrap(await listRecentArticles("acc-freshrss", 2, 2));
 
-    expect(firstPage.map((article) => article.id)).toEqual(["art-1"]);
+    expect(firstPage.map((article) => article.id)).toEqual(["art-3", "art-1"]);
     expect(secondPage).toEqual([]);
   });
 
