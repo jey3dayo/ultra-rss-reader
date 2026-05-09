@@ -3,9 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPaletteResourceGroups } from "@/components/reader/command-palette-resource-groups";
 import { Command, CommandList } from "@/components/ui/command";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
-import { sampleArticles, sampleFeeds, sampleTags } from "../../../tests/helpers/fixtures";
+import {
+  sampleArticles,
+  sampleFeeds,
+  sampleTags,
+} from "../../../tests/helpers/fixtures";
 
-type CommandPaletteResourceGroupsProps = Parameters<typeof CommandPaletteResourceGroups>[0];
+type CommandPaletteResourceGroupsProps = Parameters<
+  typeof CommandPaletteResourceGroups
+>[0];
 type CommandPaletteResourceGroupsOverrides = Omit<
   Partial<CommandPaletteResourceGroupsProps>,
   "items" | "displayState" | "headings" | "handlers"
@@ -16,7 +22,9 @@ type CommandPaletteResourceGroupsOverrides = Omit<
   handlers?: Partial<CommandPaletteResourceGroupsProps["handlers"]>;
 };
 
-function renderResourceGroups(overrides: CommandPaletteResourceGroupsOverrides = {}) {
+function renderResourceGroups(
+  overrides: CommandPaletteResourceGroupsOverrides = {},
+) {
   const props = {
     items: {
       filteredDevScenarios: [],
@@ -97,20 +105,36 @@ describe("CommandPaletteResourceGroups", () => {
     });
 
     expect(screen.getByRole("group", { name: "Feeds" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Tech Blog/ })).toBeInTheDocument();
-    expect(screen.getByText("https://example.com")).toHaveClass("text-foreground-soft");
-    expect(screen.queryByRole("option", { name: /News/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Tech Blog/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("https://example.com")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(
+      screen.queryByRole("option", { name: /News/ }),
+    ).not.toBeInTheDocument();
 
     const tagsGroup = screen.getByRole("group", { name: "Tags" });
     expect(tagsGroup).toBeInTheDocument();
-    expect(within(tagsGroup).getByRole("option", { name: /Tech/ })).toBeInTheDocument();
+    expect(
+      within(tagsGroup).getByRole("option", { name: /Tech/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText("#6f8eb8")).toHaveClass("text-foreground-soft");
-    expect(screen.queryByRole("option", { name: /Later/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Later/ }),
+    ).not.toBeInTheDocument();
 
     expect(screen.getByRole("group", { name: "Articles" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /First Article/ })).toBeInTheDocument();
-    expect(screen.getByText("https://example.com/1")).toHaveClass("text-foreground-soft");
-    expect(screen.queryByRole("option", { name: /Second Article/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /First Article/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("https://example.com/1")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(
+      screen.queryByRole("option", { name: /Second Article/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("uses the localized dev scenarios heading prop", () => {
@@ -138,7 +162,54 @@ describe("CommandPaletteResourceGroups", () => {
       },
     });
 
-    expect(screen.getByRole("group", { name: "Development States" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Development States" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
+  });
+
+  it("renders supplementary text that disambiguates similarly named search results", () => {
+    renderResourceGroups({
+      items: {
+        filteredFeeds: [
+          { ...sampleFeeds[0], title: "Daily" },
+          { ...sampleFeeds[1], title: "Daily", site_url: null },
+        ],
+        filteredTags: [{ ...sampleTags[0], name: "Daily" }],
+        articles: [
+          { ...sampleArticles[0], title: "Daily" },
+          { ...sampleArticles[1], title: "Daily" },
+        ],
+      },
+    });
+
+    const feedsGroup = screen.getByRole("group", { name: "Feeds" });
+    expect(
+      within(feedsGroup).getByRole("option", {
+        name: /Daily\s*https:\/\/example\.com$/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(feedsGroup).getByRole("option", {
+        name: /Daily\s*https:\/\/example\.com\/news\.xml/,
+      }),
+    ).toBeInTheDocument();
+
+    const tagsGroup = screen.getByRole("group", { name: "Tags" });
+    expect(
+      within(tagsGroup).getByRole("option", { name: /Daily\s*#6f8eb8/ }),
+    ).toBeInTheDocument();
+
+    const articlesGroup = screen.getByRole("group", { name: "Articles" });
+    expect(
+      within(articlesGroup).getByRole("option", {
+        name: /Daily\s*https:\/\/example\.com\/1/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(articlesGroup).getByRole("option", {
+        name: /Daily\s*https:\/\/example\.com\/2/,
+      }),
+    ).toBeInTheDocument();
   });
 });
