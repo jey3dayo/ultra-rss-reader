@@ -235,16 +235,6 @@
   - `src/__tests__/components/use-data-settings-controller.test.ts` で deferred info request と vacuum success の順序逆転を固定する
   - database command busy / restore contract とは分け、settings controller state race だけを扱う
 
-- [ ] fixture folder relationship contract 候補を追加する
-  - `tests/helpers/fixtures.ts` の sample feed / folder 関係に folder scope を表現できる fixture を追加する
-  - `tests/helpers/fixtures.test.ts` で `sampleFolders` と `sampleFeeds.folder_id` の参照整合性を固定する
-  - Tauri default mock coverage とは分け、fixture graph の最小関係だけを扱う
-
-- [ ] feed integrity cleanup mock contract 候補を追加する
-  - `src/api/schemas/feed-integrity.ts` の cleanup response schema に合わせて `cleanup_feed_integrity_orphans` default mock を用意する
-  - `tests/helpers/tauri-mocks.test.ts` で dry-run cleanup DTO を schema-valid に通し、invalid cleanup response validation も確認する
-  - feed integrity UI polish とは分け、maintenance command mock / schema contract だけを扱う
-
 - [ ] article toolbar layout prop boundary 候補を追加する
   - `src/components/reader/article-toolbar-view.tsx` の `ArticleToolbarActionStrip` が `useUiStore(layoutMode)` を直接読む構造を props 境界へ寄せる
   - `src/__tests__/components/article-toolbar-view.test.tsx` で store の layoutMode と prop が食い違っても prop 側で mobile / desktop action が決まることを固定する
