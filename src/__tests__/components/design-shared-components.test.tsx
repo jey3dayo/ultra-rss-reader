@@ -9,6 +9,7 @@ import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { WorkspaceHeader } from "@/components/shared/workspace-header";
+import { LAYER_POINTER_EVENT_CLASS_NAMES, WORKSPACE_HEADER_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 
 describe("Design-themed shared components", () => {
@@ -237,11 +238,18 @@ describe("Design-themed shared components", () => {
     expect(titleGroupDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(topDragRegion).not.toContainElement(closeButton);
     expect(titleGroupDragRegion).not.toContainElement(backButton);
-    expect(screen.getByTestId("workspace-header-leading")).toHaveClass("pointer-events-none");
-    expect(screen.getByTestId("workspace-header-actions")).toHaveClass("z-30");
+    expect(screen.getByTestId("workspace-header-leading")).toHaveClass(LAYER_POINTER_EVENT_CLASS_NAMES.inert);
+    expect(screen.getByTestId("workspace-header-actions")).toHaveClass(
+      WORKSPACE_HEADER_STACKING_CLASS_NAMES.interactiveControl,
+    );
     expect(closeButton).not.toHaveClass("pointer-events-none");
-    expect(backButton).toHaveClass("z-30", "pointer-events-auto");
-    expect(screen.getByTestId("workspace-header-title-drag-content")).toHaveClass("pointer-events-none");
+    expect(backButton).toHaveClass(
+      WORKSPACE_HEADER_STACKING_CLASS_NAMES.interactiveControl,
+      LAYER_POINTER_EVENT_CLASS_NAMES.interactive,
+    );
+    expect(screen.getByTestId("workspace-header-title-drag-content")).toHaveClass(
+      LAYER_POINTER_EVENT_CLASS_NAMES.inert,
+    );
   });
 
   it("moves desktop back navigation into the title row", () => {

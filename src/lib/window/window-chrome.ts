@@ -18,6 +18,17 @@ export const APP_STACKING_CLASS_NAMES = {
   toast: "z-[100]",
 } as const;
 
+export const WORKSPACE_HEADER_STACKING_CLASS_NAMES = {
+  dragRegion: "z-10",
+  passiveContent: "z-20",
+  interactiveControl: "z-30",
+} as const;
+
+export const LAYER_POINTER_EVENT_CLASS_NAMES = {
+  inert: "pointer-events-none",
+  interactive: "pointer-events-auto",
+} as const;
+
 export function hasTauriRuntime(): boolean {
   if (typeof window === "undefined") {
     return false;

@@ -11,7 +11,12 @@ import {
   formatRawKeyboardTrace,
   formatRawPointerTrace,
 } from "@/lib/debug/debug-input-trace";
-import { APP_STACKING_CLASS_NAMES, hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+import {
+  APP_STACKING_CLASS_NAMES,
+  hasTauriRuntime,
+  LAYER_POINTER_EVENT_CLASS_NAMES,
+  shouldUseDesktopOverlayTitlebar,
+} from "@/lib/window/window-chrome";
 import {
   bindWindowEvents,
   createCustomEventDetailListener,
@@ -508,7 +513,9 @@ export function AppShell() {
         className={cn(
           "absolute inset-0",
           APP_STACKING_CLASS_NAMES.browserOverlayRoot,
-          browserOverlayRootInteractive ? "pointer-events-auto" : "pointer-events-none",
+          browserOverlayRootInteractive
+            ? LAYER_POINTER_EVENT_CLASS_NAMES.interactive
+            : LAYER_POINTER_EVENT_CLASS_NAMES.inert,
           // Keep the overlay root aligned to the shell; traffic-light safe area is handled by browser geometry.
           overlayTitlebar && "desktop-overlay-titlebar",
         )}

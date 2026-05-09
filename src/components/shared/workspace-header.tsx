@@ -8,7 +8,12 @@ import {
   type MotionPhase,
 } from "@/constants";
 import { cn } from "@/lib/utils";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+import {
+  hasTauriRuntime,
+  LAYER_POINTER_EVENT_CLASS_NAMES,
+  shouldUseDesktopOverlayTitlebar,
+  WORKSPACE_HEADER_STACKING_CLASS_NAMES,
+} from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 
 type WorkspaceHeaderProps = {
@@ -35,6 +40,8 @@ type MotionTextProps = {
 
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
 const MAC_OVERLAY_TITLE_OFFSET_PX = 24;
+const layerPointerEventClassNames = LAYER_POINTER_EVENT_CLASS_NAMES;
+const workspaceHeaderStackingClassNames = WORKSPACE_HEADER_STACKING_CLASS_NAMES;
 
 const motionTextClassNames: Record<MotionTextVariant, string> = {
   eyebrow: "font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase",
@@ -164,15 +171,16 @@ export function WorkspaceHeader({
               data-testid="workspace-header-top-row-drag-region"
               data-tauri-drag-region
               aria-hidden="true"
-              className="absolute inset-0 z-10"
+              className={cn("absolute inset-0", workspaceHeaderStackingClassNames.dragRegion)}
             />
           ) : null}
           <div
             data-testid="workspace-header-leading"
             className={cn(
-              "relative z-20 flex min-w-0 items-center gap-2",
+              "relative flex min-w-0 items-center gap-2",
+              workspaceHeaderStackingClassNames.passiveContent,
               isDesktopApp && "flex-1",
-              useDesktopOverlay && "pointer-events-none",
+              useDesktopOverlay && layerPointerEventClassNames.inert,
             )}
           >
             {hasBackAction ? (
@@ -188,7 +196,13 @@ export function WorkspaceHeader({
               </MotionText>
             ) : null}
           </div>
-          <div data-testid="workspace-header-actions" className="relative z-30 flex shrink-0 items-center gap-2">
+          <div
+            data-testid="workspace-header-actions"
+            className={cn(
+              "relative flex shrink-0 items-center gap-2",
+              workspaceHeaderStackingClassNames.interactiveControl,
+            )}
+          >
             {actions}
             <WorkspaceHeaderActionButton aria-label={closeLabel} onClick={onClose}>
               <X className="size-4" />
@@ -207,16 +221,22 @@ export function WorkspaceHeader({
               data-testid="workspace-header-title-group-drag-region"
               data-tauri-drag-region
               aria-hidden="true"
-              className="absolute inset-0 z-10"
+              className={cn("absolute inset-0", workspaceHeaderStackingClassNames.dragRegion)}
             />
           ) : null}
           {showEyebrowInTitleGroup ? (
-            <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
+            <div
+              className={cn(
+                "relative",
+                workspaceHeaderStackingClassNames.passiveContent,
+                useDesktopOverlay && layerPointerEventClassNames.inert,
+              )}
+            >
               <div
                 data-testid="workspace-header-context-row"
                 className={cn(
                   "flex flex-wrap items-center gap-x-2 gap-y-0.5",
-                  useDesktopOverlay && "pointer-events-none",
+                  useDesktopOverlay && layerPointerEventClassNames.inert,
                 )}
               >
                 <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
@@ -229,13 +249,18 @@ export function WorkspaceHeader({
             <div
               data-testid="workspace-header-navigation-row"
               className={cn(
-                "relative z-20 flex min-w-0 items-center gap-2.5",
-                useDesktopOverlay && "pointer-events-none",
+                "relative flex min-w-0 items-center gap-2.5",
+                workspaceHeaderStackingClassNames.passiveContent,
+                useDesktopOverlay && layerPointerEventClassNames.inert,
               )}
             >
               {hasBackAction ? (
                 <WorkspaceHeaderActionButton
-                  className={cn("relative z-30", useDesktopOverlay && "pointer-events-auto")}
+                  className={cn(
+                    "relative",
+                    workspaceHeaderStackingClassNames.interactiveControl,
+                    useDesktopOverlay && layerPointerEventClassNames.interactive,
+                  )}
                   aria-label={backLabel}
                   onClick={onBack}
                 >
@@ -244,7 +269,7 @@ export function WorkspaceHeader({
               ) : null}
               <div
                 data-testid="workspace-header-title-drag-content"
-                className={cn("min-w-0 flex-1", useDesktopOverlay && "pointer-events-none")}
+                className={cn("min-w-0 flex-1", useDesktopOverlay && layerPointerEventClassNames.inert)}
               >
                 <MotionText as="h1" phase={contentMotionPhase} variant="title">
                   {title}
@@ -256,13 +281,19 @@ export function WorkspaceHeader({
               {title}
             </MotionText>
           )}
-          <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
+          <div
+            className={cn(
+              "relative",
+              workspaceHeaderStackingClassNames.passiveContent,
+              useDesktopOverlay && layerPointerEventClassNames.inert,
+            )}
+          >
             <MotionText
               as="p"
               phase={contentMotionPhase}
               variant="subtitle"
               testId="workspace-header-subtitle-content"
-              className={cn(useDesktopOverlay && "pointer-events-none")}
+              className={cn(useDesktopOverlay && layerPointerEventClassNames.inert)}
             >
               {subtitle}
             </MotionText>
