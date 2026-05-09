@@ -4,7 +4,6 @@ import { copyToClipboard } from "@/api/tauri-commands";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export type ClipboardErrorCategory = "runtime_unavailable" | "permission_denied" | "invalid_text" | "unknown";
-export type ClipboardTextCategory = "plain_text" | "article_link";
 
 export type ClipboardCopyError = AppError & {
   category: ClipboardErrorCategory;
@@ -12,6 +11,8 @@ export type ClipboardCopyError = AppError & {
 
 export const CLIPBOARD_TEXT_MAX_CHARS = 2048;
 const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
+
+type ClipboardTextCategory = "plain_text" | "article_link";
 
 type CopyTextToClipboardOptions = {
   category?: ClipboardTextCategory;

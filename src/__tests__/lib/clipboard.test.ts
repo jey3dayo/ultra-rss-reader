@@ -196,15 +196,19 @@ describe("clipboard", () => {
   });
 
   it("rejects non-http article link clipboard values before invoking native or frontend writes", async () => {
-    for (const value of ["mailto:hello@example.com", "file:///tmp/article.html", "https://example.com/article\nnext"]) {
-      const result = await copyTextToClipboard(value, { category: "article_link" });
+    await Promise.all(
+      ["mailto:hello@example.com", "file:///tmp/article.html", "https://example.com/article\nnext"].map(
+        async (value) => {
+          const result = await copyTextToClipboard(value, { category: "article_link" });
 
-      expect(Result.isFailure(result)).toBe(true);
-      expect(Result.unwrapError(result)).toMatchObject({
-        message: "Invalid clipboard text",
-        category: "invalid_text",
-      });
-    }
+          expect(Result.isFailure(result)).toBe(true);
+          expect(Result.unwrapError(result)).toMatchObject({
+            message: "Invalid clipboard text",
+            category: "invalid_text",
+          });
+        },
+      ),
+    );
 
     expect(copyToClipboardMock).not.toHaveBeenCalled();
   });
