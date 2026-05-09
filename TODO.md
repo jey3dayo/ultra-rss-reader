@@ -60,25 +60,10 @@
   - `article-list.types.ts` / `browser-view.types.ts` / `command-palette.types.ts` など広い contract は一括削除せず参照範囲ごとに分ける
   - public wrapper API と Storybook helper export は allowlist 化し、実 dead code だけを削除する
 
-- [ ] P3 react-doctor UI primitive dead export allowlist 候補を追加する
-  - `src/components/ui/button.tsx` / `dialog.tsx` / `input.tsx` / `select.tsx` / `scroll-area.tsx` / `collapsible.tsx` の unused type/export 指摘を wrapper public API として残すか削るか判断する
-  - shared primitive contract test または knip allowlist で意図した public export を固定する
-  - Base UI / primitive migration とは分け、現行 UI wrapper の export surface 明文化だけを扱う
-
-- [ ] P2 react-doctor Tauri command schema dead export 候補を追加する
-  - `src/api/tauri-commands.ts` / `src/api/schemas/commands.ts` / `platform-info.ts` / `feed-integrity.ts` の unused export 指摘を command boundary ごとに棚卸しする
-  - invoke wrapper tests が必要な schema を直接 import しているかを確認し、未使用 command schema だけ削除または allowlist 化する
-  - IPC validation task とは分け、Tauri command/schema export surface の dead code cleanup だけを扱う
-
 - [ ] P3 react-doctor many boolean props decomposition 候補を追加する
   - `react-doctor/no-many-boolean-props` の対象 component を action group / named variant / discriminated props へ分割できるか確認する
   - 対象候補: `ArticleToolbarMoreMenu` / `sidebar-header-view` / `command-palette-resource-groups` / `sidebar-content-sections` / `command-palette-results`
   - toolbar taxonomy や command palette grouping 再設計とは分け、boolean prop surface の読みやすさと誤用防止だけを扱う
-
-- [ ] P3 react-doctor test async waterfall 候補を追加する
-  - `react-doctor/server-sequential-independent-await` が出ている test 群を、読みやすさを壊さない範囲で setup await と assertion await に分ける
-  - 対象候補: `use-updater.test.ts` / `tauri-commands.test.ts` / `sidebar.test.tsx` / `scenario-runtime.test.ts`
-  - production code の async policy とは分け、test runtime の無駄な waterfall cleanup だけを扱う
 
 - [ ] P3 react-doctor knip unused files cleanup 候補を追加する
   - `knip/files` の unused file 指摘を実 unused / config entrypoint / Storybook or Playwright entrypoint に分類する
