@@ -405,7 +405,8 @@ impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
 #[cfg(test)]
 mod tests {
     use super::{
-        AccountDto, AppError, FeedDto, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto,
+        AccountDto, AccountProviderCapabilitiesDto, AppError, FeedDto, PlatformCapabilitiesDto,
+        PlatformInfoDto, PlatformKindDto,
     };
     use crate::domain::error::DomainError;
 
@@ -548,6 +549,60 @@ mod tests {
         assert_eq!(capabilities["supports_search"], true);
         assert_eq!(capabilities["supports_delta_sync"], true);
         assert_eq!(capabilities["supports_remote_state"], true);
+    }
+
+    #[test]
+    fn account_dto_serializes_provider_specific_capabilities() {
+        let fixtures = [
+            (
+                crate::domain::provider::ProviderKind::Local,
+                AccountProviderCapabilitiesDto {
+                    supports_folders: false,
+                    supports_starring: false,
+                    supports_search: false,
+                    supports_delta_sync: false,
+                    supports_remote_state: false,
+                },
+            ),
+            (
+                crate::domain::provider::ProviderKind::FreshRss,
+                AccountProviderCapabilitiesDto {
+                    supports_folders: true,
+                    supports_starring: true,
+                    supports_search: true,
+                    supports_delta_sync: true,
+                    supports_remote_state: true,
+                },
+            ),
+        ];
+
+        for (kind, expected_capabilities) in fixtures {
+            let kind_name = format!("{kind:?}");
+            let account = crate::domain::account::Account {
+                id: crate::domain::types::AccountId(format!("acc-{kind_name}")),
+                kind,
+                name: format!("{kind_name} Account"),
+                server_url: None,
+                username: None,
+                sync_interval_secs: 3600,
+                sync_on_startup: true,
+                sync_on_wake: false,
+                keep_read_items_days: 30,
+                connection_verification_status:
+                    crate::domain::account::ConnectionVerificationStatus::Unverified,
+                connection_verified_at: None,
+                connection_verification_error: None,
+            };
+
+            let value = serde_json::to_value(AccountDto::from(account))
+                .expect("account dto should serialize");
+
+            assert_eq!(
+                value["capabilities"],
+                serde_json::to_value(expected_capabilities)
+                    .expect("expected capabilities should serialize")
+            );
+        }
     }
 
     #[test]

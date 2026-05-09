@@ -145,6 +145,83 @@ describe("DTO schemas", () => {
     };
     expect(AccountDtoSchema.parse(data)).toEqual(data);
   });
+  it("parses provider-specific AccountDto capability fixtures without changing display copy", () => {
+    const providerFixtures = [
+      {
+        id: "acc-local",
+        kind: "Local",
+        name: "Local",
+        display_name: "Local",
+        icon_url: null,
+        capabilities: {
+          supports_folders: false,
+          supports_starring: false,
+          supports_search: false,
+          supports_delta_sync: false,
+          supports_remote_state: false,
+        },
+        server_url: null,
+        username: null,
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+        connection_verification_status: "unverified",
+        connection_verified_at: null,
+        connection_verification_error: null,
+      },
+      {
+        id: "acc-freshrss",
+        kind: "FreshRss",
+        name: "FreshRSS",
+        display_name: "FreshRSS",
+        icon_url: null,
+        capabilities: {
+          supports_folders: true,
+          supports_starring: true,
+          supports_search: true,
+          supports_delta_sync: true,
+          supports_remote_state: true,
+        },
+        server_url: "https://freshrss.example.com",
+        username: "reader",
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+        connection_verification_status: "verified",
+        connection_verified_at: "2026-04-15T01:00:00Z",
+        connection_verification_error: null,
+      },
+      {
+        id: "acc-freshrss-lowercase",
+        kind: "freshrss",
+        name: "FreshRSS",
+        display_name: "FreshRSS",
+        icon_url: null,
+        capabilities: {
+          supports_folders: true,
+          supports_starring: true,
+          supports_search: true,
+          supports_delta_sync: true,
+          supports_remote_state: true,
+        },
+        server_url: "https://freshrss.example.com",
+        username: "reader",
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+        connection_verification_status: "verified",
+        connection_verified_at: "2026-04-15T01:00:00Z",
+        connection_verification_error: null,
+      },
+    ];
+
+    for (const fixture of providerFixtures) {
+      expect(AccountDtoSchema.parse(fixture)).toEqual(fixture);
+    }
+  });
   it("parses valid AccountSyncStatusDto", () => {
     const data = {
       last_success_at: "2026-04-15T01:00:00Z",
