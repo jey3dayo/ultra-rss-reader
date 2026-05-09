@@ -389,6 +389,13 @@ describe("DTO schemas", () => {
         url: "https://example.com/feed.xml\nnext",
       }),
     ).toThrow();
+    expect(FeedDtoSchema.parse({ ...data, site_url: "" })).toEqual({
+      ...data,
+      site_url: "",
+    });
+    expect(() => FeedDtoSchema.parse({ ...data, site_url: "   " })).toThrow();
+    expect(() => FeedDtoSchema.parse({ ...data, site_url: " https://example.com " })).toThrow();
+    expect(() => FeedDtoSchema.parse({ ...data, site_url: "ftp://example.com" })).toThrow();
   });
   it("keeps FeedDto schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(FeedDtoSchema.shape).sort()).toEqual(

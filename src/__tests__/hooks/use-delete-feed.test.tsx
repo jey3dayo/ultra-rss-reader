@@ -50,6 +50,27 @@ describe("useDeleteFeed", () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a successful delete successful when the optional success callback throws", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const deleteFeedSpy = vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.succeed(null));
+    const onSuccess = vi.fn(() => {
+      throw new Error("callback boom");
+    });
+
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: "Tech Blog", onSuccess }),
+    ).resolves.toBeNull();
+
+    expect(deleteFeedSpy).toHaveBeenCalledWith("feed-1");
+    expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    });
+  });
+
   it("shows a failure toast, calls onError, and rejects on delete failure", async () => {
     vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
     const onError = vi.fn();
@@ -64,5 +85,44 @@ describe("useDeleteFeed", () => {
       expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");
     });
     expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the delete failure reason when the optional error callback throws", async () => {
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
+    const onError = vi.fn(() => {
+      throw new Error("callback boom");
+    });
+
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: "Tech Blog", onError }),
+    ).rejects.toMatchObject({ message: "boom" });
+
+    expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects blank feed ids before calling the delete command", async () => {
+    const deleteFeedSpy = vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ feedId: " \n ", accountId: "acc-1", title: "Tech Blog" }),
+    ).rejects.toMatchObject({ message: "Feed id is required" });
+
+    expect(deleteFeedSpy).not.toHaveBeenCalled();
+    expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: Feed id is required");
+  });
+
+  it("falls back to the feed id when the success toast title is blank", async () => {
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: " \n " });
+
+    expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from feed-1");
   });
 });

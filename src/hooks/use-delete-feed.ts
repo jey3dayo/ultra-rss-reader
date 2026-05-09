@@ -13,6 +13,18 @@ type DeleteFeedArgs = {
   onError?: () => void;
 };
 
+function callOptionalCallback(callback: (() => void) | undefined) {
+  try {
+    callback?.();
+  } catch (error) {
+    console.error("Delete feed callback failed", error);
+  }
+}
+
+function getDeletedFeedTitle({ feedId, title }: Pick<DeleteFeedArgs, "feedId" | "title">) {
+  return title.trim() || feedId;
+}
+
 export function useDeleteFeed() {
   const { t } = useTranslation("reader");
   const queryClient = useQueryClient();
@@ -20,6 +32,9 @@ export function useDeleteFeed() {
 
   return useMutation<null, { message: string }, DeleteFeedArgs>({
     mutationFn: async ({ feedId }) => {
+      if (feedId.trim().length === 0) {
+        throw new Error("Feed id is required");
+      }
       const result = await deleteFeed(feedId);
       return Result.unwrap(result);
     },
@@ -29,12 +44,12 @@ export function useDeleteFeed() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex(variables.accountId),
       });
-      showToast(t("unsubscribed_from", { title: variables.title }));
-      variables.onSuccess?.();
+      showToast(t("unsubscribed_from", { title: getDeletedFeedTitle(variables) }));
+      callOptionalCallback(variables.onSuccess);
     },
     onError: (error, variables) => {
       showToast(t("failed_to_unsubscribe", { message: error.message }));
-      variables.onError?.();
+      callOptionalCallback(variables.onError);
     },
   });
 }

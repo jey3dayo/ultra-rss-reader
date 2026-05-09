@@ -28,6 +28,7 @@ const feedUrlSchema = z
   .refine(isHttpUrl, {
     message: "Only valid http:// and https:// feed URLs are supported",
   });
+const optionalFeedSiteUrlSchema = z.literal("").or(feedUrlSchema);
 
 export const FeedDtoSchema = z.object({
   id: nonBlankStringSchema,
@@ -36,7 +37,7 @@ export const FeedDtoSchema = z.object({
   remote_id: z.string().nullable(),
   title: nonBlankStringSchema,
   url: feedUrlSchema,
-  site_url: z.string(),
+  site_url: optionalFeedSiteUrlSchema,
   unread_count: NonnegativeIntegerSchema,
   reader_mode: FeedDisplayModeSchema,
   web_preview_mode: FeedDisplayModeSchema,
