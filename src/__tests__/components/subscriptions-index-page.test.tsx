@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -28,6 +28,9 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
   return element;
 }
 
+let deleteFeedHandler: (() => unknown) | null = null;
+let deleteFeedCalls: string[] = [];
+
 describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("ja");
@@ -37,6 +40,8 @@ describe("SubscriptionsIndexPage", () => {
       subscriptionsWorkspace: { kind: "index" },
     });
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    deleteFeedHandler = null;
+    deleteFeedCalls = [];
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -170,6 +175,9 @@ describe("SubscriptionsIndexPage", () => {
           return [];
         case "get_tag_article_counts":
           return {};
+        case "delete_feed":
+          deleteFeedCalls.push(String(args.feedId));
+          return deleteFeedHandler ? deleteFeedHandler() : null;
         default:
           return undefined;
       }
@@ -781,5 +789,36 @@ describe("SubscriptionsIndexPage", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+  });
+
+  it("guards unsubscribe confirmation while the delete mutation is pending", async () => {
+    const user = userEvent.setup();
+    let resolveDelete: () => void = () => {};
+    deleteFeedHandler = () =>
+      new Promise<null>((resolve) => {
+        resolveDelete = () => resolve(null);
+      });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    const unsubscribeDialog = await screen.findByRole("dialog");
+    const confirmButton = within(unsubscribeDialog).getByRole("button", { name: /^(購読解除|unsubscribe)$/ });
+
+    fireEvent.click(confirmButton);
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(deleteFeedCalls).toEqual(["feed-1"]);
+      expect(confirmButton).toBeDisabled();
+      expect(within(unsubscribeDialog).getByRole("button", { name: /^(キャンセル|cancel)$/ })).toBeDisabled();
+    });
+
+    resolveDelete();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 });

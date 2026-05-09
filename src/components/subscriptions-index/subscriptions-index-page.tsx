@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
@@ -55,6 +55,8 @@ export function SubscriptionsIndexPage() {
   const { data: feedArticleSummaries = [] } = useFeedArticleSummaries(selectedAccountId);
   const deleteFeedMutation = useDeleteFeed();
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
+  const deletePendingRef = useRef(false);
+  const [deletePending, setDeletePending] = useState(false);
   const [editTargetFeed, setEditTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
 
@@ -183,6 +185,30 @@ export function SubscriptionsIndexPage() {
         }
       : null;
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetFeed || deletePendingRef.current) {
+      return;
+    }
+
+    deletePendingRef.current = true;
+    setDeletePending(true);
+    try {
+      await deleteFeedMutation.mutateAsync({
+        feedId: deleteTargetFeed.id,
+        accountId: deleteTargetFeed.account_id,
+        title: deleteTargetFeed.title,
+        onSuccess: () => {
+          setDeleteTargetFeed(null);
+        },
+      });
+    } catch {
+      return;
+    } finally {
+      deletePendingRef.current = false;
+      setDeletePending(false);
+    }
+  };
+
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
       const target = event.target;
@@ -285,20 +311,14 @@ export function SubscriptionsIndexPage() {
         <UnsubscribeDialog
           feed={deleteTargetFeed}
           open={true}
+          pending={deletePending || deleteFeedMutation.isPending}
           onOpenChange={(open) => {
             if (!open) {
               setDeleteTargetFeed(null);
             }
           }}
           onConfirm={() => {
-            void deleteFeedMutation.mutateAsync({
-              feedId: deleteTargetFeed.id,
-              accountId: deleteTargetFeed.account_id,
-              title: deleteTargetFeed.title,
-              onSuccess: () => {
-                setDeleteTargetFeed(null);
-              },
-            });
+            void handleConfirmDelete();
           }}
         />
       ) : null}

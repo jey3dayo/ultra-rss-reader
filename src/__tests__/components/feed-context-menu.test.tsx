@@ -96,7 +96,7 @@ describe("FeedContextMenuContent", () => {
 
     render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "open_site" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open example.com" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -122,7 +122,7 @@ describe("FeedContextMenuContent", () => {
 
     render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "open_site" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open example.com" }));
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith("Browser unavailable");
@@ -138,7 +138,10 @@ describe("FeedContextMenuContent", () => {
 
     render(<FeedContextMenuContent feed={feed} />);
 
-    expect(screen.getByRole("button", { name: "open_site" })).toHaveAttribute("data-has-unread-articles", "false");
+    expect(screen.getByRole("button", { name: "Open example.com" })).toHaveAttribute(
+      "data-has-unread-articles",
+      "false",
+    );
   });
 
   it("guards unsubscribe confirmation while the delete mutation is pending", async () => {

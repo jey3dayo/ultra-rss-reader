@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
@@ -57,6 +57,7 @@ describe("DestructiveConfirmDialogView", () => {
 
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.pointerDown(document.querySelector('[data-slot="dialog-overlay"]') ?? document.body);
     await user.keyboard("{Escape}");
 
     expect(onConfirm).not.toHaveBeenCalled();

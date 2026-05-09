@@ -282,6 +282,41 @@ describe("RenameDialog", () => {
     expect(calls.find((call) => call.cmd === "rename_feed")).toBeUndefined();
   });
 
+  it("trims the feed title before validating and renaming", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const onOpenChange = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "rename_feed":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.type(screen.getByLabelText(/title/i), "  Renamed Feed  ");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "rename_feed",
+        args: { feedId: "feed-1", title: "Renamed Feed" },
+      });
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
   it("ignores unknown display-mode values from the view", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
