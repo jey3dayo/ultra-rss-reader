@@ -30,6 +30,22 @@ const storyMetas = Object.entries(storyModules)
 
 const titles = storyMetas.map((entry) => entry.title);
 const globalStyles = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
+const uiReferenceSourcePaths = [
+  "src/components/storybook/ui-reference-button-controls-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-canvas-specimens.tsx",
+  "src/components/storybook/ui-reference-control-specimens.tsx",
+  "src/components/storybook/ui-reference-foundation-specimens.tsx",
+  "src/components/storybook/ui-reference-foundations-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-navigation-collections-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-navigation-specimens.tsx",
+  "src/components/storybook/ui-reference-settings-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-settings-specimens.tsx",
+  "src/components/storybook/ui-reference-settings-workspace-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-shell-overlay-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-shell-specimens.tsx",
+  "src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx",
+  "src/components/storybook/ui-reference-workspace-specimens.tsx",
+] as const;
 
 type StorybookBackgroundName = "dark" | "light";
 
@@ -109,6 +125,16 @@ describe("Storybook Explorer organization", () => {
     expect(sortedCopy(titlesUnder(STORYBOOK_EXPLORER_GROUPS.uiReference))).toEqual(
       sortedCopy(STORYBOOK_EXPLORER_UI_REFERENCE_TITLES),
     );
+  });
+
+  it("keeps UI Reference visible copy on typographic ellipsis", () => {
+    const visibleThreePeriodMatches = uiReferenceSourcePaths.flatMap((path) => {
+      const source = readFileSync(join(process.cwd(), path), "utf8");
+      const matches = source.match(/["'`>][^"'`<>{}]*\.\.\.[^"'`<>{}]*/g) ?? [];
+      return matches.map((match) => `${path}: ${match}`);
+    });
+
+    expect(visibleThreePeriodMatches).toEqual([]);
   });
 
   it("moves shared stories into dedicated role groups", () => {

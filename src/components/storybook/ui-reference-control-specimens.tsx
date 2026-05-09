@@ -1,6 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import { Check, Clock3, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
 import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
 import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
@@ -35,6 +35,39 @@ export {
 export { NavigationButtonPatternsSpecimen } from "./ui-reference-navigation-specimens";
 
 type CssVariableProperties = CSSProperties & Record<`--${string}`, string>;
+
+type ReaderHeaderActionStripState = {
+  isRead: boolean;
+  isStarred: boolean;
+  isBrowserOpen: boolean;
+};
+
+type ReaderHeaderActionStripAction =
+  | {
+      type: "set-read";
+      value: boolean;
+    }
+  | {
+      type: "set-starred";
+      value: boolean;
+    }
+  | {
+      type: "toggle-browser-open";
+    };
+
+function readerHeaderActionStripReducer(
+  state: ReaderHeaderActionStripState,
+  action: ReaderHeaderActionStripAction,
+): ReaderHeaderActionStripState {
+  switch (action.type) {
+    case "set-read":
+      return { ...state, isRead: action.value };
+    case "set-starred":
+      return { ...state, isStarred: action.value };
+    case "toggle-browser-open":
+      return { ...state, isBrowserOpen: !state.isBrowserOpen };
+  }
+}
 
 const darkReaderToolbarTokens: CssVariableProperties = {
   "--foreground": "rgba(242, 241, 237, 0.92)",
@@ -347,12 +380,16 @@ export function ArticleFilterToggleButtonSpecimen() {
 }
 
 export function ReaderHeaderActionStripSpecimen() {
-  const [isRead, setIsRead] = useState(false);
-  const [isStarred, setIsStarred] = useState(true);
-  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
-  const [darkIsRead, setDarkIsRead] = useState(false);
-  const [darkIsStarred, setDarkIsStarred] = useState(true);
-  const [darkIsBrowserOpen, setDarkIsBrowserOpen] = useState(true);
+  const [lightArticleState, dispatchLightArticleState] = useReducer(readerHeaderActionStripReducer, {
+    isRead: false,
+    isStarred: true,
+    isBrowserOpen: false,
+  });
+  const [darkArticleState, dispatchDarkArticleState] = useReducer(readerHeaderActionStripReducer, {
+    isRead: false,
+    isStarred: true,
+    isBrowserOpen: true,
+  });
 
   useEffect(() => {
     const previousLayoutMode = useUiStore.getState().layoutMode;
@@ -373,9 +410,7 @@ export function ReaderHeaderActionStripSpecimen() {
             <ArticleToolbarActionStrip
               articleState={{
                 hasArticle: true,
-                isRead,
-                isStarred,
-                isBrowserOpen,
+                ...lightArticleState,
               }}
               actionOptions={{
                 canToggleRead: true,
@@ -401,10 +436,10 @@ export function ReaderHeaderActionStripSpecimen() {
                 openInExternalBrowser: "Open in External Browser",
                 moreActions: "More actions",
               }}
-              onToggleRead={setIsRead}
-              onToggleStar={setIsStarred}
+              onToggleRead={(value) => dispatchLightArticleState({ type: "set-read", value })}
+              onToggleStar={(value) => dispatchLightArticleState({ type: "set-starred", value })}
               onCopyLink={() => undefined}
-              onOpenInBrowser={() => setIsBrowserOpen((current) => !current)}
+              onOpenInBrowser={() => dispatchLightArticleState({ type: "toggle-browser-open" })}
               onOpenInExternalBrowser={() => undefined}
               shareMenuControl={
                 <Menu.Root>
@@ -423,9 +458,7 @@ export function ReaderHeaderActionStripSpecimen() {
             <ArticleToolbarActionStrip
               articleState={{
                 hasArticle: true,
-                isRead: darkIsRead,
-                isStarred: darkIsStarred,
-                isBrowserOpen: darkIsBrowserOpen,
+                ...darkArticleState,
               }}
               actionOptions={{
                 canToggleRead: true,
@@ -451,10 +484,10 @@ export function ReaderHeaderActionStripSpecimen() {
                 openInExternalBrowser: "Open in External Browser",
                 moreActions: "More actions",
               }}
-              onToggleRead={setDarkIsRead}
-              onToggleStar={setDarkIsStarred}
+              onToggleRead={(value) => dispatchDarkArticleState({ type: "set-read", value })}
+              onToggleStar={(value) => dispatchDarkArticleState({ type: "set-starred", value })}
               onCopyLink={() => undefined}
-              onOpenInBrowser={() => setDarkIsBrowserOpen((current) => !current)}
+              onOpenInBrowser={() => dispatchDarkArticleState({ type: "toggle-browser-open" })}
               onOpenInExternalBrowser={() => undefined}
               shareMenuControl={
                 <Menu.Root>
