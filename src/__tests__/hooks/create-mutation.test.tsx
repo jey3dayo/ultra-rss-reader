@@ -24,7 +24,7 @@ describe("createMutation", () => {
     invalidate,
   }: {
     mutationFn: (args: TestArgs) => Result.ResultAsync<TestData, { message: string }>;
-    invalidate: (qc: QueryClient, args: TestArgs, data: TestData) => void;
+    invalidate: (qc: QueryClient, args: TestArgs, data: TestData) => void | Promise<void>;
   }) {
     const { queryClient, wrapper } = createQueryWrapper({
       queryClientConfig: { defaultOptions: { mutations: { retry: false } } },
@@ -95,6 +95,26 @@ describe("createMutation", () => {
     });
 
     await expect(result.current.mutateAsync(args)).rejects.toThrow("invalidate failed");
+
+    expect(mutationFn).toHaveBeenCalledWith(args);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("rejects without toast when async invalidation rejects after a successful mutation", async () => {
+    const args = { id: "item-1" };
+    const data = { savedId: "saved-1" };
+    const mutationFn = vi.fn(async () => Result.succeed(data));
+    const invalidateError = new Error("async invalidate failed");
+    const invalidate = vi.fn(async () => {
+      throw invalidateError;
+    });
+    const { result } = renderGeneratedMutation({
+      mutationFn,
+      invalidate,
+    });
+
+    await expect(result.current.mutateAsync(args)).rejects.toThrow("async invalidate failed");
 
     expect(mutationFn).toHaveBeenCalledWith(args);
     expect(invalidate).toHaveBeenCalledTimes(1);
