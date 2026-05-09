@@ -373,6 +373,73 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_url_save_is_scoped_to_account() {
+        let db = test_db();
+        let account_a_id = insert_test_account(&db);
+        let account_b_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+        let shared_url = "https://example.com/rss.xml";
+
+        let feed_a = Feed {
+            id: FeedId("feed-a".to_string()),
+            ..make_feed(&account_a_id, "Account A", shared_url)
+        };
+        let feed_b = Feed {
+            id: FeedId("feed-b".to_string()),
+            ..make_feed(&account_b_id, "Account B", shared_url)
+        };
+        repo.save(&feed_a).unwrap();
+        repo.save(&feed_b).unwrap();
+
+        let account_a_feed = repo
+            .find_by_url(&account_a_id, shared_url)
+            .unwrap()
+            .unwrap();
+        let account_b_feed = repo
+            .find_by_url(&account_b_id, shared_url)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(account_a_feed.id, feed_a.id);
+        assert_eq!(account_a_feed.title, "Account A");
+        assert_eq!(account_b_feed.id, feed_b.id);
+        assert_eq!(account_b_feed.title, "Account B");
+        assert_eq!(repo.find_by_account(&account_a_id).unwrap().len(), 1);
+        assert_eq!(repo.find_by_account(&account_b_id).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn duplicate_remote_id_save_is_scoped_to_account() {
+        let db = test_db();
+        let account_a_id = insert_test_account(&db);
+        let account_b_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let mut feed_a = make_feed(&account_a_id, "Account A", "https://a.example.com/rss.xml");
+        feed_a.id = FeedId("feed-a".to_string());
+        feed_a.remote_id = Some("feed/shared".to_string());
+        let mut feed_b = make_feed(&account_b_id, "Account B", "https://b.example.com/rss.xml");
+        feed_b.id = FeedId("feed-b".to_string());
+        feed_b.remote_id = feed_a.remote_id.clone();
+        repo.save(&feed_a).unwrap();
+        repo.save(&feed_b).unwrap();
+
+        let account_a_feed = repo
+            .find_by_remote_id(&account_a_id, "feed/shared")
+            .unwrap()
+            .unwrap();
+        let account_b_feed = repo
+            .find_by_remote_id(&account_b_id, "feed/shared")
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(account_a_feed.id, feed_a.id);
+        assert_eq!(account_a_feed.url, "https://a.example.com/rss.xml");
+        assert_eq!(account_b_feed.id, feed_b.id);
+        assert_eq!(account_b_feed.url, "https://b.example.com/rss.xml");
+    }
+
+    #[test]
     fn find_by_account_excludes_muted_unread_articles_from_counts() {
         let db = test_db();
         let account_id = insert_test_account(&db);
