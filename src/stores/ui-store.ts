@@ -82,6 +82,13 @@ function normalizeAccountSetupAccountId(accountId: string) {
   return normalizedAccountId.length > 0 ? normalizedAccountId : null;
 }
 
+function clearToastDismissTimer(): void {
+  if (toastTimer !== null) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+}
+
 type UiState = {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -807,7 +814,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   openShortcutsHelp: () => set({ shortcutsHelpOpen: true, commandPaletteOpen: false }),
   closeShortcutsHelp: () => set({ shortcutsHelpOpen: false }),
   showToast: (message) => {
-    if (toastTimer) clearTimeout(toastTimer);
+    clearToastDismissTimer();
     const data: ToastData = typeof message === "string" ? { message } : message;
     set({ toastMessage: data });
     if (!data.persistent) {
@@ -817,7 +824,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       }, TOAST_AUTO_DISMISS_TIMEOUT_MS);
     }
   },
-  clearToast: () => set({ toastMessage: null }),
+  clearToast: () => {
+    clearToastDismissTimer();
+    set({ toastMessage: null });
+  },
   addRecentlyRead: (id) =>
     set((s) => {
       const next = new Set(s.recentlyReadIds);
@@ -863,3 +873,27 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       },
     }),
 }));
+
+const setUiStoreState = useUiStore.setState;
+function setUiStoreStateWithToastCleanup(
+  partial: UiStoreState | Partial<UiStoreState> | ((state: UiStoreState) => UiStoreState | Partial<UiStoreState>),
+  replace?: false,
+): void;
+function setUiStoreStateWithToastCleanup(
+  state: UiStoreState | ((state: UiStoreState) => UiStoreState),
+  replace: true,
+): void;
+function setUiStoreStateWithToastCleanup(
+  partial: UiStoreState | Partial<UiStoreState> | ((state: UiStoreState) => UiStoreState | Partial<UiStoreState>),
+  replace?: boolean,
+): void {
+  if (typeof partial === "object" && partial !== null && "toastMessage" in partial && partial.toastMessage === null) {
+    clearToastDismissTimer();
+  }
+  if (replace === true) {
+    setUiStoreState(partial as UiStoreState | ((state: UiStoreState) => UiStoreState), true);
+    return;
+  }
+  setUiStoreState(partial, false);
+}
+useUiStore.setState = setUiStoreStateWithToastCleanup as typeof useUiStore.setState;

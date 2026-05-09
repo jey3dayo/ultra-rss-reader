@@ -105,6 +105,15 @@ export type PreferenceRecord = KnownPreferenceRecord & ShortcutPreferenceRecord 
 type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
+const backendOwnedPreferenceKeys = ["selected_account_id"] as const;
+const retiredBackendPassthroughPreferenceKeys = [] as const;
+const retiredBackendPassthroughPreferenceKeySet: ReadonlySet<string> = new Set(retiredBackendPassthroughPreferenceKeys);
+const preferenceTypoDetectionDistance = 2;
+const typoDetectionCandidateKeys = [
+  ...Object.keys(preferenceSchemas),
+  ...Object.keys(shortcutDefaults),
+  ...backendOwnedPreferenceKeys,
+] as const;
 
 const hiddenPreferenceDefaultKeys = ["sort_subscriptions"] as const satisfies readonly KnownPreferenceKey[];
 export type HiddenPreferenceKey = (typeof hiddenPreferenceDefaultKeys)[number];
@@ -191,6 +200,54 @@ const hiddenPreferenceDefaults: Record<HiddenPreferenceKey, string> = {
 
 function isKnownPreferenceKey(key: string): key is KnownPreferenceKey {
   return objectHasOwnProperty.call(preferenceSchemas, key);
+}
+
+function getEditDistanceWithinLimit(source: string, target: string, limit: number): number {
+  if (Math.abs(source.length - target.length) > limit) {
+    return limit + 1;
+  }
+
+  let previousRow = Array.from({ length: target.length + 1 }, (_value, index) => index);
+  for (let sourceIndex = 0; sourceIndex < source.length; sourceIndex += 1) {
+    const currentRow = [sourceIndex + 1];
+    let rowMinimum = currentRow[0] ?? limit + 1;
+    for (let targetIndex = 0; targetIndex < target.length; targetIndex += 1) {
+      const substitutionCost = source[sourceIndex] === target[targetIndex] ? 0 : 1;
+      const insertionCost = (currentRow[targetIndex] ?? limit + 1) + 1;
+      const deletionCost = (previousRow[targetIndex + 1] ?? limit + 1) + 1;
+      const substitution = (previousRow[targetIndex] ?? limit + 1) + substitutionCost;
+      const distance = Math.min(insertionCost, deletionCost, substitution);
+      currentRow.push(distance);
+      rowMinimum = Math.min(rowMinimum, distance);
+    }
+
+    if (rowMinimum > limit) {
+      return limit + 1;
+    }
+    previousRow = currentRow;
+  }
+
+  return previousRow[target.length] ?? limit + 1;
+}
+
+export function getLikelyPreferenceKeyTypo(key: string): string | null {
+  if (isKnownPreferenceKey(key) || isShortcutPreferenceKey(key) || key === "selected_account_id") {
+    return null;
+  }
+
+  for (const candidate of typoDetectionCandidateKeys) {
+    if (
+      getEditDistanceWithinLimit(key, candidate, preferenceTypoDetectionDistance) <= preferenceTypoDetectionDistance
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+export function isRetiredBackendPassthroughPreferenceKey(key: string): boolean {
+  return retiredBackendPassthroughPreferenceKeySet.has(key);
 }
 
 function buildVisibleCorePreferenceDefaults(): Partial<Record<VisiblePreferenceDefaultKey, string>> {

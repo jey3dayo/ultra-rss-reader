@@ -1,8 +1,10 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
 import {
+  getLikelyPreferenceKeyTypo,
   getPreferenceValueSchema,
   type HiddenPreferenceKey,
+  isRetiredBackendPassthroughPreferenceKey,
   normalizePreferenceRecord,
   normalizePreferenceValue,
   type PreferenceDefaultsRecord,
@@ -159,6 +161,14 @@ describe("preference contract", () => {
       shortcut_next_article: "Shift+J",
       custom_backend_preference: "  preserved  ",
     });
+  });
+
+  it("classifies likely unknown passthrough typos without rejecting backend-owned keys", () => {
+    expect(getLikelyPreferenceKeyTypo("them")).toBe("theme");
+    expect(getLikelyPreferenceKeyTypo("shortcut_next_articl")).toBe("shortcut_next_article");
+    expect(getLikelyPreferenceKeyTypo("selected_account_id")).toBeNull();
+    expect(getLikelyPreferenceKeyTypo("custom_backend_preference")).toBeNull();
+    expect(isRetiredBackendPassthroughPreferenceKey("custom_backend_preference")).toBe(false);
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {

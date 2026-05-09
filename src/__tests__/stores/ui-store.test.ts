@@ -221,7 +221,10 @@ describe("useUiStore", () => {
 
   it("selectFeed updates selection", () => {
     useUiStore.getState().selectFeed("f1");
-    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "f1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "f1",
+    });
     expect(useUiStore.getState().selectedArticleId).toBeNull();
   });
 
@@ -229,33 +232,57 @@ describe("useUiStore", () => {
     useUiStore.setState({ viewMode: "all", selection: { type: "all" } });
 
     useUiStore.getState().selectFeedFromCurrentContext("feed-1");
-    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "feed-1",
+    });
     expect(useUiStore.getState().viewMode).toBe("unread");
 
     useUiStore.getState().selectFolderFromCurrentContext("folder-1");
-    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "folder",
+      folderId: "folder-1",
+    });
     expect(useUiStore.getState().viewMode).toBe("unread");
     expect(useUiStore.getState().expandedFolderIds.has("folder-1")).toBe(true);
 
     useUiStore.getState().selectTagFromCurrentContext("tag-1");
-    expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "tag",
+      tagId: "tag-1",
+    });
     expect(useUiStore.getState().viewMode).toBe("unread");
   });
 
   it("context-aware subscription selection preserves starred context", () => {
-    useUiStore.setState({ selection: { type: "smart", kind: "starred" }, viewMode: "all" });
+    useUiStore.setState({
+      selection: { type: "smart", kind: "starred" },
+      viewMode: "all",
+    });
     useUiStore.getState().selectFeedFromCurrentContext("feed-1");
-    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "feed-1",
+    });
     expect(useUiStore.getState().viewMode).toBe("starred");
 
     useUiStore.setState({ selection: { type: "all" }, viewMode: "starred" });
     useUiStore.getState().selectFolderFromCurrentContext("folder-1");
-    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "folder",
+      folderId: "folder-1",
+    });
     expect(useUiStore.getState().viewMode).toBe("starred");
 
-    useUiStore.setState({ selection: { type: "smart", kind: "starred" }, viewMode: "all" });
+    useUiStore.setState({
+      selection: { type: "smart", kind: "starred" },
+      viewMode: "all",
+    });
     useUiStore.getState().selectTagFromCurrentContext("tag-1");
-    expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "tag",
+      tagId: "tag-1",
+    });
     expect(useUiStore.getState().viewMode).toBe("starred");
   });
 
@@ -273,7 +300,10 @@ describe("useUiStore", () => {
     useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectSmartView("unread");
 
-    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "smart",
+      kind: "unread",
+    });
     expect(useUiStore.getState().viewMode).toBe("unread");
   });
 
@@ -281,7 +311,10 @@ describe("useUiStore", () => {
     useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectSmartView("starred");
 
-    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "starred" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "smart",
+      kind: "starred",
+    });
     expect(useUiStore.getState().viewMode).toBe("starred");
 
     useUiStore.getState().setViewMode("all");
@@ -293,7 +326,10 @@ describe("useUiStore", () => {
     useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectSmartView("recent");
 
-    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "recent" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "smart",
+      kind: "recent",
+    });
     expect(useUiStore.getState().viewMode).toBe("all");
 
     useUiStore.getState().setViewMode("unread");
@@ -654,6 +690,34 @@ describe("useUiStore", () => {
 
     expect(useUiStore.getState().toastMessage).toEqual({
       message: "Downloading",
+      persistent: true,
+    });
+  });
+
+  it("clears pending toast dismiss timers when manually clearing a toast", () => {
+    vi.useFakeTimers();
+
+    useUiStore.getState().showToast("Temporary");
+    useUiStore.getState().clearToast();
+    useUiStore.getState().showToast({ message: "Persistent", persistent: true });
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Persistent",
+      persistent: true,
+    });
+  });
+
+  it("clears pending toast dismiss timers when resetting the store state", () => {
+    vi.useFakeTimers();
+
+    useUiStore.getState().showToast("Temporary");
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().showToast({ message: "Persistent", persistent: true });
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Persistent",
       persistent: true,
     });
   });

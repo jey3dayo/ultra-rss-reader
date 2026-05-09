@@ -8,6 +8,8 @@ import {
   type AfterReadingPreference,
   type FontSizePreference,
   type FontStylePreference,
+  getLikelyPreferenceKeyTypo,
+  isRetiredBackendPassthroughPreferenceKey,
   normalizePreferenceRecord,
   normalizePreferenceValue,
   parseLanguagePreference,
@@ -36,6 +38,43 @@ const preferencePersistRequestIds = new Map<string, number>();
 
 function logPreferenceRuntimeFailure(message: string, error: unknown): void {
   console.error(message, error);
+}
+
+function warnUnknownPreferenceTypo(key: string, candidate: string): void {
+  console.warn(
+    `Unknown preference key "${key}" looks similar to "${candidate}". Preserving backend passthrough value.`,
+  );
+}
+
+function warnRetiredPreferenceKey(key: string): void {
+  console.warn(`Retired preference key "${key}" was preserved as backend passthrough.`);
+}
+
+function warnUnknownPreferenceKeys(prefs: Record<string, string>): void {
+  if (!import.meta.env.DEV) {
+    return;
+  }
+
+  for (const key of Object.keys(prefs)) {
+    if (isRetiredBackendPassthroughPreferenceKey(key)) {
+      warnRetiredPreferenceKey(key);
+      continue;
+    }
+
+    const likelyTypo = getLikelyPreferenceKeyTypo(key);
+    if (likelyTypo !== null) {
+      warnUnknownPreferenceTypo(key, likelyTypo);
+    }
+  }
+}
+
+export function resetPreferencesStoreRuntimeForTests(): void {
+  systemThemeCleanup?.();
+  systemThemeCleanup = null;
+  themeViewTransitionId = 0;
+  preferencesLoadPromise = null;
+  preferencePersistRequestCounters.clear();
+  preferencePersistRequestIds.clear();
 }
 
 function getDocumentRoot(): HTMLElement | null {
@@ -308,6 +347,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
         Result.pipe(
           result,
           Result.inspect((data) => {
+            warnUnknownPreferenceKeys(data);
             const normalizedData = normalizePreferenceRecord(data);
             const theme = objectHasOwnProperty.call(normalizedData, "theme")
               ? resolvePreferenceValue(normalizedData, "theme")

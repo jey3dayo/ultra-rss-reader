@@ -3,7 +3,12 @@ import i18n from "i18next";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { type PreferenceWritableKey, preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
+import {
+  getLikelyPreferenceKeyTypo,
+  type PreferenceWritableKey,
+  preferenceDefaults,
+  resolvePreferenceValue,
+} from "@/schemas/preferences";
 import type { PreferencesActions } from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -12,7 +17,7 @@ vi.mock("@/api/tauri-commands", () => ({
   setPreference: vi.fn(async () => Result.succeed(null)),
 }));
 
-import { usePreferencesStore } from "../../stores/preferences-store";
+import { resetPreferencesStoreRuntimeForTests, usePreferencesStore } from "../../stores/preferences-store";
 
 function createDeferred(): { promise: Promise<void>; resolve: () => void } {
   let resolvePromise: () => void = () => {};
@@ -184,6 +189,7 @@ describe("usePreferencesStore preferences", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    resetPreferencesStoreRuntimeForTests();
     vi.mocked(setPreference).mockResolvedValue(Result.succeed(null));
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     useUiStore.setState({ toastMessage: null });
@@ -199,6 +205,7 @@ describe("usePreferencesStore preferences", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    resetPreferencesStoreRuntimeForTests();
     document.documentElement.classList.remove("dark", "theme-transitioning", "vertical-wipe-transition");
     document.documentElement.style.colorScheme = "";
     Object.defineProperty(document, "startViewTransition", {
@@ -371,6 +378,18 @@ describe("usePreferencesStore preferences", () => {
     expect(systemTheme.removeListener).toHaveBeenCalledWith(expect.any(Function));
     expect(systemTheme.listeners.size).toBe(0);
     expect(document.documentElement).not.toHaveClass("dark");
+  });
+
+  it("clears the system theme listener during the test runtime reset", () => {
+    const systemTheme = mockSystemThemeMedia(false);
+
+    usePreferencesStore.getState().setPref("theme", "system");
+    expect(systemTheme.listeners.size).toBe(1);
+
+    resetPreferencesStoreRuntimeForTests();
+
+    expect(systemTheme.removeEventListener).toHaveBeenCalledWith("change", expect.any(Function));
+    expect(systemTheme.listeners.size).toBe(0);
   });
 
   it("keeps system theme applied when listener registration throws", () => {
@@ -549,6 +568,32 @@ describe("usePreferencesStore preferences", () => {
       custom_backend_preference: "preserved",
     });
     expect(usePreferencesStore.getState().theme()).toBe("light");
+  });
+
+  it("warns on likely typo preference keys while preserving backend passthrough values", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.mocked(getPreferences).mockResolvedValue(
+      Result.succeed({
+        them: "dark",
+        custom_backend_preference: "preserved",
+      }),
+    );
+
+    try {
+      await usePreferencesStore.getState().loadPreferences();
+
+      expect(getLikelyPreferenceKeyTypo("them")).toBe("theme");
+      expect(consoleWarn).toHaveBeenCalledWith(
+        'Unknown preference key "them" looks similar to "theme". Preserving backend passthrough value.',
+      );
+      expect(consoleWarn).toHaveBeenCalledTimes(1);
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        them: "dark",
+        custom_backend_preference: "preserved",
+      });
+    } finally {
+      consoleWarn.mockRestore();
+    }
   });
 
   it("dedupes concurrent failed preference loads and applies the default language fallback", async () => {
@@ -858,6 +903,27 @@ describe("usePreferencesStore preferences", () => {
         });
       });
       expect(consoleError).toHaveBeenCalledWith("Failed to persist preference language:", expect.any(Error));
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("clears pending latest-only persist request ids during the test runtime reset", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const pendingSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    vi.mocked(setPreference).mockReturnValueOnce(pendingSave.promise);
+
+    try {
+      usePreferencesStore.getState().setPref("language", "en");
+
+      resetPreferencesStoreRuntimeForTests();
+      pendingSave.reject(new Error("old write failed"));
+      await pendingSave.promise.catch(() => undefined);
+      await Promise.resolve();
+
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage).toBeNull();
     } finally {
       consoleError.mockRestore();
     }
