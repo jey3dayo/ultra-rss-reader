@@ -181,12 +181,12 @@ describe("useSettingsModalViewProps", () => {
       openSettingsAddAccount: vi.fn(),
     });
 
-    expect(JSON.parse(viewProps.contentResetKey)).toEqual({
+    expect(JSON.parse(viewProps.contentResetKey ?? "")).toEqual({
       category: "general",
       accountId: "acc:add:FreshRss",
       mode: { type: "browse" },
     });
-    expect(JSON.parse(addAccountViewProps.contentResetKey)).toEqual({
+    expect(JSON.parse(addAccountViewProps.contentResetKey ?? "")).toEqual({
       category: "general",
       accountId: "acc:add",
       mode: { type: "add", initialKind: "FreshRss" },
