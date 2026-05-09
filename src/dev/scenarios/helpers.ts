@@ -47,6 +47,7 @@ async function findRankedLandingFeedSelection(
   ctx: DevScenarioContext,
   accounts: readonly AccountDto[],
 ): Promise<LandingFeedSelection | null> {
+  // Preserve first-match selection order and the matching query-cache writes.
   for (const account of accounts) {
     const feeds = await Promise.resolve(ctx.actions.listFeeds(account.id));
     ctx.queryClient.setQueryData(["feeds", account.id], feeds);
@@ -156,6 +157,7 @@ async function findTagScenarioSelection(
     ...tags.filter((tag) => (counts[tag.id] ?? 0) <= 0),
   ];
 
+  // Preserve tag priority because the first tag with articles becomes the opened view.
   for (const tag of prioritizedTags) {
     const articles = await Promise.resolve(ctx.actions.listArticlesByTag(tag.id, undefined, undefined, account.id));
     ctx.queryClient.setQueryData(["articlesByTag", tag.id, account.id], articles);
@@ -197,7 +199,38 @@ type WindowSizeLike = {
   height: number;
 };
 
-function sizeMatchesWithinTolerance(current: WindowSizeLike, target: WindowSizeLike): boolean {
+type RequestedWindowSize = {
+  width?: number | null;
+  height?: number | null;
+};
+
+type DevWindowLike = {
+  scaleFactor(): Promise<number>;
+  innerSize(): Promise<{
+    toLogical(scaleFactor: number): {
+      width: number;
+      height: number;
+    };
+  }>;
+};
+
+async function readCurrentLogicalWindowSize(win: DevWindowLike): Promise<WindowSizeLike> {
+  const scaleFactor = await win.scaleFactor();
+  const logicalSize = (await win.innerSize()).toLogical(scaleFactor);
+  return {
+    width: Math.round(logicalSize.width),
+    height: Math.round(logicalSize.height),
+  };
+}
+
+function resolveTargetWindowSize(requestedSize: RequestedWindowSize, currentSize: WindowSizeLike): WindowSizeLike {
+  return {
+    width: requestedSize.width ?? currentSize.width,
+    height: requestedSize.height ?? currentSize.height,
+  };
+}
+
+function isWindowSizeWithinTolerance(current: WindowSizeLike, target: WindowSizeLike): boolean {
   return (
     Math.abs(current.width - target.width) <= DEV_WINDOW_RESIZE_TOLERANCE_PX &&
     Math.abs(current.height - target.height) <= DEV_WINDOW_RESIZE_TOLERANCE_PX
@@ -228,28 +261,17 @@ async function applyDevWindowSize(showToast: (message: string) => void): Promise
       await wait(DEV_WINDOW_UNMAXIMIZE_SETTLE_DELAY_MS);
     }
 
-    const readCurrentLogicalSize = async () => {
-      const scaleFactor = await win.scaleFactor();
-      const logicalSize = (await win.innerSize()).toLogical(scaleFactor);
-      return {
-        width: Math.round(logicalSize.width),
-        height: Math.round(logicalSize.height),
-      };
-    };
+    const initialSize = await readCurrentLogicalWindowSize(win);
+    const targetSize = resolveTargetWindowSize(requestedSize, initialSize);
 
-    const initialSize = await readCurrentLogicalSize();
-    const targetSize = {
-      width: requestedSize.width ?? initialSize.width,
-      height: requestedSize.height ?? initialSize.height,
-    };
-
+    // Resize retries are sequential because each pass depends on the previous size, center, and settle delay.
     for (const delayMs of DEV_WINDOW_RESIZE_RETRY_DELAYS_MS) {
       if (delayMs > 0) {
         await wait(delayMs);
       }
 
-      const currentSize = await readCurrentLogicalSize();
-      if (sizeMatchesWithinTolerance(currentSize, targetSize)) {
+      const currentSize = await readCurrentLogicalWindowSize(win);
+      if (isWindowSizeWithinTolerance(currentSize, targetSize)) {
         await win.center();
         return;
       }
@@ -258,8 +280,8 @@ async function applyDevWindowSize(showToast: (message: string) => void): Promise
       await win.center();
     }
 
-    const finalSize = await readCurrentLogicalSize();
-    if (!sizeMatchesWithinTolerance(finalSize, targetSize)) {
+    const finalSize = await readCurrentLogicalWindowSize(win);
+    if (!isWindowSizeWithinTolerance(finalSize, targetSize)) {
       console.warn(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" did not reach the requested window size.`, {
         targetSize,
         finalSize,

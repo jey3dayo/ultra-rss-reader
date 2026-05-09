@@ -1,10 +1,50 @@
-import type { AccountDto, ArticleDto, FeedDto, MuteKeywordDto, TagDto } from "@/api/tauri-commands";
+import type { Result } from "@praha/byethrow";
+import type {
+  listAccounts,
+  listArticles,
+  listFeeds,
+  listFolders,
+  listMuteKeywords,
+  listTags,
+} from "@/api/tauri-commands";
 
-export const sampleAccounts: AccountDto[] = [
+type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
+  ? Output
+  : never;
+type CommandListItem<TCommand> = CommandSuccess<TCommand> extends readonly (infer Item)[] ? Item : never;
+
+type AccountFixture = CommandListItem<typeof listAccounts>;
+type FolderFixture = CommandListItem<typeof listFolders>;
+type FeedFixture = CommandListItem<typeof listFeeds>;
+type ArticleFixture = CommandListItem<typeof listArticles>;
+type MuteKeywordFixture = CommandListItem<typeof listMuteKeywords>;
+type TagFixture = CommandListItem<typeof listTags>;
+
+type DeepReadonly<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends readonly (infer Item)[]
+    ? readonly DeepReadonly<Item>[]
+    : T extends object
+      ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
+      : T;
+
+export type ReadonlyFixtureSeed<T> = readonly DeepReadonly<T>[];
+export type MutableTestFixture<T> = T[];
+
+export const sampleAccountSeeds: ReadonlyFixtureSeed<AccountFixture> = [
   {
     id: "acc-1",
     kind: "local",
     name: "Local",
+    display_name: "Local",
+    icon_url: null,
+    capabilities: {
+      supports_folders: false,
+      supports_starring: false,
+      supports_search: false,
+      supports_delta_sync: false,
+      supports_remote_state: false,
+    },
     username: null,
     server_url: null,
     sync_interval_secs: 3600,
@@ -16,6 +56,15 @@ export const sampleAccounts: AccountDto[] = [
     id: "acc-2",
     kind: "freshrss",
     name: "FreshRSS",
+    display_name: "FreshRSS",
+    icon_url: null,
+    capabilities: {
+      supports_folders: true,
+      supports_starring: true,
+      supports_search: true,
+      supports_delta_sync: true,
+      supports_remote_state: true,
+    },
     username: "user",
     server_url: "https://freshrss.example.com",
     sync_interval_secs: 3600,
@@ -25,11 +74,21 @@ export const sampleAccounts: AccountDto[] = [
   },
 ];
 
-export const sampleFeeds: FeedDto[] = [
+export const sampleFolderSeeds: ReadonlyFixtureSeed<FolderFixture> = [
+  {
+    id: "folder-1",
+    account_id: "acc-2",
+    name: "Reading",
+    sort_order: 0,
+  },
+];
+
+export const sampleFeedSeeds: ReadonlyFixtureSeed<FeedFixture> = [
   {
     id: "feed-1",
     account_id: "acc-1",
     folder_id: null,
+    remote_id: null,
     title: "Tech Blog",
     url: "https://example.com/feed.xml",
     site_url: "https://example.com",
@@ -39,8 +98,9 @@ export const sampleFeeds: FeedDto[] = [
   },
   {
     id: "feed-2",
-    account_id: "acc-1",
-    folder_id: null,
+    account_id: "acc-2",
+    folder_id: "folder-1",
+    remote_id: null,
     title: "News",
     url: "https://example.com/news.xml",
     site_url: "https://example.com",
@@ -50,7 +110,7 @@ export const sampleFeeds: FeedDto[] = [
   },
 ];
 
-export const sampleArticles: ArticleDto[] = [
+export const sampleArticleSeeds: ReadonlyFixtureSeed<ArticleFixture> = [
   {
     id: "art-1",
     feed_id: "feed-1",
@@ -79,7 +139,7 @@ export const sampleArticles: ArticleDto[] = [
   },
 ];
 
-export const sampleMuteKeywords: MuteKeywordDto[] = [
+export const sampleMuteKeywordSeeds: ReadonlyFixtureSeed<MuteKeywordFixture> = [
   {
     id: "mute-1",
     keyword: "Kindle Unlimited",
@@ -89,7 +149,7 @@ export const sampleMuteKeywords: MuteKeywordDto[] = [
   },
 ];
 
-export const sampleTags: TagDto[] = [
+export const sampleTagSeeds: ReadonlyFixtureSeed<TagFixture> = [
   {
     id: "tag-1",
     name: "Tech",
@@ -101,3 +161,38 @@ export const sampleTags: TagDto[] = [
     color: null,
   },
 ];
+
+function cloneFixture<T>(fixture: ReadonlyFixtureSeed<T>): MutableTestFixture<T> {
+  return structuredClone(fixture) as MutableTestFixture<T>;
+}
+
+export const sampleAccounts = cloneFixture(sampleAccountSeeds);
+export const sampleFolders = cloneFixture(sampleFolderSeeds);
+export const sampleFeeds = cloneFixture(sampleFeedSeeds);
+export const sampleArticles = cloneFixture(sampleArticleSeeds);
+export const sampleMuteKeywords = cloneFixture(sampleMuteKeywordSeeds);
+export const sampleTags = cloneFixture(sampleTagSeeds);
+
+export function createSampleAccounts(): MutableTestFixture<AccountFixture> {
+  return cloneFixture(sampleAccountSeeds);
+}
+
+export function createSampleFeeds(): MutableTestFixture<FeedFixture> {
+  return cloneFixture(sampleFeedSeeds);
+}
+
+export function createSampleFolders(): MutableTestFixture<FolderFixture> {
+  return cloneFixture(sampleFolderSeeds);
+}
+
+export function createSampleArticles(): MutableTestFixture<ArticleFixture> {
+  return cloneFixture(sampleArticleSeeds);
+}
+
+export function createSampleMuteKeywords(): MutableTestFixture<MuteKeywordFixture> {
+  return cloneFixture(sampleMuteKeywordSeeds);
+}
+
+export function createSampleTags(): MutableTestFixture<TagFixture> {
+  return cloneFixture(sampleTagSeeds);
+}

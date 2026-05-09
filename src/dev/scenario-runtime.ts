@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { DevScenarioId } from "@/dev/scenario-ids";
+import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
 
 export type RuntimeDevScenario = {
   id: DevScenarioId;
@@ -24,12 +24,37 @@ export type DevScenarioRuntimeError =
 
 let devScenariosModulePromise: Promise<DevScenariosModule> | null = null;
 
-const DEV_SCENARIOS_MODULE_PATH = "/src/dev/scenarios/index.ts";
 const DEV_SCENARIOS_UNAVAILABLE_MESSAGE = "Dev scenarios runtime is unavailable outside dev builds.";
+const UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE = "Unknown dev scenario runtime error.";
 
-function getDevScenariosModuleUrl(): string {
-  return DEV_SCENARIOS_MODULE_PATH;
-}
+const loadDevScenariosRegistryModule = () => import("@/dev/scenarios");
+
+const DEV_SCENARIO_MODULE_IMPORTERS = {
+  [DEV_SCENARIO_ID.openSubscriptionsIndex]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openWebPreviewUrl]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openFeedFirstArticle]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openTagView]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsGeneral]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsAppearance]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsMute]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsReading]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsTags]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsShortcuts]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsActions]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsData]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsDebug]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsAccounts]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsAccountsAdd]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openCommandPalette]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openShortcutsHelp]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openWebPreviewGeometryCheck]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openAddFeedDialog]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.syncAllSmoke]: loadDevScenariosRegistryModule,
+} as const satisfies Record<DevScenarioId, () => Promise<unknown>>;
+
+export const DEV_SCENARIO_RUNTIME_IMPORTERS_FOR_TESTS = DEV_SCENARIO_MODULE_IMPORTERS;
 
 class InvalidDevScenariosModuleError extends Error {
   constructor() {
@@ -38,7 +63,15 @@ class InvalidDevScenariosModuleError extends Error {
 }
 
 function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error;
+  }
+
+  return UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE;
 }
 
 function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
@@ -50,7 +83,7 @@ function isDevScenariosModule(value: unknown): value is DevScenariosModule {
 }
 
 async function importDevScenariosModule(): Promise<DevScenariosModule> {
-  const module: unknown = await import(/* @vite-ignore */ getDevScenariosModuleUrl());
+  const module: unknown = await DEV_SCENARIO_MODULE_IMPORTERS[DEV_SCENARIO_ID.openSubscriptionsIndex]();
   if (!isDevScenariosModule(module)) {
     throw new InvalidDevScenariosModuleError();
   }
@@ -76,7 +109,12 @@ function loadDevScenariosModuleResult(): Result.ResultAsync<DevScenariosModule, 
   return Result.try({
     try: async () => {
       devScenariosModulePromise ??= importDevScenariosModule();
-      return await devScenariosModulePromise;
+      try {
+        return await devScenariosModulePromise;
+      } catch (error) {
+        devScenariosModulePromise = null;
+        throw error;
+      }
     },
     catch: toDevScenarioModuleError,
   });

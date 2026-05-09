@@ -1,18 +1,44 @@
+import type { Resource } from "i18next";
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
+import { initReactI18next, setI18n } from "react-i18next";
+import { afterEach, beforeEach } from "vitest";
 import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 
 export const testI18nResourceNamespaces = i18nResourceNamespaces;
+const testI18nDefaultLanguage = "en";
 
-i18n.use(initReactI18next).init({
-  resources: {
-    en: i18nResources.en,
-  },
-  lng: "en",
-  fallbackLng: "en",
-  defaultNS: "common",
-  ns: testI18nResourceNamespaces,
-  interpolation: { escapeValue: false },
+function createTestI18nResources(): Resource {
+  return {
+    en: structuredClone(i18nResources.en),
+    ja: structuredClone(i18nResources.ja),
+  };
+}
+
+function createTestI18nOptions() {
+  return {
+    resources: createTestI18nResources(),
+    lng: testI18nDefaultLanguage,
+    fallbackLng: testI18nDefaultLanguage,
+    defaultNS: "common",
+    ns: testI18nResourceNamespaces,
+    interpolation: { escapeValue: false },
+  } as const;
+}
+
+const testI18nReady = i18n.use(initReactI18next).init(createTestI18nOptions());
+
+export async function resetTestI18nState() {
+  await testI18nReady;
+  await i18n.init(createTestI18nOptions());
+  setI18n(i18n);
+}
+
+beforeEach(async () => {
+  await resetTestI18nState();
+});
+
+afterEach(async () => {
+  await resetTestI18nState();
 });
 
 export default i18n;

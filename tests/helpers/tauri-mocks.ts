@@ -1,12 +1,46 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import { commandArgsSchemas } from "@/api/schemas";
-import type { AccountDto, AccountSyncStatusDto, ArticleDto, MuteKeywordDto, TagDto } from "@/api/tauri-commands";
+import { getCommandArgsSchema } from "@/api/schemas";
+import type {
+  AccountDto,
+  AccountSyncStatusDto,
+  ArticleDto,
+  FeedArticleSummaryDto,
+  MuteKeywordDto,
+  TagDto,
+} from "@/api/tauri-commands";
 import { parseWithSchema } from "@/schemas/parse";
-import { sampleAccounts, sampleArticles, sampleFeeds, sampleMuteKeywords, sampleTags } from "./fixtures";
+import {
+  createSampleAccounts,
+  createSampleArticles,
+  createSampleFeeds,
+  createSampleMuteKeywords,
+  createSampleTags,
+  sampleFolders,
+} from "./fixtures";
+import type {
+  RawMockTauriCommandArgs,
+  ValidatedMockTauriCommandArgs,
+  ValidatedMockTauriCommandCall,
+} from "./tauri-types";
 
 // --- Mock setup ---
 
-type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
+export type MockHandler = (cmd: string, args: ValidatedMockTauriCommandArgs) => unknown;
+
+export function createTauriMockCallRecorder(handler?: MockHandler): {
+  calls: ValidatedMockTauriCommandCall[];
+  handler: MockHandler;
+} {
+  const calls: ValidatedMockTauriCommandCall[] = [];
+
+  return {
+    calls,
+    handler: (cmd, args) => {
+      calls.push({ cmd, args });
+      return handler?.(cmd, args);
+    },
+  };
+}
 
 export const mockPlatformInfo = {
   kind: "windows",
@@ -23,38 +57,42 @@ function isRecord(payload: unknown): payload is Record<string, unknown> {
   return typeof payload === "object" && payload !== null;
 }
 
-function validateArgs(cmd: string, payload: unknown): Record<string, unknown> {
-  const schema = commandArgsSchemas[cmd];
+function toMockHandlerArgs(args: RawMockTauriCommandArgs): ValidatedMockTauriCommandArgs {
+  return args as ValidatedMockTauriCommandArgs;
+}
+
+function validateArgs(cmd: string, payload: unknown): ValidatedMockTauriCommandArgs {
+  const schema = getCommandArgsSchema(cmd);
   if (schema) {
-    return parseWithSchema(schema, payload);
+    return toMockHandlerArgs(parseWithSchema(schema, payload));
   }
-  return isRecord(payload) ? payload : {};
+  return toMockHandlerArgs(isRecord(payload) ? payload : {});
 }
 
 function createDefaultHandler(): MockHandler {
-  let mockTags = sampleTags.map((tag) => ({ ...tag }));
+  let mockTags = createSampleTags();
 
   return (cmd, args) => {
     switch (cmd) {
       case "list_accounts":
-        return sampleAccounts;
+        return createSampleAccounts();
       case "list_feeds":
-        return sampleFeeds.filter((f) => f.account_id === args.accountId);
+        return createSampleFeeds().filter((f) => f.account_id === args.accountId);
       case "list_folders":
-        return [];
+        return structuredClone(sampleFolders.filter((folder) => folder.account_id === args.accountId));
       case "list_articles":
-        return sampleArticles.filter(
+        return createSampleArticles().filter(
           (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read) && (!args.starredOnly || a.is_starred),
         );
       case "list_account_articles":
-        return sampleArticles.filter((a) =>
-          sampleFeeds.some(
+        return createSampleArticles().filter((a) =>
+          createSampleFeeds().some(
             (f) => f.id === a.feed_id && f.account_id === args.accountId && (!args.unreadOnly || !a.is_read),
           ),
         );
       case "list_folder_articles":
-        return sampleArticles.filter((a) =>
-          sampleFeeds.some((f) => {
+        return createSampleArticles().filter((a) =>
+          createSampleFeeds().some((f) => {
             if (f.id !== a.feed_id || f.folder_id !== args.folderId) {
               return false;
             }
@@ -68,11 +106,30 @@ function createDefaultHandler(): MockHandler {
           }),
         );
       case "list_starred_articles":
-        return sampleArticles.filter(
-          (a) => a.is_starred && sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
+        return createSampleArticles().filter(
+          (a) => a.is_starred && createSampleFeeds().some((f) => f.id === a.feed_id && f.account_id === args.accountId),
         );
-      case "list_recent_articles":
-        return [sampleArticles[1], sampleArticles[0]]
+      case "list_feed_article_summaries": {
+        const articles = createSampleArticles();
+        return createSampleFeeds()
+          .filter((feed) => feed.account_id === args.accountId)
+          .map(
+            (feed) =>
+              ({
+                feed_id: feed.id,
+                latest_article_at:
+                  articles
+                    .filter((article) => article.feed_id === feed.id)
+                    .map((article) => article.published_at)
+                    .sort()
+                    .slice(-1)[0] ?? null,
+                starred_count: articles.filter((article) => article.feed_id === feed.id && article.is_starred).length,
+              }) satisfies FeedArticleSummaryDto,
+          );
+      }
+      case "list_recent_articles": {
+        const articles = createSampleArticles();
+        return [articles[1], articles[0]]
           .filter((article): article is ArticleDto => article !== undefined)
           .filter((article) => {
             if (args.mode === "unread") {
@@ -88,21 +145,37 @@ function createDefaultHandler(): MockHandler {
             ...article,
             viewed_at: "2026-04-20T10:00:00Z",
           }));
+      }
       case "count_account_unread_articles":
-        return sampleArticles.filter((a) =>
-          sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
+        return createSampleArticles().filter((a) =>
+          createSampleFeeds().some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
         ).length;
       case "count_account_starred_articles":
-        return sampleArticles.filter((a) =>
-          sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
+        return createSampleArticles().filter((a) =>
+          createSampleFeeds().some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
         ).length;
       case "get_feed_integrity_report":
         return { orphaned_article_count: 0, orphaned_feeds: [] };
+      case "cleanup_feed_integrity_orphans":
+        return {
+          dry_run: args.dryRun,
+          orphaned_article_count: 0,
+          deleted_article_count: 0,
+        };
       case "add_account":
         return {
           id: "acc-new",
           kind: String(args.kind),
           name: String(args.name),
+          display_name: String(args.name),
+          icon_url: null,
+          capabilities: {
+            supports_folders: false,
+            supports_starring: false,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state: false,
+          },
           username: null,
           server_url: args.serverUrl != null ? String(args.serverUrl) : null,
           sync_interval_secs: 3600,
@@ -127,9 +200,9 @@ function createDefaultHandler(): MockHandler {
       case "search_articles":
         return [];
       case "list_mute_keywords":
-        return sampleMuteKeywords;
+        return createSampleMuteKeywords();
       case "list_tags":
-        return mockTags;
+        return structuredClone(mockTags);
       case "create_tag": {
         const nextTag: TagDto = {
           id: `tag-${mockTags.length + 1}`,
@@ -137,7 +210,7 @@ function createDefaultHandler(): MockHandler {
           color: typeof args.color === "string" ? args.color : null,
         };
         mockTags = [...mockTags, nextTag];
-        return nextTag;
+        return structuredClone(nextTag);
       }
       case "rename_tag": {
         const targetTagId = String(args.tagId);
@@ -153,7 +226,7 @@ function createDefaultHandler(): MockHandler {
           color: typeof args.color === "string" ? args.color : args.color === null ? null : renamedTag.color,
         };
         mockTags = mockTags.map((tag) => (tag.id === targetTagId ? nextTag : tag));
-        return nextTag;
+        return structuredClone(nextTag);
       }
       case "delete_tag":
         mockTags = mockTags.filter((tag) => tag.id !== String(args.tagId));
@@ -166,14 +239,16 @@ function createDefaultHandler(): MockHandler {
           created_at: "2026-04-15T01:00:00Z",
           updated_at: "2026-04-15T01:00:00Z",
         } satisfies MuteKeywordDto;
-      case "update_mute_keyword":
+      case "update_mute_keyword": {
+        const muteKeywords = createSampleMuteKeywords();
         return {
           id: String(args.muteKeywordId),
-          keyword: sampleMuteKeywords[0]?.keyword ?? "Kindle Unlimited",
+          keyword: muteKeywords[0]?.keyword ?? "Kindle Unlimited",
           scope: String(args.scope) as "title" | "body" | "title_and_body",
-          created_at: sampleMuteKeywords[0]?.created_at ?? "2026-04-15T01:00:00Z",
+          created_at: muteKeywords[0]?.created_at ?? "2026-04-15T01:00:00Z",
           updated_at: "2026-04-15T01:10:00Z",
         } satisfies MuteKeywordDto;
+      }
       case "delete_mute_keyword":
         return null;
       case "set_mute_auto_mark_read":
@@ -187,6 +262,7 @@ function createDefaultHandler(): MockHandler {
           id: "feed-new",
           account_id: args.accountId,
           folder_id: null,
+          remote_id: null,
           title: "New Feed",
           url: args.url,
           site_url: args.url,
@@ -195,7 +271,7 @@ function createDefaultHandler(): MockHandler {
           web_preview_mode: "inherit",
         };
       case "test_account_connection":
-        return sampleAccounts.find((account) => account.id === args.accountId) ?? sampleAccounts[0];
+        return createSampleAccounts().find((account) => account.id === args.accountId) ?? createSampleAccounts()[0];
       case "delete_account":
         return null;
       case "get_account_sync_status":
@@ -206,10 +282,22 @@ function createDefaultHandler(): MockHandler {
           next_retry_at: null,
         } satisfies AccountSyncStatusDto;
       case "open_in_browser":
+      case "plugin:opener|open_url":
       case "open_log_dir":
         return null;
+      case "plugin:event|listen":
+        return 1;
+      case "plugin:event|unlisten":
+        return null;
       case "get_platform_info":
-        return mockPlatformInfo;
+        return structuredClone(mockPlatformInfo);
+      case "get_dev_runtime_options":
+        return {
+          dev_intent: null,
+          dev_web_url: null,
+          dev_window_width: null,
+          dev_window_height: null,
+        };
       case "check_browser_embed_support":
         return true;
       case "create_or_update_browser_webview":
@@ -254,14 +342,16 @@ function createDefaultHandler(): MockHandler {
           warnings: [],
         };
       default:
-        return undefined;
+        throw new Error(`Unhandled Tauri mock command: ${cmd}`);
     }
   };
 }
 
 /**
  * Set up Tauri IPC mocks. Call this in beforeEach.
- * Pass a custom handler to override specific commands.
+ * Pass a custom handler to override specific commands. Only `undefined`
+ * falls back to the default mocks; `null`, `false`, and `0` are handled
+ * responses.
  */
 export function setupTauriMocks(handler?: MockHandler): void {
   const defaultHandler = createDefaultHandler();

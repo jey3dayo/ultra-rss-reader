@@ -13,7 +13,7 @@ function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number):
   return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
 }
 
-export const mockAccounts: AccountDto[] = [
+const mockAccountSeeds = [
   {
     id: "acc-freshrss",
     kind: "FreshRss",
@@ -36,9 +36,9 @@ export const mockAccounts: AccountDto[] = [
     sync_on_wake: false,
     keep_read_items_days: 30,
   },
-];
+] satisfies readonly AccountDto[];
 
-export const mockFolders: FolderDto[] = [
+const mockFolderSeeds = [
   {
     id: "folder-comic",
     account_id: "acc-freshrss",
@@ -81,13 +81,14 @@ export const mockFolders: FolderDto[] = [
     name: "youtube",
     sort_order: 6,
   },
-];
+] satisfies readonly FolderDto[];
 
-export const mockFeeds: FeedDto[] = [
+const mockFeedSeeds = [
   {
     id: "feed-automaton",
     account_id: "acc-freshrss",
     folder_id: "folder-misc",
+    remote_id: null,
     title: "AUTOMATON",
     url: "https://automaton-media.com/feed/",
     site_url: "https://automaton-media.com",
@@ -99,6 +100,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-hatima",
     account_id: "acc-freshrss",
     folder_id: "folder-misc",
+    remote_id: null,
     title: "はちま起稿",
     url: "https://esuteru.com/feed/",
     site_url: "https://esuteru.com",
@@ -110,6 +112,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-yumenavi",
     account_id: "acc-freshrss",
     folder_id: "folder-misc",
+    remote_id: null,
     title: "ゆめ痛 -News Alert-",
     url: "https://yumenavi.info/feed/",
     site_url: "https://yumenavi.info",
@@ -121,6 +124,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-publickey",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "Publickey",
     url: "https://www.publickey1.jp/atom.xml",
     site_url: "https://www.publickey1.jp",
@@ -132,6 +136,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-techno",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "techno-edge",
     url: "https://www.techno-edge.net/rss/",
     site_url: "https://www.techno-edge.net",
@@ -143,6 +148,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-nhk",
     account_id: "acc-freshrss",
     folder_id: "folder-news",
+    remote_id: null,
     title: "NHKニュース",
     url: "https://www.nhk.or.jp/rss/news/cat0.xml",
     site_url: "https://www.nhk.or.jp",
@@ -154,6 +160,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-hatena",
     account_id: "acc-freshrss",
     folder_id: "folder-news",
+    remote_id: null,
     title: "はてブ 人気エントリー",
     url: "https://b.hatena.ne.jp/hotentry/it.rss",
     site_url: "https://b.hatena.ne.jp",
@@ -165,6 +172,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-jxck",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "blog.jxck.io",
     url: "https://blog.jxck.io/entries/feed",
     site_url: "https://blog.jxck.io",
@@ -176,6 +184,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-npaka",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "npaka",
     url: "https://note.com/npaka/rss",
     site_url: "https://note.com/npaka",
@@ -187,6 +196,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-chimolog",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "ちもろぐ",
     url: "https://chimolog.co/feed/",
     site_url: "https://chimolog.co",
@@ -198,6 +208,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-zakkukukan",
     account_id: "acc-freshrss",
     folder_id: "folder-misc",
+    remote_id: null,
     title: "雑貨kUkan [full]",
     url: "https://www.zakkukukan.com/feed/",
     site_url: "https://www.zakkukukan.com",
@@ -209,6 +220,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-internet-watch",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "INTERNET Watch",
     url: "https://internet.watch.impress.co.jp/data/rss/1.0/iw/feed.rdf",
     site_url: "https://internet.watch.impress.co.jp",
@@ -220,6 +232,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-pc-parts",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "PCパーツまとめ [full]",
     url: "https://blog.livedoor.jp/bluejay01-review/feed",
     site_url: "https://blog.livedoor.jp/bluejay01-review/",
@@ -231,6 +244,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-v",
     account_id: "acc-freshrss",
     folder_id: "folder-tech",
+    remote_id: null,
     title: "V",
     url: "https://example.com/v/feed.xml",
     site_url: "https://example.com/v",
@@ -242,6 +256,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-uchiran",
     account_id: "acc-freshrss",
     folder_id: "folder-youtube",
+    remote_id: null,
     title: "ウチラン",
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=mock-uchiran",
     site_url: "https://www.youtube.com",
@@ -253,6 +268,7 @@ export const mockFeeds: FeedDto[] = [
     id: "feed-tanoshii",
     account_id: "acc-freshrss",
     folder_id: "folder-youtube",
+    remote_id: null,
     title: "田楽",
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=mock-tanoshii",
     site_url: "https://www.youtube.com",
@@ -260,19 +276,21 @@ export const mockFeeds: FeedDto[] = [
     reader_mode: "inherit",
     web_preview_mode: "inherit",
   },
-];
+] satisfies readonly FeedDto[];
 
-export const mockTags: TagDto[] = [
+const mockTagSeeds = [
   { id: "tag-important", name: "important", color: "#cf7868" },
   { id: "tag-read-later", name: "read later", color: "#6f8eb8" },
   { id: "tag-work", name: "work", color: "#5f9670" },
-];
+] satisfies readonly TagDto[];
 
-export const mockArticleTags: { article_id: string; tag_id: string }[] = [
+type MockArticleTag = { article_id: string; tag_id: string };
+
+const mockArticleTagSeeds = [
   { article_id: "art-1", tag_id: "tag-important" },
   { article_id: "art-1", tag_id: "tag-work" },
   { article_id: "art-4", tag_id: "tag-read-later" },
-];
+] satisfies readonly MockArticleTag[];
 
 type MockArticleSeed = {
   id: string;
@@ -313,7 +331,7 @@ const longReaderKeyboardContent = Array.from({ length: 18 }, (_, index) => {
   return `<p>長文スクロール検証セクション ${sectionNumber}。記事画面にフォーカスがある状態で上下キーを押したとき、reader のスクロール領域だけが自然に移動することを確認するための本文です。本文量を十分に確保して、ブラウザと Tauri のどちらでも scrollTop の変化を観察できます。</p>`;
 }).join("");
 
-const generatedMockArticles: ArticleDto[] = [
+const generatedMockArticles = [
   createMockArticle({
     id: "art-9",
     feedId: "feed-nhk",
@@ -520,9 +538,9 @@ const generatedMockArticles: ArticleDto[] = [
     minutes: 42,
     thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop",
   }),
-];
+] satisfies readonly ArticleDto[];
 
-export const mockArticles: ArticleDto[] = [
+const mockArticleSeeds = [
   {
     id: "art-1",
     feed_id: "feed-automaton",
@@ -637,32 +655,71 @@ export const mockArticles: ArticleDto[] = [
     is_starred: true,
   },
   ...generatedMockArticles,
-];
+] satisfies readonly ArticleDto[];
 
-for (const feed of mockFeeds) {
-  feed.unread_count = mockArticles.filter((article) => article.feed_id === feed.id && !article.is_read).length;
+export const DEV_MOCK_FIXTURE_BOUNDARIES = {
+  reader: ["accounts", "folders", "feeds", "articles", "tags", "articleTags"],
+  settings: ["accounts", "folders", "feeds", "tags"],
+  browser: ["articles"],
+  subscriptions: ["accounts", "folders", "feeds", "articles"],
+} as const;
+
+export type DevMockFixtureBoundary = keyof typeof DEV_MOCK_FIXTURE_BOUNDARIES;
+
+export function listDevMockFixtureBoundaryKeys(boundary: DevMockFixtureBoundary): string[] {
+  return [...DEV_MOCK_FIXTURE_BOUNDARIES[boundary]];
 }
 
-function cloneMockItems<T>(items: T[]): T[] {
+function cloneMockItems<T>(items: readonly T[]): T[] {
   return items.map((item) => structuredClone(item));
 }
 
-const initialMockAccounts = cloneMockItems(mockAccounts);
-const initialMockFolders = cloneMockItems(mockFolders);
-const initialMockFeeds = cloneMockItems(mockFeeds);
-const initialMockTags = cloneMockItems(mockTags);
-const initialMockArticleTags = cloneMockItems(mockArticleTags);
-const initialMockArticles = cloneMockItems(mockArticles);
+function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
+  for (const feed of feeds) {
+    feed.unread_count = articles.filter((article) => article.feed_id === feed.id && !article.is_read).length;
+  }
+}
+
+function createMockRuntimeState() {
+  const accounts = cloneMockItems(mockAccountSeeds);
+  const folders = cloneMockItems(mockFolderSeeds);
+  const feeds = cloneMockItems(mockFeedSeeds);
+  const tags = cloneMockItems(mockTagSeeds);
+  const articleTags = cloneMockItems(mockArticleTagSeeds);
+  const articles = cloneMockItems(mockArticleSeeds);
+
+  syncUnreadCounts(feeds, articles);
+
+  return {
+    accounts,
+    folders,
+    feeds,
+    tags,
+    articleTags,
+    articles,
+  };
+}
+
+const initialMockRuntimeState = createMockRuntimeState();
+
+export const mockAccounts: AccountDto[] = cloneMockItems(initialMockRuntimeState.accounts);
+export const mockFolders: FolderDto[] = cloneMockItems(initialMockRuntimeState.folders);
+export const mockFeeds: FeedDto[] = cloneMockItems(initialMockRuntimeState.feeds);
+export const mockTags: TagDto[] = cloneMockItems(initialMockRuntimeState.tags);
+export const mockArticleTags: MockArticleTag[] = cloneMockItems(initialMockRuntimeState.articleTags);
+export const mockArticles: ArticleDto[] = cloneMockItems(initialMockRuntimeState.articles);
 
 function resetMockItems<T>(target: T[], initialItems: T[]) {
   target.splice(0, target.length, ...cloneMockItems(initialItems));
 }
 
 export function resetMockDataForDevMocks() {
-  resetMockItems(mockAccounts, initialMockAccounts);
-  resetMockItems(mockFolders, initialMockFolders);
-  resetMockItems(mockFeeds, initialMockFeeds);
-  resetMockItems(mockTags, initialMockTags);
-  resetMockItems(mockArticleTags, initialMockArticleTags);
-  resetMockItems(mockArticles, initialMockArticles);
+  const nextRuntimeState = createMockRuntimeState();
+
+  resetMockItems(mockAccounts, nextRuntimeState.accounts);
+  resetMockItems(mockFolders, nextRuntimeState.folders);
+  resetMockItems(mockFeeds, nextRuntimeState.feeds);
+  resetMockItems(mockTags, nextRuntimeState.tags);
+  resetMockItems(mockArticleTags, nextRuntimeState.articleTags);
+  resetMockItems(mockArticles, nextRuntimeState.articles);
 }

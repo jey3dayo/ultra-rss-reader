@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
 import { type DevScenarioId, isDevScenarioId } from "@/dev/scenario-ids";
@@ -14,7 +15,6 @@ const DEV_INTENT_ENV_KEYS = ["VITE_DEV_INTENT"] as const;
 const DEV_WEB_URL_ENV_KEYS = ["VITE_DEV_WEB_URL"] as const;
 const DEV_WINDOW_WIDTH_ENV_KEYS = ["VITE_DEV_WINDOW_WIDTH"] as const;
 const DEV_WINDOW_HEIGHT_ENV_KEYS = ["VITE_DEV_WINDOW_HEIGHT"] as const;
-const MAX_DEV_WINDOW_DIMENSION_PX = 10_000;
 let runtimeDevOptionsCache: DevRuntimeOptions | null | undefined;
 let runtimeDevOptionsErrorCache: LoadDevRuntimeOptionsError | null = null;
 let runtimeDevOptionsPromise: Result.ResultAsync<DevRuntimeOptions, LoadDevRuntimeOptionsError> | null = null;
@@ -125,6 +125,10 @@ function resolveLoadedDevRuntimeOptions(
   return Result.succeed(Result.unwrap(result));
 }
 
+function shouldRetryDevRuntimeOptionsLoad(error: LoadDevRuntimeOptionsError | null): boolean {
+  return error === "request_failed";
+}
+
 export function parseDevIntent(value: string | undefined): DevIntent {
   const intent = parseDevIntentResult(value);
   return Result.isSuccess(intent) ? Result.unwrap(intent) : null;
@@ -176,9 +180,16 @@ export async function loadDevRuntimeOptionsResult(): Result.ResultAsync<DevRunti
   }
 
   if (runtimeDevOptionsCache !== undefined) {
-    return runtimeDevOptionsCache
-      ? Result.succeed(runtimeDevOptionsCache)
-      : Result.fail(runtimeDevOptionsErrorCache ?? "request_failed");
+    if (runtimeDevOptionsCache) {
+      return Result.succeed(runtimeDevOptionsCache);
+    }
+
+    const cachedError = runtimeDevOptionsErrorCache ?? "request_failed";
+    if (!shouldRetryDevRuntimeOptionsLoad(cachedError)) {
+      return Result.fail(cachedError);
+    }
+
+    runtimeDevOptionsCache = undefined;
   }
 
   if (!hasTauriRuntime()) {

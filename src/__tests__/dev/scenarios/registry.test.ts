@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getDevScenario, listDevScenarios } from "@/dev/scenarios/registry";
+import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS } from "@/dev/scenarios/types";
 
 function findDuplicates(values: readonly string[]): string[] {
@@ -14,6 +15,43 @@ function findDuplicates(values: readonly string[]): string[] {
   }
 
   return [...duplicates].sort();
+}
+
+function createScenarioContext(): DevScenarioContext {
+  return {
+    ui: {
+      selectedAccountId: "acc-freshrss",
+      showToast: vi.fn(),
+      selectAccount: vi.fn(),
+      selectFeed: vi.fn(),
+      selectFolder: vi.fn(),
+      selectSmartView: vi.fn(),
+      selectTag: vi.fn(),
+      selectAll: vi.fn(),
+      selectArticle: vi.fn(),
+      openBrowser: vi.fn(),
+      setViewMode: vi.fn(),
+      openSettings: vi.fn(),
+      openAddFeedDialog: vi.fn(),
+      openCommandPalette: vi.fn(),
+      openShortcutsHelp: vi.fn(),
+      closeCommandPalette: vi.fn(),
+      toggleCommandPalette: vi.fn(),
+    },
+    queryClient: {
+      setQueryData: vi.fn(),
+      getQueryData: vi.fn(),
+    },
+    actions: {
+      executeAction: vi.fn(),
+      listAccounts: vi.fn().mockReturnValue([]),
+      listFeeds: vi.fn().mockReturnValue([]),
+      listArticles: vi.fn().mockReturnValue([]),
+      listTags: vi.fn().mockReturnValue([]),
+      getTagArticleCounts: vi.fn().mockReturnValue({}),
+      listArticlesByTag: vi.fn().mockReturnValue([]),
+    },
+  };
 }
 
 describe("dev scenario registry", () => {
@@ -80,6 +118,25 @@ describe("dev scenario registry", () => {
       id: DEV_SCENARIO_ID.openWebPreviewGeometryCheck,
       title: "Open web preview geometry check",
     });
+  });
+
+  it("keeps command palette scenario action-backed and separate from browser geometry", async () => {
+    const context = createScenarioContext();
+
+    await getDevScenario(DEV_SCENARIO_ID.openCommandPalette)?.run(context);
+
+    expect(context.actions.executeAction).toHaveBeenCalledWith("open-command-palette");
+    expect(context.ui.openBrowser).not.toHaveBeenCalled();
+  });
+
+  it("keeps browser geometry scenario browser-backed and separate from command palette actions", async () => {
+    const context = createScenarioContext();
+
+    await getDevScenario(DEV_SCENARIO_ID.openWebPreviewGeometryCheck)?.run(context);
+
+    expect(context.ui.openBrowser).toHaveBeenCalledTimes(1);
+    expect(context.ui.openBrowser).toHaveBeenCalledWith(expect.stringContaining("dev-web-preview-geometry"));
+    expect(context.actions.executeAction).not.toHaveBeenCalled();
   });
 
   it("registers the display-mode showcase scenario", () => {

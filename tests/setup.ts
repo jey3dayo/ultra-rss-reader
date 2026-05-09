@@ -2,7 +2,7 @@ import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
-class MemoryStorage implements Storage {
+export class MemoryStorage implements Storage {
   #data = new Map<string, string>();
 
   get length(): number {
@@ -14,7 +14,7 @@ class MemoryStorage implements Storage {
   }
 
   getItem(key: string): string | null {
-    return this.#data.get(key) ?? null;
+    return this.#data.get(String(key)) ?? null;
   }
 
   key(index: number): string | null {
@@ -22,21 +22,37 @@ class MemoryStorage implements Storage {
   }
 
   removeItem(key: string): void {
-    this.#data.delete(key);
+    this.#data.delete(String(key));
   }
 
   setItem(key: string, value: string): void {
-    this.#data.set(key, value);
+    this.#data.set(String(key), String(value));
   }
 }
 
-function ensureWorkingStorage() {
-  if (typeof window === "undefined" || typeof window.localStorage?.clear === "function") {
+function readWorkingWindowStorage(key: "localStorage" | "sessionStorage"): Storage | null {
+  try {
+    const storage = window[key];
+    return typeof storage?.clear === "function" ? storage : null;
+  } catch {
+    return null;
+  }
+}
+
+export function ensureWorkingStorage() {
+  if (typeof window === "undefined") {
     return;
   }
 
-  const localStorage = new MemoryStorage();
-  const sessionStorage = new MemoryStorage();
+  const localStorage = readWorkingWindowStorage("localStorage");
+  const sessionStorage = readWorkingWindowStorage("sessionStorage");
+
+  if (localStorage && sessionStorage) {
+    return;
+  }
+
+  const nextLocalStorage = localStorage ?? new MemoryStorage();
+  const nextSessionStorage = sessionStorage ?? new MemoryStorage();
 
   Object.defineProperty(globalThis, "Storage", {
     configurable: true,
@@ -46,22 +62,22 @@ function ensureWorkingStorage() {
   Object.defineProperty(window, "localStorage", {
     configurable: true,
     writable: true,
-    value: localStorage,
+    value: nextLocalStorage,
   });
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
     writable: true,
-    value: localStorage,
+    value: nextLocalStorage,
   });
   Object.defineProperty(window, "sessionStorage", {
     configurable: true,
     writable: true,
-    value: sessionStorage,
+    value: nextSessionStorage,
   });
   Object.defineProperty(globalThis, "sessionStorage", {
     configurable: true,
     writable: true,
-    value: sessionStorage,
+    value: nextSessionStorage,
   });
 }
 
@@ -82,10 +98,12 @@ function ensureGetAnimations() {
 ensureGetAnimations();
 import "./helpers/i18n-setup";
 import { teardownTauriMocks } from "./helpers/tauri-mocks";
+import { resetTauriRuntimeFlags } from "./helpers/tauri-runtime";
 
 configure({ asyncUtilTimeout: 10_000 });
 
 afterEach(() => {
   cleanup();
   teardownTauriMocks();
+  resetTauriRuntimeFlags();
 });

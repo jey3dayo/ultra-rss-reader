@@ -4,51 +4,88 @@ import { describe, expect, it } from "vitest";
 
 const GLOBAL_CSS_PATH = resolve(process.cwd(), "src/styles/global.css");
 
+const REQUIRED_SEMANTIC_TONE_TOKENS = [
+  "--tone-unread",
+  "--tone-loading",
+  "--tone-starred",
+  "--tone-foreground-strength",
+  "--tone-surface-strength",
+  "--sidebar-selection-background",
+  "--sidebar-selection-foreground",
+  "--sidebar-selection-border",
+  "--sidebar-selection-muted",
+  "--sidebar-hover-surface",
+  "--sidebar-selection-gradient",
+  "--sidebar-hover-gradient",
+  "--sidebar-focus-gradient",
+  "--sidebar-pressed-surface",
+  "--sidebar-frame-surface",
+  "--sidebar-frame-solid-surface",
+  "--sidebar-frame-border",
+  "--sidebar-divider-strong",
+  "--reader-context-border",
+] as const;
+
+const THEME_SCOPE_MATRIX = [
+  {
+    name: "light",
+    selector: ":root",
+  },
+  {
+    name: "dark",
+    selector: ":root.dark",
+  },
+] as const;
+
+const declarationNamePattern = /^\s*(--[\w-]+)\s*:/gm;
+const themeAliasPattern = /^\s*(--color-[\w-]+)\s*:\s*var\((--[\w-]+)\)\s*;/gm;
+
+function getRuleBlock(css: string, selector: string) {
+  const escapedSelector = selector.replace(".", "\\.");
+  const match = css.match(new RegExp(`${escapedSelector}\\s*\\{[\\s\\S]*?\\n\\}`));
+
+  expect(match, `${selector} block should exist`).not.toBeNull();
+
+  return match?.[0] ?? "";
+}
+
+function getDeclarationNames(block: string) {
+  return new Set([...block.matchAll(declarationNamePattern)].map((match) => match[1]));
+}
+
+function getThemeColorAliasTokenNames(themeBlock: string) {
+  return [...themeBlock.matchAll(themeAliasPattern)].map((match) => ({
+    aliasName: match[1],
+    tokenName: match[2],
+  }));
+}
+
 describe("semantic tone tokens", () => {
   it("defines unread and starred tone tokens for both light and dark themes", () => {
     const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
 
-    const lightRootMatch = css.match(/:root\s*\{[\s\S]*?\n\}/);
-    const darkRootMatch = css.match(/:root\.dark\s*\{[\s\S]*?\n\}/);
+    for (const themeScope of THEME_SCOPE_MATRIX) {
+      const declarations = getDeclarationNames(getRuleBlock(css, themeScope.selector));
 
-    expect(lightRootMatch?.[0]).toContain("--tone-unread:");
-    expect(lightRootMatch?.[0]).toContain("--tone-loading:");
-    expect(lightRootMatch?.[0]).toContain("--tone-starred:");
-    expect(lightRootMatch?.[0]).toContain("--tone-foreground-strength:");
-    expect(lightRootMatch?.[0]).toContain("--tone-surface-strength:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-selection-background:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-selection-foreground:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-selection-border:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-selection-muted:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-hover-surface:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-selection-gradient:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-hover-gradient:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-focus-gradient:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-pressed-surface:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-frame-surface:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-frame-solid-surface:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-frame-border:");
-    expect(lightRootMatch?.[0]).toContain("--sidebar-divider-strong:");
-    expect(lightRootMatch?.[0]).toContain("--reader-context-border:");
+      const requiredSemanticToneTokens = [...REQUIRED_SEMANTIC_TONE_TOKENS];
 
-    expect(darkRootMatch?.[0]).toContain("--tone-unread:");
-    expect(darkRootMatch?.[0]).toContain("--tone-loading:");
-    expect(darkRootMatch?.[0]).toContain("--tone-starred:");
-    expect(darkRootMatch?.[0]).toContain("--tone-foreground-strength:");
-    expect(darkRootMatch?.[0]).toContain("--tone-surface-strength:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-selection-background:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-selection-foreground:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-selection-border:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-selection-muted:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-hover-surface:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-selection-gradient:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-hover-gradient:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-focus-gradient:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-pressed-surface:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-frame-surface:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-frame-solid-surface:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-frame-border:");
-    expect(darkRootMatch?.[0]).toContain("--sidebar-divider-strong:");
-    expect(darkRootMatch?.[0]).toContain("--reader-context-border:");
+      expect([...declarations], `${themeScope.name} theme should define semantic tone tokens`).toEqual(
+        expect.arrayContaining(requiredSemanticToneTokens),
+      );
+    }
+  });
+
+  it("keeps @theme color aliases backed by both light and dark root tokens", () => {
+    const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
+    const themeColorAliases = getThemeColorAliasTokenNames(getRuleBlock(css, "@theme inline"));
+
+    expect(themeColorAliases.length).toBeGreaterThan(0);
+
+    for (const themeScope of THEME_SCOPE_MATRIX) {
+      const declarations = getDeclarationNames(getRuleBlock(css, themeScope.selector));
+      const missingAliases = themeColorAliases.filter(({ tokenName }) => !declarations.has(tokenName));
+
+      expect(missingAliases, `${themeScope.name} theme should back every @theme --color-* alias`).toEqual([]);
+    }
   });
 });

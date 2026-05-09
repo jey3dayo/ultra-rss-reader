@@ -23,6 +23,7 @@ import {
   readDevWindowSize,
   resetDevRuntimeOptionsCacheForTests,
 } from "@/dev/intent";
+import { DEV_SCENARIO_IDS } from "@/dev/scenario-ids";
 
 describe("dev-intent helpers", () => {
   beforeEach(() => {
@@ -45,25 +46,9 @@ describe("dev-intent helpers", () => {
   });
 
   it("parses known dev scenario ids", () => {
-    expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
-    expect(parseDevIntent("open-command-palette")).toBe("open-command-palette");
-    expect(parseDevIntent("open-shortcuts-help")).toBe("open-shortcuts-help");
-    expect(parseDevIntent("open-settings-actions")).toBe("open-settings-actions");
-    expect(parseDevIntent("open-settings-accounts")).toBe("open-settings-accounts");
-    expect(parseDevIntent("open-settings-appearance")).toBe("open-settings-appearance");
-    expect(parseDevIntent("open-subscriptions-index")).toBe("open-subscriptions-index");
-    expect(parseDevIntent("open-settings-data")).toBe("open-settings-data");
-    expect(parseDevIntent("open-settings-debug")).toBe("open-settings-debug");
-    expect(parseDevIntent("open-settings-general")).toBe("open-settings-general");
-    expect(parseDevIntent("open-settings-mute")).toBe("open-settings-mute");
-    expect(parseDevIntent("open-web-preview-url")).toBe("open-web-preview-url");
-    expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
-    expect(parseDevIntent("open-settings-accounts-add")).toBe("open-settings-accounts-add");
-    expect(parseDevIntent("open-settings-accounts-add-freshrss")).toBe("open-settings-accounts-add-freshrss");
-    expect(parseDevIntent("open-settings-shortcuts")).toBe("open-settings-shortcuts");
-    expect(parseDevIntent("open-settings-tags")).toBe("open-settings-tags");
-    expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");
-    expect(parseDevIntent("open-web-preview-geometry-check")).toBe("open-web-preview-geometry-check");
+    for (const scenarioId of DEV_SCENARIO_IDS) {
+      expect(parseDevIntent(scenarioId)).toBe(scenarioId);
+    }
   });
 
   it("rejects removed legacy overlay intents", () => {
@@ -291,7 +276,42 @@ describe("dev-intent helpers", () => {
     const result = await loadDevRuntimeOptionsResult();
 
     expect(Result.unwrapError(result)).toBe("request_failed");
-    expect(await loadDevRuntimeOptions()).toBeNull();
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries request_failed runtime option loads", async () => {
+    getDevRuntimeOptionsMock
+      .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }))
+      .mockResolvedValueOnce(
+        Result.succeed({
+          dev_intent: "open-settings-general",
+          dev_web_url: "https://example.com/retry",
+          dev_window_width: 720,
+          dev_window_height: 960,
+        }),
+      );
+
+    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe("request_failed");
+
+    const result = await loadDevRuntimeOptionsResult();
+
+    expect(Result.unwrap(result)).toEqual({
+      dev_intent: "open-settings-general",
+      dev_web_url: "https://example.com/retry",
+      dev_window_width: 720,
+      dev_window_height: 960,
+    });
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["not_dev_build", () => vi.stubEnv("DEV", false)],
+    ["tauri_unavailable", () => hasTauriRuntimeMock.mockReturnValue(false)],
+  ] as const)("keeps %s runtime option failures cached", async (expectedError, arrangeFailure) => {
+    arrangeFailure();
+
+    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
+    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
+    expect(getDevRuntimeOptionsMock).not.toHaveBeenCalled();
   });
 });

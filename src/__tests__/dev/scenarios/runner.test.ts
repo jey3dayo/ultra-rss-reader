@@ -123,6 +123,7 @@ const genericFeed: FeedDto = {
   id: "feed-1",
   account_id: account.id,
   folder_id: null,
+  remote_id: null,
   title: "Tech",
   url: "https://example.com/feed.xml",
   site_url: "https://example.com",
@@ -135,6 +136,7 @@ const mangaFeed: FeedDto = {
   id: "feed-2",
   account_id: account.id,
   folder_id: null,
+  remote_id: null,
   title: "マガポケ",
   url: "https://pocket.shonenmagazine.com/feed",
   site_url: "https://pocket.shonenmagazine.com",
@@ -263,6 +265,30 @@ describe("runDevScenario", () => {
       }),
     );
     expect(mockWindow.center).toHaveBeenCalled();
+  });
+
+  it("keeps the current logical window height when only a dev window width is requested", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    mockInnerLogicalSizes([
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 520, height: 960 },
+    ]);
+    const context = createContext();
+
+    const scenarioPromise = runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+    await scenarioPromise;
+
+    expect(mockWindow.setSize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        width: 520,
+        height: 960,
+      }),
+    );
+    expect(context.ui.openBrowser).toHaveBeenCalledWith("https://example.com/debug-preview");
   });
 
   it("retries a dev window resize until the requested size is reflected", async () => {
