@@ -3,7 +3,10 @@ import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
-import { useAddFeedDialogActions } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
+import {
+  resolveAddFeedDiscoveryAction,
+  useAddFeedDialogActions,
+} from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import i18n from "@/lib/i18n";
 
 vi.mock("@/api/tauri-commands", () => ({
@@ -29,6 +32,37 @@ describe("useAddFeedDialogActions", () => {
     vi.mocked(addLocalFeed).mockReset();
     vi.mocked(discoverFeeds).mockReset();
     vi.mocked(updateFeedFolder).mockReset();
+  });
+
+  it.each([
+    {
+      feeds: [],
+      expected: { type: "discover-empty", requestId: 7 },
+    },
+    {
+      feeds: [{ url: "https://example.com/feed.xml", title: "Example" }],
+      expected: {
+        type: "discover-single",
+        feeds: [{ url: "https://example.com/feed.xml", title: "Example" }],
+        requestId: 7,
+      },
+    },
+    {
+      feeds: [
+        { url: "https://example.com/rss.xml", title: "RSS" },
+        { url: "https://example.com/atom.xml", title: "Atom" },
+      ],
+      expected: {
+        type: "discover-multiple",
+        feeds: [
+          { url: "https://example.com/rss.xml", title: "RSS" },
+          { url: "https://example.com/atom.xml", title: "Atom" },
+        ],
+        requestId: 7,
+      },
+    },
+  ])("resolves discovery fallback action for %# feed result", ({ feeds, expected }) => {
+    expect(resolveAddFeedDiscoveryAction(feeds, 7)).toEqual(expected);
   });
 
   it("normalizes manual URLs before discovery", async () => {

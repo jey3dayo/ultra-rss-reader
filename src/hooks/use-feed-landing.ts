@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
+import { isLatestFeedMutation, runFeedMutationWithOptimisticRollback, startLatestFeedMutation } from "@/components/reader/feed-query-cache";
 import { useFeeds } from "@/hooks/use-feeds";
 import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -77,8 +78,7 @@ export function useFeedLanding() {
 
   return useCallback(
     async (feedId: string) => {
-      const requestId = latestRequestIdRef.current + 1;
-      latestRequestIdRef.current = requestId;
+      const requestId = startLatestFeedMutation({ latestRequestIdRef });
       if (!selectedAccountId) {
         return Result.fail({
           type: "missing_account",
@@ -87,8 +87,14 @@ export function useFeedLanding() {
 
       const store = useUiStore.getState();
       const previousUiState = captureFeedLandingUiSnapshot(store);
-      let selectedFeedOptimistically = false;
-      try {
+      return runFeedMutationWithOptimisticRollback({
+        rollback: () => {
+          if (isLatestFeedMutation({ latestRequestIdRef }, requestId)) {
+            restoreFeedLandingUiSnapshot(previousUiState);
+          }
+        },
+        shouldRollback: Result.isFailure,
+        run: async () => {
         const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
         const feedList =
           feeds.length > 0
@@ -118,7 +124,6 @@ export function useFeedLanding() {
           store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
 
         store.selectFeedFromCurrentContext(feedId);
-        selectedFeedOptimistically = true;
 
         const articlesQueryKey = queryKeys.articles.byFeed(feedId, preserveStarredContext ? "starred" : "all");
         const articles = await queryClient
@@ -137,7 +142,7 @@ export function useFeedLanding() {
             throw error;
           });
 
-        if (requestId !== latestRequestIdRef.current) {
+        if (!isLatestFeedMutation({ latestRequestIdRef }, requestId)) {
           return Result.fail({
             type: "landing_fetch_failed",
             feedId,
@@ -179,21 +184,15 @@ export function useFeedLanding() {
           feedId,
           articleId: landingArticle.id,
         } satisfies FeedLandingSuccess);
-      } catch (error) {
-        console.error("Failed to land on feed article:", error);
-        if (requestId === latestRequestIdRef.current) {
-          if (selectedFeedOptimistically) {
-            restoreFeedLandingUiSnapshot(previousUiState);
-          } else {
-            store.closeBrowser();
-          }
         }
+      }).catch((error) => {
+        console.error("Failed to land on feed article:", error);
         return Result.fail({
           type: "landing_fetch_failed",
           feedId,
           message: getLandingFailureMessage(error),
         } satisfies FeedLandingFailure);
-      }
+      });
     },
     [feeds, prefs, queryClient, selectedAccountId, sortUnread],
   );

@@ -1,13 +1,27 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
-import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
-import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
+import type {
+  ActiveDropTarget,
+  FeedTreeFeedViewModel,
+  FeedTreeFolderViewModel,
+} from "./feed-tree.types";
+import {
+  FEED_DROP_TARGET_ID_ATTRIBUTE,
+  FEED_DROP_TARGET_KIND_ATTRIBUTE,
+} from "./feed-tree-drop-target";
 import { FeedTreeRow } from "./feed-tree-row";
-import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
+import {
+  getSidebarDensityTokens,
+  type SidebarDensity,
+} from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
@@ -27,7 +41,10 @@ type FeedTreeFolderSectionProps = {
   canDragFeeds?: boolean;
   onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
   onDropToFolder?: (folderId: string) => void;
-  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerDownFeed?: (
+    feed: FeedTreeFeedViewModel,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void;
   consumeSuppressedHandleClick?: () => boolean;
 };
 
@@ -53,7 +70,10 @@ export function FeedTreeFolderSection({
   const { t } = useTranslation("sidebar");
   const tokens = getSidebarDensityTokens(sidebarDensity);
   const showDropOverlay = canDragFeeds && draggedFeedId !== null;
-  const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
+  const isActive =
+    canDragFeeds &&
+    activeDropTarget?.kind === "folder" &&
+    activeDropTarget.folderId === folder.id;
   const panelId = `feed-tree-folder-panel-${folder.id}`;
   const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 1) {
@@ -69,7 +89,10 @@ export function FeedTreeFolderSection({
 
   return (
     <div
-      className={cn("relative rounded-md", isActive && "bg-[var(--feed-tree-active-folder-surface)]")}
+      className={cn(
+        "relative rounded-md",
+        isActive && "bg-[var(--feed-tree-active-folder-surface)]",
+      )}
       {...(canDragFeeds
         ? {
             [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
@@ -80,12 +103,15 @@ export function FeedTreeFolderSection({
       {showDropOverlay ? (
         <button
           type="button"
-          aria-label={t("move_to_folder", { defaultValue: "Move to folder {{name}}", name: folder.name })}
+          aria-label={t("move_to_folder", {
+            defaultValue: "Move to folder {{name}}",
+            name: folder.name,
+          })}
           {...{
             [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
             [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
           }}
-          className="absolute inset-0 z-10 rounded-md"
+          className="absolute inset-y-0 right-0 left-8 z-10 rounded-r-md"
           onClick={() => {
             onDropToFolder?.(folder.id);
           }}
@@ -100,7 +126,10 @@ export function FeedTreeFolderSection({
           />
         ) : null}
         <SidebarLeadingControlButton
-          aria-label={t("toggle_folder", { defaultValue: "Toggle folder {{name}}", name: folder.name })}
+          aria-label={t("toggle_folder", {
+            defaultValue: "Toggle folder {{name}}",
+            name: folder.name,
+          })}
           aria-expanded={folder.isExpanded}
           aria-controls={panelId}
           density={sidebarDensity}
@@ -110,7 +139,10 @@ export function FeedTreeFolderSection({
           onClick={() => onToggleFolder(folder.id)}
         >
           <ChevronDown
-            className={cn("motion-disclosure-icon h-3 w-3", folder.isExpanded ? "rotate-0" : "-rotate-90")}
+            className={cn(
+              "motion-disclosure-icon h-3 w-3",
+              folder.isExpanded ? "rotate-0" : "-rotate-90",
+            )}
           />
         </SidebarLeadingControlButton>
         <ContextMenu.Root>
@@ -118,12 +150,21 @@ export function FeedTreeFolderSection({
             render={
               <SidebarNavButton
                 density={sidebarDensity}
-                aria-label={t("select_folder", { defaultValue: "Select folder {{name}}", name: folder.name })}
+                aria-label={t("select_folder", {
+                  defaultValue: "Select folder {{name}}",
+                  name: folder.name,
+                })}
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
-                trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+                trailing={
+                  folder.unreadCount > 0
+                    ? folder.unreadCount.toLocaleString()
+                    : undefined
+                }
                 trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
-                {...(folder.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+                {...(folder.isSelected
+                  ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" }
+                  : {})}
                 {...(canDragFeeds
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
@@ -132,14 +173,17 @@ export function FeedTreeFolderSection({
                   : {})}
                 className={cn(
                   "flex-1 rounded-lg px-0.5 pl-1.5",
-                  isActive && "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
+                  isActive &&
+                    "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
                 )}
               />
             }
             onClick={() => onSelectFolder?.(folder.id)}
             onMouseDown={handleMiddleMouseDown}
           >
-            <span className="font-medium tracking-[-0.01em]">{folder.name}</span>
+            <span className="font-medium tracking-[-0.01em]">
+              {folder.name}
+            </span>
           </ContextMenu.Trigger>
           {renderFolderContextMenu?.(folder)}
         </ContextMenu.Root>
@@ -152,7 +196,11 @@ export function FeedTreeFolderSection({
       >
         <div className="motion-disclosure-body">
           <div
-            className={cn("mt-0.5 border-l border-[var(--feed-tree-rail-border)]", tokens.treeInset, tokens.childGap)}
+            className={cn(
+              "mt-0.5 border-l border-[var(--feed-tree-rail-border)]",
+              tokens.treeInset,
+              tokens.childGap,
+            )}
           >
             {folder.feeds.map((feed) => (
               <FeedTreeRow
