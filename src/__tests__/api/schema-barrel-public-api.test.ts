@@ -25,7 +25,15 @@ import type {
   UpdateInfoDto,
 } from "@/api/schemas";
 import * as apiSchemas from "@/api/schemas";
-import { NonnegativeIntegerSchema } from "@/api/schemas/common";
+import {
+  BooleanResponseSchema,
+  CountResponseSchema,
+  IntResponseSchema,
+  NonnegativeIntegerSchema,
+  NonnegativeIntResponseSchema,
+  NullResponseSchema,
+  StringResponseSchema,
+} from "@/api/schemas/common";
 
 const publicSchemaRuntimeExports = [
   "AccountDtoListSchema",
@@ -185,6 +193,15 @@ describe("schema barrel public API", () => {
     expect(NonnegativeIntegerSchema.parse(0)).toBe(0);
     expect(apiSchemas.CountResponseSchema).not.toBe(apiSchemas.NonnegativeIntResponseSchema);
     expect(apiSchemas.CountResponseSchema).not.toBe(NonnegativeIntegerSchema);
+  });
+
+  it("keeps response schema names available through both public schema import paths", () => {
+    expect(apiSchemas.NullResponseSchema).toBe(NullResponseSchema);
+    expect(apiSchemas.IntResponseSchema).toBe(IntResponseSchema);
+    expect(apiSchemas.NonnegativeIntResponseSchema).toBe(NonnegativeIntResponseSchema);
+    expect(apiSchemas.CountResponseSchema).toBe(CountResponseSchema);
+    expect(apiSchemas.StringResponseSchema).toBe(StringResponseSchema);
+    expect(apiSchemas.BooleanResponseSchema).toBe(BooleanResponseSchema);
   });
 
   it("keeps DTO and command helper type exports intentionally public through the schema barrel", () => {

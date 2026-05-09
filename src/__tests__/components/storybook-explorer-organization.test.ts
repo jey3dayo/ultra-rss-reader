@@ -3,6 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import preview, { STORYBOOK_PREVIEW_BACKGROUND_TOKEN } from "../../../.storybook/preview";
 import {
+  setAppLikeScenarioStoryRuntime,
+  setComponentIsolationStoryRuntime,
+  setStoryTauriRuntimeMissing,
+  setStoryTauriRuntimePresent,
+} from "../../components/storybook/story-tauri-runtime";
+import {
   STORYBOOK_EXPLORER_GROUPS,
   STORYBOOK_EXPLORER_ORDER,
   STORYBOOK_EXPLORER_SUBGROUPS,
@@ -10,10 +16,6 @@ import {
   STORYBOOK_EXPLORER_UI_REFERENCE_TITLES,
   storybookExplorerTitle,
 } from "../../constants/storybook-explorer";
-import {
-  setAppLikeScenarioStoryRuntime,
-  setComponentIsolationStoryRuntime,
-} from "../../components/storybook/story-tauri-runtime";
 
 type StoryMetaModule = {
   default?: {
@@ -165,6 +167,8 @@ describe("Storybook Explorer organization", () => {
   it("keeps story runtime scenario helpers available through the public Storybook helper path", () => {
     expect(typeof setComponentIsolationStoryRuntime).toBe("function");
     expect(typeof setAppLikeScenarioStoryRuntime).toBe("function");
+    expect(typeof setStoryTauriRuntimeMissing).toBe("function");
+    expect(typeof setStoryTauriRuntimePresent).toBe("function");
   });
 
   it("nests settings stories by role", () => {
