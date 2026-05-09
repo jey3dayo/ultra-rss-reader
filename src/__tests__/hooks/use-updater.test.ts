@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { renderHook } from "@testing-library/react";
 import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
+import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockCheckForUpdate = vi.hoisted(() => vi.fn());
@@ -44,11 +45,6 @@ async function getUiStore() {
 async function getUpdaterModuleAndUiStore() {
   const [updaterModule, useUiStore] = await Promise.all([import("@/hooks/use-updater"), getUiStore()]);
   return { updaterModule, useUiStore };
-}
-
-async function flushAsyncWork(): Promise<void> {
-  await Promise.resolve();
-  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function createDeferred<T>() {
@@ -188,7 +184,7 @@ describe("performUpdateCheck", () => {
       progress: 0,
       variant: "update",
     });
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
     expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
@@ -213,7 +209,7 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
 
@@ -222,7 +218,7 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(2);
 
@@ -230,7 +226,7 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "もう一度確認")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
     expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
@@ -319,7 +315,7 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
     expect(useUiStore.getState().toastMessage).toBeNull();
@@ -349,7 +345,7 @@ describe("performUpdateCheck", () => {
     unmount();
 
     deferred.resolve(Result.succeed(updateInfo("1.2.3")));
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(showToast).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage).toBeNull();
@@ -371,7 +367,7 @@ describe("performUpdateCheck", () => {
     unmount();
 
     deferred.resolve(Result.fail(error));
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(warnSpy).not.toHaveBeenCalledWith("Startup update check failed (silent):", error);
 
@@ -397,7 +393,7 @@ describe("performUpdateCheck", () => {
     } = await getUpdaterModuleAndUiStore();
 
     const { unmount } = renderHook(() => useUpdater());
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(mockListen).toHaveBeenCalledWith("update-download-progress", expect.any(Function));
     expect(mockListen).toHaveBeenCalledWith("update-ready", expect.any(Function));
@@ -422,7 +418,7 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(mockCheckForUpdate).not.toHaveBeenCalled();
     expect(warnSpy).not.toHaveBeenCalledWith(
@@ -458,13 +454,13 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     useUiStore
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "もう一度確認")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(1);
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
@@ -486,7 +482,7 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "再起動")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "再起動に失敗しました。更新の準備は完了しています。",
@@ -517,7 +513,7 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "再起動")
       ?.onClick();
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "再起動に失敗しました。更新の準備は完了しています。",
@@ -547,7 +543,7 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     showUpdateAvailableToast("1.2.3");
     useUiStore
@@ -620,7 +616,7 @@ describe("performUpdateCheck", () => {
     });
 
     renderHook(() => useUpdater());
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     progressListeners[0]?.({ payload: null });
     progressListeners[0]?.({ payload: [] });
@@ -661,7 +657,7 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     renderHook(() => useUpdater());
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     showUpdateAvailableToast("1.2.3");
     useUiStore

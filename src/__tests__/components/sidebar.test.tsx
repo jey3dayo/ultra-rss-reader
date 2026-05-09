@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { sampleAccounts, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
@@ -1340,7 +1341,7 @@ describe("Sidebar", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Drag Folder Feed" }));
     fireEvent.click(await screen.findByRole("button", { name: "Move to Work" }));
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flushMicrotasksAndRealTimer();
 
     expect(calls).not.toContainEqual({
       cmd: "update_feed_folder",

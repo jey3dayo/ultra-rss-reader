@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { act, render, waitFor } from "@testing-library/react";
+import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
 import { RUNTIME_DIAGNOSTIC_POLICIES, resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
@@ -90,11 +91,6 @@ function createLegacyMatchMedia(matches: boolean, options: { throwOnRemove?: boo
   };
 }
 
-async function flushAsyncWork(): Promise<void> {
-  await Promise.resolve();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
@@ -183,7 +179,7 @@ describe("useAppIconTheme", () => {
 
     render(<HookHarness />);
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     const appIconPolicy = RUNTIME_DIAGNOSTIC_POLICIES["app-icon-theme"];
     expect(appIconPolicy).toMatchObject({
@@ -252,7 +248,7 @@ describe("useAppIconTheme", () => {
       expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
     });
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(1);
   });
@@ -289,7 +285,7 @@ describe("useAppIconTheme", () => {
 
     mql.dispatch(false);
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(callsAfterExplicitTheme);
   });
@@ -309,7 +305,7 @@ describe("useAppIconTheme", () => {
 
     render(<HookHarness />);
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).not.toHaveBeenCalled();
   });
@@ -328,7 +324,7 @@ describe("useAppIconTheme", () => {
 
     render(<HookHarness />);
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).not.toHaveBeenCalled();
   });
@@ -343,7 +339,7 @@ describe("useAppIconTheme", () => {
 
     expect(() => render(<HookHarness />)).not.toThrow();
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).not.toHaveBeenCalled();
   });
@@ -391,7 +387,7 @@ describe("useAppIconTheme", () => {
 
     render(<HookHarness />);
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
     expect(setIconMock).not.toHaveBeenCalled();
 
     act(() => {
@@ -461,7 +457,7 @@ describe("useAppIconTheme", () => {
       usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     });
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(1);
 
@@ -499,7 +495,7 @@ describe("useAppIconTheme", () => {
       usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     });
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(1);
 
@@ -545,7 +541,7 @@ describe("useAppIconTheme", () => {
       mql.dispatch(true);
     });
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(1);
 
@@ -553,7 +549,7 @@ describe("useAppIconTheme", () => {
       firstIconRequest.resolve();
     });
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(1);
   });
@@ -581,13 +577,13 @@ describe("useAppIconTheme", () => {
       usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     });
 
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
     unmount();
 
     act(() => {
       firstIconRequest.resolve();
     });
-    await flushAsyncWork();
+    await flushMicrotasksAndRealTimer();
 
     expect(setIconMock).toHaveBeenCalledTimes(1);
   });

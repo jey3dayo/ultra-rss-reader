@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
 import {
@@ -2667,7 +2668,7 @@ describe("ArticleView", () => {
 
       calls.length = 0;
       fireEvent(window, new Event(keyboardEvents.addToReadingList));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await flushMicrotasksAndRealTimer();
 
       expect(calls).not.toContainEqual({
         cmd: "add_to_reading_list",
