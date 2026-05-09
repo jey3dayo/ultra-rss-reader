@@ -582,6 +582,86 @@
   - `DEFAULT_PLATFORM_INFO` 相当に寄せるか、dev browser 専用 capability として test で明示する
   - platform abstraction 全体ではなく、dev mock の unknown capability parity だけを扱う
 
+- [ ] article list body empty context menu 候補を追加する
+  - `src/components/reader/article-list-body.tsx` で empty / loading 中に body context menu から `mark all read` を出さない
+  - `groups.length === 0 || isLoading` の時は item を disabled または hidden にする component contract を追加する
+  - feed / folder context menu の 0 件 affordance とは分け、article list body の空状態 menu だけを扱う
+
+- [ ] article list item title normalization 候補を追加する
+  - `src/components/reader/article-list-item.tsx` で計算済み `normalizedTitle` を aria label と `<h3>` 表示に使う
+  - 前後空白入り title の a11y label / 表示揺れと empty title fallback を test で固定する
+  - article list loading や motion とは分け、row title 正規化の一点修正に限定する
+
+- [ ] article list item thumbnail blank guard 候補を追加する
+  - `src/components/reader/article-list-item.tsx` の thumbnail URL を `trim()` し、whitespace-only は非表示扱いにする
+  - resolver test に whitespace thumbnail を追加し、空の画像枠が出ない contract を固定する
+  - sanitizer responsive media とは分け、article row thumbnail 入力正規化だけを扱う
+
+- [ ] browser overlay escape keyboard ownership 候補を追加する
+  - `src/hooks/use-keyboard.ts` で global keyboard handler が `event.defaultPrevented` を尊重する
+  - `src/components/reader/hooks/browser/use-browser-overlay-shortcuts.ts` の Escape close と global close-browser が二重実行されない contract を追加する
+  - browser failure surface ではなく、keyboard ownership の一点契約として扱う
+
+- [ ] browser state card long detail wrapping 候補を追加する
+  - `src/components/reader/browser-surface-state-card.tsx` の technical detail に長い URL / native error 向けの折り返し class を追加する
+  - `break-words` / `overflow-wrap-anywhere` 相当を component または story test で固定する
+  - timeout message i18n とは分け、state card のレイアウト耐性だけを扱う
+
+- [ ] layout content mode contract 候補を追加する
+  - `src/hooks/use-layout.ts` の `resolveLayout` で `_contentMode` が未使用な理由を helper / test contract として固定する
+  - browser mode no-op を明示するか、API から削って `resolveVisiblePane` 側へ test を寄せる
+  - mobile UI 見直しではなく、layout pure helper の引数契約だけを扱う
+
+- [ ] sync flow remote folder upsert 候補を追加する
+  - `src-tauri/src/service/sync_flow.rs` で remote folder 同期時に同じ `remote_id` の既存 folder id を再利用する
+  - `find_by_remote_id(account_id, remote_id)` があれば `FolderId::new()` ではなく既存 id を使う sync flow test を追加する
+  - OPML folder cache や SQLite folder delete transaction とは分け、generic sync flow の remote folder upsert だけを扱う
+
+- [ ] provider normalizer article link preference 候補を追加する
+  - `src-tauri/src/infra/provider/normalizer.rs` で `entry.links.first()` ではなく alternate / HTML link 相当を優先する
+  - enclosure / self が先に来る feed fixture で本文リンク URL を選ぶ contract を追加する
+  - GReader parsing 互換性ではなく、local feed normalizer の link selection だけを扱う
+
+- [ ] provider normalizer thumbnail media type 候補を追加する
+  - `src-tauri/src/infra/provider/normalizer.rs` の thumbnail fallback で `image/webp` / `image/gif` など一般的な image MIME を扱う
+  - `is_image_media_type` helper と fixture test を追加する
+  - UI thumbnail 表示や sanitizer とは分け、normalizer の MIME 判定だけを扱う
+
+- [ ] platform command dev web URL validation 候補を追加する
+  - `src-tauri/src/commands/platform_commands.rs` の `VITE_DEV_WEB_URL` を trim だけで DTO に出さない
+  - `http` / `https` URL のみ返す helper と command unit test を追加する
+  - Tauri dev port validation や FreshRSS URL validation とは分け、platform command の dev URL 境界だけを扱う
+
+- [ ] browser webview placeholder navigation dedupe 候補を追加する
+  - `src-tauri/src/commands/browser_webview_commands.rs` で Windows placeholder `about:blank` 使用中の同一 URL 再 navigate を避ける
+  - tracker snapshot の target URL も見て、bounds update だけなら navigation しない contract を追加する
+  - browser history fallback reload とは分け、Rust command 側の placeholder navigation 契約だけを扱う
+
+- [ ] provider loopback timeout probe 候補を追加する
+  - `src-tauri/src/domain/error.rs` の loopback timeout 判定で `to_socket_addrs().next()` の最初の address だけに依存しない
+  - 解決された loopback address を短い timeout で順に probe し、どれか接続できれば response timeout 扱いにする
+  - DB error mapping ではなく、provider HTTP error classification の一点修正として扱う
+
+- [ ] mise test-all Storybook E2E semantics 候補を追加する
+  - `mise.toml` の `test:all` 説明が “including E2E” なのに `test:storybook:e2e` を含まないズレを解消する
+  - Storybook E2E を含めるか、説明を app E2E のみに狭めて package script contract に追加する
+  - Storybook port / registry / runtime guard とは分け、aggregate task semantics だけを扱う
+
+- [ ] YAML lint config self-check 候補を追加する
+  - `mise.toml` の `lint:yaml` が `.github/` だけでなく `.yamllint` 自体も lint 対象にする
+  - `yamllint -c .yamllint .github/ .yamllint` 相当の contract を追加する
+  - CI cache や quality gate ではなく、YAML lint 対象漏れの一点修正として扱う
+
+- [ ] Storybook config labeler contract 候補を追加する
+  - `.github/labeler.yml` で `.storybook/**` 変更に `ui` または `category/tests` ラベルが付くようにする
+  - `src/__tests__/config/repo-contracts.test.ts` に Storybook config path の labeler contract を追加する
+  - 既存の scripts / tests / e2e labeler coverage とは別に、`.storybook/**` の漏れだけを扱う
+
+- [ ] AGENTS router contract 候補を追加する
+  - `AGENTS.md` が `CLAUDE.md` への thin router であることを `src/__tests__/config/repo-contracts.test.ts` で固定する
+  - markdown link scan 対象へ `AGENTS.md` を含めるか、`CLAUDE.md` 参照の存在 contract を追加する
+  - `CLAUDE.md` / `.claude/rules` link contract とは分け、repo-local agent router の一点だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
