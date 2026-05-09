@@ -13,7 +13,7 @@ import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
-export type SelectVisibleArticlesParams = {
+type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;
   accountArticles: ArticleDto[] | undefined;
   tagArticles: ArticleDto[] | undefined;
@@ -30,7 +30,7 @@ export type SelectVisibleArticlesParams = {
   retainedArticleIds?: ReadonlySet<string>;
 };
 
-export type GroupArticlesParams = {
+type GroupArticlesParams = {
   articles: ArticleDto[];
   groupBy: string;
   feedNameMap: Map<string, string>;
@@ -38,7 +38,7 @@ export type GroupArticlesParams = {
 
 export type ArticleGroupLabelToken = "today" | "yesterday" | "unknown_feed" | null;
 
-export type CalculateArticleNavigationScrollTopParams = {
+type CalculateArticleNavigationScrollTopParams = {
   currentScrollTop: number;
   viewportTop: number;
   viewportHeight: number;
@@ -55,14 +55,12 @@ export type RetainedArticlesSnapshot = {
   articles: ArticleDto[];
 };
 
-export type ArticleListMarkAllReadCountParams = {
+type ArticleListMarkAllReadCountParams = {
   selection: ReaderSelection;
   selectedFeedUnreadCount: number;
   folderUnreadCount: number;
   filteredArticles: ArticleDto[];
 };
-
-export type ArticleListSelectionForDerivedState = ReaderSelection;
 
 function getDateGroup(dateStr: string): string {
   const date = parseDateInput(dateStr);
