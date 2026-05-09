@@ -1033,6 +1033,71 @@
   - Tauri desktop app として progressive enhancement 指摘をそのまま直すか、button-driven form contract として明示するか判断する
   - add account URL validation とは分け、form semantics と keyboard submit contract だけを扱う
 
+- [ ] keyboard listener subscription boundary 候補を追加する
+  - `src/hooks/use-keyboard.ts` の `useUiStore()` 全体購読を必要な selector に分け、無関係な UI state 更新で `keydown` listener が張り替わらないようにする
+  - `src/__tests__/hooks/use-keyboard.test.tsx` で toast / sidebar state など無関係更新時の `addEventListener` / `removeEventListener` 回数を固定する
+  - shortcut taxonomy や command action 変更とは分け、global listener subscription stability だけを扱う
+
+- [ ] feed display mode optimistic cancel 候補を追加する
+  - `src/hooks/use-update-feed-display-mode.ts` で楽観更新前に `feeds` query を cancel し、in-flight `listFeeds` が display mode を巻き戻さないようにする
+  - `src/__tests__/hooks/use-update-feed-display-mode.test.tsx` で未解決 refetch 中の display mode 更新が古い result に上書きされないことを確認する
+  - `useUpdateFeedFolder` との contract parity に限定し、feed settings UI 変更とは混ぜない
+
+- [ ] sidebar navigation frame cleanup 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts` の focus / scroll 用 `requestAnimationFrame` を unmount / selection 変更時に cancel する
+  - `src/__tests__/hooks/use-sidebar-feed-navigation.test.tsx` で frame 実行前に unmount した場合に stale focus が走らないことを確認する
+  - sidebar startup folder expansion とは分け、keyboard navigation の frame cleanup だけを扱う
+
+- [ ] article tag picker close focus cleanup 候補を追加する
+  - `src/components/reader/hooks/article/use-article-tag-picker-popover.ts` の close 後 focus restore frame を cancel 可能にする
+  - article tag picker hook / component test で Escape close 後、frame 前に unmount しても trigger focus が発火しないことを確認する
+  - tag mutation や picker view props とは分け、popover close focus cleanup だけを扱う
+
+- [ ] updater startup check unmount guard 候補を追加する
+  - `src/hooks/use-updater.ts` の startup update check promise に cancelled guard を追加し、unmount 後に toast / warn が出ないようにする
+  - `src/__tests__/hooks/use-updater.test.ts` で `useUpdater` unmount 後に startup check が resolve しても update toast が出ないことを確認する
+  - updater progress payload schema とは分け、startup check lifecycle だけを扱う
+
+- [ ] folder selection focus frame cleanup 候補を追加する
+  - `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts` の new folder input focus 用 `requestAnimationFrame` を reset / unmount 時に cancel する
+  - use-folder-selection または add/rename dialog hook test で作成モード開始後 frame 前に閉じても stale focus が走らないことを確認する
+  - add feed discovery race とは分け、folder selection focus cleanup だけを扱う
+
+- [ ] settings preference key type boundary 候補を追加する
+  - `src/stores/preferences-store.types.ts` の `setPref: (key: string, value: string)` を known preference key / shortcut key の contract に寄せる
+  - `src/__tests__/stores/preferences-store.test.ts` または dedicated type contract で unknown key が型で止まることを `expectTypeOf` / `@ts-expect-error` で固定する
+  - preference schema 再設計とは分け、settings store action key typing だけを扱う
+
+- [ ] reading display preset paired preference 候補を追加する
+  - `src/components/settings/hooks/use-reading-settings-view-props.ts` の display preset が `reader_mode_default` と `web_preview_mode_default` を別々に保存する failure contract を固定する
+  - 片方だけ失敗した場合の state / backend 整合性を hook test と store test で確認する
+  - preference persist rollback 全体とは分け、reading display preset の paired update だけを扱う
+
+- [ ] data settings stale size response guard 候補を追加する
+  - `src/components/settings/hooks/use-data-settings-controller.ts` で初回 `getDatabaseInfo()` の遅延 response が `vacuumDatabase()` 後の size を上書きしないようにする
+  - `src/__tests__/components/use-data-settings-controller.test.ts` で deferred info request と vacuum success の順序逆転を固定する
+  - database command busy / restore contract とは分け、settings controller state race だけを扱う
+
+- [ ] create folder schema blank name 候補を追加する
+  - `src/api/schemas/commands.ts` の `createFolderArgs.name` で空文字 / whitespace-only folder 名を拒否する
+  - `src/__tests__/api/schemas.test.ts` と `src/__tests__/api/tauri-commands.test.ts` で invalid name が IPC invoke へ進まないことを確認する
+  - rename feed validation とは分け、create folder IPC schema boundary だけを扱う
+
+- [ ] tauri default mock command coverage 候補を追加する
+  - `tests/helpers/tauri-mocks.ts` の default handler に public wrapper でよく使う副作用小さめ command を追加する
+  - 対象候補: `list_feed_article_summaries` / `get_preferences` / `get_database_info` / `check_for_update` / `cleanup_feed_integrity_orphans`
+  - `tests/helpers/tauri-mocks.test.ts` で default mock response が schema-valid に通ることを固定する
+
+- [ ] fixture folder relationship contract 候補を追加する
+  - `tests/helpers/fixtures.ts` の sample feed / folder 関係に folder scope を表現できる fixture を追加する
+  - `tests/helpers/fixtures.test.ts` で `sampleFolders` と `sampleFeeds.folder_id` の参照整合性を固定する
+  - Tauri default mock coverage とは分け、fixture graph の最小関係だけを扱う
+
+- [ ] feed integrity cleanup mock contract 候補を追加する
+  - `src/api/schemas/feed-integrity.ts` の cleanup response schema に合わせて `cleanup_feed_integrity_orphans` default mock を用意する
+  - `tests/helpers/tauri-mocks.test.ts` で dry-run cleanup DTO を schema-valid に通し、invalid cleanup response validation も確認する
+  - feed integrity UI polish とは分け、maintenance command mock / schema contract だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
