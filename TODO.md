@@ -120,11 +120,6 @@
   - URL field の invalid hint だけでなく、discover / submit の error と success が視覚表示だけになると支援技術へ通知されない可能性がある
   - URL field error と form-level result を分け、`role` / `aria-live` / `aria-describedby` の方針を accessibility test で固定する
 
-- [ ] P1 command palette dialog の accessible name contract を固定する
-  - 対象: `src/components/reader/command-palette.tsx`, `src/components/ui/command.tsx`
-  - Dialog title / description が popup content 外に置かれる構造だと、dialog の accessible name / description association が壊れても検出しにくい
-  - command palette と shared CommandDialog で `getByRole("dialog", { name })` が通る contract test を追加する
-
 - [ ] P2 Tauri CSP の external img/frame 許可面積を feed content / browser webview 境界で整理する
   - 対象: `src-tauri/tauri.conf.json`, `docs/feed-content-privacy.md`, `src/components/reader/article-content-view.tsx`
   - CSP で `img-src` / `frame-src` が `http:` / `https:` を広く許可している場合、feed content と browser webview の責務境界が security config 上で見えにくい

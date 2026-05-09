@@ -241,13 +241,14 @@ describe("Design-themed UI primitives", () => {
 
   it("uses the readable scrim token for command palette dialogs", () => {
     render(
-      <CommandDialog open={true} onOpenChange={vi.fn()}>
+      <CommandDialog open={true} onOpenChange={vi.fn()} title="Command search" description="Find an action">
         <div>Command content</div>
       </CommandDialog>,
     );
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
+    expect(screen.getByRole("dialog", { name: "Command search" })).toHaveTextContent("Command content");
     expect(overlay).toHaveClass(
       "bg-dialog-overlay-readable",
       "bg-dialog-scrim-readable",
