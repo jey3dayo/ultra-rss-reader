@@ -662,6 +662,61 @@
   - markdown link scan 対象へ `AGENTS.md` を含めるか、`CLAUDE.md` 参照の存在 contract を追加する
   - `CLAUDE.md` / `.claude/rules` link contract とは分け、repo-local agent router の一点だけを扱う
 
+- [ ] settings page inline action disabled contract 候補を追加する
+  - `src/components/settings/settings-page-view.tsx` の text control で `control.disabled` 中も inline action が押せる状態を防ぐ
+  - action button の disabled を `control.disabled || control.actionDisabled` に揃え、settings page view test に contract を追加する
+  - settings nav / tag input とは分け、共通 SettingsPageView の disabled 伝搬だけを扱う
+
+- [ ] account switcher single-account menu contract 候補を追加する
+  - `src/components/reader/account-switcher-view.tsx` で account 1 件時に menu open できる状態と aria 属性のズレを解消する
+  - 1 件時は menu を開かないか、1 件 menu を正式公開するかを test で固定する
+  - account detail / backend account validation とは分け、sidebar account switcher の single-account contract だけを扱う
+
+- [ ] data settings action in-flight ref guard 候補を追加する
+  - `src/components/settings/hooks/use-data-settings-controller.ts` の `handleVacuum` / `handleOpenLogDir` に同期的な in-flight ref guard を追加する
+  - 同一 render closure からの連続実行でも二重 command を投げない focused hook test を追加する
+  - database command recovery や release verification とは分け、Data settings action の重複実行 guard だけを扱う
+
+- [ ] FeedDto remote id exposure 候補を追加する
+  - `src-tauri/src/commands/dto.rs` の `FeedDto` と `src/api/schemas/feed.ts` に `remote_id` を追加する
+  - provider-managed feed を frontend DTO から判定できるよう、schema test と代表 fixture を更新する
+  - sync flow / pending mutation ではなく、Tauri DTO の欠落フィールド一点として扱う
+
+- [ ] article entry id whitespace GUID fallback 候補を追加する
+  - `src-tauri/src/domain/article.rs` の `generate_entry_id` で whitespace-only GUID を有効 ID として扱わない
+  - GUID 判定を trim ベースにし、whitespace GUID は URL / title fallback へ落ちる unit test を追加する
+  - article list title normalization とは分け、domain article ID 生成だけを扱う
+
+- [ ] local provider HTTP status classification 候補を追加する
+  - `src-tauri/src/infra/provider/local.rs` の `create_subscription` で HTTP status error を raw network error にしない
+  - `DomainError::from_provider_http_error` に寄せ、401 / 429 などが Auth / RateLimit 分類へ通る test を追加する
+  - loopback timeout probe とは分け、HTTP status formatting / classification だけを扱う
+
+- [ ] GReader canonical URL fallback 候補を追加する
+  - `src-tauri/src/infra/provider/greader.rs` の item mapping で `alternate` 欠落時に `canonical` の非空 href を URL fallback に使う
+  - alternate 優先、なければ canonical へ fallback する helper と unit test を追加する
+  - local feed normalizer link preference とは分け、GReader JSON item mapping だけを扱う
+
+- [ ] shared field stories render smoke 候補を追加する
+  - `src/__tests__/components/shared-stories.test.tsx` に `CopyableReadonlyField` / `CopyableReadonlyFieldList` story の最小 render assertion を追加する
+  - story export registry だけでなく、shared field story が実 render できる contract を固定する
+  - Storybook E2E runtime guard とは分け、shared component story の unit smoke に限定する
+
+- [ ] Tauri mock fixture fresh clone 候補を追加する
+  - `tests/helpers/tauri-mocks.ts` が `sampleAccounts` / `sampleFeeds` / `sampleArticles` の共有オブジェクトをそのまま返さないようにする
+  - `tests/helpers/fixtures.ts` に fresh clone builder を追加し、mock 返却値の mutation が fixture を汚染しない contract を追加する
+  - fixture parity とは分け、test data builder の immutability だけを扱う
+
+- [ ] account switcher story ref isolation 候補を追加する
+  - `src/components/reader/account-switcher-view.stories.tsx` の `triggerRef` / `itemRefs` を meta args で共有しない
+  - story render または decorator 内で story ごとに refs を生成するようにし、mutable ref 共有を避ける
+  - account switcher runtime contract とは分け、Storybook story args の isolation だけを扱う
+
+- [ ] docs index RTK link 候補を追加する
+  - `docs/README.md` の Top-Level Docs から `../RTK.md` へ辿れるようにする
+  - repo の外部コマンド実行方針を docs index から見つけられる 1 行追加に限定する
+  - AGENTS router contract や markdown link scan 拡張とは分け、docs index の案内漏れだけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
