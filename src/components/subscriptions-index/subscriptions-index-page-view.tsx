@@ -41,6 +41,7 @@ export type SubscriptionsIndexPageViewProps = {
   listScrollTop: number;
   folderLabel: string;
   latestArticleLabel: string;
+  latestArticleEmptyLabel: string;
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
@@ -83,6 +84,7 @@ export function SubscriptionsIndexPageView({
   listScrollTop,
   folderLabel,
   latestArticleLabel,
+  latestArticleEmptyLabel,
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
@@ -157,6 +159,7 @@ export function SubscriptionsIndexPageView({
               emptyLabel={detailEmptyLabel}
               folderLabel={folderLabel}
               latestArticleLabel={latestArticleLabel}
+              latestArticleEmptyLabel={latestArticleEmptyLabel}
               unreadCountLabel={unreadCountLabel}
               starredCountLabel={starredCountLabel}
               reasonHeading={reasonHeading}

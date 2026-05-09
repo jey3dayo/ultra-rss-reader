@@ -1,0 +1,149 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { FeedDto } from "@/api/tauri-commands";
+import { SubscriptionDetailPane } from "@/components/subscriptions-index/subscription-detail-pane";
+import type { SubscriptionDetailMetrics, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+
+function buildFeed(overrides: Partial<FeedDto> = {}): FeedDto {
+  return {
+    id: "feed-1",
+    account_id: "acc-1",
+    folder_id: null,
+    remote_id: null,
+    title: "Example Feed",
+    url: "https://example.com/feed.xml",
+    site_url: "https://example.com",
+    unread_count: 3,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+    ...overrides,
+  };
+}
+
+function buildRow(): SubscriptionListRow {
+  return {
+    feed: buildFeed(),
+    folderId: null,
+    folderName: null,
+    latestArticleAt: null,
+    status: { tone: "neutral", labelKey: "normal" },
+    reasonTooltipKey: null,
+  };
+}
+
+const metrics: SubscriptionDetailMetrics = {
+  latestArticleAt: null,
+  starredCount: 0,
+  previewArticles: [],
+};
+
+const baseProps = {
+  heading: "Details",
+  emptyLabel: "Select a subscription",
+  row: buildRow(),
+  metrics,
+  detailCandidate: null,
+  folderLabel: "Folder",
+  latestArticleLabel: "Latest",
+  latestArticleEmptyLabel: "No updates yet",
+  unreadCountLabel: "Unread",
+  starredCountLabel: "Starred",
+  reasonHeading: "Reason",
+  reasonHint: "No review needed",
+  recentArticlesHeading: "Recent articles",
+  displayModeLabel: "Display",
+  displayModeValue: "Default",
+  dateLocale: "en",
+};
+
+function getLatestArticleMetricRow(): HTMLElement {
+  const row = screen.getByText("Latest").closest("div");
+  expect(row).not.toBeNull();
+  if (!row) {
+    throw new Error("Expected latest article metric row");
+  }
+  return row;
+}
+
+describe("SubscriptionDetailPane", () => {
+  it("delegates decision bar actions and hides management actions while decisions are present", () => {
+    const decisionActions = {
+      keepLabel: "Keep",
+      deferLabel: "Later",
+      deleteLabel: "Delete",
+      onKeep: vi.fn(),
+      onDefer: vi.fn(),
+      onDelete: vi.fn(),
+    };
+    const managementActions = {
+      editLabel: "Edit",
+      deleteLabel: "Remove",
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    };
+
+    render(
+      <SubscriptionDetailPane {...baseProps} decisionActions={decisionActions} managementActions={managementActions} />,
+    );
+
+    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toBeInTheDocument();
+    expect(screen.queryByTestId("subscriptions-detail-management-bar")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep" }));
+    fireEvent.click(screen.getByRole("button", { name: "Later" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(decisionActions.onKeep).toHaveBeenCalledOnce();
+    expect(decisionActions.onDefer).toHaveBeenCalledOnce();
+    expect(decisionActions.onDelete).toHaveBeenCalledOnce();
+    expect(managementActions.onEdit).not.toHaveBeenCalled();
+    expect(managementActions.onDelete).not.toHaveBeenCalled();
+  });
+
+  it("delegates management actions when no decision actions are present", () => {
+    const managementActions = {
+      editLabel: "Edit",
+      deleteLabel: "Remove",
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+    };
+
+    render(<SubscriptionDetailPane {...baseProps} decisionActions={null} managementActions={managementActions} />);
+
+    expect(screen.queryByTestId("subscriptions-detail-decision-bar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(managementActions.onEdit).toHaveBeenCalledOnce();
+    expect(managementActions.onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("renders the localized empty label for missing and invalid latest article dates", () => {
+    const { rerender } = render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        metrics={{ ...metrics, latestArticleAt: null }}
+        decisionActions={null}
+        managementActions={null}
+      />,
+    );
+
+    expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
+    expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
+
+    rerender(
+      <SubscriptionDetailPane
+        {...baseProps}
+        metrics={{ ...metrics, latestArticleAt: "not-a-date" }}
+        decisionActions={null}
+        managementActions={null}
+      />,
+    );
+
+    expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
+    expect(within(getLatestArticleMetricRow()).queryByText("Invalid Date")).not.toBeInTheDocument();
+    expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
+  });
+});

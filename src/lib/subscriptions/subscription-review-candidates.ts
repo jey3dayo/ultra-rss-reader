@@ -4,6 +4,7 @@ import { differenceInDays, parseDateInput } from "@/lib/datetime";
 export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
 export type SubscriptionReviewTitleKey = "review_now" | "consider" | "keep";
+export type SubscriptionCleanupRecommendation = "cleanup_candidate" | "watch" | "retain";
 export type SubscriptionReviewSummaryKey =
   | "stale_and_inactive"
   | "stale_with_no_stars"
@@ -122,6 +123,22 @@ export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionRevi
   };
 }
 
+export function resolveSubscriptionCleanupRecommendation(
+  candidate: SubscriptionReviewCandidate,
+): SubscriptionCleanupRecommendation {
+  const summary = summarizeSubscriptionReviewCandidate(candidate);
+
+  if (summary.tone === "high") {
+    return "cleanup_candidate";
+  }
+
+  if (summary.tone === "medium") {
+    return "watch";
+  }
+
+  return "retain";
+}
+
 export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReviewCandidate): Array<{
   key: SubscriptionReviewReasonFactKey;
   value: number;
@@ -162,7 +179,7 @@ export function buildSubscriptionReviewCandidates({
       const latestArticleAt = summary?.latest_article_at ?? null;
 
       const latestArticleDate = parseDateInput(latestArticleAt);
-      const staleDays = latestArticleDate === null ? null : differenceInDays(now, latestArticleDate);
+      const staleDays = latestArticleDate === null ? null : Math.max(0, differenceInDays(now, latestArticleDate));
       const starredCount = summary?.starred_count ?? 0;
       const hasFetchedArticle = latestArticleAt !== null;
       const reasonKeys: SubscriptionReviewReasonKey[] = [];

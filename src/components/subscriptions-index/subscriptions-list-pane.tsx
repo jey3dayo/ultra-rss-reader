@@ -23,6 +23,22 @@ type SubscriptionGroupDisclosureButtonProps = {
   onToggleGroup: (groupKey: string) => void;
 };
 
+type SubscriptionsListPaneProps = {
+  heading: string;
+  groups: SubscriptionListGroup[];
+  selectedFeedId: string | null;
+  emptyLabel: string;
+  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
+  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
+  formatUnreadCountLabel: (count: number) => string;
+  formatLatestArticleLabel: (value: string | null) => string;
+  isGroupExpanded: (groupKey: string) => boolean;
+  initialScrollTop?: number;
+  onSelectFeed: (feedId: string) => void;
+  onListScrollTopChange?: (scrollTop: number) => void;
+  onToggleGroup: (groupKey: string) => void;
+};
+
 function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) {
   if (labelKey === "review") {
     return "warning";
@@ -84,21 +100,7 @@ export function SubscriptionsListPane({
   onSelectFeed,
   onListScrollTopChange,
   onToggleGroup,
-}: {
-  heading: string;
-  groups: SubscriptionListGroup[];
-  selectedFeedId: string | null;
-  emptyLabel: string;
-  statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
-  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
-  formatUnreadCountLabel: (count: number) => string;
-  formatLatestArticleLabel: (value: string | null) => string;
-  isGroupExpanded: (groupKey: string) => boolean;
-  initialScrollTop?: number;
-  onSelectFeed: (feedId: string) => void;
-  onListScrollTopChange?: (scrollTop: number) => void;
-  onToggleGroup: (groupKey: string) => void;
-}) {
+}: SubscriptionsListPaneProps) {
   const scrollRegionRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollTopRef = useRef<number | null>(null);
   const totalRowCount = countSubscriptionGroupRows(groups);

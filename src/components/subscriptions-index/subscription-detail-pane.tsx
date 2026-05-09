@@ -22,6 +22,7 @@ type SubscriptionDetailPaneProps = {
   detailCandidate: SubscriptionDetailCandidate | null;
   folderLabel: string;
   latestArticleLabel: string;
+  latestArticleEmptyLabel?: string;
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
@@ -68,6 +69,11 @@ function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions
   ];
 }
 
+function formatLatestArticleMetric(value: string | null, locale: string, emptyLabel: string): string {
+  const formatted = formatSubscriptionDate(value, locale);
+  return formatted === "—" ? emptyLabel : formatted;
+}
+
 export function SubscriptionDetailPane({
   heading,
   emptyLabel,
@@ -76,6 +82,7 @@ export function SubscriptionDetailPane({
   detailCandidate,
   folderLabel,
   latestArticleLabel,
+  latestArticleEmptyLabel = "—",
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
@@ -138,7 +145,7 @@ export function SubscriptionDetailPane({
                 { label: folderLabel, value: row.folderName ?? "—" },
                 {
                   label: latestArticleLabel,
-                  value: formatSubscriptionDate(metrics.latestArticleAt, dateLocale),
+                  value: formatLatestArticleMetric(metrics.latestArticleAt, dateLocale, latestArticleEmptyLabel),
                 },
                 { label: unreadCountLabel, value: row.feed.unread_count },
                 { label: starredCountLabel, value: metrics.starredCount },
@@ -174,7 +181,7 @@ export function SubscriptionDetailPane({
                       aria-label={action.label}
                       onClick={action.onClick}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="size-4" />
                       {action.label}
                     </DecisionButton>
                   );
@@ -194,7 +201,7 @@ export function SubscriptionDetailPane({
                   onClick={managementActions.onEdit}
                   className="justify-center rounded-md bg-surface-1/88 px-3 font-medium text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground sm:px-3.5 [&_svg]:size-3.5"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="size-4" />
                   {managementActions.editLabel}
                 </Button>
                 <Button
@@ -205,7 +212,7 @@ export function SubscriptionDetailPane({
                   onClick={managementActions.onDelete}
                   className="justify-center rounded-md bg-state-danger-surface px-3 font-medium text-state-danger-foreground shadow-none hover:bg-state-danger-surface sm:px-3.5 [&_svg]:size-3.5"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="size-4" />
                   {managementActions.deleteLabel}
                 </Button>
               </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
@@ -42,6 +42,7 @@ export function useSubscriptionsIndexState(
     initialExpandedGroups?: Record<string, boolean>;
     initialKeptFeedIds?: string[];
     initialDeferredFeedIds?: string[];
+    initialListScrollTop?: number;
   },
 ) {
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
@@ -55,6 +56,17 @@ export function useSubscriptionsIndexState(
   const [activeSummaryFilter, setActiveSummaryFilter] = useState<SubscriptionSummaryFilterKey>(
     options?.initialSummaryFilter ?? "all",
   );
+  const [listScrollTop, setListScrollTop] = useState(options?.initialListScrollTop ?? 0);
+
+  const selectSummaryFilter = useCallback((filterKey: SubscriptionSummaryFilterKey) => {
+    setActiveSummaryFilter(filterKey);
+    setListScrollTop(0);
+  }, []);
+
+  const updateSearchQuery = useCallback((query: string) => {
+    setSearchQuery(query);
+    setListScrollTop(0);
+  }, []);
 
   const visibleRows = useMemo(() => {
     return buildVisibleSubscriptionRows({
@@ -87,14 +99,16 @@ export function useSubscriptionsIndexState(
     deferredFeedIds,
     expandedGroups,
     keptFeedIds,
+    listScrollTop,
     searchQuery,
     selectedFeedId,
     selectedRow,
     sortKey,
     visibleRows,
     isGroupExpanded: (groupKey: string) => expandedGroups[groupKey] ?? true,
-    setActiveSummaryFilter,
-    setSearchQuery,
+    setActiveSummaryFilter: selectSummaryFilter,
+    setListScrollTop,
+    setSearchQuery: updateSearchQuery,
     setSelectedFeedId,
     setSortKey,
     markSelectedFeedDeferred: () => {

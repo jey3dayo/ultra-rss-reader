@@ -273,7 +273,7 @@ function SummaryFilterCardButton({
         </LabelChip>
         {shouldShowCriteria ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
-            <Info className="h-3 w-3" aria-hidden="true" />
+            <Info className="size-3" aria-hidden="true" />
             {resolveCriteriaChipLabel()}
           </span>
         ) : null}
@@ -292,17 +292,19 @@ function SummaryFilterCardButton({
   );
 }
 
+type SubscriptionsOverviewSummaryProps = {
+  cards: SubscriptionSummaryCard[];
+  onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
+  reviewCriteriaLabel?: string;
+};
+
 export function SubscriptionsOverviewSummary({
   cards,
   onSelectFilter,
   renderValue,
   reviewCriteriaLabel,
-}: {
-  cards: SubscriptionSummaryCard[];
-  onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
-  renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
-  reviewCriteriaLabel?: string;
-}) {
+}: SubscriptionsOverviewSummaryProps) {
   return (
     <section
       className="rounded-md border border-border/55 px-4 py-3 sm:px-5 sm:py-4"

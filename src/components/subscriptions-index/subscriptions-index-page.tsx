@@ -29,9 +29,9 @@ import {
   resolveSelectedSubscriptionDetailMetrics,
   resolveSelectedSubscriptionDisplayModeLabel,
   resolveSubscriptionsInventoryHeading,
+  type SubscriptionDecisionActions,
 } from "@/lib/subscriptions/subscriptions-index";
 import type {
-  SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
@@ -57,7 +57,6 @@ export function SubscriptionsIndexPage() {
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const [editTargetFeed, setEditTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
-  const [listScrollTop, setListScrollTop] = useState(indexReturnState?.listScrollTop ?? 0);
 
   const candidates = useMemo(
     () =>
@@ -85,6 +84,7 @@ export function SubscriptionsIndexPage() {
     initialExpandedGroups: indexReturnState?.expandedGroups,
     initialKeptFeedIds: indexReturnState?.keptFeedIds,
     initialDeferredFeedIds: indexReturnState?.deferredFeedIds,
+    initialListScrollTop: indexReturnState?.listScrollTop,
   });
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
@@ -189,6 +189,8 @@ export function SubscriptionsIndexPage() {
       if (
         event.defaultPrevented ||
         event.key !== "Escape" ||
+        editTargetFeed !== null ||
+        deleteTargetFeed !== null ||
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement ||
@@ -203,7 +205,7 @@ export function SubscriptionsIndexPage() {
     });
 
     return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
-  }, [closeSubscriptionsWorkspace]);
+  }, [closeSubscriptionsWorkspace, deleteTargetFeed, editTargetFeed]);
 
   return (
     <>
@@ -244,8 +246,9 @@ export function SubscriptionsIndexPage() {
         }
         dateLocale={i18n.language}
         folderLabel={t("folder")}
-        listScrollTop={listScrollTop}
+        listScrollTop={state.listScrollTop}
         latestArticleLabel={t("latest_article")}
+        latestArticleEmptyLabel={t("meta_latest_article_none")}
         unreadCountLabel={t("unread_count")}
         starredCountLabel={t("starred_count")}
         reasonHeading={t("detail_reason_heading")}
@@ -260,7 +263,7 @@ export function SubscriptionsIndexPage() {
         isGroupExpanded={state.isGroupExpanded}
         onSelectSummaryFilter={state.setActiveSummaryFilter}
         onSelectFeed={state.setSelectedFeedId}
-        onListScrollTopChange={setListScrollTop}
+        onListScrollTopChange={state.setListScrollTop}
         onToggleGroup={state.toggleGroup}
         onBack={() => closeSubscriptionsWorkspace()}
         onClose={() => closeSubscriptionsWorkspace()}

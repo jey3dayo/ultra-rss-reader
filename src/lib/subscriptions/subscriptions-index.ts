@@ -1,6 +1,5 @@
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/articles/article-display";
-import { countStarredArticles } from "@/lib/articles/article-list";
 import { findLatestArticleOrNull } from "@/lib/articles/article-view";
 import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
@@ -11,7 +10,6 @@ import {
 } from "@/lib/subscriptions/subscription-review-candidates";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import type {
-  SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListGroup,
@@ -25,16 +23,37 @@ export type { SubscriptionRowStatus } from "@/lib/subscriptions/subscriptions-in
 
 export type SubscriptionSortKey = "title" | "updated_at" | "unread_count";
 
+export type SubscriptionDecisionActions = {
+  keepLabel: string;
+  deferLabel: string;
+  deleteLabel: string;
+  onKeep: () => void;
+  onDefer: () => void;
+  onDelete: () => void;
+};
+
 export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
   return status.labelKey !== "normal";
 }
 
 export function countReviewCandidates(candidates: SubscriptionReviewCandidate[]): number {
-  return candidates.filter((candidate) => summarizeSubscriptionReviewCandidate(candidate).tone !== "low").length;
+  let count = 0;
+  for (const candidate of candidates) {
+    if (summarizeSubscriptionReviewCandidate(candidate).tone !== "low") {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 export function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number {
-  return candidates.filter((candidate) => hasSubscriptionReviewReason(candidate, "stale_90d")).length;
+  let count = 0;
+  for (const candidate of candidates) {
+    if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 export function findLatestArticleTimestamp(articles: ArticleDto[]): string | null {
@@ -132,16 +151,17 @@ export function buildVisibleSubscriptionRows({
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   return rows
-    .filter((row) => rowMatchesSubscriptionSummaryFilter(row, activeSummaryFilter))
-    .filter((row) =>
-      rowMatchesSubscriptionDecisionVisibility({
-        row,
-        activeSummaryFilter,
-        keptFeedIds,
-        deferredFeedIds,
-      }),
+    .filter(
+      (row) =>
+        rowMatchesSubscriptionSummaryFilter(row, activeSummaryFilter) &&
+        rowMatchesSubscriptionDecisionVisibility({
+          row,
+          activeSummaryFilter,
+          keptFeedIds,
+          deferredFeedIds,
+        }) &&
+        rowMatchesSubscriptionSearch(row, normalizedQuery),
     )
-    .filter((row) => rowMatchesSubscriptionSearch(row, normalizedQuery))
     .sort((left, right) => compareSubscriptionRows(left, right, sortKey));
 }
 
@@ -156,10 +176,21 @@ export function buildSubscriptionsIndexSummary({
   reviewCount: number;
   staleCount: number;
 } {
+  let reviewCount = 0;
+  let staleCount = 0;
+  for (const candidate of candidates) {
+    if (summarizeSubscriptionReviewCandidate(candidate).tone !== "low") {
+      reviewCount += 1;
+    }
+    if (hasSubscriptionReviewReason(candidate, "stale_90d")) {
+      staleCount += 1;
+    }
+  }
+
   return {
     totalCount: feeds.length,
-    reviewCount: countReviewCandidates(candidates),
-    staleCount: countStaleCandidates(candidates),
+    reviewCount,
+    staleCount,
   };
 }
 
@@ -351,7 +382,8 @@ export function buildSubscriptionListGroups(
   const groups = new Map<string, SubscriptionListGroup>();
 
   for (const row of rows) {
-    const key = row.folderId ?? "__ungrouped__";
+    const key =
+      row.folderId === null ? "subscription-list:0-sentinel:no-folder" : getSubscriptionFolderGroupKey(row.folderId);
     const label = row.folderName ?? noFolderLabel;
     const existing = groups.get(key);
 
@@ -380,6 +412,10 @@ export function buildSubscriptionListGroups(
 
     return left.key < right.key ? -1 : 1;
   });
+}
+
+function getSubscriptionFolderGroupKey(folderId: string): string {
+  return `subscription-list:1-folder:${folderId}`;
 }
 
 export function countSubscriptionGroupRows(groups: SubscriptionListGroup[]): number {
@@ -468,16 +504,60 @@ export function buildSubscriptionDetailMetrics({
   starredCount: number;
   previewArticles: ArticleDto[];
 } {
-  const feedArticles = articles.filter((article) => article.feed_id === feed.id);
-  const previewArticles = [...feedArticles]
-    .sort((left, right) => compareDateInputsAsc(right.published_at, left.published_at))
-    .slice(0, 2);
+  let latestArticleAt: string | null = feedArticleSummary?.latest_article_at ?? null;
+  let starredCount = feedArticleSummary?.starred_count ?? 0;
+  const previewArticles: ArticleDto[] = [];
+
+  for (const article of articles) {
+    if (article.feed_id !== feed.id) {
+      continue;
+    }
+
+    if (!feedArticleSummary) {
+      if (latestArticleAt === null || compareDateInputsAsc(article.published_at, latestArticleAt) > 0) {
+        latestArticleAt = article.published_at;
+      }
+      if (article.is_starred) {
+        starredCount += 1;
+      }
+    }
+
+    const insertIndex = previewArticles.findIndex((previewArticle) =>
+      shouldPlaceSubscriptionPreviewArticleBefore(article, previewArticle),
+    );
+    if (insertIndex === -1) {
+      if (previewArticles.length < 2) {
+        previewArticles.push(article);
+      }
+      continue;
+    }
+
+    previewArticles.splice(insertIndex, 0, article);
+    if (previewArticles.length > 2) {
+      previewArticles.pop();
+    }
+  }
 
   return {
-    latestArticleAt: feedArticleSummary?.latest_article_at ?? findLatestArticleTimestamp(feedArticles),
-    starredCount: feedArticleSummary?.starred_count ?? countStarredArticles(feedArticles),
+    latestArticleAt,
+    starredCount,
     previewArticles,
   };
+}
+
+function shouldPlaceSubscriptionPreviewArticleBefore(candidate: ArticleDto, current: ArticleDto): boolean {
+  const candidateTime = getDateInputTimeMs(candidate.published_at);
+  const currentTime = getDateInputTimeMs(current.published_at);
+
+  if (candidateTime === null) {
+    return false;
+  }
+
+  if (currentTime === null) {
+    return true;
+  }
+
+  return candidateTime > currentTime;
 }
 
 export function formatSubscriptionDate(value: string | null | undefined, locale?: string): string {
