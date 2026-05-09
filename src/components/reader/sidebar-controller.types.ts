@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
+import type { PreferenceWritableKey } from "@/schemas/preferences";
 
 export type SidebarSetSelectedAccountPreference = (accountId: string) => void;
 
@@ -37,7 +38,7 @@ export type SidebarUpdateFeedFolderArgs = {
 export type SidebarUpdateFeedFolder = (variables: SidebarUpdateFeedFolderArgs) => Promise<unknown>;
 
 export type SidebarControllerActionsParams = Omit<SidebarUiActionsParams, "setSelectedAccountPreference"> & {
-  setPref: (key: string, value: string) => void;
+  setPref: <K extends PreferenceWritableKey>(key: K, value: string) => void;
   updateFeedFolder: SidebarUpdateFeedFolder;
 };
 

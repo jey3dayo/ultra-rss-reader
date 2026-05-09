@@ -1,6 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { DevIntent } from "@/dev/intent";
-import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
+import type { PreferenceWritableKey, SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
 import type { UiStoreState } from "@/stores/ui-store";
 import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarSourcesResult } from "./sidebar-sources.types";
@@ -64,7 +64,7 @@ export type SidebarUiStateResult = Pick<
   sidebarDensity: SidebarDensity;
   opaqueSidebars: boolean;
   savedAccountId: string;
-  setPref: (key: string, value: string) => void;
+  setPref: <K extends PreferenceWritableKey>(key: K, value: string) => void;
 };
 
 export type SidebarRuntimeResult = SidebarAccountSwitcherResult &

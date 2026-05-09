@@ -92,6 +92,7 @@ export const preferenceSchemas = {
 };
 
 export type KnownPreferenceKey = keyof typeof preferenceSchemas;
+export type PreferenceWritableKey = KnownPreferenceKey | ShortcutPreferenceKey | "selected_account_id";
 export type BackendPassthroughPreferenceKey = string;
 export type KnownPreferenceRecord = Partial<{
   [K in KnownPreferenceKey]: string;
