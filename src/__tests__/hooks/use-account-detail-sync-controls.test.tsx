@@ -117,6 +117,40 @@ describe("useAccountDetailSyncControls", () => {
     );
   });
 
+  it("does not show a stale error toast when an older update fails after a newer update succeeds", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], [account]);
+    const firstResult = createDeferred<ReturnType<typeof Result.fail<Error>>>();
+    const secondResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
+    updateAccountSyncMock.mockReturnValueOnce(firstResult.promise).mockReturnValueOnce(secondResult.promise);
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    let firstUpdate: Promise<void> | undefined;
+    let secondUpdate: Promise<void> | undefined;
+    act(() => {
+      firstUpdate = result.current.handleSyncUpdate({ syncIntervalSecs: 900 });
+      secondUpdate = result.current.handleSyncUpdate({ syncIntervalSecs: 7200 });
+    });
+
+    secondResult.resolve(Result.succeed(makeUpdatedAccount(account, { syncIntervalSecs: 7200 })));
+    await secondUpdate;
+    firstResult.resolve(Result.fail(new Error("older request failed")));
+    await firstUpdate;
+
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(queryClient.getQueryData<AccountDetailAccount[]>(["accounts"])?.[0]).toEqual(
+      expect.objectContaining({ sync_interval_secs: 7200 }),
+    );
+  });
+
   it("recovers account setup sync when the native sync promise rejects", async () => {
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");

@@ -138,7 +138,12 @@ export function useAccountDetailSyncControls({
         partial.syncOnWake ?? account.sync_on_wake,
         partial.keepReadItemsDays ?? account.keep_read_items_days,
       ),
-      Result.inspectError(showSyncUpdateError),
+      Result.inspectError((error) => {
+        if (revision !== syncUpdateRevisionRef.current) {
+          return;
+        }
+        showSyncUpdateError(error);
+      }),
       Result.inspect((updated) => {
         if (revision !== syncUpdateRevisionRef.current) {
           return;
