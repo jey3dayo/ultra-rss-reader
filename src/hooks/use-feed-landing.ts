@@ -14,17 +14,35 @@ export type FeedLandingFailure =
   | { type: "feed_not_found"; feedId: string }
   | { type: "landing_fetch_failed"; feedId: string; message: string };
 
-export type FeedLandingSuccess = { type: "feed_selected"; feedId: string; articleId: string | null };
+export type FeedLandingSuccess = {
+  type: "feed_selected";
+  feedId: string;
+  articleId: string | null;
+};
 export type FeedLandingResult = Result.Result<FeedLandingSuccess, FeedLandingFailure>;
 
+function readErrorMessage(error: unknown): string | null {
+  try {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error !== "object" || error === null || !("message" in error)) {
+      return null;
+    }
+
+    const message = Reflect.get(error, "message");
+    return typeof message === "string" ? message : null;
+  } catch {
+    return null;
+  }
+}
+
 function getLandingFailureMessage(error: unknown) {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === "object" && error !== null && "message" in error
-        ? String(Reflect.get(error, "message"))
-        : "Unknown error";
-  return message.replace(/^Error:\s*/, "");
+  const message = readErrorMessage(error)
+    ?.replace(/^Error:\s*/, "")
+    .trim();
+  return message && message !== "[object Object]" ? message : "Unknown error";
 }
 
 export function useFeedLanding() {
@@ -39,38 +57,43 @@ export function useFeedLanding() {
   return useCallback(
     async (feedId: string) => {
       if (!selectedAccountId) {
-        return Result.fail({ type: "missing_account" } satisfies FeedLandingFailure);
+        return Result.fail({
+          type: "missing_account",
+        } satisfies FeedLandingFailure);
       }
 
       const store = useUiStore.getState();
-      const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
-      const feedList =
-        feeds.length > 0
-          ? feeds
-          : await queryClient
-              .fetchQuery({
-                queryKey: feedQueryKey,
-                queryFn: () => listFeeds(selectedAccountId).then((result) => Result.unwrap(result)),
-              })
-              .catch((error) => {
-                const cachedFeeds = queryClient.getQueryData<FeedDto[]>(feedQueryKey);
-                if (cachedFeeds) {
-                  return cachedFeeds;
-                }
-                throw error;
-              });
-
-      const feed = feedList.find((candidate) => candidate.id === feedId);
-      if (!feed) {
-        return Result.fail({ type: "feed_not_found", feedId } satisfies FeedLandingFailure);
-      }
-
-      const preserveStarredContext =
-        store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
-
-      store.selectFeedFromCurrentContext(feedId);
-
       try {
+        const feedQueryKey = queryKeys.feeds.byAccount(selectedAccountId);
+        const feedList =
+          feeds.length > 0
+            ? feeds
+            : await queryClient
+                .fetchQuery({
+                  queryKey: feedQueryKey,
+                  queryFn: () => listFeeds(selectedAccountId).then((result) => Result.unwrap(result)),
+                })
+                .catch((error) => {
+                  const cachedFeeds = queryClient.getQueryData<FeedDto[]>(feedQueryKey);
+                  if (cachedFeeds) {
+                    return cachedFeeds;
+                  }
+                  throw error;
+                });
+
+        const feed = feedList.find((candidate) => candidate.id === feedId);
+        if (!feed) {
+          return Result.fail({
+            type: "feed_not_found",
+            feedId,
+          } satisfies FeedLandingFailure);
+        }
+
+        const preserveStarredContext =
+          store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
+
+        store.selectFeedFromCurrentContext(feedId);
+
         const articlesQueryKey = queryKeys.articles.byFeed(feedId, preserveStarredContext ? "starred" : "all");
         const articles = await queryClient
           .fetchQuery({
@@ -95,7 +118,11 @@ export function useFeedLanding() {
         });
         if (Result.isFailure(landingArticleResult)) {
           store.closeBrowser();
-          return Result.succeed({ type: "feed_selected", feedId, articleId: null } satisfies FeedLandingSuccess);
+          return Result.succeed({
+            type: "feed_selected",
+            feedId,
+            articleId: null,
+          } satisfies FeedLandingSuccess);
         }
 
         const landingArticle = Result.unwrap(landingArticleResult);
