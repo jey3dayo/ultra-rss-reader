@@ -160,7 +160,6 @@
   - startup DB error は database path を出す一方、log dir command は generic message に閉じており、support/debug のためにどこまで local path を出すかが境界ごとに揺れている
   - user-visible path、diagnostics-only path、privacy-sensitive username redaction の基準を CLAUDE/rules か contract test にする
 
-
 - [ ] P1 sync-on-wake の rejected promise を app boundary で必ず捕捉する
   - 対象: `src/App.tsx`, `src/api/tauri-commands.ts`, `src/lib/sync/manual-sync.ts`
   - visibilitychange から `void runSyncOnWakeRef.current()` を呼ぶため、`listAccounts` や `syncAccount` が throw/reject した場合に unhandled rejection になり、UI には何も出ず wake sync が失敗する可能性がある
@@ -185,7 +184,6 @@
   - 対象: `src/App.tsx`, `src/hooks/use-feeds.ts`, `src/lib/query/query-invalidation.ts`
   - 複数 account を並列 sync する時、1 account の throw/reject が他 account の結果待ちや warning 集約を壊すと、どの account が成功/失敗したか見えにくい
   - `Promise.allSettled`、per-account warning、partial success invalidation、sync_on_wake off account skip の component test を追加する
-
 
 - [ ] P3 matchMedia listener fallback の duplicate registration / cleanup drift を fixture 化する
   - 対象: `src/lib/runtime/match-media-listener.ts`, `src/stores/preferences-store.ts`, `src/hooks/use-app-icon-theme.ts`
