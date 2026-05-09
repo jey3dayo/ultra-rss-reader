@@ -5,6 +5,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::Mutex;
+use tracing::warn;
 
 use super::dto::AppError;
 
@@ -33,6 +34,19 @@ pub struct UpdateInfo {
 #[derive(Debug, Clone, Serialize)]
 struct DownloadProgress {
     percent: Option<u8>,
+}
+
+fn update_event_emit_warning(event: &str, error: &impl std::fmt::Display) -> String {
+    format!("Failed to emit {event} event during update flow: {error}")
+}
+
+fn emit_update_event_log_only<S>(app: &AppHandle, event: &str, payload: S)
+where
+    S: Serialize + Clone,
+{
+    if let Err(error) = app.emit(event, payload) {
+        warn!("{}", update_event_emit_warning(event, &error));
+    }
 }
 
 #[tauri::command]
@@ -116,7 +130,11 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
                     }
                     Some(((total_downloaded as f64 / total as f64) * 100.0).min(100.0) as u8)
                 });
-                let _ = app_handle.emit("update-download-progress", DownloadProgress { percent });
+                emit_update_event_log_only(
+                    &app_handle,
+                    "update-download-progress",
+                    DownloadProgress { percent },
+                );
             },
             || {},
         )
@@ -128,14 +146,14 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
     // On Windows, download_and_install may restart the app immediately,
     // so this emit may never be reached. The frontend handles both cases:
     // if the app restarts, the user sees the update applied on next launch.
-    let _ = app.emit("update-ready", ());
+    emit_update_event_log_only(app, "update-ready", ());
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::clear_pending_update;
+    use super::{clear_pending_update, update_event_emit_warning};
 
     #[test]
     fn clear_pending_update_drops_stale_cached_update_before_runtime_check() {
@@ -144,5 +162,15 @@ mod tests {
         clear_pending_update(&mut pending);
 
         assert_eq!(pending, None);
+    }
+
+    #[test]
+    fn update_event_emit_warning_names_failed_event_without_failing_update() {
+        let warning = update_event_emit_warning("update-ready", &"listener unavailable");
+
+        assert_eq!(
+            warning,
+            "Failed to emit update-ready event during update flow: listener unavailable"
+        );
     }
 }
