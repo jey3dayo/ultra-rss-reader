@@ -1,5 +1,10 @@
+import { render, screen } from "@testing-library/react";
+import { createElement } from "react";
 import { describe, expect, it } from "vitest";
-import { articleFilterToggleButtonClassName } from "@/components/shared/article-filter-toggle-button";
+import {
+  ArticleFilterToggleButton,
+  articleFilterToggleButtonClassName,
+} from "@/components/shared/article-filter-toggle-button";
 
 describe("ArticleFilterToggleButton contracts", () => {
   it("keeps the all-mode pressed contract neutral and shared with control chips", () => {
@@ -42,5 +47,28 @@ describe("ArticleFilterToggleButton contracts", () => {
     expect(articleFilterToggleButtonClassName({ mode: "all", size: "compact" })).toContain("text-xs");
     expect(articleFilterToggleButtonClassName({ mode: "all", size: "filter" })).toContain("text-[13px]");
     expect(articleFilterToggleButtonClassName({ mode: "all", size: "comfortable" })).toContain("text-sm");
+  });
+
+  it("keeps unread icon behavior while using the size shorthand", () => {
+    render(
+      createElement(
+        ArticleFilterToggleButton,
+        {
+          mode: "unread",
+          pressed: true,
+          value: "unread",
+          "aria-label": "Unread",
+        },
+        "Unread",
+      ),
+    );
+
+    const button = screen.getByRole("button", { name: "Unread" });
+    const icon = button.querySelector('span[aria-hidden="true"]');
+
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveClass("size-2.5");
+    expect(icon).not.toHaveClass("h-2.5", "w-2.5");
   });
 });
