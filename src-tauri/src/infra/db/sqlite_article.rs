@@ -251,6 +251,158 @@ fn row_to_article_view_history_item(
     })
 }
 
+pub(crate) fn mark_muted_unread_as_read_with_conn(
+    conn: &Connection,
+    account_id: &AccountId,
+    candidate_ids: Option<&[ArticleId]>,
+) -> DomainResult<usize> {
+    let auto_mark_read_enabled = conn
+        .query_row(
+            "SELECT value FROM preferences WHERE key = 'mute_auto_mark_read'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .is_some_and(|value| value == "true");
+
+    if !auto_mark_read_enabled || !SqliteMuteKeywordRepository::new(conn).has_any()? {
+        return Ok(0);
+    }
+
+    if candidate_ids.is_some_and(|ids| ids.is_empty()) {
+        return Ok(0);
+    }
+
+    let match_clause = build_mute_keyword_match_clause(
+        "a.title",
+        "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+    );
+
+    let (sql, params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ids) = candidate_ids {
+        let placeholders = ids
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("?{}", index + 2))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+             FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             JOIN accounts acc ON f.account_id = acc.id
+             WHERE f.account_id = ?1
+               AND a.is_read = 0
+               AND a.id IN ({placeholders})
+               AND {match_clause}"
+        );
+        let mut params: Vec<&dyn rusqlite::ToSql> = vec![&account_id.0];
+        for id in ids {
+            params.push(&id.0);
+        }
+        (sql, params)
+    } else {
+        (
+            format!(
+                "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+                 FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 JOIN accounts acc ON f.account_id = acc.id
+                 WHERE f.account_id = ?1
+                   AND a.is_read = 0
+                   AND {match_clause}"
+            ),
+            vec![&account_id.0],
+        )
+    };
+
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt
+        .query_map(params.as_slice(), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    drop(stmt);
+
+    if rows.is_empty() {
+        return Ok(0);
+    }
+
+    {
+        let mut update_stmt = conn.prepare("UPDATE articles SET is_read = 1 WHERE id = ?1")?;
+        for (article_id, _, _, _, _, _) in &rows {
+            update_stmt.execute(params![article_id])?;
+        }
+    }
+
+    {
+        let mut delete_pending_stmt = conn.prepare(
+            "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
+        )?;
+        let mut insert_pending_stmt = conn.prepare(
+            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+             VALUES (?1, ?2, ?3, ?4)",
+        )?;
+        let now = Utc::now().to_rfc3339();
+
+        for (_, _, remote_entry_id, account_kind, row_account_id, feed_remote_id) in &rows {
+            if let Some(remote_entry_id) = remote_entry_id {
+                let supports_remote_mutations = matches!(account_kind.as_str(), "FreshRss")
+                    && feed_remote_id
+                        .as_deref()
+                        .is_some_and(|remote_id| remote_id.starts_with("feed/"));
+
+                if supports_remote_mutations {
+                    let mutation = PendingMutation {
+                        id: None,
+                        account_id: AccountId(row_account_id.clone()),
+                        mutation_type: PendingMutationType::MarkRead,
+                        remote_entry_id: remote_entry_id.clone(),
+                        created_at: now.clone(),
+                    };
+                    delete_pending_stmt
+                        .execute(params![mutation.account_id.0, mutation.remote_entry_id])?;
+                    insert_pending_stmt.execute(params![
+                        mutation.account_id.0,
+                        mutation.mutation_type.as_str(),
+                        mutation.remote_entry_id,
+                        mutation.created_at,
+                    ])?;
+                }
+            }
+        }
+    }
+
+    {
+        let mut feed_ids = rows
+            .iter()
+            .map(|(_, feed_id, _, _, _, _)| feed_id.clone())
+            .collect::<Vec<_>>();
+        feed_ids.sort();
+        feed_ids.dedup();
+        let mut recalc_stmt = conn.prepare(
+            "UPDATE feeds
+             SET unread_count = (
+                SELECT COUNT(*)
+                FROM articles
+                WHERE feed_id = ?1 AND is_read = 0
+             )
+             WHERE id = ?1",
+        )?;
+        for feed_id in &feed_ids {
+            recalc_stmt.execute(params![feed_id])?;
+        }
+    }
+
+    Ok(rows.len())
+}
+
 impl ArticleRepository for SqliteArticleRepository<'_> {
     fn find_by_feed(
         &self,
@@ -806,155 +958,10 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         account_id: &AccountId,
         candidate_ids: Option<&[ArticleId]>,
     ) -> DomainResult<usize> {
-        let auto_mark_read_enabled = self
-            .conn
-            .query_row(
-                "SELECT value FROM preferences WHERE key = 'mute_auto_mark_read'",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()?
-            .is_some_and(|value| value == "true");
-
-        if !auto_mark_read_enabled || !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
-            return Ok(0);
-        }
-
-        if candidate_ids.is_some_and(|ids| ids.is_empty()) {
-            return Ok(0);
-        }
-
-        let match_clause = build_mute_keyword_match_clause(
-            "a.title",
-            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
-        );
-
-        let (sql, params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ids) = candidate_ids {
-            let placeholders = ids
-                .iter()
-                .enumerate()
-                .map(|(index, _)| format!("?{}", index + 2))
-                .collect::<Vec<_>>()
-                .join(", ");
-            let sql = format!(
-                "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
-                 FROM articles a
-                 JOIN feeds f ON a.feed_id = f.id
-                 JOIN accounts acc ON f.account_id = acc.id
-                 WHERE f.account_id = ?1
-                   AND a.is_read = 0
-                   AND a.id IN ({placeholders})
-                   AND {match_clause}"
-            );
-            let mut params: Vec<&dyn rusqlite::ToSql> = vec![&account_id.0];
-            for id in ids {
-                params.push(&id.0);
-            }
-            (sql, params)
-        } else {
-            (
-                format!(
-                    "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
-                     FROM articles a
-                     JOIN feeds f ON a.feed_id = f.id
-                     JOIN accounts acc ON f.account_id = acc.id
-                     WHERE f.account_id = ?1
-                       AND a.is_read = 0
-                       AND {match_clause}"
-                ),
-                vec![&account_id.0],
-            )
-        };
-
         let tx = self.conn.unchecked_transaction()?;
-        let mut stmt = tx.prepare(&sql)?;
-        let rows = stmt
-            .query_map(params.as_slice(), |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                    row.get::<_, String>(3)?,
-                    row.get::<_, String>(4)?,
-                    row.get::<_, Option<String>>(5)?,
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-        drop(stmt);
-
-        if rows.is_empty() {
-            tx.commit()?;
-            return Ok(0);
-        }
-
-        {
-            let mut update_stmt = tx.prepare("UPDATE articles SET is_read = 1 WHERE id = ?1")?;
-            for (article_id, _, _, _, _, _) in &rows {
-                update_stmt.execute(params![article_id])?;
-            }
-        }
-
-        {
-            let mut delete_pending_stmt = tx.prepare(
-                "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
-            )?;
-            let mut insert_pending_stmt = tx.prepare(
-                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
-                 VALUES (?1, ?2, ?3, ?4)",
-            )?;
-            let now = Utc::now().to_rfc3339();
-
-            for (_, _, remote_entry_id, account_kind, row_account_id, feed_remote_id) in &rows {
-                if let Some(remote_entry_id) = remote_entry_id {
-                    let supports_remote_mutations = matches!(account_kind.as_str(), "FreshRss")
-                        && feed_remote_id
-                            .as_deref()
-                            .is_some_and(|remote_id| remote_id.starts_with("feed/"));
-
-                    if supports_remote_mutations {
-                        let mutation = PendingMutation {
-                            id: None,
-                            account_id: AccountId(row_account_id.clone()),
-                            mutation_type: PendingMutationType::MarkRead,
-                            remote_entry_id: remote_entry_id.clone(),
-                            created_at: now.clone(),
-                        };
-                        delete_pending_stmt
-                            .execute(params![mutation.account_id.0, mutation.remote_entry_id])?;
-                        insert_pending_stmt.execute(params![
-                            mutation.account_id.0,
-                            mutation.mutation_type.as_str(),
-                            mutation.remote_entry_id,
-                            mutation.created_at,
-                        ])?;
-                    }
-                }
-            }
-        }
-
-        {
-            let mut feed_ids = rows
-                .iter()
-                .map(|(_, feed_id, _, _, _, _)| feed_id.clone())
-                .collect::<Vec<_>>();
-            feed_ids.sort();
-            feed_ids.dedup();
-            let mut recalc_stmt = tx.prepare(
-                "UPDATE feeds
-                 SET unread_count = (
-                    SELECT COUNT(*)
-                    FROM articles
-                    WHERE feed_id = ?1 AND is_read = 0
-                 )
-                 WHERE id = ?1",
-            )?;
-            for feed_id in &feed_ids {
-                recalc_stmt.execute(params![feed_id])?;
-            }
-        }
-
+        let changed = mark_muted_unread_as_read_with_conn(&tx, account_id, candidate_ids)?;
         tx.commit()?;
-        Ok(rows.len())
+        Ok(changed)
     }
 
     fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64> {

@@ -1,5 +1,5 @@
 use chrono::Utc;
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, ErrorCode};
 
 use crate::domain::article::Article;
 use crate::domain::error::{DomainError, DomainResult};
@@ -37,6 +37,14 @@ fn row_to_mute_keyword(row: &rusqlite::Row) -> rusqlite::Result<MuteKeyword> {
 
 fn normalize_ascii(value: &str) -> String {
     value.trim().to_ascii_lowercase()
+}
+
+fn is_unique_constraint_error(error: &rusqlite::Error) -> bool {
+    matches!(
+        error,
+        rusqlite::Error::SqliteFailure(failure, _)
+            if failure.code == ErrorCode::ConstraintViolation
+    )
 }
 
 // Mute keyword matching is intentionally ASCII-case-insensitive only.
@@ -166,7 +174,7 @@ impl MuteKeywordRepository for SqliteMuteKeywordRepository<'_> {
             updated_at: now,
         };
 
-        self.conn.execute(
+        if let Err(error) = self.conn.execute(
             "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
@@ -176,7 +184,14 @@ impl MuteKeywordRepository for SqliteMuteKeywordRepository<'_> {
                 mute_keyword.created_at,
                 mute_keyword.updated_at
             ],
-        )?;
+        ) {
+            if is_unique_constraint_error(&error) {
+                return Err(DomainError::Validation(
+                    "Mute keyword already exists".to_string(),
+                ));
+            }
+            return Err(error.into());
+        }
 
         Ok(mute_keyword)
     }
@@ -205,10 +220,17 @@ impl MuteKeywordRepository for SqliteMuteKeywordRepository<'_> {
         }
 
         let updated_at = Utc::now().to_rfc3339();
-        self.conn.execute(
+        if let Err(error) = self.conn.execute(
             "UPDATE mute_keywords SET scope = ?1, updated_at = ?2 WHERE id = ?3",
             params![scope.as_str(), updated_at, mute_keyword_id],
-        )?;
+        ) {
+            if is_unique_constraint_error(&error) {
+                return Err(DomainError::Validation(
+                    "Mute keyword already exists".to_string(),
+                ));
+            }
+            return Err(error.into());
+        }
 
         Ok(MuteKeyword {
             scope,
@@ -386,6 +408,29 @@ mod tests {
         let rules = repo.find_all().unwrap();
         assert_eq!(rules.len(), 2);
         assert!(rules.iter().all(|rule| rule.keyword == rule.keyword.trim()));
+    }
+
+    #[test]
+    fn database_rejects_normalized_keyword_scope_duplicates() {
+        let db = test_db();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params!["mute-1", "Kindle Unlimited", "title"],
+            )
+            .unwrap();
+
+        let error = db
+            .writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params!["mute-2", "  kindle unlimited  ", "title"],
+            )
+            .unwrap_err();
+
+        assert!(is_unique_constraint_error(&error));
     }
 
     #[test]

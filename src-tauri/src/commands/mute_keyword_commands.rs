@@ -4,10 +4,9 @@ use crate::commands::dto::{AppError, MuteKeywordDto};
 use crate::commands::AppState;
 use crate::domain::mute_keyword::MuteKeywordScope;
 use crate::domain::types::AccountId;
-use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
 use crate::infra::db::sqlite_mute_keyword::SqliteMuteKeywordRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
-use crate::repository::article::ArticleRepository;
 use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::preference::PreferenceRepository;
 
@@ -19,37 +18,29 @@ fn lock_db(
     })
 }
 
-fn maybe_mark_existing_muted_articles_as_read(
-    db: &crate::infra::db::connection::DbManager,
-) -> Result<(), AppError> {
-    if !is_mute_auto_mark_read_enabled(db)? {
+fn maybe_mark_existing_muted_articles_as_read(conn: &rusqlite::Connection) -> Result<(), AppError> {
+    if !is_mute_auto_mark_read_enabled(conn)? {
         return Ok(());
     }
 
-    let account_ids = account_ids_with_feeds(db)?;
-    let article_repo = SqliteArticleRepository::new(db.writer());
+    let account_ids = account_ids_with_feeds(conn)?;
     for account_id in account_ids {
-        article_repo.mark_muted_unread_as_read(&account_id, None)?;
+        mark_muted_unread_as_read_with_conn(conn, &account_id, None)?;
     }
 
     Ok(())
 }
 
-fn is_mute_auto_mark_read_enabled(
-    db: &crate::infra::db::connection::DbManager,
-) -> Result<bool, AppError> {
-    let pref_repo = SqlitePreferenceRepository::new(db.reader());
+fn is_mute_auto_mark_read_enabled(conn: &rusqlite::Connection) -> Result<bool, AppError> {
+    let pref_repo = SqlitePreferenceRepository::new(conn);
     Ok(pref_repo
         .get("mute_auto_mark_read")?
         .as_deref()
         .is_some_and(|value| value == "true"))
 }
 
-fn account_ids_with_feeds(
-    db: &crate::infra::db::connection::DbManager,
-) -> Result<Vec<AccountId>, AppError> {
-    let mut stmt = db
-        .reader()
+fn account_ids_with_feeds(conn: &rusqlite::Connection) -> Result<Vec<AccountId>, AppError> {
+    let mut stmt = conn
         .prepare("SELECT DISTINCT account_id FROM feeds")
         .map_err(crate::domain::error::DomainError::from)?;
     let account_ids = stmt
@@ -65,20 +56,25 @@ fn set_mute_auto_mark_read_impl(
     enabled: bool,
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
-    let pref_repo = SqlitePreferenceRepository::new(db.writer());
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(crate::domain::error::DomainError::from)?;
+    let pref_repo = SqlitePreferenceRepository::new(&tx);
     pref_repo.set(
         "mute_auto_mark_read",
         if enabled { "true" } else { "false" },
     )?;
 
     if enabled {
-        let account_ids = account_ids_with_feeds(&db)?;
-        let article_repo = SqliteArticleRepository::new(db.writer());
+        let account_ids = account_ids_with_feeds(&tx)?;
         for account_id in account_ids {
-            article_repo.mark_muted_unread_as_read(&account_id, None)?;
+            mark_muted_unread_as_read_with_conn(&tx, &account_id, None)?;
         }
     }
 
+    tx.commit()
+        .map_err(crate::domain::error::DomainError::from)?;
     Ok(())
 }
 
@@ -107,9 +103,15 @@ fn create_mute_keyword_impl(
     let scope = MuteKeywordScope::try_from(scope.as_str())
         .map_err(|message| AppError::UserVisible { message })?;
     let db = lock_db(db)?;
-    let repo = SqliteMuteKeywordRepository::new(db.writer());
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(crate::domain::error::DomainError::from)?;
+    let repo = SqliteMuteKeywordRepository::new(&tx);
     let created = repo.create(&keyword, scope)?;
-    maybe_mark_existing_muted_articles_as_read(&db)?;
+    maybe_mark_existing_muted_articles_as_read(&tx)?;
+    tx.commit()
+        .map_err(crate::domain::error::DomainError::from)?;
     Ok(MuteKeywordDto::from(created))
 }
 
@@ -130,9 +132,15 @@ fn update_mute_keyword_impl(
     let scope = MuteKeywordScope::try_from(scope.as_str())
         .map_err(|message| AppError::UserVisible { message })?;
     let db = lock_db(db)?;
-    let repo = SqliteMuteKeywordRepository::new(db.writer());
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(crate::domain::error::DomainError::from)?;
+    let repo = SqliteMuteKeywordRepository::new(&tx);
     let updated = repo.update_scope(&mute_keyword_id, scope)?;
-    maybe_mark_existing_muted_articles_as_read(&db)?;
+    maybe_mark_existing_muted_articles_as_read(&tx)?;
+    tx.commit()
+        .map_err(crate::domain::error::DomainError::from)?;
     Ok(MuteKeywordDto::from(updated))
 }
 
@@ -164,6 +172,7 @@ mod tests {
     use super::*;
     use crate::domain::types::FeedId;
     use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_article::SqliteArticleRepository;
     use crate::infra::db::sqlite_feed::SqliteFeedRepository;
     use crate::repository::article::ArticleRepository;
     use crate::repository::feed::FeedRepository;
@@ -261,6 +270,50 @@ mod tests {
     }
 
     #[test]
+    fn set_mute_auto_mark_read_rolls_back_preference_when_auto_read_fails() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        let account_id = insert_test_account(&guard);
+        let feed_id = insert_test_feed(&guard, &account_id);
+        guard
+            .writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params![uuid::Uuid::new_v4().to_string(), "Kindle Unlimited", "title"],
+            )
+            .unwrap();
+        insert_unread_article(&guard, &feed_id, "Kindle Unlimited campaign");
+        guard
+            .writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_mute_auto_read
+                 BEFORE UPDATE OF is_read ON articles
+                 WHEN NEW.is_read = 1
+                 BEGIN
+                   SELECT RAISE(ABORT, 'forced mute auto read failure');
+                 END;",
+            )
+            .unwrap();
+        drop(guard);
+
+        let error = set_mute_auto_mark_read_impl(&db, true).unwrap_err();
+
+        assert!(error.to_string().contains("forced mute auto read failure"));
+        let guard = db.lock().unwrap();
+        let pref_repo = SqlitePreferenceRepository::new(guard.reader());
+        assert_eq!(pref_repo.get("mute_auto_mark_read").unwrap(), None);
+        let is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(!is_read);
+    }
+
+    #[test]
     fn create_mute_keyword_does_not_mark_existing_matches_when_preference_is_missing_or_false() {
         let db = test_db();
         let guard = db.lock().unwrap();
@@ -303,6 +356,101 @@ mod tests {
     }
 
     #[test]
+    fn create_mute_keyword_rolls_back_rule_when_auto_read_fails() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        let account_id = insert_test_account(&guard);
+        let feed_id = insert_test_feed(&guard, &account_id);
+        let pref_repo = SqlitePreferenceRepository::new(guard.writer());
+        pref_repo.set("mute_auto_mark_read", "true").unwrap();
+        insert_unread_article(&guard, &feed_id, "Kindle Unlimited campaign");
+        guard
+            .writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_mute_create_auto_read
+                 BEFORE UPDATE OF is_read ON articles
+                 WHEN NEW.is_read = 1
+                 BEGIN
+                   SELECT RAISE(ABORT, 'forced mute create auto read failure');
+                 END;",
+            )
+            .unwrap();
+        drop(guard);
+
+        let error =
+            create_mute_keyword_impl(&db, "Kindle Unlimited".to_string(), "title".to_string())
+                .unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("forced mute create auto read failure"));
+        let guard = db.lock().unwrap();
+        let rules = SqliteMuteKeywordRepository::new(guard.reader())
+            .find_all()
+            .unwrap();
+        assert!(rules.is_empty());
+        let is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(!is_read);
+    }
+
+    #[test]
+    fn update_mute_keyword_rolls_back_scope_when_auto_read_fails() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        let account_id = insert_test_account(&guard);
+        let feed_id = insert_test_feed(&guard, &account_id);
+        let pref_repo = SqlitePreferenceRepository::new(guard.writer());
+        pref_repo.set("mute_auto_mark_read", "true").unwrap();
+        let created = SqliteMuteKeywordRepository::new(guard.writer())
+            .create("Kindle Unlimited", MuteKeywordScope::Body)
+            .unwrap();
+        insert_unread_article(&guard, &feed_id, "Kindle Unlimited campaign");
+        guard
+            .writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_mute_update_auto_read
+                 BEFORE UPDATE OF is_read ON articles
+                 WHEN NEW.is_read = 1
+                 BEGIN
+                   SELECT RAISE(ABORT, 'forced mute update auto read failure');
+                 END;",
+            )
+            .unwrap();
+        drop(guard);
+
+        let error =
+            update_mute_keyword_impl(&db, created.id.clone(), "title".to_string()).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("forced mute update auto read failure"));
+        let guard = db.lock().unwrap();
+        let rule = SqliteMuteKeywordRepository::new(guard.reader())
+            .find_all()
+            .unwrap()
+            .into_iter()
+            .find(|rule| rule.id == created.id)
+            .unwrap();
+        assert_eq!(rule.scope, MuteKeywordScope::Body);
+        let is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(!is_read);
+    }
+
+    #[test]
     fn account_ids_with_feeds_returns_each_account_once() {
         let db = test_db();
         let guard = db.lock().unwrap();
@@ -310,7 +458,7 @@ mod tests {
         insert_test_feed(&guard, &account_id);
         insert_test_feed(&guard, &account_id);
 
-        let account_ids = account_ids_with_feeds(&guard).unwrap();
+        let account_ids = account_ids_with_feeds(guard.reader()).unwrap();
 
         assert_eq!(account_ids, vec![account_id]);
     }

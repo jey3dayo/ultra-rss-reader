@@ -9,5 +9,8 @@ CREATE TABLE IF NOT EXISTS mute_keywords (
 CREATE INDEX IF NOT EXISTS idx_mute_keywords_created_at
   ON mute_keywords(created_at DESC);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mute_keywords_normalized_keyword_scope
+  ON mute_keywords(lower(trim(keyword)), scope);
+
 DELETE FROM schema_version;
 INSERT INTO schema_version (version) VALUES (12);
