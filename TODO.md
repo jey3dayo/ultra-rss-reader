@@ -40,30 +40,10 @@
   - delayed auto mark の timeout と `setRead.mutate` callback が article switch / unmount / unread view retention と重なる時の state rollback が事故りやすい
   - article A timer pending -> article B selected -> A mutation fail の順序で retained article / recently read / toast が正しいことを focused test で固定する
 
-- [ ] P0 add account setup sync duplicate submit contract を補強する
-  - 対象: `src/components/settings/add-account/account-config-form.tsx`, `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts`
-  - account create success 後の setup sync と account detail retry が並ぶと、setup session owner と selected account が stale になり得る
-  - duplicate submit / navigation away / retry while syncing / sync reject を state machine として fixed test にする
-
-- [ ] P1 browser webview event malformed payload rate limit を検討する
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`
-  - malformed native event payload を毎回 `console.warn` するため、native 側 bug や noisy event で log が埋まり、実障害の原因追跡が難しくなる
-  - event type ごとの warn once / sampled log / diagnostics counter のどれにするか決め、payload rejection contract は維持する
-
 - [ ] P1 browser injected bridge listener lifecycle を検証する
   - 対象: `src-tauri/src/browser_webview.rs`
   - injected script が `window.addEventListener` と focus override を入れるため、navigation / reload / recreate 時に listener が重複しないか実機寄りに確認する
   - bridge install idempotence、mouse back/forward in-flight、close in-flight の contract test または manual verification を追加する
-
-- [ ] P1 browser webview bounds listener readiness timeout を検討する
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/components/reader/hooks/browser/use-browser-webview-events.ts`
-  - `waitForBrowserWebviewListeners()` が listener registration を待つ構造だが、registration failure 時に bounds sync がどの程度進むべきか明確でない
-  - ready reject / unavailable runtime / slow listener registration の時に create を止めるか degraded mode で続けるかを fixed test にする
-
-- [ ] P1 browser theme wipe timer stale cleanup を固定する
-  - 対象: `src/components/reader/browser-view.tsx`
-  - theme wipe の timeout と system theme listener が重なる時、rapid theme changes / unmount / missing matchMedia listener で stale animation state が残らないか未固定
-  - rapid light -> dark -> system change と unmount cleanup を component test で固定する
 
 - [ ] P1 startup sync storage warning policy を整理する
   - 対象: `src/lib/sync/startup-sync-storage.ts`, `src/App.tsx`
@@ -105,16 +85,6 @@
   - localStorage failure を warn するようになっているが、private mode / blocked storage で palette 操作ごとに noisy log になり得る
   - warn once / dev-only warn / silent fallback のどれにするか決め、history は in-memory fallback なしでよいかを contract test にする
 
-- [ ] P1 article tag picker DOM listener boundary を補強する
-  - 対象: `src/components/reader/hooks/article/use-article-tag-picker-popover.ts`
-  - popover open 時に `document.addEventListener` / `requestAnimationFrame` / `document.activeElement` を直接使うため、test double や detached DOM で failure が起きやすい
-  - document unavailable、outside click、Escape close、focus restore frame cleanup を focused test で固定する
-
-- [ ] P1 sidebar account switcher DOM listener boundary を補強する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts`
-  - account dropdown の outside click と selected item focus が document / requestAnimationFrame 前提で、sidebar collapse や account list update と競合しやすい
-  - open -> accounts change -> close -> restore focus の順序と RAF cleanup を focused test で固定する
-
 - [ ] P1 browser overlay focus return RAF fallback を補強する
   - 対象: `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`
   - overlay close 後の focus return が `requestAnimationFrame` と複数 DOM selector に依存しており、selected article が消えた時の fallback 順序が重要
@@ -130,25 +100,10 @@
   - keyboard navigation と RAF focus が article list update / search result update と重なる時、古い row へ focus する可能性がある
   - selected article deleted、search query changed、next/prev repeated keydown の ordering を focused test で固定する
 
-- [ ] P1 browser debug geometry event payload contract を補強する
-  - 対象: `src/components/reader/hooks/browser/use-browser-debug-geometry-events.ts`, `src/components/app-shell.tsx`
-  - debug geometry event は `window.dispatchEvent(CustomEvent)` 前提で、payload null / malformed / rapid event の表示契約が散らばりやすい
-  - dev-only diagnostics と production no-op の境界を明示し、Debug HUD 側の malformed payload handling を test にする
-
 - [ ] P2 feed tree click suppression timer cleanup を補強する
   - 対象: `src/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression.ts`
   - drag handle click suppression は timer 依存で、drag cancel / drop / unmount の順序によって suppress flag が残る可能性がある
   - drag start -> cancel -> click、drag start -> unmount の timer cleanup を focused test にする
-
-- [ ] P2 folder selection focus RAF cleanup を補強する
-  - 対象: `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-controller.ts`
-  - add/rename feed dialog の folder selection focus が RAF 依存で、dialog close や option list update と重なると stale focus が起きやすい
-  - close before RAF、folder list changed、new folder created の focus contract を focused test で固定する
-
-- [ ] P2 rename feed copy action rejection surface を補強する
-  - 対象: `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller.ts`, `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-view-props.ts`
-  - readonly URL copy は `void controller.handleCopy(...)` で呼ばれ、clipboard failure の toast/log policy が dialog 呼び出し元から見えにくい
-  - clipboard unavailable / permission denied / empty URL を action result category として固定する
 
 - [ ] P2 article action fire-and-forget parity を整理する
   - 対象: `src/components/reader/hooks/article/use-article-actions.ts`, `src/components/reader/article-browser-actions.ts`
