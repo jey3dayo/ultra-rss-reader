@@ -235,4 +235,38 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.keptFeedIds.has("feed-review")).toBe(true);
     expect(result.current.deferredFeedIds.has("feed-review")).toBe(false);
   });
+
+  it("resets account-scoped decisions when the active account changes", async () => {
+    const reviewRow = makeRow("feed-review", {
+      tone: "medium",
+      labelKey: "review",
+    });
+    const { result, rerender } = renderHook(
+      ({ accountId }: { accountId: string }) =>
+        useSubscriptionsIndexState([reviewRow], {
+          accountId,
+          initialSummaryFilter: "review",
+          initialSelectedFeedId: "feed-review",
+          initialKeptFeedIds: ["feed-review"],
+          initialDeferredFeedIds: [],
+          initialListScrollTop: 64,
+        }),
+      {
+        initialProps: { accountId: "acc-1" },
+      },
+    );
+
+    expect(result.current.visibleRows).toEqual([]);
+    expect(result.current.keptFeedIds.has("feed-review")).toBe(true);
+
+    rerender({ accountId: "acc-2" });
+
+    await waitFor(() => {
+      expect(result.current.activeSummaryFilter).toBe("all");
+      expect(result.current.keptFeedIds.size).toBe(0);
+      expect(result.current.deferredFeedIds.size).toBe(0);
+      expect(result.current.listScrollTop).toBe(0);
+      expect(result.current.selectedFeedId).toBe("feed-review");
+    });
+  });
 });

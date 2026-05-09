@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ComponentProps } from "react";
-import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
 import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
 import i18n from "@/lib/i18n";
@@ -30,6 +30,7 @@ let deleteFeedCalls: string[] = [];
 
 describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {
+    vi.useRealTimers();
     await i18n.changeLanguage("ja");
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -179,6 +180,10 @@ describe("SubscriptionsIndexPage", () => {
           return undefined;
       }
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders summary cards and selects the first feed by default", async () => {
@@ -543,6 +548,7 @@ describe("SubscriptionsIndexPage", () => {
       subscriptionsWorkspace: {
         kind: "index",
         returnState: {
+          accountId: "acc-1",
           activeSummaryFilter: "stale",
           selectedFeedId: "feed-1",
           expandedGroups: {
@@ -579,6 +585,7 @@ describe("SubscriptionsIndexPage", () => {
       subscriptionsWorkspace: {
         kind: "index",
         returnState: {
+          accountId: "acc-1",
           activeSummaryFilter: "review",
           selectedFeedId: "feed-1",
           expandedGroups: {
@@ -598,6 +605,86 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     expect(screen.getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
+  });
+
+  it("ignores returned review decisions from a different account", async () => {
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: {
+        kind: "index",
+        returnState: {
+          accountId: "acc-2",
+          activeSummaryFilter: "review",
+          selectedFeedId: "feed-1",
+          expandedGroups: {},
+          listScrollTop: 0,
+          keptFeedIds: ["feed-1"],
+          deferredFeedIds: [],
+        },
+      },
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { name: "全購読" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+  });
+
+  it("refreshes review candidate dates while the page stays mounted", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            {
+              id: "feed-boundary",
+              account_id: "acc-1",
+              folder_id: null,
+              remote_id: null,
+              title: "Boundary Feed",
+              url: "https://example.com/boundary.xml",
+              site_url: "https://example.com/boundary",
+              unread_count: 1,
+              reader_mode: "inherit",
+              web_preview_mode: "inherit",
+            },
+          ];
+        case "list_folders":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_feed_article_summaries":
+          return [
+            {
+              feed_id: "feed-boundary",
+              latest_article_at: "2026-01-01T00:00:00Z",
+              starred_count: 1,
+            },
+          ];
+        case "get_feed_integrity_report":
+          return { orphaned_article_count: 0, orphaned_feeds: [] };
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        case "delete_feed":
+          deleteFeedCalls.push(String(args.feedId));
+          return null;
+        default:
+          return undefined;
+      }
+    });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /90日更新なし/ }));
+    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
+
+    expect(await screen.findByRole("button", { name: /Boundary Feed/ })).toBeInTheDocument();
   });
 
   it("keeps the empty detail surface on the rounded-md baseline", async () => {
@@ -758,6 +845,23 @@ describe("SubscriptionsIndexPage", () => {
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
 
+  it("does not close the subscriptions workspace when another modal layer owns Escape", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <>
+        <SubscriptionsIndexPage />
+        <div role="dialog" aria-label="Nested modal" />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByRole("dialog", { name: "Nested modal" });
+    await user.keyboard("{Escape}");
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+  });
+
   it("does not close the subscriptions workspace when Escape closes nested edit and delete dialogs", async () => {
     const user = userEvent.setup();
 
@@ -812,5 +916,26 @@ describe("SubscriptionsIndexPage", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("closes stale unsubscribe targets after account scope changes", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await screen.findByRole("dialog");
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      selectedAccountId: "acc-2",
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(deleteFeedCalls).toEqual([]);
   });
 });

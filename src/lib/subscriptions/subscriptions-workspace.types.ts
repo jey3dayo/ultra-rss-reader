@@ -3,6 +3,7 @@ import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscript
 export type SubscriptionSummaryFilterState = SubscriptionSummaryFilterKey;
 
 export type SubscriptionsWorkspaceReturnState = {
+  accountId: string | null;
   activeSummaryFilter: SubscriptionSummaryFilterState;
   selectedFeedId: string | null;
   expandedGroups: Record<string, boolean>;

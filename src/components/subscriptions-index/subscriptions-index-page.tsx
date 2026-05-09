@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
@@ -41,6 +41,12 @@ import { useUiStore } from "@/stores/ui-store";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
 
+const REVIEW_CLOCK_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+
+function hasOpenNestedEscapeLayer(): boolean {
+  return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
+}
+
 export function SubscriptionsIndexPage() {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
@@ -59,6 +65,9 @@ export function SubscriptionsIndexPage() {
   const [deletePending, setDeletePending] = useState(false);
   const [editTargetFeed, setEditTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
+  const scopedIndexReturnState =
+    indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
+  const [reviewClock, setReviewClock] = useState(() => getCurrentDate());
 
   const candidates = useMemo(
     () =>
@@ -66,10 +75,10 @@ export function SubscriptionsIndexPage() {
         feeds,
         folders,
         feedArticleSummaries,
-        now: getCurrentDate(),
+        now: reviewClock,
         hiddenFeedIds: new Set(),
       }),
-    [feedArticleSummaries, feeds, folders],
+    [feedArticleSummaries, feeds, folders, reviewClock],
   );
 
   const candidateMap = useMemo(() => buildSubscriptionReviewCandidateMap(candidates), [candidates]);
@@ -81,12 +90,13 @@ export function SubscriptionsIndexPage() {
   );
 
   const state = useSubscriptionsIndexState(rows, {
-    initialSummaryFilter: indexReturnState?.activeSummaryFilter,
-    initialSelectedFeedId: indexReturnState?.selectedFeedId,
-    initialExpandedGroups: indexReturnState?.expandedGroups,
-    initialKeptFeedIds: indexReturnState?.keptFeedIds,
-    initialDeferredFeedIds: indexReturnState?.deferredFeedIds,
-    initialListScrollTop: indexReturnState?.listScrollTop,
+    accountId: selectedAccountId,
+    initialSummaryFilter: scopedIndexReturnState?.activeSummaryFilter,
+    initialSelectedFeedId: scopedIndexReturnState?.selectedFeedId,
+    initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
+    initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
+    initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
+    initialListScrollTop: scopedIndexReturnState?.listScrollTop,
   });
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
@@ -185,8 +195,12 @@ export function SubscriptionsIndexPage() {
         }
       : null;
 
+  const isDeleteTargetCurrent =
+    deleteTargetFeed === null ||
+    (deleteTargetFeed.account_id === selectedAccountId && feeds.some((feed) => feed.id === deleteTargetFeed.id));
+
   const handleConfirmDelete = async () => {
-    if (!deleteTargetFeed || deletePendingRef.current) {
+    if (!deleteTargetFeed || deletePendingRef.current || !isDeleteTargetCurrent) {
       return;
     }
 
@@ -209,14 +223,32 @@ export function SubscriptionsIndexPage() {
     }
   };
 
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setReviewClock(getCurrentDate());
+    }, REVIEW_CLOCK_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (deleteTargetFeed !== null && !isDeleteTargetCurrent && !deletePendingRef.current) {
+      setDeleteTargetFeed(null);
+    }
+  }, [deleteTargetFeed, isDeleteTargetCurrent]);
+
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
       const target = event.target;
       if (
         event.defaultPrevented ||
+        event.isComposing ||
         event.key !== "Escape" ||
         editTargetFeed !== null ||
         deleteTargetFeed !== null ||
+        hasOpenNestedEscapeLayer() ||
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement ||

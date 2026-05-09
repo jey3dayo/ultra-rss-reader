@@ -35,6 +35,7 @@ function updateSelectedFeedDecision(params: {
 }
 
 type SubscriptionsIndexStateOptions = {
+  accountId?: string | null;
   initialSummaryFilter?: SubscriptionSummaryFilterKey;
   initialSelectedFeedId?: string | null;
   initialExpandedGroups?: Record<string, boolean>;
@@ -44,6 +45,7 @@ type SubscriptionsIndexStateOptions = {
 };
 
 export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?: SubscriptionsIndexStateOptions) {
+  const [activeAccountId, setActiveAccountId] = useState(options?.accountId ?? null);
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
   const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
   const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(
@@ -56,6 +58,23 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     options?.initialSummaryFilter ?? "all",
   );
   const [listScrollTop, setListScrollTop] = useState(options?.initialListScrollTop ?? 0);
+
+  useEffect(() => {
+    const nextAccountId = options?.accountId ?? null;
+    if (activeAccountId === nextAccountId) {
+      return;
+    }
+
+    setActiveAccountId(nextAccountId);
+    setSelectedFeedId(null);
+    setKeptFeedIds(new Set());
+    setDeferredFeedIds(new Set());
+    setSearchQuery("");
+    setSortKey("title");
+    setExpandedGroups({});
+    setActiveSummaryFilter("all");
+    setListScrollTop(0);
+  }, [activeAccountId, options?.accountId]);
 
   const selectSummaryFilter = useCallback((filterKey: SubscriptionSummaryFilterKey) => {
     setActiveSummaryFilter(filterKey);
