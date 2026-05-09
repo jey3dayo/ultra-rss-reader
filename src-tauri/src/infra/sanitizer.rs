@@ -113,9 +113,24 @@ pub fn extract_visible_text(raw: &str) -> String {
     use kuchikiki::traits::{NodeIterator, TendrilSink};
 
     let document = kuchikiki::parse_html().one(raw).document_node;
+    for matched_node in document
+        .select("script, style")
+        .expect("static script/style selector should parse")
+    {
+        matched_node.as_node().detach();
+    }
+
     document
         .inclusive_descendants()
         .text_nodes()
+        .filter(|text_node| {
+            !text_node.as_node().ancestors().any(|ancestor| {
+                ancestor.as_element().is_some_and(|element| {
+                    let local_name = element.name.local.as_ref();
+                    local_name == "script" || local_name == "style"
+                })
+            })
+        })
         .flat_map(|text_node| {
             text_node
                 .borrow()
@@ -165,6 +180,44 @@ mod tests {
         assert!(!output.contains("<iframe"));
         assert!(!output.contains("<object"));
         assert!(!output.contains("publisher.example.com/embed"));
+    }
+
+    #[test]
+    fn fixes_reader_media_and_link_privacy_attributes() {
+        let input = r#"
+            <p>
+              <a href="https://example.com/article" rel="opener" target="_blank" ping="https://tracker.example.com">Read</a>
+            </p>
+            <picture>
+              <source src="https://cdn.example.com/hero.webp" srcset="https://cdn.example.com/hero.webp 1x" sizes="100vw" media="(min-width: 800px)" type="image/webp" referrerpolicy="origin">
+              <img src="https://cdn.example.com/hero.jpg" srcset="https://cdn.example.com/hero.jpg 1x" sizes="100vw" alt="Hero" width="800" height="450" referrerpolicy="origin">
+            </picture>
+            <video src="https://cdn.example.com/clip.mp4" controls width="800" height="450" autoplay poster="https://cdn.example.com/poster.jpg"></video>
+        "#;
+
+        let output = sanitize_html(input);
+
+        assert!(
+            output.contains(
+                r#"<a href="https://example.com/article" rel="noopener noreferrer">Read</a>"#
+            ),
+            "links should keep href only with ammonia's no-referrer rel policy: {output}",
+        );
+        assert!(output.contains(r#"<source"#));
+        assert!(output.contains(r#"src="https://cdn.example.com/hero.webp""#));
+        assert!(output.contains(r#"srcset="https://cdn.example.com/hero.webp 1x""#));
+        assert!(output.contains(r#"sizes="100vw""#));
+        assert!(output.contains(r#"media="(min-width: 800px)""#));
+        assert!(output.contains(r#"type="image/webp""#));
+        assert!(output.contains(r#"<img"#));
+        assert!(output.contains(r#"alt="Hero""#));
+        assert!(output.contains(r#"<video"#));
+        assert!(output.contains(r#"controls="""#));
+        assert!(!output.contains("target="));
+        assert!(!output.contains("ping="));
+        assert!(!output.contains("referrerpolicy="));
+        assert!(!output.contains("autoplay"));
+        assert!(!output.contains("poster="));
     }
 
     #[test]
@@ -292,6 +345,13 @@ mod tests {
         let input = "<p>Kindle <strong>Unlimited</strong></p>";
         let output = extract_visible_text(input);
         assert_eq!(output, "Kindle Unlimited");
+    }
+
+    #[test]
+    fn extract_visible_text_ignores_script_and_style_text() {
+        let input = "<p>Visible</p><script>alert(1)</script><style>.hidden{display:none}</style>";
+        let output = extract_visible_text(input);
+        assert_eq!(output, "Visible");
     }
 
     #[test]

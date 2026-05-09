@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeArticleBodyHtml, stripHtmlTags } from "@/lib/content/html";
+import { applyReaderContentPrivacyPolicy, normalizeArticleBodyHtml, stripHtmlTags } from "@/lib/content/html";
 
 describe("stripHtmlTags", () => {
   it("returns empty string for empty input", () => {
@@ -61,13 +61,42 @@ describe("stripHtmlTags", () => {
 
   it("keeps fallback extraction aligned for entities, partial scripts, and CJK spacing", () => {
     const originalDomParser = globalThis.DOMParser;
-    // @ts-expect-error - test-only fallback path coverage.
+    // @ts-expect-error legacy escape: DOMParser global is intentionally unavailable in this fallback test.
     globalThis.DOMParser = undefined;
 
     try {
       expect(stripHtmlTags("<p>価格&#58; 100&nbsp;円</p><script>alert(1)")).toBe("価格: 100 円");
       expect(stripHtmlTags("<p>吾輩は</p><p>猫である</p>")).toBe("吾輩は 猫である");
       expect(stripHtmlTags("<style>.hidden{display:none}")).toBe("");
+      expect(stripHtmlTags("<![CDATA[本文 &amp; 補足]]><p>続き</p>")).toBe("本文 & 補足 続き");
+      expect(stripHtmlTags("<!-- tracking marker --><p>Visible</p>")).toBe("Visible");
+    } finally {
+      globalThis.DOMParser = originalDomParser;
+    }
+  });
+});
+
+describe("applyReaderContentPrivacyPolicy", () => {
+  it("adds the reader body privacy policy to rendered media and links", () => {
+    expect(
+      applyReaderContentPrivacyPolicy(
+        '<p><a href="https://example.com/article" rel="opener">Read</a><picture><source srcset="https://cdn.example.com/hero.webp 1x"><img src="https://cdn.example.com/hero.jpg" alt="Hero"></picture></p>',
+      ),
+    ).toContain('rel="noopener noreferrer"');
+    expect(
+      applyReaderContentPrivacyPolicy('<img src="https://cdn.example.com/hero.jpg" alt="Hero">'),
+    ).toContain('referrerpolicy="no-referrer"');
+  });
+
+  it("keeps sanitized HTML unchanged when DOMParser is unavailable", () => {
+    const originalDomParser = globalThis.DOMParser;
+    // @ts-expect-error legacy escape: DOMParser global is intentionally unavailable in this fallback test.
+    globalThis.DOMParser = undefined;
+
+    try {
+      const html = '<img src="https://cdn.example.com/hero.jpg" alt="Hero">';
+
+      expect(applyReaderContentPrivacyPolicy(html)).toBe(html);
     } finally {
       globalThis.DOMParser = originalDomParser;
     }
@@ -99,10 +128,30 @@ describe("normalizeArticleBodyHtml", () => {
     expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
   });
 
+  it("keeps a same-title first body paragraph after a duplicated wrapper label", () => {
+    expect(normalizeArticleBodyHtml("<h1>Article title</h1><p>Article title</p>", "Article title")).toBe(
+      "<p>Article title</p>",
+    );
+  });
+
   it("keeps a label-only body instead of deleting all article content", () => {
     const html = "<p>Tech Blog</p>";
 
     expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
+  });
+
+  it("keeps duplicated leading labels when DOMParser is unavailable", () => {
+    const originalDomParser = globalThis.DOMParser;
+    // @ts-expect-error - test-only fallback path coverage.
+    globalThis.DOMParser = undefined;
+
+    try {
+      const html = "<p>Tech Blog</p><p>Body text</p>";
+
+      expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
+    } finally {
+      globalThis.DOMParser = originalDomParser;
+    }
   });
 
   it("keeps leading media nodes even when their text matches a feed label suffix", () => {

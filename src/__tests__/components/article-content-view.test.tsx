@@ -21,6 +21,7 @@ describe("ArticleContentView", () => {
     expect(thumbnail.parentElement).toHaveClass("rounded-lg", "bg-surface-1/70");
     expect(screen.getByText("Hello", { exact: false })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "link" })).toHaveAttribute("href", "https://example.com");
+    expect(screen.getByRole("link", { name: "link" })).toHaveAttribute("rel", "noopener noreferrer");
     const prose = container.querySelector(".prose");
     expect(prose).not.toBeNull();
     expect(prose).toHaveClass("text-[1.02rem]");
@@ -130,6 +131,7 @@ describe("ArticleContentView", () => {
 
     expect(screen.getByAltText("")).toHaveAttribute("src", "https://cdn.example.com/thumbnail.jpg");
     expect(screen.getByRole("img", { name: "Body image" })).toHaveAttribute("src", "https://cdn.example.com/body.jpg");
+    expect(screen.getByRole("img", { name: "Body image" })).toHaveAttribute("referrerpolicy", "no-referrer");
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.querySelector("[data-browser-webview-iframe]")).toBeNull();
   });

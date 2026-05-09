@@ -29,6 +29,8 @@ export function stripHtmlTags(html: string): string {
 
   // Fallback: regex-based stripping
   return html
+    .replace(/<!\[CDATA\[([\s\S]*?)(?:\]\]>|$)/gi, "$1")
+    .replace(/<!--[\s\S]*?(?:-->|$)/g, "")
     .replace(/<(script|style)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi, "")
     .replace(/<(br|p|div|section|article|header|footer|main|aside|blockquote|pre|li|ul|ol|h[1-6])\b[^>]*\/?>/gi, " ")
     .replace(/<\/(p|div|section|article|header|footer|main|aside|blockquote|pre|li|ul|ol|h[1-6])>/gi, " ")
@@ -67,6 +69,10 @@ function isDuplicateLeadingLabelText(text: string, label: string): boolean {
   return text === label || text === `${label}:` || text === `${label}｜` || text === `${label} -`;
 }
 
+function hasMeaningfulVisibleText(node: ChildNode): boolean {
+  return normalizeVisibleText(node.textContent ?? "") !== "";
+}
+
 function stripLeadingDuplicateLabel(html: string, label?: string | null): string {
   if (!html || !label || typeof DOMParser === "undefined") {
     return html;
@@ -80,7 +86,7 @@ function stripLeadingDuplicateLabel(html: string, label?: string | null): string
   const doc = new DOMParser().parseFromString(html, "text/html");
   const { body } = doc;
 
-  const firstMeaningfulNode = Array.from(body.childNodes).find((node) => normalizeVisibleText(node.textContent ?? ""));
+  const firstMeaningfulNode = Array.from(body.childNodes).find(hasMeaningfulVisibleText);
   if (!firstMeaningfulNode) {
     return html;
   }
@@ -97,7 +103,7 @@ function stripLeadingDuplicateLabel(html: string, label?: string | null): string
   }
 
   const hasRemainingMeaningfulContent = Array.from(body.childNodes).some(
-    (node) => node !== firstMeaningfulNode && normalizeVisibleText(node.textContent ?? ""),
+    (node) => node !== firstMeaningfulNode && hasMeaningfulVisibleText(node),
   );
   if (!hasRemainingMeaningfulContent) {
     return html;
@@ -105,7 +111,7 @@ function stripLeadingDuplicateLabel(html: string, label?: string | null): string
 
   firstMeaningfulNode.remove();
 
-  while (body.firstChild && normalizeVisibleText(body.firstChild.textContent ?? "") === "") {
+  while (body.firstChild && !hasMeaningfulVisibleText(body.firstChild)) {
     body.firstChild.remove();
   }
 
@@ -115,4 +121,20 @@ function stripLeadingDuplicateLabel(html: string, label?: string | null): string
 export function normalizeArticleBodyHtml(html: string, label?: string | null): string {
   const normalizedHtml = stripLeadingDuplicateLabel(html, label);
   return stripHtmlTags(normalizedHtml).toLowerCase() === "null" ? "" : normalizedHtml;
+}
+
+export function applyReaderContentPrivacyPolicy(html: string): string {
+  if (!html || typeof DOMParser === "undefined") {
+    return html;
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.body.querySelectorAll("img").forEach((image) => {
+    image.setAttribute("referrerpolicy", "no-referrer");
+  });
+  doc.body.querySelectorAll("a[href]").forEach((anchor) => {
+    anchor.setAttribute("rel", "noopener noreferrer");
+  });
+
+  return doc.body.innerHTML;
 }
