@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AppShell,
   getFocusDebugHudActiveElementDescription,
@@ -92,6 +92,10 @@ describe("AppShell", () => {
     setupTauriMocks();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("keeps the main layout mounted when the store opens subscriptions workspace", () => {
     useUiStore.setState({ subscriptionsWorkspace: { kind: "index" } });
 
@@ -132,6 +136,7 @@ describe("AppShell", () => {
   });
 
   it("surfaces settings modal preload rejection and retries only once", async () => {
+    vi.stubEnv("DEV", true);
     vi.useFakeTimers();
     try {
       const error = new Error("settings modal preload failed");
