@@ -55,12 +55,13 @@ describe("resolveTauriDevPort", () => {
     expect(resolveTauriDevPort({})).toBe(1420);
   });
 
-  it.each(["", "  ", "1420.5", "0", "-1", "not-a-port"])("rejects invalid TAURI_DEV_PORT=%j", (value) => {
+  it.each(["", "  ", "1420.5", "0", "-1", "65536", "not-a-port"])("rejects invalid TAURI_DEV_PORT=%j", (value) => {
     expect(() => resolveTauriDevPort({ TAURI_DEV_PORT: value })).toThrow("TAURI_DEV_PORT");
   });
 
   it("accepts positive integer TAURI_DEV_PORT values", () => {
     expect(resolveTauriDevPort({ TAURI_DEV_PORT: "1432" })).toBe(1432);
+    expect(resolveTauriDevPort({ TAURI_DEV_PORT: "65535" })).toBe(65535);
   });
 
   it("keeps the static Vite startup port in sync with TAURI_DEV_PORT", () => {

@@ -8,6 +8,7 @@ const DEFAULT_DEV_PORT = 1420;
 const DEFAULT_DEV_HOST = "127.0.0.1";
 const PORT_WAIT_TIMEOUT_MS = 10_000;
 const PORT_WAIT_INTERVAL_MS = 250;
+const MAX_TCP_PORT = 65_535;
 
 type PortOwnerKind = "vite" | "foreign" | "unknown";
 
@@ -86,8 +87,8 @@ export function resolveTauriDevPort(env: NodeJS.ProcessEnv = process.env): numbe
 
   const trimmedPort = rawPort.trim();
   const port = Number(trimmedPort);
-  if (!trimmedPort || !Number.isInteger(port) || port <= 0) {
-    throw new Error("TAURI_DEV_PORT must be a positive integer.");
+  if (!trimmedPort || !Number.isInteger(port) || port <= 0 || port > MAX_TCP_PORT) {
+    throw new Error("TAURI_DEV_PORT must be an integer between 1 and 65535.");
   }
 
   return port;
