@@ -26,6 +26,7 @@ async function openSubscriptionsIndex(page: Page) {
     await showSidebarButton.click();
   }
 
+  // Browser state changes stay sequential; only post-navigation assertions below are parallelized.
   const manageSubscriptionsButton = page.getByRole("button", { name: /Manage Subscriptions|購読を管理/i });
   await manageSubscriptionsButton.waitFor({ state: "visible" });
   await manageSubscriptionsButton.click();
