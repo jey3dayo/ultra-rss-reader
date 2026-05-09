@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { FeedDialogFolderSelectionParams } from "../../feed-dialog-form.types";
-import { type FolderSelectOption, NEW_FOLDER_VALUE } from "../../folder-select-view";
+import {
+  type FolderSelectOption,
+  NEW_FOLDER_VALUE,
+} from "../../folder-select-view";
 
 type FolderOptionSource = {
   id: string;
@@ -15,7 +18,9 @@ type FolderSelectionAction =
   | { type: "select-folder"; folderId: string | null }
   | { type: "set-new-folder-name"; value: string };
 
-function createInitialFolderSelectionState(initialFolderId: string | null): FolderSelectionState {
+function createInitialFolderSelectionState(
+  initialFolderId: string | null,
+): FolderSelectionState {
   return {
     selectedFolderId: initialFolderId,
     newFolderName: "",
@@ -23,7 +28,10 @@ function createInitialFolderSelectionState(initialFolderId: string | null): Fold
   };
 }
 
-function folderSelectionReducer(state: FolderSelectionState, action: FolderSelectionAction): FolderSelectionState {
+function folderSelectionReducer(
+  state: FolderSelectionState,
+  action: FolderSelectionAction,
+): FolderSelectionState {
   switch (action.type) {
     case "reset":
       return createInitialFolderSelectionState(action.folderId);
@@ -48,6 +56,26 @@ export function buildFolderOptions(
   emptyOptionLabel: string,
 ): FolderSelectOption[] {
   const seenFolderIds = new Set<string>();
+  const folderNameCounts = new Map<string, number>();
+  for (const folder of folders ?? []) {
+    const folderId = folder.id.trim();
+    if (folderId === "" || seenFolderIds.has(folderId)) {
+      continue;
+    }
+
+    seenFolderIds.add(folderId);
+    const folderName = folder.name.trim();
+    if (folderName === "") {
+      continue;
+    }
+
+    folderNameCounts.set(
+      folderName,
+      (folderNameCounts.get(folderName) ?? 0) + 1,
+    );
+  }
+
+  seenFolderIds.clear();
   const folderOptions = (folders ?? []).flatMap((folder) => {
     const folderId = folder.id.trim();
     if (folderId === "" || seenFolderIds.has(folderId)) {
@@ -56,14 +84,22 @@ export function buildFolderOptions(
 
     seenFolderIds.add(folderId);
     const folderName = folder.name.trim();
-    return [{ value: folderId, label: folderName || folderId }];
+    const label =
+      folderName && (folderNameCounts.get(folderName) ?? 0) > 1
+        ? `${folderName} (${folderId})`
+        : folderName || folderId;
+    return [{ value: folderId, label }];
   });
 
   return [{ value: "", label: emptyOptionLabel }, ...folderOptions];
 }
 
 export function useFolderSelection(initialFolderId: string | null) {
-  const [state, dispatch] = useReducer(folderSelectionReducer, initialFolderId, createInitialFolderSelectionState);
+  const [state, dispatch] = useReducer(
+    folderSelectionReducer,
+    initialFolderId,
+    createInitialFolderSelectionState,
+  );
   const { selectedFolderId, newFolderName, isCreatingFolder } = state;
   const newFolderInputRef = useRef<HTMLInputElement>(null);
   const pendingFocusFrameRef = useRef<number | null>(null);
@@ -133,9 +169,12 @@ export function useFolderSelection(initialFolderId: string | null) {
     newFolderName,
     isCreatingFolder,
     newFolderInputRef,
-    folderSelectValue: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
+    folderSelectValue: isCreatingFolder
+      ? NEW_FOLDER_VALUE
+      : (selectedFolderId ?? ""),
     handleFolderChange,
     resetFolderSelection,
-    setNewFolderName: (value: string) => dispatch({ type: "set-new-folder-name", value }),
+    setNewFolderName: (value: string) =>
+      dispatch({ type: "set-new-folder-name", value }),
   };
 }

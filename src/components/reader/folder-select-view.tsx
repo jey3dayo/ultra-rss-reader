@@ -42,9 +42,17 @@ export function FolderSelectView({
   onNewFolderNameChange,
   newFolderInputRef,
 }: FolderSelectViewProps) {
+  const hasSelectedValue = value !== "" && value !== NEW_FOLDER_VALUE;
+  const hasSelectedOption = options.some((option) => option.value === value);
   const resolvedOptions = [
-    ...options.filter((option) => canCreateFolder || option.value !== NEW_FOLDER_VALUE),
-    ...(canCreateFolder && !options.some((option) => option.value === NEW_FOLDER_VALUE)
+    ...options.filter(
+      (option) => canCreateFolder || option.value !== NEW_FOLDER_VALUE,
+    ),
+    ...(hasSelectedValue && !hasSelectedOption
+      ? [{ value, label: value }]
+      : []),
+    ...(canCreateFolder &&
+    !options.some((option) => option.value === NEW_FOLDER_VALUE)
       ? [{ value: NEW_FOLDER_VALUE, label: newFolderOptionLabel }]
       : []),
   ];
@@ -56,7 +64,10 @@ export function FolderSelectView({
         label={label}
         name="feed-folder"
         value={value}
-        options={resolvedOptions.map((option) => ({ value: option.value, label: option.label }))}
+        options={resolvedOptions.map((option) => ({
+          value: option.value,
+          label: option.label,
+        }))}
         onChange={onValueChange}
         disabled={disabled}
         triggerClassName="mt-1 w-full"

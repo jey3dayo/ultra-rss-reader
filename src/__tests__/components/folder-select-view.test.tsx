@@ -62,7 +62,9 @@ describe("FolderSelectView", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Folder name"), { target: { value: "Reading" } });
+    fireEvent.change(screen.getByLabelText("Folder name"), {
+      target: { value: "Reading" },
+    });
 
     expect(onNewFolderNameChange).toHaveBeenLastCalledWith("Reading");
   });
@@ -93,6 +95,35 @@ describe("FolderSelectView", () => {
 
     await user.click(screen.getByRole("combobox", { name: "Folder" }));
 
-    expect(screen.queryByRole("option", { name: "New folder" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "New folder" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps a deleted selected folder visible by falling back to its id", () => {
+    render(
+      <FolderSelectView
+        labelId="folder-label"
+        label="Folder"
+        value="deleted-folder"
+        options={[
+          { value: "", label: "No folder" },
+          { value: "folder-1", label: "Work" },
+        ]}
+        canCreateFolder={true}
+        disabled={false}
+        isCreatingFolder={false}
+        newFolderOptionLabel="New folder"
+        newFolderLabel="Folder name"
+        newFolderName=""
+        newFolderPlaceholder="Enter folder name"
+        onValueChange={vi.fn()}
+        onNewFolderNameChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent(
+      "deleted-folder",
+    );
   });
 });

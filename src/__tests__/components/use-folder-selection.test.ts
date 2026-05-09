@@ -1,11 +1,16 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { NEW_FOLDER_VALUE } from "@/components/reader/folder-select-view";
-import { buildFolderOptions, useFolderSelection } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
+import {
+  buildFolderOptions,
+  useFolderSelection,
+} from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
 
 describe("use-folder-selection", () => {
   it("builds a no-folder option when folders are not loaded", () => {
-    expect(buildFolderOptions(undefined, "No folder")).toEqual([{ value: "", label: "No folder" }]);
+    expect(buildFolderOptions(undefined, "No folder")).toEqual([
+      { value: "", label: "No folder" },
+    ]);
   });
 
   it("preserves folder order after the no-folder option", () => {
@@ -40,6 +45,26 @@ describe("use-folder-selection", () => {
       { value: "", label: "No folder" },
       { value: "folder-a", label: "folder-a" },
       { value: "folder-b", label: "Folder B" },
+    ]);
+  });
+
+  it("disambiguates duplicate folder names without changing unique or blank-name labels", () => {
+    expect(
+      buildFolderOptions(
+        [
+          { id: "folder-a", name: "Work" },
+          { id: "folder-b", name: "Work" },
+          { id: "folder-c", name: "Later" },
+          { id: "folder-d", name: "   " },
+        ],
+        "No folder",
+      ),
+    ).toEqual([
+      { value: "", label: "No folder" },
+      { value: "folder-a", label: "Work (folder-a)" },
+      { value: "folder-b", label: "Work (folder-b)" },
+      { value: "folder-c", label: "Later" },
+      { value: "folder-d", label: "folder-d" },
     ]);
   });
 
@@ -81,11 +106,15 @@ describe("use-folder-selection", () => {
 
   it("cancels pending new folder input focus after unmount", () => {
     const scheduledCallbacks: FrameRequestCallback[] = [];
-    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      scheduledCallbacks.push(callback);
-      return 12;
-    });
-    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        scheduledCallbacks.push(callback);
+        return 12;
+      });
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
     const input = document.createElement("input");
     const focusSpy = vi.spyOn(input, "focus");
     const { result, unmount } = renderHook(() => useFolderSelection(null));
@@ -111,11 +140,15 @@ describe("use-folder-selection", () => {
 
   it("cancels pending new folder input focus after reset", () => {
     const scheduledCallbacks: FrameRequestCallback[] = [];
-    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      scheduledCallbacks.push(callback);
-      return 24;
-    });
-    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        scheduledCallbacks.push(callback);
+        return 24;
+      });
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
     const input = document.createElement("input");
     const focusSpy = vi.spyOn(input, "focus");
     const { result } = renderHook(() => useFolderSelection(null));
