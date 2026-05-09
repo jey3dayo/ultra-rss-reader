@@ -103,6 +103,37 @@ describe("useMenuEvents", () => {
     warnSpy.mockRestore();
   });
 
+  it("safely traces and warns for unknown menu action payloads with unsafe formatting", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let handler: MenuActionHandler | null = null;
+    const unsafePayload = {
+      toString() {
+        throw new Error("toString failed");
+      },
+    };
+    listenMock.mockImplementation((_eventName: string, nextHandler: MenuActionHandler) => {
+      handler = nextHandler;
+      return Promise.resolve(vi.fn());
+    });
+
+    render(<MenuEventsProbe />);
+
+    await waitFor(() => {
+      expect(listenMock).toHaveBeenCalledWith(APP_EVENTS.menuAction, expect.any(Function));
+    });
+    expect(() => {
+      expectMenuActionHandler(handler)({ payload: unsafePayload });
+    }).not.toThrow();
+    expectMenuActionHandler(handler)({ payload: Symbol("open-settings") });
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action [unformattable payload]");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action Symbol(open-settings)");
+    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: [unformattable payload]");
+    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: Symbol(open-settings)");
+    warnSpy.mockRestore();
+  });
+
   it("traces browser-dev listener unavailability without warning", async () => {
     window.__DEV_BROWSER_MOCKS__ = true;
     const error = new Error("runtime unavailable");

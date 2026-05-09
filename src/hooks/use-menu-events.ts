@@ -6,16 +6,25 @@ import { isAppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 
+function formatMenuActionPayload(payload: unknown): string {
+  try {
+    return String(payload);
+  } catch {
+    return "[unformattable payload]";
+  }
+}
+
 export function useMenuEvents(): void {
   useEffect(() => {
     return attachTauriListeners(
       [
         listen<unknown>(APP_EVENTS.menuAction, (event) => {
-          emitDebugInputTrace(`${APP_EVENTS.menuAction} ${event.payload}`);
+          const formattedPayload = formatMenuActionPayload(event.payload);
+          emitDebugInputTrace(`${APP_EVENTS.menuAction} ${formattedPayload}`);
           if (isAppAction(event.payload)) {
             executeAction(event.payload);
           } else {
-            console.warn(`[menu-events] Unknown action: ${event.payload}`);
+            console.warn(`[menu-events] Unknown action: ${formattedPayload}`);
           }
         }),
       ],
