@@ -2695,3 +2695,28 @@
   - `DenseNarrowViewport` stories と `storybook-viewport-density-stories.test.tsx` が `mobile2` literal を個別に持つため、viewport id の source-of-truth を整理する
   - shared constant か helper assertion に寄せ、sidebar / article list / settings modal の narrow fixture が同じ viewport baseline を使うことを固定する
   - mobile 正式対応やレイアウト調整とは分け、Storybook viewport fixture の test data drift 防止だけを扱う
+
+- [ ] account sync status whitespace id guard 候補を追加する
+  - `src/hooks/use-account-sync-status.ts` の `enabled: Boolean(accountId)` が whitespace-only account id を有効扱いにする点を整理する
+  - `src/__tests__/hooks/use-account-sync-status.test.tsx` で `"   "` / `"\n"` は query disabled、trim 後 id だけが `getAccountSyncStatus` に渡ることを固定する
+  - account sync status query key drift とは分け、single-account status hook の id boundary だけを扱う
+
+- [ ] account sync statuses duplicate query guard 候補を追加する
+  - `src/hooks/use-account-sync-statuses.ts` が duplicate / blank account id をそのまま `useQueries` に渡すため、query list と返却 map の方針を固定する
+  - duplicate id は 1 query に dedupe するか現仕様維持なら test 名で明示し、blank id は query しないことを `use-account-sync-status.test.tsx` で確認する
+  - sidebar/account detail 表示 copy とは分け、multi-account sync status hook の query construction だけを扱う
+
+- [ ] feed article summaries whitespace account guard 候補を追加する
+  - `src/components/subscriptions-index/hooks/use-feed-article-summaries.ts` が `enabled: !!accountId` で whitespace-only account id を有効扱いにする点を整理する
+  - `src/__tests__/components/use-feed-article-summaries.test.tsx` で blank account id は disabled、trim 後 account id だけが `listFeedArticleSummaries` に渡ることを固定する
+  - subscriptions summary invalidation とは分け、summary query hook の account id boundary だけを扱う
+
+- [ ] mute keyword query key source-of-truth 候補を追加する
+  - `src/hooks/use-mute-keywords.ts` で `MUTE_KEYWORD_QUERY_KEY` を定義しつつ `useMuteKeywords` は raw `["muteKeywords"]` を使っている点を整理する
+  - `resolveMuteKeywordInvalidationQueryKeys()` と `useMuteKeywords()` が同じ tuple を参照する contract を hook test で固定する
+  - mute keyword IPC schema trim や settings form race とは分け、query key source-of-truth だけを扱う
+
+- [ ] tag query key source-of-truth 候補を追加する
+  - `src/hooks/use-tags.ts` の `TAG_QUERY_KEYS` と `useTags` / `useTagArticleCounts` / `useArticlesByTag` の raw query key literal が drift しないよう整理する
+  - `resolveTagMutationInvalidationQueryKeys()` と各 query hook の root key が一致することを `use-tags.test.tsx` で固定する
+  - tag deletion selection fallback や tag article count nullish key とは分け、tag hook の query key ownership だけを扱う
