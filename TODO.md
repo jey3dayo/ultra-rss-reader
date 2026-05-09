@@ -897,6 +897,86 @@
   - command schema test で blank / whitespace-wrapped URL の境界を確認する
   - share action URL target contract とは分け、Tauri command args schema の URL boundary だけを扱う
 
+- [ ] article list search reopen debounce 候補を追加する
+  - `src/components/reader/hooks/article-list/use-article-list-search.ts` で検索 close 直後の古い debounce timer が stale query を復活させない契約を追加する
+  - `src/__tests__/components/use-article-list-search.test.tsx` で close -> reopen -> timer flush の境界を確認する
+  - article list primary loading naming とは分け、search input state の debounce lifecycle だけを扱う
+
+- [ ] article list search escape focus 候補を追加する
+  - `src/components/reader/article-list-header-search.tsx` で Escape close 後の focus 戻し先を search toggle / list row のどちらにするか固定する
+  - `src/__tests__/components/article-list-header.test.tsx` で keyboard 導線を確認する
+  - global shortcut handling とは分け、article search field の close focus だけを扱う
+
+- [ ] article list missing row navigation 候補を追加する
+  - `src/components/reader/hooks/article-list/use-article-list-navigation.ts` で row DOM 未描画時に `selectArticle` だけ進む現挙動を固定するか retry する
+  - missing row / delayed row の focused test を追加する
+  - navigation scroll helper とは分け、DOM row availability と selection update の contract だけを扱う
+
+- [ ] sidebar feed navigation latest ref 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts` の `navigate-feed` 連打で rerender 前に同じ feed を再選択しない contract を追加する
+  - latest selected ref を持つか現仕様固定を `src/__tests__/hooks/use-sidebar-feed-navigation.test.tsx` で確認する
+  - account selection fallback とは分け、feed keyboard navigation の stale selection だけを扱う
+
+- [ ] feed tree zero unread middle click 候補を追加する
+  - `src/components/reader/feed-tree-row.tsx` で unreadCount 0 の feed middle click 時に `onMarkFeedRead` を呼ぶか no-op にするか固定する
+  - `src/__tests__/components/feed-tree-row.test.tsx` で callback 境界を確認する
+  - mark-all-read mutation transaction とは分け、feed tree row gesture の no-op contract だけを扱う
+
+- [ ] folder tree zero unread middle click 候補を追加する
+  - `src/components/reader/feed-tree-folder-section.tsx` で unreadCount 0 folder の middle click mark-read を no-op にするか固定する
+  - `src/__tests__/components/feed-tree-folder-section.test.tsx` で folder row の middle click contract を追加する
+  - feed row gesture とは分け、folder section gesture の境界だけを扱う
+
+- [ ] article search source scope contract 候補を追加する
+  - `src/lib/articles/article-list.ts` の search result に対する `folderFeedIds` / feed selection / tag selection の scope を固定する
+  - `src/__tests__/lib/article-list.test.ts` で feed selection 中の search result scope を確認する
+  - command palette resource search とは分け、article list local search source selection だけを扱う
+
+- [ ] sqlite feed remote URL upsert 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_feed.rs` の `save` で同一 `account_id + remote_id` だが URL が変わった feed の upsert 契約を追加する
+  - `UNIQUE(account_id, remote_id)` 衝突時に既存 id を再利用する repository test を追加する
+  - sync flow remote folder upsert とは分け、feed remote identity の URL drift だけを扱う
+
+- [ ] folder article mute exclusion contract 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_article.rs` の `find_by_folder` / `find_unread_by_folder` / `find_starred_by_folder` で mute 除外を pagination 前に適用する
+  - feed / account / recent query とは分け、folder scope query の mute parity を repository test で固定する
+  - recent viewed mute exclusion とは別バッチにする
+
+- [ ] feed article summary mute parity 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_article.rs` の `list_feed_article_summaries_by_account` で muted article が `latest_article_at` / `starred_count` に入るかを固定する
+  - 空 feed を summary に残すかも含めた repository test を追加する
+  - subscriptions review ranking とは分け、feed summary query の mute handling だけを扱う
+
+- [ ] OPML nested folder contract 候補を追加する
+  - `src-tauri/src/infra/opml.rs` の `parse_opml` で nested folder を最下層名 / full path / reject のどれで扱うか固定する
+  - nested outline fixture を追加し、folder name mapping を parser test で明示する
+  - OPML import transaction とは分け、parser の folder path interpretation だけを扱う
+
+- [ ] feed discovery base href resolution 候補を追加する
+  - `src-tauri/src/infra/feed_discovery.rs` の `extract_feed_links` で HTML `<base href>` を relative feed URL 解決に使うか固定する
+  - final URL と base URL が違う parser test を追加する
+  - HTTP status handling とは分け、HTML discovery URL resolution だけを扱う
+
+- [ ] sanitizer srcset URL filtering 候補を追加する
+  - `src-tauri/src/infra/sanitizer.rs` の `sanitize_html` で `srcset` 内の `javascript:` / `data:` URL を落とす contract を追加する
+  - 通常 `src` だけでなく responsive image 属性の sanitizer test を追加する
+  - article responsive media styling とは分け、sanitizer URL filtering だけを扱う
+
+- [ ] release note label parity contract 候補を追加する
+  - `.github/release.yml` と `.github/labeler.yml` の release note category labels が drift しない contract を追加する
+  - `docs` / `dependencies` / `chore` / `refactor` / `feature` / `enhancement` の label 名対応を config test で固定する
+  - release workflow preflight とは分け、release note categorization だけを扱う
+
+- [ ] Storybook story export allowlist contract 候補を追加する
+  - `tests/helpers/storybook-story-export-registry.ts` の `ALLOWED_NON_STORY_EXPORTS` が UI Reference helper export だけを許す契約を固定する
+  - 許可理由コメントまたは dedicated test を追加し、通常 story file の helper export 漏れを検出する
+  - shared field story render smoke とは分け、story export registry の allowlist governance だけを扱う
+
+- [ ] Storybook stale server health check 候補を追加する
+  - `playwright.storybook.config.ts` の `reuseExistingServer: true` が古い 6006 server を掴む問題を検出する
+  - iframe smoke 前に project / version / story registry health check を追加するか、runbook contract を固定する
+  - Playwright artifact separation とは分け、Storybook server freshness だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
