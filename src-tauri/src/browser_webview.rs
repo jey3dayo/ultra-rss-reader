@@ -1035,31 +1035,55 @@ pub fn emit_browser_webview_state<R: Runtime>(
     app_handle: &AppHandle<R>,
     state: &BrowserWebviewState,
 ) {
-    let _ = app_handle.emit(BROWSER_WEBVIEW_STATE_CHANGED_EVENT, state.clone());
+    emit_browser_webview_event(
+        app_handle,
+        BROWSER_WEBVIEW_STATE_CHANGED_EVENT,
+        state.clone(),
+    );
 }
 
 pub fn emit_browser_webview_closed<R: Runtime>(app_handle: &AppHandle<R>) {
-    let _ = app_handle.emit(BROWSER_WEBVIEW_CLOSED_EVENT, ());
+    emit_browser_webview_event(app_handle, BROWSER_WEBVIEW_CLOSED_EVENT, ());
 }
 
 pub fn emit_browser_webview_fallback<R: Runtime>(
     app_handle: &AppHandle<R>,
     payload: &BrowserWebviewFallbackPayload,
 ) {
-    let _ = app_handle.emit(BROWSER_WEBVIEW_FALLBACK_EVENT, payload.clone());
+    emit_browser_webview_event(app_handle, BROWSER_WEBVIEW_FALLBACK_EVENT, payload.clone());
 }
 
 pub fn emit_browser_webview_diagnostics<R: Runtime>(
     app_handle: &AppHandle<R>,
     payload: &BrowserWebviewDiagnosticsPayload,
 ) {
-    let _ = app_handle.emit(BROWSER_WEBVIEW_DIAGNOSTICS_EVENT, payload.clone());
+    emit_browser_webview_event(
+        app_handle,
+        BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
+        payload.clone(),
+    );
 }
 
 pub fn emit_browser_webview_debug_input<R: Runtime>(app_handle: &AppHandle<R>, message: String) {
     if browser_webview_diagnostics_enabled() {
-        let _ = app_handle.emit(BROWSER_WEBVIEW_DEBUG_INPUT_EVENT, message);
+        emit_browser_webview_event(app_handle, BROWSER_WEBVIEW_DEBUG_INPUT_EVENT, message);
     }
+}
+
+fn emit_browser_webview_event<R, S>(app_handle: &AppHandle<R>, event: &'static str, payload: S)
+where
+    R: Runtime,
+    S: Clone + Serialize,
+{
+    if let Err(error) = app_handle.emit(event, payload) {
+        if browser_webview_diagnostics_enabled() {
+            tracing::warn!("{}", browser_webview_emit_failure_warning(event, &error));
+        }
+    }
+}
+
+fn browser_webview_emit_failure_warning(event: &str, error: &impl std::fmt::Display) -> String {
+    format!("Failed to emit browser webview event `{event}`; continuing without frontend notification: {error}")
 }
 
 pub fn browser_webview_diagnostics_enabled() -> bool {
@@ -1233,9 +1257,10 @@ mod tests {
         browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
         browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
-        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
-        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
-        BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
+        browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
+        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
+        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1482,6 +1507,19 @@ mod tests {
         assert!(browser_webview_diagnostics_enabled());
 
         set_browser_webview_diagnostics_enabled(false);
+    }
+
+    #[test]
+    fn browser_webview_emit_failure_warning_is_diagnostics_only() {
+        let warning = browser_webview_emit_failure_warning(
+            BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
+            &"listener unavailable",
+        );
+
+        assert!(warning.contains("Failed to emit browser webview event"));
+        assert!(warning.contains(BROWSER_WEBVIEW_DIAGNOSTICS_EVENT));
+        assert!(warning.contains("continuing without frontend notification"));
+        assert!(warning.contains("listener unavailable"));
     }
 
     #[test]

@@ -40,11 +40,6 @@
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
 
-- [ ] P1 browser webview native emit failure diagnostics を補強する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
-  - browser state / close / fallback / diagnostics event の `app_handle.emit(...)` failure が `let _ =` で捨てられ、frontend listener 不在や payload serialization failure を追跡しづらい
-  - expected listener-missing と unexpected emit failure を分け、diagnostics enabled 時だけ warn するかを native-side test / manual verification で固定する
-
 - [ ] P1 browser webview focus native command failure policy を整理する
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
   - `webview.set_focus()` / Windows foreground API の戻り値を複数箇所で無視しており、overlay open 後に focus が戻らない packaged app 問題の原因が残らない
