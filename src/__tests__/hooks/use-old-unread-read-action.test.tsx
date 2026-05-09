@@ -8,7 +8,7 @@ import { useUiStore } from "@/stores/ui-store";
 type MarkOldUnreadReadVariables = {
   scopeKind: "account" | "folder" | "feed";
   targetId: string;
-  olderThanDays: 7 | 14 | 30 | 60 | 90;
+  olderThanDays: 7 | 30 | 90;
 };
 
 type MarkOldUnreadReadOptions = {
@@ -106,7 +106,7 @@ describe("useOldUnreadReadAction", () => {
     const { result } = renderHook(() => useOldUnreadReadAction("folder", "folder-1"));
 
     await act(async () => {
-      await result.current(14);
+      await result.current(7);
     });
 
     expect(showToast).toHaveBeenCalledWith("Count failed");
@@ -130,11 +130,11 @@ describe("useOldUnreadReadAction", () => {
     const { result } = renderHook(() => useOldUnreadReadAction(scopeKind, targetId));
 
     await act(async () => {
-      await result.current(60);
+      await result.current(90);
     });
 
     expect(markOldUnreadReadMutate).toHaveBeenCalledWith(
-      { scopeKind, targetId, olderThanDays: 60 },
+      { scopeKind, targetId, olderThanDays: 90 },
       expect.objectContaining({
         onError: expect.any(Function),
       }),
