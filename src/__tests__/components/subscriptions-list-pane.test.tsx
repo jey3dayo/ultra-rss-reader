@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
@@ -44,6 +44,8 @@ function renderListPane(
     groups?: SubscriptionListGroup[];
     initialScrollTop?: number;
     isGroupExpanded?: (groupKey: string) => boolean;
+    onSelectFeed?: (feedId: string) => void;
+    onListScrollTopChange?: (scrollTop: number) => void;
   },
 ) {
   const groups: SubscriptionListGroup[] = options?.groups ?? [
@@ -62,7 +64,8 @@ function renderListPane(
       formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
       initialScrollTop={options?.initialScrollTop}
-      onSelectFeed={vi.fn()}
+      onSelectFeed={options?.onSelectFeed ?? vi.fn()}
+      onListScrollTopChange={options?.onListScrollTopChange}
       onToggleGroup={vi.fn()}
     />,
   );
@@ -228,6 +231,42 @@ describe("SubscriptionsListPane", () => {
         delete (Element.prototype as { scrollTop?: number }).scrollTop;
       }
     }
+  });
+
+  it("delegates feed clicks and list scroll position changes through separate callbacks", async () => {
+    const user = userEvent.setup();
+    const onSelectFeed = vi.fn();
+    const onListScrollTopChange = vi.fn();
+    const { container } = renderListPane(
+      [
+        {
+          feed: buildFeed({ id: "feed-scroll", title: "Scroll Callback Feed" }),
+          folderId: null,
+          folderName: null,
+          latestArticleAt: null,
+          status: { tone: "neutral", labelKey: "normal" },
+          reasonTooltipKey: null,
+        },
+      ],
+      { onSelectFeed, onListScrollTopChange },
+    );
+    const scrollRegion = container.firstElementChild?.children.item(1);
+    expect(scrollRegion).toBeInstanceOf(HTMLElement);
+    if (!(scrollRegion instanceof HTMLElement)) {
+      throw new Error("Expected subscriptions list scroll region");
+    }
+
+    await user.click(screen.getByRole("button", { name: /Scroll Callback Feed/ }));
+
+    expect(onSelectFeed).toHaveBeenCalledOnce();
+    expect(onSelectFeed).toHaveBeenCalledWith("feed-scroll");
+    expect(onListScrollTopChange).not.toHaveBeenCalled();
+
+    scrollRegion.scrollTop = 96;
+    fireEvent.scroll(scrollRegion);
+
+    expect(onListScrollTopChange).toHaveBeenCalledOnce();
+    expect(onListScrollTopChange).toHaveBeenCalledWith(96);
   });
 
   it("uses folder ids for duplicated folder label disclosure ids and test ids", () => {
