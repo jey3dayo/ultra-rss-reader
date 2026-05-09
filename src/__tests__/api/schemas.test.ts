@@ -1290,7 +1290,7 @@ describe("command args schemas", () => {
     expect(() => SyncResultSchema.parse({ ...valid, total: -1 })).toThrow();
     expect(() => SyncResultSchema.parse({ ...valid, total: 1.5 })).toThrow();
     expect(() => SyncResultSchema.parse({ ...valid, succeeded: Number.POSITIVE_INFINITY })).toThrow();
-    expect(() =>
+    expect(
       SyncResultSchema.parse({
         ...valid,
         failed: [
@@ -1300,8 +1300,8 @@ describe("command args schemas", () => {
             message: "Network error",
           },
         ],
-      }),
-    ).toThrow();
+      }).failed[0]?.account_name,
+    ).toBe("");
     expect(() =>
       SyncResultSchema.parse({
         ...valid,

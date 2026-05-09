@@ -225,6 +225,23 @@ describe("tauri-commands with mockIPC", () => {
         { url: "https://example.com/atom.xml", title: "" },
       ]);
     });
+
+    it("rejects invalid discovered feed command response URLs", async () => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "discover_feeds" && args.url === "https://example.com") {
+          return [
+            { url: "https://example.com/feed.xml", title: "Main Feed" },
+            { url: "mailto:hello@example.com", title: "Mail Feed" },
+          ];
+        }
+        return undefined;
+      });
+
+      const result = await discoverFeeds("https://example.com");
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+    });
   });
 
   describe("listArticles", () => {
