@@ -35,30 +35,15 @@
   - injected script が `window.addEventListener` と focus override を入れるため、navigation / reload / recreate 時に listener が重複しないか実機寄りに確認する
   - bridge install idempotence、mouse back/forward in-flight、close in-flight の contract test または manual verification を追加する
 
-- [ ] P2 app shell debug HUD portal target contract を固定する
-  - 対象: `src/components/app-shell.tsx`
-  - Debug HUD が `document.body` portal と `document.activeElement` に依存するため、test/runtime boundary では document unavailable や focus target malformed の扱いが曖昧
-  - Debug HUD 有効時だけの boundary helper に寄せ、document unavailable では no-op になる contract を固定する
-
 - [ ] P2 reader focus DOM selector drift を検出する
   - 対象: `src/lib/reader-focus.ts`, reader list/sidebar/account pane components
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
 
-- [ ] P3 story/runtime mock window global cleanup を追加する
-  - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`
-  - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
-  - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
-
 - [ ] P2 app foreground window show/focus error policy を整理する
   - 対象: `src-tauri/src/lib.rs`
   - second instance / foreground handling で `let _ = window.show(); let _ = window.set_focus();` と error を捨てており、packaged app の復帰失敗を追跡しにくい
   - expected unsupported と unexpected error を分けて log するか、manual verification に残すか決める
-
-- [ ] P1 createMutation invalidation policy を明文化する
-  - 対象: `src/hooks/create-mutation.ts`, `src/lib/query/query-invalidation.ts`, generated mutation hooks
-  - `createMutation()` は `onSuccess` で invalidate callback を await する設計だが、多くの callback は内部で fire-and-forget しており成功/失敗の扱いが hook ごとに揺れている
-  - `await invalidate` が mutation status を failed にしてよいケースと log-only にするケースを分け、shared helper の戻り値 contract を固定する
 
 - [ ] P1 browser webview native emit failure diagnostics を補強する
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
