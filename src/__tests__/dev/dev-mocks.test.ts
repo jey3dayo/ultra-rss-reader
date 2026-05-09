@@ -4,9 +4,34 @@ import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commandArgsSchemas } from "@/api/schemas";
-import { FeedIntegrityCleanupDtoSchema, FeedIntegrityReportDtoSchema } from "@/api/schemas/feed-integrity";
-import { PlatformInfoSchema } from "@/api/schemas/platform-info";
+import {
+  AccountDtoListSchema,
+  AccountDtoSchema,
+  AccountSyncStatusSchema,
+  ArticleDtoListSchema,
+  BrowserWebviewStateSchema,
+  CountResponseSchema,
+  DatabaseInfoDtoSchema,
+  DevRuntimeOptionsSchema,
+  DiscoveredFeedDtoListSchema,
+  FeedArticleSummaryDtoListSchema,
+  FeedDtoListSchema,
+  FeedDtoSchema,
+  FeedIntegrityCleanupDtoSchema,
+  FeedIntegrityReportDtoSchema,
+  FolderDtoListSchema,
+  FolderDtoSchema,
+  MuteKeywordDtoListSchema,
+  MuteKeywordDtoSchema,
+  PlatformInfoSchema,
+  PreferencesDtoSchema,
+  StringResponseSchema,
+  SyncResultSchema,
+  TagArticleCountsSchema,
+  TagDtoListSchema,
+  TagDtoSchema,
+  commandArgsSchemas,
+} from "@/api/schemas";
 import {
   addLocalFeed,
   cleanupFeedIntegrityOrphans,
@@ -14,18 +39,24 @@ import {
   countAccountStarredArticles,
   countAccountUnreadArticles,
   countOldUnreadArticles,
+  createFolder,
   createMuteKeyword,
   createOrUpdateBrowserWebview,
   createTag,
   deleteAccount,
   deleteFeed,
+  discoverFeeds,
+  exportOpml,
   getAccountSyncStatus,
   getArticleTags,
+  getDatabaseInfo,
   getDevRuntimeOptions,
   getFeedIntegrityReport,
   getPlatformInfo,
   getPreferences,
   getTagArticleCounts,
+  goBackBrowserWebview,
+  goForwardBrowserWebview,
   listAccountArticles,
   listAccounts,
   listArticles,
@@ -33,16 +64,24 @@ import {
   listFeedArticleSummaries,
   listFeeds,
   listFolders,
+  listMuteKeywords,
   listRecentArticles,
   listStarredArticles,
   listTags,
   markArticleRead,
   markOldUnreadRead,
   recordArticleView,
+  reloadBrowserWebview,
   searchArticles,
   setPreference,
+  syncAccount,
+  syncFeed,
   testAccountConnection,
+  triggerAutomaticSync,
+  triggerSync,
+  triggerStartupSync,
   updateAccountCredentials,
+  vacuumDatabase,
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles } from "@/dev/mock-data";
@@ -243,6 +282,70 @@ describe("setupDevMocks", () => {
     const nextArticles = Result.unwrap(await listArticles("feed-automaton", 0, 10));
     expect(nextArticles.find((article) => article.id === firstArticle.id)?.is_read).toBe(true);
     expect(articles.find((article) => article.id === firstArticle.id)?.is_read).toBe(firstArticle.is_read);
+  });
+
+  it("keeps primary browser-only command responses aligned with production DTO schemas", async () => {
+    setupDevMocks();
+
+    const accounts = Result.unwrap(await listAccounts());
+    expect(AccountDtoListSchema.parse(accounts)).toEqual(accounts);
+    expect(AccountDtoSchema.parse(Result.unwrap(await testAccountConnection("acc-freshrss")))).toBeDefined();
+    expect(AccountSyncStatusSchema.parse(Result.unwrap(await getAccountSyncStatus("acc-freshrss")))).toBeDefined();
+
+    const folders = Result.unwrap(await listFolders("acc-freshrss"));
+    expect(FolderDtoListSchema.parse(folders)).toEqual(folders);
+    expect(FolderDtoSchema.parse(Result.unwrap(await createFolder("acc-freshrss", "Schema")))).toMatchObject({
+      account_id: "acc-freshrss",
+      name: "Schema",
+    });
+
+    const feeds = Result.unwrap(await listFeeds("acc-freshrss"));
+    expect(FeedDtoListSchema.parse(feeds)).toEqual(feeds);
+    const addedFeed = Result.unwrap(await addLocalFeed("acc-local", "https://schema.example.com/feed.xml"));
+    expect(FeedDtoSchema.parse(addedFeed)).toEqual(addedFeed);
+
+    expect(ArticleDtoListSchema.parse(Result.unwrap(await listArticles("feed-automaton", 0, 10)))).toBeDefined();
+    expect(ArticleDtoListSchema.parse(Result.unwrap(await listAccountArticles("acc-freshrss", 0, 10)))).toBeDefined();
+    expect(ArticleDtoListSchema.parse(Result.unwrap(await listStarredArticles("acc-freshrss")))).toBeDefined();
+    expect(ArticleDtoListSchema.parse(Result.unwrap(await listRecentArticles("acc-freshrss", 0, 10)))).toBeDefined();
+    expect(ArticleDtoListSchema.parse(Result.unwrap(await searchArticles("acc-local", "Sample", 0, 10)))).toBeDefined();
+    expect(
+      ArticleDtoListSchema.parse(Result.unwrap(await listArticlesByTag("tag-important", 0, 10, "acc-freshrss", "all"))),
+    ).toBeDefined();
+
+    const summaries = Result.unwrap(await listFeedArticleSummaries("acc-freshrss"));
+    expect(FeedArticleSummaryDtoListSchema.parse(summaries)).toEqual(summaries);
+
+    const tags = Result.unwrap(await listTags());
+    expect(TagDtoListSchema.parse(tags)).toEqual(tags);
+    expect(TagDtoSchema.parse(Result.unwrap(await createTag("schema")))).toBeDefined();
+    expect(TagDtoListSchema.parse(Result.unwrap(await getArticleTags("art-1")))).toBeDefined();
+    const tagCounts = Result.unwrap(await getTagArticleCounts("acc-freshrss"));
+    expect(TagArticleCountsSchema.parse(tagCounts)).toEqual(tagCounts);
+
+    expect(MuteKeywordDtoSchema.parse(Result.unwrap(await createMuteKeyword("schema", "title")))).toBeDefined();
+    expect(MuteKeywordDtoListSchema.parse(Result.unwrap(await listMuteKeywords()))).toBeDefined();
+
+    expect(DevRuntimeOptionsSchema.parse(Result.unwrap(await getDevRuntimeOptions()))).toBeDefined();
+    expect(PlatformInfoSchema.parse(Result.unwrap(await getPlatformInfo()))).toBeDefined();
+    expect(PreferencesDtoSchema.parse(Result.unwrap(await getPreferences()))).toBeDefined();
+
+    const browserState = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds));
+    expect(BrowserWebviewStateSchema.parse(browserState)).toEqual(browserState);
+    expect(BrowserWebviewStateSchema.parse(Result.unwrap(await goBackBrowserWebview()))).toBeDefined();
+    expect(BrowserWebviewStateSchema.parse(Result.unwrap(await goForwardBrowserWebview()))).toBeDefined();
+    expect(BrowserWebviewStateSchema.parse(Result.unwrap(await reloadBrowserWebview()))).toBeDefined();
+
+    expect(DiscoveredFeedDtoListSchema.parse(Result.unwrap(await discoverFeeds("https://schema.example.com")))).toBeDefined();
+    expect(SyncResultSchema.parse(Result.unwrap(await triggerSync()))).toBeDefined();
+    expect(SyncResultSchema.parse(Result.unwrap(await triggerStartupSync("acc-freshrss")))).toBeDefined();
+    expect(SyncResultSchema.parse(Result.unwrap(await syncAccount("acc-freshrss")))).toBeDefined();
+    expect(SyncResultSchema.parse(Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
+    expect(SyncResultSchema.parse(Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
+    expect(StringResponseSchema.parse(Result.unwrap(await exportOpml("acc-freshrss")))).toContain("<opml");
+    expect(CountResponseSchema.parse(Result.unwrap(await clearArticleViewHistory("acc-freshrss")))).toBeGreaterThanOrEqual(0);
+    expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await getDatabaseInfo()))).toBeDefined();
+    expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await vacuumDatabase()))).toBeDefined();
   });
 
   it("keeps old-unread time filtering aligned with command argument boundaries", async () => {
