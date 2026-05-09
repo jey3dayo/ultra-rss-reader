@@ -1,5 +1,6 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
+import { normalizeTagColorForView } from "@/api/schemas/commands";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
@@ -41,7 +42,7 @@ function toArticleTagPickerTagView(tag: { id: string; name: string; color: strin
   return {
     id: tag.id,
     name: tag.name,
-    color: tag.color,
+    color: normalizeTagColorForView(tag.color),
   };
 }
 

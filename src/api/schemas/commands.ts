@@ -6,12 +6,48 @@ import { MuteKeywordScopeSchema } from "./mute-keyword";
 const articleListModeSchema = z.enum(["all", "unread", "starred"]);
 export type ArticleListMode = z.output<typeof articleListModeSchema>;
 export const MAX_IPC_PAGINATION_LIMIT = 200;
+export const ACCOUNT_NAME_MAX_CHARS = 100;
+export const FEED_TITLE_MAX_CHARS = 200;
+export const FOLDER_NAME_MAX_CHARS = 100;
+export const TAG_NAME_MAX_CHARS = 50;
+export const TAG_COLOR_VALIDATION_MESSAGE = "Color must be a valid hex color (e.g. #ff0000)";
 const paginationOffsetSchema = z.number().int().nonnegative();
 const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION_LIMIT);
 const preferenceValueMaxBytes = 1024;
 const textEncoder = new TextEncoder();
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 const nonBlankTrimmedIdSchema = z.string().trim().min(1, { message: "Command id must not be blank" });
+const accountNameSchema = nonBlankTrimmedStringSchema.max(ACCOUNT_NAME_MAX_CHARS, {
+  message: `Account name must be ${ACCOUNT_NAME_MAX_CHARS} characters or less`,
+});
+const feedTitleSchema = nonBlankTrimmedStringSchema.max(FEED_TITLE_MAX_CHARS, {
+  message: `Feed title must be ${FEED_TITLE_MAX_CHARS} characters or less`,
+});
+const folderNameSchema = nonBlankTrimmedStringSchema.max(FOLDER_NAME_MAX_CHARS, {
+  message: `Folder name must be ${FOLDER_NAME_MAX_CHARS} characters or less`,
+});
+const tagNameSchema = nonBlankTrimmedStringSchema.max(TAG_NAME_MAX_CHARS, {
+  message: `Tag name must be ${TAG_NAME_MAX_CHARS} characters or less`,
+});
+const tagColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, TAG_COLOR_VALIDATION_MESSAGE)
+  .transform((value) => value.toLowerCase());
+const optionalTagColorSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}, tagColorSchema.optional());
+const nullableTagColorSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}, tagColorSchema.nullish());
 const optionalNonBlankTrimmedStringSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim() : value),
   z.string().min(1).optional(),
@@ -39,6 +75,19 @@ const httpUrlSchema = z
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "HTTP URLs must not contain newlines",
   });
+
+export function normalizeTagColorForCommand(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  return nullableTagColorSchema.parse(value) ?? null;
+}
+
+export function normalizeTagColorForView(value: string | null | undefined): string | null {
+  const result = nullableTagColorSchema.safeParse(value);
+  return result.success ? (result.data ?? null) : null;
+}
 
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
@@ -167,7 +216,7 @@ export const markFolderReadArgs = z.object({ folderId: nonBlankTrimmedIdSchema }
 // --- addAccount ---
 const localAddAccountArgs = z.object({
   kind: z.literal("Local"),
-  name: z.string(),
+  name: accountNameSchema,
   serverUrl: z.string().optional(),
   appId: z.string().optional(),
   appKey: z.string().optional(),
@@ -176,7 +225,7 @@ const localAddAccountArgs = z.object({
 });
 const freshRssAddAccountArgs = z.object({
   kind: z.literal("FreshRss"),
-  name: z.string(),
+  name: accountNameSchema,
   serverUrl: z.string().trim().min(1),
   appId: z.string().optional(),
   appKey: z.string().optional(),
@@ -208,7 +257,7 @@ export const updateAccountCredentialsArgs = z.object({
 // --- renameAccount ---
 export const renameAccountArgs = z.object({
   accountId: nonBlankTrimmedIdSchema,
-  name: z.string(),
+  name: accountNameSchema,
 });
 
 // --- syncAccount ---
@@ -241,7 +290,7 @@ export const addLocalFeedArgs = z.object({
 // --- createFolder ---
 export const createFolderArgs = z.object({
   accountId: nonBlankTrimmedIdSchema,
-  name: nonBlankTrimmedStringSchema,
+  name: folderNameSchema,
 });
 
 // --- deleteFeed ---
@@ -250,7 +299,7 @@ export const deleteFeedArgs = z.object({ feedId: nonBlankTrimmedIdSchema });
 // --- renameFeed ---
 export const renameFeedArgs = z.object({
   feedId: nonBlankTrimmedIdSchema,
-  title: z.string(),
+  title: feedTitleSchema,
 });
 
 // --- updateFeedFolder ---
@@ -352,15 +401,15 @@ export const addToReadingListArgs = z.object({ url: readingListUrlSchema });
 
 // --- createTag ---
 export const createTagArgs = z.object({
-  name: z.string(),
-  color: z.string().optional(),
+  name: tagNameSchema,
+  color: optionalTagColorSchema,
 });
 
 // --- renameTag ---
 export const renameTagArgs = z.object({
   tagId: nonBlankTrimmedIdSchema,
-  name: z.string(),
-  color: z.string().nullish(),
+  name: tagNameSchema,
+  color: nullableTagColorSchema,
 });
 
 // --- deleteTag ---

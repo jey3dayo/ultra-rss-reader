@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
+import { normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
@@ -33,7 +34,7 @@ function createInitialTagContextMenuState(tag: TagDto): TagContextMenuState {
     showRenameDialog: false,
     showDeleteDialog: false,
     renameName: tag.name,
-    renameColor: tag.color,
+    renameColor: normalizeTagColorForView(tag.color),
   };
 }
 
@@ -44,7 +45,7 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
         ...state,
         showRenameDialog: true,
         renameName: action.tag.name,
-        renameColor: action.tag.color,
+        renameColor: normalizeTagColorForView(action.tag.color),
       };
     case "close-rename-dialog":
       return { ...state, showRenameDialog: false };
@@ -52,7 +53,7 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
       return {
         ...state,
         renameName: action.tag.name,
-        renameColor: action.tag.color,
+        renameColor: normalizeTagColorForView(action.tag.color),
       };
     case "set-delete-dialog":
       return { ...state, showDeleteDialog: action.value };
