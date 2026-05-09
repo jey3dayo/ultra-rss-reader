@@ -5,10 +5,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
-import type {
-  SubscriptionsIndexPageView,
-  SubscriptionsIndexPageViewProps,
-} from "@/components/subscriptions-index/subscriptions-index-page-view";
+import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
 import i18n from "@/lib/i18n";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type {
@@ -216,20 +213,19 @@ describe("SubscriptionsIndexPage", () => {
     );
   });
 
-  it("keeps the page view props as the shared subscriptions index contract", () => {
-    expectTypeOf<ComponentProps<typeof SubscriptionsIndexPageView>>().toEqualTypeOf<SubscriptionsIndexPageViewProps>();
-    expectTypeOf<SubscriptionsIndexPageViewProps["summaryCards"][number]>().toEqualTypeOf<SubscriptionSummaryCard>();
-    expectTypeOf<SubscriptionsIndexPageViewProps["groups"][number]>().toEqualTypeOf<SubscriptionListGroup>();
-    expectTypeOf<SubscriptionsIndexPageViewProps["selectedRow"]>().toEqualTypeOf<SubscriptionListRow | null>();
+  it("keeps the page view props aligned with the shared subscriptions index models", () => {
+    type PageViewProps = ComponentProps<typeof SubscriptionsIndexPageView>;
+
+    expectTypeOf<PageViewProps["summaryCards"][number]>().toEqualTypeOf<SubscriptionSummaryCard>();
+    expectTypeOf<PageViewProps["groups"][number]>().toEqualTypeOf<SubscriptionListGroup>();
+    expectTypeOf<PageViewProps["selectedRow"]>().toEqualTypeOf<SubscriptionListRow | null>();
     expectTypeOf<
-      SubscriptionsIndexPageViewProps["selectedMetrics"]
+      PageViewProps["selectedMetrics"]
     >().toEqualTypeOf<SubscriptionDetailMetrics | null>();
     expectTypeOf<
-      SubscriptionsIndexPageViewProps["selectedDetailCandidate"]
+      PageViewProps["selectedDetailCandidate"]
     >().toEqualTypeOf<SubscriptionDetailCandidate | null>();
-    expectTypeOf<
-      NonNullable<SubscriptionsIndexPageViewProps["decisionActions"]>
-    >().toEqualTypeOf<SubscriptionDecisionActions>();
+    expectTypeOf<NonNullable<PageViewProps["decisionActions"]>>().toEqualTypeOf<SubscriptionDecisionActions>();
   });
 
   it("renders lightweight feed rows and only highlights the selected feed", async () => {

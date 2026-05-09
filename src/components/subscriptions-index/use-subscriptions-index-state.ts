@@ -34,16 +34,18 @@ function updateSelectedFeedDecision(params: {
   setSecondary((current) => removeFeedIdFromSet(current, selectedFeedId));
 }
 
+type SubscriptionsIndexStateOptions = {
+  initialSummaryFilter?: SubscriptionSummaryFilterKey;
+  initialSelectedFeedId?: string | null;
+  initialExpandedGroups?: Record<string, boolean>;
+  initialKeptFeedIds?: string[];
+  initialDeferredFeedIds?: string[];
+  initialListScrollTop?: number;
+};
+
 export function useSubscriptionsIndexState(
   rows: SubscriptionListRow[],
-  options?: {
-    initialSummaryFilter?: SubscriptionSummaryFilterKey;
-    initialSelectedFeedId?: string | null;
-    initialExpandedGroups?: Record<string, boolean>;
-    initialKeptFeedIds?: string[];
-    initialDeferredFeedIds?: string[];
-    initialListScrollTop?: number;
-  },
+  options?: SubscriptionsIndexStateOptions,
 ) {
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
   const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));

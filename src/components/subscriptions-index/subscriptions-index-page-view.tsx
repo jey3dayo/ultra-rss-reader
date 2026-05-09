@@ -19,7 +19,7 @@ import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "./subscriptions-overview-summary";
 
-export type SubscriptionsIndexPageViewProps = {
+type SubscriptionsIndexPageViewProps = {
   title: string;
   subtitle: string;
   summaryCards: SubscriptionSummaryCard[];
