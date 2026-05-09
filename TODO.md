@@ -34,16 +34,6 @@
   - `src/__tests__/components/article-list-header.test.tsx` で `resolvedFeedId: ""` / `"   "` を追加し、control を隠すか caller invariant として現仕様を明示する
   - feed display setting mutation や reader query scope id guard とは分け、header control availability の入力境界だけを扱う
 
-- [ ] sidebar account status label duplicate id projection 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-account-status-labels.ts` の `buildSidebarAccountStatusLabels()` が `Object.fromEntries()` で label map を作るため、duplicate account id や blank account id の last-wins / omit 方針を固定する
-  - `src/__tests__/hooks/use-sidebar-account-status-labels.test.tsx` で duplicate account id、blank account id、status map にだけ存在する id を追加し、scheduled retry label の projection contract を明示する
-  - account DTO schema や `useAccountSyncStatuses()` の query construction とは分け、sidebar label map helper の projection 境界だけを扱う
-
-- [ ] settings modal content reset key delimiter contract 候補を追加する
-  - `src/components/settings/hooks/use-settings-modal-view-props.tsx` の `contentResetKey` が `category:accountId:add:*` の文字列結合なので、account id や initial kind に delimiter 文字が入る場合の remount key 衝突を固定する
-  - `src/__tests__/components/use-settings-modal-view-props.test.tsx` で account id に `:` / `add:` を含むケースを追加し、structured key helper へ切り出すか backend id invariant として明示する
-  - settings nav id narrowing や deleted account snapshot contract とは分け、settings modal content remount key の生成境界だけを扱う
-
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
@@ -185,11 +175,6 @@
   - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
   - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
 
-- [ ] react-doctor shortcuts settings iteration cleanup 候補を追加する
-  - `src/components/settings/hooks/use-shortcuts-settings-view-props.ts` の category ごとの `.filter().map()` を single-pass helper へ寄せる
-  - shortcuts settings focused test で category order / shortcut labels / disabled state が変わらないことを固定する
-  - shortcut taxonomy 変更とは分け、settings shortcuts view props の iteration cleanup だけを扱う
-
 - [ ] react-doctor article tag chips iteration cleanup 候補を追加する
   - `src/components/reader/article-tag-chips.tsx` の assigned / available tag list 生成を single-pass 化できるか確認する
   - article tag chips focused test で chip order / selected state / empty state が変わらないことを固定する
@@ -230,20 +215,6 @@
   - schema/command contract test で抽出順、重複排除、failure message が変わらないことを確認する
   - repo contract lookup cleanup とは分け、Tauri command contract test helper だけを扱う
 
-- [ ] react-doctor sync result min/max cleanup 候補を追加する
-  - `src/lib/sync/sync-result-feedback.ts` の `array.sort()[0]` による min/max 取得を `Math.min` / `Math.max` 相当へ寄せる
-  - sync result feedback test で複数 timestamp / 空配列 / 同値の出力 copy が変わらないことを固定する
-  - immutable sort cleanup とは分け、min/max 目的の sort elimination だけを扱う
-
-- [ ] react-doctor article list length-check-first 候補を追加する
-  - `src/lib/articles/article-list.ts` の `.every()` 比較に length short-circuit を追加する
-  - article list pure helper test で長さ違いの配列が早期 false になり、同長配列の順序比較 contract が変わらないことを固定する
-  - article list iterable performance とは分け、array equality guard だけを扱う
-
-- [ ] react-doctor repo contract flatMap cleanup 候補を追加する
-  - `src/__tests__/config/repo-contracts.test.ts` の `.map().filter(Boolean)` を `flatMap` に寄せる
-  - repo contract test の assertion 対象と failure message が変わらないことを確認する
-  - runtime iterable performance とは分け、test helper iteration cleanup だけを扱う
 
 - [ ] react-doctor tauri dispatch lookup set 候補を追加する
   - `scripts/tauri-cli-dispatch.ts` の repeated membership check を `Set` 化する
@@ -260,25 +231,10 @@
   - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
   - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
 
-- [ ] keyboard listener subscription boundary 候補を追加する
-  - `src/hooks/use-keyboard.ts` の `useUiStore()` 全体購読を必要な selector に分け、無関係な UI state 更新で `keydown` listener が張り替わらないようにする
-  - `src/__tests__/hooks/use-keyboard.test.tsx` で toast / sidebar state など無関係更新時の `addEventListener` / `removeEventListener` 回数を固定する
-  - shortcut taxonomy や command action 変更とは分け、global listener subscription stability だけを扱う
-
 - [ ] feed display mode optimistic cancel 候補を追加する
   - `src/hooks/use-update-feed-display-mode.ts` で楽観更新前に `feeds` query を cancel し、in-flight `listFeeds` が display mode を巻き戻さないようにする
   - `src/__tests__/hooks/use-update-feed-display-mode.test.tsx` で未解決 refetch 中の display mode 更新が古い result に上書きされないことを確認する
   - `useUpdateFeedFolder` との contract parity に限定し、feed settings UI 変更とは混ぜない
-
-- [ ] sidebar navigation frame cleanup 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts` の focus / scroll 用 `requestAnimationFrame` を unmount / selection 変更時に cancel する
-  - `src/__tests__/hooks/use-sidebar-feed-navigation.test.tsx` で frame 実行前に unmount した場合に stale focus が走らないことを確認する
-  - sidebar startup folder expansion とは分け、keyboard navigation の frame cleanup だけを扱う
-
-- [ ] article tag picker close focus cleanup 候補を追加する
-  - `src/components/reader/hooks/article/use-article-tag-picker-popover.ts` の close 後 focus restore frame を cancel 可能にする
-  - article tag picker hook / component test で Escape close 後、frame 前に unmount しても trigger focus が発火しないことを確認する
-  - tag mutation や picker view props とは分け、popover close focus cleanup だけを扱う
 
 - [ ] updater startup check unmount guard 候補を追加する
   - `src/hooks/use-updater.ts` の startup update check promise に cancelled guard を追加し、unmount 後に toast / warn が出ないようにする
@@ -384,16 +340,6 @@
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
   - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
   - tag settings UI validation とは分け、repository/domain invariant だけを扱う
-
-- [ ] account detail copy failure locale 候補を追加する
-  - `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts` の server URL copy failure toast が raw `error.message` にならないようにする
-  - `src/__tests__/components/account-detail.test.tsx` で clipboard failure 時に `ja` / `en` の locale wrapper 経由 toast になることを固定する
-  - account detail credentials validation とは分け、copy failure feedback copy だけを扱う
-
-- [ ] general settings language option contract 候補を追加する
-  - `src/components/settings/hooks/use-general-settings-view-props.ts` の `English` / `日本語` self-label を locale 例外として残すか locale 管理へ寄せるか固定する
-  - `src/__tests__/components/use-general-settings-view-props.test.ts` で `system` は locale 由来、`en` / `ja` は意図した self-label であることを確認する
-  - general settings preference handling とは分け、language option label contract だけを扱う
 
 - [ ] tag color picker radiogroup contract 候補を追加する
   - `src/components/shared/tag-color-picker.tsx` の色選択を単一選択グループとして扱えるようにする
