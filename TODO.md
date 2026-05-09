@@ -125,11 +125,6 @@
   - Dialog title / description が popup content 外に置かれる構造だと、dialog の accessible name / description association が壊れても検出しにくい
   - command palette と shared CommandDialog で `getByRole("dialog", { name })` が通る contract test を追加する
 
-- [ ] P1 mirrored theme localStorage fallback の責務を固定する
-  - 対象: `src/stores/preferences-store.ts`, `src/constants/storage.ts`, `src/schemas/storage.ts`
-  - theme は DB preference の mirror として localStorage にも保存されるが、DB load failure や invalid mirror の時にどちらを source of truth にするかが曖昧
-  - DB preference missing、DB load failure、invalid localStorage theme、storage unavailable の時の適用 theme と mirror 更新方針を store test で固定する
-
 - [ ] P2 Tauri CSP の external img/frame 許可面積を feed content / browser webview 境界で整理する
   - 対象: `src-tauri/tauri.conf.json`, `docs/feed-content-privacy.md`, `src/components/reader/article-content-view.tsx`
   - CSP で `img-src` / `frame-src` が `http:` / `https:` を広く許可している場合、feed content と browser webview の責務境界が security config 上で見えにくい

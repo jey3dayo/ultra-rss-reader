@@ -713,6 +713,34 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("defaults omitted loaded theme when mirrored localStorage is unavailable", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.succeed({}));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const localStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => {
+        throw new Error("storage unavailable");
+      },
+    });
+
+    try {
+      await usePreferencesStore.getState().loadPreferences();
+
+      expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(usePreferencesStore.getState().prefs.theme).toBe("light");
+      expect(document.documentElement).not.toHaveClass("dark");
+      expect(document.documentElement.style.colorScheme).toBe("light");
+      expect(consoleError).toHaveBeenCalledWith("Failed to read mirrored theme preference:", expect.any(Error));
+      expect(consoleError).toHaveBeenCalledWith("Failed to mirror theme preference:", expect.any(Error));
+    } finally {
+      if (localStorageDescriptor) {
+        Object.defineProperty(window, "localStorage", localStorageDescriptor);
+      }
+      consoleError.mockRestore();
+    }
+  });
+
   it("reports rejected manual preference persists without rolling back optimistic theme state or mirrored cache", async () => {
     await i18n.changeLanguage("ja");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -1002,6 +1030,38 @@ describe("usePreferencesStore preferences", () => {
     expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
     expect(document.documentElement).toHaveClass("font-sans");
     expect(document.documentElement).toHaveClass("text-base");
+  });
+
+  it("keeps the bootstrapped theme when loading preferences fails and localStorage is unavailable", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const localStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => {
+        throw new Error("storage unavailable");
+      },
+    });
+
+    try {
+      await usePreferencesStore.getState().loadPreferences();
+
+      expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(document.documentElement).toHaveClass("dark");
+      expect(document.documentElement.style.colorScheme).toBe("dark");
+      expect(consoleError).toHaveBeenCalledWith("Failed to load preferences:", {
+        type: "UserVisible",
+        message: "boom",
+      });
+      expect(consoleError).not.toHaveBeenCalledWith("Failed to read mirrored theme preference:", expect.any(Error));
+    } finally {
+      if (localStorageDescriptor) {
+        Object.defineProperty(window, "localStorage", localStorageDescriptor);
+      }
+      consoleError.mockRestore();
+    }
   });
 
   it("keeps the mirrored bootstrapped theme when loaded preferences omit theme", async () => {
