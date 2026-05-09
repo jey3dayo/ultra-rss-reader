@@ -65,6 +65,7 @@ import {
   setBrowserWebviewBounds,
   setMuteAutoMarkRead,
   setPreference,
+  type restartApp,
   tagArticle,
   testAccountConnection,
   toggleArticleStar,
@@ -732,6 +733,7 @@ describe("safeInvoke response validation", () => {
     expectTypeOf<CommandSuccess<typeof listAccounts>>().toEqualTypeOf<AccountDto[]>();
     expectTypeOf<CommandSuccess<typeof getPreferences>>().toEqualTypeOf<PreferencesDto>();
     expectTypeOf<CommandSuccess<typeof checkForUpdate>>().toEqualTypeOf<UpdateInfoDto | null>();
+    expectTypeOf<CommandSuccess<typeof restartApp>>().toEqualTypeOf<null>();
     expectTypeOf<CommandSuccess<typeof openLogDir>>().toEqualTypeOf<null>();
   });
 

@@ -923,6 +923,16 @@ describe("DTO schemas", () => {
     expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "" })).toThrow();
     expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "   " })).toThrow();
   });
+  it("rejects UpdateInfoDto with blank source", () => {
+    const stableUpdate = {
+      version: "1.0.0",
+      body: null,
+      channel: "stable",
+      prerelease: false,
+    };
+    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, source: "" })).toThrow();
+    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, source: "   " })).toThrow();
+  });
   it("rejects non-stable or prerelease UpdateInfoDto manifests", () => {
     const stableUpdate = {
       version: "1.0.0",

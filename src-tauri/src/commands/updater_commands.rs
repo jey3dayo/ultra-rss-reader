@@ -169,22 +169,31 @@ fn update_source(update: &Update) -> String {
 }
 
 fn update_policy_error(update: &Update) -> Option<String> {
-    let channel = update_channel(update);
+    update_policy_error_parts(
+        &update.version,
+        &update.current_version,
+        &update_channel(update),
+        update_prerelease(update),
+    )
+}
+
+fn update_policy_error_parts(
+    version: &str,
+    current_version: &str,
+    channel: &str,
+    prerelease: bool,
+) -> Option<String> {
     if channel != UPDATE_CHANNEL_STABLE {
         return Some(format!("Unsupported update channel: {channel}"));
     }
 
-    if update_prerelease(update) {
-        return Some(format!(
-            "Prerelease update is not allowed: {}",
-            update.version
-        ));
+    if prerelease {
+        return Some(format!("Prerelease update is not allowed: {version}"));
     }
 
-    if !is_strictly_newer_version(&update.version, &update.current_version) {
+    if !is_strictly_newer_version(version, current_version) {
         return Some(format!(
-            "Downgrade or same-version update is not allowed: {} <= {}",
-            update.version, update.current_version
+            "Downgrade or same-version update is not allowed: {version} <= {current_version}",
         ));
     }
 
@@ -207,6 +216,10 @@ fn make_pending_update_handle(update: Update) -> PendingUpdateHandle {
         source: update_source(&update),
         update,
     }
+}
+
+fn pending_update_metadata_matches(version: &str, source: &str, update: &Update) -> bool {
+    version == update.version && source == update_source(update)
 }
 
 #[tauri::command]
@@ -279,7 +292,7 @@ async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(),
     };
     let update = pending_update.update;
 
-    if pending_update.version != update.version || pending_update.source != update_source(&update) {
+    if !pending_update_metadata_matches(&pending_update.version, &pending_update.source, &update) {
         return Err(AppError::UserVisible {
             message: "Pending update handle changed before install".to_string(),
         });
@@ -332,10 +345,14 @@ mod tests {
 
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
-        next_download_session_id, update_event_emit_warning, DownloadGuard, DOWNLOADING,
-        DOWNLOAD_SESSION_ID,
+        next_download_session_id, update_event_emit_warning, update_policy_error_parts,
+        DownloadGuard, SyncInstallGuard, DOWNLOADING, DOWNLOAD_SESSION_ID,
     };
+    use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
+    use std::sync::Mutex as StdMutex;
+
+    static UPDATER_COMMAND_TEST_LOCK: StdMutex<()> = StdMutex::new(());
 
     #[test]
     fn clear_pending_update_drops_stale_cached_update_before_runtime_check() {
@@ -371,7 +388,34 @@ mod tests {
     }
 
     #[test]
+    fn update_policy_accepts_stable_newer_release_only() {
+        assert_eq!(
+            update_policy_error_parts("1.2.4", "1.2.3", "stable", false),
+            None
+        );
+        assert_eq!(
+            update_policy_error_parts("1.2.4", "1.2.3", "beta", false),
+            Some("Unsupported update channel: beta".to_string())
+        );
+        assert_eq!(
+            update_policy_error_parts("1.2.4-beta.1", "1.2.3", "stable", true),
+            Some("Prerelease update is not allowed: 1.2.4-beta.1".to_string())
+        );
+        assert_eq!(
+            update_policy_error_parts("1.2.3", "1.2.3", "stable", false),
+            Some("Downgrade or same-version update is not allowed: 1.2.3 <= 1.2.3".to_string())
+        );
+        assert_eq!(
+            update_policy_error_parts("1.2.2", "1.2.3", "stable", false),
+            Some("Downgrade or same-version update is not allowed: 1.2.2 <= 1.2.3".to_string())
+        );
+    }
+
+    #[test]
     fn download_guard_releases_flag_on_drop() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
         DOWNLOADING.store(false, Ordering::SeqCst);
 
         {
@@ -385,6 +429,9 @@ mod tests {
 
     #[test]
     fn download_guard_releases_flag_after_panic_unwind() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
         DOWNLOADING.store(false, Ordering::SeqCst);
 
         let result = panic::catch_unwind(|| {
@@ -397,7 +444,44 @@ mod tests {
     }
 
     #[test]
+    fn sync_install_guard_blocks_sync_and_db_writes_until_released() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        let syncing = AtomicBool::new(false);
+
+        {
+            let _guard =
+                SyncInstallGuard::acquire(&syncing).expect("guard should acquire idle sync flag");
+            assert!(syncing.load(Ordering::SeqCst));
+            assert!(SyncInstallGuard::acquire(&syncing).is_err());
+        }
+
+        assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn sync_install_guard_releases_flag_after_panic_unwind() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        let syncing = AtomicBool::new(false);
+
+        let result = panic::catch_unwind(|| {
+            let _guard =
+                SyncInstallGuard::acquire(&syncing).expect("guard should acquire idle sync flag");
+            panic!("simulated panic while install gate is held");
+        });
+
+        assert!(result.is_err());
+        assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
     fn download_session_id_advances_per_download_attempt() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
         DOWNLOAD_SESSION_ID.store(0, Ordering::SeqCst);
 
         assert_eq!(next_download_session_id(), 1);
