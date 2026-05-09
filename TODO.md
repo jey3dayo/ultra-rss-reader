@@ -1318,6 +1318,91 @@
   - `src/__tests__/components/use-general-settings-view-props.test.ts` で `system` は locale 由来、`en` / `ja` は意図した self-label であることを確認する
   - general settings preference handling とは分け、language option label contract だけを扱う
 
+- [ ] IPC pagination limit schema parity 候補を追加する
+  - `src/api/schemas/commands.ts` の `paginationLimitSchema` を Rust 側 article / tag list limit 上限 `200` と揃える
+  - `src/__tests__/api/schemas.test.ts` で `limit: 200` は通し、`201` / `Infinity` / 小数は parse で落ちることを固定する
+  - article list query scope とは分け、frontend IPC pagination limit だけを扱う
+
+- [ ] list articles filter exclusivity 候補を追加する
+  - `src/api/schemas/commands.ts` の `listArticlesArgs` で `unreadOnly: true` と `starredOnly: true` の同時指定を拒否する
+  - `src/__tests__/api/schemas.test.ts` で片方だけ true は通し、両方 true は parse error になることを固定する
+  - article scope matrix 再設計とは分け、list articles filter exclusivity だけを扱う
+
+- [ ] open in browser schema URL boundary 候補を追加する
+  - `src/api/schemas/commands.ts` の `openInBrowserArgs` を `openExternalUrlArgs` / `addToReadingListArgs` と同等の URL validation に寄せる
+  - `src/__tests__/api/tauri-commands.test.ts` で blank / newline / `mailto:` / `file:` が invoke 前に失敗し、valid URL は trim 済みで渡ることを固定する
+  - browser webview focus policy とは分け、open-in-browser IPC validation だけを扱う
+
+- [ ] search articles query schema trim 候補を追加する
+  - `src/api/schemas/commands.ts` の `searchArticlesArgs.query` が blank / whitespace-only query を許さないようにする
+  - `src/__tests__/api/schemas.test.ts` と必要なら `src/__tests__/api/tauri-commands.test.ts` で blank search が invoke 前に止まることを固定する
+  - article search source scope とは分け、search IPC query validation だけを扱う
+
+- [ ] mute keyword IPC schema trim 候補を追加する
+  - `src/api/schemas/commands.ts` の `createMuteKeywordArgs.keyword` を backend invariant と同じく trim / blank reject にする
+  - `src/__tests__/api/schemas.test.ts` または `src/__tests__/hooks/tag-mute-settings-contract.test.ts` で `" spoiler "` は `spoiler`、blank は reject になることを固定する
+  - mute keyword scope race guard とは分け、mute keyword IPC input normalization だけを扱う
+
+- [ ] create query whitespace id guard 候補を追加する
+  - `src/hooks/create-query.ts` の enabled 判定が `!!id` だけで whitespace-only id を fetcher に渡さないようにする
+  - `src/__tests__/hooks/create-query.test.tsx` で whitespace-only id は disabled のまま fetcher が呼ばれないことを固定する
+  - individual command schema 変更とは分け、generic query hook id boundary だけを扱う
+
+- [ ] article summary HTML spacing 候補を追加する
+  - `src/lib/content/html.ts` の `stripHtmlTags()` が block element / `br` / list item 境界を潰して `LeadBody` のような summary を作らないようにする
+  - `src/__tests__/lib/html.test.ts` と必要なら `src/__tests__/components/article-list-item.test.tsx` で `<p>Lead</p><p>Body</p>` が `Lead Body` になることを固定する
+  - article content danger boundary とは分け、plain text summary spacing だけを扱う
+
+- [ ] article web preview blank URL guard 候補を追加する
+  - `src/components/reader/hooks/article/use-article-browser-overlay-display.ts` と `src/lib/feed/feed-landing.ts` で whitespace-only article URL を preview 可能扱いしない
+  - `src/__tests__/lib/feed-landing.test.ts` と既存 hook/component test で blank URL は overlay を開かず `missing_web_preview` へ落ちることを固定する
+  - ArticleDto URL schema normalization とは分け、Web Preview availability boundary だけを扱う
+
+- [ ] article reader relative link policy 候補を追加する
+  - `src/components/reader/article-reader-body.tsx` で sanitized 本文内の相対リンククリックを app origin ではなく記事 URL 基準にするか無効化するか固定する
+  - article reader focused test で `<a href="/posts/1">` の click が期待 URL へ解決される、または外部 open されないことを確認する
+  - sanitizer URL filtering とは分け、reader body relative link click policy だけを扱う
+
+- [ ] article body feed label suffix cleanup 候補を追加する
+  - `src/lib/content/html.ts` の `normalizeArticleBodyHtml()` で先頭の `Feed Name:` / `Feed Name｜` / `Feed Name -` 形式を小さく除去対象にする
+  - `src/__tests__/lib/html.test.ts` で `Tech Blog:` は除去、`Tech Blog Weekly` や media を含む先頭 node は維持されることを固定する
+  - article summary spacing とは分け、body leading feed label cleanup だけを扱う
+
+- [ ] ArticleDto blank URL normalization 候補を追加する
+  - `src/api/schemas/article.ts` の `url` / `thumbnail` が whitespace-only string を DTO 境界で通さないようにする
+  - `src/__tests__/api/schemas.test.ts` で `url: "   "` / `thumbnail: "   "` を reject または `null` 正規化する方針を固定する
+  - provider thumbnail href normalization とは分け、frontend Article DTO schema boundary だけを扱う
+
+- [ ] release workflow manual tag guard 候補を追加する
+  - `.github/workflows/release.yml` の `workflow_dispatch` が tag ref 以外で non-version release を作れないようにする
+  - repo contract test で manual dispatch は tag input 必須、または `refs/tags/v` のみ release 作成可能なことを固定する
+  - release install verification docs とは分け、release workflow dispatch guard だけを扱う
+
+- [ ] Tauri config schema URL contract 候補を追加する
+  - `src-tauri/tauri.conf.json` の `$schema` を公式 `tauri-apps/tauri` 系の v2 schema に揃える
+  - `src/__tests__/schemas/tauri-config-identifiers.test.ts` で schema URL が unofficial fork や古い version に drift しないことを固定する
+  - Tauri identifier / bundle metadata contract とは分け、tauri config schema URL だけを扱う
+
+- [ ] package engines mise parity 候補を追加する
+  - `package.json` に Node / pnpm engines を明示し、`mise.toml` の `[tools].node` / `npm:pnpm` と揃える
+  - `src/__tests__/config/repo-contracts.test.ts` で `engines.node` / `engines.pnpm` と mise / `packageManager` の整合を固定する
+  - package manager / E2E port drift とは分け、runtime toolchain version visibility だけを扱う
+
+- [ ] PackageJsonSchema static fields 候補を追加する
+  - `src/schemas/app-config.ts` の `PackageJsonSchema` で `version` / `packageManager` / `private` / `type` / `engines` を parse できるようにする
+  - `src/__tests__/schemas/package-scripts.test.ts` で package static contract の重要 field が schema から検証できることを固定する
+  - package engines mise parity とは分け、package json schema coverage だけを扱う
+
+- [ ] markdown task glob parity 候補を追加する
+  - `mise.toml` の `format:md` / `lint:md` が `MD_GLOB` / exclude env と drift しないようにする
+  - `src/__tests__/schemas/package-scripts.test.ts` で markdown format / lint の対象 glob と exclude set が一致することを固定する
+  - markdownlint 実行結果とは分け、task definition parity だけを扱う
+
+- [ ] issue template affected area parity 候補を追加する
+  - `.github/ISSUE_TEMPLATE/02-bug.yml` の `Affected Areas` に workflow/config failure を起票しやすい選択肢を追加するか、labeler 説明との対応を固定する
+  - `src/__tests__/config/repo-contracts.test.ts` で issue template の領域選択肢と labeler / 自動領域ラベルの最低限対応を確認する
+  - release label parity contract とは分け、issue template affected area contract だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
