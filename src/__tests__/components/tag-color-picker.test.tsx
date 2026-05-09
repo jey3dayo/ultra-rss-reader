@@ -31,6 +31,9 @@ describe("TagColorPicker", () => {
 
     expect(label).toHaveClass("text-foreground-soft");
     expect(group).toBeInTheDocument();
+    expect(group).toHaveAttribute("aria-orientation", "horizontal");
+    expect(noColorButton).toHaveAttribute("tabindex", "-1");
+    expect(selectedColorButton).toHaveAttribute("tabindex", "0");
     expect(noColorSwatch).toHaveClass("motion-interactive-surface");
     expect(selectedColorSwatch).toHaveClass("motion-interactive-surface");
     expect(noColorSwatch).not.toHaveClass("bg-surface-2", "border-border-strong", "text-foreground");
