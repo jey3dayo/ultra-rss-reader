@@ -71,6 +71,28 @@ describe("useDeleteFeed", () => {
     });
   });
 
+  it("keeps a successful delete successful when cache invalidation rejects", async () => {
+    const invalidationError = new Error("invalidate failed");
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ feedId: "feed-1", accountId: "acc-1", title: "Tech Blog" }),
+    ).resolves.toBeNull();
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["feeds"],
+        error: invalidationError,
+      });
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
+  });
+
   it("shows a failure toast, calls onError, and rejects on delete failure", async () => {
     vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
     const onError = vi.fn();

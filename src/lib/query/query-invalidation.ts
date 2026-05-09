@@ -256,7 +256,7 @@ export function resolveArticleInvalidationQueryKeys(
   return resolveInvalidationQueryKeys(ARTICLE_INVALIDATION_TARGETS, options);
 }
 
-function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<QueryInvalidationKey>) {
+export function invalidateQueryKeysLogOnly(queryClient: QueryClient, queryKeys: ReadonlyArray<QueryKey>) {
   for (const queryKey of queryKeys) {
     void queryClient.invalidateQueries({ queryKey }).catch((error: unknown) => {
       console.warn("Query invalidation failed:", { queryKey, error });
@@ -265,11 +265,11 @@ function invalidateQueryKeys(queryClient: QueryClient, queryKeys: ReadonlyArray<
 }
 
 export function invalidateFeedQueries(queryClient: QueryClient, options: InvalidateFeedQueriesOptions = {}) {
-  invalidateQueryKeys(queryClient, resolveFeedInvalidationQueryKeys(options));
+  invalidateQueryKeysLogOnly(queryClient, resolveFeedInvalidationQueryKeys(options));
 }
 
 export function invalidateArticleQueries(queryClient: QueryClient, options: InvalidateArticleQueriesOptions = {}) {
-  invalidateQueryKeys(queryClient, resolveArticleInvalidationQueryKeys(options));
+  invalidateQueryKeysLogOnly(queryClient, resolveArticleInvalidationQueryKeys(options));
 }
 
 export function invalidateSyncCompletedQueries(queryClient: QueryClient) {

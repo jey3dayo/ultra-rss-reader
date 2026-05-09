@@ -4,7 +4,12 @@ import type { TFunction } from "i18next";
 import { useRef, useState } from "react";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
-import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
+import {
+  invalidateArticleQueries,
+  invalidateFeedQueries,
+  invalidateQueryKeysLogOnly,
+  queryKeys,
+} from "@/lib/query/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
@@ -66,7 +71,7 @@ export async function runAccountSetupSync({
     syncResult = await syncAccount(accountId);
   } catch (error) {
     onSyncStatusChanged?.();
-    void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
+    invalidateQueryKeysLogOnly(queryClient, [["account-sync-status"]]);
     useUiStore
       .getState()
       .markAccountSetupFailed(accountId, t("account.sync_failed", { message: getErrorMessage(error) }));
@@ -74,7 +79,7 @@ export async function runAccountSetupSync({
   }
 
   onSyncStatusChanged?.();
-  void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
+  invalidateQueryKeysLogOnly(queryClient, [["account-sync-status"]]);
 
   if (Result.isFailure(syncResult)) {
     useUiStore.getState().markAccountSetupFailed(accountId, resolveSetupFailureMessage(t, syncResult));
@@ -147,7 +152,7 @@ export function useAccountDetailSyncControls({
         result,
         Result.inspect((syncResult) => {
           invalidateFeedQueries(queryClient, { includeFolders: false });
-          queryClient.invalidateQueries({ queryKey: ["articles"] });
+          invalidateQueryKeysLogOnly(queryClient, [queryKeys.articles.root]);
           onSyncStatusChanged?.();
           useUiStore.getState().showToast(
             resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {

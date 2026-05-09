@@ -4,6 +4,7 @@ import type { TFunction } from "i18next";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
+import { invalidateFeedQueries, invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
@@ -70,8 +71,8 @@ export function useAccountDetailDangerZone({
       await deleteAccount(account.id),
       Result.inspectError(showDeleteError),
       Result.inspect(() => {
-        queryClient.invalidateQueries({ queryKey: ["accounts"] });
-        queryClient.invalidateQueries({ queryKey: ["feeds"] });
+        invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
+        invalidateFeedQueries(queryClient, { includeFolders: false });
         onAccountDeleted();
       }),
     );

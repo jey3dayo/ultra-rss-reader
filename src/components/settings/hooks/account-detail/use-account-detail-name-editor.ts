@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
+import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
@@ -113,7 +114,7 @@ export function useAccountDetailNameEditor({
         editSessionRef.current += 1;
         dispatch({ type: "finish-edit", value: updated.name });
         updateCachedAccount(queryClient, updated);
-        queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
       }),
     );
     if (!renameSucceeded) {
