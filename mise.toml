@@ -173,6 +173,25 @@ run = "pnpm audit --audit-level high"
 run_windows = "pnpm.CMD audit --audit-level high"
 
 # ========================================
+# ローカル品質ゲート / レポート
+# ========================================
+
+[tasks."quality:react-doctor:diff"]
+description = "React Doctor diff regression gate; pinned tool and baseline"
+run = "pnpm run quality:react-doctor:diff"
+run_windows = "pnpm.CMD run quality:react-doctor:diff"
+
+[tasks."quality:react-doctor:full"]
+description = "React Doctor full scan report; pinned tool and informational baseline"
+run = "pnpm run quality:react-doctor:full"
+run_windows = "pnpm.CMD run quality:react-doctor:full"
+
+[tasks."quality:knip"]
+description = "Knip baseline drift gate; pinned tool and issue count"
+run = "pnpm run quality:knip"
+run_windows = "pnpm.CMD run quality:knip"
+
+# ========================================
 # テスト
 # ========================================
 

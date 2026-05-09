@@ -50,11 +50,6 @@
   - cooldown listener が throw しても console error に集約されるだけなので、UI 更新が止まった時にどの subscriber が壊れたか分かりにくい
   - listener id を持つか diagnostics-only に留めるか決め、複数 listener failure の report format を unit test にする
 
-- [ ] P2 feed favicon remote image failure / mixed content policy を固定する
-  - 対象: `src/components/shared/feed-favicon.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/feed-tree-row.tsx`
-  - favicon/thumbnail と本文 sanitizer は別境界なので、http image、tracking query、broken image、SVG data をどこで許可/拒否するかがズレやすい
-  - image src scheme、fallback icon、onError retryなし、privacy-sensitive query stripping の方針を component/helper test にする
-
 - [ ] P3 TODO priority taxonomy を CLAUDE.md / TODO.md で同期する
   - 対象: `CLAUDE.md`, `TODO.md`
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
@@ -114,11 +109,6 @@
   - 対象: `mise.toml`, `CLAUDE.md`, `TODO.md`
   - full scan は 86/100 で既存 warning 274 件、diff scan は 99/100 で 1 件なので、同じ threshold にすると小変更が既存負債に巻き込まれる
   - diff scan は新規 regression gate、full scan は baseline 改善 task として扱い、error count、warning count、score の記録粒度を決める
-
-- [ ] P2 React Doctor / Knip の tool version と baseline drift を固定する
-  - 対象: `package.json`, `pnpm-lock.yaml`, `mise.toml`, `TODO.md`
-  - `npx -y react-doctor@latest` は tool 更新で warning 数や rule 名が動くため、別エージェントの TODO 追加と実装修正が同じ物差しで比較しにくい
-  - React Doctor version pin、Knip version / config、baseline更新手順、latest試験の別枠運用を決める
 
 - [ ] P2 React Doctor unused type を settings view contract 単位で整理する
   - 対象: `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/actions-settings-view.tsx`, `src/components/settings/mute-settings-view.tsx`, `src/components/settings/settings-preference.types.ts`, `src/components/settings/add-account/services.types.ts`
@@ -287,11 +277,6 @@
   - 対象: `src/hooks/**`, `src/dev/**`, `tests/helpers/**`
   - `Result.unwrap` は成功前提を短く書ける一方、queryFn/dev scenario/test helper に混在しており、失敗時に user-visible error・console・test failure のどれにするかが呼び出し元ごとに曖昧
   - queryFn、mutationFn、dev-only loader、test helper に分類し、production path は explicit `Result.isFailure` で message redaction を固定する
-
-- [ ] P3 schema parse helper の throwing / nullable 命名を callsite policy に落とす
-  - 対象: `src/schemas/parse.ts`, `src/api/tauri-commands.ts`, `tests/helpers/tauri-mocks.ts`
-  - `parseWithSchema` と `safeParseJsonWithSchema` の使い分けはコメント上は明確だが、callsite が増えると throwing boundary を UI path に持ち込みやすい
-  - production runtime、test helper、storage recovery、config parse のどこで throw/null/Result を使うか CLAUDE rule または repo contract にする
 
 - [ ] P1 similarity 93.62%: browser webview sync と add feed dialog actions の async lifecycle helper 抽出を検討する
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-sync.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`

@@ -7,6 +7,9 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 - Run `mise run check` before committing.
 - Use `mise run ci` when you need the full repository gate including build validation.
+- Use `mise run quality:react-doctor:diff` as the local React Doctor regression gate for changed files. It pins `react-doctor@0.1.4` and fails on score, error, warning, affected-file, or tool-version drift from the checked-in baseline.
+- Use `mise run quality:react-doctor:full` as an informational full-codebase React Doctor report. It shares the pinned version but does not fail the task on known full-scan baseline debt.
+- Use `mise run quality:knip` for Knip baseline drift checks. It pins `knip@6.12.2` and fails when the known issue/finding counts change.
 - Default desktop development entry point: `mise run app:dev`.
 - Use `mise run app:dev:browser` only when browser-mode UI debugging is enough.
 
@@ -74,6 +77,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - `CHANGELOG.md` records completed user-visible changes.
 - Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
 - Classify new TODO entries as implementation, contract test, rule update, manual verification, or type placement cleanup. If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of growing `TODO.md`.
+- React Doctor / Knip baselines live in `scripts/quality-baseline.ts`. Update those constants only after running the matching pinned task, reviewing whether the drift is expected, and keeping the tool versions pinned in `package.json` / `pnpm-lock.yaml`. Test `@latest` versions outside the baseline tasks.
 
 ## Localization Notes
 

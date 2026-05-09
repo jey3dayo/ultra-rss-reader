@@ -21,6 +21,13 @@
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
 - [dev-scenarios-command-palette.md](./dev-scenarios-command-palette.md): dev intent と command palette の共通 runner / 責務分離ルール
 
+## Local Quality Gates
+
+- React Doctor diff scan is the changed-file regression gate: `mise run quality:react-doctor:diff`.
+- React Doctor full scan is an informational baseline report: `mise run quality:react-doctor:full`.
+- Knip baseline drift is checked with `mise run quality:knip`.
+- Tool versions and baseline counts are fixed in `package.json`, `pnpm-lock.yaml`, and `scripts/quality-baseline.ts`; update them together only after intentional triage.
+
 ## Repository Structure
 
 - 通常の feature UI は `src/components/<feature>/` に置く
