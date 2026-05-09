@@ -1,16 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { NEW_FOLDER_VALUE } from "@/components/reader/folder-select-view";
-import {
-  buildFolderOptions,
-  useFolderSelection,
-} from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
+import { buildFolderOptions, useFolderSelection } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
 
 describe("use-folder-selection", () => {
   it("builds a no-folder option when folders are not loaded", () => {
-    expect(buildFolderOptions(undefined, "No folder")).toEqual([
-      { value: "", label: "No folder" },
-    ]);
+    expect(buildFolderOptions(undefined, "No folder")).toEqual([{ value: "", label: "No folder" }]);
   });
 
   it("preserves folder order after the no-folder option", () => {
@@ -106,15 +101,11 @@ describe("use-folder-selection", () => {
 
   it("cancels pending new folder input focus after unmount", () => {
     const scheduledCallbacks: FrameRequestCallback[] = [];
-    const requestAnimationFrameSpy = vi
-      .spyOn(window, "requestAnimationFrame")
-      .mockImplementation((callback) => {
-        scheduledCallbacks.push(callback);
-        return 12;
-      });
-    const cancelAnimationFrameSpy = vi
-      .spyOn(window, "cancelAnimationFrame")
-      .mockImplementation(() => undefined);
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 12;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     const input = document.createElement("input");
     const focusSpy = vi.spyOn(input, "focus");
     const { result, unmount } = renderHook(() => useFolderSelection(null));
@@ -140,15 +131,11 @@ describe("use-folder-selection", () => {
 
   it("cancels pending new folder input focus after reset", () => {
     const scheduledCallbacks: FrameRequestCallback[] = [];
-    const requestAnimationFrameSpy = vi
-      .spyOn(window, "requestAnimationFrame")
-      .mockImplementation((callback) => {
-        scheduledCallbacks.push(callback);
-        return 24;
-      });
-    const cancelAnimationFrameSpy = vi
-      .spyOn(window, "cancelAnimationFrame")
-      .mockImplementation(() => undefined);
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      scheduledCallbacks.push(callback);
+      return 24;
+    });
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     const input = document.createElement("input");
     const focusSpy = vi.spyOn(input, "focus");
     const { result } = renderHook(() => useFolderSelection(null));

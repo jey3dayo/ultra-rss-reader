@@ -95,9 +95,7 @@ describe("FolderSelectView", () => {
 
     await user.click(screen.getByRole("combobox", { name: "Folder" }));
 
-    expect(
-      screen.queryByRole("option", { name: "New folder" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "New folder" })).not.toBeInTheDocument();
   });
 
   it("keeps a deleted selected folder visible by falling back to its id", () => {
@@ -122,8 +120,6 @@ describe("FolderSelectView", () => {
       />,
     );
 
-    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent(
-      "deleted-folder",
-    );
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("deleted-folder");
   });
 });

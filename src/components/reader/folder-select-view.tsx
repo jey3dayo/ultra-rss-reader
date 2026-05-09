@@ -45,14 +45,9 @@ export function FolderSelectView({
   const hasSelectedValue = value !== "" && value !== NEW_FOLDER_VALUE;
   const hasSelectedOption = options.some((option) => option.value === value);
   const resolvedOptions = [
-    ...options.filter(
-      (option) => canCreateFolder || option.value !== NEW_FOLDER_VALUE,
-    ),
-    ...(hasSelectedValue && !hasSelectedOption
-      ? [{ value, label: value }]
-      : []),
-    ...(canCreateFolder &&
-    !options.some((option) => option.value === NEW_FOLDER_VALUE)
+    ...options.filter((option) => canCreateFolder || option.value !== NEW_FOLDER_VALUE),
+    ...(hasSelectedValue && !hasSelectedOption ? [{ value, label: value }] : []),
+    ...(canCreateFolder && !options.some((option) => option.value === NEW_FOLDER_VALUE)
       ? [{ value: NEW_FOLDER_VALUE, label: newFolderOptionLabel }]
       : []),
   ];

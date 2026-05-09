@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useReducer,
-  useRef,
-} from "react";
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { focusAccountItem } from "../../account-switcher-menu";
 import { isOutsideElement } from "../../dom-target";
@@ -56,10 +49,7 @@ function sidebarAccountSwitcherReducer(
 }
 
 export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
-  const [state, dispatch] = useReducer(
-    sidebarAccountSwitcherReducer,
-    initialSidebarAccountSwitcherState,
-  );
+  const [state, dispatch] = useReducer(sidebarAccountSwitcherReducer, initialSidebarAccountSwitcherState);
   const { isAccountListOpen } = state;
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
@@ -92,50 +82,46 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
         dispatch({ type: "set-account-list-open", value: false });
       }
     };
-    const handlePointerOutside = (
-      event: MouseEvent | PointerEvent | TouchEvent,
-    ) => {
+    const handlePointerOutside = (event: Event) => {
       handleOutsideTarget(event.target);
     };
-    const handleFocusOutside = (event: FocusEvent) => {
-      handleOutsideTarget(event.relatedTarget);
+    const handleFocusOutside = (event: Event) => {
+      if (event instanceof FocusEvent) {
+        handleOutsideTarget(event.relatedTarget);
+      }
     };
 
-    const ownerDocument =
-      accountDropdownRef.current?.ownerDocument ?? getRuntimeDocument();
+    const ownerDocument = accountDropdownRef.current?.ownerDocument ?? getRuntimeDocument();
     if (!ownerDocument) {
       return;
     }
 
-    const listenerEntries = [
+    const listenerEntries: Array<{
+      eventName: "pointerdown" | "mousedown" | "touchstart" | "focusout";
+      handler: EventListener;
+    }> = [
       ["pointerdown", handlePointerOutside],
       ["mousedown", handlePointerOutside],
       ["touchstart", handlePointerOutside],
       ["focusout", handleFocusOutside],
-    ] as const;
+    ].map(([eventName, handler]) => ({ eventName, handler }));
 
     try {
-      for (const [eventName, handler] of listenerEntries) {
+      for (const { eventName, handler } of listenerEntries) {
         ownerDocument.addEventListener(eventName, handler);
       }
     } catch (error) {
-      console.warn(
-        "Failed to bind sidebar account switcher outside-click listener.",
-        error,
-      );
+      console.warn("Failed to bind sidebar account switcher outside-click listener.", error);
       return;
     }
 
     return () => {
       try {
-        for (const [eventName, handler] of listenerEntries) {
+        for (const { eventName, handler } of listenerEntries) {
           ownerDocument.removeEventListener(eventName, handler);
         }
       } catch (error) {
-        console.warn(
-          "Failed to cleanup sidebar account switcher outside-click listener.",
-          error,
-        );
+        console.warn("Failed to cleanup sidebar account switcher outside-click listener.", error);
       }
     };
   }, [isAccountListOpen]);
@@ -189,8 +175,7 @@ export function useAccountSwitcherViewModel({
     () => accounts.findIndex((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId],
   );
-  const selectedAccountName =
-    selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null;
+  const selectedAccountName = selectedIndex >= 0 ? (accounts[selectedIndex]?.name ?? null) : null;
   const hasMultipleAccounts = selectedIndex >= 0 && accounts.length > 1;
   const canOpenAccountList = hasMultipleAccounts;
 
@@ -202,13 +187,7 @@ export function useAccountSwitcherViewModel({
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [
-    accounts.length,
-    hasMultipleAccounts,
-    isExpanded,
-    itemRefs,
-    selectedIndex,
-  ]);
+  }, [accounts.length, hasMultipleAccounts, isExpanded, itemRefs, selectedIndex]);
 
   return {
     selectedAccountName,

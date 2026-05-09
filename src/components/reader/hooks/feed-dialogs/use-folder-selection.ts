@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { FeedDialogFolderSelectionParams } from "../../feed-dialog-form.types";
-import {
-  type FolderSelectOption,
-  NEW_FOLDER_VALUE,
-} from "../../folder-select-view";
+import { type FolderSelectOption, NEW_FOLDER_VALUE } from "../../folder-select-view";
 
 type FolderOptionSource = {
   id: string;
@@ -18,9 +15,7 @@ type FolderSelectionAction =
   | { type: "select-folder"; folderId: string | null }
   | { type: "set-new-folder-name"; value: string };
 
-function createInitialFolderSelectionState(
-  initialFolderId: string | null,
-): FolderSelectionState {
+function createInitialFolderSelectionState(initialFolderId: string | null): FolderSelectionState {
   return {
     selectedFolderId: initialFolderId,
     newFolderName: "",
@@ -28,10 +23,7 @@ function createInitialFolderSelectionState(
   };
 }
 
-function folderSelectionReducer(
-  state: FolderSelectionState,
-  action: FolderSelectionAction,
-): FolderSelectionState {
+function folderSelectionReducer(state: FolderSelectionState, action: FolderSelectionAction): FolderSelectionState {
   switch (action.type) {
     case "reset":
       return createInitialFolderSelectionState(action.folderId);
@@ -69,10 +61,7 @@ export function buildFolderOptions(
       continue;
     }
 
-    folderNameCounts.set(
-      folderName,
-      (folderNameCounts.get(folderName) ?? 0) + 1,
-    );
+    folderNameCounts.set(folderName, (folderNameCounts.get(folderName) ?? 0) + 1);
   }
 
   seenFolderIds.clear();
@@ -95,11 +84,7 @@ export function buildFolderOptions(
 }
 
 export function useFolderSelection(initialFolderId: string | null) {
-  const [state, dispatch] = useReducer(
-    folderSelectionReducer,
-    initialFolderId,
-    createInitialFolderSelectionState,
-  );
+  const [state, dispatch] = useReducer(folderSelectionReducer, initialFolderId, createInitialFolderSelectionState);
   const { selectedFolderId, newFolderName, isCreatingFolder } = state;
   const newFolderInputRef = useRef<HTMLInputElement>(null);
   const pendingFocusFrameRef = useRef<number | null>(null);
@@ -169,12 +154,9 @@ export function useFolderSelection(initialFolderId: string | null) {
     newFolderName,
     isCreatingFolder,
     newFolderInputRef,
-    folderSelectValue: isCreatingFolder
-      ? NEW_FOLDER_VALUE
-      : (selectedFolderId ?? ""),
+    folderSelectValue: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
     handleFolderChange,
     resetFolderSelection,
-    setNewFolderName: (value: string) =>
-      dispatch({ type: "set-new-folder-name", value }),
+    setNewFolderName: (value: string) => dispatch({ type: "set-new-folder-name", value }),
   };
 }
