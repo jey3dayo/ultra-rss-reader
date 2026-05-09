@@ -30,6 +30,7 @@ function prefersReducedMotion() {
 
 const BROWSER_THEME_WIPE_DURATION_MS = 750;
 const SYSTEM_COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)";
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 function getSystemTheme() {
   return typeof window !== "undefined" &&
@@ -48,18 +49,45 @@ function subscribeSystemThemeChange(onStoreChange: () => void) {
   return subscribeMatchMediaChange(mediaQuery, onStoreChange);
 }
 
+function subscribeReducedMotionChange(onStoreChange: () => void) {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return () => {};
+  }
+
+  const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);
+  return subscribeMatchMediaChange(mediaQuery, onStoreChange);
+}
+
 function useSystemTheme() {
   return useSyncExternalStore(subscribeSystemThemeChange, getSystemTheme, () => "light");
+}
+
+function useReducedMotionPreference() {
+  return useSyncExternalStore(subscribeReducedMotionChange, prefersReducedMotion, () => false);
 }
 
 function BrowserThemeWipeOverlay() {
   const themePreference = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "theme"));
   const systemTheme = useSystemTheme();
   const resolvedTheme = themePreference === "system" ? systemTheme : themePreference;
+  const reducedMotion = useReducedMotionPreference();
   const cleanupTimeoutRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const previousResolvedThemeRef = useRef<typeof resolvedTheme | null>(null);
   const [wipeKey, setWipeKey] = useState(0);
+
+  useEffect(() => {
+    if (!reducedMotion) {
+      return undefined;
+    }
+
+    if (cleanupTimeoutRef.current !== null) {
+      window.clearTimeout(cleanupTimeoutRef.current);
+      cleanupTimeoutRef.current = null;
+    }
+    setWipeKey(0);
+    return undefined;
+  }, [reducedMotion]);
 
   useEffect(() => {
     if (previousResolvedThemeRef.current === null) {
@@ -72,7 +100,7 @@ function BrowserThemeWipeOverlay() {
     }
     previousResolvedThemeRef.current = resolvedTheme;
 
-    if (prefersReducedMotion()) {
+    if (reducedMotion) {
       return undefined;
     }
 
@@ -89,7 +117,7 @@ function BrowserThemeWipeOverlay() {
     }, BROWSER_THEME_WIPE_DURATION_MS);
 
     return undefined;
-  }, [resolvedTheme]);
+  }, [reducedMotion, resolvedTheme]);
 
   useEffect(() => {
     return () => {

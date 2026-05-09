@@ -65,6 +65,9 @@ type ArticleQueryOptions = {
   unreadOnly?: boolean;
 };
 
+const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
+const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
+
 function resolveArticleQueryMode(options?: ArticleQueryOptions): ReaderFilter {
   if (options?.mode) {
     return options.mode;
@@ -87,6 +90,12 @@ function normalizeManualArticleQueryId(value: string | null): string | null {
   }
 
   return value;
+}
+
+export function normalizeArticleSearchQuery(query: string): string {
+  return Array.from(query.normalize("NFKC").replace(ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN, " ").trim())
+    .slice(0, ARTICLE_SEARCH_QUERY_MAX_LENGTH)
+    .join("");
 }
 
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
@@ -525,7 +534,7 @@ export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticl
 
 export function useSearchArticles(accountId: string | null, query: string) {
   const normalizedAccountId = normalizeQueryAccountId(accountId);
-  const normalizedQuery = query.trim();
+  const normalizedQuery = normalizeArticleSearchQuery(query);
 
   return useQuery({
     queryKey: queryKeys.search.byAccountAndQuery(normalizedAccountId, normalizedQuery),

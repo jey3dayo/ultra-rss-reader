@@ -182,6 +182,38 @@ function setReducedMotionPreference(matches: boolean) {
 
 type MatchMediaChangeEvent = Pick<MediaQueryListEvent, "matches">;
 
+function createControllableMatchMedia(initialMatches: boolean, media: string) {
+  let matches = initialMatches;
+  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
+
+  return {
+    get matches() {
+      return matches;
+    },
+    media,
+    onchange: null,
+    addEventListener: (_type: "change", listener: (event: MatchMediaChangeEvent) => void) => {
+      listeners.add(listener);
+    },
+    removeEventListener: (_type: "change", listener: (event: MatchMediaChangeEvent) => void) => {
+      listeners.delete(listener);
+    },
+    addListener: (listener: (event: MatchMediaChangeEvent) => void) => {
+      listeners.add(listener);
+    },
+    removeListener: (listener: (event: MatchMediaChangeEvent) => void) => {
+      listeners.delete(listener);
+    },
+    dispatch(nextMatches: boolean) {
+      matches = nextMatches;
+      const event: MatchMediaChangeEvent = { matches: nextMatches };
+      for (const listener of listeners) {
+        listener(event);
+      }
+    },
+  };
+}
+
 function createLegacyColorSchemeMatchMedia(matches: boolean, options: { throwOnRemove?: boolean } = {}) {
   const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
 
@@ -243,8 +275,18 @@ function BrowserViewHarness({ controllerParams }: BrowserViewHarnessProps = {}) 
 }
 
 const browserViewToolbarActions: BrowserOverlayToolbarAction[] = [
-  { key: "a", label: "Toolbar Action A", onClick: vi.fn(), icon: <span aria-hidden="true">A</span> },
-  { key: "b", label: "Toolbar Action B", onClick: vi.fn(), icon: <span aria-hidden="true">B</span> },
+  {
+    key: "a",
+    label: "Toolbar Action A",
+    onClick: vi.fn(),
+    icon: <span aria-hidden="true">A</span>,
+  },
+  {
+    key: "b",
+    label: "Toolbar Action B",
+    onClick: vi.fn(),
+    icon: <span aria-hidden="true">B</span>,
+  },
 ];
 
 describe("BrowserView", () => {
@@ -373,7 +415,11 @@ describe("BrowserView", () => {
       ).toBeEnabled();
     });
 
-    await user.click(within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", { name: "Web back" }));
+    await user.click(
+      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+        name: "Web back",
+      }),
+    );
     await user.click(screen.getByRole("button", { name: "Reload page" }));
 
     expect(commands.some((call) => call.cmd === "go_back_browser_webview")).toBe(true);
@@ -408,7 +454,9 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const backButton = await screen.findByRole("button", { name: "Back to Reader" });
+    const backButton = await screen.findByRole("button", {
+      name: "Back to Reader",
+    });
     await waitFor(() => {
       expect(backButton).toBeEnabled();
     });
@@ -479,7 +527,9 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(shell).toHaveAttribute("data-open", "true");
     });
-    expect(veil).toHaveStyle({ backgroundImage: "var(--browser-overlay-shell-veil)" });
+    expect(veil).toHaveStyle({
+      backgroundImage: "var(--browser-overlay-shell-veil)",
+    });
     expect(screen.getByTestId("browser-overlay-stage-shell")).toBeInTheDocument();
     expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
@@ -490,11 +540,19 @@ describe("BrowserView", () => {
     expect(topRail).toHaveClass("border-b", "backdrop-blur-md");
     expect(topRail.style.backgroundImage).toBe("var(--browser-overlay-rail)");
     expect(topRail.style.borderColor).toBe("var(--color-browser-overlay-rail-border)");
-    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
-    const backButton = within(chrome).getByRole("button", { name: "Back to Reader" });
-    const forwardButton = within(chrome).getByRole("button", { name: "Web forward" });
+    const closeButton = within(chrome).getByRole("button", {
+      name: "Close Web Preview",
+    });
+    const backButton = within(chrome).getByRole("button", {
+      name: "Back to Reader",
+    });
+    const forwardButton = within(chrome).getByRole("button", {
+      name: "Web forward",
+    });
     const reloadButton = screen.getByRole("button", { name: /reload page/i });
-    const externalButton = screen.getByRole("button", { name: /open in external browser/i });
+    const externalButton = screen.getByRole("button", {
+      name: /open in external browser/i,
+    });
     const closeSurface = closeButton.closest("[data-overlay-shell='action']");
     const externalSurface = externalButton.closest("[data-overlay-shell='action']");
 
@@ -599,7 +657,9 @@ describe("BrowserView", () => {
 
   it("uses legacy system theme listeners for the theme wipe and ignores cleanup failures", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    const colorSchemeQuery = createLegacyColorSchemeMatchMedia(false, { throwOnRemove: true });
+    const colorSchemeQuery = createLegacyColorSchemeMatchMedia(false, {
+      throwOnRemove: true,
+    });
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       writable: true,
@@ -675,6 +735,65 @@ describe("BrowserView", () => {
     clearTimeoutSpy.mockRestore();
   });
 
+  it("restarts rapid theme wipes and clears the overlay when reduced motion changes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const reducedMotionQuery = createControllableMatchMedia(false, "(prefers-reduced-motion: reduce)");
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => {
+        if (query === "(prefers-reduced-motion: reduce)") {
+          return reducedMotionQuery;
+        }
+
+        return {
+          matches: false,
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        };
+      }),
+    });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("browser-overlay-shell")).toHaveAttribute("data-open", "true");
+    });
+
+    act(() => {
+      usePreferencesStore.getState().setPref("theme", "dark");
+    });
+    const firstWipe = screen.getByTestId("browser-theme-wipe-overlay");
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+      usePreferencesStore.getState().setPref("theme", "light");
+    });
+
+    expect(screen.getByTestId("browser-theme-wipe-overlay")).not.toBe(firstWipe);
+
+    act(() => {
+      vi.advanceTimersByTime(449);
+    });
+    expect(screen.getByTestId("browser-theme-wipe-overlay")).toBeInTheDocument();
+
+    act(() => {
+      reducedMotionQuery.dispatch(true);
+    });
+    expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
+  });
+
   it("wraps custom toolbar actions in the shared action shell", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
@@ -711,7 +830,9 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, { wrapper: createWrapper() });
+    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, {
+      wrapper: createWrapper(),
+    });
 
     await userEvent.setup().click(screen.getByTestId("browser-overlay-scrim"));
     expect(onCloseOverlay).toHaveBeenCalledTimes(0);
@@ -731,7 +852,9 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, { wrapper: createWrapper() });
+    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, {
+      wrapper: createWrapper(),
+    });
 
     await userEvent.setup().click(
       within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
@@ -761,7 +884,9 @@ describe("BrowserView", () => {
     });
     expect(stage).toHaveClass("rounded-none");
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
-    expect(screen.getByTestId("browser-webview-host")).toHaveStyle({ top: "0px" });
+    expect(screen.getByTestId("browser-webview-host")).toHaveStyle({
+      top: "0px",
+    });
   });
 
   it("uses the fullscreen main-stage geometry with a visible top rail", () => {
@@ -995,8 +1120,12 @@ describe("BrowserView", () => {
 
     const stage = screen.getByTestId("browser-overlay-stage-shell");
     const chrome = screen.getByTestId("browser-overlay-chrome");
-    const externalButton = screen.getByRole("button", { name: /open in external browser/i });
-    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
+    const externalButton = screen.getByRole("button", {
+      name: /open in external browser/i,
+    });
+    const closeButton = within(chrome).getByRole("button", {
+      name: "Close Web Preview",
+    });
 
     expectInlineStyles(stage, {
       left: "0px",
@@ -1255,7 +1384,10 @@ describe("BrowserView", () => {
         };
       }
       if (cmd === "set_browser_webview_bounds") {
-        throw { type: "UserVisible", message: "Embedded browser webview is not open" };
+        throw {
+          type: "UserVisible",
+          message: "Embedded browser webview is not open",
+        };
       }
       if (cmd === "close_browser_webview") {
         return null;
@@ -1326,7 +1458,9 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, { wrapper: createWrapper() });
+    render(<BrowserViewHarness controllerParams={{ onCloseOverlay }} />, {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed)).toBe(true);

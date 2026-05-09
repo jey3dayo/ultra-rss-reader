@@ -24,7 +24,7 @@ const initialArticleListSearchState: ArticleListSearchState = {
 
 function scheduleSearchFocusRetry(focus: () => void): () => void {
   let frameId: number | null = null;
-  let timeoutId: number | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   if (typeof requestAnimationFrame === "function") {
     frameId = requestAnimationFrame(focus);
@@ -56,7 +56,12 @@ function articleListSearchReducer(
     case "open-search":
       return { ...state, showSearch: true };
     case "close-search":
-      return { ...state, showSearch: false, searchQuery: "", debouncedQuery: "" };
+      return {
+        ...state,
+        showSearch: false,
+        searchQuery: "",
+        debouncedQuery: "",
+      };
     case "reset-search":
       return initialArticleListSearchState;
     case "set-search-query":

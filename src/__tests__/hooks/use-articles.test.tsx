@@ -7,6 +7,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
+  normalizeArticleSearchQuery,
   resolveArticleMutationInvalidationQueryKeys,
   useAccountArticles,
   useAccountStarredCount,
@@ -171,6 +172,30 @@ describe("useToggleStar", () => {
     });
     expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual(sampleArticles);
     expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(" acc-1 ", "fresh"))).toBeUndefined();
+  });
+
+  it("normalizes article search query unicode, whitespace, and length without FTS escaping", async () => {
+    const searchArticlesSpy = vi
+      .spyOn(tauriCommands, "searchArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const longSuffix = "長".repeat(150);
+    const query = `　ＦＴＳ "quoted" OR emoji😀\n${longSuffix}`;
+    const normalizedQuery = normalizeArticleSearchQuery(query);
+
+    expect(Array.from(normalizedQuery)).toHaveLength(128);
+    expect(normalizedQuery).toMatch(/^FTS "quoted" OR emoji😀 長+/u);
+    expect(normalizedQuery).not.toContain("　");
+    expect(normalizedQuery).not.toContain("\n");
+
+    renderHook(() => useSearchArticles("acc-1", query), { wrapper });
+
+    await waitFor(() => {
+      expect(searchArticlesSpy).toHaveBeenCalledWith("acc-1", normalizedQuery);
+    });
+    expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", normalizedQuery))).toEqual(
+      sampleArticles,
+    );
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery("acc-1", query))).toBeUndefined();
   });
 
   it("treats whitespace-only manual article query ids as null-equivalent disabled ids", () => {
@@ -456,8 +481,14 @@ describe("useToggleStar", () => {
 
     const { result } = renderHook(() => useToggleStar(), { wrapper });
 
-    const firstPromise = result.current.mutateAsync({ id: "art-1", starred: true });
-    const secondPromise = result.current.mutateAsync({ id: "art-1", starred: false });
+    const firstPromise = result.current.mutateAsync({
+      id: "art-1",
+      starred: true,
+    });
+    const secondPromise = result.current.mutateAsync({
+      id: "art-1",
+      starred: false,
+    });
 
     await act(async () => {
       secondToggle.resolve(Result.succeed(null));
@@ -543,8 +574,14 @@ describe("useSetRead", () => {
 
     const { result } = renderHook(() => useSetRead(), { wrapper });
 
-    const firstPromise = result.current.mutateAsync({ id: "art-1", read: true });
-    const secondPromise = result.current.mutateAsync({ id: "art-1", read: false });
+    const firstPromise = result.current.mutateAsync({
+      id: "art-1",
+      read: true,
+    });
+    const secondPromise = result.current.mutateAsync({
+      id: "art-1",
+      read: false,
+    });
 
     await act(async () => {
       secondRead.resolve(Result.succeed(null));
