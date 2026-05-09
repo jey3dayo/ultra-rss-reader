@@ -2670,3 +2670,28 @@
   - `account-setup-session.types.ts`、add account controller、accounts nav の setup session lock を、wizard flow と settings navigation で分けて棚卸しする
   - duplicate submit / navigation away / failed credential verification はデータ破損につながるため、UI copy より先に state machine の境界を固定する
   - service picker の visual や provider icon 変更は含めず、setup session ownership と cancel/retry contract に限定する
+
+- [ ] Storybook query client mutation retry parity 候補を追加する
+  - `src/components/storybook/story-query-client-provider.tsx` は queries retry だけを false にしており、`tests/helpers/create-wrapper.tsx` の mutation retry default と方針が揺れている点を整理する
+  - `src/__tests__/components/story-query-client-provider.test.tsx` で `mutations.retry` も false になること、story render ごとに mutation cache が漏れないことを固定する
+  - app runtime の React Query default や test helper mutation retry default とは分け、Storybook fixture provider の isolation contract だけを扱う
+
+- [ ] renderStory third-argument boundary 候補を追加する
+  - `tests/helpers/render-story.tsx` の第三引数は Testing Library `RenderOptions` だが、story test 側で boolean を渡しても runtime で見落としやすい点を整理する
+  - helper 側で options shape を guard するか、open-state story 用 wrapper を別 helper に分け、`tests/helpers/fixtures.test.ts` と shared story smoke で誤用時の failure を固定する
+  - Storybook context assertion cleanup とは分け、render helper call signature の誤用防止だけを扱う
+
+- [ ] Storybook preview background token parity 候補を追加する
+  - `.storybook/preview.ts` の backgrounds `dark` / `light` が hardcoded hex なので、`src/styles/global.css` または theme token の背景色と drift しない contract を追加する
+  - `src/__tests__/components/storybook-explorer-organization.test.ts` か config contract test で Storybook preview background values と app theme token の対応を確認する
+  - visual palette redesign とは分け、Storybook preview の inspect baseline 色だけを扱う
+
+- [ ] Storybook addons config contract 候補を追加する
+  - `.storybook/main.ts` の required addons (`@storybook/addon-a11y`, `@storybook/addon-docs`) が将来の config cleanup で抜けないよう repo contract を追加する
+  - config test で addons set と stories glob、Vite alias merge の最低限を確認し、Storybook 起動 E2E とは別に静的 contract として固定する
+  - addon 導入/削除判断や docs UI 設定変更は含めず、現行 Storybook config の必須面だけを扱う
+
+- [ ] Storybook viewport fixture source-of-truth 候補を追加する
+  - `DenseNarrowViewport` stories と `storybook-viewport-density-stories.test.tsx` が `mobile2` literal を個別に持つため、viewport id の source-of-truth を整理する
+  - shared constant か helper assertion に寄せ、sidebar / article list / settings modal の narrow fixture が同じ viewport baseline を使うことを固定する
+  - mobile 正式対応やレイアウト調整とは分け、Storybook viewport fixture の test data drift 防止だけを扱う
