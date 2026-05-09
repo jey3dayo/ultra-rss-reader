@@ -240,16 +240,6 @@
   - runtime dev options の promise/error cache が失敗後に stale になった時、dev intent を直しても再読込まで復旧しない可能性がある
   - failure cache clear / retry trigger / dev-only warning の contract を test で固定する
 
-- [ ] P0 tag mutation invalidation unhandled rejection を修正する
-  - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/tag-context-menu.tsx`
-  - tag create/rename/delete/article assignment 後の `qc.invalidateQueries()` が `void` かつ catch なしで呼ばれており、cache refresh failure が unhandled rejection になり得る
-  - tag list / articleTags / articlesByTag / tagArticleCounts の invalidation failure を log-only helper に寄せ、mutation success と cache failure の user feedback を分ける
-
-- [ ] P0 mute keyword mutation invalidation unhandled rejection を修正する
-  - 対象: `src/hooks/use-mute-keywords.ts`, `src/components/settings/mute-settings.tsx`
-  - mute keyword create/update/delete と auto mark read toggle 後の invalidation が catch なしで、記事一覧と mute settings の cache が stale になっても検知しづらい
-  - muteKeyword query と article query invalidation の failure surface を固定し、settings form success toast と stale article list の扱いを focused test にする
-
 - [ ] P0 feed landing selection rollback contract を固定する
   - 対象: `src/hooks/use-feed-landing.ts`, `src/lib/feed/feed-landing.ts`, `src/stores/ui-store.ts`
   - feed landing は feed 選択を先に store へ反映してから記事 fetch に進むため、記事 fetch failure 時に selection だけ変わり browser が閉じる状態になり得る
