@@ -24,6 +24,25 @@ describe("use-folder-selection", () => {
     ]);
   });
 
+  it("omits blank folder ids, falls back for blank names, and keeps the first duplicate id", () => {
+    expect(
+      buildFolderOptions(
+        [
+          { id: "", name: "Blank id" },
+          { id: "   ", name: "Whitespace id" },
+          { id: "folder-a", name: "   " },
+          { id: "folder-b", name: "Folder B" },
+          { id: "folder-a", name: "Duplicate Folder A" },
+        ],
+        "No folder",
+      ),
+    ).toEqual([
+      { value: "", label: "No folder" },
+      { value: "folder-a", label: "folder-a" },
+      { value: "folder-b", label: "Folder B" },
+    ]);
+  });
+
   it("clears the new folder draft when selecting an existing folder", () => {
     const { result } = renderHook(() => useFolderSelection(null));
 
