@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P0 feed folder optimistic rollback と post-success invalidation を固定する
-  - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`
-  - feed drag/drop は optimistic に `folder_id` を更新するが、success 後の invalidation failure や concurrent drop の rollback 順序が未固定
-  - drop A -> drop B -> A fail / B success の deferred mutation test を追加し、最終 folder と toast の契約を固定する
-
 - [ ] P0 article auto mark stale mutation contract を固定する
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`
   - delayed auto mark の timeout と `setRead.mutate` callback が article switch / unmount / unread view retention と重なる時の state rollback が事故りやすい
@@ -79,16 +74,6 @@
   - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
   - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
-
-- [ ] P1 command palette history noisy storage warning を調整する
-  - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`
-  - localStorage failure を warn するようになっているが、private mode / blocked storage で palette 操作ごとに noisy log になり得る
-  - warn once / dev-only warn / silent fallback のどれにするか決め、history は in-memory fallback なしでよいかを contract test にする
-
-- [ ] P1 browser overlay focus return RAF fallback を補強する
-  - 対象: `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`
-  - overlay close 後の focus return が `requestAnimationFrame` と複数 DOM selector に依存しており、selected article が消えた時の fallback 順序が重要
-  - selected row removed / previous target disconnected / fallback root missing の順序を test で固定する
 
 - [ ] P1 sidebar feed navigation RAF cleanup を補強する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller.ts`
