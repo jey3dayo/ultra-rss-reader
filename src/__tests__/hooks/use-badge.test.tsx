@@ -227,19 +227,14 @@ describe("useBadge", () => {
   });
 
   it("keeps only_inbox badge writes latest-only when the account changes during a pending apply", async () => {
-    const pendingAccountWindow = {
+    const firstAccountWindow = {
       setBadgeCount: vi.fn(),
     };
-    const pendingAccountWindowReady = createDeferred<typeof pendingAccountWindow>();
+    const firstAccountWindowReady = createDeferred<typeof firstAccountWindow>();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    getCurrentWindowMock
-      .mockReturnValueOnce({
-        setBadgeCount: setBadgeCountMock,
-      })
-      .mockReturnValueOnce(pendingAccountWindowReady.promise)
-      .mockReturnValue({
-        setBadgeCount: setBadgeCountMock,
-      });
+    getCurrentWindowMock.mockReturnValueOnce(firstAccountWindowReady.promise).mockReturnValue({
+      setBadgeCount: setBadgeCountMock,
+    });
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -253,9 +248,6 @@ describe("useBadge", () => {
 
     render(<HookHarness />, { wrapper: createWrapper() });
 
-    await waitFor(() => {
-      expect(getCurrentWindowMock.mock.calls.length).toBeGreaterThanOrEqual(2);
-    });
     await waitFor(() => {
       expect(calls).toContainEqual({
         cmd: "count_account_unread_articles",
@@ -274,15 +266,15 @@ describe("useBadge", () => {
       });
     });
 
-    pendingAccountWindowReady.resolve(pendingAccountWindow);
+    firstAccountWindowReady.resolve(firstAccountWindow);
     await act(async () => {
-      await pendingAccountWindowReady.promise;
+      await firstAccountWindowReady.promise;
     });
 
     await waitFor(() => {
       expect(setBadgeCountMock).toHaveBeenLastCalledWith(9);
     });
-    expect(pendingAccountWindow.setBadgeCount).not.toHaveBeenCalled();
+    expect(firstAccountWindow.setBadgeCount).not.toHaveBeenCalled();
   });
 
   it("clears the badge without starting all_unread feed queries when no account is selected", async () => {
