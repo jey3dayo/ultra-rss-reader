@@ -34,6 +34,31 @@
   - `src/__tests__/lib/utils.test.ts` を追加し、`cn("px-2", false && "hidden", "px-4")` のような代表例だけを押さえる
   - UI primitive visual regression や semantic token cleanup とは分け、class merge helper の public behavior だけを扱う
 
+- [ ] data settings byte formatter finite guard 候補を追加する
+  - `src/components/settings/hooks/use-data-settings-controller.ts` の `formatBytes()` が negative / `NaN` / `Infinity` をそのまま表示できるため、DB size DTO 異常値の扱いを固定する
+  - `src/__tests__/components/use-data-settings-controller.test.ts` で `-1` / `Number.NaN` / `Number.POSITIVE_INFINITY` の期待値を追加し、fallback 表示か validation error に寄せる
+  - database info command schema や stale size response guard とは分け、settings data 表示 helper の数値境界だけを扱う
+
+- [ ] account setup session blank id guard 候補を追加する
+  - `src/stores/ui-store.ts` の `startAccountSetup` / `markAccountSetupFailed` / `markAccountSetupSucceeded` が blank account id を session state に入れない contract を固定する
+  - `src/__tests__/lib/account-setup-session.test.ts` で whitespace-only id は no-op、trim 後 id は既存 owner を維持することを確認する
+  - add account verification lock や account detail sync retry flow とは分け、account setup session state の id boundary だけを扱う
+
+- [ ] sync feedback blank account name projection 候補を追加する
+  - `src/lib/sync/sync-result-feedback.ts` の `getDistinctAccountNames()` が blank / whitespace-only `account_name` を toast 用 accounts 文字列に含めるか確認する
+  - `src/__tests__/lib/sync-result-feedback.test.ts` で blank name を除外するか account id fallback にするかを固定し、重複 name dedupe の既存挙動を保つ
+  - sync result DTO schema message invariant とは分け、UI feedback helper の account label projection だけを扱う
+
+- [ ] subscription review future latest date guard 候補を追加する
+  - `src/lib/subscriptions/subscription-review-candidates.ts` の `staleDays` が未来日付で負数になった時の ranking / reason fact 表示を固定する
+  - `src/__tests__/lib/subscription-review-candidates.test.ts` で future `latest_article_at` は stale reason を付けず、表示 fact に負数日数を出さないことを確認する
+  - cleanup recommendation policy や invalid date display とは分け、review candidate pure helper の future date boundary だけを扱う
+
+- [ ] shortcut key map duplicate collision guard 候補を追加する
+  - `src/lib/keyboard/keyboard-shortcuts.ts` の `buildKeyToActionMap()` は同じ key が複数 action に割り当たると後勝ちで上書きするため、custom shortcut collision の方針を固定する
+  - `src/__tests__/lib/keyboard-shortcuts.test.ts` で duplicate custom key を検出して無効化するか、現仕様維持なら winner action を明示する
+  - shortcut recording UI や native menu accelerator collision とは分け、frontend key-to-action map の collision boundary だけを扱う
+
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
