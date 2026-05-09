@@ -133,6 +133,32 @@ describe("manual-sync", () => {
     expect(onCooldown).toHaveBeenCalledTimes(1);
   });
 
+  it("stops before triggerSync when request-start callback fails", async () => {
+    const requestStartError = new Error("request-start callback failed");
+    const onRequestStart = vi.fn(() => {
+      throw requestStartError;
+    });
+    const onCooldown = vi.fn();
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+
+    await expect(
+      triggerManualSyncWithCooldown({
+        onCooldown,
+        onRequestStart,
+        onSuccess,
+        onError,
+      }),
+    ).rejects.toThrow(requestStartError);
+
+    expect(onRequestStart).toHaveBeenCalledOnce();
+    expect(triggerSyncMock).not.toHaveBeenCalled();
+    expect(onCooldown).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(isManualSyncCoolingDown()).toBe(false);
+  });
+
   it("returns a typed cooldown error from the Result API", async () => {
     await triggerManualSyncWithCooldown({
       onCooldown: vi.fn(),
