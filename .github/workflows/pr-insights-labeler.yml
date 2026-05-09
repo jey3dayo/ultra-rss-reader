@@ -20,12 +20,12 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
 
       - name: Apply PR Insights Labels
-        uses: jey3dayo/pr-insights-labeler@v1.11.1
+        uses: jey3dayo/pr-insights-labeler@e9bccb2e8c9ed048d6022d6ae2e5c85eeed80f16
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 

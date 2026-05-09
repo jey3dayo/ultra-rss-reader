@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 type PackageJson = {
@@ -38,8 +38,8 @@ const extractReleaseCacheBlock = (source: string): string => {
 
 const extractTaskBlock = (source: string, taskName: string): string => {
   const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const value = source.match(new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>(?:[^\\[]+\\n?)*)`))?.groups
-    ?.block;
+  const value = source.match(new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>[\\s\\S]*?)(?=\\n\\[tasks\\.|$)`))
+    ?.groups?.block;
   if (!value) {
     throw new Error(`Missing mise task block: ${taskName}`);
   }
@@ -51,6 +51,35 @@ const extractCacheBlocks = (source: string): string[] => {
   return [...source.matchAll(cachePattern)].map((match) => match.groups?.block ?? "");
 };
 
+const extractWorkflowUses = (source: string): string[] => {
+  const usesPattern = /^\s*-\s+uses:\s+([^\s#]+)$/gm;
+  return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
+};
+
+const extractYamlListLabels = (source: string, key: string): string[] => {
+  const value = source.match(new RegExp(`^${key}: \\[(?<labels>[^\\]]*)\\]`, "m"))?.groups?.labels;
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((label) => label.trim().replace(/^"|"$/g, ""))
+    .filter((label) => label.length > 0);
+};
+
+const extractReleaseCategoryLabels = (source: string): string[] => {
+  const labelsPattern = /^      labels: \[(?<labels>[^\]]*)\]/gm;
+  return [...source.matchAll(labelsPattern)]
+    .flatMap((match) => (match.groups?.labels ?? "").split(","))
+    .map((label) => label.trim().replace(/^"|"$/g, ""))
+    .filter((label) => label.length > 0 && label !== "*");
+};
+
+const extractLabelerLabels = (source: string): string[] => {
+  const labelPattern = /^(?<label>[A-Za-z0-9_/-]+):$/gm;
+  return [...source.matchAll(labelPattern)].map((match) => match.groups?.label ?? "");
+};
+
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
@@ -58,20 +87,26 @@ describe("release repository contract", () => {
   const cargoToml = readText("src-tauri/Cargo.toml");
   const releaseWorkflow = readText(".github/workflows/release.yml");
   const ciWorkflow = readText(".github/workflows/ci.yml");
+  const labelerWorkflow = readText(".github/workflows/labeler.yml");
+  const prInsightsLabelerWorkflow = readText(".github/workflows/pr-insights-labeler.yml");
+  const releaseConfig = readText(".github/release.yml");
+  const labelerConfig = readText(".github/labeler.yml");
   const miseToml = readText("mise.toml");
 
   it("keeps release tag, package, Tauri, and Cargo versions in one parity contract", () => {
     expect(packageJson.version).toBe(tauriConfig.version);
     expect(packageJson.version).toBe(extractTomlString(cargoToml, "version"));
     expect(releaseWorkflow).toContain("Validate release version parity");
-    expect(releaseWorkflow).toContain("release tag ${releaseTag}");
+    expect(releaseWorkflow).toContain("release tag $" + "{releaseTag}");
     expect(releaseWorkflow).toContain("src-tauri/tauri.conf.json version");
     expect(releaseWorkflow).toContain("src-tauri/Cargo.toml version");
   });
 
   it("serializes tag push and manual release runs by release tag", () => {
     expect(releaseWorkflow).toContain(
-      "group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}",
+      "group: $" +
+        "{{ github.workflow }}-$" +
+        "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}",
     );
     expect(releaseWorkflow).toContain("cancel-in-progress: false");
     expect(releaseWorkflow).toContain("workflow_dispatch");
@@ -106,7 +141,9 @@ describe("release repository contract", () => {
   it("keeps release dependency cache exact-lockfile only", () => {
     const releaseCacheBlock = extractReleaseCacheBlock(releaseWorkflow);
 
-    expect(releaseCacheBlock).toContain("key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}");
+    expect(releaseCacheBlock).toContain(
+      "key: $" + "{{ runner.os }}-pnpm-store-$" + "{{ hashFiles('pnpm-lock.yaml') }}",
+    );
     expect(releaseCacheBlock).not.toContain("restore-keys:");
   });
 
@@ -121,6 +158,36 @@ describe("release repository contract", () => {
     }
     expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(ciCacheBlocks.length);
     expect(ciWorkflow).not.toContain("node_modules");
+  });
+
+  it("pins third-party actions in all workflows to commit SHAs", () => {
+    const workflows = [
+      [".github/workflows/ci.yml", ciWorkflow],
+      [".github/workflows/labeler.yml", labelerWorkflow],
+      [".github/workflows/pr-insights-labeler.yml", prInsightsLabelerWorkflow],
+      [".github/workflows/release.yml", releaseWorkflow],
+    ] as const;
+
+    for (const [workflowPath, workflow] of workflows) {
+      const usesValues = extractWorkflowUses(workflow);
+
+      expect(usesValues.length, workflowPath).toBeGreaterThan(0);
+      for (const usesValue of usesValues) {
+        expect(usesValue, workflowPath).toMatch(/@[0-9a-f]{40}$/i);
+      }
+    }
+
+    expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain('const workflowsDir = ".github/workflows"');
+  });
+
+  it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {
+    expect(ciWorkflow.match(/sudo apt-get update -o Acquire::Retries=3/g)).toHaveLength(2);
+    expect(
+      ciWorkflow.match(
+        /sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
+      ),
+    ).toHaveLength(2);
+    expect(ciWorkflow).not.toContain("sudo apt-get install -y ${{ env.TAURI_SYSTEM_DEPS }}");
   });
 
   it("keeps actionlint shellcheck disabled only with a paired shell gate", () => {
@@ -159,5 +226,16 @@ describe("release repository contract", () => {
     expect(ciWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(releaseWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(miseToml).not.toMatch(/depends = \[[^\]]*"audit:deps"/);
+  });
+
+  it("keeps release note category labels covered by issue and PR label contracts", () => {
+    const issueTemplateLabels = readdirSync(".github/ISSUE_TEMPLATE")
+      .filter((fileName) => fileName.endsWith(".yml"))
+      .flatMap((fileName) => extractYamlListLabels(readText(`.github/ISSUE_TEMPLATE/${fileName}`), "labels"));
+    const contractLabels = new Set([...extractLabelerLabels(labelerConfig), ...issueTemplateLabels]);
+
+    for (const label of extractReleaseCategoryLabels(releaseConfig)) {
+      expect(contractLabels.has(label), `${label} is not covered by issue templates or .github/labeler.yml`).toBe(true);
+    }
   });
 });

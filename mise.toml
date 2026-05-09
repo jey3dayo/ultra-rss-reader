@@ -89,7 +89,7 @@ depends = [
   "lint:yaml",
   "lint:actions",
   "lint:actions-shell",
-  "lint:release-workflow-pins",
+  "lint:workflow-pins",
 ]
 
 [tasks."lint:types"]
@@ -124,25 +124,34 @@ run = "actionlint -shellcheck="
 description = "GitHub Actions shell script check (actionlint with shellcheck)"
 run = "actionlint"
 
-[tasks."lint:release-workflow-pins"]
-description = "Release workflow action references must be pinned to commit SHAs"
+[tasks."lint:workflow-pins"]
+description = "Workflow action references must be pinned to commit SHAs"
 run = '''
 node <<'NODE'
 const fs = require("node:fs");
+const path = require("node:path");
 
-const workflowPath = ".github/workflows/release.yml";
-const workflow = fs.readFileSync(workflowPath, "utf8");
 const usesPattern = /^\s*-\s+uses:\s+([^\s#]+)$/gm;
 const errors = [];
+const workflowsDir = ".github/workflows";
+const workflowPaths = fs
+  .readdirSync(workflowsDir)
+  .filter((fileName) => fileName.endsWith(".yml") || fileName.endsWith(".yaml"))
+  .map((fileName) => path.join(workflowsDir, fileName))
+  .sort();
 
-for (const match of workflow.matchAll(usesPattern)) {
-  const usesValue = match[1];
-  const line = workflow.slice(0, match.index).split("\n").length;
-  const atIndex = usesValue.lastIndexOf("@");
-  const ref = atIndex === -1 ? "" : usesValue.slice(atIndex + 1);
+for (const workflowPath of workflowPaths) {
+  const workflow = fs.readFileSync(workflowPath, "utf8");
 
-  if (!/^[0-9a-f]{40}$/i.test(ref)) {
-    errors.push(`${workflowPath}:${line}: ${usesValue} must use a 40-character commit SHA`);
+  for (const match of workflow.matchAll(usesPattern)) {
+    const usesValue = match[1];
+    const line = workflow.slice(0, match.index).split("\n").length;
+    const atIndex = usesValue.lastIndexOf("@");
+    const ref = atIndex === -1 ? "" : usesValue.slice(atIndex + 1);
+
+    if (!/^[0-9a-f]{40}$/i.test(ref)) {
+      errors.push(`${workflowPath}:${line}: ${usesValue} must use a 40-character commit SHA`);
+    }
   }
 }
 
@@ -155,7 +164,7 @@ if (errors.length > 0) {
 NODE
 '''
 run_windows = '''
-node -e "const fs=require('node:fs');const p='.github/workflows/release.yml';const w=fs.readFileSync(p,'utf8');const r=/^\s*-\s+uses:\s+([^\s#]+)$/gm;const e=[];for(const m of w.matchAll(r)){const v=m[1];const l=w.slice(0,m.index).split('\\n').length;const i=v.lastIndexOf('@');const ref=i===-1?'':v.slice(i+1);if(!/^[0-9a-f]{40}$/i.test(ref)){e.push(`${p}:${l}: ${v} must use a 40-character commit SHA`);}}if(e.length){console.error(e.join('\\n'));process.exit(1);}">
+node -e "const fs=require('node:fs');const path=require('node:path');const d='.github/workflows';const r=/^\s*-\s+uses:\s+([^\s#]+)$/gm;const e=[];for(const p of fs.readdirSync(d).filter(f=>f.endsWith('.yml')||f.endsWith('.yaml')).map(f=>path.join(d,f)).sort()){const w=fs.readFileSync(p,'utf8');for(const m of w.matchAll(r)){const v=m[1];const l=w.slice(0,m.index).split('\n').length;const i=v.lastIndexOf('@');const ref=i===-1?'':v.slice(i+1);if(!/^[0-9a-f]{40}$/i.test(ref)){e.push(`${p}:${l}: ${v} must use a 40-character commit SHA`);}}}if(e.length){console.error(e.join('\n'));process.exit(1);}"
 '''
 
 [tasks."audit:deps"]
