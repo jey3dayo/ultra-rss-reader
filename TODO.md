@@ -265,56 +265,6 @@
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
   - updater hook state effects とは分け、lifecycle boilerplate の共通化可否判断だけを扱う
 
-- [ ] Tauri dev Vite check / port validation 候補を追加する
-  - `scripts/tauri-dev-vite-manager.ts` の `--check` が既存 Vite を停止せず成功確認だけ行う contract に分ける
-  - `TAURI_DEV_PORT` は blank / fractional / zero / negative を拒否し、Vite 起動ポートと既存プロセス確認が同じ値を見ることを固定する
-  - Tauri CLI dispatch や app E2E scenario とは混ぜず、dev server manager の static test に限定する
-
-- [ ] reader data selector escaping 候補を追加する
-  - `src/components/reader/hooks/article-list/use-article-list-navigation.ts` の `data-article-id` selector に ID を直接埋め込まないようにする
-  - `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts` の `data-feed-id` selector も同じ helper か DOM 走査に寄せる
-  - reader focus 復帰の広い責務整理とは分け、quote などを含む ID で selector が壊れない contract に限定する
-
-- [ ] tag deletion selection fallback 候補を追加する
-  - `src/components/reader/tag-context-menu.tsx` と `src/hooks/use-tags.ts` で現在選択中の tag 削除後に reader selection を fallback する
-  - `selection.type === "tag"` かつ削除対象 ID の時だけ `selectAll` か smart unread へ戻す contract を追加する
-  - tag section empty/open UI とは分け、削除済み selection が残らない状態整合性だけを扱う
-
-- [ ] article auto mark retained rollback 候補を追加する
-  - `src/components/reader/hooks/article/use-article-auto-mark.ts` で auto mark read 失敗時の retained article state を rollback するか現仕様を test で固定する
-  - toast 表示だけで未読 view に retained 状態が残らない contract を追加する
-  - 手動既読・スター操作の error feedback とは分け、auto mark timer 経路だけを扱う
-
-- [ ] sync provider post-write failure contract 候補を追加する
-  - `src-tauri/src/commands/sync_providers.rs` で `mark_muted_unread_as_read` / `recalculate_unread_count` の失敗を `let _ =` で捨てない
-  - local feed sync の post-write 整合性として warning 化または hard error 化する contract test を追加する
-  - scheduler retry や sidebar invalidation ではなく、provider sync 内部の count / mute 整合性だけを扱う
-
-- [ ] add local feed unread count failure 候補を追加する
-  - `src-tauri/src/commands/feed_commands.rs` の `add_local_feed` 後 unread count 再計算失敗を `.unwrap_or(0)` で成功扱いにしない
-  - 再計算失敗を command error にするか、保存済み feed の count を再読込する contract を追加する
-  - frontend add-feed race とは分け、backend command の永続化後 count contract だけを扱う
-
-- [ ] tag article list limit guard 候補を追加する
-  - `src-tauri/src/commands/tag_commands.rs` の `list_articles_by_tag` で極端な `limit` を clamp または reject する
-  - tag article list の pagination resource guard として境界値 test を追加する
-  - tag name / color validation や unknown mode error とは別に、limit 上限だけを扱う
-
-- [ ] Storybook update toast runtime guard 候補を追加する
-  - `e2e/storybook/update-toast.spec.ts` の `openShellOverlayStory` に `pageerror` 収集と Storybook error 表示検出を追加する
-  - toast の表示・寸法 assertion だけでは見逃す runtime error を smoke contract として拾う
-  - app E2E runtime guard や Storybook registry drift とは別に、update toast 専用 smoke を扱う
-
-- [ ] settings nav id narrowing 候補を追加する
-  - `src/components/settings/settings-nav.types.ts` の `SettingsNavItemId = string` を、modal category nav と reusable specimen の境界に合わせて narrow する
-  - `SettingsNavViewProps<T extends string>` か modal 側 `SettingsCategory` へ寄せる型 contract を検討する
-  - navigation disabled click contract とは別に、nav item id の型境界だけを扱う
-
-- [ ] mailto share command boundary 候補を追加する
-  - `src/components/reader/article-share-menu.tsx` の mail share が http(s) 専用 `open_in_browser` に `mailto:` を渡さないようにする
-  - `open_external_url` か share email 専用 command / schema を分け、既存 share menu test を成功契約へ更新する
-  - clipboard share や browser open behavior の再設計とは分け、mailto share の command 境界だけを扱う
-
 - [ ] release log cleanup observability 候補を追加する
   - `src-tauri/src/lib.rs` の release log cleanup で `read_dir` / `metadata` / `remove_file` 失敗を完全に silent drop しない
   - cleanup は継続しつつ、失敗ファイルと理由を `tracing::warn!` か `debug!` で観測できるようにする
@@ -325,35 +275,10 @@
   - 起動継続方針は維持しつつ、失敗時は warn 付き default にして menu state / diagnostics の初期化理由を残す
   - DB busy recovery や scheduler warning とは別に、app setup preference read の一点修正に限定する
 
-- [ ] article sanitizer responsive media contract 候補を追加する
-  - `src-tauri/src/infra/sanitizer.rs` で `picture` / `source` / `img` と responsive image attributes の保持方針を fixture test で固定する
-  - 必要なら安全に保存できる属性だけを追加し、広い sanitizer 再設計はしない
-  - feed discovery parser ではなく、記事本文 sanitizer の media preserve contract として扱う
-
-- [ ] dev intent scenario id coverage 候補を追加する
-  - `src/__tests__/dev/intent.test.ts` の `parseDevIntent` 既知 ID test を手書き列挙から `DEV_SCENARIO_IDS` loop に寄せる
-  - `DEV_SCENARIO_ID.syncAllSmoke` など新規 ID が個別 assertion から漏れない contract にする
-  - dev scenario runtime error surface とは分け、intent parser の ID coverage だけを扱う
-
-- [ ] Storybook UI reference pageerror retry hygiene 候補を追加する
-  - `e2e/storybook/ui-reference-canvas-smoke.spec.ts` の `pageErrors` を `toPass()` retry 間で持ち越さない
-  - 各 `page.goto` 前に error buffer を clear するか、retry 外/内の責務を分けて flaky failure を防ぐ
-  - update toast runtime guard とは別に、UI reference smoke matrix の retry hygiene だけを扱う
-
-- [ ] app icon theme matchMedia guard 候補を追加する
-  - `src/hooks/use-app-icon-theme.ts` で `theme === "system"` の時も `window.matchMedia` の存在を guard する
-  - preview / test / 特殊 WebView で `matchMedia` 不在でも fallback できる hook contract を追加する
-  - updater runtime unavailable とは別に、app icon theme hook の browser API guard に限定する
-
 - [ ] feed context menu open site failure toast 候補を追加する
   - `src/components/reader/feed-context-menu.tsx` の open site 失敗を `console.error` だけで終わらせない
   - article browser action 側と同じく user-visible toast を出し、failure case の component test を追加する
   - 既読・スター mutation error feedback とは分け、外部ブラウザ起動失敗だけを扱う
-
-- [ ] smart view clear history confirm 候補を追加する
-  - `src/components/reader/smart-view-context-menu.tsx` の `Recently viewed` / `Clear history` を即 mutate ではなく confirm 経由にする
-  - `Unstar all` と同じ destructive action contract として view / handler test を更新する
-  - shared confirm dialog pending guard とは分け、recent history clear の確認有無だけを扱う
 
 - [ ] subscriptions section empty folder actions 候補を追加する
   - `src/components/reader/subscriptions-section-context-menu.tsx` で folder 0 件時の expand / collapse all を no-op 表示にしない
@@ -375,60 +300,10 @@
   - `Work` と `work` のような視認上近い重複を拒否する command contract を追加する
   - account detail editor validation とは分け、account command の name uniqueness だけを扱う
 
-- [ ] preferences store load failure font fallback 候補を追加する
-  - `src/stores/preferences-store.ts` の `loadPreferences` 失敗 branch でも default font style / size class を適用する
-  - `preferences-store.test.ts` で失敗時の `font-sans` / `text-base` contract を追加する
-  - Rust startup preference warning や theme listener cleanup とは分け、frontend store の font fallback に限定する
-
-- [ ] article list body empty context menu 候補を追加する
-  - `src/components/reader/article-list-body.tsx` で empty / loading 中に body context menu から `mark all read` を出さない
-  - `groups.length === 0 || isLoading` の時は item を disabled または hidden にする component contract を追加する
-  - feed / folder context menu の 0 件 affordance とは分け、article list body の空状態 menu だけを扱う
-
-- [ ] layout content mode contract 候補を追加する
-  - `src/hooks/use-layout.ts` の `resolveLayout` で `_contentMode` が未使用な理由を helper / test contract として固定する
-  - browser mode no-op を明示するか、API から削って `resolveVisiblePane` 側へ test を寄せる
-  - mobile UI 見直しではなく、layout pure helper の引数契約だけを扱う
-
-- [ ] settings page inline action disabled contract 候補を追加する
-  - `src/components/settings/settings-page-view.tsx` の text control で `control.disabled` 中も inline action が押せる状態を防ぐ
-  - action button の disabled を `control.disabled || control.actionDisabled` に揃え、settings page view test に contract を追加する
-  - settings nav / tag input とは分け、共通 SettingsPageView の disabled 伝搬だけを扱う
-
-- [ ] account switcher single-account menu contract 候補を追加する
-  - `src/components/reader/account-switcher-view.tsx` で account 1 件時に menu open できる状態と aria 属性のズレを解消する
-  - 1 件時は menu を開かないか、1 件 menu を正式公開するかを test で固定する
-  - account detail / backend account validation とは分け、sidebar account switcher の single-account contract だけを扱う
-
-- [ ] data settings action in-flight ref guard 候補を追加する
-  - `src/components/settings/hooks/use-data-settings-controller.ts` の `handleVacuum` / `handleOpenLogDir` に同期的な in-flight ref guard を追加する
-  - 同一 render closure からの連続実行でも二重 command を投げない focused hook test を追加する
-  - database command recovery や release verification とは分け、Data settings action の重複実行 guard だけを扱う
-
-- [ ] FeedDto remote id exposure 候補を追加する
-  - `src-tauri/src/commands/dto.rs` の `FeedDto` と `src/api/schemas/feed.ts` に `remote_id` を追加する
-  - provider-managed feed を frontend DTO から判定できるよう、schema test と代表 fixture を更新する
-  - sync flow / pending mutation ではなく、Tauri DTO の欠落フィールド一点として扱う
-
-- [ ] account switcher story ref isolation 候補を追加する
-  - `src/components/reader/account-switcher-view.stories.tsx` の `triggerRef` / `itemRefs` を meta args で共有しない
-  - story render または decorator 内で story ごとに refs を生成するようにし、mutable ref 共有を避ける
-  - account switcher runtime contract とは分け、Storybook story args の isolation だけを扱う
-
 - [ ] article tag picker create focus contract 候補を追加する
   - `src/components/reader/article-tag-picker-popover.tsx` で新規 tag 作成後に picker を閉じるか開いたままにするかを固定する
   - `src/__tests__/components/article-tag-picker-view.test.tsx` で Enter 作成後の draft reset と focus 復帰を確認する
   - tag assignment failure handling とは分け、create success 後の picker UI contract だけを扱う
-
-- [ ] article share mailto fallback 候補を追加する
-  - `src/components/reader/article-share-menu.tsx` の mail share で title / url が空または長文の時の subject / body fallback を固定する
-  - `src/__tests__/components/article-share-menu.test.tsx` で encode と失敗 toast の境界を追加する
-  - external browser / reading list command とは分け、mailto 生成の入力境界だけを扱う
-
-- [ ] article action shortcut URL null guard 候補を追加する
-  - `src/components/reader/hooks/article/use-article-action-shortcuts.ts` で Web Preview 表示中の URL なし記事に対する `b` / copy / reading list shortcut を no-op にする
-  - selected article null / URL null の hook test を追加し、toast を出すか silent no-op にするかを固定する
-  - toolbar action resolver や share menu fallback とは分け、shortcut handler の URL guard だけを扱う
 
 - [ ] subscriptions index filter scroll reset 候補を追加する
   - `src/components/subscriptions-index/use-subscriptions-index-state.ts` で summary filter / search 変更時に `listScrollTop` を保持するか 0 に戻すかを固定する
@@ -440,15 +315,20 @@
   - `src/__tests__/components/subscription-detail-pane.test.tsx` で date formatter 境界を確認する
   - review candidate ranking とは分け、detail metrics 表示の空値 contract だけを扱う
 
-- [ ] OPML export deterministic order 候補を追加する
-  - `src-tauri/src/commands/opml_commands.rs` の export で folder 内 feed / top-level feed の順序を title / id で deterministic にする
-  - 入力順に依存しない helper test を追加し、snapshot drift を減らす
-  - import transaction や folder matching とは分け、export serialization order だけを扱う
-
 - [ ] delete account keyring order 候補を追加する
   - `src-tauri/src/commands/account_commands.rs` の `delete_account` で DB 削除失敗時に credential だけ失われない順序または rollback contract を固定する
   - keyring delete failure / DB delete failure の helper test を追加する
   - update credentials orphan secret guard とは分け、account deletion の secret cleanup 順序だけを扱う
+
+- [ ] account switcher view model boundary 候補を追加する
+  - `src/components/reader/account-switcher-view.tsx` の表示モデルを props から直接組み立てる責務を小さく切り出すか現状維持を test で固定する
+  - account item label / current marker / disabled state の view model contract を focused test で確認する
+  - account selection / backend validation とは分け、account switcher view model だけを扱う
+
+- [ ] OPML export deterministic order 候補を追加する
+  - `src-tauri/src/commands/opml_commands.rs` の export で folder 内 feed / top-level feed の順序を title / id で deterministic にする
+  - 入力順に依存しない helper test を追加し、snapshot drift を減らす
+  - import transaction や folder matching とは分け、export serialization order だけを扱う
 
 - [ ] reader selection browser state reset 候補を追加する
   - `src/stores/ui-store.ts` で feed / tag / account / smart view 遷移時に `browserUrl` / `browserNavigationState` / close in-flight を消す契約を固定する
@@ -464,11 +344,6 @@
   - `src-tauri/src/menu.rs` の `CmdOrCtrl+R` sync all と Web Preview reload 系 shortcut の優先順位を整理する
   - `src/lib/keyboard/keyboard-shortcuts.ts` 側の customizable shortcut と native accelerator の衝突 contract を追加する
   - action taxonomy 変更ではなく、既存 accelerator の競合整理に限定する
-
-- [ ] share action URL target contract 候補を追加する
-  - `src/lib/actions.ts` の share 系 action が選択記事 URL と現在 WebView URL のどちらを対象にするかを固定する
-  - Web Preview 内遷移後の `copy-link` / external open / reading list 対象を contract test 化する
-  - mailto fallback とは分け、menu action の URL source だけを扱う
 
 - [ ] browser webview focus preference 候補を追加する
   - `src/components/reader/hooks/browser/use-browser-webview-sync.ts` の create 後 `focusBrowserWebview()` が `web_preview_keep_focus` とどう関係するかを固定する
@@ -530,11 +405,6 @@
   - 空文字・禁止文字だけの account 名でも `feeds.opml` などへ落ちる hook test を追加する
   - OPML import/export backend serialization とは分け、account detail export action の UI guard だけを扱う
 
-- [ ] local feed validator retention contract 候補を追加する
-  - `src-tauri/src/commands/sync_providers.rs` の local feed sync で 200 応答かつ ETag / Last-Modified 欠落時に既存 validator を消すか維持するか固定する
-  - `sync_local_feed` の state contract test を追加する
-  - local provider HTTP status classification とは分け、local feed sync cursor retention だけを扱う
-
 - [ ] recent viewed mute exclusion contract 候補を追加する
   - `src-tauri/src/infra/db/sqlite_article.rs` の `find_recently_viewed_by_account` で muted article を出すか除外するかを固定する
   - article list / search / recent view の mute keyword exclusion parity を repository test で確認する
@@ -550,20 +420,10 @@
   - `i18n.changeLanguage("ja")` 後の後続 test に言語状態が漏れないことを helper test で確認する
   - locale key registration とは分け、test helper の isolation だけを扱う
 
-- [ ] article list search reopen debounce 候補を追加する
-  - `src/components/reader/hooks/article-list/use-article-list-search.ts` で検索 close 直後の古い debounce timer が stale query を復活させない契約を追加する
-  - `src/__tests__/components/use-article-list-search.test.tsx` で close -> reopen -> timer flush の境界を確認する
-  - article list primary loading naming とは分け、search input state の debounce lifecycle だけを扱う
-
 - [ ] article list search escape focus 候補を追加する
   - `src/components/reader/article-list-header-search.tsx` で Escape close 後の focus 戻し先を search toggle / list row のどちらにするか固定する
   - `src/__tests__/components/article-list-header.test.tsx` で keyboard 導線を確認する
   - global shortcut handling とは分け、article search field の close focus だけを扱う
-
-- [ ] article list missing row navigation 候補を追加する
-  - `src/components/reader/hooks/article-list/use-article-list-navigation.ts` で row DOM 未描画時に `selectArticle` だけ進む現挙動を固定するか retry する
-  - missing row / delayed row の focused test を追加する
-  - navigation scroll helper とは分け、DOM row availability と selection update の contract だけを扱う
 
 - [ ] sidebar feed navigation latest ref 候補を追加する
   - `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts` の `navigate-feed` 連打で rerender 前に同じ feed を再選択しない contract を追加する
@@ -971,11 +831,6 @@
   - `useSidebarHeaderProps` 側で `isMobile` / `useDesktopOverlay` を解決し、view test は props-only rendering に寄せる
   - sidebar layout 再設計とは分け、header view の runtime 判定分離だけを扱う
 
-- [ ] account switcher view model boundary 候補を追加する
-  - `src/components/reader/account-switcher-view.tsx` に残る selected account view model 解決と展開時 focus frame を hook 側へ寄せる
-  - `src/__tests__/hooks/use-sidebar-account-switcher.test.tsx` で selected missing / single account / multiple accounts と focus frame を固定する
-  - account menu action とは分け、account switcher view model と DOM scheduling 境界だけを扱う
-
 - [ ] similarity reader focus retry helper 候補を追加する
   - `src/lib/reader-focus.ts` の `focusArticleListRowTargetWhenReady` と `focusSidebarSmartViewTargetWhenReady` が 88% 類似なので、retry / frame scheduling 部分を共通 helper に寄せる
   - target selector / fallback focus rule は呼び出し側に残し、article list と smart view の focus behavior が変わらないことを focused test で固定する
@@ -1111,26 +966,6 @@
   - `src/__tests__/components/use-general-settings-view-props.test.ts` で `system` は locale 由来、`en` / `ja` は意図した self-label であることを確認する
   - general settings preference handling とは分け、language option label contract だけを扱う
 
-- [ ] IPC pagination limit schema parity 候補を追加する
-  - `src/api/schemas/commands.ts` の `paginationLimitSchema` を Rust 側 article / tag list limit 上限 `200` と揃える
-  - `src/__tests__/api/schemas.test.ts` で `limit: 200` は通し、`201` / `Infinity` / 小数は parse で落ちることを固定する
-  - article list query scope とは分け、frontend IPC pagination limit だけを扱う
-
-- [ ] list articles filter exclusivity 候補を追加する
-  - `src/api/schemas/commands.ts` の `listArticlesArgs` で `unreadOnly: true` と `starredOnly: true` の同時指定を拒否する
-  - `src/__tests__/api/schemas.test.ts` で片方だけ true は通し、両方 true は parse error になることを固定する
-  - article scope matrix 再設計とは分け、list articles filter exclusivity だけを扱う
-
-- [ ] mute keyword IPC schema trim 候補を追加する
-  - `src/api/schemas/commands.ts` の `createMuteKeywordArgs.keyword` を backend invariant と同じく trim / blank reject にする
-  - `src/__tests__/api/schemas.test.ts` または `src/__tests__/hooks/tag-mute-settings-contract.test.ts` で `" spoiler "` は `spoiler`、blank は reject になることを固定する
-  - mute keyword scope race guard とは分け、mute keyword IPC input normalization だけを扱う
-
-- [ ] create query whitespace id guard 候補を追加する
-  - `src/hooks/create-query.ts` の enabled 判定が `!!id` だけで whitespace-only id を fetcher に渡さないようにする
-  - `src/__tests__/hooks/create-query.test.tsx` で whitespace-only id は disabled のまま fetcher が呼ばれないことを固定する
-  - individual command schema 変更とは分け、generic query hook id boundary だけを扱う
-
 - [ ] article summary HTML spacing 候補を追加する
   - `src/lib/content/html.ts` の `stripHtmlTags()` が block element / `br` / list item 境界を潰して `LeadBody` のような summary を作らないようにする
   - `src/__tests__/lib/html.test.ts` と必要なら `src/__tests__/components/article-list-item.test.tsx` で `<p>Lead</p><p>Body</p>` が `Lead Body` になることを固定する
@@ -1145,16 +980,6 @@
   - `src/components/reader/article-reader-body.tsx` で sanitized 本文内の相対リンククリックを app origin ではなく記事 URL 基準にするか無効化するか固定する
   - article reader focused test で `<a href="/posts/1">` の click が期待 URL へ解決される、または外部 open されないことを確認する
   - sanitizer URL filtering とは分け、reader body relative link click policy だけを扱う
-
-- [ ] article body feed label suffix cleanup 候補を追加する
-  - `src/lib/content/html.ts` の `normalizeArticleBodyHtml()` で先頭の `Feed Name:` / `Feed Name｜` / `Feed Name -` 形式を小さく除去対象にする
-  - `src/__tests__/lib/html.test.ts` で `Tech Blog:` は除去、`Tech Blog Weekly` や media を含む先頭 node は維持されることを固定する
-  - article summary spacing とは分け、body leading feed label cleanup だけを扱う
-
-- [ ] ArticleDto blank URL normalization 候補を追加する
-  - `src/api/schemas/article.ts` の `url` / `thumbnail` が whitespace-only string を DTO 境界で通さないようにする
-  - `src/__tests__/api/schemas.test.ts` で `url: "   "` / `thumbnail: "   "` を reject または `null` 正規化する方針を固定する
-  - provider thumbnail href normalization とは分け、frontend Article DTO schema boundary だけを扱う
 
 - [ ] icon toolbar ariaDisabled activation guard 候補を追加する
   - `src/components/shared/icon-toolbar-control.tsx` の `ariaDisabled` が `aria-disabled="true"` だけでなく click / Enter / Space の実行抑止にも効くようにする
