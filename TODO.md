@@ -1098,6 +1098,76 @@
   - `tests/helpers/tauri-mocks.test.ts` で dry-run cleanup DTO を schema-valid に通し、invalid cleanup response validation も確認する
   - feed integrity UI polish とは分け、maintenance command mock / schema contract だけを扱う
 
+- [ ] article toolbar layout prop boundary 候補を追加する
+  - `src/components/reader/article-toolbar-view.tsx` の `ArticleToolbarActionStrip` が `useUiStore(layoutMode)` を直接読む構造を props 境界へ寄せる
+  - `src/__tests__/components/article-toolbar-view.test.tsx` で store の layoutMode と prop が食い違っても prop 側で mobile / desktop action が決まることを固定する
+  - toolbar action taxonomy とは分け、view の store access boundary だけを扱う
+
+- [ ] sidebar header runtime prop boundary 候補を追加する
+  - `src/components/reader/sidebar-header-view.tsx` の `useUiStore` / `usePlatformStore` / `hasTauriRuntime()` 直参照を controller 由来 props へ寄せる
+  - `useSidebarHeaderProps` 側で `isMobile` / `useDesktopOverlay` を解決し、view test は props-only rendering に寄せる
+  - sidebar layout 再設計とは分け、header view の runtime 判定分離だけを扱う
+
+- [ ] account switcher view model boundary 候補を追加する
+  - `src/components/reader/account-switcher-view.tsx` に残る selected account view model 解決と展開時 focus frame を hook 側へ寄せる
+  - `src/__tests__/hooks/use-sidebar-account-switcher.test.tsx` で selected missing / single account / multiple accounts と focus frame を固定する
+  - account menu action とは分け、account switcher view model と DOM scheduling 境界だけを扱う
+
+- [ ] tag dialog autofocus shared boundary 候補を追加する
+  - `src/components/reader/create-tag-dialog-view.tsx` と `src/components/reader/rename-tag-dialog-view.tsx` の translation / input ref / open 時 autofocus frame の重複を整理する
+  - create / rename tag dialog view test で open 時 focus/select と unmount 前後の frame cleanup を確認する
+  - article tag picker close focus cleanup とは分け、tag dialog の autofocus boundary だけを扱う
+
+- [ ] article list header label prop boundary 候補を追加する
+  - `src/components/reader/article-list-header.tsx` の `useTranslation("reader")` 直参照を controller / view props の `labels` へ寄せる
+  - `src/__tests__/components/article-list-header.test.tsx` で mark all read / search / close search label が props 由来になることを固定する
+  - article list loading naming とは分け、header label contract だけを扱う
+
+- [ ] feed discovery resolved URL safety 候補を追加する
+  - `src-tauri/src/infra/feed_discovery.rs` で `<base>` / `<link href>` 解決後の feed candidate URL にも private / unsupported URL filter を適用する
+  - Rust test で `127.0.0.1` / `file://` / public `https://` を混ぜ、公開 http/https だけ残ることを固定する
+  - discovery start URL / redirect validation とは分け、resolved candidate URL safety だけを扱う
+
+- [ ] feed discovery unquoted attribute parser 候補を追加する
+  - `src-tauri/src/infra/feed_discovery.rs` の link attribute parser が unquoted `rel=alternate type=application/rss+xml href=/feed.xml` を拾えるようにする
+  - Rust test で unquoted `rel` / `type` / `href` / `title` から feed URL と title が抽出されることを固定する
+  - HTML whitespace attribute parsing とは分け、unquoted link attribute 境界だけを扱う
+
+- [ ] local provider private URL guard 候補を追加する
+  - `src-tauri/src/infra/provider/local.rs` の `pull_entries` / `create_subscription` が feed URL を直接 `reqwest` へ渡す前に private / loopback URL を拒否する
+  - Rust test で `http://127.0.0.1:<mock-port>/feed.xml` が validation error になり、mock server hit が 0 のままになることを確認する
+  - feed discovery candidate filter とは分け、保存済み / 直接追加 feed URL の provider boundary だけを扱う
+
+- [ ] sync scheduler backoff persistence error 候補を追加する
+  - `src-tauri/src/service/sync_scheduler.rs` の `reset_error_count` / `increment_error_count` が `repo.save(&state)` 失敗を silent success にしないようにする
+  - Rust test で backoff state 保存成功時の `is_in_backoff` と保存失敗時の error surface を固定する
+  - scheduler interval tuning とは分け、backoff persistence failure handling だけを扱う
+
+- [ ] OPML head title escaping contract 候補を追加する
+  - `src-tauri/src/infra/opml.rs` の `generate_opml` で head title が二重 escape されないことを固定する
+  - Rust test で `Test & Title` が `<title>Test &amp; Title</title>` になり、`&amp;amp;` を含まないことを確認する
+  - OPML nested folder / import transaction とは分け、head title serialization だけを扱う
+
+- [ ] Playwright app server owner contract 候補を追加する
+  - `playwright.config.ts` の app E2E `webServer.command` を `scripts/tauri-dev-vite-manager.ts` の port owner 判定経由に寄せる
+  - repo contract test で app E2E が manager 経由になっていること、script test で foreign listener を誤用しないことを固定する
+  - Storybook stale server health check とは分け、app E2E dev server ownership だけを扱う
+
+- [ ] Playwright forbidOnly contract 候補を追加する
+  - `playwright.config.ts` と `playwright.storybook.config.ts` に `forbidOnly: Boolean(process.env.CI)` を明示する
+  - `src/__tests__/config/repo-contracts.test.ts` で app / Storybook 両 config が CI の `test.only` を防ぐことを固定する
+  - Playwright port drift とは分け、focused test 漏れ防止だけを扱う
+
+- [ ] E2E runtime error guard shared helper 候補を追加する
+  - `e2e/app.spec.ts` と `e2e/storybook/ui-reference-canvas-smoke.spec.ts` に散っている runtime error guard を shared helper に寄せる
+  - `pageerror` だけでなく `console.error` も拾う contract を最小 Playwright spec で固定する
+  - E2E scenario 追加とは分け、runtime error detection helper だけを扱う
+
+- [ ] seed dev DB running app guard 候補を追加する
+  - `scripts/seed-dev-db-from-prod.ts` の macOS / Linux 起動中アプリ検出を `pgrep -x` exact name 依存から強くする
+  - `src/__tests__/scripts/seed-dev-db-from-prod.test.ts` で長い app name / `ultra-rss-reader` process 検出時に DB 置換へ進まないことを固定する
+  - seed cleanup contract とは分け、running app guard の検出境界だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
