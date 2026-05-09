@@ -187,7 +187,10 @@
     "type": "Type",
     "local_feeds": "Local Feeds",
     "freshrss": "FreshRSS",
+    "inoreader": "Inoreader",
     "feedly": "Feedly",
+    "newsblur": "NewsBlur",
+    "feedbin": "Feedbin",
     "local": "Local",
     "name": "Name",
     "server_url": "Server URL",
@@ -290,6 +293,7 @@
     "freshrss_desc": "freshrss.org",
     "fever": "Fever",
     "fever_desc": "Deprecated. Not recommended.",
+    "feedbin_hold_desc": "On hold for API integration",
     "feedly_hold_desc": "On hold due to enterprise-only API access",
     "coming_soon": "Coming soon",
     "back_to_services": "Back to service selection"

@@ -187,7 +187,10 @@
     "type": "種類",
     "local_feeds": "ローカルフィード",
     "freshrss": "FreshRSS",
+    "inoreader": "Inoreader",
     "feedly": "Feedly",
+    "newsblur": "NewsBlur",
+    "feedbin": "Feedbin",
     "local": "ローカル",
     "name": "名前",
     "server_url": "サーバーURL",
@@ -290,6 +293,7 @@
     "freshrss_desc": "FreshRSS サーバー",
     "fever": "Fever",
     "fever_desc": "非推奨",
+    "feedbin_hold_desc": "API連携のため保留",
     "feedly_hold_desc": "法人向けAPIのため保留",
     "coming_soon": "準備中",
     "back_to_services": "サービス選択に戻る"

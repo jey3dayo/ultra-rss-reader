@@ -31,7 +31,11 @@ vi.mock("react-i18next", () => {
       "account.freshrss_desc": "freshrss.org",
       "account.fever": "Fever",
       "account.fever_desc": "Deprecated. Not recommended.",
+      "account.inoreader": "Inoreader",
       "account.feedly": "Feedly",
+      "account.newsblur": "NewsBlur",
+      "account.feedbin": "Feedbin",
+      "account.feedbin_hold_desc": "On hold for API integration",
       "account.feedly_hold_desc": "On hold due to enterprise-only API access",
       "account.coming_soon": "Coming soon",
       "account.back_to_services": "Back to services",
@@ -58,7 +62,11 @@ vi.mock("react-i18next", () => {
       "account.freshrss_desc": "FreshRSS サーバー",
       "account.fever": "Fever",
       "account.fever_desc": "非推奨",
+      "account.inoreader": "Inoreader",
       "account.feedly": "Feedly",
+      "account.newsblur": "NewsBlur",
+      "account.feedbin": "Feedbin",
+      "account.feedbin_hold_desc": "API連携のため保留",
       "account.feedly_hold_desc": "法人向けAPIのため保留",
       "account.coming_soon": "準備中",
       "account.back_to_services": "サービス一覧に戻る",
@@ -236,7 +244,11 @@ describe("AddAccountForm", () => {
       "account.freshrss_desc": jaSettings.account.freshrss_desc,
       "account.fever": jaSettings.account.fever,
       "account.fever_desc": jaSettings.account.fever_desc,
+      "account.inoreader": jaSettings.account.inoreader,
       "account.feedly": jaSettings.account.feedly,
+      "account.newsblur": jaSettings.account.newsblur,
+      "account.feedbin": jaSettings.account.feedbin,
+      "account.feedbin_hold_desc": jaSettings.account.feedbin_hold_desc,
       "account.feedly_hold_desc": jaSettings.account.feedly_hold_desc,
       "account.coming_soon": jaSettings.account.coming_soon,
     };
@@ -256,6 +268,12 @@ describe("AddAccountForm", () => {
           kind: "Feedly",
           name: jaSettings.account.feedly,
           description: jaSettings.account.feedly_hold_desc,
+          disabledLabel: jaSettings.account.coming_soon,
+        }),
+        expect.objectContaining({
+          kind: "Feedbin",
+          name: jaSettings.account.feedbin,
+          description: jaSettings.account.feedbin_hold_desc,
           disabledLabel: jaSettings.account.coming_soon,
         }),
       ]),
@@ -349,13 +367,25 @@ describe("AddAccountForm", () => {
     const feedlyButton = screen.getByRole("button", {
       name: /Feedly|account\.feedly/,
     });
+    const inoreaderButton = screen.getByRole("button", {
+      name: /Inoreader|account\.inoreader/,
+    });
+    const newsBlurButton = screen.getByRole("button", {
+      name: /NewsBlur|account\.newsblur/,
+    });
+    const feedbinButton = screen.getByRole("button", {
+      name: /Feedbin|account\.feedbin/,
+    });
     const comingSoonLabels = screen.getAllByText(comingSoonLabel);
 
     expect(feverButton).toBeDisabled();
     expect(feedlyButton).toBeDisabled();
+    expect(inoreaderButton).toBeDisabled();
+    expect(newsBlurButton).toBeDisabled();
+    expect(feedbinButton).toBeDisabled();
     expect(enSettings.account.coming_soon).toBe("Coming soon");
     expect(jaSettings.account.coming_soon).toBe("準備中");
-    expect(comingSoonLabels).toHaveLength(2);
+    expect(comingSoonLabels).toHaveLength(5);
     expect(screen.queryByText("工事中")).not.toBeInTheDocument();
     expect(screen.queryByText("account.coming_soon")).not.toBeInTheDocument();
   });
