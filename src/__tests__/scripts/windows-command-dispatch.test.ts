@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildWindowsDispatchSpawnFailureMessage } from "../../../scripts/lib/windows-dispatch.ts";
 import {
   buildLocalCommandSpawnSpec,
   buildWslWindowsCommandSpawnSpec,
@@ -55,6 +56,35 @@ describe("buildLocalCommandSpawnSpec", () => {
       command: "cargo",
       args: ["clippy"],
     });
+  });
+});
+
+describe("buildWindowsDispatchSpawnFailureMessage", () => {
+  it("includes missing executable diagnostics without leaking env values", () => {
+    const error = new Error("spawn pnpm ENOENT") as NodeJS.ErrnoException;
+    error.code = "ENOENT";
+    error.path = "pnpm";
+
+    const message = buildWindowsDispatchSpawnFailureMessage("pnpm", error);
+
+    expect(message).toContain("command: pnpm");
+    expect(message).toContain("code: ENOENT");
+    expect(message).toContain("path: pnpm");
+    expect(message).toContain("Windows Path");
+    expect(message).toContain("working directory");
+  });
+
+  it("includes permission diagnostics for spawn EACCES failures", () => {
+    const error = new Error("spawn powershell.exe EACCES") as NodeJS.ErrnoException;
+    error.code = "EACCES";
+    error.path = "powershell.exe";
+
+    const message = buildWindowsDispatchSpawnFailureMessage("sh", error);
+
+    expect(message).toContain("command: sh");
+    expect(message).toContain("code: EACCES");
+    expect(message).toContain("path: powershell.exe");
+    expect(message).toContain("accessible");
   });
 });
 

@@ -114,6 +114,23 @@ function getExecErrorStdout(error: unknown): string {
     : "";
 }
 
+export function buildPortWaitTimeoutMessage(options: {
+  port: number;
+  elapsedMs: number;
+  lastProcess: ListeningProcess | null;
+}): string {
+  const processDetail = options.lastProcess
+    ? `last listener pid ${options.lastProcess.pid}: ${options.lastProcess.commandLine || "unknown command"}`
+    : "no listener details were available";
+
+  return [
+    `Timed out waiting for port ${options.port} to become available after ${options.elapsedMs}ms`,
+    `Checked port: ${options.port}`,
+    `Last listener: ${processDetail}`,
+    "Next action: stop the stale Vite process, free the configured TAURI_DEV_PORT, or rerun with a supported Node/Vite environment.",
+  ].join(". ");
+}
+
 async function capture(command: string, args: string[], allowedExitCodes: number[] = [0]): Promise<string> {
   try {
     const { stdout } = await execFileAsync(command, args, { encoding: "utf8" });
@@ -202,7 +219,9 @@ async function getListeningProcessOnWindows(port: number): Promise<ListeningProc
 }
 
 async function waitForPortToBeFree(port: number): Promise<void> {
-  const deadline = Date.now() + PORT_WAIT_TIMEOUT_MS;
+  const startedAt = Date.now();
+  const deadline = startedAt + PORT_WAIT_TIMEOUT_MS;
+  let lastProcess: ListeningProcess | null = null;
 
   // Poll sequentially so each check observes the port after the previous wait interval.
   while (Date.now() < deadline) {
@@ -210,11 +229,18 @@ async function waitForPortToBeFree(port: number): Promise<void> {
     if (!processInfo) {
       return;
     }
+    lastProcess = processInfo;
 
     await new Promise((resolve) => setTimeout(resolve, PORT_WAIT_INTERVAL_MS));
   }
 
-  throw new Error(`Timed out waiting for port ${port} to become available`);
+  throw new Error(
+    buildPortWaitTimeoutMessage({
+      port,
+      elapsedMs: Date.now() - startedAt,
+      lastProcess,
+    }),
+  );
 }
 
 function stopProcess(pid: number): void {

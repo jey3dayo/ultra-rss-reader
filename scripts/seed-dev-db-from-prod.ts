@@ -51,9 +51,9 @@ function processDetectionError(error: unknown): Error {
   return new Error(`Failed to check whether Ultra RSS Reader is running: ${detail}`);
 }
 
-function databaseHandleDetectionError(error: unknown): Error {
+function databaseHandleDetectionError(error: unknown, artifactPath: string): Error {
   const detail = error instanceof Error ? error.message : String(error);
-  return new Error(`Failed to check whether the Dev database is open: ${detail}`);
+  return new Error(`Failed to check whether the Dev database is open for ${artifactPath}: ${detail}`);
 }
 
 function readConfiguredEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
@@ -282,7 +282,7 @@ export async function detectOpenDevDatabaseHandles(options: {
     }
 
     if (!isProcessNotFoundError(check.error)) {
-      return Result.fail(databaseHandleDetectionError(check.error));
+      return Result.fail(databaseHandleDetectionError(check.error, check.artifactPath));
     }
   }
 

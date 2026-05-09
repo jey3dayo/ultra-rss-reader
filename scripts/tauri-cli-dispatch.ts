@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import {
+  buildWindowsDispatchSpawnFailureMessage,
   buildWslWindowsSpawnSpec,
   canUseWindowsInterop,
   convertWslPathToWindows,
@@ -178,7 +179,7 @@ async function main(): Promise<void> {
   });
 
   child.on("error", (error) => {
-    console.error("[tauri-cli-dispatch] failed to start Tauri CLI:", error);
+    console.error("[tauri-cli-dispatch]", buildWindowsDispatchSpawnFailureMessage(spawnSpec.command, error));
     process.exit(1);
   });
 }

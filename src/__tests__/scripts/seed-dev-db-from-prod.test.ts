@@ -431,6 +431,40 @@ describe("seedDevDatabaseFromProd", () => {
     expect(Result.unwrap(result)).toEqual(["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal"]);
   });
 
+  it("reports which database artifact could not be checked when lsof is unavailable", async () => {
+    const result = await detectOpenDevDatabaseHandles({
+      platform: "darwin",
+      artifactPaths: ["/dev/ultra-rss-reader.db"],
+      execFileImpl: async () => {
+        const error = new Error("spawn lsof ENOENT") as NodeJS.ErrnoException;
+        error.code = "ENOENT";
+        throw error;
+      },
+    });
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("/dev/ultra-rss-reader.db");
+    expect(Result.unwrapError(result).message).toContain("spawn lsof ENOENT");
+  });
+
+  it("reports the WAL path when only the WAL artifact is open", async () => {
+    const result = await detectOpenDevDatabaseHandles({
+      platform: "linux",
+      artifactPaths: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
+      execFileImpl: async (_command, args) => {
+        const artifactPath = String(args[args.length - 1]);
+        if (artifactPath.endsWith("-wal")) {
+          return { stdout: "4242\n", stderr: "" };
+        }
+        const error = new Error("not found") as NodeJS.ErrnoException;
+        error.code = "1";
+        throw error;
+      },
+    });
+
+    expect(Result.unwrap(result)).toEqual(["/dev/ultra-rss-reader.db-wal"]);
+  });
+
   it("does not replace the Dev database when a database handle is open", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {

@@ -44,6 +44,29 @@ export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): R
   return overrides;
 }
 
+function getErrorField(error: unknown, field: "code" | "path"): string | undefined {
+  if (typeof error !== "object" || error === null || !(field in error)) {
+    return undefined;
+  }
+
+  const value = error[field];
+  return typeof value === "string" ? value : undefined;
+}
+
+export function buildWindowsDispatchSpawnFailureMessage(command: string, error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error);
+  const code = getErrorField(error, "code");
+  const errorPath = getErrorField(error, "path");
+  const diagnostics = [
+    `command: ${command}`,
+    code ? `code: ${code}` : null,
+    errorPath ? `path: ${errorPath}` : null,
+    "next action: verify the executable is installed, Windows Path is available, and the working directory is accessible from the selected shell",
+  ].filter((item): item is string => item !== null);
+
+  return `Failed to start Windows dispatch command (${diagnostics.join("; ")}): ${detail}`;
+}
+
 function quotePowerShellLiteral(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }

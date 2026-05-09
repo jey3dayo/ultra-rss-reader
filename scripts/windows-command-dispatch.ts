@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import {
+  buildWindowsDispatchSpawnFailureMessage,
   buildWslWindowsSpawnSpec,
   canUseWindowsInterop,
   convertWslPathToWindows,
@@ -70,7 +71,7 @@ async function main(): Promise<void> {
   });
 
   child.on("error", (error) => {
-    console.error("[windows-command-dispatch] failed to start command:", error);
+    console.error("[windows-command-dispatch]", buildWindowsDispatchSpawnFailureMessage(spawnSpec.command, error));
     process.exit(1);
   });
 }

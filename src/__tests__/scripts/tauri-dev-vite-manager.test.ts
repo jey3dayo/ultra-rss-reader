@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildPortWaitTimeoutMessage,
   buildViteSpawnSpec,
   classifyPortOwnerCommandLine,
   resolveTauriDevPort,
@@ -67,6 +68,51 @@ describe("resolveTauriDevPort", () => {
     const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts", port);
 
     expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1432", "--strictPort"]);
+  });
+});
+
+describe("buildPortWaitTimeoutMessage", () => {
+  it("includes the checked port, elapsed time, stale listener command, and next action", () => {
+    expect(
+      buildPortWaitTimeoutMessage({
+        port: 1432,
+        elapsedMs: 10_250,
+        lastProcess: {
+          pid: 123,
+          commandLine: "node ./node_modules/vite/bin/vite.js --port 1432",
+        },
+      }),
+    ).toContain("port 1432");
+    expect(
+      buildPortWaitTimeoutMessage({
+        port: 1432,
+        elapsedMs: 10_250,
+        lastProcess: {
+          pid: 123,
+          commandLine: "node ./node_modules/vite/bin/vite.js --port 1432",
+        },
+      }),
+    ).toContain("10250ms");
+    expect(
+      buildPortWaitTimeoutMessage({
+        port: 1432,
+        elapsedMs: 10_250,
+        lastProcess: {
+          pid: 123,
+          commandLine: "node ./node_modules/vite/bin/vite.js --port 1432",
+        },
+      }),
+    ).toContain("node ./node_modules/vite/bin/vite.js --port 1432");
+    expect(
+      buildPortWaitTimeoutMessage({
+        port: 1432,
+        elapsedMs: 10_250,
+        lastProcess: {
+          pid: 123,
+          commandLine: "node ./node_modules/vite/bin/vite.js --port 1432",
+        },
+      }),
+    ).toContain("Next action");
   });
 });
 
