@@ -7,6 +7,7 @@ export function StoryQueryClientProvider({ children }: { children: ReactNode }) 
     () =>
       new QueryClient({
         defaultOptions: {
+          mutations: { retry: false },
           queries: { retry: false },
         },
       }),

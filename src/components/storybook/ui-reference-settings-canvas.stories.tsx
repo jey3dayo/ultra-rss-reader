@@ -7,7 +7,7 @@ import {
   PrimitiveControlMatrixSpecimen,
   ReferencePage,
   ValidationRowSpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-settings-specimens";
 
 export function InputControlsCanvas() {
   const [livePreview, setLivePreview] = useState(true);

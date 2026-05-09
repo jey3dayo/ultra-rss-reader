@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS } from "@/components/storybook/ui-reference-control-specimens";
 
 type UiReferenceSection = {
   fileName: string;
@@ -9,7 +10,15 @@ type UiReferenceSection = {
 };
 
 const STORYBOOK_COMPONENTS_DIR = resolve(process.cwd(), "src/components/storybook");
-const SPECIMENS_SOURCE_PATH = join(STORYBOOK_COMPONENTS_DIR, "ui-reference-canvas-specimens.tsx");
+const SPECIMENS_SOURCE_FILE_NAMES = [
+  "ui-reference-canvas-specimens.tsx",
+  "ui-reference-control-specimens.tsx",
+  "ui-reference-foundation-specimens.tsx",
+  "ui-reference-navigation-specimens.tsx",
+  "ui-reference-settings-specimens.tsx",
+  "ui-reference-shell-specimens.tsx",
+  "ui-reference-workspace-specimens.tsx",
+] as const;
 
 const uiReferenceSections = [
   {
@@ -53,16 +62,24 @@ const storySourceEntries = uiReferenceSections.map((section) => ({
   ...section,
   source: readFileSync(join(STORYBOOK_COMPONENTS_DIR, section.fileName), "utf8"),
 }));
-const specimensSource = readFileSync(SPECIMENS_SOURCE_PATH, "utf8");
+const specimensSource = SPECIMENS_SOURCE_FILE_NAMES.map((fileName) =>
+  readFileSync(join(STORYBOOK_COMPONENTS_DIR, fileName), "utf8"),
+).join("\n");
 
 function findDuplicates(values: readonly string[]) {
   const counts = new Map<string, number>();
+  const duplicates: string[] = [];
 
   for (const value of values) {
-    counts.set(value, (counts.get(value) ?? 0) + 1);
+    const nextCount = (counts.get(value) ?? 0) + 1;
+    counts.set(value, nextCount);
+
+    if (nextCount === 2) {
+      duplicates.push(value);
+    }
   }
 
-  return [...counts.entries()].filter(([, count]) => count > 1).map(([value]) => value);
+  return duplicates;
 }
 
 function extractReferenceTestIds(source: string) {
@@ -105,6 +122,13 @@ describe("UI Reference specimen registry", () => {
     ];
 
     expect(findDuplicates(referenceIds)).toEqual([]);
+  });
+
+  it("keeps primary specimen anchor candidates present and duplicate-safe", () => {
+    const referenceIds = extractReferenceTestIds(specimensSource);
+
+    expect(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS).toEqual([...new Set(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS)]);
+    expect(referenceIds).toEqual(expect.arrayContaining([...UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS]));
   });
 
   it("keeps exported specimen sections referenced by a UI Reference story", () => {

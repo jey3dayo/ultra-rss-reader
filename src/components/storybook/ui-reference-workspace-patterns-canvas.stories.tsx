@@ -10,7 +10,7 @@ import {
   WorkspaceActionClusterSpecimen,
   WorkspaceFilterClusterSpecimen,
   WorkspaceTwoPaneSpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-workspace-specimens";
 
 export function ViewSpecimensCanvas() {
   return (

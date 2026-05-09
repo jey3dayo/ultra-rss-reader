@@ -8,7 +8,7 @@ import {
   ReaderFilterStripSpecimen,
   ReferencePage,
   TagPaletteSpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-navigation-specimens";
 
 export function NavigationCollectionsCanvas() {
   return (

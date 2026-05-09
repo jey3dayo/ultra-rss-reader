@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { expectNoStorybookRuntimeErrorDom, installRuntimeErrorGuard } from "../helpers/runtime-error-guard";
 
 const updateToastTestIds = [
   "reference-update-toast-download-0",
@@ -9,10 +10,20 @@ const updateToastTestIds = [
 const shellOverlayStoryUrl = "/iframe.html?id=ui-reference-shell-overlay-canvas--default";
 
 async function openShellOverlayStory(page: Page) {
-  await expect(async () => {
-    await page.goto(shellOverlayStoryUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
-    await expect(page.getByTestId("reference-update-toast-stability")).toBeVisible({ timeout: 15000 });
-  }).toPass({ timeout: 120000, intervals: [1000, 2000, 5000] });
+  const runtimeErrors = installRuntimeErrorGuard(page);
+
+  try {
+    await expect(async () => {
+      runtimeErrors.clear();
+      await page.goto(shellOverlayStoryUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
+      await expect(page.getByTestId("reference-update-toast-stability")).toBeVisible({ timeout: 15000 });
+    }).toPass({ timeout: 120000, intervals: [1000, 2000, 5000] });
+
+    await expectNoStorybookRuntimeErrorDom(page);
+    expect(runtimeErrors.pageErrors).toEqual([]);
+  } finally {
+    runtimeErrors.dispose();
+  }
 }
 
 test.describe("Storybook update Toast stability", () => {

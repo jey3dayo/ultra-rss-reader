@@ -2,13 +2,25 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ButtonControlsCanvas } from "@/components/storybook/ui-reference-button-controls-canvas.stories";
-import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
+import * as controlSpecimens from "@/components/storybook/ui-reference-control-specimens";
+import * as foundationSpecimens from "@/components/storybook/ui-reference-foundation-specimens";
+import { SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-foundation-specimens";
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
 import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
+import * as navigationSpecimens from "@/components/storybook/ui-reference-navigation-specimens";
+import { AccountCardStackSpecimen } from "@/components/storybook/ui-reference-navigation-specimens";
 import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
+import * as settingsSpecimens from "@/components/storybook/ui-reference-settings-specimens";
 import { SettingsWorkspaceCanvas } from "@/components/storybook/ui-reference-settings-workspace-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
+import * as shellSpecimens from "@/components/storybook/ui-reference-shell-specimens";
+import {
+  CommandPaletteShellSpecimen,
+  MotionTransitionsSpecimen,
+  ShellExamplesSpecimen,
+} from "@/components/storybook/ui-reference-shell-specimens";
 import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
+import * as workspaceSpecimens from "@/components/storybook/ui-reference-workspace-specimens";
 
 describe("UI Reference canvases", () => {
   beforeEach(() => {
@@ -21,6 +33,32 @@ describe("UI Reference canvases", () => {
       },
     );
     Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it("keeps storybook specimen exports split by canvas category", () => {
+    expect(foundationSpecimens).toHaveProperty("TypographyScaleSpecimen");
+    expect(controlSpecimens).toHaveProperty("ButtonFamilyGuideSpecimen");
+    expect(workspaceSpecimens).toHaveProperty("WorkspaceTwoPaneSpecimen");
+    expect(settingsSpecimens).toHaveProperty("SettingsHeaderSummarySpecimen");
+    expect(navigationSpecimens).toHaveProperty("NavigationStackSpecimen");
+    expect(shellSpecimens).toHaveProperty("ShellExamplesSpecimen");
+  });
+
+  it("uses typographic ellipsis in legacy reference specimens", () => {
+    render(
+      <>
+        <AccountCardStackSpecimen />
+        <CommandPaletteShellSpecimen />
+        <MotionTransitionsSpecimen />
+      </>,
+    );
+
+    expect(screen.getByRole("button", { name: "アカウントを追加…" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search reader actions…")).toBeInTheDocument();
+    expect(screen.getByText("Edit…")).toBeInTheDocument();
+    expect(screen.queryByText("アカウントを追加...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search reader actions...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Edit...")).not.toBeInTheDocument();
   });
 
   it("renders the button controls canvas with action family specimens", () => {
@@ -217,7 +255,7 @@ describe("UI Reference canvases", () => {
     const commandShell = screen.getByTestId("reference-command-palette-shell");
     expect(commandShell).toHaveClass("rounded-md");
     expect(within(commandShell).getByText("Command palette shell")).toBeInTheDocument();
-    expect(within(commandShell).getByPlaceholderText("Search reader actions...")).toHaveAttribute(
+    expect(within(commandShell).getByPlaceholderText("Search reader actions…")).toHaveAttribute(
       "aria-label",
       "Reference command search",
     );
@@ -287,7 +325,7 @@ describe("UI Reference canvases", () => {
     );
     expect(within(accountSection).getAllByText("FreshRSS").length).toBeGreaterThan(0);
     expect(within(accountSection).getByText("debug")).toBeInTheDocument();
-    expect(within(accountSection).getByRole("button", { name: "アカウントを追加..." })).toBeInTheDocument();
+    expect(within(accountSection).getByRole("button", { name: "アカウントを追加…" })).toBeInTheDocument();
 
     const alignmentSection = screen.getByTestId("reference-account-article-nav-alignment");
     const unreadSmartView = within(alignmentSection).getByRole("button", { name: "未読1,988" });
@@ -307,7 +345,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Tooltip target" })).toBeInTheDocument();
     expect(screen.getByText("Tag palette")).toBeInTheDocument();
     expect(screen.getByText("カラー")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "色なし" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "色なし" })).toBeInTheDocument();
   });
 
   it("renders the workspace patterns canvas with composition specimens", () => {

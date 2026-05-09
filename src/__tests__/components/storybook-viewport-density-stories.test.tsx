@@ -10,12 +10,18 @@ import sidebarHeaderMeta, {
 import settingsModalMeta, {
   DenseNarrowViewport as SettingsModalDenseNarrowViewport,
 } from "@/components/settings/settings-modal-view.stories";
+import { denseNarrowViewportId, denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 
 describe("Storybook viewport density fixtures", () => {
+  it("uses one narrow viewport baseline for all density fixtures", () => {
+    expect(SidebarHeaderDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
+    expect(ArticleListDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
+    expect(SettingsModalDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
+    expect(denseNarrowViewportParameters.viewport.defaultViewport).toBe(denseNarrowViewportId);
+  });
+
   it("keeps the sidebar header narrow fixture focused on primary toolbar actions", () => {
-    expect(SidebarHeaderDenseNarrowViewport.parameters?.viewport).toEqual({
-      defaultViewport: "mobile2",
-    });
+    expect(SidebarHeaderDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
 
     renderStory(sidebarHeaderMeta, SidebarHeaderDenseNarrowViewport);
 
@@ -24,9 +30,7 @@ describe("Storybook viewport density fixtures", () => {
   });
 
   it("keeps the article list narrow fixture focused on list density and row presence", () => {
-    expect(ArticleListDenseNarrowViewport.parameters?.viewport).toEqual({
-      defaultViewport: "mobile2",
-    });
+    expect(ArticleListDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
 
     renderStory(articleListScreenMeta, ArticleListDenseNarrowViewport);
 
@@ -36,9 +40,7 @@ describe("Storybook viewport density fixtures", () => {
   });
 
   it("keeps the settings modal narrow fixture focused on modal controls and rails", () => {
-    expect(SettingsModalDenseNarrowViewport.parameters?.viewport).toEqual({
-      defaultViewport: "mobile2",
-    });
+    expect(SettingsModalDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
 
     cleanup();
     renderStory(settingsModalMeta, SettingsModalDenseNarrowViewport);

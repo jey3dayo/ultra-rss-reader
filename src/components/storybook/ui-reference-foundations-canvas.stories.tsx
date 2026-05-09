@@ -5,7 +5,7 @@ import {
   SemanticStateSurfaceSpecimen,
   SurfaceRoleSpecimen,
   TypographyScaleSpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-foundation-specimens";
 
 export function FoundationsCanvas() {
   return (

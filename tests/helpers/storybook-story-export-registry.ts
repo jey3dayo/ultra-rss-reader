@@ -1,16 +1,35 @@
-type StorybookStoryModule = Record<string, unknown> & {
-  default?: unknown;
+type StorybookDefaultMetaLike = {
+  component: unknown;
+  args?: unknown;
+  parameters?: unknown;
+  globals?: unknown;
+  render?: unknown;
+  decorators?: unknown;
+};
+
+type StorybookStoryModuleLike = {
+  default: StorybookDefaultMetaLike;
+  [exportName: string]: unknown;
+};
+
+type StorybookNamedStoryLike = {
+  args?: unknown;
+  parameters?: unknown;
+  globals?: unknown;
+  render?: unknown;
+  decorators?: unknown;
 };
 
 export type StorybookStoryExportRegistryEntry = {
   filePath: string;
-  defaultMeta: Record<string, unknown>;
+  defaultMeta: StorybookDefaultMetaLike;
   storyExportNames: string[];
   allowedNonStoryExportNames: string[];
 };
 
 const ALLOWED_NON_STORY_EXPORTS = new Set([
-  "/src/components/reader/sidebar-selection-review.stories.tsx#SidebarSelectionReviewCanvas",
+  // UI Reference canvases are exported so component-level registry tests can assert specimen coverage.
+  // Normal story files must keep helper components private and expose only Storybook story objects.
   "/src/components/storybook/ui-reference-button-controls-canvas.stories.tsx#ButtonControlsCanvas",
   "/src/components/storybook/ui-reference-foundations-canvas.stories.tsx#FoundationsCanvas",
   "/src/components/storybook/ui-reference-navigation-collections-canvas.stories.tsx#NavigationCollectionsCanvas",
@@ -20,33 +39,75 @@ const ALLOWED_NON_STORY_EXPORTS = new Set([
   "/src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx#ViewSpecimensCanvas",
 ]);
 
-const storyModules = import.meta.glob<StorybookStoryModule>("/src/**/*.stories.tsx", { eager: true });
+const storyModules = import.meta.glob<unknown>("/src/**/*.stories.tsx", { eager: true });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function describeStorybookValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  if (value === null) {
+    return "null";
+  }
+
+  return typeof value;
+}
+
+function isStorybookDefaultMetaLike(value: unknown): value is StorybookDefaultMetaLike {
+  return isRecord(value) && "component" in value;
+}
+
+function describeStorybookDefaultMetaIssue(value: unknown) {
+  if (!isRecord(value)) {
+    return `received ${describeStorybookValue(value)}`;
+  }
+
+  return "missing component";
+}
+
+function isStorybookStoryModuleLike(value: unknown): value is StorybookStoryModuleLike {
+  return isRecord(value) && isStorybookDefaultMetaLike(value.default);
+}
+
+function describeStorybookStoryModuleIssue(value: unknown) {
+  if (Array.isArray(value)) {
+    return "module must be an object (array)";
+  }
+
+  if (!isRecord(value)) {
+    return `module must be an object (${describeStorybookValue(value)})`;
+  }
+
+  return `default export must be a Storybook meta object with component (${describeStorybookDefaultMetaIssue(
+    value.default,
+  )})`;
+}
+
+function isStorybookNamedStoryLike(value: unknown): value is StorybookNamedStoryLike {
+  return isRecord(value);
 }
 
 function isAllowedNonStoryExport(filePath: string, exportName: string) {
   return ALLOWED_NON_STORY_EXPORTS.has(`${filePath}#${exportName}`);
 }
 
-function collectStoryRegistry() {
+export function collectStorybookStoryExportRegistry(storyModulesByPath: Record<string, unknown>) {
   const registry: StorybookStoryExportRegistryEntry[] = [];
   const issues: string[] = [];
 
-  for (const [filePath, storyModule] of Object.entries(storyModules).sort(([left], [right]) =>
+  for (const [filePath, storyModule] of Object.entries(storyModulesByPath).sort(([left], [right]) =>
     left.localeCompare(right),
   )) {
-    const defaultMeta = storyModule.default;
-    if (!isRecord(defaultMeta)) {
-      issues.push(`${filePath}: default export must be a Storybook meta object`);
+    if (!isStorybookStoryModuleLike(storyModule)) {
+      issues.push(`${filePath}: ${describeStorybookStoryModuleIssue(storyModule)}`);
       continue;
     }
 
-    if (!("component" in defaultMeta)) {
-      issues.push(`${filePath}: default meta must define component for renderStory compatibility`);
-    }
-
+    const defaultMeta = storyModule.default;
     const storyExportNames: string[] = [];
     const allowedNonStoryExportNames: string[] = [];
 
@@ -57,7 +118,7 @@ function collectStoryRegistry() {
         continue;
       }
 
-      if (isRecord(exportValue)) {
+      if (isStorybookNamedStoryLike(exportValue)) {
         storyExportNames.push(exportName);
         continue;
       }
@@ -85,7 +146,7 @@ function collectStoryRegistry() {
   return { registry, issues };
 }
 
-const storyRegistryResult = collectStoryRegistry();
+const storyRegistryResult = collectStorybookStoryExportRegistry(storyModules);
 
 export const storybookStoryExportRegistry = storyRegistryResult.registry;
 export const storybookStoryRegistryIssues = storyRegistryResult.issues;

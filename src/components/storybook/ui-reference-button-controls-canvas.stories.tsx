@@ -13,7 +13,7 @@ import {
   SemanticActionButtonsSpecimen,
   SettingsActionButtonSpecimen,
   SpecializedButtonPatternsSpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-control-specimens";
 
 export function ButtonControlsCanvas() {
   return (

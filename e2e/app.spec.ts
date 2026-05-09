@@ -1,4 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
+import { expectMeasurableBox } from "./helpers/measurable-box";
+import { disposeRuntimeErrorGuard, expectNoPageErrors, installRuntimeErrorGuard } from "./helpers/runtime-error-guard";
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
@@ -41,7 +43,16 @@ async function openSubscriptionInventory(page: Page) {
 
 test.describe("Ultra RSS Reader - basic rendering", () => {
   test.beforeEach(async ({ page }) => {
+    installRuntimeErrorGuard(page);
     await page.goto("/");
+  });
+
+  test.afterEach(async ({ page }) => {
+    try {
+      expectNoPageErrors(page);
+    } finally {
+      disposeRuntimeErrorGuard(page);
+    }
   });
 
   test("page has correct title", async ({ page }) => {
@@ -174,15 +185,14 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(detailActions).toBeVisible();
     await expect(inventoryHeading).toBeVisible();
 
-    const actionBox = await detailActions.boundingBox();
-    const headingBox = await inventoryHeading.boundingBox();
-
-    expect(actionBox).not.toBeNull();
-    expect(headingBox).not.toBeNull();
-
-    if (!actionBox || !headingBox) {
-      throw new Error("Expected subscription detail controls to have measurable bounds.");
-    }
+    const actionBox = await expectMeasurableBox(
+      detailActions,
+      "Expected subscription detail controls to have measurable bounds.",
+    );
+    const headingBox = await expectMeasurableBox(
+      inventoryHeading,
+      "Expected subscription inventory heading to have measurable bounds.",
+    );
 
     expect(actionBox.y).toBeGreaterThan(headingBox.y);
   });
@@ -197,16 +207,15 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const rows = subscriptionRows(page);
     const firstRow = rows.first();
 
-    const rowBefore = await firstRow.boundingBox();
+    const rowBefore = await expectMeasurableBox(
+      firstRow,
+      "Expected subscription row to have measurable bounds before selection.",
+    );
     await firstRow.click();
-    const rowAfter = await firstRow.boundingBox();
-
-    expect(rowBefore).not.toBeNull();
-    expect(rowAfter).not.toBeNull();
-
-    if (!rowBefore || !rowAfter) {
-      throw new Error("Expected subscription rows to have measurable bounds.");
-    }
+    const rowAfter = await expectMeasurableBox(
+      firstRow,
+      "Expected subscription row to have measurable bounds after selection.",
+    );
 
     expect(rowAfter.y).toBe(rowBefore.y);
   });
@@ -220,16 +229,15 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const rows = subscriptionRows(page);
     const firstRow = rows.first();
 
-    const rowBefore = await firstRow.boundingBox();
+    const rowBefore = await expectMeasurableBox(
+      firstRow,
+      "Expected subscription row to have measurable bounds before selection.",
+    );
     await firstRow.click();
-    const rowAfter = await firstRow.boundingBox();
-
-    expect(rowBefore).not.toBeNull();
-    expect(rowAfter).not.toBeNull();
-
-    if (!rowBefore || !rowAfter) {
-      throw new Error("Expected subscription rows to have measurable bounds.");
-    }
+    const rowAfter = await expectMeasurableBox(
+      firstRow,
+      "Expected subscription row to have measurable bounds after selection.",
+    );
 
     expect(rowAfter.y).toBe(rowBefore.y);
   });
@@ -244,15 +252,11 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     const subscriptionRail = page.locator('[data-testid^="subscriptions-folder-tree-rail-"]').first();
     const firstRow = subscriptionRows(page).first();
 
-    const railBox = await subscriptionRail.boundingBox();
-    const rowBox = await firstRow.boundingBox();
-
-    expect(railBox).not.toBeNull();
-    expect(rowBox).not.toBeNull();
-
-    if (!railBox || !rowBox) {
-      throw new Error("Expected subscription rail and rows to have measurable bounds.");
-    }
+    const railBox = await expectMeasurableBox(
+      subscriptionRail,
+      "Expected subscription rail to have measurable bounds.",
+    );
+    const rowBox = await expectMeasurableBox(firstRow, "Expected subscription row to have measurable bounds.");
 
     expect(Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(1);
   });

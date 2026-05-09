@@ -8,7 +8,7 @@ import {
   ReferencePage,
   ShellExamplesSpecimen,
   UpdateToastStabilitySpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-shell-specimens";
 
 export function ShellOverlayCanvas() {
   return (

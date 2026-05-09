@@ -13,7 +13,7 @@ import {
   AnnotatedNote,
   ReferencePage,
   SettingsHeaderSummarySpecimen,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-settings-specimens";
 
 const SHELL_SECTION_LABEL_CLASS =
   "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
@@ -22,19 +22,19 @@ const settingsNavItems = [
   {
     id: "general",
     label: "General",
-    icon: <Settings className="h-5 w-5" />,
+    icon: <Settings className="size-5" />,
     isActive: false,
   },
   {
     id: "reading",
     label: "Reading",
-    icon: <BookOpen className="h-5 w-5" />,
+    icon: <BookOpen className="size-5" />,
     isActive: false,
   },
   {
     id: "appearance",
     label: "Appearance",
-    icon: <Palette className="h-5 w-5" />,
+    icon: <Palette className="size-5" />,
     isActive: false,
   },
 ] as const;
@@ -56,7 +56,10 @@ const detailAccounts = [
   },
 ] as const;
 
-const addAccountAccounts = detailAccounts.map((account) => ({ ...account, isActive: false }));
+const addAccountAccounts = detailAccounts.map((account) => ({
+  ...account,
+  isActive: false,
+}));
 
 const syncIntervalOptions = [
   { value: "900", label: "Every 15 minutes" },
@@ -104,7 +107,7 @@ function SettingsWorkspaceShell({
           style={{ backgroundColor: "var(--settings-shell-rail)" }}
         >
           <SettingsActionButton size="icon" tone="rail" aria-label="Close settings">
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </SettingsActionButton>
           <div className="min-w-0">
             <h3 className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">{title}</h3>
@@ -120,7 +123,7 @@ function SettingsWorkspaceShell({
         </div>
 
         <div
-          className="mx-3 mb-3 rounded-md border border-border/60 px-3 py-3"
+          className="mx-3 mb-3 rounded-md border border-border/60 p-3"
           style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
         >
           <p className={SHELL_SECTION_LABEL_CLASS}>Accounts</p>
@@ -153,7 +156,7 @@ export function SettingsWorkspaceCanvas() {
             title="Settings workspace"
             body="This canvas is the interface reference for the settings modal as a whole: left rail, account stack, header summary, right-side control rail, and add-account flow should be judged here together."
           />
-          <div className="rounded-md border border-border/70 bg-surface-1/84 px-4 py-4 shadow-none">
+          <div className="rounded-md border border-border/70 bg-surface-1/84 p-4 shadow-none">
             <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
               Settings actions
             </p>
@@ -163,7 +166,7 @@ export function SettingsWorkspaceCanvas() {
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <SettingsActionButton size="icon" tone="rail" aria-label="Close settings">
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </SettingsActionButton>
               <SettingsActionButton>Reset to defaults</SettingsActionButton>
               <SettingsActionButton>Open log directory</SettingsActionButton>

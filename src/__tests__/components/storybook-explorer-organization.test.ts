@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import preview from "../../../.storybook/preview";
+import preview, { STORYBOOK_PREVIEW_BACKGROUND_TOKEN } from "../../../.storybook/preview";
+import {
+  STORYBOOK_EXPLORER_GROUPS,
+  STORYBOOK_EXPLORER_ORDER,
+  STORYBOOK_EXPLORER_SUBGROUPS,
+} from "../../constants/storybook-explorer";
 
 type StoryMetaModule = {
   default?: {
@@ -19,101 +26,118 @@ const storyMetas = Object.entries(storyModules)
   .filter((entry): entry is { path: string; title: string } => typeof entry.title === "string");
 
 const titles = storyMetas.map((entry) => entry.title);
+const globalStyles = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
 
-const uiReferenceTitles = [
-  "UI Reference/Foundations Canvas",
-  "UI Reference/Input Controls Canvas",
-  "UI Reference/Button Controls Canvas",
-  "UI Reference/Shell & Overlay Canvas",
-  "UI Reference/Settings Workspace Canvas",
-  "UI Reference/Navigation & Collections Canvas",
-  "UI Reference/View Specimens Canvas",
-] as const;
+type StorybookBackgroundName = "dark" | "light";
 
-const sharedGroups = ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"] as const;
-const settingsGroups = ["Page", "Section", "Nav"] as const;
-const readerGroups = ["Article", "Sidebar", "Dialog", "Menu", "Browser"] as const;
-const subscriptionsGroups = ["Summary", "List", "Detail"] as const;
-const internalGroups = ["Debug", "Review"] as const;
-const topLevelGroups = [
-  "UI Reference",
-  "Shared",
-  "Primitives",
-  "Settings",
-  "Reader",
-  "Subscriptions",
-  "Internal",
-] as const;
+const appThemeCanvasSelectors = {
+  dark: ":root.dark",
+  light: ":root",
+} satisfies Record<StorybookBackgroundName, string>;
+
+const uiReferenceTitles = STORYBOOK_EXPLORER_SUBGROUPS.uiReference.map(
+  (title) => `${STORYBOOK_EXPLORER_GROUPS.uiReference}/${title}`,
+);
+const topLevelGroups = Object.values(STORYBOOK_EXPLORER_GROUPS);
 
 function titlesUnder(group: string) {
   return titles.filter((title) => title.startsWith(`${group}/`));
 }
 
+function sortedCopy<T>(items: Iterable<T>, compareFn?: (left: T, right: T) => number): T[] {
+  return [...items].sort(compareFn);
+}
+
+function storybookBackgroundMap(): Record<StorybookBackgroundName, string | undefined> {
+  const values = preview.parameters?.backgrounds?.values ?? [];
+  const valueFor = (name: StorybookBackgroundName) =>
+    values.find((value: { name?: unknown; value?: unknown }) => value.name === name && typeof value.value === "string")
+      ?.value;
+
+  return {
+    dark: valueFor("dark"),
+    light: valueFor("light"),
+  };
+}
+
+function extractThemeCanvasValue(styles: string, selector: string): string {
+  const block = extractCssBlock(styles, selector);
+  const themeCanvasMatch = block.match(
+    new RegExp(`${escapeRegExp(STORYBOOK_PREVIEW_BACKGROUND_TOKEN)}:\\s*(#[0-9a-fA-F]{6});`),
+  );
+
+  if (themeCanvasMatch === null) {
+    throw new Error(`Missing ${STORYBOOK_PREVIEW_BACKGROUND_TOKEN} token for ${selector}`);
+  }
+
+  return themeCanvasMatch[1].toLowerCase();
+}
+
+function extractCssBlock(styles: string, selector: string): string {
+  const blockMatch = styles.match(new RegExp(`${escapeRegExp(selector)}\\s*\\{(?<body>[\\s\\S]*?)\\n\\}`));
+
+  if (blockMatch?.groups?.body === undefined) {
+    throw new Error(`Missing CSS block for ${selector}`);
+  }
+
+  return blockMatch.groups.body;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 describe("Storybook Explorer organization", () => {
   it("defines an explicit Storybook Explorer order", () => {
     expect(preview.parameters?.options?.storySort).toMatchObject({
-      order: [
-        "UI Reference",
-        [
-          "Foundations Canvas",
-          "Input Controls Canvas",
-          "Button Controls Canvas",
-          "Shell & Overlay Canvas",
-          "Settings Workspace Canvas",
-          "Navigation & Collections Canvas",
-          "View Specimens Canvas",
-        ],
-        "Shared",
-        ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"],
-        "Primitives",
-        "Settings",
-        ["Page", "Section", "Nav"],
-        "Reader",
-        ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
-        "Subscriptions",
-        ["Summary", "List", "Detail"],
-        "Internal",
-        ["Debug", "Review"],
-      ],
+      order: STORYBOOK_EXPLORER_ORDER,
+    });
+  });
+
+  it("keeps preview backgrounds aligned with app theme canvas tokens", () => {
+    expect(preview.parameters?.backgrounds?.default).toBe("dark");
+    expect(storybookBackgroundMap()).toEqual({
+      dark: extractThemeCanvasValue(globalStyles, appThemeCanvasSelectors.dark),
+      light: extractThemeCanvasValue(globalStyles, appThemeCanvasSelectors.light),
     });
   });
 
   it("keeps all story titles inside the approved top-level Explorer groups", () => {
-    const actualGroups = [...new Set(titles.map((title) => title.split("/")[0]))].sort();
-    expect(actualGroups).toEqual([...topLevelGroups].sort());
+    const actualGroups = sortedCopy(new Set(titles.map((title) => title.split("/")[0])));
+    expect(actualGroups).toEqual(sortedCopy(topLevelGroups));
   });
 
   it("uses document-aligned UI Reference story names", () => {
-    expect([...titlesUnder("UI Reference")].sort()).toEqual([...uiReferenceTitles].sort());
+    expect(sortedCopy(titlesUnder("UI Reference"))).toEqual(sortedCopy(uiReferenceTitles));
   });
 
   it("moves shared stories into dedicated role groups", () => {
-    const sharedTitles = titlesUnder("Shared");
-    const actualGroups = [...new Set(sharedTitles.map((title) => title.split("/")[1]))].sort();
+    const sharedTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.shared);
+    const actualGroups = sortedCopy(new Set(sharedTitles.map((title) => title.split("/")[1])));
 
-    expect(actualGroups).toEqual([...sharedGroups].sort());
+    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.shared));
     expect(sharedTitles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
   it("keeps primitives in the dedicated group", () => {
-    expect(titlesUnder("Primitives")).toEqual(["Primitives/Button"]);
+    expect(titlesUnder(STORYBOOK_EXPLORER_GROUPS.primitives)).toEqual(["Primitives/Button"]);
   });
 
   it("nests settings stories by role", () => {
-    const settingsTitles = titlesUnder("Settings");
-    const actualGroups = [...new Set(settingsTitles.map((title) => title.split("/")[1]))].sort();
+    const settingsTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.settings);
+    const actualGroups = sortedCopy(new Set(settingsTitles.map((title) => title.split("/")[1])));
 
-    expect(actualGroups).toEqual([...settingsGroups].sort());
+    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.settings));
     expect(settingsTitles.every((title) => title.split("/").length === 3)).toBe(true);
     expect(settingsTitles).toContain("Settings/Page/DataSettingsView");
     expect(settingsTitles).toContain("Settings/Page/MuteSettingsView");
   });
 
   it("nests reader stories by role", () => {
-    const readerTitles = titlesUnder("Reader");
-    const actualGroups = [...new Set(readerTitles.map((title) => title.split("/")[1]))].sort();
+    const readerTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.reader);
+    const actualGroups = sortedCopy(new Set(readerTitles.map((title) => title.split("/")[1])));
 
-    expect(actualGroups).toEqual([...readerGroups].sort());
+    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.reader));
     expect(readerTitles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
@@ -122,10 +146,10 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("keeps subscriptions workspace stories in their own group", () => {
-    const subscriptionsTitles = titlesUnder("Subscriptions");
-    const actualGroups = [...new Set(subscriptionsTitles.map((title) => title.split("/")[1]))].sort();
+    const subscriptionsTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.subscriptions);
+    const actualGroups = sortedCopy(new Set(subscriptionsTitles.map((title) => title.split("/")[1])));
 
-    expect(actualGroups).toEqual([...subscriptionsGroups].sort());
+    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.subscriptions));
     expect(subscriptionsTitles.every((title) => title.split("/").length === 3)).toBe(true);
     expect(subscriptionsTitles).toContain("Subscriptions/Summary/SubscriptionsOverviewSummary");
     expect(subscriptionsTitles).toContain("Subscriptions/List/SubscriptionsListPane");
@@ -139,10 +163,10 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("isolates internal stories under debug or review only", () => {
-    const internalTitles = titlesUnder("Internal");
-    const actualGroups = [...new Set(internalTitles.map((title) => title.split("/")[1]))].sort();
+    const internalTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.internal);
+    const actualGroups = sortedCopy(new Set(internalTitles.map((title) => title.split("/")[1])));
 
-    expect(actualGroups, internalTitles.join("\n")).toEqual([...internalGroups].sort());
+    expect(actualGroups, internalTitles.join("\n")).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.internal));
     expect(internalTitles.every((title) => title.split("/").length === 3)).toBe(true);
     expect(internalTitles).toContain("Internal/Review/ArticleReadingRhythm");
   });
@@ -163,25 +187,25 @@ describe("Storybook Explorer organization", () => {
 
 function expectedTopLevelGroupForPath(path: string, title: string) {
   if (path.startsWith("../../components/storybook/")) {
-    return "UI Reference";
+    return STORYBOOK_EXPLORER_GROUPS.uiReference;
   }
   if (path.startsWith("../../components/shared/")) {
-    return "Shared";
+    return STORYBOOK_EXPLORER_GROUPS.shared;
   }
   if (path.startsWith("../../components/ui/")) {
-    return "Primitives";
+    return STORYBOOK_EXPLORER_GROUPS.primitives;
   }
   if (path.startsWith("../../components/settings/")) {
-    return "Settings";
+    return STORYBOOK_EXPLORER_GROUPS.settings;
   }
   if (path.startsWith("../../components/subscriptions-index/")) {
-    return "Subscriptions";
+    return STORYBOOK_EXPLORER_GROUPS.subscriptions;
   }
   if (path.startsWith("../../components/debug/")) {
-    return "Internal";
+    return STORYBOOK_EXPLORER_GROUPS.internal;
   }
   if (path.startsWith("../../components/reader/")) {
-    return title.startsWith("Internal/Review/") ? "Internal" : "Reader";
+    return title.startsWith("Internal/Review/") ? STORYBOOK_EXPLORER_GROUPS.internal : STORYBOOK_EXPLORER_GROUPS.reader;
   }
 
   return null;
