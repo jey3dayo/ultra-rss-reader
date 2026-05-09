@@ -2,18 +2,22 @@ import { z } from "zod";
 import { PLATFORM_KINDS } from "@/constants/platform";
 
 // Capabilities are part of PlatformInfo; keep the nested schema local until callers need a standalone contract.
-const PlatformCapabilitiesSchema = z.object({
-  supports_reading_list: z.boolean(),
-  supports_background_browser_open: z.boolean(),
-  supports_runtime_window_icon_replacement: z.boolean(),
-  supports_native_browser_navigation: z.boolean(),
-  uses_dev_file_credentials: z.boolean(),
-});
+const PlatformCapabilitiesSchema = z
+  .object({
+    supports_reading_list: z.boolean(),
+    supports_background_browser_open: z.boolean(),
+    supports_runtime_window_icon_replacement: z.boolean(),
+    supports_native_browser_navigation: z.boolean(),
+    uses_dev_file_credentials: z.boolean(),
+  })
+  .strict();
 
-export const PlatformInfoSchema = z.object({
-  kind: z.enum(PLATFORM_KINDS),
-  capabilities: PlatformCapabilitiesSchema,
-});
+export const PlatformInfoSchema = z
+  .object({
+    kind: z.enum(PLATFORM_KINDS),
+    capabilities: PlatformCapabilitiesSchema,
+  })
+  .strict();
 
 export const MAX_DEV_WINDOW_DIMENSION_PX = 10_000;
 const devWindowDimensionSchema = z.number().int().positive().max(MAX_DEV_WINDOW_DIMENSION_PX).nullable();
