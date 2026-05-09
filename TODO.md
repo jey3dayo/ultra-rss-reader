@@ -80,20 +80,10 @@
   - account sync は `join_all` で並列化される一方、DB は `Mutex<DbManager>` で直列化されるため、長い write 中に他 account や UI read が詰まりやすい
   - 複数 account sync 中に list/count command が返る時間を測り、並列度制限、DB operation queue、read path の busy/error policy を固定する
 
-- [ ] P1 vacuum と sync 開始の race を database maintenance guard で整理する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`
-  - `vacuum_database` は開始時に `syncing` を読むだけで自分では sync guard を取らないため、直後に sync が始まると DB lock 待ちと UI 進捗が不自然になり得る
-  - vacuum lock 中に sync 開始を競合させる test を追加し、vacuum 用 guard か sync 側の maintenance 検出を入れる
-
 - [ ] P1 sanitizer で許可した media/source/link attribute の privacy policy を固定する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
   - sanitizer が `source` の `srcset` / `sizes` / `media` などを許可するため、将来 article body rendering が media を増やした時に remote request 面積が広がりやすい
   - reader body で実際に描画される tag/attribute と CSP/privacy doc を照合し、media tag を残す/落とす/手動検証へ分ける
-
-- [ ] P2 local feed sync の article upsert と sync_state 保存を atomic にする
-  - 対象: `src-tauri/src/commands/sync_providers.rs`
-  - articles/count は保存済みだが validator `sync_state` 保存だけ失敗すると、次回同じ feed を再取得し、逆方向の不整合も将来 refactor で入りやすい
-  - `sync_state` table failure test で記事保存済み時の state 方針を固定し、article upsert、mute auto-read、count、state を service transaction へまとめる
 
 - [ ] P2 pending_mutations の duplicate row を DB 制約で防ぐ
   - 対象: `src-tauri/migrations/V1__initial.sql`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
@@ -145,11 +135,6 @@
   - provider 由来 URL が外部ブラウザ/open command に流れるため、`javascript:`、`file:`, credential-in-URL、control char をどこで拒否するか未固定だと OS opener 境界で事故りやすい
   - frontend action と Rust opener command の両方で allowed scheme を固定し、invalid URL は toast だけで native invoke しない contract test を追加する
 
-- [ ] P1 browser webview event payload の schema validation を Rust/TS で揃える
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`, `src-tauri/src/browser_webview.rs`
-  - native event payload は frontend schema と Rust emit shape がズレると malformed event warning で止まり、browser overlay の state だけ stale になり得る
-  - Rust event fixture と TS schema fixture を同じケースで照合し、unknown stage、missing URL、malformed bounds の recovery を固定する
-
 - [ ] P2 article view history cleanup / retention policy を決める
   - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
   - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
@@ -159,11 +144,6 @@
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/api/schemas/feed-integrity.ts`
   - orphan cleanup は destructive なので、dry-run と実削除の count 差、concurrent feed delete、sync 中実行の扱いが曖昧だと DB repair 操作で事故りやすい
   - dry-run直後の状態変化、sync中拒否、deleted count と orphan count の一致を Rust/TS schema test で固定する
-
-- [ ] P2 reader selection が削除済み feed/folder/tag を指す時の recovery を固定する
-  - 対象: `src/stores/ui-store.ts`, `src/lib/reader/reader-query.ts`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
-  - feed/folder/tag 削除後に selection が stale id を指すと disabled query や empty view に落ちるが、どこで all/unread へ戻すかが分かれやすい
-  - selected feed deleted、selected folder deleted、selected tag deleted、account switch の recovery を store/hook test で固定する
 
 - [ ] P2 account unread count と feed unread count の reconciliation policy を作る
   - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-account-unread-count.ts`
@@ -244,11 +224,6 @@
   - 対象: `src-tauri/src/commands/log_commands.rs`, `src-tauri/src/lib.rs`, `docs/feed-content-privacy.md`
   - log dir はユーザーが直接開けるため、sync error、browser diagnostics、debug trace に URL query や account data が残ると support 共有時に漏えいしやすい
   - log redaction 対象、retention、manual support 手順を checklist 化し、代表ログに secret-like string が出ない test を追加する
-
-- [ ] P2 selected_account_id preference が stale の時に DB mirror を修復する
-  - 対象: `src/lib/account/account-selection.ts`, `src/stores/preferences-store.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
-  - `getPreferredAccountId` は missing saved id を先頭 account へ fallback するが、DB preference 自体を直さない場合、起動ごとに stale id を読み続ける
-  - account delete、import後 account id 変更、blank saved id の時に selected_account_id を修復するか read-time fallback に留めるか test で固定する
 
 - [ ] P2 account switcher outside-click listener の pointer/touch/focusout coverage を確認する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts`
@@ -369,11 +344,6 @@
   - 対象: `src/dev/mocks.ts`, `src/dev/scenario-runtime.ts`, `src/components/debug`
   - unknown command は throw するだけなので、Storybook/dev preview 上では白画面や console only になり、mock coverage drift の発見が遅れやすい
   - unknown command を diagnostics panel に集約するか test failure 専用に留めるか決め、dev runtime test を追加する
-
-- [ ] P1 account delete 後の reader selection / article cache cleanup を account scope で固定する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/stores/ui-store.ts`, `src/hooks/use-articles.ts`
-  - account delete 成功後に accounts/feed queries は invalidation するが、reader の selected feed/article/tag や retained/recentlyRead cache が削除 account を指し続けると、次の操作が missing id で落ちやすい
-  - delete account 後の selected account/feed/article/tag、browser overlay、article cache の cleanup/fallback を component/store test で固定する
 
 - [ ] P1 account OPML export の stale account snapshot と object URL lifecycle を固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
