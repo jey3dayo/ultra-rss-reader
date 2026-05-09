@@ -31,6 +31,12 @@
       "playwright.storybook.config.ts",
       "src/dev/scenarios/index.ts"
     ],
+    "ignoreIssues": {
+      "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": [
+        "exports",
+        "types"
+      ]
+    },
     "ignoreDependencies": [
       "markdownlint-cli2"
     ]

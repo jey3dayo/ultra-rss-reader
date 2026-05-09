@@ -7,7 +7,8 @@ import type { Select as SelectPrimitive } from "@base-ui/react/select";
 import type { VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import type { Ref } from "react";
-import { describe, expectTypeOf, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import packageJson from "../../../package.json";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { Button, buttonVariants } from "@/components/ui/button";
 import type { CollapsibleContentProps, CollapsibleProps, CollapsibleTriggerProps } from "@/components/ui/collapsible";
@@ -92,6 +93,12 @@ describe("UI wrapper public API", () => {
     expectTypeOf<CollapsibleProps>().toEqualTypeOf<CollapsiblePrimitive.Root.Props>();
     expectTypeOf<CollapsibleTriggerProps>().toEqualTypeOf<CollapsiblePrimitive.Trigger.Props>();
     expectTypeOf<CollapsibleContentProps>().toEqualTypeOf<CollapsiblePrimitive.Panel.Props>();
+  });
+
+  it("keeps UI primitive wrappers allowlisted as intentional public exports", () => {
+    expect(packageJson.knip?.ignoreIssues).toEqual({
+      "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": ["exports", "types"],
+    });
   });
 
   it("keeps confirm dialog variants as a shared store/view contract", () => {
