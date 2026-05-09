@@ -9,6 +9,14 @@ function isUnsupportedAlwaysOnTopError(error: Error): boolean {
   return /\b(?:not supported|unsupported)\b/i.test(error.message);
 }
 
+function logAlwaysOnTopFailure(error: Error): void {
+  if (isUnsupportedAlwaysOnTopError(error)) {
+    return;
+  }
+
+  console.warn("Failed to update window always-on-top state:", error.message);
+}
+
 export function useWindowAlwaysOnTop() {
   const requestIdRef = useRef(0);
   const enabled = usePreferencesStore(
@@ -23,22 +31,26 @@ export function useWindowAlwaysOnTop() {
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
-    setWindowAlwaysOnTop(enabled).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspectError((error) => {
-          if (requestId !== requestIdRef.current) {
-            return;
-          }
+    setWindowAlwaysOnTop(enabled)
+      .then((result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            if (requestId !== requestIdRef.current) {
+              return;
+            }
 
-          if (isUnsupportedAlwaysOnTopError(error)) {
-            return;
-          }
+            logAlwaysOnTopFailure(error);
+          }),
+        ),
+      )
+      .catch((error: unknown) => {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
 
-          console.warn("Failed to update window always-on-top state:", error.message);
-        }),
-      ),
-    );
+        console.warn("Window always-on-top command rejected:", error);
+      });
 
     return () => {
       if (requestIdRef.current === requestId) {

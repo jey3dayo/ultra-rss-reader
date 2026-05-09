@@ -16,14 +16,8 @@ type ExecFileAsync = (
 ) => Promise<{ stdout: string; stderr: string }>;
 type AccessImpl = (targetPath: string, mode?: number) => Promise<void>;
 type CopyFileImpl = (source: string, destination: string) => Promise<void>;
-type MkdirImpl = (
-  targetPath: string,
-  options: { recursive: true },
-) => Promise<string | undefined>;
-type RmImpl = (
-  targetPath: string,
-  options: { recursive?: boolean; force?: boolean },
-) => Promise<void>;
+type MkdirImpl = (targetPath: string, options: { recursive: true }) => Promise<string | undefined>;
+type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
 
 export type SeedArtifact = {
   source: string;
@@ -48,32 +42,21 @@ const DATABASE_SUFFIXES = ["", "-wal", "-shm"] as const;
 
 const promisifiedExecFile = promisify(execFile);
 const execFileAsync: ExecFileAsync = async (command, args, options) => {
-  const { stdout, stderr } = await promisifiedExecFile(
-    command,
-    [...args],
-    options,
-  );
+  const { stdout, stderr } = await promisifiedExecFile(command, [...args], options);
   return { stdout: String(stdout), stderr: String(stderr) };
 };
 
 function processDetectionError(error: unknown): Error {
   const detail = error instanceof Error ? error.message : String(error);
-  return new Error(
-    `Failed to check whether Ultra RSS Reader is running: ${detail}`,
-  );
+  return new Error(`Failed to check whether Ultra RSS Reader is running: ${detail}`);
 }
 
 function databaseHandleDetectionError(error: unknown): Error {
   const detail = error instanceof Error ? error.message : String(error);
-  return new Error(
-    `Failed to check whether the Dev database is open: ${detail}`,
-  );
+  return new Error(`Failed to check whether the Dev database is open: ${detail}`);
 }
 
-function readConfiguredEnvValue(
-  env: NodeJS.ProcessEnv,
-  key: string,
-): string | undefined {
+function readConfiguredEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   const value = env[key];
   return value !== undefined && value.trim().length > 0 ? value : undefined;
 }
@@ -89,31 +72,20 @@ export function resolveAppDataDir(options: {
   const env = options.env ?? process.env;
 
   if (platform === "darwin") {
-    return path.join(
-      homeDir,
-      "Library",
-      "Application Support",
-      options.identifier,
-    );
+    return path.join(homeDir, "Library", "Application Support", options.identifier);
   }
 
   if (platform === "win32") {
-    const roamingAppData =
-      readConfiguredEnvValue(env, "APPDATA") ??
-      path.join(homeDir, "AppData", "Roaming");
+    const roamingAppData = readConfiguredEnvValue(env, "APPDATA") ?? path.join(homeDir, "AppData", "Roaming");
     return path.join(roamingAppData, options.identifier);
   }
 
-  const dataHome =
-    readConfiguredEnvValue(env, "XDG_DATA_HOME") ??
-    path.join(homeDir, ".local", "share");
+  const dataHome = readConfiguredEnvValue(env, "XDG_DATA_HOME") ?? path.join(homeDir, ".local", "share");
   return path.join(dataHome, options.identifier);
 }
 
 export function buildDatabaseArtifactPaths(appDataDir: string): string[] {
-  return DATABASE_SUFFIXES.map((suffix) =>
-    path.join(appDataDir, `${DATABASE_FILE_NAME}${suffix}`),
-  );
+  return DATABASE_SUFFIXES.map((suffix) => path.join(appDataDir, `${DATABASE_FILE_NAME}${suffix}`));
 }
 
 export function resolveBackupDirName(timestamp: string): string {
@@ -126,11 +98,7 @@ export function buildSeedPlan(options: {
   timestamp?: string;
 }): SeedPlan {
   const timestamp = options.timestamp ?? formatTimestamp(new Date());
-  const backupDir = path.join(
-    options.devAppDataDir,
-    "backups",
-    resolveBackupDirName(timestamp),
-  );
+  const backupDir = path.join(options.devAppDataDir, "backups", resolveBackupDirName(timestamp));
   const stagingDir = `${backupDir}.staging`;
 
   return {
@@ -140,14 +108,8 @@ export function buildSeedPlan(options: {
     stagingDir,
     artifacts: DATABASE_SUFFIXES.map((suffix) => ({
       suffix,
-      source: path.join(
-        options.prodAppDataDir,
-        `${DATABASE_FILE_NAME}${suffix}`,
-      ),
-      destination: path.join(
-        options.devAppDataDir,
-        `${DATABASE_FILE_NAME}${suffix}`,
-      ),
+      source: path.join(options.prodAppDataDir, `${DATABASE_FILE_NAME}${suffix}`),
+      destination: path.join(options.devAppDataDir, `${DATABASE_FILE_NAME}${suffix}`),
       backup: path.join(backupDir, `${DATABASE_FILE_NAME}${suffix}`),
       staging: path.join(stagingDir, `${DATABASE_FILE_NAME}${suffix}`),
     })),
@@ -167,10 +129,7 @@ function formatTimestamp(date: Date): string {
   ].join("");
 }
 
-async function fileExists(
-  targetPath: string,
-  accessImpl: AccessImpl,
-): Promise<boolean> {
+async function fileExists(targetPath: string, accessImpl: AccessImpl): Promise<boolean> {
   try {
     await accessImpl(targetPath, fsConstants.F_OK);
     return true;
@@ -180,23 +139,13 @@ async function fileExists(
 }
 
 export function resolveSeedAppDataDirs(
-  options: {
-    env?: NodeJS.ProcessEnv;
-    platform?: SeedPlatform;
-    homeDir?: string;
-  } = {},
+  options: { env?: NodeJS.ProcessEnv; platform?: SeedPlatform; homeDir?: string } = {},
 ): { prodAppDataDir: string; devAppDataDir: string } {
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const homeDir = options.homeDir ?? os.homedir();
-  const prodAppDataDir = readConfiguredEnvValue(
-    env,
-    "ULTRA_RSS_PROD_APP_DATA_DIR",
-  );
-  const devAppDataDir = readConfiguredEnvValue(
-    env,
-    "ULTRA_RSS_DEV_APP_DATA_DIR",
-  );
+  const prodAppDataDir = readConfiguredEnvValue(env, "ULTRA_RSS_PROD_APP_DATA_DIR");
+  const devAppDataDir = readConfiguredEnvValue(env, "ULTRA_RSS_DEV_APP_DATA_DIR");
 
   return {
     prodAppDataDir:
@@ -236,15 +185,9 @@ export async function detectLikelyRunningAppProcesses(
   const execFileImpl = options.execFileImpl ?? execFileAsync;
 
   if (platform === "darwin" || platform === "linux") {
-    const processNames = [
-      "Ultra RSS Reader",
-      "Ultra RSS Reader Dev",
-      "ultra-rss-reader",
-    ];
+    const processNames = ["Ultra RSS Reader", "Ultra RSS Reader Dev", "ultra-rss-reader"];
     const checks = await Promise.all(
-      processNames.map((processName) =>
-        checkUnixProcessName(processName, execFileImpl),
-      ),
+      processNames.map((processName) => checkUnixProcessName(processName, execFileImpl)),
     );
 
     for (const check of checks) {
@@ -257,11 +200,7 @@ export async function detectLikelyRunningAppProcesses(
       }
     }
 
-    return Result.succeed(
-      checks.flatMap((check) =>
-        check.error === null ? [check.processName] : [],
-      ),
-    );
+    return Result.succeed(checks.flatMap((check) => (check.error === null ? [check.processName] : [])));
   }
 
   if (platform === "win32") {
@@ -272,11 +211,7 @@ export async function detectLikelyRunningAppProcesses(
       return Result.succeed(
         stdout
           .split(/\r?\n/)
-          .filter(
-            (line) =>
-              /Ultra RSS Reader(?: Dev)?\.exe/i.test(line) ||
-              /ultra-rss-reader\.exe/i.test(line),
-          ),
+          .filter((line) => /Ultra RSS Reader(?: Dev)?\.exe/i.test(line) || /ultra-rss-reader\.exe/i.test(line)),
       );
     } catch (error) {
       return Result.fail(processDetectionError(error));
@@ -312,12 +247,7 @@ async function checkUnixProcessName(
 }
 
 function isProcessNotFoundError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error.code === 1 || error.code === "1")
-  );
+  return typeof error === "object" && error !== null && "code" in error && (error.code === 1 || error.code === "1");
 }
 
 export async function detectOpenDevDatabaseHandles(options: {
@@ -357,11 +287,7 @@ export async function detectOpenDevDatabaseHandles(options: {
   }
 
   return Result.succeed(
-    checks.flatMap((check) =>
-      check.error === null && check.stdout.trim().length > 0
-        ? [check.artifactPath]
-        : [],
-    ),
+    checks.flatMap((check) => (check.error === null && check.stdout.trim().length > 0 ? [check.artifactPath] : [])),
   );
 }
 
@@ -391,9 +317,7 @@ export async function seedDevDatabaseFromProdPlan(
   }
 
   if (path.resolve(plan.prodAppDataDir) === path.resolve(plan.devAppDataDir)) {
-    throw new Error(
-      "Production and Dev app data directories resolve to the same path.",
-    );
+    throw new Error("Production and Dev app data directories resolve to the same path.");
   }
 
   assertSafeDevTarget(plan);
@@ -416,11 +340,7 @@ export async function seedDevDatabaseFromProdPlan(
   await mkdirImpl(plan.stagingDir, { recursive: true });
 
   try {
-    await Promise.all(
-      sourceArtifacts.map((artifact) =>
-        copyFileImpl(artifact.source, artifact.staging),
-      ),
-    );
+    await Promise.all(sourceArtifacts.map((artifact) => copyFileImpl(artifact.source, artifact.staging)));
 
     // Keep replacement phases ordered: staging copy, backup, destination cleanup, then install.
     await mkdirImpl(plan.backupDir, { recursive: true });
@@ -439,17 +359,9 @@ export async function seedDevDatabaseFromProdPlan(
     ).filter((destination): destination is string => destination !== null);
 
     await mkdirImpl(plan.devAppDataDir, { recursive: true });
-    await Promise.all(
-      plan.artifacts.map((artifact) =>
-        rmImpl(artifact.destination, { force: true }),
-      ),
-    );
+    await Promise.all(plan.artifacts.map((artifact) => rmImpl(artifact.destination, { force: true })));
 
-    await Promise.all(
-      sourceArtifacts.map((artifact) =>
-        copyFileImpl(artifact.staging, artifact.destination),
-      ),
-    );
+    await Promise.all(sourceArtifacts.map((artifact) => copyFileImpl(artifact.staging, artifact.destination)));
 
     return {
       copied: sourceArtifacts.map((artifact) => artifact.destination),
@@ -462,12 +374,7 @@ export async function seedDevDatabaseFromProdPlan(
 }
 
 export async function seedDevDatabaseFromProd(
-  options: {
-    env?: NodeJS.ProcessEnv;
-    platform?: SeedPlatform;
-    homeDir?: string;
-    execFileImpl?: ExecFileAsync;
-  } = {},
+  options: { env?: NodeJS.ProcessEnv; platform?: SeedPlatform; homeDir?: string; execFileImpl?: ExecFileAsync } = {},
 ): Promise<{ copied: string[]; backedUp: string[]; backupDir: string }> {
   const platform = options.platform ?? process.platform;
   const runningProcessesResult = await detectLikelyRunningAppProcesses({
@@ -499,9 +406,7 @@ export async function seedDevDatabaseFromProd(
 
   const openHandles = Result.unwrap(openHandlesResult);
   if (openHandles.length > 0) {
-    throw new Error(
-      `Dev database appears to be open (${openHandles.join(", ")}). Close the app before replacing it.`,
-    );
+    throw new Error(`Dev database appears to be open (${openHandles.join(", ")}). Close the app before replacing it.`);
   }
 
   return seedDevDatabaseFromProdPlan(plan);
@@ -509,27 +414,18 @@ export async function seedDevDatabaseFromProd(
 
 async function main(): Promise<void> {
   const result = await seedDevDatabaseFromProd();
-  console.info(
-    "[seed-from-prod] Dev database has been seeded from the packaged app data.",
-  );
-  console.info(
-    `[seed-from-prod] Backed up existing Dev artifacts to: ${result.backupDir}`,
-  );
+  console.info("[seed-from-prod] Dev database has been seeded from the packaged app data.");
+  console.info(`[seed-from-prod] Backed up existing Dev artifacts to: ${result.backupDir}`);
   console.info(
     "[seed-from-prod] Credentials were not copied. Use `mise run app:dev:native-keyring` for production-like credentials.",
   );
 }
 
-const isMainModule =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
   main().catch((error: unknown) => {
-    console.error(
-      "[seed-from-prod]",
-      error instanceof Error ? error.message : error,
-    );
+    console.error("[seed-from-prod]", error instanceof Error ? error.message : error);
     process.exit(1);
   });
 }
