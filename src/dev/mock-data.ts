@@ -674,19 +674,46 @@ function cloneMockItems<T>(items: readonly T[]): T[] {
   return items.map((item) => structuredClone(item));
 }
 
+type DevMockRuntimeState = {
+  accounts: AccountDto[];
+  folders: FolderDto[];
+  feeds: FeedDto[];
+  tags: TagDto[];
+  articleTags: MockArticleTag[];
+  articles: ArticleDto[];
+};
+
+type DevMockSeedState = {
+  readonly accounts: readonly AccountDto[];
+  readonly folders: readonly FolderDto[];
+  readonly feeds: readonly FeedDto[];
+  readonly tags: readonly TagDto[];
+  readonly articleTags: readonly MockArticleTag[];
+  readonly articles: readonly ArticleDto[];
+};
+
+export const mockDataSeeds: DevMockSeedState = {
+  accounts: mockAccountSeeds,
+  folders: mockFolderSeeds,
+  feeds: mockFeedSeeds,
+  tags: mockTagSeeds,
+  articleTags: mockArticleTagSeeds,
+  articles: mockArticleSeeds,
+};
+
 function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
   for (const feed of feeds) {
     feed.unread_count = articles.filter((article) => article.feed_id === feed.id && !article.is_read).length;
   }
 }
 
-function createMockRuntimeState() {
-  const accounts = cloneMockItems(mockAccountSeeds);
-  const folders = cloneMockItems(mockFolderSeeds);
-  const feeds = cloneMockItems(mockFeedSeeds);
-  const tags = cloneMockItems(mockTagSeeds);
-  const articleTags = cloneMockItems(mockArticleTagSeeds);
-  const articles = cloneMockItems(mockArticleSeeds);
+function createMockRuntimeState(seedState: DevMockSeedState = mockDataSeeds): DevMockRuntimeState {
+  const accounts = cloneMockItems(seedState.accounts);
+  const folders = cloneMockItems(seedState.folders);
+  const feeds = cloneMockItems(seedState.feeds);
+  const tags = cloneMockItems(seedState.tags);
+  const articleTags = cloneMockItems(seedState.articleTags);
+  const articles = cloneMockItems(seedState.articles);
 
   syncUnreadCounts(feeds, articles);
 
@@ -700,14 +727,14 @@ function createMockRuntimeState() {
   };
 }
 
-const initialMockRuntimeState = createMockRuntimeState();
+const mockRuntimeState = createMockRuntimeState();
 
-export const mockAccounts: AccountDto[] = cloneMockItems(initialMockRuntimeState.accounts);
-export const mockFolders: FolderDto[] = cloneMockItems(initialMockRuntimeState.folders);
-export const mockFeeds: FeedDto[] = cloneMockItems(initialMockRuntimeState.feeds);
-export const mockTags: TagDto[] = cloneMockItems(initialMockRuntimeState.tags);
-export const mockArticleTags: MockArticleTag[] = cloneMockItems(initialMockRuntimeState.articleTags);
-export const mockArticles: ArticleDto[] = cloneMockItems(initialMockRuntimeState.articles);
+export const mockAccounts: AccountDto[] = mockRuntimeState.accounts;
+export const mockFolders: FolderDto[] = mockRuntimeState.folders;
+export const mockFeeds: FeedDto[] = mockRuntimeState.feeds;
+export const mockTags: TagDto[] = mockRuntimeState.tags;
+export const mockArticleTags: MockArticleTag[] = mockRuntimeState.articleTags;
+export const mockArticles: ArticleDto[] = mockRuntimeState.articles;
 
 function resetMockItems<T>(target: T[], initialItems: T[]) {
   target.splice(0, target.length, ...cloneMockItems(initialItems));

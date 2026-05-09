@@ -289,7 +289,9 @@ describe("setupDevMocks", () => {
 
   it("parses every schema-validated browser-only command at the mock IPC boundary", () => {
     const source = readFileSync(resolve(process.cwd(), "src/dev/mocks.ts"), "utf8");
-    const parsedCommands = new Set([...source.matchAll(/parseMockArgs\(\s*"([^"]+)"/g)].map((match) => match[1]));
+    const parsedCommands = new Set(
+      [...source.matchAll(/parseBrowserMockArgs\(\s*"([^"]+)"/g)].map((match) => match[1]),
+    );
 
     expect(Object.keys(commandArgsSchemas).filter((command) => !parsedCommands.has(command))).toEqual([]);
   });

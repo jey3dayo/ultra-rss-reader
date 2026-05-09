@@ -279,29 +279,40 @@ describe("dev-intent helpers", () => {
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it("retries request_failed runtime option loads", async () => {
-    getDevRuntimeOptionsMock
-      .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }))
-      .mockResolvedValueOnce(
-        Result.succeed({
-          dev_intent: "open-settings-general",
-          dev_web_url: "https://example.com/retry",
-          dev_window_width: 720,
-          dev_window_height: 960,
-        }),
-      );
+  it.each([
+    [
+      "request_failed",
+      true,
+      2,
+      () => getDevRuntimeOptionsMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" })),
+    ],
+    ["tauri_unavailable", false, 0, () => hasTauriRuntimeMock.mockReturnValue(false)],
+    ["not_dev_build", false, 0, () => vi.stubEnv("DEV", false)],
+  ] as const)("only retries retryable runtime option failures: %s", async (expectedError, shouldRetry, expectedCallCount, arrangeFailure) => {
+    arrangeFailure();
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-settings-general",
+        dev_web_url: "https://example.com/retry",
+        dev_window_width: 720,
+        dev_window_height: 960,
+      }),
+    );
 
-    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe("request_failed");
-
+    expect(Result.unwrapError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
     const result = await loadDevRuntimeOptionsResult();
 
-    expect(Result.unwrap(result)).toEqual({
-      dev_intent: "open-settings-general",
-      dev_web_url: "https://example.com/retry",
-      dev_window_width: 720,
-      dev_window_height: 960,
-    });
-    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(2);
+    if (shouldRetry) {
+      expect(Result.unwrap(result)).toEqual({
+        dev_intent: "open-settings-general",
+        dev_web_url: "https://example.com/retry",
+        dev_window_width: 720,
+        dev_window_height: 960,
+      });
+    } else {
+      expect(Result.unwrapError(result)).toBe(expectedError);
+    }
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(expectedCallCount);
   });
 
   it.each([

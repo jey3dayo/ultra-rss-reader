@@ -28,6 +28,22 @@ function mockInnerLogicalSizes(sizes: Array<{ width: number; height: number }>) 
   });
 }
 
+function firstInvocationOrder(mock: { mock: { invocationCallOrder: number[] } }): number {
+  const [order] = mock.mock.invocationCallOrder;
+  if (order === undefined) {
+    throw new Error("Expected mock to be called.");
+  }
+  return order;
+}
+
+function invocationOrder(mock: { mock: { invocationCallOrder: number[] } }, index: number): number {
+  const order = mock.mock.invocationCallOrder[index];
+  if (order === undefined) {
+    throw new Error(`Expected mock to be called at index ${index}.`);
+  }
+  return order;
+}
+
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => mockWindow,
 }));
@@ -265,6 +281,60 @@ describe("runDevScenario", () => {
       }),
     );
     expect(mockWindow.center).toHaveBeenCalled();
+  });
+
+  it("unmaximizes before reading size and centers after resize attempts", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    mockWindow.isMaximized.mockResolvedValueOnce(true);
+    mockInnerLogicalSizes([
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 520, height: 900 },
+    ]);
+    const context = createContext();
+
+    const scenarioPromise = runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+    await scenarioPromise;
+
+    expect(mockWindow.unmaximize).toHaveBeenCalledTimes(1);
+    expect(mockWindow.setSize).toHaveBeenCalledTimes(1);
+    expect(mockWindow.center).toHaveBeenCalled();
+    expect(firstInvocationOrder(mockWindow.unmaximize)).toBeLessThan(firstInvocationOrder(mockWindow.scaleFactor));
+    expect(firstInvocationOrder(mockWindow.setSize)).toBeLessThan(firstInvocationOrder(mockWindow.center));
+  });
+
+  it("keeps unmaximize, target resolution, retry verification, and center ordering stable", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    const timeoutSpy = vi.spyOn(window, "setTimeout");
+    mockWindow.isMaximized.mockResolvedValueOnce(true);
+    mockInnerLogicalSizes([
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 520, height: 900 },
+      { width: 520, height: 900 },
+    ]);
+    const context = createContext();
+
+    const scenarioPromise = runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+    await scenarioPromise;
+
+    expect(mockWindow.unmaximize).toHaveBeenCalledTimes(1);
+    expect(mockWindow.setSize).toHaveBeenCalled();
+    expect(mockWindow.center).toHaveBeenCalled();
+    expect(timeoutSpy.mock.calls.filter(([, delayMs]) => delayMs === 80)).toHaveLength(2);
+    expect(invocationOrder(mockWindow.unmaximize, 0)).toBeLessThan(invocationOrder(mockWindow.scaleFactor, 0));
+    expect(invocationOrder(mockWindow.scaleFactor, 0)).toBeLessThan(invocationOrder(mockWindow.setSize, 0));
+    expect(invocationOrder(mockWindow.setSize, 0)).toBeLessThan(invocationOrder(mockWindow.center, 0));
+    expect(invocationOrder(mockWindow.center, 0)).toBeLessThan(invocationOrder(mockWindow.scaleFactor, 2));
+    expect(invocationOrder(mockWindow.scaleFactor, 2)).toBeLessThan(invocationOrder(mockWindow.center, 1));
   });
 
   it("keeps the current logical window height when only a dev window width is requested", async () => {

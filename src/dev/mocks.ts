@@ -5,7 +5,7 @@
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { z } from "zod";
-import { commandArgsSchemas } from "@/api/schemas";
+import { type CommandArgsSchemaRegistry, commandArgsSchemas } from "@/api/schemas";
 import type {
   AccountDto,
   AccountSyncStatusDto,
@@ -31,16 +31,29 @@ import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from
 export const DEV_MOCK_PLATFORM_INFO = DEFAULT_PLATFORM_INFO;
 
 type MockCommandArgsSchema = z.ZodType<Record<string, unknown>>;
-const browserMockCommandArgsSchemas = commandArgsSchemas satisfies Record<string, MockCommandArgsSchema>;
-type BrowserMockCommandArgsSchemas = typeof browserMockCommandArgsSchemas;
+const browserMockCommandArgsSchemas: CommandArgsSchemaRegistry = commandArgsSchemas satisfies Record<
+  string,
+  MockCommandArgsSchema
+>;
+type BrowserMockCommandArgsSchemas = CommandArgsSchemaRegistry;
 type MockCommandWithArgs = keyof BrowserMockCommandArgsSchemas;
+type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = z.output<BrowserMockCommandArgsSchemas[TCommand]>;
+type RawMockIpcPayload = unknown;
 
-function parseMockArgs<TSchema extends MockCommandArgsSchema>(
-  _command: MockCommandWithArgs,
-  schema: TSchema,
-  rawPayload: unknown,
-): z.output<TSchema> {
-  return schema.parse(rawPayload);
+function parseMockArgs<TCommand extends MockCommandWithArgs>(
+  command: TCommand,
+  rawIpcPayload: RawMockIpcPayload,
+): ParsedBrowserMockArgs<TCommand>;
+function parseMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMockIpcPayload): Record<string, unknown> {
+  return browserMockCommandArgsSchemas[command].parse(rawIpcPayload);
+}
+
+function parseBrowserMockArgs<TCommand extends MockCommandWithArgs>(
+  command: TCommand,
+  rawIpcPayload: RawMockIpcPayload,
+): ParsedBrowserMockArgs<TCommand>;
+function parseBrowserMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMockIpcPayload) {
+  return parseMockArgs(command, rawIpcPayload);
 }
 
 let nextAccountId = 100;
@@ -172,17 +185,13 @@ export function setupDevMocks() {
   console.info("[dev-mocks] Tauri not detected, injecting mock IPC with rich data for browser debugging");
 
   mockWindows("main");
-  mockIPC(async (cmd, rawPayload) => {
+  mockIPC(async (cmd, rawIpcPayload) => {
     switch (cmd) {
       case "list_accounts":
         return mockAccounts;
 
       case "add_account": {
-        const { kind, name, serverUrl } = parseMockArgs(
-          "add_account",
-          browserMockCommandArgsSchemas.add_account,
-          rawPayload,
-        );
+        const { kind, name, serverUrl } = parseBrowserMockArgs("add_account", rawIpcPayload);
         const account: AccountDto = {
           id: `dev-acc-${nextAccountId++}`,
           kind,
@@ -199,10 +208,9 @@ export function setupDevMocks() {
       }
 
       case "update_account_sync": {
-        const { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays } = parseMockArgs(
+        const { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays } = parseBrowserMockArgs(
           "update_account_sync",
-          browserMockCommandArgsSchemas.update_account_sync,
-          rawPayload,
+          rawIpcPayload,
         );
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
@@ -215,11 +223,7 @@ export function setupDevMocks() {
       }
 
       case "update_account_credentials": {
-        const { accountId, serverUrl, username } = parseMockArgs(
-          "update_account_credentials",
-          browserMockCommandArgsSchemas.update_account_credentials,
-          rawPayload,
-        );
+        const { accountId, serverUrl, username } = parseBrowserMockArgs("update_account_credentials", rawIpcPayload);
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.server_url = serverUrl ?? target.server_url;
@@ -229,11 +233,7 @@ export function setupDevMocks() {
       }
 
       case "rename_account": {
-        const { accountId, name } = parseMockArgs(
-          "rename_account",
-          browserMockCommandArgsSchemas.rename_account,
-          rawPayload,
-        );
+        const { accountId, name } = parseBrowserMockArgs("rename_account", rawIpcPayload);
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.name = name;
@@ -242,16 +242,12 @@ export function setupDevMocks() {
       }
 
       case "test_account_connection": {
-        const { accountId } = parseMockArgs(
-          "test_account_connection",
-          browserMockCommandArgsSchemas.test_account_connection,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("test_account_connection", rawIpcPayload);
         return mockAccounts.find((account) => account.id === accountId) ?? mockAccounts[0] ?? null;
       }
 
       case "delete_account": {
-        const { accountId } = parseMockArgs("delete_account", browserMockCommandArgsSchemas.delete_account, rawPayload);
+        const { accountId } = parseBrowserMockArgs("delete_account", rawIpcPayload);
         const idx = mockAccounts.findIndex((a) => a.id === accountId);
         if (idx >= 0) mockAccounts.splice(idx, 1);
         const removedFeedIds = new Set(
@@ -289,7 +285,7 @@ export function setupDevMocks() {
       }
 
       case "get_account_sync_status":
-        parseMockArgs("get_account_sync_status", browserMockCommandArgsSchemas.get_account_sync_status, rawPayload);
+        parseBrowserMockArgs("get_account_sync_status", rawIpcPayload);
         return {
           last_success_at: null,
           last_error: null,
@@ -298,16 +294,12 @@ export function setupDevMocks() {
         } satisfies AccountSyncStatusDto;
 
       case "list_folders": {
-        const { accountId } = parseMockArgs("list_folders", browserMockCommandArgsSchemas.list_folders, rawPayload);
+        const { accountId } = parseBrowserMockArgs("list_folders", rawIpcPayload);
         return mockFolders.filter((f) => f.account_id === accountId);
       }
 
       case "create_folder": {
-        const { accountId, name } = parseMockArgs(
-          "create_folder",
-          browserMockCommandArgsSchemas.create_folder,
-          rawPayload,
-        );
+        const { accountId, name } = parseBrowserMockArgs("create_folder", rawIpcPayload);
         const folder: FolderDto = {
           id: `dev-folder-${nextFolderId++}`,
           account_id: accountId,
@@ -319,16 +311,12 @@ export function setupDevMocks() {
       }
 
       case "list_feeds": {
-        const { accountId } = parseMockArgs("list_feeds", browserMockCommandArgsSchemas.list_feeds, rawPayload);
+        const { accountId } = parseBrowserMockArgs("list_feeds", rawIpcPayload);
         return mockFeeds.filter((f) => f.account_id === accountId);
       }
 
       case "add_local_feed": {
-        const { accountId, url } = parseMockArgs(
-          "add_local_feed",
-          browserMockCommandArgsSchemas.add_local_feed,
-          rawPayload,
-        );
+        const { accountId, url } = parseBrowserMockArgs("add_local_feed", rawIpcPayload);
         const feedId = `dev-feed-${nextFeedId++}`;
         const feed: FeedDto = {
           id: feedId,
@@ -370,7 +358,7 @@ export function setupDevMocks() {
           starredOnly = false,
           offset = 0,
           limit = 50,
-        } = parseMockArgs("list_articles", browserMockCommandArgsSchemas.list_articles, rawPayload);
+        } = parseBrowserMockArgs("list_articles", rawIpcPayload);
         const articles = mockArticles.filter(
           (article) =>
             article.feed_id === feedId && (!unreadOnly || !article.is_read) && (!starredOnly || article.is_starred),
@@ -384,18 +372,14 @@ export function setupDevMocks() {
           unreadOnly = false,
           offset = 0,
           limit = 50,
-        } = parseMockArgs("list_account_articles", browserMockCommandArgsSchemas.list_account_articles, rawPayload);
+        } = parseBrowserMockArgs("list_account_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
         const articles = mockArticles.filter((a) => feedIds.has(a.feed_id) && (!unreadOnly || !a.is_read));
         return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
       }
 
       case "list_feed_article_summaries": {
-        const { accountId } = parseMockArgs(
-          "list_feed_article_summaries",
-          browserMockCommandArgsSchemas.list_feed_article_summaries,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("list_feed_article_summaries", rawIpcPayload);
         const visibleArticles = applyMuteKeywordFilter(mockArticles);
         return mockFeeds
           .filter((feed) => feed.account_id === accountId)
@@ -426,7 +410,7 @@ export function setupDevMocks() {
           mode = "all",
           offset = 0,
           limit = 50,
-        } = parseMockArgs("list_folder_articles", browserMockCommandArgsSchemas.list_folder_articles, rawPayload);
+        } = parseBrowserMockArgs("list_folder_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
         const articles = mockArticles.filter((article) => {
           if (!feedIds.has(article.feed_id)) {
@@ -444,29 +428,17 @@ export function setupDevMocks() {
       }
 
       case "count_account_unread_articles": {
-        const { accountId } = parseMockArgs(
-          "count_account_unread_articles",
-          browserMockCommandArgsSchemas.count_account_unread_articles,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("count_account_unread_articles", rawIpcPayload);
         return countUnreadByAccount(accountId);
       }
 
       case "count_account_starred_articles": {
-        const { accountId } = parseMockArgs(
-          "count_account_starred_articles",
-          browserMockCommandArgsSchemas.count_account_starred_articles,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("count_account_starred_articles", rawIpcPayload);
         return countStarredByAccount(accountId);
       }
 
       case "mark_account_read": {
-        const { accountId } = parseMockArgs(
-          "mark_account_read",
-          browserMockCommandArgsSchemas.mark_account_read,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("mark_account_read", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         for (const article of mockArticles) {
           if (feedIds.has(article.feed_id)) {
@@ -478,11 +450,7 @@ export function setupDevMocks() {
       }
 
       case "mark_account_starred_read": {
-        const { accountId } = parseMockArgs(
-          "mark_account_starred_read",
-          browserMockCommandArgsSchemas.mark_account_starred_read,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("mark_account_starred_read", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         const affectedFeedIds = new Set<string>();
         for (const article of mockArticles) {
@@ -496,20 +464,12 @@ export function setupDevMocks() {
       }
 
       case "count_old_unread_articles": {
-        const { scopeKind, targetId, olderThanDays } = parseMockArgs(
-          "count_old_unread_articles",
-          browserMockCommandArgsSchemas.count_old_unread_articles,
-          rawPayload,
-        );
+        const { scopeKind, targetId, olderThanDays } = parseBrowserMockArgs("count_old_unread_articles", rawIpcPayload);
         return findOldUnreadArticles(scopeKind, targetId, olderThanDays).length;
       }
 
       case "mark_old_unread_read": {
-        const { scopeKind, targetId, olderThanDays } = parseMockArgs(
-          "mark_old_unread_read",
-          browserMockCommandArgsSchemas.mark_old_unread_read,
-          rawPayload,
-        );
+        const { scopeKind, targetId, olderThanDays } = parseBrowserMockArgs("mark_old_unread_read", rawIpcPayload);
         const affectedFeedIds = new Set<string>();
         for (const article of findOldUnreadArticles(scopeKind, targetId, olderThanDays)) {
           article.is_read = true;
@@ -520,11 +480,7 @@ export function setupDevMocks() {
       }
 
       case "unstar_account_articles": {
-        const { accountId } = parseMockArgs(
-          "unstar_account_articles",
-          browserMockCommandArgsSchemas.unstar_account_articles,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("unstar_account_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         for (const article of mockArticles) {
           if (feedIds.has(article.feed_id)) {
@@ -535,11 +491,7 @@ export function setupDevMocks() {
       }
 
       case "list_starred_articles": {
-        const { accountId } = parseMockArgs(
-          "list_starred_articles",
-          browserMockCommandArgsSchemas.list_starred_articles,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("list_starred_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
         return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.has(a.feed_id) && a.is_starred));
       }
@@ -550,7 +502,7 @@ export function setupDevMocks() {
           mode = "all",
           offset = 0,
           limit = 20,
-        } = parseMockArgs("list_recent_articles", browserMockCommandArgsSchemas.list_recent_articles, rawPayload);
+        } = parseBrowserMockArgs("list_recent_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         const articleById = new Map(mockArticles.map((article) => [article.id, article]));
         const articles = mockArticleViewHistory
@@ -579,11 +531,7 @@ export function setupDevMocks() {
         return feedIntegrityReport;
 
       case "cleanup_feed_integrity_orphans": {
-        const { dryRun } = parseMockArgs(
-          "cleanup_feed_integrity_orphans",
-          browserMockCommandArgsSchemas.cleanup_feed_integrity_orphans,
-          rawPayload,
-        );
+        const { dryRun } = parseBrowserMockArgs("cleanup_feed_integrity_orphans", rawIpcPayload);
         return {
           dry_run: dryRun,
           orphaned_article_count: feedIntegrityReport.orphaned_article_count,
@@ -592,12 +540,7 @@ export function setupDevMocks() {
       }
 
       case "search_articles": {
-        const {
-          accountId,
-          query,
-          offset = 0,
-          limit = 50,
-        } = parseMockArgs("search_articles", browserMockCommandArgsSchemas.search_articles, rawPayload);
+        const { accountId, query, offset = 0, limit = 50 } = parseBrowserMockArgs("search_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         const normalizedQuery = query.toLowerCase();
         const articles = mockArticles.filter(
@@ -610,11 +553,7 @@ export function setupDevMocks() {
         return [...mockMuteKeywords].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
       case "create_mute_keyword": {
-        const { keyword, scope } = parseMockArgs(
-          "create_mute_keyword",
-          browserMockCommandArgsSchemas.create_mute_keyword,
-          rawPayload,
-        );
+        const { keyword, scope } = parseBrowserMockArgs("create_mute_keyword", rawIpcPayload);
         const normalizedKeyword = keyword.trim().toLowerCase();
         const exists = mockMuteKeywords.some(
           (rule) => rule.keyword.trim().toLowerCase() === normalizedKeyword && rule.scope === scope,
@@ -636,11 +575,7 @@ export function setupDevMocks() {
       }
 
       case "update_mute_keyword": {
-        const { muteKeywordId, scope } = parseMockArgs(
-          "update_mute_keyword",
-          browserMockCommandArgsSchemas.update_mute_keyword,
-          rawPayload,
-        );
+        const { muteKeywordId, scope } = parseBrowserMockArgs("update_mute_keyword", rawIpcPayload);
         const rule = mockMuteKeywords.find((candidate) => candidate.id === muteKeywordId);
         if (!rule) {
           throw { type: "UserVisible", message: "Mute keyword not found" };
@@ -660,11 +595,7 @@ export function setupDevMocks() {
       }
 
       case "delete_mute_keyword": {
-        const { muteKeywordId } = parseMockArgs(
-          "delete_mute_keyword",
-          browserMockCommandArgsSchemas.delete_mute_keyword,
-          rawPayload,
-        );
+        const { muteKeywordId } = parseBrowserMockArgs("delete_mute_keyword", rawIpcPayload);
         const index = mockMuteKeywords.findIndex((rule) => rule.id === muteKeywordId);
         if (index >= 0) {
           mockMuteKeywords.splice(index, 1);
@@ -673,11 +604,7 @@ export function setupDevMocks() {
       }
 
       case "mark_article_read": {
-        const { articleId, read } = parseMockArgs(
-          "mark_article_read",
-          browserMockCommandArgsSchemas.mark_article_read,
-          rawPayload,
-        );
+        const { articleId, read } = parseBrowserMockArgs("mark_article_read", rawIpcPayload);
         const art = mockArticles.find((a) => a.id === articleId);
         if (art) {
           art.is_read = read ?? true;
@@ -687,11 +614,7 @@ export function setupDevMocks() {
       }
 
       case "record_article_view": {
-        const { accountId, articleId } = parseMockArgs(
-          "record_article_view",
-          browserMockCommandArgsSchemas.record_article_view,
-          rawPayload,
-        );
+        const { accountId, articleId } = parseBrowserMockArgs("record_article_view", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
         const article = mockArticles.find((candidate) => candidate.id === articleId);
         if (!article || !feedIds.has(article.feed_id)) {
@@ -713,11 +636,7 @@ export function setupDevMocks() {
       }
 
       case "clear_article_view_history": {
-        const { accountId } = parseMockArgs(
-          "clear_article_view_history",
-          browserMockCommandArgsSchemas.clear_article_view_history,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("clear_article_view_history", rawIpcPayload);
         let removed = 0;
         for (let index = mockArticleViewHistory.length - 1; index >= 0; index--) {
           if (mockArticleViewHistory[index].accountId === accountId) {
@@ -729,11 +648,7 @@ export function setupDevMocks() {
       }
 
       case "mark_articles_read": {
-        const { articleIds } = parseMockArgs(
-          "mark_articles_read",
-          browserMockCommandArgsSchemas.mark_articles_read,
-          rawPayload,
-        );
+        const { articleIds } = parseBrowserMockArgs("mark_articles_read", rawIpcPayload);
         const affectedFeedIds = new Set<string>();
         const articleById = new Map(mockArticles.map((article) => [article.id, article]));
         for (const id of articleIds) {
@@ -748,7 +663,7 @@ export function setupDevMocks() {
       }
 
       case "mark_feed_read": {
-        const { feedId } = parseMockArgs("mark_feed_read", browserMockCommandArgsSchemas.mark_feed_read, rawPayload);
+        const { feedId } = parseBrowserMockArgs("mark_feed_read", rawIpcPayload);
         for (const art of mockArticles) {
           if (art.feed_id === feedId) art.is_read = true;
         }
@@ -757,11 +672,7 @@ export function setupDevMocks() {
       }
 
       case "mark_folder_read": {
-        const { folderId } = parseMockArgs(
-          "mark_folder_read",
-          browserMockCommandArgsSchemas.mark_folder_read,
-          rawPayload,
-        );
+        const { folderId } = parseBrowserMockArgs("mark_folder_read", rawIpcPayload);
         const folderFeedIds = new Set(mockFeeds.filter((f) => f.folder_id === folderId).map((f) => f.id));
         for (const art of mockArticles) {
           if (folderFeedIds.has(art.feed_id)) art.is_read = true;
@@ -771,11 +682,7 @@ export function setupDevMocks() {
       }
 
       case "toggle_article_star": {
-        const { articleId, starred } = parseMockArgs(
-          "toggle_article_star",
-          browserMockCommandArgsSchemas.toggle_article_star,
-          rawPayload,
-        );
+        const { articleId, starred } = parseBrowserMockArgs("toggle_article_star", rawIpcPayload);
         const art = mockArticles.find((a) => a.id === articleId);
         if (art) art.is_starred = starred;
         return null;
@@ -785,21 +692,13 @@ export function setupDevMocks() {
         return Object.fromEntries(mockPreferences);
 
       case "set_preference": {
-        const { key, value } = parseMockArgs(
-          "set_preference",
-          browserMockCommandArgsSchemas.set_preference,
-          rawPayload,
-        );
+        const { key, value } = parseBrowserMockArgs("set_preference", rawIpcPayload);
         mockPreferences.set(key, value);
         return null;
       }
 
       case "set_mute_auto_mark_read": {
-        const { enabled } = parseMockArgs(
-          "set_mute_auto_mark_read",
-          browserMockCommandArgsSchemas.set_mute_auto_mark_read,
-          rawPayload,
-        );
+        const { enabled } = parseBrowserMockArgs("set_mute_auto_mark_read", rawIpcPayload);
         mockPreferences.set("mute_auto_mark_read", String(enabled));
         return null;
       }
@@ -818,7 +717,7 @@ export function setupDevMocks() {
       }
 
       case "export_opml":
-        parseMockArgs("export_opml", browserMockCommandArgsSchemas.export_opml, rawPayload);
+        parseBrowserMockArgs("export_opml", rawIpcPayload);
         return `<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <head><title>Mock Export</title></head>
@@ -834,7 +733,7 @@ export function setupDevMocks() {
         return mockTags;
 
       case "create_tag": {
-        const { name, color } = parseMockArgs("create_tag", browserMockCommandArgsSchemas.create_tag, rawPayload);
+        const { name, color } = parseBrowserMockArgs("create_tag", rawIpcPayload);
         const tag: TagDto = {
           id: `dev-tag-${nextTagId++}`,
           name,
@@ -845,11 +744,7 @@ export function setupDevMocks() {
       }
 
       case "rename_tag": {
-        const { tagId, name, color } = parseMockArgs(
-          "rename_tag",
-          browserMockCommandArgsSchemas.rename_tag,
-          rawPayload,
-        );
+        const { tagId, name, color } = parseBrowserMockArgs("rename_tag", rawIpcPayload);
         const renameIdx = mockTags.findIndex((t) => t.id === tagId);
         if (renameIdx >= 0) {
           mockTags[renameIdx].name = name;
@@ -860,7 +755,7 @@ export function setupDevMocks() {
       }
 
       case "delete_tag": {
-        const { tagId } = parseMockArgs("delete_tag", browserMockCommandArgsSchemas.delete_tag, rawPayload);
+        const { tagId } = parseBrowserMockArgs("delete_tag", rawIpcPayload);
         const tagIdx = mockTags.findIndex((t) => t.id === tagId);
         if (tagIdx >= 0) mockTags.splice(tagIdx, 1);
         // Remove associated article_tags
@@ -871,11 +766,7 @@ export function setupDevMocks() {
       }
 
       case "tag_article": {
-        const { articleId, tagId } = parseMockArgs(
-          "tag_article",
-          browserMockCommandArgsSchemas.tag_article,
-          rawPayload,
-        );
+        const { articleId, tagId } = parseBrowserMockArgs("tag_article", rawIpcPayload);
         const exists = mockArticleTags.some((at) => at.article_id === articleId && at.tag_id === tagId);
         if (!exists) {
           mockArticleTags.push({
@@ -887,22 +778,14 @@ export function setupDevMocks() {
       }
 
       case "untag_article": {
-        const { articleId, tagId } = parseMockArgs(
-          "untag_article",
-          browserMockCommandArgsSchemas.untag_article,
-          rawPayload,
-        );
+        const { articleId, tagId } = parseBrowserMockArgs("untag_article", rawIpcPayload);
         const atIdx = mockArticleTags.findIndex((at) => at.article_id === articleId && at.tag_id === tagId);
         if (atIdx >= 0) mockArticleTags.splice(atIdx, 1);
         return null;
       }
 
       case "get_article_tags": {
-        const { articleId } = parseMockArgs(
-          "get_article_tags",
-          browserMockCommandArgsSchemas.get_article_tags,
-          rawPayload,
-        );
+        const { articleId } = parseBrowserMockArgs("get_article_tags", rawIpcPayload);
         const tagIds = new Set(mockArticleTags.filter((at) => at.article_id === articleId).map((at) => at.tag_id));
         return mockTags.filter((t) => tagIds.has(t.id));
       }
@@ -914,7 +797,7 @@ export function setupDevMocks() {
           mode = "all",
           offset = 0,
           limit = 50,
-        } = parseMockArgs("list_articles_by_tag", browserMockCommandArgsSchemas.list_articles_by_tag, rawPayload);
+        } = parseBrowserMockArgs("list_articles_by_tag", rawIpcPayload);
         const articleIds = new Set(mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id));
         let filtered = mockArticles.filter((a) => articleIds.has(a.id));
         if (accountId) {
@@ -930,11 +813,7 @@ export function setupDevMocks() {
       }
 
       case "get_tag_article_counts": {
-        const { accountId } = parseMockArgs(
-          "get_tag_article_counts",
-          browserMockCommandArgsSchemas.get_tag_article_counts,
-          rawPayload,
-        );
+        const { accountId } = parseBrowserMockArgs("get_tag_article_counts", rawIpcPayload);
         const counts: Record<string, number> = {};
         const articleById = new Map(mockArticles.map((article) => [article.id, article]));
         const feedById = new Map(mockFeeds.map((feed) => [feed.id, feed]));
@@ -951,11 +830,7 @@ export function setupDevMocks() {
       }
 
       case "check_browser_embed_support": {
-        const { url } = parseMockArgs(
-          "check_browser_embed_support",
-          browserMockCommandArgsSchemas.check_browser_embed_support,
-          rawPayload,
-        );
+        const { url } = parseBrowserMockArgs("check_browser_embed_support", rawIpcPayload);
         try {
           const host = new URL(url).hostname;
           return !host.endsWith("note.com");
@@ -965,11 +840,7 @@ export function setupDevMocks() {
       }
 
       case "create_or_update_browser_webview": {
-        const { url } = parseMockArgs(
-          "create_or_update_browser_webview",
-          browserMockCommandArgsSchemas.create_or_update_browser_webview,
-          rawPayload,
-        );
+        const { url } = parseBrowserMockArgs("create_or_update_browser_webview", rawIpcPayload);
         return {
           url,
           can_go_back: false,
@@ -979,18 +850,14 @@ export function setupDevMocks() {
       }
 
       case "set_browser_webview_bounds":
-        parseMockArgs(
-          "set_browser_webview_bounds",
-          browserMockCommandArgsSchemas.set_browser_webview_bounds,
-          rawPayload,
-        );
+        parseBrowserMockArgs("set_browser_webview_bounds", rawIpcPayload);
         return null;
 
       case "focus_browser_webview":
         return null;
 
       case "delete_feed": {
-        const { feedId } = parseMockArgs("delete_feed", browserMockCommandArgsSchemas.delete_feed, rawPayload);
+        const { feedId } = parseBrowserMockArgs("delete_feed", rawIpcPayload);
         const feedIdx = mockFeeds.findIndex((f) => f.id === feedId);
         if (feedIdx >= 0) {
           const removed = mockFeeds.splice(feedIdx, 1)[0];
@@ -1016,28 +883,23 @@ export function setupDevMocks() {
       }
 
       case "rename_feed": {
-        const { feedId, title } = parseMockArgs("rename_feed", browserMockCommandArgsSchemas.rename_feed, rawPayload);
+        const { feedId, title } = parseBrowserMockArgs("rename_feed", rawIpcPayload);
         const feed = mockFeeds.find((f) => f.id === feedId);
         if (feed) feed.title = title;
         return null;
       }
 
       case "update_feed_folder": {
-        const { feedId, folderId } = parseMockArgs(
-          "update_feed_folder",
-          browserMockCommandArgsSchemas.update_feed_folder,
-          rawPayload,
-        );
+        const { feedId, folderId } = parseBrowserMockArgs("update_feed_folder", rawIpcPayload);
         const targetFeed = mockFeeds.find((f) => f.id === feedId);
         if (targetFeed) targetFeed.folder_id = folderId;
         return null;
       }
 
       case "update_feed_display_settings": {
-        const { feedId, readerMode, webPreviewMode } = parseMockArgs(
+        const { feedId, readerMode, webPreviewMode } = parseBrowserMockArgs(
           "update_feed_display_settings",
-          browserMockCommandArgsSchemas.update_feed_display_settings,
-          rawPayload,
+          rawIpcPayload,
         );
         const dmFeed = mockFeeds.find((f) => f.id === feedId);
         if (dmFeed) {
@@ -1048,7 +910,7 @@ export function setupDevMocks() {
       }
 
       case "discover_feeds": {
-        const { url } = parseMockArgs("discover_feeds", browserMockCommandArgsSchemas.discover_feeds, rawPayload);
+        const { url } = parseBrowserMockArgs("discover_feeds", rawIpcPayload);
         // Simulate discovery: if URL looks like a feed, return it directly
         if (/\.(xml|rss|atom|json)$/i.test(url) || /\/feed\/?$/i.test(url)) {
           return [{ url, title: "" }];
@@ -1064,17 +926,13 @@ export function setupDevMocks() {
       }
 
       case "open_in_browser": {
-        const { url } = parseMockArgs("open_in_browser", browserMockCommandArgsSchemas.open_in_browser, rawPayload);
+        const { url } = parseBrowserMockArgs("open_in_browser", rawIpcPayload);
         window.open(url, "_blank");
         return null;
       }
 
       case "plugin:opener|open_url": {
-        const { url } = parseMockArgs(
-          "plugin:opener|open_url",
-          browserMockCommandArgsSchemas["plugin:opener|open_url"],
-          rawPayload,
-        );
+        const { url } = parseBrowserMockArgs("plugin:opener|open_url", rawIpcPayload);
         window.open(url, "_blank");
         return null;
       }
@@ -1102,7 +960,7 @@ export function setupDevMocks() {
         };
 
       case "trigger_startup_sync":
-        parseMockArgs("trigger_startup_sync", browserMockCommandArgsSchemas.trigger_startup_sync, rawPayload);
+        parseBrowserMockArgs("trigger_startup_sync", rawIpcPayload);
         return {
           synced: true,
           total: 1,
@@ -1112,7 +970,7 @@ export function setupDevMocks() {
         };
 
       case "trigger_sync_account":
-        parseMockArgs("trigger_sync_account", browserMockCommandArgsSchemas.trigger_sync_account, rawPayload);
+        parseBrowserMockArgs("trigger_sync_account", rawIpcPayload);
         return {
           synced: true,
           total: 1,
@@ -1122,7 +980,7 @@ export function setupDevMocks() {
         };
 
       case "trigger_sync_feed":
-        parseMockArgs("trigger_sync_feed", browserMockCommandArgsSchemas.trigger_sync_feed, rawPayload);
+        parseBrowserMockArgs("trigger_sync_feed", rawIpcPayload);
         return {
           synced: true,
           total: 1,
@@ -1141,10 +999,10 @@ export function setupDevMocks() {
       case "import_opml":
         return null;
       case "copy_to_clipboard":
-        parseMockArgs("copy_to_clipboard", browserMockCommandArgsSchemas.copy_to_clipboard, rawPayload);
+        parseBrowserMockArgs("copy_to_clipboard", rawIpcPayload);
         return null;
       case "add_to_reading_list":
-        parseMockArgs("add_to_reading_list", browserMockCommandArgsSchemas.add_to_reading_list, rawPayload);
+        parseBrowserMockArgs("add_to_reading_list", rawIpcPayload);
         return null;
       case "get_database_info":
         return {

@@ -27,6 +27,8 @@ type ReadDevWindowSizeFieldState =
   | { kind: "invalid"; reason: ParsePositiveIntegerError }
   | { kind: "value"; value: number };
 
+const RETRYABLE_DEV_RUNTIME_OPTIONS_ERRORS = new Set<LoadDevRuntimeOptionsError>(["request_failed"]);
+
 function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
   for (const key of keys) {
     const value = import.meta.env[key];
@@ -126,7 +128,7 @@ function resolveLoadedDevRuntimeOptions(
 }
 
 function shouldRetryDevRuntimeOptionsLoad(error: LoadDevRuntimeOptionsError | null): boolean {
-  return error === "request_failed";
+  return error !== null && RETRYABLE_DEV_RUNTIME_OPTIONS_ERRORS.has(error);
 }
 
 export function parseDevIntent(value: string | undefined): DevIntent {

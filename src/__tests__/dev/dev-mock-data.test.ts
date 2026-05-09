@@ -11,6 +11,7 @@ import {
   listDevMockFixtureBoundaryKeys,
   mockAccounts,
   mockArticles,
+  mockDataSeeds,
   mockFeeds,
   mockFolders,
   mockTags,
@@ -53,6 +54,7 @@ describe("dev mock data", () => {
 
   it("resets mutable runtime state from fresh seed clones", () => {
     resetMockDataForDevMocks();
+    const seedSnapshot = structuredClone(mockDataSeeds);
     const initialAccounts = structuredClone(mockAccounts);
     const initialFeeds = structuredClone(mockFeeds);
     const initialArticles = structuredClone(mockArticles);
@@ -87,9 +89,13 @@ describe("dev mock data", () => {
 
     resetMockDataForDevMocks();
 
+    expect(mockDataSeeds).toEqual(seedSnapshot);
     expect(mockAccounts).toEqual(initialAccounts);
     expect(mockFeeds).toEqual(initialFeeds);
     expect(mockArticles).toEqual(initialArticles);
+    expect(mockAccounts[0]).not.toBe(mockDataSeeds.accounts[0]);
+    expect(mockFeeds[0]).not.toBe(mockDataSeeds.feeds[0]);
+    expect(mockArticles[0]).not.toBe(mockDataSeeds.articles[0]);
     expect(mockAccounts[0]).not.toBe(initialFirstAccount);
     expect(mockFeeds[0]).not.toBe(initialFirstFeed);
     expect(mockArticles[0]).not.toBe(initialFirstArticle);
@@ -101,6 +107,7 @@ describe("dev mock data", () => {
     };
     resetMockDataForDevMocks();
 
+    expect(mockDataSeeds).toEqual(seedSnapshot);
     expect(mockAccounts).toEqual(initialAccounts);
   });
 
