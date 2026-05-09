@@ -127,7 +127,7 @@ export function ButtonVariantMatrixSpecimen() {
               </Button>
               {variant === "link" ? null : (
                 <Button variant={variant} size="icon-sm" aria-label={`${variant} icon action`}>
-                  <Save className="h-4 w-4" />
+                  <Save className="size-4" />
                 </Button>
               )}
             </div>
@@ -148,7 +148,7 @@ export function ButtonSizeMatrixSpecimen() {
             <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">{size}</div>
             {size.startsWith("icon") ? (
               <Button size={size} variant="outline" aria-label={`${size} action`}>
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="size-4" />
               </Button>
             ) : (
               <Button size={size} variant="outline">
@@ -188,7 +188,7 @@ export function SettingsActionButtonSpecimen() {
           </div>
           <div className="inline-flex rounded-lg border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)] p-1 shadow-elevation-1">
             <SettingsActionButton tone="rail" size="icon" aria-label="Close settings">
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </SettingsActionButton>
           </div>
         </div>
@@ -237,15 +237,15 @@ export function SemanticActionButtonsSpecimen() {
       <SectionHeading className="mb-2">Semantic action buttons</SectionHeading>
       <div data-testid="reference-semantic-action-buttons" className="flex flex-wrap items-center gap-2">
         <DecisionButton intent="keep" className={denseDecisionButtonClassName} aria-label="Keep selected">
-          <Check className="h-4 w-4" />
+          <Check className="size-4" />
           Keep selected
         </DecisionButton>
         <DecisionButton intent="defer" className={denseDecisionButtonClassName} aria-label="Defer selected">
-          <Clock3 className="h-4 w-4" />
+          <Clock3 className="size-4" />
           Defer selected
         </DecisionButton>
         <DecisionButton intent="delete" className={denseDecisionButtonClassName} aria-label="Delete selected">
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="size-4" />
           Delete selected
         </DecisionButton>
         <DeleteButton>Delete permanently</DeleteButton>
@@ -264,10 +264,10 @@ export function IconUtilityButtonSpecimen() {
             <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">Toolbar</div>
             <div className="flex items-center gap-2">
               <IconToolbarButton label="Refresh feeds" onClick={() => undefined}>
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="size-4" />
               </IconToolbarButton>
               <IconToolbarButton label="Open in browser" ariaPressed onClick={() => undefined}>
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="size-4" />
               </IconToolbarButton>
             </div>
           </div>
@@ -277,10 +277,10 @@ export function IconUtilityButtonSpecimen() {
             </div>
             <div className="flex items-center gap-2">
               <IconToolbarSurfaceButton label="Close Web Preview" onClick={() => undefined}>
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </IconToolbarSurfaceButton>
               <IconToolbarSurfaceButton label="Reload page" variant="chrome" onClick={() => undefined}>
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="size-4" />
               </IconToolbarSurfaceButton>
             </div>
           </div>
@@ -290,7 +290,7 @@ export function IconUtilityButtonSpecimen() {
             </div>
             <div className="flex items-center gap-2">
               <WorkspaceHeaderActionButton aria-label="Close workspace">
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </WorkspaceHeaderActionButton>
               <WorkspaceHeaderActionButton presentation="text">Shortcut</WorkspaceHeaderActionButton>
             </div>
@@ -409,7 +409,7 @@ export function ReaderHeaderActionStripSpecimen() {
               shareMenuControl={
                 <Menu.Root>
                   <IconToolbarMenuTrigger label="Share">
-                    <Share className="h-4 w-4" />
+                    <Share className="size-4" />
                   </IconToolbarMenuTrigger>
                 </Menu.Root>
               }
@@ -459,7 +459,7 @@ export function ReaderHeaderActionStripSpecimen() {
               shareMenuControl={
                 <Menu.Root>
                   <IconToolbarMenuTrigger label="Share">
-                    <Share className="h-4 w-4" />
+                    <Share className="size-4" />
                   </IconToolbarMenuTrigger>
                 </Menu.Root>
               }
@@ -504,11 +504,11 @@ export function SpecializedButtonPatternsSpecimen() {
               aria-label="Add tag"
               onClick={() => setTagPickerExpanded((current) => !current)}
             >
-              <Plus className="h-3 w-3" aria-hidden="true" />
+              <Plus className="size-3" aria-hidden="true" />
               <span>Add tag</span>
             </TagPickerTriggerButton>
             <TagPickerTriggerButton compact aria-label="Add compact tag">
-              <Plus className="h-3 w-3" aria-hidden="true" />
+              <Plus className="size-3" aria-hidden="true" />
             </TagPickerTriggerButton>
             <div className="w-full rounded-md border border-border/60 bg-surface-2 p-1.5">
               <TagOptionRowButton swatchColor={TAG_COLOR_PRESETS[2]}>design</TagOptionRowButton>

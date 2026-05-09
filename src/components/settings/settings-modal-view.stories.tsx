@@ -24,19 +24,19 @@ const meta = {
           {
             id: "general",
             label: "General",
-            icon: <Settings className="h-5 w-5" />,
+            icon: <Settings className="size-5" />,
             isActive: true,
           },
           {
             id: "appearance",
             label: "Appearance",
-            icon: <Palette className="h-5 w-5" />,
+            icon: <Palette className="size-5" />,
             isActive: false,
           },
           {
             id: "reading",
             label: "Reading",
-            icon: <BookOpen className="h-5 w-5" />,
+            icon: <BookOpen className="size-5" />,
             isActive: false,
           },
         ]}
@@ -104,19 +104,19 @@ export const DenseNarrowViewport: Story = {
           {
             id: "general",
             label: "一般設定",
-            icon: <Settings className="h-5 w-5" />,
+            icon: <Settings className="size-5" />,
             isActive: true,
           },
           {
             id: "appearance",
             label: "表示とテーマ",
-            icon: <Palette className="h-5 w-5" />,
+            icon: <Palette className="size-5" />,
             isActive: false,
           },
           {
             id: "reading",
             label: "記事の読み方",
-            icon: <BookOpen className="h-5 w-5" />,
+            icon: <BookOpen className="size-5" />,
             isActive: false,
           },
         ]}
