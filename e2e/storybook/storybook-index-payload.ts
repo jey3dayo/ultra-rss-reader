@@ -12,18 +12,14 @@ export const uiReferenceCanvasStoryIds = [
   "ui-reference-view-specimens-canvas--default",
 ] as const;
 
-const storybookIndexEntriesErrorMessage =
-  "Storybook index payload must be an object with an object entries field";
-const storybookIndexEntryIdErrorMessage =
-  "Storybook index entries must contain story objects with string id fields";
+const storybookIndexEntriesErrorMessage = "Storybook index payload must be an object with an object entries field";
+const storybookIndexEntryIdErrorMessage = "Storybook index entries must contain story objects with string id fields";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function getStorybookIndexEntries(
-  payload: unknown,
-): Record<string, unknown> {
+export function getStorybookIndexEntries(payload: unknown): Record<string, unknown> {
   if (!isRecord(payload) || !isRecord(payload.entries)) {
     throw new Error(storybookIndexEntriesErrorMessage);
   }
@@ -35,9 +31,7 @@ function isStorybookIndexEntry(value: unknown): value is StorybookIndexEntry {
   return isRecord(value) && typeof value.id === "string";
 }
 
-export function getStorybookIndexStoryIdsFromEntries(
-  entries: Record<string, unknown>,
-): string[] {
+export function getStorybookIndexStoryIdsFromEntries(entries: Record<string, unknown>): string[] {
   return Object.values(entries).flatMap((entry) => {
     if (!isStorybookIndexEntry(entry)) {
       throw new Error(storybookIndexEntryIdErrorMessage);
@@ -48,9 +42,7 @@ export function getStorybookIndexStoryIdsFromEntries(
 }
 
 export function getStorybookIndexStoryIds(payload: unknown): string[] {
-  return getStorybookIndexStoryIdsFromEntries(
-    getStorybookIndexEntries(payload),
-  );
+  return getStorybookIndexStoryIdsFromEntries(getStorybookIndexEntries(payload));
 }
 
 export function getStorybookIframeUrl(storyId: string): string {
@@ -65,9 +57,7 @@ export function getStorybookIframeStoryId(iframeUrl: string): string {
   const storyId = url.searchParams.get("id");
 
   if (storyId === null || storyId.length === 0) {
-    throw new Error(
-      "Storybook iframe URL must include a non-empty id query parameter",
-    );
+    throw new Error("Storybook iframe URL must include a non-empty id query parameter");
   }
 
   return storyId;

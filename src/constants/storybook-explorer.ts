@@ -8,12 +8,9 @@ export const STORYBOOK_EXPLORER_GROUPS = {
   internal: "Internal",
 } as const;
 
-export type StorybookExplorerGroup =
-  (typeof STORYBOOK_EXPLORER_GROUPS)[keyof typeof STORYBOOK_EXPLORER_GROUPS];
+export type StorybookExplorerGroup = (typeof STORYBOOK_EXPLORER_GROUPS)[keyof typeof STORYBOOK_EXPLORER_GROUPS];
 
-export const STORYBOOK_EXPLORER_TOP_LEVEL_GROUPS = Object.values(
-  STORYBOOK_EXPLORER_GROUPS,
-);
+export const STORYBOOK_EXPLORER_TOP_LEVEL_GROUPS = Object.values(STORYBOOK_EXPLORER_GROUPS);
 
 export const STORYBOOK_EXPLORER_SUBGROUPS = {
   uiReference: [
@@ -25,35 +22,20 @@ export const STORYBOOK_EXPLORER_SUBGROUPS = {
     "Navigation & Collections Canvas",
     "View Specimens Canvas",
   ],
-  shared: [
-    "Layout",
-    "Fields",
-    "Rows",
-    "Controls",
-    "Dialogs",
-    "Navigation",
-    "Feedback",
-  ],
+  shared: ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"],
   settings: ["Page", "Section", "Nav"],
   reader: ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
   subscriptions: ["Summary", "List", "Detail"],
   internal: ["Debug", "Review"],
 } as const;
 
-export function storybookExplorerTitle(
-  group: StorybookExplorerGroup,
-  subgroup: string,
-  title?: string,
-): string {
-  return title === undefined
-    ? `${group}/${subgroup}`
-    : `${group}/${subgroup}/${title}`;
+export function storybookExplorerTitle(group: StorybookExplorerGroup, subgroup: string, title?: string): string {
+  return title === undefined ? `${group}/${subgroup}` : `${group}/${subgroup}/${title}`;
 }
 
-export const STORYBOOK_EXPLORER_UI_REFERENCE_TITLES =
-  STORYBOOK_EXPLORER_SUBGROUPS.uiReference.map((title) =>
-    storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.uiReference, title),
-  );
+export const STORYBOOK_EXPLORER_UI_REFERENCE_TITLES = STORYBOOK_EXPLORER_SUBGROUPS.uiReference.map((title) =>
+  storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.uiReference, title),
+);
 
 export const STORYBOOK_EXPLORER_ORDER = [
   STORYBOOK_EXPLORER_GROUPS.uiReference,

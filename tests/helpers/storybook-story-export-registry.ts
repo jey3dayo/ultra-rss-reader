@@ -34,49 +34,40 @@ type StorybookHelperExportAllowlistEntry = {
 
 // UI Reference canvases are exported so component-level registry tests can assert specimen coverage.
 // Normal story files must keep helper components private and expose only Storybook story objects.
-const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] =
-  [
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-button-controls-canvas.stories.tsx",
-      helperExportName: "ButtonControlsCanvas",
-    },
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-foundations-canvas.stories.tsx",
-      helperExportName: "FoundationsCanvas",
-    },
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-navigation-collections-canvas.stories.tsx",
-      helperExportName: "NavigationCollectionsCanvas",
-    },
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-settings-canvas.stories.tsx",
-      helperExportName: "InputControlsCanvas",
-    },
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-settings-workspace-canvas.stories.tsx",
-      helperExportName: "SettingsWorkspaceCanvas",
-    },
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-shell-overlay-canvas.stories.tsx",
-      helperExportName: "ShellOverlayCanvas",
-    },
-    {
-      storyFilePath:
-        "/src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx",
-      helperExportName: "ViewSpecimensCanvas",
-    },
-  ];
+const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] = [
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-button-controls-canvas.stories.tsx",
+    helperExportName: "ButtonControlsCanvas",
+  },
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-foundations-canvas.stories.tsx",
+    helperExportName: "FoundationsCanvas",
+  },
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-navigation-collections-canvas.stories.tsx",
+    helperExportName: "NavigationCollectionsCanvas",
+  },
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-settings-canvas.stories.tsx",
+    helperExportName: "InputControlsCanvas",
+  },
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-settings-workspace-canvas.stories.tsx",
+    helperExportName: "SettingsWorkspaceCanvas",
+  },
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-shell-overlay-canvas.stories.tsx",
+    helperExportName: "ShellOverlayCanvas",
+  },
+  {
+    storyFilePath: "/src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx",
+    helperExportName: "ViewSpecimensCanvas",
+  },
+];
 
 const STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS = new Set(
   STORYBOOK_HELPER_EXPORT_ALLOWLIST.map(
-    ({ storyFilePath, helperExportName }) =>
-      `${storyFilePath}#${helperExportName}`,
+    ({ storyFilePath, helperExportName }) => `${storyFilePath}#${helperExportName}`,
   ),
 );
 
@@ -113,14 +104,10 @@ function describeStorybookMetaIssue(value: unknown) {
     return `received ${describeStorybookValue(value)}`;
   }
 
-  return hasStorybookMetaComponent(value)
-    ? "received invalid meta"
-    : "missing component";
+  return hasStorybookMetaComponent(value) ? "received invalid meta" : "missing component";
 }
 
-function isStorybookStoryModuleWithMeta(
-  value: unknown,
-): value is StorybookStoryModuleWithMeta {
+function isStorybookStoryModuleWithMeta(value: unknown): value is StorybookStoryModuleWithMeta {
   return isRecord(value) && isStorybookMetaLike(value.default);
 }
 
@@ -138,34 +125,23 @@ function describeStorybookStoryModuleIssue(value: unknown) {
   )})`;
 }
 
-function isStorybookNamedStoryLike(
-  value: unknown,
-): value is StorybookNamedStoryLike {
+function isStorybookNamedStoryLike(value: unknown): value is StorybookNamedStoryLike {
   return isRecord(value) && !Array.isArray(value);
 }
 
-function isAllowlistedStorybookHelperExport(
-  filePath: string,
-  helperExportName: string,
-) {
-  return STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS.has(
-    `${filePath}#${helperExportName}`,
-  );
+function isAllowlistedStorybookHelperExport(filePath: string, helperExportName: string) {
+  return STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS.has(`${filePath}#${helperExportName}`);
 }
 
-export function collectStorybookStoryExportRegistry(
-  storyModulesByPath: Record<string, unknown>,
-) {
+export function collectStorybookStoryExportRegistry(storyModulesByPath: Record<string, unknown>) {
   const registry: StorybookStoryExportRegistryEntry[] = [];
   const issues: string[] = [];
 
-  for (const [filePath, storyModule] of Object.entries(storyModulesByPath).sort(
-    ([left], [right]) => left.localeCompare(right),
+  for (const [filePath, storyModule] of Object.entries(storyModulesByPath).sort(([left], [right]) =>
+    left.localeCompare(right),
   )) {
     if (!isStorybookStoryModuleWithMeta(storyModule)) {
-      issues.push(
-        `${filePath}: ${describeStorybookStoryModuleIssue(storyModule)}`,
-      );
+      issues.push(`${filePath}: ${describeStorybookStoryModuleIssue(storyModule)}`);
       continue;
     }
 
@@ -173,8 +149,8 @@ export function collectStorybookStoryExportRegistry(
     const storyExportNames: string[] = [];
     const allowedNonStoryExportNames: string[] = [];
 
-    for (const [exportName, exportValue] of Object.entries(storyModule).sort(
-      ([left], [right]) => left.localeCompare(right),
+    for (const [exportName, exportValue] of Object.entries(storyModule).sort(([left], [right]) =>
+      left.localeCompare(right),
     )) {
       if (exportName === "default") {
         continue;
@@ -190,15 +166,11 @@ export function collectStorybookStoryExportRegistry(
         continue;
       }
 
-      issues.push(
-        `${filePath}: named export "${exportName}" must be a story object or an allowlisted helper`,
-      );
+      issues.push(`${filePath}: named export "${exportName}" must be a story object or an allowlisted helper`);
     }
 
     if (storyExportNames.length === 0) {
-      issues.push(
-        `${filePath}: expected at least one named story object export`,
-      );
+      issues.push(`${filePath}: expected at least one named story object export`);
     }
 
     registry.push({

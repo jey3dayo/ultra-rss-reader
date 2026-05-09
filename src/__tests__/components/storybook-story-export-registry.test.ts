@@ -12,11 +12,8 @@ describe("Storybook story export registry", () => {
   });
 
   it("keeps non-story helper exports limited to UI Reference canvases", () => {
-    const allowedNonStoryExports = storybookStoryExportRegistry.flatMap(
-      (entry) =>
-        entry.allowedNonStoryExportNames.map(
-          (exportName) => `${entry.filePath}#${exportName}`,
-        ),
+    const allowedNonStoryExports = storybookStoryExportRegistry.flatMap((entry) =>
+      entry.allowedNonStoryExportNames.map((exportName) => `${entry.filePath}#${exportName}`),
     );
 
     expect(allowedNonStoryExports).toEqual(
@@ -31,9 +28,7 @@ describe("Storybook story export registry", () => {
       ]),
     );
     expect(allowedNonStoryExports).toEqual(
-      allowedNonStoryExports.filter((exportId) =>
-        exportId.startsWith("/src/components/storybook/ui-reference-"),
-      ),
+      allowedNonStoryExports.filter((exportId) => exportId.startsWith("/src/components/storybook/ui-reference-")),
     );
   });
 

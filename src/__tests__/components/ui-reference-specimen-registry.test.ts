@@ -12,10 +12,7 @@ type UiReferenceSection = {
   title: string;
 };
 
-const STORYBOOK_COMPONENTS_DIR = resolve(
-  process.cwd(),
-  "src/components/storybook",
-);
+const STORYBOOK_COMPONENTS_DIR = resolve(process.cwd(), "src/components/storybook");
 const SPECIMENS_SOURCE_FILE_NAMES = [
   "ui-reference-canvas-specimens.tsx",
   "ui-reference-control-specimens.tsx",
@@ -66,18 +63,12 @@ const uiReferenceSections = [
 
 const storySourceEntries = uiReferenceSections.map((section) => ({
   ...section,
-  source: readFileSync(
-    join(STORYBOOK_COMPONENTS_DIR, section.fileName),
-    "utf8",
-  ),
+  source: readFileSync(join(STORYBOOK_COMPONENTS_DIR, section.fileName), "utf8"),
 }));
 const specimensSource = SPECIMENS_SOURCE_FILE_NAMES.map((fileName) =>
   readFileSync(join(STORYBOOK_COMPONENTS_DIR, fileName), "utf8"),
 ).join("\n");
-const uiReferenceSource = [
-  specimensSource,
-  ...storySourceEntries.map(({ source }) => source),
-].join("\n");
+const uiReferenceSource = [specimensSource, ...storySourceEntries.map(({ source }) => source)].join("\n");
 
 function findDuplicates(values: readonly string[]) {
   const counts = new Map<string, number>();
@@ -103,23 +94,17 @@ function countValues(values: readonly string[]) {
 }
 
 function extractReferenceTestIds(source: string) {
-  return [
-    ...source.matchAll(
-      /(?:data-testid|testId)=\{?"(reference-[^"]+)"\}?|testId:\s*"(reference-[^"]+)"/g,
-    ),
-  ].map((match) => match[1] ?? match[2] ?? "");
+  return [...source.matchAll(/(?:data-testid|testId)=\{?"(reference-[^"]+)"\}?|testId:\s*"(reference-[^"]+)"/g)].map(
+    (match) => match[1] ?? match[2] ?? "",
+  );
 }
 
 function extractSpecimenExports(source: string) {
-  return [...source.matchAll(/export function (\w+Specimen)\b/g)].map(
-    (match) => match[1] ?? "",
-  );
+  return [...source.matchAll(/export function (\w+Specimen)\b/g)].map((match) => match[1] ?? "");
 }
 
 function extractReferencedSpecimens(source: string) {
-  return [...source.matchAll(/<([A-Z]\w*Specimen)\b/g)].map(
-    (match) => match[1] ?? "",
-  );
+  return [...source.matchAll(/<([A-Z]\w*Specimen)\b/g)].map((match) => match[1] ?? "");
 }
 
 describe("UI Reference specimen registry", () => {
@@ -130,19 +115,13 @@ describe("UI Reference specimen registry", () => {
       .sort();
 
     expect(findDuplicates(sectionIds)).toEqual([]);
-    expect(storyFileNames).toEqual(
-      uiReferenceSections.map((section) => section.fileName).sort(),
-    );
+    expect(storyFileNames).toEqual(uiReferenceSections.map((section) => section.fileName).sort());
   });
 
   it("keeps registered section titles aligned with the Storybook meta titles", () => {
-    const titleDrift = storySourceEntries.flatMap(
-      ({ fileName, source, title }) => {
-        return source.includes(`title: "${title}"`)
-          ? []
-          : `${fileName} should keep title "${title}"`;
-      },
-    );
+    const titleDrift = storySourceEntries.flatMap(({ fileName, source, title }) => {
+      return source.includes(`title: "${title}"`) ? [] : `${fileName} should keep title "${title}"`;
+    });
 
     expect(titleDrift).toEqual([]);
   });
@@ -150,9 +129,7 @@ describe("UI Reference specimen registry", () => {
   it("keeps reference specimen test ids unique across specimens and UI Reference stories", () => {
     const referenceIds = [
       ...extractReferenceTestIds(specimensSource),
-      ...storySourceEntries.flatMap(({ source }) =>
-        extractReferenceTestIds(source),
-      ),
+      ...storySourceEntries.flatMap(({ source }) => extractReferenceTestIds(source)),
     ];
 
     expect(findDuplicates(referenceIds)).toEqual([]);
@@ -165,25 +142,15 @@ describe("UI Reference specimen registry", () => {
       ...UI_REFERENCE_DECORATIVE_TEST_IDS,
     ].sort();
 
-    expect(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS).toEqual([
-      ...new Set(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS),
-    ]);
-    expect(UI_REFERENCE_DECORATIVE_TEST_IDS).toEqual([
-      ...new Set(UI_REFERENCE_DECORATIVE_TEST_IDS),
-    ]);
-    expect(classifiedReferenceIds).toEqual([
-      ...new Set(classifiedReferenceIds),
-    ]);
+    expect(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS).toEqual([...new Set(UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS)]);
+    expect(UI_REFERENCE_DECORATIVE_TEST_IDS).toEqual([...new Set(UI_REFERENCE_DECORATIVE_TEST_IDS)]);
+    expect(classifiedReferenceIds).toEqual([...new Set(classifiedReferenceIds)]);
     expect(classifiedReferenceIds).toEqual([...new Set(referenceIds)].sort());
   });
 
   it("keeps primary specimen smoke anchors present exactly once", () => {
-    const referenceIdCounts = countValues(
-      extractReferenceTestIds(uiReferenceSource),
-    );
-    const missingAnchors = UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS.filter(
-      (anchorId) => !referenceIdCounts[anchorId],
-    );
+    const referenceIdCounts = countValues(extractReferenceTestIds(uiReferenceSource));
+    const missingAnchors = UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS.filter((anchorId) => !referenceIdCounts[anchorId]);
     const duplicateAnchors = UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS.filter(
       (anchorId) => referenceIdCounts[anchorId] > 1,
     );
@@ -195,11 +162,7 @@ describe("UI Reference specimen registry", () => {
   it("keeps exported specimen sections referenced by a UI Reference story", () => {
     const exportedSpecimens = extractSpecimenExports(specimensSource).sort();
     const referencedSpecimens = [
-      ...new Set(
-        storySourceEntries.flatMap(({ source }) =>
-          extractReferencedSpecimens(source),
-        ),
-      ),
+      ...new Set(storySourceEntries.flatMap(({ source }) => extractReferencedSpecimens(source))),
     ].sort();
 
     expect(referencedSpecimens).toEqual(exportedSpecimens);

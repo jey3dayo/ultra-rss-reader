@@ -11,10 +11,7 @@ type StorybookPreviewBackground = {
 
 export const STORYBOOK_PREVIEW_BACKGROUND_TOKEN = "--theme-canvas";
 
-export const STORYBOOK_PREVIEW_BACKGROUND_VALUES: Record<
-  StorybookPreviewBackgroundName,
-  string
-> = {
+export const STORYBOOK_PREVIEW_BACKGROUND_VALUES: Record<StorybookPreviewBackgroundName, string> = {
   dark: "#1c1915",
   light: "#f2f1ed",
 };
@@ -51,15 +48,7 @@ const preview: Preview = {
             "View Specimens Canvas",
           ],
           "Shared",
-          [
-            "Layout",
-            "Fields",
-            "Rows",
-            "Controls",
-            "Dialogs",
-            "Navigation",
-            "Feedback",
-          ],
+          ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"],
           "Primitives",
           "Settings",
           ["Page", "Section", "Nav"],
