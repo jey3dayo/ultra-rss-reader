@@ -5,6 +5,7 @@ use crate::domain::error::{DomainError, DomainResult};
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
 const MAX_DISCOVERY_BODY_BYTES: u64 = 2 * 1024 * 1024;
 
 /// A discovered feed from an HTML page.
@@ -51,6 +52,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
             title: String::new(),
         }]);
     }
+    validate_discovery_response_content_type(&content_type)?;
 
     let body = response_text_with_limit(response).await?;
 
@@ -72,11 +74,29 @@ fn discovery_redirect_policy() -> reqwest::redirect::Policy {
             return attempt.error("too many redirects");
         }
 
-        match validate_discovery_url(attempt.url()) {
+        match validate_discovery_redirect(attempt.previous(), attempt.url()) {
             Ok(()) => attempt.follow(),
             Err(error) => attempt.error(error.to_string()),
         }
     })
+}
+
+fn validate_discovery_redirect(
+    previous_urls: &[reqwest::Url],
+    next_url: &reqwest::Url,
+) -> DomainResult<()> {
+    validate_discovery_url(next_url)?;
+
+    if previous_urls
+        .last()
+        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
+    {
+        return Err(DomainError::Validation(
+            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
@@ -102,6 +122,9 @@ fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
     }
     if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
         return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
+        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
     }
 
     DomainError::Network(message)
@@ -136,6 +159,12 @@ fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
 fn discovery_body_too_large_error() -> DomainError {
     DomainError::Network(format!(
         "Feed discovery response body exceeds {MAX_DISCOVERY_BODY_BYTES} bytes"
+    ))
+}
+
+fn unsupported_discovery_content_type_error(content_type: &str) -> DomainError {
+    DomainError::Network(format!(
+        "Unsupported feed discovery response content type: {content_type}"
     ))
 }
 
@@ -178,6 +207,22 @@ fn is_feed_content_type(ct: &str) -> bool {
         || ct.contains("application/feed+json")
         || ct.contains("application/xml")
         || ct.contains("text/xml")
+}
+
+fn is_html_content_type(ct: &str) -> bool {
+    ct.split(';')
+        .next()
+        .unwrap_or(ct)
+        .trim()
+        .eq_ignore_ascii_case("text/html")
+}
+
+fn validate_discovery_response_content_type(content_type: &str) -> DomainResult<()> {
+    if content_type.trim().is_empty() || is_html_content_type(content_type) {
+        return Ok(());
+    }
+
+    Err(unsupported_discovery_content_type_error(content_type))
 }
 
 fn is_feed_body_fallback(body: &str) -> bool {
@@ -721,12 +766,57 @@ mod tests {
     }
 
     #[test]
+    fn validate_discovery_redirect_rejects_https_to_http_downgrade() {
+        let previous = vec![reqwest::Url::parse("https://example.com/page").unwrap()];
+        let next = reqwest::Url::parse("http://example.com/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_discovery_redirect(&previous, &next),
+            Err(DomainError::Validation(message)) if message == DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_discovery_redirect_allows_http_to_https_upgrade() {
+        let previous = vec![reqwest::Url::parse("http://example.com/page").unwrap()];
+        let next = reqwest::Url::parse("https://example.com/feed.xml").unwrap();
+
+        assert!(validate_discovery_redirect(&previous, &next).is_ok());
+    }
+
+    #[test]
+    fn validate_discovery_redirect_rejects_private_redirect_targets() {
+        let previous = vec![reqwest::Url::parse("https://example.com/page").unwrap()];
+        let next = reqwest::Url::parse("https://127.0.0.1/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_discovery_redirect(&previous, &next),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
     fn test_is_feed_content_type() {
         assert!(is_feed_content_type("application/rss+xml; charset=utf-8"));
         assert!(is_feed_content_type("application/atom+xml"));
         assert!(is_feed_content_type("application/feed+json"));
         assert!(is_feed_content_type("text/xml"));
         assert!(!is_feed_content_type("text/html; charset=utf-8"));
+    }
+
+    #[test]
+    fn validate_discovery_response_content_type_allows_html_and_missing_type() {
+        assert!(validate_discovery_response_content_type("text/html; charset=utf-8").is_ok());
+        assert!(validate_discovery_response_content_type("").is_ok());
+    }
+
+    #[test]
+    fn validate_discovery_response_content_type_rejects_binary_type() {
+        assert!(matches!(
+            validate_discovery_response_content_type("application/octet-stream"),
+            Err(DomainError::Network(message))
+                if message.contains("Unsupported feed discovery response content type")
+        ));
     }
 
     #[test]

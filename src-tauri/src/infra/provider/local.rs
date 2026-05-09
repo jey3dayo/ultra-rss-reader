@@ -15,6 +15,7 @@ const LOCAL_PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
@@ -63,7 +64,7 @@ impl LocalProvider {
                 return attempt.follow();
             }
 
-            match validate_external_feed_url(attempt.url()) {
+            match validate_external_feed_redirect(attempt.previous(), attempt.url()) {
                 Ok(()) => attempt.follow(),
                 Err(error) => attempt.error(error.to_string()),
             }
@@ -107,6 +108,8 @@ impl LocalProvider {
     }
 
     async fn response_bytes_with_limit(mut response: reqwest::Response) -> DomainResult<Vec<u8>> {
+        validate_feed_response_content_type(response.headers())?;
+
         if response
             .content_length()
             .is_some_and(|length| length > MAX_LOCAL_FEED_BODY_BYTES)
@@ -132,6 +135,12 @@ fn feed_body_too_large_error() -> DomainError {
     ))
 }
 
+fn unsupported_feed_content_type_error(content_type: &str) -> DomainError {
+    DomainError::Network(format!(
+        "Unsupported feed response content type: {content_type}"
+    ))
+}
+
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
     if url.scheme() != "http" && url.scheme() != "https" {
         return Err(DomainError::Validation(
@@ -142,6 +151,60 @@ fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
     if url.host_str().is_some_and(is_private_host) {
         return Err(DomainError::Validation(
             PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_external_feed_redirect(
+    previous_urls: &[reqwest::Url],
+    next_url: &reqwest::Url,
+) -> DomainResult<()> {
+    validate_external_feed_url(next_url)?;
+
+    if previous_urls
+        .last()
+        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
+    {
+        return Err(DomainError::Validation(
+            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn is_supported_feed_response_content_type(content_type: Option<&str>) -> bool {
+    let Some(content_type) = content_type else {
+        return true;
+    };
+    let media_type = content_type
+        .split(';')
+        .next()
+        .unwrap_or(content_type)
+        .trim()
+        .to_ascii_lowercase();
+
+    matches!(
+        media_type.as_str(),
+        "application/rss+xml"
+            | "application/atom+xml"
+            | "application/feed+json"
+            | "application/xml"
+            | "text/xml"
+            | "text/html"
+    )
+}
+
+fn validate_feed_response_content_type(headers: &reqwest::header::HeaderMap) -> DomainResult<()> {
+    let content_type = headers
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok());
+
+    if !is_supported_feed_response_content_type(content_type) {
+        return Err(unsupported_feed_content_type_error(
+            content_type.unwrap_or("<invalid>"),
         ));
     }
 
@@ -180,6 +243,9 @@ fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
     }
     if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
         return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
+        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
     }
 
     DomainError::from(error)
@@ -616,6 +682,61 @@ mod tests {
 
         assert!(matches!(error, DomainError::Validation(_)));
         assert!(!mock.matched_async().await);
+    }
+
+    #[test]
+    fn validate_external_feed_redirect_rejects_https_to_http_downgrade() {
+        let previous = vec![reqwest::Url::parse("https://example.com/feed.xml").unwrap()];
+        let next = reqwest::Url::parse("http://example.com/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_external_feed_redirect(&previous, &next),
+            Err(DomainError::Validation(message)) if message == DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_external_feed_redirect_allows_http_to_https_upgrade() {
+        let previous = vec![reqwest::Url::parse("http://example.com/feed.xml").unwrap()];
+        let next = reqwest::Url::parse("https://example.com/feed.xml").unwrap();
+
+        assert!(validate_external_feed_redirect(&previous, &next).is_ok());
+    }
+
+    #[test]
+    fn validate_external_feed_redirect_rejects_private_redirect_targets() {
+        let previous = vec![reqwest::Url::parse("https://example.com/feed.xml").unwrap()];
+        let next = reqwest::Url::parse("https://localhost/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_external_feed_redirect(&previous, &next),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn feed_response_content_type_policy_allows_feed_html_and_missing_types() {
+        for content_type in [
+            Some("application/rss+xml; charset=utf-8"),
+            Some("application/atom+xml"),
+            Some("application/feed+json"),
+            Some("application/xml"),
+            Some("text/xml"),
+            Some("text/html; charset=utf-8"),
+            None,
+        ] {
+            assert!(
+                is_supported_feed_response_content_type(content_type),
+                "content type should be allowed: {content_type:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn feed_response_content_type_policy_rejects_binary_types() {
+        assert!(!is_supported_feed_response_content_type(Some(
+            "application/octet-stream"
+        )));
     }
 
     #[tokio::test]
