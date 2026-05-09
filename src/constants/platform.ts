@@ -10,12 +10,15 @@ export const DEFAULT_PLATFORM_CAPABILITIES = {
   supports_native_browser_navigation: false,
   uses_dev_file_credentials: false,
 } as const satisfies PlatformInfo["capabilities"];
+export type PlatformCapabilities = typeof DEFAULT_PLATFORM_CAPABILITIES;
 export type PlatformCapabilityName = keyof typeof DEFAULT_PLATFORM_CAPABILITIES;
+export type PlatformCapabilityDefault = PlatformCapabilities[PlatformCapabilityName];
 
 export const DEFAULT_PLATFORM_INFO = {
   kind: "unknown",
   capabilities: DEFAULT_PLATFORM_CAPABILITIES,
 } as const satisfies PlatformInfo;
+export type DefaultPlatformInfo = typeof DEFAULT_PLATFORM_INFO;
 
 export const SHORTCUT_MODIFIER_BY_PLATFORM = {
   macos: "\u2318",

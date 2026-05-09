@@ -10,5 +10,7 @@ export type StorageKey = (typeof STORAGE_KEYS)[StorageKeyName];
 export const LEGACY_STORAGE_KEYS = {
   startupSyncLastTriggeredAt: "startup-sync-last-triggered-at",
 } as const;
+export type LegacyStorageKeyName = keyof typeof LEGACY_STORAGE_KEYS;
+export type LegacyStorageKey = (typeof LEGACY_STORAGE_KEYS)[LegacyStorageKeyName];
 
 export const MAX_COMMAND_HISTORY = 10;
