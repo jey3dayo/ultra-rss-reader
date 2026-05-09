@@ -115,11 +115,6 @@
   - 対象候補: `use-updater.test.ts` / `tauri-commands.test.ts` / `sidebar.test.tsx` / `scenario-runtime.test.ts`
   - production code の async policy とは分け、test runtime の無駄な waterfall cleanup だけを扱う
 
-- [ ] react-doctor toSorted immutable cleanup 候補を追加する
-  - `react-doctor/js-tosorted-immutable` の `[...array].sort()` を `toSorted()` へ寄せ、sort 前後の mutation contract を明確にする
-  - 対象候補: `storybook-explorer-organization.test.ts` / `repo-contracts.test.ts` / `subscriptions-index.ts` / `dev/scenarios/helpers.ts`
-  - Node / browser runtime compatibility を repo の target に合わせて確認し、必要なら test-only と runtime code を別バッチに分ける
-
 - [ ] react-doctor async loop concurrency 候補を追加する
   - `react-doctor/async-await-in-loop` のうち、独立実行できる script/dev helper の loop await を `Promise.all` 系へ寄せる
   - 対象候補: `scripts/tauri-dev-vite-manager.ts` / `scripts/tauri-cli-dispatch.ts` / `scripts/seed-dev-db-from-prod.ts` / `src/dev/scenarios/helpers.ts`
