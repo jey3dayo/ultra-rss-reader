@@ -23,7 +23,7 @@ import {
   listFolders,
 } from "@/api/tauri-commands";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleFolders } from "./fixtures";
-import { extractCommandNames, orderedSetDifference } from "./tauri-command-contract";
+import { createCommandIndex, extractCommandNames, orderedCommandDifference } from "./tauri-command-contract";
 import { createTauriMockCallRecorder, mockPlatformInfo, setupTauriMocks, teardownTauriMocks } from "./tauri-mocks";
 
 function readWorkspaceFile(path: string): string {
@@ -277,6 +277,8 @@ describe("setupTauriMocks fixture isolation", () => {
   it("documents default mock coverage for frontend Tauri commands", () => {
     const mockedCommands = extractDefaultMockCommands();
     const frontendCommands = extractFrontendTauriCommands();
+    const mockedCommandIndex = createCommandIndex(mockedCommands);
+    const frontendCommandIndex = createCommandIndex(frontendCommands);
     const intentionallyUnhandledCommands = [
       "add_to_reading_list",
       "copy_to_clipboard",
@@ -301,8 +303,8 @@ describe("setupTauriMocks fixture isolation", () => {
       "vacuum_database",
     ].sort();
 
-    expect(orderedSetDifference(frontendCommands, mockedCommands)).toEqual(intentionallyUnhandledCommands);
-    expect(orderedSetDifference(mockedCommands, frontendCommands)).toEqual([
+    expect(orderedCommandDifference(frontendCommandIndex, mockedCommandIndex)).toEqual(intentionallyUnhandledCommands);
+    expect(orderedCommandDifference(mockedCommandIndex, frontendCommandIndex)).toEqual([
       "plugin:event|listen",
       "plugin:event|unlisten",
     ]);

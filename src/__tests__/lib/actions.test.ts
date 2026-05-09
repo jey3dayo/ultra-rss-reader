@@ -62,6 +62,10 @@ const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWeb
   }),
 );
 
+function createActionIdMap(actions: readonly AppAction[]): ReadonlyMap<string, AppAction> {
+  return new Map(actions.map((action) => [action, action]));
+}
+
 function captureNavigationDetails(eventName: typeof APP_EVENTS.navigateArticle | typeof APP_EVENTS.navigateFeed) {
   const details: Array<1 | -1> = [];
   const cleanup = bindWindowEvents([
@@ -1051,9 +1055,10 @@ describe("executeAction", () => {
 
     it("keeps native menu action payloads registered as app actions", () => {
       const menuActionPayloads = extractMenuActionPayloads(menuSource);
+      const actionIds = createActionIdMap(APP_ACTIONS);
 
       for (const action of menuActionPayloads) {
-        expect(APP_ACTIONS).toContain(action);
+        expect(actionIds.has(action)).toBe(true);
         expect(isAppAction(action)).toBe(true);
       }
     });
@@ -1080,8 +1085,9 @@ describe("executeAction", () => {
         "open-settings",
       ]);
 
+      const actionIds = createActionIdMap(APP_ACTIONS);
       for (const action of sharedShortcutActions) {
-        expect(APP_ACTIONS).toContain(action);
+        expect(actionIds.has(action)).toBe(true);
         expect(isAppAction(action)).toBe(true);
       }
     });

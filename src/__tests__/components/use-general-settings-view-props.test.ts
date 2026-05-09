@@ -22,6 +22,10 @@ function getLanguageControl(tFunction = t) {
   return control;
 }
 
+function getControlsById(props: ReturnType<typeof buildGeneralSettingsViewProps>) {
+  return new Map(props.sections.flatMap((section) => section.controls).map((control) => [control.id, control]));
+}
+
 describe("useGeneralSettingsViewProps", () => {
   it("keeps general settings scoped to app navigation and sync controls", () => {
     const props = buildGeneralSettingsViewProps({
@@ -127,8 +131,7 @@ describe("useGeneralSettingsViewProps", () => {
       setPref,
     });
 
-    const navigationSection = props.sections.find((section) => section.id === "navigation");
-    const controls = navigationSection?.controls ?? [];
+    const controlsById = getControlsById(props);
     const sidebarControls = [
       ["show-sidebar-unread", "show_sidebar_unread", true],
       ["show-sidebar-starred", "show_sidebar_starred", false],
@@ -137,7 +140,7 @@ describe("useGeneralSettingsViewProps", () => {
     ] as const;
 
     for (const [controlId, preferenceKey, checked] of sidebarControls) {
-      const control = controls.find((candidate) => candidate.id === controlId);
+      const control = controlsById.get(controlId);
 
       expect(control).toEqual(
         expect.objectContaining({
@@ -154,7 +157,7 @@ describe("useGeneralSettingsViewProps", () => {
       expect(setPref).toHaveBeenCalledWith(preferenceKey, String(!checked));
     }
 
-    const startupExpansionControl = controls.find((control) => control.id === "startup-folder-expansion");
+    const startupExpansionControl = controlsById.get("startup-folder-expansion");
 
     expect(startupExpansionControl).toEqual(
       expect.objectContaining({

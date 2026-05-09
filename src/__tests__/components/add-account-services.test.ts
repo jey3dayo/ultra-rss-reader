@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { findServiceDefinition, SERVICE_CATEGORIES } from "@/components/settings/add-account/services";
+import {
+  findServiceDefinition,
+  getDisabledServiceDefinitions,
+  getEnabledServiceDefinitions,
+} from "@/components/settings/add-account/services";
 
 describe("add-account-services", () => {
   it("keeps enabled add account providers discoverable", () => {
+    expect(getEnabledServiceDefinitions().map((service) => service.kind)).toEqual(["Local", "FreshRss"]);
     expect(findServiceDefinition("Local")).toEqual(
       expect.objectContaining({
         kind: "Local",
@@ -20,9 +25,7 @@ describe("add-account-services", () => {
   });
 
   it("keeps disabled services listed but not discoverable as enabled providers", () => {
-    const disabledKinds = SERVICE_CATEGORIES.flatMap((category) =>
-      category.services.filter((service) => service.disabled).map((service) => service.kind),
-    );
+    const disabledKinds = getDisabledServiceDefinitions().map((service) => service.kind);
 
     expect(disabledKinds).toEqual(["Fever", "Inoreader", "Feedly", "NewsBlur", "Feedbin"]);
   });

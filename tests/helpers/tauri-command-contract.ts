@@ -61,3 +61,27 @@ export function orderedSetDifference(left: readonly string[], right: readonly st
 
   return difference;
 }
+
+export type CommandIndex = {
+  readonly commands: readonly string[];
+  readonly commandSet: ReadonlySet<string>;
+};
+
+export function createCommandIndex(commands: readonly string[]): CommandIndex {
+  return {
+    commands,
+    commandSet: new Set(commands),
+  };
+}
+
+export function orderedCommandDifference(left: CommandIndex, right: CommandIndex): string[] {
+  const difference: string[] = [];
+
+  for (const command of left.commands) {
+    if (!right.commandSet.has(command)) {
+      difference.push(command);
+    }
+  }
+
+  return difference;
+}

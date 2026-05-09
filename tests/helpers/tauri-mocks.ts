@@ -17,7 +17,7 @@ import {
   createSampleFolders,
   createSampleMuteKeywords,
   createSampleTags,
-} from "./fixtures";
+} from "./api-fixtures";
 import type {
   RawMockTauriCommandArgs,
   ValidatedMockTauriCommandArgs,

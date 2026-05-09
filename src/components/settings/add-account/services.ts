@@ -2,7 +2,12 @@ import { Monitor, Rss, Thermometer } from "lucide-react";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { PROVIDER_ICON_BG_CLASS } from "@/components/shared/exception-palettes";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import type { ServiceCategory, ServiceDefinition } from "./services.types";
+import type {
+  DisabledServiceDefinition,
+  EnabledServiceDefinition,
+  ServiceCategory,
+  ServiceDefinition,
+} from "./services.types";
 
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {
@@ -86,4 +91,20 @@ export function findServiceDefinition(kind: AddAccountProviderKind): ServiceDefi
   }
 
   return null;
+}
+
+function isEnabledServiceDefinition(service: ServiceDefinition): service is EnabledServiceDefinition {
+  return !service.disabled;
+}
+
+function isDisabledServiceDefinition(service: ServiceDefinition): service is DisabledServiceDefinition {
+  return service.disabled === true;
+}
+
+export function getEnabledServiceDefinitions(): EnabledServiceDefinition[] {
+  return SERVICE_CATEGORIES.flatMap((category) => category.services.filter(isEnabledServiceDefinition));
+}
+
+export function getDisabledServiceDefinitions(): DisabledServiceDefinition[] {
+  return SERVICE_CATEGORIES.flatMap((category) => category.services.filter(isDisabledServiceDefinition));
 }
