@@ -7,9 +7,19 @@ const startupSyncStorageKeys = [
   STORAGE_KEYS.startupSyncLastTriggeredAt,
   LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt,
 ] as const;
+let hasWarnedStartupSyncStorageUnavailable = false;
 
 function logStartupSyncStorageFailure(message: string, error: unknown): void {
   console.warn(message, error);
+}
+
+function logStartupSyncStorageUnavailableOnce(error: unknown): void {
+  if (hasWarnedStartupSyncStorageUnavailable) {
+    return;
+  }
+
+  hasWarnedStartupSyncStorageUnavailable = true;
+  logStartupSyncStorageFailure("Startup sync localStorage is unavailable.", error);
 }
 
 function readStartupSyncStorage(): StartupSyncStorage | null {
@@ -19,7 +29,7 @@ function readStartupSyncStorage(): StartupSyncStorage | null {
   try {
     return window.localStorage;
   } catch (error) {
-    logStartupSyncStorageFailure("Startup sync localStorage is unavailable.", error);
+    logStartupSyncStorageUnavailableOnce(error);
     return null;
   }
 }
