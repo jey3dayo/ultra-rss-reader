@@ -205,11 +205,6 @@
   - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
   - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
 
-- [ ] updater startup check unmount guard 候補を追加する
-  - `src/hooks/use-updater.ts` の startup update check promise に cancelled guard を追加し、unmount 後に toast / warn が出ないようにする
-  - `src/__tests__/hooks/use-updater.test.ts` で `useUpdater` unmount 後に startup check が resolve しても update toast が出ないことを確認する
-  - updater progress payload schema とは分け、startup check lifecycle だけを扱う
-
 - [ ] folder selection focus frame cleanup 候補を追加する
   - `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts` の new folder input focus 用 `requestAnimationFrame` を reset / unmount 時に cancel する
   - use-folder-selection または add/rename dialog hook test で作成モード開始後 frame 前に閉じても stale focus が走らないことを確認する
@@ -279,11 +274,6 @@
   - `e2e/app.spec.ts` と `e2e/storybook/ui-reference-canvas-smoke.spec.ts` に散っている runtime error guard を shared helper に寄せる
   - `pageerror` だけでなく `console.error` も拾う contract を最小 Playwright spec で固定する
   - E2E scenario 追加とは分け、runtime error detection helper だけを扱う
-
-- [ ] sidebar expanded folders storage failure 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の expanded folder 永続化で `setItem` 失敗を捕捉する
-  - `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.ts` で storage quota / unavailable 時も UI state 更新は維持されることを固定する
-  - sidebar navigation frame cleanup とは分け、expanded folder persistence failure だけを扱う
 
 - [ ] tag repository blank name invariant 候補を追加する
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
