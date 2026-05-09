@@ -70,10 +70,6 @@
   - React Doctor の `.toSorted()` warning 29 件の大半は test-only なので、runtime target 確認後に production 変更と分けて一括処理できる
   - test helper bulk rewrite、Node 24 support、snapshot order stability、readability regression の review checklist を用意する
 
-- [ ] P2 browser / storage / events constants の unused type を runtime boundary constants として整理する
-  - 対象: `src/constants/browser.ts`, `src/constants/storage.ts`, `src/constants/events.ts`, `src/lib/runtime/*`
-  - React Doctor / Knip が runtime constants の unused type/export を検出しており、browser event name、storage key、Tauri event key の source of truth が散りやすい
-  - public runtime event、private storage key、test fixture key、deprecated alias を分類し、残す constants は contract test へ明示する
 - [ ] P3 overlay / drag / inert の CSS token を scattered z-index から semantic layer へ寄せる
   - 対象: `src/components/app-shell.tsx`, `src/components/ui/dialog.tsx`, `src/components/shared/app-toast-view.tsx`, `src/components/shared/workspace-header.tsx`
   - z-index や pointer-events の数値が component 内に分散しており、overlay 追加のたびにどの layer が上に来るべきか review で判断する必要がある
