@@ -5,12 +5,37 @@ import { describe, expect, it } from "vitest";
 const repoRoot = process.cwd();
 
 const readerTypeSurfaceFiles = [
+  "src/components/reader/add-feed-dialog.types.ts",
+  "src/components/reader/article-actions.types.ts",
   "src/components/reader/article-list.types.ts",
   "src/components/reader/browser-view.types.ts",
   "src/components/reader/command-palette.types.ts",
   "src/components/reader/feed-tree.types.ts",
+  "src/components/reader/rename-feed-dialog.types.ts",
   "src/components/reader/sidebar-feed-section.types.ts",
+  "src/components/reader/sidebar-runtime.types.ts",
+  "src/components/reader/sidebar-sources.types.ts",
   "src/components/reader/sidebar.types.ts",
+] as const;
+
+const settingsTypeSurfaceFiles = [
+  "src/components/settings/settings-modal.types.ts",
+  "src/components/settings/settings-nav.types.ts",
+  "src/components/settings/settings-page.types.ts",
+] as const;
+
+const localOnlyTypeSurfaceFiles = [
+  "src/components/reader/article-actions.types.ts",
+  "src/components/reader/sidebar-runtime.types.ts",
+  "src/components/reader/sidebar-sources.types.ts",
+  "src/components/settings/add-account/form-view.types.ts",
+] as const;
+
+const typeSurfaceSearchDirectories = [
+  "src/components/reader",
+  "src/components/settings",
+  "src/__tests__/components",
+  "src/__tests__/hooks",
 ] as const;
 
 function collectTypeScriptFiles(directoryPath: string): string[] {
@@ -47,6 +72,30 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function collectTypeSurfaceSearchFiles() {
+  return typeSurfaceSearchDirectories.flatMap((directoryPath) => collectTypeScriptFiles(join(repoRoot, directoryPath)));
+}
+
+function collectUnusedExports(surfaceFiles: readonly string[], searchFiles = collectTypeSurfaceSearchFiles()) {
+  return surfaceFiles.flatMap((surfaceFile) => {
+    const exportedTypeNames = extractExportedTypeNames(readRepoFile(surfaceFile));
+
+    return exportedTypeNames
+      .filter((typeName) => {
+        const typeNamePattern = new RegExp(`\\b${escapeRegExp(typeName)}\\b`);
+
+        return !searchFiles.some((candidateFile) => {
+          if (candidateFile === surfaceFile) {
+            return false;
+          }
+
+          return typeNamePattern.test(readRepoFile(candidateFile));
+        });
+      })
+      .map((typeName) => `${surfaceFile}:${typeName}`);
+  });
+}
+
 describe("reader type surface", () => {
   it("tracks the reader feature-local type split candidates", () => {
     expect(readerTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
@@ -54,30 +103,24 @@ describe("reader type surface", () => {
   });
 
   it("keeps exported reader type contracts externally referenced", () => {
-    const searchFiles = [
-      ...collectTypeScriptFiles(join(repoRoot, "src/components/reader")),
-      ...collectTypeScriptFiles(join(repoRoot, "src/__tests__/components")),
-      ...collectTypeScriptFiles(join(repoRoot, "src/__tests__/hooks")),
-    ];
+    expect(collectUnusedExports(readerTypeSurfaceFiles)).toEqual([]);
+  });
 
-    const unusedExports = readerTypeSurfaceFiles.flatMap((surfaceFile) => {
-      const exportedTypeNames = extractExportedTypeNames(readRepoFile(surfaceFile));
+  it("tracks settings feature-local type split candidates", () => {
+    expect(settingsTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+    expect(settingsTypeSurfaceFiles).toEqual([...settingsTypeSurfaceFiles].sort());
+  });
 
-      return exportedTypeNames
-        .filter((typeName) => {
-          const typeNamePattern = new RegExp(`\\b${escapeRegExp(typeName)}\\b`);
+  it("keeps exported settings type contracts externally referenced", () => {
+    expect(collectUnusedExports(settingsTypeSurfaceFiles)).toEqual([]);
+  });
 
-          return !searchFiles.some((candidateFile) => {
-            if (candidateFile === surfaceFile) {
-              return false;
-            }
+  it("tracks local-only exported Props/Params/Result cleanup candidates", () => {
+    expect(localOnlyTypeSurfaceFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+    expect(localOnlyTypeSurfaceFiles).toEqual([...localOnlyTypeSurfaceFiles].sort());
+  });
 
-            return typeNamePattern.test(readRepoFile(candidateFile));
-          });
-        })
-        .map((typeName) => `${surfaceFile}:${typeName}`);
-    });
-
-    expect(unusedExports).toEqual([]);
+  it("keeps local-only exported type contracts externally referenced", () => {
+    expect(collectUnusedExports(localOnlyTypeSurfaceFiles)).toEqual([]);
   });
 });
