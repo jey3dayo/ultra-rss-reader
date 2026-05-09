@@ -640,6 +640,37 @@ mod tests {
     }
 
     #[test]
+    fn discover_feeds_rejects_private_and_unsupported_initial_urls_before_network() {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+
+        for url in [
+            "http://localhost/feed.xml",
+            "http://127.0.0.1/feed.xml",
+            "http://10.0.0.2/feed.xml",
+        ] {
+            let error = runtime
+                .block_on(discover_feeds(url))
+                .expect_err("private initial discovery URL should be rejected");
+
+            assert!(matches!(
+                error,
+                DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE
+            ));
+        }
+
+        for url in ["file:///tmp/feed.xml", "mailto:feed@example.com"] {
+            let error = runtime
+                .block_on(discover_feeds(url))
+                .expect_err("unsupported initial discovery URL should be rejected");
+
+            assert!(matches!(
+                error,
+                DomainError::Validation(message) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE
+            ));
+        }
+    }
+
+    #[test]
     fn validate_discovery_url_rejects_unsupported_redirect_schemes() {
         let url = reqwest::Url::parse("file:///etc/passwd").unwrap();
 

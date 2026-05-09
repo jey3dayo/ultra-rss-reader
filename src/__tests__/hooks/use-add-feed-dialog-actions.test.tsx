@@ -361,6 +361,78 @@ describe("useAddFeedDialogActions", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it("keeps add feed successful when selected folder assignment fails", async () => {
+    vi.mocked(addLocalFeed).mockResolvedValue(
+      Result.succeed({
+        id: "feed-new",
+        account_id: "account-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Example Feed",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 0,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      }),
+    );
+    vi.mocked(updateFeedFolder).mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "folder was deleted",
+      }),
+    );
+
+    const dispatch = vi.fn();
+    const onOpenChange = vi.fn();
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() =>
+      useAddFeedDialogActions({
+        accountId: "account-1",
+        state: {
+          url: "https://example.com/feed.xml",
+          error: null,
+          successMessage: null,
+          loading: false,
+          discovering: false,
+          discoveryRequestId: null,
+          discoveredFeeds: [],
+          selectedFeedUrl: null,
+        },
+        dispatch,
+        derived: {
+          hasManualUrl: true,
+          isManualUrlValid: true,
+          urlHint: null,
+          urlHintTone: "muted",
+          isSubmitDisabled: false,
+          isDiscoverDisabled: false,
+          discoveredFeedOptions: [],
+        },
+        trimmedUrl: "https://example.com/feed.xml",
+        folderSelection: {
+          selectedFolderId: "folder-1",
+          isCreatingFolder: false,
+          newFolderName: "",
+        },
+        queryClient: new QueryClient(),
+        onOpenChange,
+        showToast,
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/feed.xml");
+    expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
+    expect(showToast).toHaveBeenCalledWith(t("feed_added_folder_failed", { message: "folder was deleted" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
   it("ignores repeated submit calls while the first add feed request is in flight", async () => {
     const addFeed = createDeferred<Awaited<ReturnType<typeof addLocalFeed>>>();
     vi.mocked(addLocalFeed).mockReturnValue(addFeed.promise);
