@@ -3000,6 +3000,53 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn sync_local_feed_keeps_http_validators_in_sync_state_not_feed_http_cache() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", LOCAL_ETAG_NEW)
+            .with_header("last-modified", LOCAL_LAST_MODIFIED_NEW)
+            .with_body(LOCAL_RSS_INITIAL)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = sync_state_repo
+            .get(&account.id, &local_feed_scope_key(&feed.url))
+            .unwrap()
+            .unwrap();
+        let feed_http_cache_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM feed_http_cache WHERE feed_id = ?1",
+                rusqlite::params![feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(state.etag.as_deref(), Some(LOCAL_ETAG_NEW));
+        assert_eq!(
+            state.last_modified.as_deref(),
+            Some(LOCAL_LAST_MODIFIED_NEW)
+        );
+        assert_eq!(feed_http_cache_count, 0);
+    }
+
+    #[tokio::test]
     async fn sync_local_feed_returns_post_write_integrity_error() {
         let mut server = mockito::Server::new_async().await;
         let feed_url = format!("{}/feed.xml", server.url());

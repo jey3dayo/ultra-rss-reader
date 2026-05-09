@@ -128,6 +128,12 @@ fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
     automatic_sync_enabled.load(Ordering::SeqCst)
 }
 
+fn load_all_accounts(db: &Mutex<DbManager>) -> Result<Vec<Account>, AppError> {
+    let db_guard = lock_db(db)?;
+    let account_repo = SqliteAccountRepository::new(db_guard.reader());
+    Ok(account_repo.find_all()?)
+}
+
 pub(crate) fn should_emit_sync_succeeded(result: &SyncResult) -> bool {
     result.synced && result.succeeded > 0 && result.failed.is_empty() && result.warnings.is_empty()
 }
@@ -216,6 +222,35 @@ fn mark_startup_remote_state_repair_complete(db: &Mutex<DbManager>) -> Result<()
     Ok(())
 }
 
+fn startup_remote_state_repair_succeeded(
+    startup_sync_accounts: &[Account],
+    repair_only_accounts: &[Account],
+    repaired_account_ids: &[String],
+    sync_result: &SyncResult,
+) -> bool {
+    let repaired_account_ids = repaired_account_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<std::collections::HashSet<_>>();
+
+    if !repair_only_accounts.is_empty() {
+        return repair_only_accounts
+            .iter()
+            .all(|account| repaired_account_ids.contains(account.id.as_ref()));
+    }
+
+    let failed_ids = sync_result
+        .failed
+        .iter()
+        .map(|failure| failure.account_id.as_str())
+        .collect::<std::collections::HashSet<_>>();
+
+    startup_sync_accounts
+        .iter()
+        .filter(|account| matches!(account.kind, ProviderKind::FreshRss))
+        .all(|account| !failed_ids.contains(account.id.as_ref()))
+}
+
 #[cfg(not(test))]
 fn local_provider() -> LocalProvider {
     LocalProvider::new()
@@ -287,11 +322,7 @@ async fn run_full_sync_with_progress(
     syncing: &AtomicBool,
     reporter: Option<SyncProgressReporter>,
 ) -> Result<SyncResult, AppError> {
-    let accounts: Vec<Account> = {
-        let db_guard = lock_db(db)?;
-        let account_repo = SqliteAccountRepository::new(db_guard.reader());
-        account_repo.find_all()?
-    };
+    let accounts = load_all_accounts(db)?;
 
     run_sync_for_accounts_with_progress(db, syncing, accounts, reporter).await
 }
@@ -470,7 +501,7 @@ pub async fn trigger_startup_sync(
         let mut result = run_sync_for_accounts_with_progress(
             &state.db,
             &state.syncing,
-            startup_sync_accounts,
+            startup_sync_accounts.clone(),
             Some(reporter),
         )
         .await?;
@@ -484,20 +515,12 @@ pub async fn trigger_startup_sync(
     };
 
     if repair_pending {
-        let full_sync_failed_ids = sync_result
-            .failed
-            .iter()
-            .map(|failure| failure.account_id.as_str())
-            .collect::<std::collections::HashSet<_>>();
-        let repair_candidates = all_accounts
-            .iter()
-            .filter(|account| matches!(account.kind, ProviderKind::FreshRss))
-            .map(|account| account.id.as_ref())
-            .collect::<Vec<_>>();
-        let remote_state_repair_succeeded = repair_candidates
-            .iter()
-            .all(|account_id| !full_sync_failed_ids.contains(account_id));
-        if remote_state_repair_succeeded {
+        if startup_remote_state_repair_succeeded(
+            &startup_sync_accounts,
+            &repair_only_accounts,
+            &repaired_account_ids,
+            &sync_result,
+        ) {
             mark_startup_remote_state_repair_complete(&state.db)?;
         }
     }
@@ -577,6 +600,27 @@ pub(crate) async fn run_automatic_sync_with_progress(
     run_full_sync_with_progress(db, syncing, reporter).await
 }
 
+async fn run_automatic_sync_for_accounts_with_progress(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    automatic_sync_enabled: &AtomicBool,
+    accounts: Vec<Account>,
+    reporter: Option<SyncProgressReporter>,
+) -> Result<SyncResult, AppError> {
+    if !is_automatic_sync_enabled(automatic_sync_enabled) {
+        tracing::info!("Automatic sync is disabled until the first manual sync completes");
+        return Ok(SyncResult {
+            synced: false,
+            total: 0,
+            succeeded: 0,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        });
+    }
+
+    run_sync_for_accounts_with_progress(db, syncing, accounts, reporter).await
+}
+
 /// Purge old read articles based on each account's `keep_read_items_days` setting.
 /// Called after background sync to prevent data bloat.
 pub fn purge_old_articles(db: &Mutex<DbManager>) {
@@ -627,12 +671,15 @@ pub async fn trigger_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let reporter = SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAll, {
-        let db_guard = lock_db(&state.db)?;
-        let account_repo = SqliteAccountRepository::new(db_guard.reader());
-        account_repo.find_all()?.len()
-    });
-    let result = run_full_sync_with_progress(&state.db, &state.syncing, Some(reporter)).await?;
+    let accounts = load_all_accounts(&state.db)?;
+    let reporter = SyncProgressReporter::new(
+        app_handle.clone(),
+        SyncProgressKind::ManualAll,
+        accounts.len(),
+    );
+    let result =
+        run_sync_for_accounts_with_progress(&state.db, &state.syncing, accounts, Some(reporter))
+            .await?;
     if result.synced {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
@@ -652,15 +699,17 @@ pub async fn trigger_automatic_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let reporter = SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::Automatic, {
-        let db_guard = lock_db(&state.db)?;
-        let account_repo = SqliteAccountRepository::new(db_guard.reader());
-        account_repo.find_all()?.len()
-    });
-    let result = run_automatic_sync_with_progress(
+    let accounts = load_all_accounts(&state.db)?;
+    let reporter = SyncProgressReporter::new(
+        app_handle.clone(),
+        SyncProgressKind::Automatic,
+        accounts.len(),
+    );
+    let result = run_automatic_sync_for_accounts_with_progress(
         &state.db,
         &state.syncing,
         state.automatic_sync_enabled.as_ref(),
+        accounts,
         Some(reporter),
     )
     .await?;
@@ -1101,6 +1150,86 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["acc-1", "acc-2"]
         );
+    }
+
+    fn test_sync_command_account(id: &str, kind: ProviderKind, sync_on_startup: bool) -> Account {
+        Account {
+            id: AccountId(id.to_string()),
+            kind,
+            name: id.to_string(),
+            server_url: Some("https://example.com".to_string()),
+            username: Some("user".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
+
+    fn sync_result_with_failed_ids(failed_ids: &[&str]) -> SyncResult {
+        SyncResult {
+            synced: true,
+            total: failed_ids.len(),
+            succeeded: 0,
+            failed: failed_ids
+                .iter()
+                .map(|id| AccountSyncError {
+                    account_id: id.to_string(),
+                    account_name: id.to_string(),
+                    message: "failed".to_string(),
+                })
+                .collect(),
+            warnings: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn startup_remote_state_repair_complete_allows_repair_only_success_with_normal_sync_failure() {
+        let startup_account =
+            test_sync_command_account("startup-fresh", ProviderKind::FreshRss, true);
+        let repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        let sync_result = sync_result_with_failed_ids(&["startup-fresh"]);
+
+        assert!(startup_remote_state_repair_succeeded(
+            &[startup_account],
+            &[repair_only_account],
+            &["repair-only-fresh".to_string()],
+            &sync_result,
+        ));
+    }
+
+    #[test]
+    fn startup_remote_state_repair_complete_allows_repair_only_success_with_mixed_provider_failure()
+    {
+        let startup_account = test_sync_command_account("startup-local", ProviderKind::Local, true);
+        let repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        let sync_result = sync_result_with_failed_ids(&["startup-local"]);
+
+        assert!(startup_remote_state_repair_succeeded(
+            &[startup_account],
+            &[repair_only_account],
+            &["repair-only-fresh".to_string()],
+            &sync_result,
+        ));
+    }
+
+    #[test]
+    fn startup_remote_state_repair_complete_requires_repair_only_success() {
+        let repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        let sync_result = sync_result_with_failed_ids(&[]);
+
+        assert!(!startup_remote_state_repair_succeeded(
+            &[],
+            &[repair_only_account],
+            &[],
+            &sync_result,
+        ));
     }
 
     #[test]
