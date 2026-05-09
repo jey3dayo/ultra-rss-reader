@@ -3,9 +3,13 @@ import { act, renderHook } from "@testing-library/react";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDetailAccount, UpdateAccountSyncParams } from "@/components/settings/account-detail/types";
-import { useAccountDetailSyncControls } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import {
+  runAccountSetupSync,
+  useAccountDetailSyncControls,
+} from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import { useUiStore } from "@/stores/ui-store";
 
 const { syncAccountMock, updateAccountSyncMock } = vi.hoisted(() => ({
   syncAccountMock: vi.fn(),
@@ -42,6 +46,11 @@ describe("useAccountDetailSyncControls", () => {
   beforeEach(() => {
     syncAccountMock.mockReset();
     updateAccountSyncMock.mockReset();
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  afterEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   it.each<{
@@ -105,5 +114,29 @@ describe("useAccountDetailSyncControls", () => {
     expect(queryClient.getQueryData<AccountDetailAccount[]>(["accounts"])?.[0]).toEqual(
       expect.objectContaining(expected),
     );
+  });
+
+  it("recovers account setup sync when the native sync promise rejects", async () => {
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const onSyncStatusChanged = vi.fn();
+    syncAccountMock.mockRejectedValue(new Error("transport down"));
+
+    await runAccountSetupSync({
+      accountId: "acc-setup",
+      queryClient,
+      t,
+      onSyncStatusChanged,
+      owner: "account-detail",
+    });
+
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "acc-setup",
+      owner: "account-detail",
+      state: "failed",
+      errorMessage: "Sync failed: transport down",
+    });
+    expect(onSyncStatusChanged).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["account-sync-status"] });
   });
 });

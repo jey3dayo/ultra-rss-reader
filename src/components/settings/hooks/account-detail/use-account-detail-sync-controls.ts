@@ -6,6 +6,7 @@ import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -60,7 +61,18 @@ export async function runAccountSetupSync({
 }: RunAccountSetupSyncParams) {
   useUiStore.getState().startAccountSetup(accountId, { owner });
 
-  const syncResult = await syncAccount(accountId);
+  let syncResult: Awaited<ReturnType<typeof syncAccount>>;
+  try {
+    syncResult = await syncAccount(accountId);
+  } catch (error) {
+    onSyncStatusChanged?.();
+    void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
+    useUiStore
+      .getState()
+      .markAccountSetupFailed(accountId, t("account.sync_failed", { message: getErrorMessage(error) }));
+    return;
+  }
+
   onSyncStatusChanged?.();
   void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
 
