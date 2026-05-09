@@ -295,11 +295,6 @@
   - subscriptions index focused test で decision bar / overview card / status icon の role と visible state が変わらないことを確認する
   - subscriptions index pane contract とは分け、visual utility cleanup だけを扱う
 
-- [ ] react-doctor add-account icon size shorthand 候補を追加する
-  - `account-config-form-view.tsx` / `service-picker.tsx` の add-account flow 内 icon sizing を `size-N` へ寄せる
-  - add-account form focused test で provider selection / config form / validation state が変わらないことを確認する
-  - add account service picker props boundary とは分け、icon utility cleanup だけを扱う
-
 - [ ] react-doctor reader sidebar leaf icon size shorthand 候補を追加する
   - `feed-tree-drag-overlay.tsx` / `feed-item.tsx` / `folder-section.tsx` / `sidebar-feed-tree-skeleton.tsx` の leaf / skeleton icon sizing を `size-N` へ寄せる
   - feed item / folder section / sidebar focused test で row height、skeleton shape、drag preview が変わらないことを確認する
