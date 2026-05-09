@@ -138,6 +138,10 @@ describe("shouldCleanStaleMacosDevBundle", () => {
     expect(shouldCleanStaleMacosDevBundle(["build", "-c", "src-tauri/tauri.dev.conf.json"])).toBe(false);
     expect(shouldCleanStaleMacosDevBundle(["dev", "-c", "src-tauri/tauri.conf.json"])).toBe(false);
   });
+
+  it("cleans dev runs that pass the dev overlay config in inline long flag form", () => {
+    expect(shouldCleanStaleMacosDevBundle(["dev", "--config=src-tauri/tauri.dev.conf.json"])).toBe(true);
+  });
 });
 
 describe("removeStaleMacosDevBundle", () => {
