@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -240,21 +240,23 @@ describe("CommandPalette", () => {
   it("guards unavailable action dispatches from command handlers", () => {
     const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
     const closePalette = vi.fn();
-    const handlers = useCommandPaletteHandlers({
-      closePalette,
-      openShortcutsHelp: vi.fn(),
-      showToast: vi.fn(),
-      selectedAccountId: null,
-      isSyncing: true,
-      selectFeedFromCurrentContext: vi.fn(),
-      selectTagFromCurrentContext: vi.fn(),
-      selectArticle: vi.fn(),
-      openFeedLanding: vi.fn(),
-    });
+    const { result } = renderHook(() =>
+      useCommandPaletteHandlers({
+        closePalette,
+        openShortcutsHelp: vi.fn(),
+        showToast: vi.fn(),
+        selectedAccountId: null,
+        isSyncing: true,
+        selectFeedFromCurrentContext: vi.fn(),
+        selectTagFromCurrentContext: vi.fn(),
+        selectArticle: vi.fn(),
+        openFeedLanding: vi.fn(),
+      }),
+    );
 
-    handlers.handleActionSelect("sync-all");
-    handlers.handleActionSelect("open-add-feed");
-    handlers.handleActionSelect("mark-all-read");
+    result.current.handleActionSelect("sync-all");
+    result.current.handleActionSelect("open-add-feed");
+    result.current.handleActionSelect("mark-all-read");
 
     expect(executeAction).not.toHaveBeenCalled();
     expect(closePalette).not.toHaveBeenCalled();
@@ -332,6 +334,19 @@ describe("CommandPalette", () => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
     });
+  });
+
+  it("closes open palette results when the selected account changes", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("option", { name: /Tech Blog/ })).toBeInTheDocument();
+
+    useUiStore.getState().selectAccount("acc-2");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+    expect(screen.getByRole("dialog", { name: "Open command palette" })).toHaveAttribute("data-closed");
   });
 
   it("filters to action results for the action prefix", async () => {

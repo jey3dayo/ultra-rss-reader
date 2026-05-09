@@ -330,13 +330,13 @@ describe("keyboard shortcut resolver", () => {
     expect(map.get("⌘+\\")).toBe("toggle_sidebar");
   });
 
-  it("keeps the first custom shortcut key when it collides with another action", () => {
+  it("disables a duplicate custom shortcut key instead of dispatching an ambiguous action", () => {
     const keyToAction = buildKeyToActionMap({
       shortcut_next_article: "x",
       shortcut_prev_article: "x",
     });
 
-    expect(keyToAction.get("x")).toBe("next_article");
+    expect(keyToAction.get("x")).toBeUndefined();
 
     const result = resolveKeyboardAction({
       key: "x",
@@ -350,13 +350,10 @@ describe("keyboard shortcut resolver", () => {
       keyToAction,
     });
 
-    expect(Result.unwrap(result)).toEqual({
-      type: "navigate-article",
-      direction: 1,
-    });
+    expect(Result.unwrapError(result)).toBe("no_action");
   });
 
-  it("reports duplicate custom shortcut conflicts without changing first-wins resolution", () => {
+  it("reports duplicate custom shortcut conflicts and leaves runtime resolution disabled", () => {
     const prefs = {
       shortcut_next_article: "x",
       shortcut_prev_article: "x",
@@ -366,7 +363,7 @@ describe("keyboard shortcut resolver", () => {
       type: "duplicate",
       actionId: "next_article",
     });
-    expect(buildKeyToActionMap(prefs).get("x")).toBe("next_article");
+    expect(buildKeyToActionMap(prefs).get("x")).toBeUndefined();
   });
 
   it.each(["", "   "] as const)("treats a blank next-article shortcut override as disabled: %j", (shortcut) => {
@@ -424,14 +421,14 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrapError(result)).toBe("ignored_input");
   });
 
-  it("does not let later duplicate custom shortcuts overwrite an earlier custom shortcut", () => {
+  it("does not dispatch any action for duplicate custom shortcuts", () => {
     const keyToAction = buildKeyToActionMap({
       shortcut_open_settings: "z",
       shortcut_open_command_palette: "z",
       shortcut_focus_sidebar: "z",
     });
 
-    expect(keyToAction.get("z")).toBe("focus_sidebar");
+    expect(keyToAction.get("z")).toBeUndefined();
   });
 
   it("does not fall back to the plain key when a command-modified shortcut is unmapped", () => {
@@ -527,6 +524,14 @@ describe("keyboard shortcut resolver", () => {
     });
 
     expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
+  it("does not include native menu owned shortcuts in the runtime key map", () => {
+    expect(
+      buildKeyToActionMap({
+        shortcut_reload_webview: "⌘+r",
+      }).get("⌘+r"),
+    ).toBeUndefined();
   });
 
   it("reports native menu owned shortcut conflicts", () => {

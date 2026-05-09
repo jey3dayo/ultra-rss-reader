@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useCommandPaletteActions } from "@/components/reader/hooks/command-palette/use-command-palette-actions";
 import { useCommandPaletteData } from "@/components/reader/hooks/command-palette/use-command-palette-data";
@@ -24,6 +25,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     isSyncing,
   } = useCommandPaletteUiState();
   const openFeedLanding = useFeedLanding();
+  const selectedAccountIdRef = useRef(selectedAccountId);
   const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime({ open });
   const actions = useCommandPaletteActions({
     platformKind,
@@ -34,6 +36,18 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
   const closePalette = () => {
     closeCommandPalette();
   };
+
+  useEffect(() => {
+    if (selectedAccountIdRef.current === selectedAccountId) {
+      return;
+    }
+
+    selectedAccountIdRef.current = selectedAccountId;
+    if (open) {
+      closeCommandPalette();
+    }
+  }, [closeCommandPalette, open, selectedAccountId]);
+
   const { handleActionSelect, handleFeedSelect, handleTagSelect, handleArticleSelect, handleDevScenarioSelect } =
     useCommandPaletteHandlers({
       closePalette,

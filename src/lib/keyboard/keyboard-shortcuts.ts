@@ -299,12 +299,17 @@ for (const definition of shortcutDefinitions) {
 /** Build a reverse mapping: key string -> ShortcutActionId. */
 export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
   const map: KeyToActionMap = new Map();
+  const normalizedKeys = shortcutDefinitions
+    .map((definition) => normalizeShortcutMapKey(getShortcutKey(definition.id, prefs)))
+    .filter((key): key is string => key !== null);
+  const duplicateKeys = new Set(normalizedKeys.filter((key, index) => normalizedKeys.indexOf(key) !== index));
+
   for (const def of shortcutDefinitions) {
     const key = normalizeShortcutMapKey(getShortcutKey(def.id, prefs));
     if (key === null) {
       continue;
     }
-    if (map.has(key)) {
+    if (duplicateKeys.has(key) || isNativeMenuOwnedShortcut(key)) {
       continue;
     }
     map.set(key, def.id);

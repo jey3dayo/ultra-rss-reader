@@ -44,6 +44,17 @@ describe("use-command-history", () => {
     expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
   });
 
+  it("removes oversized history payloads before parsing JSON", () => {
+    const oversizedPayload = `[${" ".repeat(MAX_COMMAND_HISTORY_STORAGE_LENGTH)}]`;
+    const parseSpy = vi.spyOn(JSON, "parse");
+
+    localStorage.setItem(STORAGE_KEYS.commandHistory, oversizedPayload);
+
+    expect(getHistory()).toEqual([]);
+    expect(parseSpy).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
+  });
+
   it("discards non-string and blank entries from stored history", () => {
     localStorage.setItem(
       STORAGE_KEYS.commandHistory,
