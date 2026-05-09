@@ -480,6 +480,31 @@
   - payload は勝手に trim せず、whitespace-only だけ invoke 前に拒否する schema / test を追加する
   - article share menu や readonly field copy の成功 toast とは分け、`copy_to_clipboard` IPC args 境界だけを扱う
 
+- [ ] tag DTO response schema invariant 候補を追加する
+  - `src/api/schemas/tag.ts` の `TagDtoSchema.name` / `color` が任意 string を通すため、response DTO として nonblank name / nullable color 形式をどこまで保証するか決める
+  - `TagDtoSchema.parse({ name: "   " })` と invalid color response の期待値を `src/__tests__/api/schemas.test.ts` で固定する
+  - Rust tag command validation や tag color picker UI とは分け、frontend Tag DTO response schema だけを扱う
+
+- [ ] mute keyword DTO response schema invariant 候補を追加する
+  - `src/api/schemas/mute-keyword.ts` の `MuteKeywordDtoSchema.keyword` が blank / whitespace-only を通すため、backend response 境界で reject するか trim 正規化するか決める
+  - `created_at` / `updated_at` は文字列 shape のまま残すか、ISO-like string まで schema test で固定するかを小さく確認する
+  - mute keyword create/update args や settings UI race とは分け、MuteKeyword DTO response schema のみを扱う
+
+- [ ] discovered feed DTO response schema 候補を追加する
+  - `src/api/schemas/discovered-feed.ts` の `DiscoveredFeedDtoSchema.url` が `z.string()` のため、blank / newline / non-http URL を discover response で許すか明確にする
+  - `title` は blank fallback 表示を許す一方、URL は nonblank http(s) にする contract を `src/__tests__/api/schemas.test.ts` で固定する
+  - add feed manual URL validation や Rust feed discovery parser とは分け、frontend discovered feed DTO response 境界だけを扱う
+
+- [ ] update info DTO response schema 候補を追加する
+  - `src/api/schemas/update-info.ts` の `UpdateInfoDtoSchema.version` が blank string を通すため、update check response として nonblank version を要求する
+  - `body` は `null` と空文字をどう扱うかを schema test で固定し、toast copy や updater lifecycle とは分ける
+  - release / updater command 実装ではなく、frontend update info DTO response schema のみを扱う
+
+- [ ] sync result message DTO schema 候補を追加する
+  - `src/api/schemas/sync-result.ts` の failed / warning `message` と `account_name` が blank string を通すため、sync feedback 表示に渡す前の DTO invariant を決める
+  - blank message / blank account name の reject または fallback 方針を `SyncResultSchema` test で固定する
+  - sync result toast copy や retry scheduling logic とは分け、sync result DTO message boundary だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
