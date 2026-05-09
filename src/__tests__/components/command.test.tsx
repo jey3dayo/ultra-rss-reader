@@ -60,5 +60,10 @@ describe("Command primitives", () => {
     expect(screen.getByRole("dialog", { name: "Run command", description: "Choose an action." })).toContainElement(
       screen.getByPlaceholderText("Search commands"),
     );
+    expect(screen.getByRole("dialog", { name: "Run command" })).toHaveAttribute(
+      "data-stack-layer",
+      "commandPalette",
+    );
+    expect(screen.getByRole("dialog", { name: "Run command" })).toHaveClass("z-50");
   });
 });

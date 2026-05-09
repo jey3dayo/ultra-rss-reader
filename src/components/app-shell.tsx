@@ -10,7 +10,7 @@ import {
   formatRawKeyboardTrace,
   formatRawPointerTrace,
 } from "@/lib/debug/debug-input-trace";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+import { APP_STACKING_CLASS_NAMES, hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import {
   bindWindowEvents,
   createCustomEventDetailListener,
@@ -464,6 +464,7 @@ export function AppShell() {
   const settingsOpen = useUiStore((state) => state.settingsOpen);
   const confirmDialogOpen = useUiStore((state) => state.confirmDialog.open);
   const closeSettings = useUiStore((state) => state.closeSettings);
+  const contentMode = useUiStore((state) => state.contentMode);
   const browserUrl = useUiStore((state) => state.browserUrl);
   const toastMessage = useUiStore((state) => state.toastMessage);
   const prefs = usePreferencesStore((state) => state.prefs);
@@ -473,6 +474,7 @@ export function AppShell() {
   });
   const showFocusDebugHud = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const focusDebugHudTemporarilyHidden = settingsOpen || confirmDialogOpen || shortcutsHelpOpen || commandPaletteOpen;
+  const browserOverlayRootInteractive = contentMode === "browser" && browserUrl !== null;
 
   useEffect(() => {
     loadPlatformInfo();
@@ -494,8 +496,9 @@ export function AppShell() {
       <div
         data-browser-overlay-root=""
         className={cn(
-          "absolute inset-0 z-40",
-          browserUrl ? "pointer-events-auto" : "pointer-events-none",
+          "absolute inset-0",
+          APP_STACKING_CLASS_NAMES.browserOverlayRoot,
+          browserOverlayRootInteractive ? "pointer-events-auto" : "pointer-events-none",
           // Keep the overlay root aligned to the shell; traffic-light safe area is handled by browser geometry.
           overlayTitlebar && "desktop-overlay-titlebar",
         )}

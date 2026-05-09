@@ -177,6 +177,7 @@ describe("AppShell", () => {
     expect(overlayRoot).toBeInTheDocument();
     expect(overlayRoot).toHaveClass("absolute");
     expect(overlayRoot).toHaveClass("inset-0");
+    expect(overlayRoot).toHaveClass("z-40");
     expect(appLayout).not.toContainElement(overlayRoot);
     expect(overlayRoot?.parentElement).toBe(container.firstElementChild);
     expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -200,6 +201,15 @@ describe("AppShell", () => {
 
     expect(overlayRoot).toHaveClass("pointer-events-auto");
     expect(overlayRoot).not.toHaveClass("pointer-events-none");
+
+    useUiStore.setState({
+      contentMode: "reader",
+      browserUrl: "https://example.com/stale",
+    });
+    rerender(<AppShell />);
+
+    expect(overlayRoot).toHaveClass("pointer-events-none");
+    expect(overlayRoot).not.toHaveClass("pointer-events-auto");
   });
 
   it("keeps the desktop overlay titlebar helper classes on the shell overlay root without adding a shell-wide drag strip", () => {

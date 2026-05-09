@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
+import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 export type DialogProps = DialogPrimitive.Root.Props;
 export type DialogTriggerProps = DialogPrimitive.Trigger.Props;
@@ -14,11 +15,13 @@ export type DialogPortalProps = DialogPrimitive.Portal.Props;
 export type DialogCloseProps = DialogPrimitive.Close.Props;
 export type DialogOverlayProps = DialogPrimitive.Backdrop.Props;
 export type DialogOverlayPreset = "modal" | "readable";
+export type DialogStackLayer = "dialog" | "commandPalette";
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
   closeLabel?: string;
   overlayPreset?: DialogOverlayPreset;
   overlayClassName?: string;
+  stackLayer?: DialogStackLayer;
 };
 export type DialogHeaderProps = React.ComponentProps<"div">;
 export type DialogFooterProps = React.ComponentProps<"div"> & {
@@ -57,8 +60,12 @@ function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
   }
 }
 
+function getDialogStackClass(layer: DialogStackLayer) {
+  return layer === "commandPalette" ? APP_STACKING_CLASS_NAMES.commandPalette : APP_STACKING_CLASS_NAMES.dialog;
+}
+
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
-  const overlayClassName = [MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate z-50", className]
+  const overlayClassName = [MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
     .filter(Boolean)
     .join(" ");
 
@@ -72,6 +79,7 @@ function DialogContent({
   closeLabel,
   overlayPreset = "modal",
   overlayClassName,
+  stackLayer = "dialog",
   ...props
 }: DialogContentProps) {
   const { t } = useTranslation();
@@ -79,15 +87,18 @@ function DialogContent({
     .filter(Boolean)
     .join(" ");
   const resolvedCloseLabel = resolveDialogCloseLabel(closeLabel, t(["dialog_close", "close"]));
+  const stackClassName = getDialogStackClass(stackLayer);
 
   return (
     <DialogPortal>
-      <DialogOverlay className={resolvedOverlayClassName} />
+      <DialogOverlay className={cn(stackClassName, resolvedOverlayClassName)} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
+        data-stack-layer={stackLayer}
         className={cn(
           MOTION_POPUP_DIALOG_CLASS_NAME,
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
+          "fixed top-1/2 left-1/2 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
+          stackClassName,
           className,
         )}
         {...props}

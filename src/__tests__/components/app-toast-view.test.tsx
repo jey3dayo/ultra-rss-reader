@@ -19,4 +19,10 @@ describe("AppToastView", () => {
 
     expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveClass("w-1/3", "animate-pulse");
   });
+
+  it("keeps fixed toast above modal and browser overlay layers", () => {
+    render(<AppToastView toastMessage={{ message: "Saved" }} onClose={vi.fn()} />);
+
+    expect(screen.getByTestId("app-toast")).toHaveClass("fixed", "z-[100]");
+  });
 });

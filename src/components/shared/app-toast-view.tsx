@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { cn } from "@/lib/utils";
+import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { Button } from "../ui/button";
 
 type AppToastViewProps = {
@@ -36,8 +37,9 @@ export function AppToastView({
       data-testid={testId}
       className={cn(
         MOTION_POPUP_SURFACE_CLASS_NAME,
-        position === "fixed" && placement === "bottom-right" && "fixed right-4 bottom-4 z-[100]",
-        showInBrowserRail && "fixed top-1 right-20 z-[100]",
+        position === "fixed" && placement === "bottom-right" && "fixed right-4 bottom-4",
+        showInBrowserRail && "fixed top-1 right-20",
+        position === "fixed" && APP_STACKING_CLASS_NAMES.toast,
         position === "static" && "relative",
         "flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-elevation-2",
         showInBrowserRail &&

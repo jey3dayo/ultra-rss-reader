@@ -237,6 +237,11 @@ describe("Design-themed shared components", () => {
     expect(titleGroupDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(topDragRegion).not.toContainElement(closeButton);
     expect(titleGroupDragRegion).not.toContainElement(backButton);
+    expect(screen.getByTestId("workspace-header-leading")).toHaveClass("pointer-events-none");
+    expect(screen.getByTestId("workspace-header-actions")).toHaveClass("z-30");
+    expect(closeButton).not.toHaveClass("pointer-events-none");
+    expect(backButton).toHaveClass("z-30", "pointer-events-auto");
+    expect(screen.getByTestId("workspace-header-title-drag-content")).toHaveClass("pointer-events-none");
   });
 
   it("moves desktop back navigation into the title row", () => {

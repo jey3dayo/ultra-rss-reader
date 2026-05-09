@@ -31,7 +31,12 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogContent className={cn("overflow-hidden p-0", className)} showCloseButton={false} overlayPreset="readable">
+      <DialogContent
+        className={cn("overflow-hidden p-0", className)}
+        showCloseButton={false}
+        overlayPreset="readable"
+        stackLayer="commandPalette"
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

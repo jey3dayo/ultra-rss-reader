@@ -61,6 +61,14 @@ describe("DialogContent", () => {
     expect(screen.getByRole("button", { name: "Close from footer" })).toBeInTheDocument();
   });
 
+  it("keeps dialog overlay and content on the shared modal stack layer", () => {
+    renderDialogContent();
+
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass("z-50");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveClass("z-50");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveAttribute("data-stack-layer", "dialog");
+  });
+
   it("uses the shared dialog close locale label in the footer", async () => {
     await i18n.changeLanguage("ja");
 

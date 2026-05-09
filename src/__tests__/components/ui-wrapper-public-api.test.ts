@@ -21,6 +21,7 @@ import type {
   DialogOverlayProps,
   DialogPortalProps,
   DialogProps,
+  DialogStackLayer,
   DialogTitleProps,
   DialogTriggerProps,
 } from "@/components/ui/dialog";
@@ -53,11 +54,13 @@ describe("UI wrapper public API", () => {
     expectTypeOf<DialogCloseProps>().toEqualTypeOf<DialogPrimitive.Close.Props>();
     expectTypeOf<DialogOverlayProps>().toEqualTypeOf<DialogPrimitive.Backdrop.Props>();
     expectTypeOf<DialogOverlayPreset>().toEqualTypeOf<"modal" | "readable">();
+    expectTypeOf<DialogStackLayer>().toEqualTypeOf<"dialog" | "commandPalette">();
     expectTypeOf<DialogContentProps>().toMatchTypeOf<DialogPrimitive.Popup.Props>();
     expectTypeOf<DialogContentProps>().toHaveProperty("showCloseButton").toEqualTypeOf<boolean | undefined>();
     expectTypeOf<DialogContentProps>().toHaveProperty("closeLabel").toEqualTypeOf<string | undefined>();
     expectTypeOf<DialogContentProps>().toHaveProperty("overlayPreset").toEqualTypeOf<DialogOverlayPreset | undefined>();
     expectTypeOf<DialogContentProps>().toHaveProperty("overlayClassName").toEqualTypeOf<string | undefined>();
+    expectTypeOf<DialogContentProps>().toHaveProperty("stackLayer").toEqualTypeOf<DialogStackLayer | undefined>();
     expectTypeOf<DialogHeaderProps>().toMatchTypeOf<React.ComponentProps<"div">>();
     expectTypeOf<DialogFooterProps>().toMatchTypeOf<React.ComponentProps<"div">>();
     expectTypeOf<DialogFooterProps>().toHaveProperty("showCloseButton").toEqualTypeOf<boolean | undefined>();
