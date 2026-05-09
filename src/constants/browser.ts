@@ -4,8 +4,7 @@ export const BROWSER_WINDOW_EVENTS = {
   fallback: "browser-webview-fallback",
   diagnostics: "browser-webview-diagnostics",
 } as const;
-export type BrowserWindowEventName =
-  (typeof BROWSER_WINDOW_EVENTS)[keyof typeof BROWSER_WINDOW_EVENTS];
+export type BrowserWindowEventName = (typeof BROWSER_WINDOW_EVENTS)[keyof typeof BROWSER_WINDOW_EVENTS];
 
 export const BROWSER_RUNTIME_EVENT_CONTRACT = {
   publicTauriEvents: [
@@ -19,8 +18,7 @@ export const BROWSER_RUNTIME_EVENT_CONTRACT = {
 };
 
 export const BROWSER_SURFACE_ISSUE_KINDS = ["failed", "unsupported"] as const;
-export type BrowserSurfaceIssueKind =
-  (typeof BROWSER_SURFACE_ISSUE_KINDS)[number];
+export type BrowserSurfaceIssueKind = (typeof BROWSER_SURFACE_ISSUE_KINDS)[number];
 
 export const BROWSER_WINDOW_LOAD_TIMEOUT_MS = 10_000;
 export const BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR = 1;
