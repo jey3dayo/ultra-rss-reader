@@ -279,6 +279,38 @@ describe("dev-intent helpers", () => {
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
   });
 
+  it("clears a failed runtime option promise so the next request can refresh dev intent", async () => {
+    let resolveFirstRequest: ((result: Result.Result<never, { type: "UserVisible"; message: string }>) => void) | null =
+      null;
+    getDevRuntimeOptionsMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFirstRequest = resolve;
+      }),
+    );
+
+    const firstLoad = loadDevRuntimeOptionsResult();
+    const sharedLoad = loadDevRuntimeOptionsResult();
+    resolveFirstRequest?.(Result.fail({ type: "UserVisible", message: "boom" }));
+
+    expect(Result.unwrapError(await firstLoad)).toBe("request_failed");
+    expect(Result.unwrapError(await sharedLoad)).toBe("request_failed");
+
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-command-palette",
+        dev_web_url: "https://example.com/recovered",
+        dev_window_width: 640,
+        dev_window_height: 820,
+      }),
+    );
+
+    const recovered = await loadDevRuntimeOptionsResult();
+
+    expect(Result.unwrap(recovered).dev_intent).toBe("open-command-palette");
+    expect(readDevIntent()).toBe("open-command-palette");
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     [
       "request_failed",

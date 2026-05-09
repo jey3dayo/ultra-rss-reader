@@ -12,7 +12,9 @@ import {
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
 } from "@/dev/scenarios/constants";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
+import { tagQueryKeys } from "@/hooks/use-tags";
 import { resolveFeedLandingArticle } from "@/lib/feed/feed-landing";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 type LandingFeedSelection = {
@@ -50,11 +52,11 @@ async function findRankedLandingFeedSelection(
   // Preserve first-match selection order and the matching query-cache writes.
   for (const account of accounts) {
     const feeds = await Promise.resolve(ctx.actions.listFeeds(account.id));
-    ctx.queryClient.setQueryData(["feeds", account.id], feeds);
+    ctx.queryClient.setQueryData(queryKeys.feeds.byAccount(account.id), feeds);
 
     for (const candidateFeed of rankPreferredDevFeeds(feeds)) {
       const candidateArticles = await Promise.resolve(ctx.actions.listArticles(candidateFeed.id));
-      ctx.queryClient.setQueryData(["articles", candidateFeed.id], candidateArticles);
+      ctx.queryClient.setQueryData(queryKeys.articles.byFeed(candidateFeed.id, "all"), candidateArticles);
       if (candidateArticles.length === 0) {
         continue;
       }
@@ -83,7 +85,7 @@ function updateFeedDisplayModes(
   readerMode: FeedDto["reader_mode"],
   webPreviewMode: FeedDto["web_preview_mode"],
 ): void {
-  ctx.queryClient.setQueryData<FeedDto[]>(["feeds", accountId], (currentFeeds) =>
+  ctx.queryClient.setQueryData<FeedDto[]>(queryKeys.feeds.byAccount(accountId), (currentFeeds) =>
     currentFeeds?.map((feed) =>
       feed.id === feedId
         ? {
@@ -144,13 +146,13 @@ async function findTagScenarioSelection(
   account: AccountDto,
 ): Promise<TagScenarioSelection | null> {
   const tags = await Promise.resolve(ctx.actions.listTags());
-  ctx.queryClient.setQueryData(["tags"], tags);
+  ctx.queryClient.setQueryData(tagQueryKeys.tags.root, tags);
   if (tags.length === 0) {
     return null;
   }
 
   const counts = await Promise.resolve(ctx.actions.getTagArticleCounts(account.id));
-  ctx.queryClient.setQueryData(["tagArticleCounts", account.id], counts);
+  ctx.queryClient.setQueryData(tagQueryKeys.tagArticleCounts.byAccount(account.id), counts);
 
   const prioritizedTags = [
     ...tags.filter((tag) => (counts[tag.id] ?? 0) > 0),
@@ -160,7 +162,7 @@ async function findTagScenarioSelection(
   // Preserve tag priority because the first tag with articles becomes the opened view.
   for (const tag of prioritizedTags) {
     const articles = await Promise.resolve(ctx.actions.listArticlesByTag(tag.id, undefined, undefined, account.id));
-    ctx.queryClient.setQueryData(["articlesByTag", tag.id, account.id], articles);
+    ctx.queryClient.setQueryData(tagQueryKeys.articlesByTag.byTagAndAccount(tag.id, account.id, "all"), articles);
     if (articles.length > 0) {
       return {
         account,

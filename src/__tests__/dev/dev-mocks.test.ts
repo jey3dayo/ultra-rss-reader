@@ -13,6 +13,7 @@ import {
   clearArticleViewHistory,
   countAccountStarredArticles,
   countAccountUnreadArticles,
+  countOldUnreadArticles,
   createMuteKeyword,
   createOrUpdateBrowserWebview,
   createTag,
@@ -25,13 +26,18 @@ import {
   getPlatformInfo,
   getPreferences,
   getTagArticleCounts,
+  listAccounts,
   listAccountArticles,
+  listArticles,
   listArticlesByTag,
   listFeedArticleSummaries,
   listFeeds,
   listFolders,
   listRecentArticles,
   listStarredArticles,
+  listTags,
+  markArticleRead,
+  markOldUnreadRead,
   recordArticleView,
   searchArticles,
   setPreference,
@@ -39,6 +45,7 @@ import {
   updateAccountCredentials,
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
+import { mockArticles } from "@/dev/mock-data";
 import { DEV_MOCK_PLATFORM_INFO, setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
@@ -127,6 +134,93 @@ describe("setupDevMocks", () => {
       error_count: 0,
       next_retry_at: null,
     });
+  });
+
+  it("returns cloned DTO lists so mock mutations do not alter cached responses", async () => {
+    setupDevMocks();
+
+    const accounts = Result.unwrap(await listAccounts());
+    const feeds = Result.unwrap(await listFeeds("acc-freshrss"));
+    const tags = Result.unwrap(await listTags());
+    const articles = Result.unwrap(await listArticles("feed-automaton", 0, 10));
+    const firstArticle = articles[0];
+
+    expect(firstArticle).toBeDefined();
+    if (!firstArticle) return;
+
+    const accountSnapshot = structuredClone(accounts);
+    const feedSnapshot = structuredClone(feeds);
+    const tagSnapshot = structuredClone(tags);
+    const articleSnapshot = structuredClone(articles);
+
+    Result.unwrap(await updateAccountCredentials("acc-freshrss", "https://reader.example.com", "demo-user", "secret"));
+    Result.unwrap(await createTag("stateful"));
+    Result.unwrap(await markArticleRead(firstArticle.id, true));
+
+    expect(accounts).toEqual(accountSnapshot);
+    expect(feeds).toEqual(feedSnapshot);
+    expect(tags).toEqual(tagSnapshot);
+    expect(articles).toEqual(articleSnapshot);
+
+    const nextArticles = Result.unwrap(await listArticles("feed-automaton", 0, 10));
+    expect(nextArticles.find((article) => article.id === firstArticle.id)?.is_read).toBe(true);
+    expect(articles.find((article) => article.id === firstArticle.id)?.is_read).toBe(firstArticle.is_read);
+  });
+
+  it("keeps old-unread time filtering aligned with command argument boundaries", async () => {
+    setupDevMocks();
+
+    mockArticles.push(
+      {
+        id: "dev-invalid-date",
+        feed_id: "feed-automaton",
+        title: "Invalid date",
+        content_sanitized: "<p>invalid</p>",
+        summary: "invalid",
+        url: "https://example.com/invalid-date",
+        author: null,
+        published_at: "not-a-date",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+      },
+      {
+        id: "dev-future-date",
+        feed_id: "feed-automaton",
+        title: "Future date",
+        content_sanitized: "<p>future</p>",
+        summary: "future",
+        url: "https://example.com/future-date",
+        author: null,
+        published_at: "2999-01-01T00:00:00.000Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+      },
+    );
+
+    const before = Result.unwrap(await countOldUnreadArticles("feed", "feed-automaton", 7));
+    Result.unwrap(await markOldUnreadRead("feed", "feed-automaton", 7));
+    const after = Result.unwrap(await countOldUnreadArticles("feed", "feed-automaton", 7));
+
+    expect(before).toBe(0);
+    expect(after).toBe(0);
+    expect(mockArticles.find((article) => article.id === "dev-invalid-date")?.is_read).toBe(false);
+    expect(mockArticles.find((article) => article.id === "dev-future-date")?.is_read).toBe(false);
+    await expect(
+      invoke("count_old_unread_articles", {
+        scopeKind: "feed",
+        targetId: "feed-automaton",
+        olderThanDays: 0,
+      }),
+    ).rejects.toBeDefined();
+    await expect(
+      invoke("count_old_unread_articles", {
+        scopeKind: "feed",
+        targetId: "feed-automaton",
+        olderThanDays: -1,
+      }),
+    ).rejects.toBeDefined();
   });
 
   it("returns the requested account for browser-only connection checks", async () => {

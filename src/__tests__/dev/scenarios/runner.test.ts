@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
+import { tagQueryKeys } from "@/hooks/use-tags";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 const mockWindow = {
@@ -482,14 +484,13 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, otherFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
     expectCachedQuery(queryClient, ["accounts"], [otherAccount, account]);
+    expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
+      genericFeed,
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
+    ]);
     expectCachedQuery(
       queryClient,
-      ["feeds", account.id],
-      [genericFeed, { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" }],
-    );
-    expectCachedQuery(
-      queryClient,
-      ["articles", mangaFeed.id],
+      queryKeys.articles.byFeed(mangaFeed.id, "all"),
       [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
     );
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
@@ -539,17 +540,16 @@ describe("runDevScenario", () => {
     expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, blockedRankedFeed.id);
     expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
-    expectCachedQuery(queryClient, ["articles", blockedRankedFeed.id], [blockedReadArticle]);
+    expectCachedQuery(queryClient, queryKeys.articles.byFeed(blockedRankedFeed.id, "all"), [blockedReadArticle]);
     expectCachedQuery(
       queryClient,
-      ["articles", mangaFeed.id],
+      queryKeys.articles.byFeed(mangaFeed.id, "all"),
       [overlayPreferredOlderArticle, landingNewestArticle, readArticle],
     );
-    expectCachedQuery(
-      queryClient,
-      ["feeds", account.id],
-      [blockedRankedFeed, { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" }],
-    );
+    expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
+      blockedRankedFeed,
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
+    ]);
     expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
     expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
     expect(ui.showToast).not.toHaveBeenCalled();
@@ -627,13 +627,13 @@ describe("runDevScenario", () => {
       otherAccount.id,
     );
     expectCachedQuery(queryClient, ["accounts"], [account, otherAccount]);
-    expectCachedQuery(queryClient, ["tags"], [primaryTag, secondaryTag]);
-    expectCachedQuery(queryClient, ["tagArticleCounts", otherAccount.id], {
+    expectCachedQuery(queryClient, tagQueryKeys.tags.root, [primaryTag, secondaryTag]);
+    expectCachedQuery(queryClient, tagQueryKeys.tagArticleCounts.byAccount(otherAccount.id), {
       [secondaryTag.id]: 2,
     });
     expectCachedQuery(
       queryClient,
-      ["articlesByTag", secondaryTag.id, otherAccount.id],
+      tagQueryKeys.articlesByTag.byTagAndAccount(secondaryTag.id, otherAccount.id, "all"),
       [landingNewestArticle, readArticle],
     );
     expect(ui.selectAccount).not.toHaveBeenCalled();
@@ -664,10 +664,14 @@ describe("runDevScenario", () => {
 
     expect(context.actions.getTagArticleCounts).toHaveBeenCalledWith(account.id);
     expect(context.actions.listArticlesByTag).toHaveBeenCalledWith(primaryTag.id, undefined, undefined, account.id);
-    expectCachedQuery(queryClient, ["tagArticleCounts", account.id], {
+    expectCachedQuery(queryClient, tagQueryKeys.tagArticleCounts.byAccount(account.id), {
       [primaryTag.id]: 1,
     });
-    expectCachedQuery(queryClient, ["articlesByTag", primaryTag.id, account.id], [landingNewestArticle]);
+    expectCachedQuery(
+      queryClient,
+      tagQueryKeys.articlesByTag.byTagAndAccount(primaryTag.id, account.id, "all"),
+      [landingNewestArticle],
+    );
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
     expect(ui.selectArticle).not.toHaveBeenCalled();

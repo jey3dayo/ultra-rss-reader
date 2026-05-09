@@ -56,6 +56,10 @@ function parseBrowserMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMo
   return parseMockArgs(command, rawIpcPayload);
 }
 
+function cloneMockResponse<T>(value: T): T {
+  return structuredClone(value);
+}
+
 let nextAccountId = 100;
 let nextFeedId = 100;
 let nextFolderId = 100;
@@ -210,7 +214,7 @@ export function setupDevMocks() {
   mockIPC(async (cmd, rawIpcPayload) => {
     switch (cmd) {
       case "list_accounts":
-        return mockAccounts;
+        return cloneMockResponse(mockAccounts);
 
       case "add_account": {
         const { kind, name, serverUrl } = parseBrowserMockArgs("add_account", rawIpcPayload);
@@ -226,7 +230,7 @@ export function setupDevMocks() {
           keep_read_items_days: 30,
         };
         mockAccounts.push(account);
-        return account;
+        return cloneMockResponse(account);
       }
 
       case "update_account_sync": {
@@ -241,7 +245,7 @@ export function setupDevMocks() {
           target.sync_on_wake = syncOnWake;
           target.keep_read_items_days = keepReadItemsDays;
         }
-        return target ?? null;
+        return cloneMockResponse(target ?? null);
       }
 
       case "update_account_credentials": {
@@ -251,7 +255,7 @@ export function setupDevMocks() {
           target.server_url = serverUrl ?? target.server_url;
           target.username = username ?? target.username;
         }
-        return target ?? null;
+        return cloneMockResponse(target ?? null);
       }
 
       case "rename_account": {
@@ -260,12 +264,12 @@ export function setupDevMocks() {
         if (target) {
           target.name = name;
         }
-        return target ?? null;
+        return cloneMockResponse(target ?? null);
       }
 
       case "test_account_connection": {
         const { accountId } = parseBrowserMockArgs("test_account_connection", rawIpcPayload);
-        return mockAccounts.find((account) => account.id === accountId) ?? mockAccounts[0] ?? null;
+        return cloneMockResponse(mockAccounts.find((account) => account.id === accountId) ?? mockAccounts[0] ?? null);
       }
 
       case "delete_account": {
@@ -317,7 +321,7 @@ export function setupDevMocks() {
 
       case "list_folders": {
         const { accountId } = parseBrowserMockArgs("list_folders", rawIpcPayload);
-        return mockFolders.filter((f) => f.account_id === accountId);
+        return cloneMockResponse(mockFolders.filter((f) => f.account_id === accountId));
       }
 
       case "create_folder": {
@@ -329,12 +333,12 @@ export function setupDevMocks() {
           sort_order: mockFolders.filter((f) => f.account_id === accountId).length,
         };
         mockFolders.push(folder);
-        return folder;
+        return cloneMockResponse(folder);
       }
 
       case "list_feeds": {
         const { accountId } = parseBrowserMockArgs("list_feeds", rawIpcPayload);
-        return mockFeeds.filter((f) => f.account_id === accountId);
+        return cloneMockResponse(mockFeeds.filter((f) => f.account_id === accountId));
       }
 
       case "add_local_feed": {
@@ -370,7 +374,7 @@ export function setupDevMocks() {
             is_starred: false,
           });
         }
-        return feed;
+        return cloneMockResponse(feed);
       }
 
       case "list_articles": {
@@ -385,7 +389,7 @@ export function setupDevMocks() {
           (article) =>
             article.feed_id === feedId && (!unreadOnly || !article.is_read) && (!starredOnly || article.is_starred),
         );
-        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+        return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
 
       case "list_account_articles": {
@@ -397,23 +401,25 @@ export function setupDevMocks() {
         } = parseBrowserMockArgs("list_account_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
         const articles = mockArticles.filter((a) => feedIds.has(a.feed_id) && (!unreadOnly || !a.is_read));
-        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+        return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
 
       case "list_feed_article_summaries": {
         const { accountId } = parseBrowserMockArgs("list_feed_article_summaries", rawIpcPayload);
         const visibleArticles = applyMuteKeywordFilter(mockArticles);
-        return mockFeeds
-          .filter((feed) => feed.account_id === accountId)
-          .map((feed) => {
-            const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
+        return cloneMockResponse(
+          mockFeeds
+            .filter((feed) => feed.account_id === accountId)
+            .map((feed) => {
+              const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
 
-            return {
-              feed_id: feed.id,
-              latest_article_at: findLatestPublishedAt(feedArticles),
-              starred_count: feedArticles.filter((article) => article.is_starred).length,
-            };
-          });
+              return {
+                feed_id: feed.id,
+                latest_article_at: findLatestPublishedAt(feedArticles),
+                starred_count: feedArticles.filter((article) => article.is_starred).length,
+              };
+            }),
+        );
       }
 
       case "list_folder_articles": {
@@ -436,7 +442,7 @@ export function setupDevMocks() {
           }
           return true;
         });
-        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+        return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
 
       case "count_account_unread_articles": {
@@ -505,7 +511,9 @@ export function setupDevMocks() {
       case "list_starred_articles": {
         const { accountId } = parseBrowserMockArgs("list_starred_articles", rawIpcPayload);
         const feedIds = new Set(mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id));
-        return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.has(a.feed_id) && a.is_starred));
+        return cloneMockResponse(
+          applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.has(a.feed_id) && a.is_starred)),
+        );
       }
 
       case "list_recent_articles": {
@@ -536,11 +544,11 @@ export function setupDevMocks() {
             }
             return true;
           });
-        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+        return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
 
       case "get_feed_integrity_report":
-        return feedIntegrityReport;
+        return cloneMockResponse(feedIntegrityReport);
 
       case "cleanup_feed_integrity_orphans": {
         const { dryRun } = parseBrowserMockArgs("cleanup_feed_integrity_orphans", rawIpcPayload);
@@ -558,11 +566,11 @@ export function setupDevMocks() {
         const articles = mockArticles.filter(
           (article) => feedIds.has(article.feed_id) && article.title.toLowerCase().includes(normalizedQuery),
         );
-        return applyMuteKeywordFilter(articles).slice(offset, offset + limit);
+        return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
 
       case "list_mute_keywords":
-        return [...mockMuteKeywords].sort((a, b) => b.created_at.localeCompare(a.created_at));
+        return cloneMockResponse([...mockMuteKeywords].sort((a, b) => b.created_at.localeCompare(a.created_at)));
 
       case "create_mute_keyword": {
         const { keyword, scope } = parseBrowserMockArgs("create_mute_keyword", rawIpcPayload);
@@ -583,7 +591,7 @@ export function setupDevMocks() {
           updated_at: now,
         };
         mockMuteKeywords.unshift(rule);
-        return rule;
+        return cloneMockResponse(rule);
       }
 
       case "update_mute_keyword": {
@@ -603,7 +611,7 @@ export function setupDevMocks() {
         }
         rule.scope = scope;
         rule.updated_at = getCurrentIsoTimestamp();
-        return rule;
+        return cloneMockResponse(rule);
       }
 
       case "delete_mute_keyword": {
@@ -716,7 +724,7 @@ export function setupDevMocks() {
       }
 
       case "get_platform_info":
-        return DEV_MOCK_PLATFORM_INFO;
+        return cloneMockResponse(DEV_MOCK_PLATFORM_INFO);
 
       case "get_dev_runtime_options": {
         const devWindowSize = readDevWindowSize();
@@ -742,7 +750,7 @@ export function setupDevMocks() {
 </opml>`;
 
       case "list_tags":
-        return mockTags;
+        return cloneMockResponse(mockTags);
 
       case "create_tag": {
         const { name, color } = parseBrowserMockArgs("create_tag", rawIpcPayload);
@@ -752,7 +760,7 @@ export function setupDevMocks() {
           color: color ?? null,
         };
         mockTags.push(tag);
-        return tag;
+        return cloneMockResponse(tag);
       }
 
       case "rename_tag": {
@@ -761,7 +769,7 @@ export function setupDevMocks() {
         if (renameIdx >= 0) {
           mockTags[renameIdx].name = name;
           mockTags[renameIdx].color = color ?? null;
-          return mockTags[renameIdx];
+          return cloneMockResponse(mockTags[renameIdx]);
         }
         throw { type: "UserVisible", message: "Tag not found" };
       }
@@ -799,7 +807,7 @@ export function setupDevMocks() {
       case "get_article_tags": {
         const { articleId } = parseBrowserMockArgs("get_article_tags", rawIpcPayload);
         const tagIds = new Set(mockArticleTags.filter((at) => at.article_id === articleId).map((at) => at.tag_id));
-        return mockTags.filter((t) => tagIds.has(t.id));
+        return cloneMockResponse(mockTags.filter((t) => tagIds.has(t.id)));
       }
 
       case "list_articles_by_tag": {
@@ -821,7 +829,7 @@ export function setupDevMocks() {
         } else if (mode === "starred") {
           filtered = filtered.filter((article) => article.is_starred);
         }
-        return applyMuteKeywordFilter(filtered).slice(offset, offset + limit);
+        return cloneMockResponse(applyMuteKeywordFilter(filtered).slice(offset, offset + limit));
       }
 
       case "get_tag_article_counts": {
