@@ -101,13 +101,12 @@ export const preferenceSchemas = {
 export type KnownPreferenceKey = keyof typeof preferenceSchemas;
 export type PreferenceSchemaKey = KnownPreferenceKey;
 export type PreferenceWritableKey = KnownPreferenceKey | ShortcutPreferenceKey | "selected_account_id";
-export type BackendPassthroughPreferenceKey = string;
-export type KnownPreferenceRecord = Partial<{
+type KnownPreferenceRecord = Partial<{
   [K in KnownPreferenceKey]: string;
 }>;
-export type ShortcutPreferenceRecord = KeyboardShortcutPrefs;
-export type BackendPassthroughPreferenceRecord = {
-  [K in BackendPassthroughPreferenceKey]: string;
+type ShortcutPreferenceRecord = KeyboardShortcutPrefs;
+type BackendPassthroughPreferenceRecord = {
+  [K in string]: string;
 };
 export type PreferenceRecord = KnownPreferenceRecord & ShortcutPreferenceRecord & BackendPassthroughPreferenceRecord;
 type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;

@@ -5,5 +5,5 @@ export const APP_EVENTS = {
   browserDebugGeometry: "ultra-rss:browser-debug-geometry",
   menuAction: "menu-action",
 } as const;
-export type AppEventKey = keyof typeof APP_EVENTS;
+type AppEventKey = keyof typeof APP_EVENTS;
 export type AppEventName = (typeof APP_EVENTS)[AppEventKey];

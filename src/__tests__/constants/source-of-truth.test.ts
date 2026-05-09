@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PlatformInfoSchema } from "@/api/schemas";
 import {
@@ -12,10 +14,12 @@ import {
   MOTION_DATA_ATTRIBUTES,
   MOTION_GLOBAL_CSS_CONTRACT_SELECTORS,
   MOTION_KEYFRAMES_NAMES,
+  MOTION_TRANSITION_TOKEN_DECLARATIONS,
   type MotionClassName,
   type MotionDataAttribute,
   type MotionGlobalCssContractSelector,
   type MotionKeyframesName,
+  type MotionTransitionTokenDeclaration,
 } from "@/constants/motion";
 import {
   DEFAULT_PLATFORM_CAPABILITIES,
@@ -40,6 +44,8 @@ import {
 function expectNoDuplicates(values: readonly string[]) {
   expect(new Set(values).size).toBe(values.length);
 }
+
+const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
 
 describe("constants source of truth", () => {
   it("derives app event names from APP_EVENTS", () => {
@@ -82,12 +88,22 @@ describe("constants source of truth", () => {
     expectNoDuplicates(MOTION_KEYFRAMES_NAMES);
     expectNoDuplicates(MOTION_DATA_ATTRIBUTES);
     expectNoDuplicates(MOTION_GLOBAL_CSS_CONTRACT_SELECTORS);
+    expectNoDuplicates(MOTION_TRANSITION_TOKEN_DECLARATIONS);
     expectTypeOf<MotionClassName>().toEqualTypeOf<(typeof MOTION_CLASS_NAMES)[number]>();
     expectTypeOf<MotionKeyframesName>().toEqualTypeOf<(typeof MOTION_KEYFRAMES_NAMES)[number]>();
     expectTypeOf<MotionDataAttribute>().toEqualTypeOf<(typeof MOTION_DATA_ATTRIBUTES)[number]>();
     expectTypeOf<MotionGlobalCssContractSelector>().toEqualTypeOf<
       (typeof MOTION_GLOBAL_CSS_CONTRACT_SELECTORS)[number]
     >();
+    expectTypeOf<MotionTransitionTokenDeclaration>().toEqualTypeOf<
+      (typeof MOTION_TRANSITION_TOKEN_DECLARATIONS)[number]
+    >();
+  });
+
+  it("keeps motion transition token declarations aligned with global CSS", () => {
+    for (const tokenDeclaration of MOTION_TRANSITION_TOKEN_DECLARATIONS) {
+      expect(globalCss).toContain(tokenDeclaration);
+    }
   });
 
   it("uses platform constants as the platform-kind and capability source of truth", () => {

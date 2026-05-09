@@ -110,7 +110,7 @@ function startDownload(): void {
     });
 }
 
-export function normalizeDownloadProgressPercent(percent: number | null): number | null {
+function normalizeDownloadProgressPercent(percent: number | null): number | null {
   if (percent === null) {
     return null;
   }

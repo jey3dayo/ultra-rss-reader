@@ -1,15 +1,15 @@
 export const MOTION_INTERACTIVE_SURFACE_CLASS_NAME = "motion-interactive-surface";
 export const MOTION_BUTTON_SURFACE_CLASS_NAME = "motion-button-surface";
-export const MOTION_DISCLOSURE_PANEL_CLASS_NAME = "motion-disclosure-panel";
-export const MOTION_DISCLOSURE_BODY_CLASS_NAME = "motion-disclosure-body";
+const MOTION_DISCLOSURE_PANEL_CLASS_NAME = "motion-disclosure-panel";
+const MOTION_DISCLOSURE_BODY_CLASS_NAME = "motion-disclosure-body";
 export const MOTION_DISCLOSURE_TRIGGER_CLASS_NAME = "motion-disclosure-trigger";
-export const MOTION_DISCLOSURE_ICON_CLASS_NAME = "motion-disclosure-icon";
+const MOTION_DISCLOSURE_ICON_CLASS_NAME = "motion-disclosure-icon";
 export const MOTION_CONTENT_SWAP_CLASS_NAME = "motion-content-swap";
 export const MOTION_ARTICLE_SLIDE_CLASS_NAME = "motion-article-slide";
 export const MOTION_CONTEXTUAL_SURFACE_CLASS_NAME = "motion-contextual-surface";
-export const MOTION_STATIC_HOVER_SURFACE_CLASS_NAME = "motion-static-hover-surface";
+const MOTION_STATIC_HOVER_SURFACE_CLASS_NAME = "motion-static-hover-surface";
 export const MOTION_RESIZE_SURFACE_CLASS_NAME = "motion-resize-surface";
-export const MOTION_PRESSABLE_SURFACE_CLASS_NAME = "motion-pressable-surface";
+const MOTION_PRESSABLE_SURFACE_CLASS_NAME = "motion-pressable-surface";
 export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
 export const MOTION_POPUP_OVERLAY_CLASS_NAME = "motion-popup-overlay";
 export const MOTION_POPUP_DIALOG_CLASS_NAME = "motion-popup-dialog";
@@ -46,11 +46,11 @@ export const MOTION_CLASS_NAMES = [
 ] as const;
 export type MotionClassName = (typeof MOTION_CLASS_NAMES)[number];
 
-export const MOTION_VERTICAL_WIPE_KEYFRAMES_NAME = "vertical-wipe";
-export const MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME = "motion-content-swap-enter";
-export const MOTION_ARTICLE_SLIDE_NEXT_KEYFRAMES_NAME = "motion-article-slide-next";
-export const MOTION_ARTICLE_SLIDE_PREV_KEYFRAMES_NAME = "motion-article-slide-prev";
-export const MOTION_DIGIT_POP_IN_KEYFRAMES_NAME = "t-digit-pop-in";
+const MOTION_VERTICAL_WIPE_KEYFRAMES_NAME = "vertical-wipe";
+const MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME = "motion-content-swap-enter";
+const MOTION_ARTICLE_SLIDE_NEXT_KEYFRAMES_NAME = "motion-article-slide-next";
+const MOTION_ARTICLE_SLIDE_PREV_KEYFRAMES_NAME = "motion-article-slide-prev";
+const MOTION_DIGIT_POP_IN_KEYFRAMES_NAME = "t-digit-pop-in";
 export const MOTION_KEYFRAMES_NAMES = [
   MOTION_VERTICAL_WIPE_KEYFRAMES_NAME,
   MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME,
@@ -62,15 +62,15 @@ export type MotionKeyframesName = (typeof MOTION_KEYFRAMES_NAMES)[number];
 
 export const MOTION_DATA_PHASE_ATTRIBUTE = "data-motion-phase";
 export const MOTION_DATA_DIRECTION_ATTRIBUTE = "data-motion-direction";
-export const MOTION_DATA_ARTICLE_SLIDE_CONTENT_ATTRIBUTE = "data-article-slide-content";
+const MOTION_DATA_ARTICLE_SLIDE_CONTENT_ATTRIBUTE = "data-article-slide-content";
 export const MOTION_DATA_STATE_ATTRIBUTE = "data-state";
 export const MOTION_DATA_ICON_ATTRIBUTE = "data-icon";
-export const MOTION_DATA_SIDE_ATTRIBUTE = "data-side";
+const MOTION_DATA_SIDE_ATTRIBUTE = "data-side";
 export const MOTION_DATA_STAGGER_ATTRIBUTE = "data-stagger";
-export const MOTION_DATA_OPEN_ATTRIBUTE = "data-open";
-export const MOTION_DATA_CLOSED_ATTRIBUTE = "data-closed";
-export const MOTION_DATA_STARTING_STYLE_ATTRIBUTE = "data-starting-style";
-export const MOTION_DATA_ENDING_STYLE_ATTRIBUTE = "data-ending-style";
+const MOTION_DATA_OPEN_ATTRIBUTE = "data-open";
+const MOTION_DATA_CLOSED_ATTRIBUTE = "data-closed";
+const MOTION_DATA_STARTING_STYLE_ATTRIBUTE = "data-starting-style";
+const MOTION_DATA_ENDING_STYLE_ATTRIBUTE = "data-ending-style";
 export const MOTION_DATA_ATTRIBUTES = [
   MOTION_DATA_PHASE_ATTRIBUTE,
   MOTION_DATA_DIRECTION_ATTRIBUTE,
@@ -86,17 +86,16 @@ export const MOTION_DATA_ATTRIBUTES = [
 ] as const;
 export type MotionDataAttribute = (typeof MOTION_DATA_ATTRIBUTES)[number];
 
-export const MOTION_POPUP_SIDE_TOP = "top";
-export const MOTION_POPUP_SIDE_RIGHT = "right";
-export const MOTION_POPUP_SIDE_BOTTOM = "bottom";
-export const MOTION_POPUP_SIDE_LEFT = "left";
-export const MOTION_POPUP_SIDES = [
+const MOTION_POPUP_SIDE_TOP = "top";
+const MOTION_POPUP_SIDE_RIGHT = "right";
+const MOTION_POPUP_SIDE_BOTTOM = "bottom";
+const MOTION_POPUP_SIDE_LEFT = "left";
+const MOTION_POPUP_SIDES = [
   MOTION_POPUP_SIDE_TOP,
   MOTION_POPUP_SIDE_RIGHT,
   MOTION_POPUP_SIDE_BOTTOM,
   MOTION_POPUP_SIDE_LEFT,
 ] as const;
-export type MotionPopupSide = (typeof MOTION_POPUP_SIDES)[number];
 
 export const MOTION_PHASE_STEADY = "steady";
 export const MOTION_PHASE_ENTERING = "entering";
@@ -112,7 +111,6 @@ export type MotionDirection =
 
 export const MOTION_STATE_OPEN = "open";
 export const MOTION_STATE_CLOSED = "closed";
-export type MotionDisclosureState = typeof MOTION_STATE_OPEN | typeof MOTION_STATE_CLOSED;
 
 export const BROWSER_OVERLAY_CLOSE_DELAY_MS = 350;
 
@@ -122,11 +120,22 @@ export type MotionIconSwapState = typeof MOTION_ICON_SWAP_STATE_A | typeof MOTIO
 
 export const MOTION_ICON_SWAP_ICON_A = "a";
 export const MOTION_ICON_SWAP_ICON_B = "b";
-export type MotionIconSwapIcon = typeof MOTION_ICON_SWAP_ICON_A | typeof MOTION_ICON_SWAP_ICON_B;
 
 export const MOTION_DIGIT_STAGGER_ONE = "1";
 export const MOTION_DIGIT_STAGGER_TWO = "2";
 export type MotionDigitStagger = typeof MOTION_DIGIT_STAGGER_ONE | typeof MOTION_DIGIT_STAGGER_TWO;
+
+export const MOTION_TRANSITION_TOKEN_DECLARATIONS = [
+  "--motion-duration-disclosure: 200ms;",
+  "--motion-duration-popup: 160ms;",
+  "--motion-duration-resize: 260ms;",
+  "--motion-duration-theme: 180ms;",
+  "--motion-duration-contextual: 180ms;",
+  "--motion-duration-content-swap: 180ms;",
+  "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
+  "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
+] as const;
+export type MotionTransitionTokenDeclaration = (typeof MOTION_TRANSITION_TOKEN_DECLARATIONS)[number];
 
 export const MOTION_GLOBAL_CSS_CONTRACT_SELECTORS = [
   `.${MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME}`,

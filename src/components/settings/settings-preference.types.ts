@@ -1,10 +1,8 @@
 import type { TFunction } from "i18next";
-import type { PreferenceSchemaKey } from "@/schemas/preferences";
-
-export type SettingsPreferenceSetPref = <K extends PreferenceSchemaKey>(key: K, value: string) => void;
+import type { KnownPreferenceKey } from "@/schemas/preferences";
 
 export type SettingsPreferenceViewPropsParams = {
   t: TFunction<"settings">;
   prefs: Record<string, string>;
-  setPref: SettingsPreferenceSetPref;
+  setPref: <K extends KnownPreferenceKey>(key: K, value: string) => void;
 };

@@ -4,11 +4,6 @@ import { cn } from "@/lib/utils";
 import type { AccountsNavViewProps } from "./accounts-nav.types";
 import { SERVICE_CATEGORIES } from "./add-account/services";
 
-export type {
-  AccountNavItem,
-  AccountsNavViewProps,
-} from "./accounts-nav.types";
-
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),
 );

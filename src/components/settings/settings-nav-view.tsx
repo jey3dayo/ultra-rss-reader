@@ -2,8 +2,6 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import type { SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
-export type { SettingsNavItem, SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
-
 export function SettingsNavView<TItemId extends string = SettingsNavItemId>({
   ariaLabel,
   items,

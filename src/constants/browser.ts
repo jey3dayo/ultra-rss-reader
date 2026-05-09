@@ -4,7 +4,7 @@ export const BROWSER_WINDOW_EVENTS = {
   fallback: "browser-webview-fallback",
   diagnostics: "browser-webview-diagnostics",
 } as const;
-export type BrowserWindowEventKey = keyof typeof BROWSER_WINDOW_EVENTS;
+type BrowserWindowEventKey = keyof typeof BROWSER_WINDOW_EVENTS;
 export type BrowserWindowEventName = (typeof BROWSER_WINDOW_EVENTS)[BrowserWindowEventKey];
 
 export const BROWSER_SURFACE_ISSUE_KINDS = ["failed", "unsupported"] as const;
