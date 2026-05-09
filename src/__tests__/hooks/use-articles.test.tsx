@@ -211,6 +211,10 @@ describe("useToggleStar", () => {
       sampleArticles.filter((article) => !article.is_read),
     );
     queryClient.setQueryData(
+      queryKeys.accountArticles.byAccount("acc-1", "starred"),
+      sampleArticles.filter((article) => article.is_starred && article.id !== "art-2"),
+    );
+    queryClient.setQueryData(
       queryKeys.starredArticles.byAccount("acc-1"),
       sampleArticles.filter((article) => article.id === "art-2"),
     );
@@ -224,6 +228,9 @@ describe("useToggleStar", () => {
         expect.arrayContaining([expect.objectContaining({ id: "art-2", is_starred: false })]),
       );
       expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-2" })]),
+      );
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"))).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-2" })]),
       );
       expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);

@@ -50,7 +50,7 @@ export type UseArticleListViewStateParams = {
   accountListScopeId: string | null;
   accountCount?: number;
   feedCount?: number;
-  isLoading: boolean;
+  isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
@@ -90,7 +90,7 @@ export type UseArticleListViewPropsParams = {
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
-  isLoading: boolean;
+  isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
@@ -135,7 +135,7 @@ export type UseArticleListPresentationParams = {
   feedId: string | null;
   tagId: string | null;
   accountListScopeId: string | null;
-  isLoading: boolean;
+  isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
@@ -273,7 +273,7 @@ export type UseArticleListSourcesResult = {
   articles: ArticleDto[] | undefined;
   accountArticles: ArticleDto[] | undefined;
   tagArticles: ArticleDto[] | undefined;
-  isLoading: boolean;
+  isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;

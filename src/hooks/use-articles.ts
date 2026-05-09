@@ -202,7 +202,13 @@ function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, opt
 }
 
 function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
-  if (getReaderArticleQueryMode(queryKey) === "unread" && nextArticle.is_read) {
+  const mode = getReaderArticleQueryMode(queryKey);
+
+  if (mode === "unread" && nextArticle.is_read) {
+    return false;
+  }
+
+  if (mode === "starred" && !nextArticle.is_starred) {
     return false;
   }
 

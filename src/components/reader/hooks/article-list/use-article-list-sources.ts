@@ -44,7 +44,7 @@ function resolvePrimarySourceArticles(params: {
 
 function resolvePrimarySourceLoading(params: {
   sourceKind: ReaderSourceKind;
-  isLoading: boolean;
+  isLoadingFeedArticles: boolean;
   isLoadingTagArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
@@ -52,7 +52,7 @@ function resolvePrimarySourceLoading(params: {
 }): boolean {
   const {
     sourceKind,
-    isLoading,
+    isLoadingFeedArticles,
     isLoadingTagArticles,
     isLoadingFolderArticles,
     isLoadingRecentArticles,
@@ -60,7 +60,7 @@ function resolvePrimarySourceLoading(params: {
   } = params;
 
   if (sourceKind === "feed") {
-    return isLoading;
+    return isLoadingFeedArticles;
   }
 
   if (sourceKind === "tag") {
@@ -89,7 +89,7 @@ export function useArticleListSources({
   const { data: allFeedArticles } = useArticles(sourcePlan.feedId, {
     mode: "all",
   });
-  const { data: articles, isLoading } = useArticles(sourcePlan.feedId, {
+  const { data: articles, isLoading: isLoadingFeedArticles } = useArticles(sourcePlan.feedId, {
     mode: sourcePlan.feedMode,
   });
   const { data: allAccountArticles } = useAccountArticles(sourcePlan.accountId, { mode: "all" });
@@ -125,7 +125,7 @@ export function useArticleListSources({
   });
   const primarySourceLoading = resolvePrimarySourceLoading({
     sourceKind: sourcePlan.sourceKind,
-    isLoading,
+    isLoadingFeedArticles,
     isLoadingTagArticles,
     isLoadingFolderArticles,
     isLoadingRecentArticles,
@@ -215,7 +215,7 @@ export function useArticleListSources({
         ? resolvedPrimarySourceArticlesWithRetained
         : accountArticles,
     tagArticles: sourcePlan.sourceKind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
-    isLoading: sourcePlan.sourceKind === "feed" ? isPrimarySourceLoading : isLoading,
+    isLoadingFeedArticles: sourcePlan.sourceKind === "feed" ? isPrimarySourceLoading : isLoadingFeedArticles,
     isLoadingAccountArticles: sourcePlan.sourceKind === "account" ? isPrimarySourceLoading : isLoadingAccountArticles,
     isLoadingFolderArticles: sourcePlan.sourceKind === "folder" ? isPrimarySourceLoading : isLoadingFolderArticles,
     isLoadingRecentArticles: sourcePlan.sourceKind === "recent" ? isPrimarySourceLoading : isLoadingRecentArticles,

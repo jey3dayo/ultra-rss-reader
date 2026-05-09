@@ -11,7 +11,7 @@ export function useArticleListViewState({
   accountListScopeId,
   accountCount,
   feedCount,
-  isLoading,
+  isLoadingFeedArticles,
   isLoadingAccountArticles,
   isLoadingFolderArticles,
   isLoadingRecentArticles,
@@ -67,7 +67,7 @@ export function useArticleListViewState({
   }, [selection]);
 
   const isPrimarySourceLoading = feedId
-    ? isLoading
+    ? isLoadingFeedArticles
     : tagId
       ? isLoadingTagArticles
       : selection.type === "folder"

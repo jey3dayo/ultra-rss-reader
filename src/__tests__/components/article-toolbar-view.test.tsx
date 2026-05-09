@@ -90,6 +90,7 @@ describe("ArticleToolbarView", () => {
       "canToggleRead",
       "canToggleStar",
       "showCopyLinkButton",
+      "showExternalBrowserInMoreMenu",
       "showOpenInBrowserButton",
       "showOpenInExternalBrowserButton",
     ]);
@@ -129,6 +130,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",
@@ -521,6 +523,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",
@@ -570,6 +573,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",
@@ -627,6 +631,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",
@@ -691,6 +696,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",
@@ -745,6 +751,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",
@@ -819,6 +826,7 @@ describe("ArticleToolbarView", () => {
           canOpenInBrowser: true,
           showOpenInExternalBrowserButton: true,
           canOpenInExternalBrowser: true,
+          showExternalBrowserInMoreMenu: true,
         }}
         labels={{
           closeView: "Close article",

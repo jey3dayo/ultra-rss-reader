@@ -219,6 +219,28 @@ describe("useArticleListSources", () => {
     expect(result.current.isLoadingFolderArticles).toBe(true);
   });
 
+  it("reports feed source loading with a feed-specific result name", () => {
+    useArticlesMock.mockImplementation((feedId: string | null, options?: { mode?: ViewMode }) => ({
+      data: feedId && options?.mode === "all" ? sampleArticles : undefined,
+      isLoading: options?.mode === "unread",
+    }));
+
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "feed", feedId: "feed-1" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "unread",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoadingFeedArticles).toBe(true);
+    expect(result.current.isLoadingAccountArticles).toBe(false);
+  });
+
   it("reports recent source loading separately from account article loading", () => {
     useAccountArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
     useRecentArticlesMock.mockReturnValue({ data: undefined, isLoading: true });

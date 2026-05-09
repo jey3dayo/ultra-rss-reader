@@ -65,7 +65,9 @@ export type ArticleToolbarActionResolverResult = {
   showExternalBrowserInMoreMenu: boolean;
 };
 
-export type ArticleToolbarActionOptions = Omit<ArticleToolbarActionResolverResult, "showExternalBrowserInMoreMenu">;
+export type ArticleToolbarActionOptions = Omit<ArticleToolbarActionResolverResult, "showExternalBrowserInMoreMenu"> & {
+  showExternalBrowserInMoreMenu?: ArticleToolbarActionResolverResult["showExternalBrowserInMoreMenu"];
+};
 
 export type ArticleToolbarArticleState = {
   hasArticle: boolean;
@@ -100,7 +102,7 @@ export const ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT = [
   {
     actionId: "open-in-external-browser",
     resultKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser", "showExternalBrowserInMoreMenu"],
-    actionOptionKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser"],
+    actionOptionKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser", "showExternalBrowserInMoreMenu"],
   },
   {
     actionId: "copy-link",
@@ -262,9 +264,10 @@ export function ArticleToolbarActionStrip({
     canOpenInBrowser,
     showOpenInExternalBrowserButton,
     canOpenInExternalBrowser,
+    showExternalBrowserInMoreMenu,
   } = actionOptions;
 
-  if (showOpenInExternalBrowserButton && !shouldHideBrowserOverlayActions && canOpenInExternalBrowser) {
+  if (showExternalBrowserInMoreMenu === true && canOpenInExternalBrowser) {
     moreMenuActions.push({
       kind: "open-in-external-browser",
       label: labels.openInExternalBrowser,

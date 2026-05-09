@@ -13,7 +13,7 @@ type UseArticleListBodyPropsParams = {
   listRef: ArticleListBodyProps["listRef"];
   viewportRef: ArticleListBodyProps["viewportRef"];
   handleListKeyDownCapture: ArticleListBodyProps["onListKeyDownCapture"];
-  isLoading: boolean;
+  isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
@@ -81,7 +81,7 @@ export function useArticleListBodyProps({
   listRef,
   viewportRef,
   handleListKeyDownCapture,
-  isLoading,
+  isLoadingFeedArticles,
   isLoadingAccountArticles,
   isLoadingFolderArticles,
   isLoadingRecentArticles,
@@ -113,7 +113,7 @@ export function useArticleListBodyProps({
     viewportRef,
     onListKeyDownCapture: handleListKeyDownCapture,
     isLoading:
-      isLoading ||
+      isLoadingFeedArticles ||
       isLoadingAccountArticles ||
       isLoadingFolderArticles ||
       isLoadingRecentArticles ||
