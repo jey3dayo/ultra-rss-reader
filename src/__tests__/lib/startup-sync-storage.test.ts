@@ -101,6 +101,31 @@ describe("startup sync storage", () => {
     expect(localStorage.getItem(key)).toBe("12345");
   });
 
+  it("stores and reads startup sync timestamps per account when account scope is provided", () => {
+    markStartupSyncTriggered(localStorage, 12_345, "acc-1");
+
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(localStorage.getItem(`${key}:acc-1`)).toBe("12345");
+    expect(shouldThrottleStartupSync(localStorage, 13_000, "acc-1")).toBe(true);
+    expect(shouldThrottleStartupSync(localStorage, 13_000, "acc-2")).toBe(false);
+  });
+
+  it("removes tampered account-scoped timestamps before allowing startup sync", () => {
+    localStorage.setItem(`${key}:acc-1`, "Infinity");
+
+    expect(getLastStartupSyncTriggeredAt(localStorage, 2_000, "acc-1")).toBeNull();
+    expect(localStorage.getItem(`${key}:acc-1`)).toBeNull();
+    expect(shouldThrottleStartupSync(localStorage, 2_000, "acc-1")).toBe(false);
+  });
+
+  it("removes future account-scoped timestamps before allowing startup sync after clock skew", () => {
+    localStorage.setItem(`${key}:acc-1`, "3000");
+
+    expect(getLastStartupSyncTriggeredAt(localStorage, 2_000, "acc-1")).toBeNull();
+    expect(localStorage.getItem(`${key}:acc-1`)).toBeNull();
+    expect(shouldThrottleStartupSync(localStorage, 2_000, "acc-1")).toBe(false);
+  });
+
   it("treats storage get failures as missing timestamps", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const throwingStorage = {
