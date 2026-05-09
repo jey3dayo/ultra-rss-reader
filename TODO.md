@@ -145,16 +145,6 @@
   - provider 由来 URL が外部ブラウザ/open command に流れるため、`javascript:`、`file:`, credential-in-URL、control char をどこで拒否するか未固定だと OS opener 境界で事故りやすい
   - frontend action と Rust opener command の両方で allowed scheme を固定し、invalid URL は toast だけで native invoke しない contract test を追加する
 
-- [ ] P1 updater install/restart 中の sync・DB write gate を固定する
-  - 対象: `src/hooks/use-updater.ts`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`
-  - update download/install は restart を伴う一方、manual/automatic sync や DB maintenance が走っている時の禁止・待機・中断方針が見えにくい
-  - installing update 中の sync 開始、sync 中の update install、download failure after ready state の UI/command contract test を追加する
-
-- [ ] P1 updater manifest の channel / prerelease / downgrade policy を固定する
-  - 対象: `src-tauri/tauri.conf.json`, `src-tauri/tauri.release.conf.json`, `src/api/schemas/update-info.ts`, `src/hooks/use-updater.ts`
-  - update endpoint が `latest.json` 固定のため、prerelease、downgrade、same version、platform mismatch の扱いが曖昧だと release 運用で誤配信に気づきにくい
-  - fake update manifest で newer/same/older/prerelease/platform mismatch を固定し、UI 表示と install 可否を schema test にする
-
 - [ ] P1 browser webview event payload の schema validation を Rust/TS で揃える
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`, `src-tauri/src/browser_webview.rs`
   - native event payload は frontend schema と Rust emit shape がズレると malformed event warning で止まり、browser overlay の state だけ stale になり得る
@@ -245,16 +235,6 @@
   - native sync が途中で error/abort して `sync-completed` を emit しない場合、frontend の `syncProgress.active` が残り manual sync が無効化され続ける可能性がある
   - timeout recovery、manual clear、next started event での reset のどれを正にするか決め、missing completed event の store/hook test を追加する
 
-- [ ] P1 Reading List command の AppleScript stderr を user-facing error に直出ししない
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/components/reader/article-browser-actions.ts`
-  - `osascript` failure stderr をそのまま `UserVisible` message に含めると、URL や OS 固有の内部情報が toast/log に出る可能性がある
-  - stderr は diagnostics/log に寄せ、UI には分類済み message を出す contract test を追加する
-
-- [ ] P1 clipboard write の text category と size limit を固定する
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/clipboard.ts`, `src/components/reader/article-browser-actions.ts`
-  - clipboard command は任意 text を受けるため、巨大 text、credential-like value、multiline URL をどこで拒否するか未固定だと copy action の責務が広がる
-  - article link、server URL、debug text の category ごとに max length / multiline / secret-like pattern の扱いを分け、unit test にする
-
 - [ ] P1 debug input trace が typed key や target text を記録しすぎないようにする
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug-input-trace.ts`, `src/components/settings/debug-settings.tsx`
   - Debug HUD の raw keyboard/pointer trace は入力欄や URL/credential field の target description を扱うため、debug log 上に sensitive interaction が残る可能性がある
@@ -319,11 +299,6 @@
   - 対象: `src/components/app-confirm-dialog.tsx`, `src/hooks/use-delete-feed.ts`, `src/components/reader/article-list.tsx`, `src/components/settings/mute-settings.tsx`
   - confirm dialog が開いた後に selection や list order が変わると、confirm message と実行対象がズレる destructive action が混ざりやすい
   - feed delete、mark all read、mute keyword delete、account delete の confirm payload を snapshot 化し、confirm 中 loading/disable と double click の contract test を追加する
-
-- [ ] P1 OPML import の duplicate URL merge / skip / overwrite policy を固定する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/opml.rs`, `src/dev/mocks.ts`
-  - OPML に同一 URL、同一 title 別 URL、同一 URL 別 folder が含まれる時に、既存 feed とどう merge するかが曖昧だと import 後の unread/folder 整合性が崩れやすい
-  - duplicate within file、existing feed collision、folder move を import summary にどう出すか決め、Rust command test と dev mock parity test を追加する
 
 - [ ] P1 app root missing / lazy chunk failure の user-visible fallback を固定する
   - 対象: `src/main.tsx`, `src/components/app-shell.tsx`
@@ -480,11 +455,6 @@
   - `DEV_` / `VITE_` / `TAURI_` / `RUST_` prefix を広く転送し、suffix で secret を落としているため、suffix に当たらない token-like env が Windows 側へ漏れる可能性がある
   - explicit allowlist、masked diagnostics、secret-like value detection、`DEV_CREDENTIALS` 例外の扱いを script test にする
 
-- [ ] P2 OPML generate の XML writer `expect` を production boundary として棚卸しする
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
-  - in-memory XML writer の `expect` は通常落ちない前提だが、export command の user-facing boundary で panic になる箇所が増えると support 時の原因が残りにくい
-  - writer failure を Result に変える必要があるか評価し、panic acceptable なら理由を contract test/comment に残す
-
 - [ ] P3 UI store toast timer を store lifecycle / test isolation として整理する
   - 対象: `src/stores/ui-store.ts`, `src/__tests__/stores/ui-store.test.ts`
   - module-level `toastTimer` は store reset や test isolation と別 lifecycle なので、テスト間や HMR 中に古い timer が新しい toast を消す可能性がある
@@ -539,11 +509,6 @@
   - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/tag_commands.rs`
   - TS 側は `MAX_IPC_PAGINATION_LIMIT`、Rust 側は `MAX_TAG_ARTICLE_LIST_LIMIT` を別定義しており、片方だけ変わると tag view だけ挙動がズレる
   - tag article limit の TS/Rust fixture、boundary 200、over-limit error message を schema contract test にする
-
-- [ ] P2 OPML import の folder sort_order を max+1 にするか len 基準を明記する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - OPML import は existing folder count から sort_order を始めるため、既存 sort_order に gap/large value/duplicate がある DB では並び順が衝突しやすい
-  - existing sort_order gaps、duplicate sort_order、deleted folder gap、multi-folder import の expected order を Rust test で固定する
 
 - [ ] P2 GReader remote folder removal が local folder assignment を残す条件を固定する
   - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`
@@ -654,21 +619,6 @@
   - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`
   - auto-mark toggle は store を先に書き換えて失敗時に previous value を戻すため、ON -> OFF 連続操作で古い failure が最新設定を巻き戻す可能性がある
   - deferred mutation で ON failure / OFF success を逆順 settle させる component test を追加し、revision guard または current value compare rollback にする
-
-- [ ] P2 updater pending update handle を version/source 付きで検証する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`
-  - `check_for_update` の cached `Update` を `download_and_install_update` が再利用するため、manual check と startup check が近いタイミングで走ると、UI が見せた version と install 対象の対応が見えにくい
-  - cached version、check source、created_at を持つか fresh check mandatory にするか決め、stale cached update / newer check failure / download no update の test を追加する
-
-- [ ] P2 updater DOWNLOADING guard を panic-safe / cancellation-safe にする
-  - 対象: `src-tauri/src/commands/updater_commands.rs`
-  - `DOWNLOADING` は `do_download_and_install` の正常な `Result` 後に false へ戻す形なので、将来 panic/cancel 経路が入ると update download が永続的に in-progress 扱いになり得る
-  - RAII guard、panic catch、test-only injected panic の方針を決め、guard reset と duplicate download rejection の Rust test を追加する
-
-- [ ] P2 restart_app command の return contract と frontend toast 方針を固定する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/api/schemas/commands.ts`
-  - Rust command は `Result` を返さず即 `app.restart()` するため、frontend の schema/Result 境界では restart failure・no-op・dev runtime fallback の扱いが見えにくい
-  - restart unavailable、dev mode reload、packaged restart success の expected behavior を command schema / hook test / manual verification に分ける
 
 - [ ] P2 database size 表示の WAL/SHM/total 定義を UI と schema で揃える
   - 対象: `src-tauri/src/commands/database_commands.rs`, `src/api/schemas/database-info.ts`, `src/components/settings/hooks/use-data-settings-controller.ts`
