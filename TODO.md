@@ -100,11 +100,6 @@
   - modal open / category selection / account navigation の既存 state transition が変わらないことを `settings-modal` focused test で固定する
   - browser-view state effects とは分け、settings modal の state/effect 整理だけを扱う
 
-- [ ] react-doctor badge hook state effects 候補を追加する
-  - `src/hooks/use-badge.ts` の cascading setState を reducer / derived value / command result path に整理する
-  - badge count 更新と platform unavailable 時の fallback が変わらない hook test を追加する
-  - updater badge behavior や native command contract とは分け、badge hook 内の React state 整理だけを扱う
-
 - [ ] react-doctor shortcuts help effect handler 候補を追加する
   - `src/components/reader/shortcuts-help-modal.tsx` の `useEffect` による event-handler 相当処理を open/change handler 境界へ寄せる
   - modal open 時の focus / scroll / selected shortcut 表示が変わらない focused test を追加する
@@ -150,20 +145,10 @@
   - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
   - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
 
-- [ ] react-doctor article tag chips iteration cleanup 候補を追加する
-  - `src/components/reader/article-tag-chips.tsx` の assigned / available tag list 生成を single-pass 化できるか確認する
-  - article tag chips focused test で chip order / selected state / empty state が変わらないことを固定する
-  - article tag picker controller contract とは分け、tag chips view 内の iteration cleanup だけを扱う
-
 - [ ] react-doctor sidebar feed tree helper iteration cleanup 候補を追加する
   - `src/components/reader/sidebar-feed-tree-helpers.ts` の folder model 生成で `.map().filter()` している箇所を、空 folder hide 条件込みの single-pass helper へ寄せる
   - sidebar feed tree helper test で folder order / unfiled feeds / empty folder visibility が変わらないことを固定する
   - feed tree drag/drop behavior とは分け、view model helper の iteration cleanup だけを扱う
-
-- [ ] react-doctor sidebar startup folder expansion iteration cleanup 候補を追加する
-  - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の unread folder 抽出を single-pass 化する
-  - startup expansion hook test で unread folder / manual collapsed folder / account switch 時の expansion が変わらないことを固定する
-  - sidebar lifecycle false-positive review とは分け、startup folder expansion の list extraction だけを扱う
 
 - [ ] react-doctor app sync-on-wake account extraction 候補を追加する
   - `src/App.tsx` の sync-on-wake 対象 account 抽出で `.filter().map()` している箇所を single-pass 化する
@@ -174,11 +159,6 @@
   - `@tauri-apps/plugin-opener` の npm dependency が TS 側で未使用扱いになる理由を確認し、Cargo plugin / `safeInvoke("plugin:opener|open_url")` との責務境界を整理する
   - 削除できる場合は package lock と browser action tests を更新し、残す場合は knip ignore / contract comment で意図を固定する
   - Tauri command schema dead export cleanup とは分け、opener plugin dependency のみ扱う
-
-- [ ] knip markdownlint-cli2 false-positive contract 候補を追加する
-  - `markdownlint-cli2` が `mise.toml` の markdown lint/format task から使われていることを knip が認識できる形にするか、明示 ignore へ寄せる
-  - `mise run lint:md` と package scripts contract test で markdown task の実行経路が変わらないことを固定する
-  - docs lint 方針変更とは分け、knip dependency surface の false-positive 解消だけを扱う
 
 - [ ] react-doctor tauri dispatch Info.plist marker helper 候補を追加する
   - `scripts/tauri-cli-dispatch.ts` の stale macOS dev bundle 判定で使う Info.plist marker 文字列を helper / constants へ寄せる
@@ -195,30 +175,10 @@
   - Windows / non-Windows dispatch test で許可 command と拒否 command の判定が変わらないことを固定する
   - script async waterfall とは分け、CLI dispatch lookup performance だけを扱う
 
-- [ ] react-doctor Storybook action strip reducer 候補を追加する
-  - `src/components/storybook/ui-reference-canvas-specimens.tsx` の `ReaderHeaderActionStripSpecimen` にある関連 state を reducer 化する
-  - UI reference canvas smoke で control toggles と specimen rendering が変わらないことを確認する
-  - production reader header state とは分け、Storybook specimen の local state organization だけを扱う
-
-- [ ] react-doctor Storybook ellipsis typography 候補を追加する
-  - `src/components/storybook/ui-reference-canvas-specimens.tsx` の JSX text に残る three-period ellipsis を typographic ellipsis へ寄せる
-  - Storybook text snapshot / smoke で表示 copy が意図通り `…` になることを固定する
-  - product locale copy 変更とは分け、UI reference specimen の typography cleanup だけを扱う
-
-- [ ] article toolbar layout prop boundary 候補を追加する
-  - `src/components/reader/article-toolbar-view.tsx` の `ArticleToolbarActionStrip` が `useUiStore(layoutMode)` を直接読む構造を props 境界へ寄せる
-  - `src/__tests__/components/article-toolbar-view.test.tsx` で store の layoutMode と prop が食い違っても prop 側で mobile / desktop action が決まることを固定する
-  - toolbar action taxonomy とは分け、view の store access boundary だけを扱う
-
 - [ ] sidebar header runtime prop boundary 候補を追加する
   - `src/components/reader/sidebar-header-view.tsx` の `useUiStore` / `usePlatformStore` / `hasTauriRuntime()` 直参照を controller 由来 props へ寄せる
   - `useSidebarHeaderProps` 側で `isMobile` / `useDesktopOverlay` を解決し、view test は props-only rendering に寄せる
   - sidebar layout 再設計とは分け、header view の runtime 判定分離だけを扱う
-
-- [ ] article list header label prop boundary 候補を追加する
-  - `src/components/reader/article-list-header.tsx` の `useTranslation("reader")` 直参照を controller / view props の `labels` へ寄せる
-  - `src/__tests__/components/article-list-header.test.tsx` で mark all read / search / close search label が props 由来になることを固定する
-  - article list loading naming とは分け、header label contract だけを扱う
 
 - [ ] similarity reader UI state hook factory 候補を追加する
   - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
@@ -235,40 +195,10 @@
   - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
   - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
 
-- [ ] sync scheduler backoff persistence error 候補を追加する
-  - `src-tauri/src/service/sync_scheduler.rs` の `reset_error_count` / `increment_error_count` が `repo.save(&state)` 失敗を silent success にしないようにする
-  - Rust test で backoff state 保存成功時の `is_in_backoff` と保存失敗時の error surface を固定する
-  - scheduler interval tuning とは分け、backoff persistence failure handling だけを扱う
-
-- [ ] OPML head title escaping contract 候補を追加する
-  - `src-tauri/src/infra/opml.rs` の `generate_opml` で head title が二重 escape されないことを固定する
-  - Rust test で `Test & Title` が `<title>Test &amp; Title</title>` になり、`&amp;amp;` を含まないことを確認する
-  - OPML nested folder / import transaction とは分け、head title serialization だけを扱う
-
 - [ ] tag repository blank name invariant 候補を追加する
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
   - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
   - tag settings UI validation とは分け、repository/domain invariant だけを扱う
-
-- [ ] reqwest retryable error redaction 候補を追加する
-  - `src-tauri/src/domain/error.rs` の unknown reqwest error fallback が raw URL / query を user-visible `Retryable` message に流さないようにする
-  - Rust test で generic message に丸め、TS schema/UI test で secret-like query を含む message が surface へ出ないことを固定する
-  - network retry policy とは分け、retryable error message redaction だけを扱う
-
-- [ ] AppError non-empty message contract 候補を追加する
-  - `src-tauri/src/commands/dto.rs` と `src/api/schemas/error.ts` で blank / whitespace-only AppError message を拒否または fallback 正規化する
-  - Rust test で DomainError 変換結果が non-empty message になり、TS schema test で blank message の方針を固定する
-  - individual command error copy とは分け、AppError DTO message invariant だけを扱う
-
-- [ ] similarity test-only error type fixture 候補を追加する
-  - `TestAppError` と `UserVisibleError` が 95.5% 類似なので、test-only user-visible error fixture type / builder を共有できるか確認する
-  - `app-root.test.tsx` と `use-updater.test.ts` の error shape assertion が同じ意図なら helper 化し、違うなら local type 名で意図差分を明示する
-  - AppError DTO invariant とは分け、test fixture type duplication だけを扱う
-
-- [ ] similarity hook test props reuse 候補を追加する
-  - `UseArticleActionShortcutsParams` と `TestShortcutsProps` が 91% 類似なので、hook test props が production hook params を再定義していないか確認する
-  - test wrapper の追加 props だけを local type に残し、hook params は production type import に寄せられるか判断する
-  - article action shortcut behavior 変更とは分け、test props type duplication だけを扱う
 
 - [ ] similarity browser view harness props reuse 候補を追加する
   - `UseBrowserViewControllerParams` と `BrowserViewHarnessProps` が 96% 類似なので、browser view test harness が controller params を再定義していないか確認する
