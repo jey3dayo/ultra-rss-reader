@@ -83,7 +83,9 @@ function parseInterpolationTokens(value: string): {
   }
 
   return {
-    tokens: tokens.sort((a, b) => a.raw.localeCompare(b.raw) || a.name.localeCompare(b.name)),
+    tokens: tokens.sort(
+      (a, b) => a.raw.localeCompare(b.raw) || a.name.localeCompare(b.name),
+    ),
     problems,
   };
 }
@@ -99,10 +101,26 @@ function formatPlaceholderNames(tokens: readonly InterpolationToken[]): string {
 const pluralSuffixPattern = /_(zero|one|two|few|many|other)$/;
 
 function collectPluralKeys(entries: Map<string, string>): string[] {
-  return [...entries.keys()].filter((key) => pluralSuffixPattern.test(key)).sort();
+  return [...entries.keys()]
+    .filter((key) => pluralSuffixPattern.test(key))
+    .sort();
 }
 
-function collectLeafSanityProblems(tree: LocaleTree, namespace: string, prefix = ""): string[] {
+const unresolvedLocaleKeyPattern =
+  /^[a-z][a-z0-9_]*(?::[a-z][a-z0-9_]*|\.[a-z][a-z0-9_]*)+$/;
+const domainNamePattern = /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
+
+function isUnresolvedKeyLookingString(value: string): boolean {
+  return (
+    unresolvedLocaleKeyPattern.test(value) && !domainNamePattern.test(value)
+  );
+}
+
+function collectLeafSanityProblems(
+  tree: LocaleTree,
+  namespace: string,
+  prefix = "",
+): string[] {
   const problems: string[] = [];
 
   for (const [key, value] of Object.entries(tree)) {
@@ -115,6 +133,11 @@ function collectLeafSanityProblems(tree: LocaleTree, namespace: string, prefix =
       if (value === path || value === qualifiedPath) {
         problems.push(`${qualifiedPath}: untranslated key string`);
       }
+      if (isUnresolvedKeyLookingString(value)) {
+        problems.push(
+          `${qualifiedPath}: unresolved key-looking string ${value}`,
+        );
+      }
       continue;
     }
     if (isStringList(value)) {
@@ -125,8 +148,16 @@ function collectLeafSanityProblems(tree: LocaleTree, namespace: string, prefix =
         if (item.length === 0) {
           problems.push(`${qualifiedPath}.${index}: empty string`);
         }
-        if (item === `${path}.${index}` || item === `${qualifiedPath}.${index}`) {
+        if (
+          item === `${path}.${index}` ||
+          item === `${qualifiedPath}.${index}`
+        ) {
           problems.push(`${qualifiedPath}.${index}: untranslated key string`);
+        }
+        if (isUnresolvedKeyLookingString(item)) {
+          problems.push(
+            `${qualifiedPath}.${index}: unresolved key-looking string ${item}`,
+          );
         }
       });
       continue;
@@ -144,14 +175,18 @@ const richTextAllowedSnippets = new Map([
   ["reader.confirm_delete_tag", "<strong>{{name}}</strong>"],
   ["reader.confirm_unsubscribe", "<strong>{{title}}</strong>"],
 ]);
-const loadingOrProgressKeyPattern = /(^|_)(detecting|loading|opening|optimizing|saving|syncing|testing|updating)($|_)/;
+const loadingOrProgressKeyPattern =
+  /(^|_)(detecting|loading|opening|optimizing|saving|syncing|testing|updating)($|_)/;
 const threePeriodEllipsisAllowlist = new Set<string>();
 
 function collectRichTextTagSignature(value: string): string[] {
   return [...value.matchAll(richTextTagPattern)].map((match) => match[0] ?? "");
 }
 
-function collectRichTextProblems(entries: Map<string, string>, namespace: string): string[] {
+function collectRichTextProblems(
+  entries: Map<string, string>,
+  namespace: string,
+): string[] {
   const problems: string[] = [];
 
   for (const [key, value] of entries) {
@@ -162,10 +197,17 @@ function collectRichTextProblems(entries: Map<string, string>, namespace: string
       problems.push(`${qualifiedKey}: rich text markup is not allowlisted`);
     }
     if (allowedSnippet !== undefined && !value.includes(allowedSnippet)) {
-      problems.push(`${qualifiedKey}: missing allowlisted rich text snippet ${allowedSnippet}`);
+      problems.push(
+        `${qualifiedKey}: missing allowlisted rich text snippet ${allowedSnippet}`,
+      );
     }
-    if (allowedSnippet !== undefined && tagSignature.join("|") !== "<strong>|</strong>") {
-      problems.push(`${qualifiedKey}: rich text markup must be exactly one strong pair`);
+    if (
+      allowedSnippet !== undefined &&
+      tagSignature.join("|") !== "<strong>|</strong>"
+    ) {
+      problems.push(
+        `${qualifiedKey}: rich text markup must be exactly one strong pair`,
+      );
     }
     for (const match of value.matchAll(richTextTagPattern)) {
       const tag = match[1]?.toLowerCase();
@@ -173,7 +215,9 @@ function collectRichTextProblems(entries: Map<string, string>, namespace: string
         problems.push(`${qualifiedKey}: disallowed rich text tag ${match[0]}`);
       }
       if (match[0]?.includes("=")) {
-        problems.push(`${qualifiedKey}: rich text tag attributes are not allowed`);
+        problems.push(
+          `${qualifiedKey}: rich text tag attributes are not allowed`,
+        );
       }
     }
   }
@@ -199,7 +243,9 @@ function collectRichTextLocaleMismatches(
     const enSignature = collectRichTextTagSignature(enValue).join("|");
     const jaSignature = collectRichTextTagSignature(jaValue).join("|");
     if (enSignature !== jaSignature) {
-      mismatches.push(`${namespace}.${key}: en=${enSignature} ja=${jaSignature}`);
+      mismatches.push(
+        `${namespace}.${key}: en=${enSignature} ja=${jaSignature}`,
+      );
     }
   }
 
@@ -208,7 +254,9 @@ function collectRichTextLocaleMismatches(
 
 describe("locale interpolation placeholders", () => {
   it("normalizes i18next format suffixes while preserving raw token shape", () => {
-    expect(parseInterpolationTokens("Updated {{ date, datetime }} by {{name}}")).toEqual({
+    expect(
+      parseInterpolationTokens("Updated {{ date, datetime }} by {{name}}"),
+    ).toEqual({
       tokens: [
         { raw: "{{ date, datetime }}", name: "date" },
         { raw: "{{name}}", name: "name" },
@@ -218,7 +266,9 @@ describe("locale interpolation placeholders", () => {
   });
 
   it("reports unknown interpolation tokens without accepting them as placeholders", () => {
-    expect(parseInterpolationTokens("Broken {{ count + 1 }} and {{ }}")).toEqual({
+    expect(
+      parseInterpolationTokens("Broken {{ count + 1 }} and {{ }}"),
+    ).toEqual({
       tokens: [],
       problems: ["invalid token {{ count + 1 }}", "invalid token {{ }}"],
     });
@@ -240,7 +290,9 @@ describe("locale interpolation placeholders", () => {
         const enPlaceholders = extractPlaceholders(enValue);
         const jaPlaceholders = extractPlaceholders(jaValue);
         if (enPlaceholders.join(",") !== jaPlaceholders.join(",")) {
-          mismatches.push(`${namespace}.${key}: en=${enPlaceholders.join("|")} ja=${jaPlaceholders.join("|")}`);
+          mismatches.push(
+            `${namespace}.${key}: en=${enPlaceholders.join("|")} ja=${jaPlaceholders.join("|")}`,
+          );
         }
       }
     }
@@ -292,7 +344,9 @@ describe("locale interpolation placeholders", () => {
       const jaPluralKeys = collectPluralKeys(flattenLocale(ja));
 
       if (enPluralKeys.join(",") !== jaPluralKeys.join(",")) {
-        mismatches.push(`${namespace}: en=${enPluralKeys.join("|")} ja=${jaPluralKeys.join("|")}`);
+        mismatches.push(
+          `${namespace}: en=${enPluralKeys.join("|")} ja=${jaPluralKeys.join("|")}`,
+        );
       }
     }
 
@@ -302,12 +356,18 @@ describe("locale interpolation placeholders", () => {
   it("keeps reader, web preview, and external browser copy distinct", () => {
     expect(enReader.back_to_reader).toContain("Reader");
     expect(enReader.view_in_browser).toContain("Web Preview");
-    expect(enReader.open_in_external_browser.toLowerCase()).toContain("external browser");
+    expect(enReader.open_in_external_browser.toLowerCase()).toContain(
+      "external browser",
+    );
     expect(enReader.shortcuts.view_in_browser).toContain("Web Preview");
-    expect(enReader.shortcuts.open_external_browser.toLowerCase()).toContain("external browser");
+    expect(enReader.shortcuts.open_external_browser.toLowerCase()).toContain(
+      "external browser",
+    );
     expect(enSettings.reading.preview).toContain("Web Preview");
     expect(enSettings.reading.in_app_browser).toBe("Web Preview");
-    expect(enSettings.reading.default_browser.toLowerCase()).toContain("browser");
+    expect(enSettings.reading.default_browser.toLowerCase()).toContain(
+      "browser",
+    );
 
     expect(jaReader.back_to_reader).toContain("記事");
     expect(jaReader.view_in_browser).toContain("Webプレビュー");
@@ -318,8 +378,12 @@ describe("locale interpolation placeholders", () => {
     expect(jaSettings.reading.in_app_browser).toBe("Webプレビュー");
     expect(jaSettings.reading.default_browser).toContain("ブラウザ");
 
-    expect(enReader.view_in_browser).not.toBe(enReader.open_in_external_browser);
-    expect(jaReader.view_in_browser).not.toBe(jaReader.open_in_external_browser);
+    expect(enReader.view_in_browser).not.toBe(
+      enReader.open_in_external_browser,
+    );
+    expect(jaReader.view_in_browser).not.toBe(
+      jaReader.open_in_external_browser,
+    );
   });
 
   it("keeps locale leaves non-empty and translated away from raw key strings", () => {
@@ -341,7 +405,9 @@ describe("locale interpolation placeholders", () => {
       const jaEntries = flattenLocale(ja);
       problems.push(...collectRichTextProblems(enEntries, namespace));
       problems.push(...collectRichTextProblems(jaEntries, namespace));
-      problems.push(...collectRichTextLocaleMismatches(enEntries, jaEntries, namespace));
+      problems.push(
+        ...collectRichTextLocaleMismatches(enEntries, jaEntries, namespace),
+      );
     }
 
     expect(problems).toEqual([]);
@@ -358,7 +424,11 @@ describe("locale interpolation placeholders", () => {
         for (const [key, value] of flattenLocale(tree)) {
           const qualifiedKey = `${namespace}.${locale}.${key}`;
           const isLoadingOrProgressCopy = loadingOrProgressKeyPattern.test(key);
-          if (isLoadingOrProgressCopy && value.includes("...") && !threePeriodEllipsisAllowlist.has(qualifiedKey)) {
+          if (
+            isLoadingOrProgressCopy &&
+            value.includes("...") &&
+            !threePeriodEllipsisAllowlist.has(qualifiedKey)
+          ) {
             problems.push(qualifiedKey);
           }
         }
@@ -378,7 +448,10 @@ describe("locale interpolation placeholders", () => {
       ] as const) {
         for (const [key, value] of flattenLocale(tree)) {
           const qualifiedKey = `${namespace}.${locale}.${key}`;
-          if (value.includes("...") && !threePeriodEllipsisAllowlist.has(qualifiedKey)) {
+          if (
+            value.includes("...") &&
+            !threePeriodEllipsisAllowlist.has(qualifiedKey)
+          ) {
             problems.push(qualifiedKey);
           }
         }

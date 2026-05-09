@@ -1,9 +1,14 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
-import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
+import {
+  i18nResourceLocales,
+  i18nResourceNamespaces,
+  i18nResources,
+} from "@/lib/i18n-resources";
 
-export const supportedLanguages = ["en", "ja"] as const;
+export const supportedLanguages = i18nResourceLocales;
+export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 i18n
   .use(LanguageDetector)
