@@ -5,7 +5,7 @@ import { useUiStore } from "../stores/ui-store";
 import { type PreferredLayoutMode, resolveResponsiveLayoutMode } from "./use-layout";
 
 export function resolvePreferredLayoutMode(layoutPref: string): PreferredLayoutMode {
-  return layoutPref === "compact" ? "compact" : "wide";
+  return layoutPref.trim().toLowerCase() === "compact" ? "compact" : "wide";
 }
 
 export function useBreakpoint() {
