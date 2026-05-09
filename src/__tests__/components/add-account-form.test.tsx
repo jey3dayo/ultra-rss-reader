@@ -751,4 +751,57 @@ describe("AddAccountForm", () => {
       );
     });
   });
+
+  it("keeps the created account selected when post-success invalidation fails", async () => {
+    const user = userEvent.setup();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidationError = new Error("cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        return {
+          ...sampleAccounts[1],
+          id: "acc-new",
+          kind: "FreshRss",
+          name: "FreshRSS",
+          username: "alice",
+          server_url: "https://freshrss.example.com",
+          sync_interval_secs: 3600,
+          sync_on_startup: true,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
+        };
+      }
+      if (cmd === "trigger_sync_account") {
+        return new Promise(() => {});
+      }
+      return null;
+    });
+
+    render(<AddAccountForm />, { wrapper });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBe("acc-new");
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-new");
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        accountId: "acc-new",
+        owner: "add-account",
+        state: "syncing",
+      });
+    });
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["accounts"],
+        error: invalidationError,
+      });
+    });
+  });
 });

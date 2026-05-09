@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +9,7 @@ const { loadCommandPaletteDevScenariosMock, runCommandPaletteDevScenarioMock } =
 }));
 
 vi.mock("@/dev/scenario-runtime", () => ({
-  loadRuntimeDevScenarios: loadCommandPaletteDevScenariosMock,
+  loadRuntimeDevScenariosResult: loadCommandPaletteDevScenariosMock,
   runRuntimeDevScenario: runCommandPaletteDevScenarioMock,
 }));
 
@@ -61,7 +62,7 @@ describe("CommandPalette", () => {
     Element.prototype.scrollIntoView = vi.fn();
     localStorage.clear();
     vi.stubEnv("DEV", false);
-    loadCommandPaletteDevScenariosMock.mockReset().mockResolvedValue(devScenarioFixtures);
+    loadCommandPaletteDevScenariosMock.mockReset().mockResolvedValue(Result.succeed(devScenarioFixtures));
     runCommandPaletteDevScenarioMock.mockReset().mockResolvedValue(undefined);
     useUiStore.setState({
       ...useUiStore.getInitialState(),

@@ -76,4 +76,92 @@ describe("useArticleBrowserOverlayClose", () => {
     expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
     expect(closeBrowser).toHaveBeenCalledTimes(1);
   });
+
+  it("logs Result.fail and still returns to reader mode", async () => {
+    const closeError = { type: "UserVisible" as const, message: "close failed" };
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    closeBrowserWebviewMock.mockResolvedValue(Result.fail(closeError));
+    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
+    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserCloseInFlight: false,
+      setFocusedPane,
+    });
+    const closeBrowser = vi.fn(() => useUiStore.getState().setBrowserCloseInFlight(false));
+    const focusSelectedArticleRow = vi.fn();
+    const setBrowserOverlayClosedPreference = vi.fn();
+
+    const { result } = renderHook(() =>
+      useArticleBrowserOverlayClose({
+        closeBrowser,
+        focusSelectedArticleRow,
+        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
+        setBrowserOverlayClosedPreference,
+      }),
+    );
+
+    act(() => {
+      result.current();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to close embedded browser webview before returning to reader mode:",
+      closeError,
+    );
+    expect(setFocusedPane).toHaveBeenCalledWith("list");
+    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs rejected close commands and still returns to reader mode", async () => {
+    const error = new Error("runtime rejected");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    closeBrowserWebviewMock.mockRejectedValue(error);
+    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
+    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserCloseInFlight: false,
+      setFocusedPane,
+    });
+    const closeBrowser = vi.fn(() => useUiStore.getState().setBrowserCloseInFlight(false));
+    const focusSelectedArticleRow = vi.fn();
+    const setBrowserOverlayClosedPreference = vi.fn();
+
+    const { result } = renderHook(() =>
+      useArticleBrowserOverlayClose({
+        closeBrowser,
+        focusSelectedArticleRow,
+        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
+        setBrowserOverlayClosedPreference,
+      }),
+    );
+
+    act(() => {
+      result.current();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Embedded browser webview close command rejected before returning to reader mode:",
+      error,
+    );
+    expect(setFocusedPane).toHaveBeenCalledWith("list");
+    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+  });
 });

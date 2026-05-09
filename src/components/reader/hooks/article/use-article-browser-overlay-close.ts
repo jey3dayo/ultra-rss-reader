@@ -65,6 +65,9 @@ export function useArticleBrowserOverlayClose({
           }),
         ),
       )
+      .catch((error: unknown) => {
+        console.error("Embedded browser webview close command rejected before returning to reader mode:", error);
+      })
       .finally(() => {
         emitDebugInputTrace("close-browser finalize");
         void waitForBrowserOverlayCloseMotion().then(finalizeCloseBrowserOverlay);

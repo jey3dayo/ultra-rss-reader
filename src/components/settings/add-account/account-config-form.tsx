@@ -12,6 +12,7 @@ import {
   formatAddAccountValidationError,
   getAddAccountFormConfig,
 } from "@/lib/account/add-account-form";
+import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 import { upsertCachedAccount } from "../account-detail/query-cache";
 import { AccountConfigFormView } from "./account-config-form-view";
@@ -131,8 +132,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
         }),
         Result.inspect((account) => {
           upsertCachedAccount(qc, account);
-          qc.invalidateQueries({ queryKey: ["accounts"] });
-          qc.invalidateQueries({ queryKey: ["feeds"] });
+          invalidateQueryKeysLogOnly(qc, [["accounts"], queryKeys.feeds.root]);
           const { selectAccount } = useUiStore.getState();
           selectAccount(account.id);
           setSettingsAccountId(account.id);

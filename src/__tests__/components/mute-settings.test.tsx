@@ -54,6 +54,28 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+function getDeleteButtonAt(index: number): HTMLElement {
+  return getElementAt(screen.getAllByRole("button", { name: "Delete" }), index, "delete button");
+}
+
+function getElementAt<T>(items: T[], index: number, label: string): T {
+  const item = items[index];
+  if (!item) {
+    throw new Error(`expected ${label} at index ${index}`);
+  }
+
+  return item;
+}
+
+function getDeleteButtonFrom(buttons: HTMLElement[], index: number): HTMLElement {
+  const button = buttons[index];
+  if (!button) {
+    throw new Error(`expected delete button at index ${index}`);
+  }
+
+  return button;
+}
+
 describe("MuteSettings", () => {
   beforeEach(() => {
     updateMuteKeywordMutateAsyncMock.mockReset();
@@ -243,7 +265,7 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
+    await user.click(getDeleteButtonAt(0));
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getAllByText(/spoiler/).length).toBeGreaterThan(0);
@@ -262,10 +284,10 @@ describe("MuteSettings", () => {
     render(<MuteSettings />);
 
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
-    await user.click(deleteButtons[0]!);
+    await user.click(getDeleteButtonAt(0));
     expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
 
-    await user.click(deleteButtons[1]!);
+    await user.click(getDeleteButtonFrom(deleteButtons, 1));
     expect(within(screen.getByRole("dialog")).getAllByText(/ending/).length).toBeGreaterThan(0);
     expect(within(screen.getByRole("dialog")).queryByText(/spoiler/)).not.toBeInTheDocument();
     expect(deleteMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
@@ -278,12 +300,9 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
+    await user.click(getDeleteButtonAt(0));
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
-    const confirmDeleteButton = deleteButtons[deleteButtons.length - 1];
-    if (!confirmDeleteButton) {
-      throw new Error("expected delete confirmation button");
-    }
+    const confirmDeleteButton = getElementAt(deleteButtons, deleteButtons.length - 1, "delete confirmation button");
 
     await user.click(confirmDeleteButton);
 
@@ -303,12 +322,9 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
+    await user.click(getDeleteButtonAt(0));
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
-    const confirmDeleteButton = deleteButtons[deleteButtons.length - 1];
-    if (!confirmDeleteButton) {
-      throw new Error("expected delete confirmation button");
-    }
+    const confirmDeleteButton = getElementAt(deleteButtons, deleteButtons.length - 1, "delete confirmation button");
 
     await user.click(confirmDeleteButton);
 

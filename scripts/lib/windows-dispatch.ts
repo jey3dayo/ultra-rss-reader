@@ -49,7 +49,7 @@ function getErrorField(error: unknown, field: "code" | "path"): string | undefin
     return undefined;
   }
 
-  const value = error[field];
+  const value = Reflect.get(error, field);
   return typeof value === "string" ? value : undefined;
 }
 
