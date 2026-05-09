@@ -310,6 +310,31 @@
   - `Product / release planning` や `実機確認` のような maintainer-managed area は labeler 自動付与と分け、docs/ci/dependencies/i18n など自動付与可能な項目だけを固定する
   - issue template 文面整理や release note label parity とは分け、Affected Areas checkbox と labeler path coverage だけを扱う
 
+- [ ] manual sync cooldown listener isolation 候補を追加する
+  - `src/lib/sync/manual-sync.ts` の `emitManualSyncCooldownChanged` が listener を直接順番に呼ぶため、1つの listener 例外で残りの通知や timer cleanup が止まらないか確認する
+  - 複数 subscriber のうち先頭が throw しても後続 listener が呼ばれることを pure helper test で固定し、warn / error aggregation の方針を決める
+  - cooldown duration や `triggerSync` failure 後の cooldown behavior とは分け、cooldown changed event の isolation だけを扱う
+
+- [ ] manual sync cooldown monotonic clock contract 候補を追加する
+  - `src/lib/sync/manual-sync.ts` は absolute deadline と `Date.now()` 系 clock で cooldown を判定するため、system clock rollback 時に cooldown が過剰延長されるか確認する
+  - wall clock を維持するか monotonic clock 相当へ寄せるかを決め、clock mock 付き test で backward / forward jump の期待値を固定する
+  - sync scheduling や manual sync warning event parity とは分け、manual sync cooldown の time source contract だけを扱う
+
+- [ ] window event binding partial registration rollback 候補を追加する
+  - `src/lib/window/window-events.ts` の `bindWindowEvents` が複数 listener 登録中に後続 `addEventListener` で throw した場合、先に登録済みの listener を rollback できるか確認する
+  - fake target で2件目の registration failure を再現し、1件目の `removeEventListener` が同じ handler / options で呼ばれることを focused test で固定する
+  - typed keyboard / mouse / custom event filtering とは分け、DOM listener group registration の atomic cleanup だけを扱う
+
+- [ ] Tauri listener registration observability 候補を追加する
+  - `src/lib/tauri/tauri-event-listeners.ts` の default `onError` や `use-menu-events` などの noop error handler が、実 Tauri listen failure を開発時に見えなくしていないか確認する
+  - browser dev context の expected failure と Tauri runtime の unexpected registration failure を分け、`console.warn` / debug trace / explicit onUnavailable のどれで観測するかを helper test で固定する
+  - updater progress payload validation や sidebar sync warning とは分け、Tauri event listener registration failure の observable behavior だけを扱う
+
+- [ ] always-on-top stale async result guard 候補を追加する
+  - `src/hooks/use-window-always-on-top.ts` が preference change ごとに `setWindowAlwaysOnTop(enabled).then(...)` を走らせるため、rapid toggle や unmount 後の stale result が warning を出さないか確認する
+  - deferred promise を使う hook test で、最新 request だけが error surface へ反映され、unmount 後の resolution は無視されることを固定する
+  - always-on-top unsupported runtime guard や error message copy とは分け、async side effect の latest-only contract だけを扱う
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
