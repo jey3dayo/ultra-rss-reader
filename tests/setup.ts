@@ -2,6 +2,12 @@ import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
+const originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
+const originalGlobalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+const originalGlobalSessionStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
+const originalGlobalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Storage");
+
 export class MemoryStorage implements Storage {
   #data = new Map<string, string>();
   #definedPropertyKeys = new Set<string>();
@@ -52,6 +58,23 @@ export class MemoryStorage implements Storage {
     });
     this.#definedPropertyKeys.add(key);
   }
+}
+
+function restoreDescriptor(target: object, key: string, descriptor: PropertyDescriptor | undefined): void {
+  if (descriptor) {
+    Object.defineProperty(target, key, descriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(target, key);
+}
+
+export function restoreStorageDescriptors(): void {
+  restoreDescriptor(window, "localStorage", originalWindowLocalStorageDescriptor);
+  restoreDescriptor(window, "sessionStorage", originalWindowSessionStorageDescriptor);
+  restoreDescriptor(globalThis, "localStorage", originalGlobalLocalStorageDescriptor);
+  restoreDescriptor(globalThis, "sessionStorage", originalGlobalSessionStorageDescriptor);
+  restoreDescriptor(globalThis, "Storage", originalGlobalStorageDescriptor);
 }
 
 function readWorkingWindowStorage(key: "localStorage" | "sessionStorage"): Storage | null {
@@ -130,4 +153,6 @@ afterEach(() => {
   cleanup();
   teardownTauriMocks();
   resetTauriRuntimeFlags();
+  restoreStorageDescriptors();
+  ensureWorkingStorage();
 });

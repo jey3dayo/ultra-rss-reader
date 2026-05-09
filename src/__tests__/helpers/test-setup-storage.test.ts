@@ -1,19 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { ensureWorkingStorage, MemoryStorage } from "../../../tests/setup";
+import { ensureWorkingStorage, MemoryStorage, restoreStorageDescriptors } from "../../../tests/setup";
 
 const originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
 const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
 const originalGlobalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 const originalGlobalSessionStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
 const originalGlobalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Storage");
-
-function restoreDescriptor(target: object, key: string, descriptor: PropertyDescriptor | undefined) {
-  if (descriptor) {
-    Object.defineProperty(target, key, descriptor);
-  } else {
-    Reflect.deleteProperty(target, key);
-  }
-}
 
 function callStorageMethod(method: Storage["setItem"], storage: Storage, key: unknown, value: unknown) {
   Reflect.apply(method, storage, [key, value]);
@@ -37,11 +29,7 @@ function readStorageProperty(storage: Storage, key: PropertyKey): unknown {
 
 describe("test setup storage fallback", () => {
   afterEach(() => {
-    restoreDescriptor(window, "localStorage", originalWindowLocalStorageDescriptor);
-    restoreDescriptor(window, "sessionStorage", originalWindowSessionStorageDescriptor);
-    restoreDescriptor(globalThis, "localStorage", originalGlobalLocalStorageDescriptor);
-    restoreDescriptor(globalThis, "sessionStorage", originalGlobalSessionStorageDescriptor);
-    restoreDescriptor(globalThis, "Storage", originalGlobalStorageDescriptor);
+    restoreStorageDescriptors();
   });
 
   it("injects memory storage when localStorage and sessionStorage getters throw", () => {
@@ -88,6 +76,37 @@ describe("test setup storage fallback", () => {
     expect(window.localStorage).toBe(workingLocalStorage);
     expect(window.localStorage.getItem("existing-key")).toBe("existing-value");
     expect(window.sessionStorage).toBeInstanceOf(MemoryStorage);
+  });
+
+  it("restores storage descriptors after local test shims mutate them", () => {
+    const localStorageShim = new MemoryStorage();
+    const sessionStorageShim = new MemoryStorage();
+
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageShim,
+      writable: true,
+    });
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      value: sessionStorageShim,
+      writable: true,
+    });
+    Object.defineProperty(globalThis, "Storage", {
+      configurable: true,
+      value: MemoryStorage,
+      writable: true,
+    });
+
+    restoreStorageDescriptors();
+
+    expect(Object.getOwnPropertyDescriptor(window, "localStorage")).toEqual(originalWindowLocalStorageDescriptor);
+    expect(Object.getOwnPropertyDescriptor(window, "sessionStorage")).toEqual(originalWindowSessionStorageDescriptor);
+    expect(Object.getOwnPropertyDescriptor(globalThis, "localStorage")).toEqual(originalGlobalLocalStorageDescriptor);
+    expect(Object.getOwnPropertyDescriptor(globalThis, "sessionStorage")).toEqual(
+      originalGlobalSessionStorageDescriptor,
+    );
+    expect(Object.getOwnPropertyDescriptor(globalThis, "Storage")).toEqual(originalGlobalStorageDescriptor);
   });
 
   it("keeps MemoryStorage key order, length, remove, and clear behavior aligned with DOM Storage", () => {
