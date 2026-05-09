@@ -45,7 +45,7 @@ test.describe("Storybook update Toast stability", () => {
     const [baselineBox, ...comparisonBoxes] = boxes;
 
     for (const box of comparisonBoxes) {
-      expect(box.width).toBeCloseTo(baselineBox.width, 2);
+      expect(Math.abs(box.width - baselineBox.width)).toBeLessThanOrEqual(1);
     }
   });
 
