@@ -27,7 +27,7 @@ function getDistinctAccountNames(items: Array<AccountSyncError | AccountSyncWarn
     ...new Set(
       items.map((item) => {
         const accountName = item.account_name.trim();
-        return accountName.length > 0 ? item.account_name : item.account_id;
+        return accountName.length > 0 ? accountName : item.account_id;
       }),
     ),
   ].join(", ");
