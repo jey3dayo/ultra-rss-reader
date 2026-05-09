@@ -32,6 +32,26 @@ describe("schema parse helpers", () => {
     expect(() => parseJsonWithSchema('{"id":"acc-2","unreadCount":-1}', userSchema)).toThrow(z.ZodError);
   });
 
+  it("keeps throwing JSON parse helper error categories distinguishable by callers", () => {
+    let malformedJsonError: unknown;
+    let schemaInvalidError: unknown;
+
+    try {
+      parseJsonWithSchema("not-json", userSchema);
+    } catch (error) {
+      malformedJsonError = error;
+    }
+
+    try {
+      parseJsonWithSchema('{"id":"acc-2","unreadCount":-1}', userSchema);
+    } catch (error) {
+      schemaInvalidError = error;
+    }
+
+    expect(malformedJsonError).toBeInstanceOf(SyntaxError);
+    expect(schemaInvalidError).toBeInstanceOf(z.ZodError);
+  });
+
   it("parses JSON contents through the provided schema", () => {
     expect(parseJsonWithSchema('{"id":"acc-2","unreadCount":0}', userSchema)).toEqual({
       id: "acc-2",
@@ -48,7 +68,12 @@ describe("schema parse helpers", () => {
   });
 
   it("leaves null fallback behavior to the caller", () => {
-    expect(safeParseJsonWithSchema("not-json", userSchema) ?? { id: "fallback", unreadCount: 0 }).toEqual({
+    expect(
+      safeParseJsonWithSchema("not-json", userSchema) ?? {
+        id: "fallback",
+        unreadCount: 0,
+      },
+    ).toEqual({
       id: "fallback",
       unreadCount: 0,
     });

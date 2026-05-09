@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MAX_COMMAND_HISTORY } from "@/constants/storage";
+import {
+  MAX_COMMAND_HISTORY,
+  MAX_COMMAND_HISTORY_ENTRY_LENGTH,
+  MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
+  MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+} from "@/constants/storage";
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import { CommandHistoryStorageSchema, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 
@@ -7,21 +12,32 @@ describe("storage schemas", () => {
   it("drops non-string and blank command history entries while preserving string order", () => {
     expect(
       CommandHistoryStorageSchema.parse([
-        "feed:feed-1",
+        "  feed:feed-1  ",
         null,
         { kind: "feed", id: "feed-2" },
         1,
         "",
         "   ",
+        "\u0000",
         "action:open-settings",
       ]),
     ).toEqual(["feed:feed-1", "action:open-settings"]);
   });
 
-  it("caps persisted command history entries at the storage boundary", () => {
-    const entries = Array.from({ length: MAX_COMMAND_HISTORY + 5 }, (_, index) => `item-${index}`);
+  it("normalizes command history entries before applying de-duplication and size caps", () => {
+    const oversizedEntry = `feed:${"x".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH + 20)}`;
 
-    expect(CommandHistoryStorageSchema.parse(entries)).toEqual(entries.slice(0, MAX_COMMAND_HISTORY));
+    expect(
+      CommandHistoryStorageSchema.parse([" feed:feed-1 ", "feed:feed-1", "action:\u0000open-settings", oversizedEntry]),
+    ).toEqual(["feed:feed-1", "action:open-settings", oversizedEntry.slice(0, MAX_COMMAND_HISTORY_ENTRY_LENGTH)]);
+  });
+
+  it("caps persisted command history entries at the storage boundary", () => {
+    const entries = Array.from({ length: MAX_COMMAND_HISTORY + 5 }, (_, index) => ` item-${index} `);
+
+    expect(CommandHistoryStorageSchema.parse(entries)).toEqual(
+      entries.slice(0, MAX_COMMAND_HISTORY).map((entry) => entry.trim()),
+    );
   });
 
   it("keeps command history root failures as typed parse failures for caller fallback", () => {
@@ -37,15 +53,35 @@ describe("storage schemas", () => {
   it("keeps account folder expansion maps while dropping invalid entries", () => {
     expect(
       StoredSidebarExpandedFoldersSchema.parse({
-        "account-1": ["folder-1", 42, "folder-2", null, "folder-1", "folder-2", "folder-3"],
+        " account-1 ": [" folder-1 ", 42, "folder-2", null, "folder-1", "folder-2", "folder-3"],
         "account-2": "folder-3",
         "account-3": ["folder-2", "folder-4", "folder-2"],
         "account-4": { folderId: "folder-5" },
+        " ": ["folder-6"],
+        "account-5": [" ", "\u0000"],
       }),
     ).toEqual({
       "account-1": ["folder-1", "folder-2", "folder-3"],
       "account-3": ["folder-2", "folder-4"],
     });
+  });
+
+  it("caps oversized sidebar expansion maps at the storage boundary", () => {
+    const folderIds = Array.from(
+      { length: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT + 5 },
+      (_, index) => `folder-${index}`,
+    );
+    const entries = Array.from({ length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS + 5 }, (_, index): [string, string[]] => [
+      `account-${index}`,
+      folderIds,
+    ]);
+
+    const parsed = StoredSidebarExpandedFoldersSchema.parse(Object.fromEntries(entries));
+
+    expect(Object.keys(parsed)).toEqual(
+      entries.slice(0, MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS).map(([accountId]) => accountId),
+    );
+    expect(parsed["account-0"]).toEqual(folderIds.slice(0, MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT));
   });
 
   it("keeps sidebar expansion root failures as typed parse failures for caller fallback", () => {
