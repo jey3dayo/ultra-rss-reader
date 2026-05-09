@@ -554,6 +554,7 @@ describe("AddAccountForm", () => {
       const toast = useUiStore.getState().toastMessage;
       expect(toast?.message).toContain("Authentication failed");
       expect(toast?.message).toContain("API password");
+      expect(useUiStore.getState().accountSetupSession).toBeNull();
     });
   });
 
