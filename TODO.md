@@ -1028,6 +1028,31 @@
   - snapshot / role assertion に影響しないことを focused test で確認する
   - production UI cleanup とは分け、test fixture JSX の Tailwind utility cleanup だけを扱う
 
+- [ ] react-doctor reader article summary icon size shorthand 候補を追加する
+  - `src/components/reader/article-view.tsx` の summary / empty-state leading visual に残る `h-N w-N` を `size-N` へ寄せる
+  - article view focused test で summary icon / empty state / article list selection の表示 contract が変わらないことを確認する
+  - reader toolbar size shorthand とは分け、ArticleView 本文周辺の小さい icon sizing だけを扱う
+
+- [ ] react-doctor subscriptions index icon size shorthand 候補を追加する
+  - `subscription-detail-pane.tsx` / `subscriptions-overview-summary.tsx` の detail / overview 表示 icon sizing を `size-N` へ寄せる
+  - subscriptions index focused test で decision bar / overview card / status icon の role と visible state が変わらないことを確認する
+  - subscriptions index pane contract とは分け、visual utility cleanup だけを扱う
+
+- [ ] react-doctor add-account icon size shorthand 候補を追加する
+  - `account-config-form-view.tsx` / `service-picker.tsx` の add-account flow 内 icon sizing を `size-N` へ寄せる
+  - add-account form focused test で provider selection / config form / validation state が変わらないことを確認する
+  - add account service picker props boundary とは分け、icon utility cleanup だけを扱う
+
+- [ ] react-doctor reader sidebar leaf icon size shorthand 候補を追加する
+  - `feed-tree-drag-overlay.tsx` / `feed-item.tsx` / `folder-section.tsx` / `sidebar-feed-tree-skeleton.tsx` の leaf / skeleton icon sizing を `size-N` へ寄せる
+  - feed item / folder section / sidebar focused test で row height、skeleton shape、drag preview が変わらないことを確認する
+  - `feed-tree-row` 本体や drag/drop behavior とは分け、sidebar leaf 表示の utility cleanup だけを扱う
+
+- [ ] react-doctor article story padding shorthand 候補を追加する
+  - `article-meta-view.stories.tsx` / `article-content-view.stories.tsx` の `px-N py-N` 同値指定を `p-N` へ寄せる
+  - Storybook build または article story smoke で story canvas が crash しないことを確認する
+  - runtime padding shorthand cleanup とは分け、article story fixture の padding utility cleanup だけを扱う
+
 - [ ] react-doctor React 19 forwardRef cleanup 候補を追加する
   - `react-doctor/no-react19-deprecated-apis` の対象 wrapper から不要な `forwardRef` を外す
   - 対象: `shortcuts-settings-view` / `article-tag-picker-buttons` / `sidebar-nav-button` / `account-switcher-view` / `reader-inline-action-button` / `settings-content-layout` / `nav-row-button`
