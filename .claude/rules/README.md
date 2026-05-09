@@ -27,6 +27,7 @@
 - React Doctor diff scan is the changed-file regression gate: `mise run quality:react-doctor:diff`.
 - React Doctor full scan is an informational baseline report: `mise run quality:react-doctor:full`.
 - Knip baseline drift is checked with `mise run quality:knip`.
+- Similarity baseline drift is reported with `mise run report:similarity`.
 - Tool versions and baseline counts are fixed in `package.json`, `pnpm-lock.yaml`, and `scripts/quality-baseline.ts`; update them together only after intentional triage.
 
 ## Repository Structure

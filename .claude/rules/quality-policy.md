@@ -1,6 +1,6 @@
 # Quality Policy
 
-React Doctor / Knip / TODO priority rules that are too durable for `TODO.md` live here.
+React Doctor / Knip / similarity / TODO priority rules that are too durable for `TODO.md` live here.
 
 ## TODO Priority Taxonomy
 
@@ -44,6 +44,18 @@ Classify every React Doctor warning before suppressing or fixing it:
 - `suppress`: last resort for unavoidable tool noise; include the warning id, scope, reason, owner, and review trigger in the suppression location.
 
 Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality-baseline.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
+
+## Similarity Report Baseline
+
+Use `mise run report:similarity` for the regular duplicate-code report. It wraps `similarity-ts --threshold 0.9 src/`, records TODO-backed false positives in `scripts/similarity-report.ts`, and treats drift as report output until it is triaged into TODO updates or refactoring work.
+
+Threshold usage:
+
+- `0.95`: near-copy candidates that should usually become immediate extraction or deletion work.
+- `0.9`: regular baseline for TODO triage and recurring report updates.
+- `0.87`: exploratory scan matching the tool default; use it only when looking for broader patterns after the `0.9` baseline is understood.
+
+Record false positives only when the pair is structurally similar but intentionally has different ownership, lifecycle, or domain boundaries. TODO-backed pairs should keep the TODO label in the report baseline until the main TODO entry is removed.
 
 ## Similarity False Positives
 

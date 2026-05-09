@@ -3,6 +3,11 @@ import { spawnSync } from "node:child_process";
 const similarityThresholds = [0.95, 0.9, 0.87] as const;
 const defaultThreshold = 0.9;
 const defaultPath = "src/";
+const todoSimilarityBaseline = {
+  functionPairs: 32,
+  similarTypePairs: 1,
+  typeLiteralPairs: 2,
+} as const;
 
 type SimilarityThreshold = (typeof similarityThresholds)[number];
 
@@ -14,6 +19,12 @@ export type SimilarityPair = {
   firstSymbol: string;
   secondPath: string;
   secondSymbol: string;
+};
+
+export type SimilarityTypeSummary = {
+  similarTypePairs: number;
+  typeLiteralPairs: number;
+  totalTypePairs: number;
 };
 
 type SimilarityFalsePositive = {
@@ -118,6 +129,7 @@ export function findFalsePositiveMatch(pair: SimilarityPair): SimilarityFalsePos
 
 export function buildSimilaritySummary(output: string): string {
   const pairs = parseSimilarityPairs(output);
+  const typeSummary = parseSimilarityTypeSummary(output);
   const matchedFalsePositives = pairs.map(findFalsePositiveMatch).filter((item) => item !== null);
   const matchedIds = new Set(matchedFalsePositives.map((item) => item.id));
   const unmatchedFalsePositives = similarityFalsePositiveBaseline.filter((item) => !matchedIds.has(item.id));
@@ -129,11 +141,35 @@ export function buildSimilaritySummary(output: string): string {
     "reading rule: use 0.95 for near-copy candidates, 0.9 for TODO triage, 0.87 for broad discovery.",
     "filtering rule: raise --min-lines/--min-tokens before extracting helpers from tiny callback-shape matches.",
     `function pairs: ${pairs.length}`,
+    `TODO baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
+    `type pairs: ${typeSummary.totalTypePairs} (types: ${typeSummary.similarTypePairs}, type literals: ${typeSummary.typeLiteralPairs})`,
+    `TODO baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
     ...matchedFalsePositives.map((item) => `- present ${item.id}: ${item.decision}`),
     ...unmatchedFalsePositives.map((item) => `- absent ${item.id}: ${item.reviewUnit}`),
   ].join("\n");
+}
+
+export function parseSimilarityTypeSummary(output: string): SimilarityTypeSummary {
+  const totalTypePairs = readOptionalCount(output, /Total similar type pairs found: (\d+)/);
+  const similarTypePairs = countTypePairMarkers(output, "(type)");
+  const typeLiteralPairs = countTypePairMarkers(output, "(type literal)");
+
+  return {
+    similarTypePairs,
+    typeLiteralPairs,
+    totalTypePairs,
+  };
+}
+
+function countTypePairMarkers(output: string, marker: string): number {
+  return Math.floor(output.split("\n").filter((line) => line.includes(marker)).length / 2);
+}
+
+function readOptionalCount(output: string, pattern: RegExp): number {
+  const match = output.match(pattern);
+  return match === null ? 0 : Number(match[1]);
 }
 
 function readThreshold(rawValue: string | undefined): SimilarityThreshold {
