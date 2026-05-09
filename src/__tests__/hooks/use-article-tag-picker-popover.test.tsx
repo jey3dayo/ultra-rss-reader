@@ -21,8 +21,8 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
   });
 
   return (
-    <fieldset ref={pickerRef} onKeyDown={onParentKeyDown}>
-      <legend>Tag picker harness</legend>
+    <div ref={pickerRef} onKeyDown={onParentKeyDown}>
+      <span>Tag picker harness</span>
       <div role="listbox" aria-label="Available tags" onKeyDown={handleListboxKeyDown}>
         {tags.map((tag, index) => (
           <button
@@ -38,7 +38,7 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
           </button>
         ))}
       </div>
-    </fieldset>
+    </div>
   );
 }
 

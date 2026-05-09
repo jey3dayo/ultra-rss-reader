@@ -83,15 +83,15 @@ describe("match-media-listener", () => {
   });
 
   it("does not register a duplicate legacy listener after modern registration partially succeeds", () => {
-    const modernListeners = new Set<(event: MediaQueryListEvent) => void>();
+    const modernListeners = new Set<EventListenerOrEventListenerObject>();
     const legacyListeners = new Set<(event: MediaQueryListEvent) => void>();
     const listener = vi.fn();
     const mediaQuery = createMediaQueryList({
-      addEventListener: vi.fn((_: string, nextListener: (event: MediaQueryListEvent) => void) => {
+      addEventListener: vi.fn((_: string, nextListener: EventListenerOrEventListenerObject) => {
         modernListeners.add(nextListener);
         throw new Error("modern listener unavailable after registration");
       }),
-      removeEventListener: vi.fn((_: string, nextListener: (event: MediaQueryListEvent) => void) => {
+      removeEventListener: vi.fn((_: string, nextListener: EventListenerOrEventListenerObject) => {
         modernListeners.delete(nextListener);
       }),
       addListener: vi.fn((nextListener: (event: MediaQueryListEvent) => void) => {
@@ -104,8 +104,16 @@ describe("match-media-listener", () => {
 
     const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
     const event = { matches: true } as MediaQueryListEvent;
-    modernListeners.forEach((nextListener) => nextListener(event));
-    legacyListeners.forEach((nextListener) => nextListener(event));
+    modernListeners.forEach((nextListener) => {
+      if (typeof nextListener === "function") {
+        nextListener(event);
+      } else {
+        nextListener.handleEvent(event);
+      }
+    });
+    legacyListeners.forEach((nextListener) => {
+      nextListener(event);
+    });
     cleanup();
 
     expect(listener).toHaveBeenCalledOnce();
