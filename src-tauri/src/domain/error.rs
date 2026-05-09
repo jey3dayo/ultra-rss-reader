@@ -395,6 +395,63 @@ mod tests {
     }
 
     #[test]
+    fn provider_boundary_errors_keep_category_and_recovery_surface() {
+        let cases = [
+            (
+                DomainError::Network(
+                    "Could not resolve the server name. Check the server URL or your DNS/network settings."
+                        .to_string(),
+                ),
+                "Network error: Could not resolve the server name. Check the server URL or your DNS/network settings.",
+                true,
+                true,
+            ),
+            (
+                DomainError::Network(
+                    "Request timed out. Check the server URL or your network connection."
+                        .to_string(),
+                ),
+                "Network error: Request timed out. Check the server URL or your network connection.",
+                true,
+                true,
+            ),
+            (
+                DomainError::Auth("HTTP 401 Unauthorized".to_string()),
+                "Auth error: HTTP 401 Unauthorized",
+                false,
+                false,
+            ),
+            (
+                DomainError::RateLimit("HTTP 429 Too Many Requests".to_string()),
+                "Rate limit error: HTTP 429 Too Many Requests",
+                true,
+                false,
+            ),
+            (
+                DomainError::Parse("malformed provider response".to_string()),
+                "Parse error: malformed provider response",
+                false,
+                false,
+            ),
+        ];
+
+        for (domain_error, expected_message, expected_retryable, expected_recovery_guidance) in
+            cases
+        {
+            assert_eq!(domain_error.to_string(), expected_message);
+            assert_eq!(
+                matches!(AppError::from(domain_error), AppError::Retryable { .. }),
+                expected_retryable
+            );
+            assert_eq!(
+                expected_message.contains("Check "),
+                expected_recovery_guidance,
+                "recovery guidance presence changed for {expected_message}"
+            );
+        }
+    }
+
+    #[test]
     fn provider_http_status_errors_keep_domain_failure_kinds() {
         let cases = [
             (
