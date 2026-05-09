@@ -22,8 +22,15 @@ export function useArticleListNavigation({
   viewportRef,
 }: UseArticleListNavigationParams) {
   const focusRequestGenerationRef = useRef(0);
+  const articleIdsSignatureRef = useRef(filteredArticles.map((article) => article.id).join("\0"));
 
   useEffect(() => {
+    const nextArticleIdsSignature = filteredArticles.map((article) => article.id).join("\0");
+    if (articleIdsSignatureRef.current === nextArticleIdsSignature) {
+      return;
+    }
+
+    articleIdsSignatureRef.current = nextArticleIdsSignature;
     focusRequestGenerationRef.current += 1;
   }, [filteredArticles]);
 
