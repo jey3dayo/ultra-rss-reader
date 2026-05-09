@@ -555,6 +555,31 @@
   - 複数 decorator が同じ context を受け取り、outer/inner order と args override が変わらないことを `fixtures.test.ts` または dedicated helper test で固定する
   - render helper assertion cleanup や individual story fixture 変更とは分け、decorator composition order だけを扱う
 
+- [ ] manual article query whitespace id guard 候補を追加する
+  - `src/hooks/use-articles.ts` の `useArticles` / `useAccountArticles` / `useFolderArticles` / `useRecentArticles` / `useAccountStarredCount` が `enabled: !!id` で whitespace-only id を有効扱いにする点を整理する
+  - `src/__tests__/hooks/use-articles.test.tsx` で `"   "` / `"\n"` の feed/account/folder id では API が呼ばれず、query key も trim 後 null 相当になることを固定する
+  - generic `createQuery` whitespace guard や reader query scope guard とは分け、manual `useQuery` article hook の id boundary だけを扱う
+
+- [ ] tag articles query whitespace id guard 候補を追加する
+  - `src/hooks/use-tags.ts` の `useArticlesByTag` / `requireTagId` が blank tag id を API へ渡せるため、trim 後 empty の disabled contract を追加する
+  - `src/__tests__/hooks/use-tags.test.tsx` で whitespace-only tag id は `listArticlesByTag` を呼ばず、valid tag id だけが account/mode 付きで fetch されることを固定する
+  - tag picker mutation failure surface や reader selection scope guard とは分け、tag article query の id boundary だけを扱う
+
+- [ ] tag article counts nullish query key contract 候補を追加する
+  - `src/hooks/use-tags.ts` の `useTagArticleCounts(accountId)` が `null` / `undefined` を別 query key にしつつ、どちらも command には `undefined` を渡す点を整理する
+  - `src/__tests__/hooks/use-tags.test.tsx` で all-account counts の query key を `null` か `undefined` の一方に正規化し、selected account 変更時の cache 混線がないことを固定する
+  - tag count invalidation scope とは分け、nullish account id の cache key normalization だけを扱う
+
+- [ ] delete feed summary invalidation source-of-truth 候補を追加する
+  - `src/hooks/use-delete-feed.ts` が `["feedArticleSummaries"]` を raw literal で invalidate しており、`src/components/subscriptions-index/hooks/use-feed-article-summaries.ts` の query key と drift しやすい点を整理する
+  - `queryKeys.feedArticleSummaries` を追加するか subscription hook 側の helper に寄せ、`use-delete-feed.test.tsx` と `query-invalidation.test.ts` で root key が一致することを固定する
+  - broader query key literal cleanup とは分け、delete feed 後の subscriptions summary invalidation だけを扱う
+
+- [ ] record article view input boundary 候補を追加する
+  - `src/hooks/use-articles.ts` の `useRecordArticleView` が blank `accountId` / `articleId` をそのまま `recordArticleView` へ渡せるため、hook boundary で no-op / explicit error の方針を固定する
+  - `src/__tests__/hooks/use-articles.test.tsx` で blank id の時に mutation command と recent article invalidation が走らない、または明示的に reject することを確認する
+  - `record_article_view` IPC schema や smart-view history clear flow とは分け、frontend mutation hook の入力境界だけを扱う
+
 - [ ] window chrome platform fallback contract 候補を追加する
   - `src/lib/window/window-chrome.ts` の `looksLikeMacPlatform` が `navigator.userAgentData.platform` を `navigator.platform` より優先する挙動を contract 化する
   - `src/__tests__/lib/window-chrome.test.ts` で `platformKind: "unknown"` かつ Tauri runtime present の時、userAgentData が Mac / Windows / 空文字の各ケースで overlay titlebar 判定が揺れないことを固定する
