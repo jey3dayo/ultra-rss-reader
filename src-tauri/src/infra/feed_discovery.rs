@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::net::{IpAddr, ToSocketAddrs};
 
 use crate::domain::error::{DomainError, DomainResult};
 
@@ -22,7 +23,7 @@ pub struct DiscoveredFeed {
 pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
     let initial_url = reqwest::Url::parse(url)
         .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
-    validate_discovery_url(&initial_url)?;
+    validate_discovery_request_url(&initial_url)?;
 
     let client = reqwest::Client::builder()
         .redirect(discovery_redirect_policy())
@@ -85,7 +86,7 @@ fn validate_discovery_redirect(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
 ) -> DomainResult<()> {
-    validate_discovery_url(next_url)?;
+    validate_discovery_request_url(next_url)?;
 
     if previous_urls
         .last()
@@ -110,6 +111,34 @@ fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
         return Err(DomainError::Validation(
             PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
         ));
+    }
+
+    Ok(())
+}
+
+fn validate_discovery_request_url(url: &reqwest::Url) -> DomainResult<()> {
+    validate_discovery_url(url)?;
+    validate_resolved_host_is_public(url)
+}
+
+fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<()> {
+    let Some(host) = url.host_str() else {
+        return Ok(());
+    };
+    if host.parse::<IpAddr>().is_ok() {
+        return Ok(());
+    }
+    let port = url.port_or_known_default().unwrap_or(80);
+    let addresses = (host, port)
+        .to_socket_addrs()
+        .map_err(|error| DomainError::Network(error.to_string()))?;
+
+    for address in addresses {
+        if is_private_ip(address.ip()) {
+            return Err(DomainError::Validation(
+                PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+            ));
+        }
     }
 
     Ok(())
@@ -179,26 +208,30 @@ fn is_private_host(host: &str) -> bool {
 
     // Try parsing as IP address (strip [] for IPv6)
     let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
-    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
-        return match ip {
-            std::net::IpAddr::V4(v4) => {
-                v4.is_loopback()           // 127.0.0.0/8
+    if let Ok(ip) = ip_str.parse::<IpAddr>() {
+        return is_private_ip(ip);
+    }
+
+    false
+}
+
+fn is_private_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => {
+            v4.is_loopback()           // 127.0.0.0/8
                     || v4.is_private()     // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
                     || v4.is_unspecified() // 0.0.0.0
                     || v4.is_link_local() // 169.254.0.0/16
-            }
-            std::net::IpAddr::V6(v6) => {
-                v6.is_loopback()       // ::1
+        }
+        IpAddr::V6(v6) => {
+            v6.is_loopback()       // ::1
                     || v6.is_unspecified() // ::
                     // Unique local (fc00::/7)
                     || (v6.segments()[0] & 0xfe00) == 0xfc00
                     // Link-local (fe80::/10)
                     || (v6.segments()[0] & 0xffc0) == 0xfe80
-            }
-        };
+        }
     }
-
-    false
 }
 
 fn is_feed_content_type(ct: &str) -> bool {
@@ -296,7 +329,19 @@ fn resolve_html_base_url(html: &str, html_lower: &str, base_url: &str) -> String
         return base_url.to_string();
     };
 
-    resolve_url(base_url, &href)
+    let resolved = resolve_url(base_url, &href);
+    let Ok(page_url) = reqwest::Url::parse(base_url) else {
+        return base_url.to_string();
+    };
+    let Ok(base_href_url) = reqwest::Url::parse(&resolved) else {
+        return base_url.to_string();
+    };
+
+    if page_url.origin() == base_href_url.origin() {
+        base_href_url.to_string()
+    } else {
+        base_url.to_string()
+    }
 }
 
 fn has_alternate_rel(tag: &str) -> bool {
@@ -363,7 +408,7 @@ fn extract_attribute(tag: &str, attr_name: &str) -> Option<String> {
                 continue;
             }
             if tag[name_start..name_end].eq_ignore_ascii_case(attr_name) {
-                return Some(tag[value_start..value_end].to_string());
+                return Some(decode_html_attribute_value(&tag[value_start..value_end]));
             }
 
             cursor = value_end;
@@ -373,13 +418,33 @@ fn extract_attribute(tag: &str, attr_name: &str) -> Option<String> {
         value_start += quote.len_utf8();
         let value_end_offset = tag[value_start..].find(quote)?;
         if tag[name_start..name_end].eq_ignore_ascii_case(attr_name) {
-            return Some(tag[value_start..value_start + value_end_offset].to_string());
+            return Some(decode_html_attribute_value(
+                &tag[value_start..value_start + value_end_offset],
+            ));
         }
 
         cursor = value_start + value_end_offset + quote.len_utf8();
     }
 
     None
+}
+
+fn decode_html_attribute_value(value: &str) -> String {
+    value
+        .replace("&amp;", "&")
+        .replace("&#38;", "&")
+        .replace("&#x26;", "&")
+        .replace("&#X26;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#34;", "\"")
+        .replace("&#x22;", "\"")
+        .replace("&#X22;", "\"")
+        .replace("&#39;", "'")
+        .replace("&#x27;", "'")
+        .replace("&#X27;", "'")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
 }
 
 /// Resolve a potentially relative URL against a base URL.
@@ -621,7 +686,7 @@ mod tests {
     fn test_extract_feed_links_resolves_relative_href_from_html_base_href() {
         let html = r#"
             <html><head>
-            <base href="https://cdn.example.com/site/subdir/">
+            <base href="https://example.com/site/subdir/">
             <link rel="alternate" type="application/rss+xml" title="RSS" href="feeds/rss.xml">
             <link rel="alternate" type="application/atom+xml" title="Atom" href="../atom.xml">
             <link rel="alternate" type="application/feed+json" title="JSON" href="/json/feed.json">
@@ -636,9 +701,9 @@ mod tests {
                 .map(|feed| (feed.url.as_str(), feed.title.as_str()))
                 .collect::<Vec<_>>(),
             vec![
-                ("https://cdn.example.com/site/subdir/feeds/rss.xml", "RSS"),
-                ("https://cdn.example.com/site/atom.xml", "Atom"),
-                ("https://cdn.example.com/json/feed.json", "JSON"),
+                ("https://example.com/site/subdir/feeds/rss.xml", "RSS"),
+                ("https://example.com/site/atom.xml", "Atom"),
+                ("https://example.com/json/feed.json", "JSON"),
             ],
         );
     }
@@ -656,6 +721,42 @@ mod tests {
 
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].url, "https://example.com/articles/feeds/rss.xml");
+    }
+
+    #[test]
+    fn test_extract_feed_links_decodes_html_attribute_entities_before_resolution() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" title="Tom &amp; Jerry" href="/feed.xml?format=rss&amp;lang=ja">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(
+            feeds[0].url,
+            "https://example.com/feed.xml?format=rss&lang=ja"
+        );
+        assert_eq!(feeds[0].title, "Tom & Jerry");
+    }
+
+    #[test]
+    fn test_extract_feed_links_ignores_cross_origin_base_href() {
+        let html = r#"
+            <html><head>
+            <base href="https://cdn.example.com/site/subdir/">
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="feeds/rss.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(
+            feeds[0].url,
+            "https://example.com/articles/2026/feeds/rss.xml"
+        );
     }
 
     #[test]
@@ -677,8 +778,21 @@ mod tests {
                 .iter()
                 .map(|feed| (feed.url.as_str(), feed.title.as_str()))
                 .collect::<Vec<_>>(),
-            vec![("https://example.com/feed.xml", "Public Feed")],
+            vec![
+                ("https://example.org/articles/rss.xml", "Loopback Relative"),
+                ("https://example.com/feed.xml", "Public Feed"),
+            ],
         );
+    }
+
+    #[test]
+    fn validate_resolved_host_rejects_dns_answers_to_private_ip() {
+        let url = reqwest::Url::parse("http://localhost/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_resolved_host_is_public(&url),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
     }
 
     #[test]

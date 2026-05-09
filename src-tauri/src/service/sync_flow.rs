@@ -31,6 +31,7 @@ pub async fn sync_account(
         ));
     }
     let mut updated_feeds = Vec::new();
+    repair_outdated_sanitized_articles(article_repo)?;
 
     // Step 1: Push pending mutations (remote providers only)
     if caps.supports_remote_state {
@@ -203,6 +204,19 @@ pub async fn sync_account(
     }
 
     Ok(updated_feeds)
+}
+
+fn repair_outdated_sanitized_articles(article_repo: &dyn ArticleRepository) -> DomainResult<()> {
+    const REPAIR_BATCH_LIMIT: usize = 500;
+
+    let articles = article_repo
+        .find_by_sanitizer_version_below(sanitizer::SANITIZER_VERSION, REPAIR_BATCH_LIMIT)?;
+    for article in articles {
+        let sanitized = sanitizer::sanitize_html(&article.content_raw);
+        article_repo.update_sanitized(&article.id, &sanitized, sanitizer::SANITIZER_VERSION)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

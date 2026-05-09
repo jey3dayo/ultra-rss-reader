@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-pub const SANITIZER_VERSION: u32 = 1;
+pub const SANITIZER_VERSION: u32 = 2;
 
 pub fn sanitize_html(raw: &str) -> String {
     if raw.trim().is_empty() {
@@ -24,6 +24,10 @@ pub fn sanitize_html(raw: &str) -> String {
         .add_tag_attributes("source", &["src", "srcset", "sizes", "type", "media"])
         .url_schemes(std::collections::HashSet::from(["http", "https"]))
         .attribute_filter(|_, attribute, value| {
+            if attribute.eq_ignore_ascii_case("src") {
+                return is_absolute_http_url(value).then_some(Cow::Borrowed(value));
+            }
+
             if attribute.eq_ignore_ascii_case("srcset") {
                 return filter_srcset(value).map(Cow::Owned);
             }
@@ -89,11 +93,11 @@ fn is_safe_srcset_url(url: &str) -> bool {
         return false;
     }
 
-    if let Some(scheme) = url_scheme(trimmed) {
-        return scheme == "http" || scheme == "https";
-    }
+    is_absolute_http_url(trimmed)
+}
 
-    true
+fn is_absolute_http_url(url: &str) -> bool {
+    matches!(url_scheme(url).as_deref(), Some("http" | "https"))
 }
 
 fn url_scheme(url: &str) -> Option<String> {
@@ -165,7 +169,7 @@ mod tests {
 
     #[test]
     fn records_current_sanitizer_contract_version() {
-        assert_eq!(SANITIZER_VERSION, 1);
+        assert_eq!(SANITIZER_VERSION, 2);
     }
 
     #[test]
@@ -231,14 +235,34 @@ mod tests {
         );
         assert!(
             output.contains(
-                r#"srcset="http://example.com/hero-small.jpg 400w, images/hero-medium.jpg 600w, HTTPS://example.com/hero-large.jpg 800w""#
+                r#"srcset="http://example.com/hero-small.jpg 400w, HTTPS://example.com/hero-large.jpg 800w""#
             ),
-            "safe http/https and relative srcset candidates should be retained: {output}",
+            "safe http/https srcset candidates should be retained: {output}",
         );
+        assert!(!output.contains("images/hero-medium.jpg"));
         assert!(!output.contains("javascript:"));
         assert!(!output.contains("vbscript:"));
         assert!(!output.contains("data:image"));
         assert!(!output.contains("evil 3x"));
+    }
+
+    #[test]
+    fn removes_relative_media_urls_instead_of_resolving_without_article_base_url() {
+        let input = r#"
+            <picture>
+              <source src="media/hero.webp" srcset="/hero-small.webp 1x, https://example.com/hero.webp 2x">
+              <img src="/hero.jpg" srcset="hero-400.jpg 400w, https://example.com/hero-800.jpg 800w" alt="Hero">
+            </picture>
+        "#;
+
+        let output = sanitize_html(input);
+
+        assert!(!output.contains("media/hero.webp"));
+        assert!(!output.contains("/hero-small.webp"));
+        assert!(!output.contains(r#"src="/hero.jpg""#));
+        assert!(!output.contains("hero-400.jpg"));
+        assert!(output.contains("https://example.com/hero.webp 2x"));
+        assert!(output.contains("https://example.com/hero-800.jpg 800w"));
     }
 
     #[test]

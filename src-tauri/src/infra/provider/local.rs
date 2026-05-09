@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use reqwest::header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
 use reqwest::StatusCode;
+use std::net::{IpAddr, ToSocketAddrs};
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
@@ -154,6 +155,31 @@ fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
         ));
     }
 
+    validate_resolved_host_is_public(url)?;
+
+    Ok(())
+}
+
+fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<()> {
+    let Some(host) = url.host_str() else {
+        return Ok(());
+    };
+    if host.parse::<IpAddr>().is_ok() {
+        return Ok(());
+    }
+    let port = url.port_or_known_default().unwrap_or(80);
+    let addresses = (host, port)
+        .to_socket_addrs()
+        .map_err(|error| DomainError::Network(error.to_string()))?;
+
+    for address in addresses {
+        if is_private_ip(address.ip()) {
+            return Err(DomainError::Validation(
+                PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+            ));
+        }
+    }
+
     Ok(())
 }
 
@@ -219,21 +245,25 @@ fn is_private_host(host: &str) -> bool {
     }
 
     let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
-    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
-        return match ip {
-            std::net::IpAddr::V4(v4) => {
-                v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
-            }
-            std::net::IpAddr::V6(v6) => {
-                v6.is_loopback()
-                    || v6.is_unspecified()
-                    || (v6.segments()[0] & 0xfe00) == 0xfc00
-                    || (v6.segments()[0] & 0xffc0) == 0xfe80
-            }
-        };
+    if let Ok(ip) = ip_str.parse::<IpAddr>() {
+        return is_private_ip(ip);
     }
 
     false
+}
+
+fn is_private_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => {
+            v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
+        }
+        IpAddr::V6(v6) => {
+            v6.is_loopback()
+                || v6.is_unspecified()
+                || (v6.segments()[0] & 0xfe00) == 0xfc00
+                || (v6.segments()[0] & 0xffc0) == 0xfe80
+        }
+    }
 }
 
 fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
@@ -651,6 +681,89 @@ mod tests {
             DomainError::Network(message) if message.contains("Feed response body exceeds")
         ));
         mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_applies_body_limit_when_content_encoding_is_present() {
+        let oversized_body = "x".repeat(MAX_LOCAL_FEED_BODY_BYTES as usize + 1);
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/oversized-encoded.xml")
+            .with_status(200)
+            .with_body(oversized_body)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("content-encoding", "identity")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/oversized-encoded.xml", server.url()),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("encoded feed bodies should be limited before parsing");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message.contains("Feed response body exceeds")
+        ));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_uses_304_response_validators_when_present() {
+        let mut server = mockito::Server::new_async().await;
+        let request_etag = "\"etag-old\"";
+        let response_etag = "W/\"etag-new\"";
+        let response_last_modified = "Thu, 02 Jan 2025 00:00:00 GMT";
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .match_header("if-none-match", request_etag)
+            .with_status(304)
+            .with_header("etag", response_etag)
+            .with_header("last-modified", response_last_modified)
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/feed.xml", server.url()),
+        });
+
+        let result = provider
+            .pull_entries(
+                scope,
+                Some(SyncCursor {
+                    continuation: None,
+                    since: None,
+                    etag: Some(request_etag.to_string()),
+                    last_modified: None,
+                }),
+            )
+            .await
+            .unwrap();
+
+        let cursor = result.next_cursor.expect("304 should return validators");
+        assert_eq!(cursor.etag.as_deref(), Some(response_etag));
+        assert_eq!(
+            cursor.last_modified.as_deref(),
+            Some(response_last_modified)
+        );
+        assert!(result.not_modified);
+        mock.assert_async().await;
+    }
+
+    #[test]
+    fn validate_resolved_host_rejects_dns_answers_to_private_ip() {
+        let url = reqwest::Url::parse("http://localhost/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_resolved_host_is_public(&url),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
     }
 
     #[tokio::test]
