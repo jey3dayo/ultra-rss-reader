@@ -33,8 +33,8 @@ export const WithDescription: Story = {
   args: {
     title: "FreshRSS account",
     description: "Primary sync source for desktop and web preview state.",
-    leading: <Folder className="h-4 w-4 text-foreground-soft" />,
-    trailing: <ChevronRight className="h-4 w-4 text-foreground-soft" />,
+    leading: <Folder className="size-4 text-foreground-soft" />,
+    trailing: <ChevronRight className="size-4 text-foreground-soft" />,
   },
   decorators: [
     (Story) => (
@@ -50,7 +50,7 @@ export const SidebarSelected: Story = {
     tone: "sidebar",
     selected: true,
     title: "Appearance",
-    leading: <Settings className="h-4 w-4" />,
+    leading: <Settings className="size-4" />,
   },
   decorators: [
     (Story) => (

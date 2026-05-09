@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
-export const settingsActionButtonVariants = cva(
+const settingsActionButtonVariants = cva(
   "motion-interactive-surface inline-flex shrink-0 items-center justify-center rounded-md bg-transparent outline-none select-none active:translate-y-0 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {

@@ -8,9 +8,6 @@ import {
   IconToolbarMenuTrigger,
   IconToolbarSurfaceButton,
   IconToolbarToggle,
-  iconToolbarSurfaceButtonClassName,
-  iconToolbarSurfaceControlVariants,
-  iconToolbarSurfaceLabelButtonClassName,
 } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -197,21 +194,6 @@ describe("IconToolbarControl", () => {
     expect(await screen.findByText("Copy link")).toBeInTheDocument();
   });
 
-  it("exports overlay-safe toolbar classes that preserve shared sizing and rounded corners", () => {
-    expect(iconToolbarSurfaceButtonClassName).toContain("size-11");
-    expect(iconToolbarSurfaceButtonClassName).toContain("md:size-8");
-    expect(iconToolbarSurfaceButtonClassName).toContain("motion-interactive-surface");
-    expect(iconToolbarSurfaceButtonClassName).toContain("rounded-lg");
-    expect(iconToolbarSurfaceButtonClassName).toContain("text-inherit");
-    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:opacity-100");
-    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:text-foreground-soft");
-    expect(iconToolbarSurfaceControlVariants({ pressedTone: "accent" })).toContain("data-[pressed]:text-primary");
-    expect(iconToolbarSurfaceLabelButtonClassName).toContain("rounded-lg");
-    expect(iconToolbarSurfaceLabelButtonClassName).toContain("motion-interactive-surface");
-    expect(iconToolbarSurfaceLabelButtonClassName).toContain("text-inherit");
-    expect(iconToolbarSurfaceLabelButtonClassName).toContain("disabled:text-foreground-soft");
-  });
-
   it("renders a shared overlay surface button with the same icon treatment used by browser chrome", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
@@ -228,7 +210,15 @@ describe("IconToolbarControl", () => {
     const surface = button.closest("[data-overlay-shell='action']");
 
     expect(surface).toHaveClass("motion-pressable-surface", "rounded-lg", "size-11", "md:size-8");
-    expect(button).toHaveClass("rounded-lg");
+    expect(button).toHaveClass(
+      "motion-interactive-surface",
+      "size-11",
+      "md:size-8",
+      "rounded-lg",
+      "text-inherit",
+      "disabled:opacity-100",
+      "disabled:text-foreground-soft",
+    );
 
     await user.click(button);
 

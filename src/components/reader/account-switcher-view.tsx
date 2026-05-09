@@ -69,7 +69,7 @@ export function AccountSwitcherTriggerButton({
       <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[1.03] font-medium tracking-[-0.055em] text-current">
         {accountName}
         {hasMultipleAccounts ? (
-          <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78 motion-reduce:transition-none" />
+          <ChevronDown className="mb-0.5 size-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78 motion-reduce:transition-none" />
         ) : null}
       </h1>
       <p className="text-[0.72rem] font-medium tracking-[0.04em] text-sidebar-foreground/54">{lastSyncedLabel}</p>

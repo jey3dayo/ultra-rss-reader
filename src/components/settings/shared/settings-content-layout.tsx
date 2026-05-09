@@ -1,4 +1,4 @@
-import { type CSSProperties, createContext, type ReactNode, useContext } from "react";
+import { type CSSProperties, createContext, type ReactNode, use } from "react";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -46,7 +46,7 @@ export function SettingsContentLayout({
   contentTestId,
   scrollBehavior,
 }: SettingsContentLayoutProps) {
-  const inheritedScrollBehavior = useContext(SettingsContentScrollBehaviorContext);
+  const inheritedScrollBehavior = use(SettingsContentScrollBehaviorContext);
   const resolvedScrollBehavior = scrollBehavior ?? inheritedScrollBehavior;
   const contentOverflow = useScrollOverflowState(children);
   const contentHasOverflow =

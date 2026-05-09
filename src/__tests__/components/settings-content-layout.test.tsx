@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
+import {
+  SettingsContentLayout,
+  SettingsContentScrollBehaviorProvider,
+} from "@/components/settings/shared/settings-content-layout";
 
 describe("SettingsContentLayout", () => {
   it("uses shell content and field-label tones in stacked-left mode", () => {
@@ -36,5 +39,18 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveStyle({
       backgroundImage: "var(--settings-shell-content-fade-reverse)",
     });
+  });
+
+  it("inherits scroll behavior through the shared settings context", () => {
+    render(
+      <SettingsContentScrollBehaviorProvider value="always">
+        <SettingsContentLayout title="General">
+          <div>Body</div>
+        </SettingsContentLayout>
+      </SettingsContentScrollBehaviorProvider>,
+    );
+
+    expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
 });
