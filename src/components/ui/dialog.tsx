@@ -91,7 +91,7 @@ function DialogContent({
 
   return (
     <DialogPortal>
-      <DialogOverlay className={cn(stackClassName, resolvedOverlayClassName)} />
+      <DialogOverlay className={[stackClassName, resolvedOverlayClassName].join(" ")} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         data-stack-layer={stackLayer}

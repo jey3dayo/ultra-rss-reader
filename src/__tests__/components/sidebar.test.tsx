@@ -2298,7 +2298,10 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().expandedFolderIds).toEqual(new Set(["folder-restored"]));
       expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}")).toEqual({
-        "acc-1": ["folder-restored"],
+        accounts: {
+          "acc-1": ["folder-restored"],
+        },
+        version: 1,
       });
     });
   });
