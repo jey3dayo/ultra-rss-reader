@@ -1238,6 +1238,86 @@
   - story runtime tests で missing 時は property descriptor も消え、present 時は `__DEV_BROWSER_MOCKS__` / `__ULTRA_RSS_BROWSER_MOCKS__` が false になることを固定する
   - Storybook stale server health check とは分け、Storybook runtime global state cleanup だけを扱う
 
+- [ ] storage key prefix migration 候補を追加する
+  - `src/constants/storage.ts` の `startupSyncLastTriggeredAt` だけ `ultra-rss:` prefix がない状態を整理する
+  - `src/__tests__/constants/storage.test.ts` で永続 storage key の prefix contract を固定し、移行するなら旧 key から新 key へ読めることを確認する
+  - command history storage とは分け、startup sync storage key migration だけを扱う
+
+- [ ] startup sync storage getter guard 候補を追加する
+  - `src/lib/sync/startup-sync-storage.ts` で `window.localStorage` getter 自体が `SecurityError` を投げる環境でも public function が落ちないようにする
+  - `src/__tests__/lib/startup-sync-storage.test.ts` で getter failure 時に read は not throttled、write は no-op になることを固定する
+  - storage key prefix migration とは分け、storage access failure boundary だけを扱う
+
+- [ ] command history storage getter guard 候補を追加する
+  - `src/components/reader/hooks/command-palette/use-command-history.ts` の `readStorage()` で `window.localStorage` getter failure を捕捉する
+  - `src/__tests__/hooks/use-command-history.test.ts` で getter failure 時に `getHistory()` は `[]`、`addToHistory()` / `clearHistory()` は throw しないことを固定する
+  - command palette message translation fallback とは分け、command history storage access だけを扱う
+
+- [ ] command history persisted size cap 候補を追加する
+  - `src/schemas/storage.ts` の `CommandHistoryStorageSchema` 読み込み時にも `MAX_COMMAND_HISTORY` 超過を丸める
+  - `src/__tests__/schemas/storage.test.ts` と `src/__tests__/hooks/use-command-history.test.ts` で巨大な保存済み配列が UI にそのまま流れないことを確認する
+  - command history storage getter guard とは分け、persisted history size normalization だけを扱う
+
+- [ ] sidebar expanded folders storage failure 候補を追加する
+  - `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts` の expanded folder 永続化で `setItem` 失敗を捕捉する
+  - `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.ts` で storage quota / unavailable 時も UI state 更新は維持されることを固定する
+  - sidebar navigation frame cleanup とは分け、expanded folder persistence failure だけを扱う
+
+- [ ] preferences load normalization 候補を追加する
+  - `src/stores/preferences-store.ts` の `loadPreferences()` で backend から返る schema 外 preference 値を store state に入れる前に default へ正規化する
+  - `src/__tests__/stores/preferences-store.test.ts` で `layout: "narrow"` や `unread_badge: "bad"` が schema default へ戻ることを確認する
+  - settings preference key type boundary とは分け、loaded preference value normalization だけを扱う
+
+- [ ] account repository provider kind decode 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_account.rs` で DB 上の未知 `kind` を `ProviderKind::Local` に丸めず decode error にする
+  - Rust test で `kind='UnknownProvider'` の account row を `find_all` / `find_by_id` した時に persistence error になり、Local として返らないことを固定する
+  - account deletion keyring order とは分け、account repository enum decode だけを扱う
+
+- [ ] account verification status decode 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_account.rs` で未知 `connection_verification_status` を `Unverified` に丸めず decode error にする
+  - Rust test で `connection_verification_status='expired'` の row が persistence error になり、Unverified として返らないことを固定する
+  - provider kind decode とは分け、connection verification status decode だけを扱う
+
+- [ ] pending mutation missing id guard 候補を追加する
+  - `src-tauri/src/service/sync_flow.rs` で `PendingMutation.id == None` の row を push 後に silent skip しない contract を固定する
+  - fake `PendingMutationRepository` test で deletion impossible な mutation を silent success にせず、再送されない方針を明示する
+  - pending mutation DB error contract とは分け、missing local mutation id handling だけを扱う
+
+- [ ] pending mutation remote id validation 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_pending_mutation.rs` で blank / whitespace-only `remote_entry_id` を保存前に拒否する
+  - Rust test で `""` / `"   "` が `DomainError::Validation` になり、pending row が増えないことを固定する
+  - pending mutation missing id guard とは分け、remote entry id invariant だけを扱う
+
+- [ ] tag repository blank name invariant 候補を追加する
+  - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
+  - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
+  - tag settings UI validation とは分け、repository/domain invariant だけを扱う
+
+- [ ] add account service picker props boundary 候補を追加する
+  - `src/components/settings/add-account/service-picker.tsx` の `useTranslation("settings")` と `SERVICE_CATEGORIES` 直参照を controller 由来 props へ寄せる
+  - add account focused test で service picker view が props の category / service / description copy だけで render できることを固定する
+  - add account form validation とは分け、service picker view/controller boundary だけを扱う
+
+- [ ] add account disabled service locale 候補を追加する
+  - `src/locales/en/settings.json` の `account.coming_soon` が日本語のままになっている点を修正し、disabled provider 表示で使う contract を固定する
+  - `src/__tests__/components/add-account-form.test.tsx` と locale contract test で “Coming soon” / “準備中” が locale 由来で出ることを確認する
+  - service picker props boundary とは分け、disabled service badge/copy だけを扱う
+
+- [ ] account detail copy failure locale 候補を追加する
+  - `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts` の server URL copy failure toast が raw `error.message` にならないようにする
+  - `src/__tests__/components/account-detail.test.tsx` で clipboard failure 時に `ja` / `en` の locale wrapper 経由 toast になることを固定する
+  - account detail credentials validation とは分け、copy failure feedback copy だけを扱う
+
+- [ ] settings action aria label contract 候補を追加する
+  - `src/components/settings/settings-page-view.tsx` と `src/components/settings/shortcuts-settings-view.tsx` の ``${actionLabel}: ${label}`` 直組みを locale/control props へ寄せる
+  - view test で `actionAriaLabel` / `resetAriaLabel` props が優先され、controller test で `ja` の aria label が locale key 由来になることを確認する
+  - settings nav/page/modal contract 再設計とは分け、action button aria label だけを扱う
+
+- [ ] general settings language option contract 候補を追加する
+  - `src/components/settings/hooks/use-general-settings-view-props.ts` の `English` / `日本語` self-label を locale 例外として残すか locale 管理へ寄せるか固定する
+  - `src/__tests__/components/use-general-settings-view-props.test.ts` で `system` は locale 由来、`en` / `ja` は意図した self-label であることを確認する
+  - general settings preference handling とは分け、language option label contract だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
