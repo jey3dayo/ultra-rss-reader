@@ -16,18 +16,6 @@
   - `article-list-item` の row hover / selected transition は連続キー移動で毎フレーム効くため、`motion-static-hover-surface` への置換は計測後に行う
   - どちらも適用前後でキーボード操作、ドラッグ、連続記事移動時の jank を確認する
 
-- [ ] P3 モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
-  - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
-  - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
-  - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
-
-## 問題化リスク追加候補
-
-- [ ] P2 e2e app sequential await を test isolation と並列化可否で分類する
-  - 対象: `e2e/app.spec.ts`, `src/__tests__/dev/scenario-runtime.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
-  - React Doctor の `server-sequential-independent-await` が e2e と hook test に出ており、独立 setup を直列実行していると Playwright / Vitest の待ち時間が増える
-  - browser state 共有、fixture isolation、user event ordering、screenshot timing に依存しない await だけ並列化する
-
 ## 次の並列バッチ候補
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
