@@ -4,23 +4,26 @@ import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
-import type { FeedDialogReadonlyFieldProps } from "./feed-dialog-form.types";
+import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
-import type { RenameFeedDialogViewLabels, RenameFeedDialogViewOption } from "./rename-feed-dialog.types";
 
-export type {
-  RenameFeedDialogViewLabels,
-  RenameFeedDialogViewOption,
-} from "./rename-feed-dialog.types";
+type RenameFeedDialogViewLabels = {
+  title: string;
+  titleField: string;
+  displayMode: string;
+  cancel: string;
+  save: string;
+  saving: string;
+};
 
-export type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
+type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
 
-export type RenameFeedDialogViewProps = {
+type RenameFeedDialogViewProps = {
   open: boolean;
   title: string;
   loading: boolean;
   displayMode: string;
-  displayModeOptions: RenameFeedDialogViewOption[];
+  displayModeOptions: FeedDialogSelectOption[];
   urlFields: RenameFeedDialogViewUrlField[];
   onOpenChange: (open: boolean) => void;
   onTitleChange: (value: string) => void;

@@ -5,7 +5,6 @@ import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/article
 import type {
   FeedDialogControllerFolderSelectProps,
   FeedDialogFolderSelectionParams,
-  FeedDialogSelectOption,
 } from "./feed-dialog-form.types";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
@@ -32,17 +31,6 @@ export type SubmitFeedEditsParams = {
     webPreviewMode: TriStateDisplayMode,
   ) => Promise<boolean>;
 };
-
-export type RenameFeedDialogViewLabels = {
-  title: string;
-  titleField: string;
-  displayMode: string;
-  cancel: string;
-  save: string;
-  saving: string;
-};
-
-export type RenameFeedDialogViewOption = FeedDialogSelectOption;
 
 export type RenameFeedDialogControllerParams = {
   feed: FeedDto;

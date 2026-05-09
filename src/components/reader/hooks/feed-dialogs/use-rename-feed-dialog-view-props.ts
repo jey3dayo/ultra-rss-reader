@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
-import type { RenameFeedDialogController, RenameFeedDialogViewOption } from "../../rename-feed-dialog.types";
-import type { RenameFeedDialogViewProps } from "../../rename-feed-dialog-view";
+import type { FeedDialogSelectOption } from "../../feed-dialog-form.types";
+import type { RenameFeedDialogController } from "../../rename-feed-dialog.types";
 
 type UseRenameFeedDialogViewPropsParams = {
   open: boolean;
@@ -19,11 +19,11 @@ export function useRenameFeedDialogViewProps({
   onOpenChange,
   folderLabelId,
   controller,
-}: UseRenameFeedDialogViewPropsParams): RenameFeedDialogViewProps {
+}: UseRenameFeedDialogViewPropsParams) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
 
-  const displayModeOptions: RenameFeedDialogViewOption[] = buildFeedDisplayPresetOptions({
+  const displayModeOptions: FeedDialogSelectOption[] = buildFeedDisplayPresetOptions({
     default: t("display_mode_default"),
     standard: t("display_mode_standard"),
     preview: t("display_mode_preview"),
@@ -37,7 +37,7 @@ export function useRenameFeedDialogViewProps({
     displayModeOptions,
     onOpenChange,
     onTitleChange: controller.setTitle,
-    onDisplayModeChange: (value) => {
+    onDisplayModeChange: (value: string) => {
       if (isFeedDisplayPresetOption(value)) {
         controller.setDisplayPreset(value);
       }
