@@ -251,6 +251,16 @@ describe("manual-sync", () => {
     expect(getManualSyncCooldownUntil()).toBe(Date.now() + 15_000);
   });
 
+  it("starts cooldown after triggerSync rejects", async () => {
+    const syncError = new Error("sync command rejected");
+    triggerSyncMock.mockRejectedValue(syncError);
+
+    await expect(triggerManualSyncWithCooldownResult()).rejects.toThrow(syncError);
+
+    expect(isManualSyncCoolingDown()).toBe(true);
+    expect(getManualSyncCooldownUntil()).toBe(Date.now() + 15_000);
+  });
+
   it("uses the same cooldown deadline after triggerSync success and failure", async () => {
     const syncStartedAt = Date.now();
     const successResult = await triggerManualSyncWithCooldownResult();

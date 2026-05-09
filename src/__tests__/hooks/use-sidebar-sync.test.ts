@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   isSidebarSyncCompletedPayload,
   resolveSidebarLastSyncedLabel,
@@ -9,7 +9,11 @@ import {
   useSidebarSync,
 } from "@/components/reader/hooks/sidebar/use-sidebar-sync";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
-import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
+import {
+  getManualSyncCooldownUntil,
+  subscribeManualSyncCooldown,
+  triggerManualSyncWithCooldown,
+} from "@/lib/sync/manual-sync";
 
 type EventCallback = (event: unknown) => void;
 type Cleanup = () => void;
@@ -77,6 +81,12 @@ describe("resolveSidebarLastSyncedLabel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     listenMock.mockReset().mockResolvedValue(() => {});
+    vi.mocked(getManualSyncCooldownUntil).mockReturnValue(0);
+    vi.mocked(subscribeManualSyncCooldown).mockReturnValue(() => {});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("does not collapse sync status query failures into the never-synced label", () => {
@@ -239,5 +249,44 @@ describe("resolveSidebarLastSyncedLabel", () => {
 
     expect(invalidateQueriesSpy).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("cleans up the sidebar cooldown interval on unmount", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-30T00:00:00.000Z"));
+    vi.mocked(getManualSyncCooldownUntil).mockReturnValue(Date.now() + 15_000);
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+    const { wrapper } = createQueryWrapper();
+
+    const { unmount } = renderHook(() => useSidebarSync(createSyncHookParams()), { wrapper });
+
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 1_000);
+
+    unmount();
+
+    expect(clearIntervalSpy).toHaveBeenCalledWith(setIntervalSpy.mock.results[0]?.value);
+  });
+
+  it("keeps rendering when the sidebar cooldown interval runtime is unavailable", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-30T00:00:00.000Z"));
+    vi.mocked(getManualSyncCooldownUntil).mockReturnValue(Date.now() + 15_000);
+    const intervalError = new Error("interval unavailable");
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(window, "setInterval").mockImplementation(() => {
+      throw intervalError;
+    });
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+    const { wrapper } = createQueryWrapper();
+
+    const { result, unmount } = renderHook(() => useSidebarSync(createSyncHookParams()), { wrapper });
+
+    expect(result.current.isSyncCoolingDown).toBe(true);
+    expect(consoleWarn).toHaveBeenCalledWith("Sidebar sync cooldown interval unavailable:", intervalError);
+
+    unmount();
+
+    expect(clearIntervalSpy).not.toHaveBeenCalled();
   });
 });

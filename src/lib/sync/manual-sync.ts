@@ -91,10 +91,11 @@ export async function triggerManualSyncWithCooldownResult(
   }
 
   onRequestStart?.();
-  const result = await triggerSync();
-  setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
-
-  return result;
+  try {
+    return await triggerSync();
+  } finally {
+    setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
+  }
 }
 
 export async function triggerManualSyncWithCooldown({

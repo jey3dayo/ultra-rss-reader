@@ -71,6 +71,28 @@ function extractTauriEventPayload(event: unknown): unknown {
   return typeof event === "object" && event !== null && "payload" in event ? event.payload : event;
 }
 
+function startSidebarCooldownInterval(onTick: () => void) {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const setIntervalFn = window.setInterval;
+  const clearIntervalFn = window.clearInterval;
+  if (typeof setIntervalFn !== "function" || typeof clearIntervalFn !== "function") {
+    return undefined;
+  }
+
+  try {
+    const timer = setIntervalFn(onTick, 1_000);
+    return () => {
+      clearIntervalFn(timer);
+    };
+  } catch (error) {
+    console.warn("Sidebar sync cooldown interval unavailable:", error);
+    return undefined;
+  }
+}
+
 export function resolveSidebarSyncProgressPayload(event: unknown): SidebarSyncProgressPayload | null {
   const result = SyncProgressEventSchema.safeParse(extractTauriEventPayload(event));
   return result.success ? result.data : null;
@@ -155,13 +177,9 @@ export function useSidebarSync({
 
     dispatch({ type: "set-cooldown-tick", value: getCurrentTimeMs() });
 
-    const timer = window.setInterval(() => {
+    return startSidebarCooldownInterval(() => {
       dispatch({ type: "set-cooldown-tick", value: getCurrentTimeMs() });
-    }, 1_000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
+    });
   }, [manualSyncCooldownUntil]);
 
   const lastSyncedLabel = useMemo(() => {
