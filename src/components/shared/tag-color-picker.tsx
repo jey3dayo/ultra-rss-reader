@@ -60,6 +60,7 @@ export function TagColorPicker({
       ) : null}
       <div
         role="radiogroup"
+        aria-orientation="horizontal"
         aria-labelledby={label ? labelId : undefined}
         className="flex flex-wrap items-center gap-1.5"
         onKeyDown={handleKeyDown}
