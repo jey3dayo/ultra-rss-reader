@@ -9,11 +9,6 @@
   - 既存の `mise run app:dev:seed-from-prod` を前提に、デバッグ画面から誤操作なく呼べる UX と確認導線を設計する
   - Dev 側 DB のバックアップ場所、アプリ再起動、credentials はコピーされないことを UI 上で明示する
 
-- [ ] `.claude/rules` index completeness contract 候補を追加する
-  - `.claude/rules/*.md` が増えた時に `.claude/rules/README.md` への追記漏れが起きないよう、rules index の completeness を repo contract にする
-  - `src/__tests__/config/repo-contracts.test.ts` で `README.md` 以外の rule file が index に相対リンクされ、必要なら `CLAUDE.md` の Documentation Map から辿れることを固定する
-  - markdown link scan 拡張とは分け、rules index の source-of-truth drift だけを扱う
-
 ## UI/UX 監査の残り
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する
@@ -319,11 +314,6 @@
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
   - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
   - tag settings UI validation とは分け、repository/domain invariant だけを扱う
-
-- [ ] tag color picker radiogroup contract 候補を追加する
-  - `src/components/shared/tag-color-picker.tsx` の色選択を単一選択グループとして扱えるようにする
-  - `src/__tests__/components/tag-color-picker.test.tsx` で `radiogroup` / `radio` 相当の accessible grouping と arrow key selection を固定する
-  - tag settings UI validation とは分け、shared color picker の keyboard/accessibility contract だけを扱う
 
 - [ ] open log directory error copy contract 候補を追加する
   - `src-tauri/src/commands/log_commands.rs` と `src/components/settings/hooks/use-data-settings-controller.ts` で log directory open failure が UI 上で二重説明にならないようにする
