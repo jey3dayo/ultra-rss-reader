@@ -36,6 +36,21 @@ const extractReleaseCacheBlock = (source: string): string => {
   return value;
 };
 
+const extractTaskBlock = (source: string, taskName: string): string => {
+  const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const value = source.match(new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>(?:[^\\[]+\\n?)*)`))?.groups
+    ?.block;
+  if (!value) {
+    throw new Error(`Missing mise task block: ${taskName}`);
+  }
+  return value;
+};
+
+const extractCacheBlocks = (source: string): string[] => {
+  const cachePattern = /- uses: actions\/cache@[^\n]+\n(?<block>(?: {8}.+\n?)*)/g;
+  return [...source.matchAll(cachePattern)].map((match) => match.groups?.block ?? "");
+};
+
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
@@ -66,6 +81,12 @@ describe("release repository contract", () => {
 
   it("checks release source and version parity before artifact creation", () => {
     expect(releaseWorkflow).toContain("Validate release source");
+    expect(releaseWorkflow).toContain("ref: >-");
+    expect(releaseWorkflow).toContain("format('refs/tags/{0}', inputs.release_tag) || github.ref");
+    expect(releaseWorkflow).toContain('if [[ "$EVENT_NAME" == "push" ]]; then');
+    expect(releaseWorkflow).toContain('if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then');
+    expect(releaseWorkflow).toContain("tag push ref $WORKFLOW_REF does not match release tag $RELEASE_TAG");
+    expect(releaseWorkflow).toContain("manual dispatch ref $WORKFLOW_REF does not match release tag $RELEASE_TAG");
     expect(releaseWorkflow).toContain(
       'git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
     );
@@ -77,6 +98,9 @@ describe("release repository contract", () => {
     expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
+    expect(releaseWorkflow.indexOf("Preflight release build")).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action"),
+    );
   });
 
   it("keeps release dependency cache exact-lockfile only", () => {
@@ -84,6 +108,37 @@ describe("release repository contract", () => {
 
     expect(releaseCacheBlock).toContain("key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}");
     expect(releaseCacheBlock).not.toContain("restore-keys:");
+  });
+
+  it("keeps CI pnpm cache restore keys bounded by frozen lockfile installs", () => {
+    const ciCacheBlocks = extractCacheBlocks(ciWorkflow);
+
+    expect(ciCacheBlocks.length).toBeGreaterThan(0);
+    for (const cacheBlock of ciCacheBlocks) {
+      expect(cacheBlock).toContain("key: $" + "{{ runner.os }}-pnpm-store-$" + "{{ hashFiles('pnpm-lock.yaml') }}");
+      expect(cacheBlock).toContain("restore-keys:");
+      expect(cacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-");
+    }
+    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(ciCacheBlocks.length);
+    expect(ciWorkflow).not.toContain("node_modules");
+  });
+
+  it("keeps actionlint shellcheck disabled only with a paired shell gate", () => {
+    expect(miseToml).toContain('shellcheck = "latest"');
+    expect(miseToml).toContain('"lint:actions-shell"');
+    expect(extractTaskBlock(miseToml, "lint:actions")).toContain("actionlint -shellcheck=");
+    expect(extractTaskBlock(miseToml, "lint:actions-shell")).toContain('run = "actionlint"');
+  });
+
+  it("documents the intentionally narrow Windows Rust test scope", () => {
+    const rustTestTask = extractTaskBlock(miseToml, "test:rust");
+
+    expect(rustTestTask).toContain("Windows CI is scoped to integration_test");
+    expect(rustTestTask).toContain("Linux runs the full Rust suite");
+    expect(rustTestTask).toContain('run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"');
+    expect(rustTestTask).toContain(
+      'run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
+    );
   });
 
   it("keeps release artifact display metadata source-of-truth explicit", () => {

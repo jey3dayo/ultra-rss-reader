@@ -17,6 +17,7 @@ rust = "stable"
 taplo = "latest"
 rtk = "latest"
 actionlint = "latest"
+shellcheck = "latest"
 "pipx:yamllint" = "latest"
 "npm:pnpm" = "10.33.4"
 
@@ -87,6 +88,7 @@ depends = [
   "lint:md",
   "lint:yaml",
   "lint:actions",
+  "lint:actions-shell",
   "lint:release-workflow-pins",
 ]
 
@@ -117,6 +119,10 @@ run = "yamllint -c .yamllint .github/ .yamllint"
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
 run = "actionlint -shellcheck="
+
+[tasks."lint:actions-shell"]
+description = "GitHub Actions shell script check (actionlint with shellcheck)"
+run = "actionlint"
 
 [tasks."lint:release-workflow-pins"]
 description = "Release workflow action references must be pinned to commit SHAs"
@@ -170,7 +176,7 @@ description = "Run CI tests with quieter unit test output"
 depends = ["test:rust", "test:unit:ci"]
 
 [tasks."test:rust"]
-description = "Run Rust tests"
+description = "Run Rust tests; Windows CI is scoped to integration_test for native keyring/path coverage while Linux runs the full Rust suite"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
 run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
