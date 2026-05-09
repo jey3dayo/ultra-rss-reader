@@ -88,13 +88,6 @@ export function useBrowserOverlayFocusReturn({
           return;
         }
 
-        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
-        if (selectedArticleTarget && !isReaderFocusTargetDisabled(selectedArticleTarget)) {
-          useUiStore.getState().setFocusedPane("list");
-          selectedArticleTarget.focus({ preventScroll: true });
-          return;
-        }
-
         if (previousTargetKey) {
           const nextTarget = queryElementByDataAttribute<HTMLElement>(
             document,
@@ -109,6 +102,13 @@ export function useBrowserOverlayFocusReturn({
 
         if (previousTarget?.isConnected && !isReaderFocusTargetDisabled(previousTarget)) {
           previousTarget.focus();
+          return;
+        }
+
+        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
+        if (selectedArticleTarget && !isReaderFocusTargetDisabled(selectedArticleTarget)) {
+          useUiStore.getState().setFocusedPane("list");
+          selectedArticleTarget.focus({ preventScroll: true });
           return;
         }
 

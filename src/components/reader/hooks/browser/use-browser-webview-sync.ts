@@ -82,32 +82,51 @@ export function useBrowserWebviewSync({
 }: UseBrowserWebviewSyncParams): UseBrowserWebviewSyncResult {
   const webviewCreatedRef = useRef(false);
   const createInFlightRef = useRef(false);
+  const resizeInFlightRef = useRef(false);
   const pendingBoundsRef = useRef<BrowserWebviewBounds | null>(null);
 
   const resetBrowserWebviewSyncState = useCallback(() => {
     webviewCreatedRef.current = false;
     createInFlightRef.current = false;
+    resizeInFlightRef.current = false;
     pendingBoundsRef.current = null;
   }, []);
 
   const syncBrowserBounds = useCallback(
     async (bounds: BrowserWebviewBounds) => {
-      const result = await setBrowserWebviewBounds(bounds).catch(toBrowserWebviewOperationFailure);
-      if (isBrowserWebviewOperationFailure(result)) {
-        console.error("Failed to sync embedded browser bounds:", result.error);
-        showSurfaceFailure(result.error);
+      if (resizeInFlightRef.current) {
+        pendingBoundsRef.current = bounds;
         return;
       }
-      if (Result.isFailure(result)) {
-        const error = Result.unwrapError(result);
-        console.error("Failed to sync embedded browser bounds:", error);
-        if (isMissingEmbeddedBrowserWebviewError(error)) {
-          resetBrowserWebviewSyncState();
-          onMissingEmbeddedBrowserWebview(error);
+
+      resizeInFlightRef.current = true;
+      let nextBounds: BrowserWebviewBounds | null = bounds;
+      while (nextBounds) {
+        const result = await setBrowserWebviewBounds(nextBounds).catch(toBrowserWebviewOperationFailure);
+        if (isBrowserWebviewOperationFailure(result)) {
+          resizeInFlightRef.current = false;
+          console.error("Failed to sync embedded browser bounds:", result.error);
+          showSurfaceFailure(result.error);
           return;
         }
-        showSurfaceFailure(error);
+        if (Result.isFailure(result)) {
+          resizeInFlightRef.current = false;
+          const error = Result.unwrapError(result);
+          console.error("Failed to sync embedded browser bounds:", error);
+          if (isMissingEmbeddedBrowserWebviewError(error)) {
+            resetBrowserWebviewSyncState();
+            onMissingEmbeddedBrowserWebview(error);
+            return;
+          }
+          showSurfaceFailure(error);
+          return;
+        }
+
+        nextBounds = pendingBoundsRef.current;
+        pendingBoundsRef.current = null;
       }
+
+      resizeInFlightRef.current = false;
     },
     [onMissingEmbeddedBrowserWebview, resetBrowserWebviewSyncState, showSurfaceFailure],
   );

@@ -233,6 +233,55 @@ describe("useBrowserWebviewSync", () => {
     expect(showSurfaceFailure).toHaveBeenCalledWith(error);
   });
 
+  it("keeps resize sync latest-only while a native resize command is in flight", async () => {
+    const resizeDeferredResult = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    setBrowserWebviewBoundsMock.mockReturnValueOnce(resizeDeferredResult.promise);
+    const { element, getBoundingClientRect } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element);
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "create");
+    });
+
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 20, y: 40, width: 640, height: 420 }));
+    await act(async () => {
+      void result.current.syncBrowserWebview(browserUrl, "resize");
+    });
+
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 30, y: 50, width: 700, height: 460 }));
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "resize");
+    });
+
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 40, y: 60, width: 760, height: 500 }));
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "resize");
+    });
+
+    expect(setBrowserWebviewBoundsMock).toHaveBeenCalledTimes(1);
+    expect(setBrowserWebviewBoundsMock).toHaveBeenCalledWith({
+      x: 20,
+      y: 40,
+      width: 640,
+      height: 420,
+      unit: "physical",
+    });
+
+    await act(async () => {
+      resizeDeferredResult.resolve(Result.succeed(null));
+      await resizeDeferredResult.promise;
+    });
+
+    expect(setBrowserWebviewBoundsMock).toHaveBeenCalledTimes(2);
+    expect(setBrowserWebviewBoundsMock).toHaveBeenLastCalledWith({
+      x: 40,
+      y: 60,
+      width: 760,
+      height: 500,
+      unit: "physical",
+    });
+  });
+
   it("queues ResizeObserver bounds while create is in flight and flushes only the latest bounds after create succeeds", async () => {
     let resizeObserverCallback: ResizeObserverCallback | null = null;
     class TestResizeObserver {

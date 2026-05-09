@@ -37,6 +37,34 @@ describe("useBrowserOverlayFocusReturn", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
+  it("returns focus to the remembered open-in-browser control before the selected article row", () => {
+    const openInBrowserButton = document.createElement("button");
+    openInBrowserButton.dataset.browserOverlayReturnFocus = "open-in-browser";
+    document.body.append(openInBrowserButton);
+    openInBrowserButton.focus();
+
+    const articleButton = document.createElement("button");
+    articleButton.dataset.articleId = "article-1";
+    document.body.append(articleButton);
+
+    const { result, rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "article-1",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    act(() => {
+      result.current.rememberOverlayFocusReturnTarget();
+    });
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(openInBrowserButton);
+    expect(useUiStore.getState().focusedPane).not.toBe("list");
+  });
+
   it("falls back to the previous return key when the selected article row is missing", () => {
     const previousButton = document.createElement("button");
     previousButton.dataset.browserOverlayReturnFocus = "toolbar-action";
