@@ -10,6 +10,7 @@ use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
 
 const LOCAL_PROVIDER_TIMEOUT: Duration = Duration::from_secs(15);
+const MAX_LOCAL_FEED_BODY_BYTES: u64 = 5 * 1024 * 1024;
 const LOCAL_PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
@@ -104,6 +105,31 @@ impl LocalProvider {
             .map(|link| link.href.clone())
             .unwrap_or_else(|| fallback_url.to_string())
     }
+
+    async fn response_bytes_with_limit(mut response: reqwest::Response) -> DomainResult<Vec<u8>> {
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_LOCAL_FEED_BODY_BYTES)
+        {
+            return Err(feed_body_too_large_error());
+        }
+
+        let mut body = Vec::new();
+        while let Some(chunk) = response.chunk().await? {
+            body.extend_from_slice(&chunk);
+            if body.len() as u64 > MAX_LOCAL_FEED_BODY_BYTES {
+                return Err(feed_body_too_large_error());
+            }
+        }
+
+        Ok(body)
+    }
+}
+
+fn feed_body_too_large_error() -> DomainError {
+    DomainError::Network(format!(
+        "Feed response body exceeds {MAX_LOCAL_FEED_BODY_BYTES} bytes"
+    ))
 }
 
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
@@ -247,7 +273,7 @@ impl FeedProvider for LocalProvider {
             return Err(DomainError::from_provider_http_status(status));
         }
 
-        let bytes = response.bytes().await?;
+        let bytes = Self::response_bytes_with_limit(response).await?;
         let entries = normalizer::normalize_feed(&bytes, feed_url.as_str())?;
 
         Ok(PullResult {
@@ -282,7 +308,7 @@ impl FeedProvider for LocalProvider {
             .map_err(map_local_provider_request_error)?
             .error_for_status()
             .map_err(DomainError::from_provider_http_error)?;
-        let bytes = response.bytes().await?;
+        let bytes = Self::response_bytes_with_limit(response).await?;
         let feed =
             feed_rs::parser::parse(&bytes[..]).map_err(|e| DomainError::Parse(e.to_string()))?;
 
@@ -529,6 +555,35 @@ mod tests {
             .expect_err("429 should be classified as rate limit failure");
 
         assert!(matches!(error, DomainError::RateLimit(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_rejects_oversized_feed_body_before_parse() {
+        let oversized_body = "x".repeat(MAX_LOCAL_FEED_BODY_BYTES as usize + 1);
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/oversized.xml")
+            .with_status(200)
+            .with_body(oversized_body)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/oversized.xml", server.url()),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("oversized feed bodies should be rejected before parsing");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message.contains("Feed response body exceeds")
+        ));
         mock.assert_async().await;
     }
 

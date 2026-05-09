@@ -110,11 +110,6 @@
   - `tauri` に `unstable` feature が入っているため、release artifact で使ってよい API 面積と将来の breaking risk が明文化されていない
   - unstable API の使用箇所、必要理由、代替可能性、release smoke で見るべき挙動を一覧化し、不要なら feature を外す
 
-- [ ] P1 provider HTTP response body size limit を決める
-  - 対象: `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/feed_discovery.rs`
-  - feed body / discovery HTML を読み切る経路があると、巨大 response や圧縮展開後サイズでメモリを食うリスクが残る
-  - local feed fetch と feed discovery に response body size limit / timeout / error copy の契約を追加し、oversized feed / oversized HTML / compressed response の provider test を固定する
-
 - [ ] P1 article thumbnail URL の sanitizer/privacy 境界を固定する
   - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/api/schemas/article.ts`, `src/components/reader/article-list-item.tsx`, `src/components/reader/article-content-view.tsx`
   - `content_sanitized` は Rust sanitizer 境界がある一方、`thumbnail` は provider 由来 URL を `<img src>` に渡すため、remote image privacy と scheme policy が本文 HTML と別管理になりやすい

@@ -5,6 +5,7 @@ use crate::domain::error::{DomainError, DomainResult};
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+const MAX_DISCOVERY_BODY_BYTES: u64 = 2 * 1024 * 1024;
 
 /// A discovered feed from an HTML page.
 #[derive(Debug, Clone)]
@@ -51,10 +52,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
         }]);
     }
 
-    let body = response
-        .text()
-        .await
-        .map_err(|e| DomainError::Network(e.to_string()))?;
+    let body = response_text_with_limit(response).await?;
 
     // Try to detect if the body is a feed even without correct content-type
     if is_feed_body_fallback(&body) {
@@ -107,6 +105,38 @@ fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
     }
 
     DomainError::Network(message)
+}
+
+async fn response_text_with_limit(mut response: reqwest::Response) -> DomainResult<String> {
+    validate_discovery_body_size(response.content_length().unwrap_or(0))?;
+
+    let mut body = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| DomainError::Network(error.to_string()))?
+    {
+        body.extend_from_slice(&chunk);
+        if body.len() as u64 > MAX_DISCOVERY_BODY_BYTES {
+            return Err(discovery_body_too_large_error());
+        }
+    }
+
+    Ok(String::from_utf8_lossy(&body).into_owned())
+}
+
+fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
+    if length > MAX_DISCOVERY_BODY_BYTES {
+        return Err(discovery_body_too_large_error());
+    }
+
+    Ok(())
+}
+
+fn discovery_body_too_large_error() -> DomainError {
+    DomainError::Network(format!(
+        "Feed discovery response body exceeds {MAX_DISCOVERY_BODY_BYTES} bytes"
+    ))
 }
 
 /// Check if a host string refers to a loopback or private network address.
@@ -668,6 +698,16 @@ mod tests {
                 DomainError::Validation(message) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[test]
+    fn discovery_body_size_limit_rejects_oversized_html_before_parsing() {
+        assert!(validate_discovery_body_size(MAX_DISCOVERY_BODY_BYTES).is_ok());
+        assert!(matches!(
+            validate_discovery_body_size(MAX_DISCOVERY_BODY_BYTES + 1),
+            Err(DomainError::Network(message))
+                if message.contains("Feed discovery response body exceeds")
+        ));
     }
 
     #[test]
