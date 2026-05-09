@@ -90,6 +90,7 @@ const publicSchemaRuntimeExports = [
   "getArticleTagsArgs",
   "getCommandArgsSchema",
   "getTagArticleCountsArgs",
+  "isCommandWithArgs",
   "listAccountArticlesArgs",
   "listArticlesArgs",
   "listArticlesByTagArgs",
