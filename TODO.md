@@ -210,26 +210,6 @@
   - feed を folder A -> B -> C と連続移動した時、古い mutation failure が後から来ると `previousFeedsQueries` で最新の folder state を巻き戻し得る
   - deferred promise で逆順 settle する hook test を追加し、feedId ごとの mutation generation または現在値比較 rollback にする
 
-- [ ] P1 account detail の masked password 表示と keyring missing 状態を分ける
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`, `src-tauri/src/commands/account_commands.rs`
-  - FreshRSS account なら `hasSavedPassword` を true 初期化するため、実際には keyring password が消えていても UI が保存済み password のように見える可能性がある
-  - backend から credential presence を返すか connection verification status で補足し、keyring missing / DB account exists の表示と test connection failure を固定する
-
-- [ ] P1 manual sync cooldown の retryable failure policy を固定する
-  - 対象: `src/lib/sync/manual-sync.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`
-  - `Retryable` error でも cooldown を開始するため、一時的な provider/network failure 後にすぐ再試行できないことが product 意図か分かりにくい
-  - success、Retryable、UserVisible failure、cooling_down の各ケースで cooldown と toast を test 化し、Retryable を cooldown 対象にする理由を明文化する
-
-- [ ] P1 sync progress / warning event の malformed payload を diagnostics に残す
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src/lib/sync/sync-progress-event.types.ts`
-  - malformed `sync-progress` / `sync-warning` / `sync-completed` は silent ignore されるため、native/frontend event schema drift で progress が stuck しても原因が見えにくい
-  - invalid stage、nonfinite count、completed non-null payload、warning schema mismatch を一度だけ warning/diagnostics に残す contract test を追加する
-
-- [ ] P1 sync completed event 欠落時の stuck progress recovery を追加する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src/stores/ui-store.ts`
-  - native sync が途中で error/abort して `sync-completed` を emit しない場合、frontend の `syncProgress.active` が残り manual sync が無効化され続ける可能性がある
-  - timeout recovery、manual clear、next started event での reset のどれを正にするか決め、missing completed event の store/hook test を追加する
-
 - [ ] P1 Reading List command の AppleScript stderr を user-facing error に直出ししない
   - 対象: `src-tauri/src/commands/share_commands.rs`, `src/components/reader/article-browser-actions.ts`
   - `osascript` failure stderr をそのまま `UserVisible` message に含めると、URL や OS 固有の内部情報が toast/log に出る可能性がある
@@ -289,16 +269,6 @@
   - 対象: `src/lib/sync/manual-sync.ts`
   - cooldown listener が throw しても console error に集約されるだけなので、UI 更新が止まった時にどの subscriber が壊れたか分かりにくい
   - listener id を持つか diagnostics-only に留めるか決め、複数 listener failure の report format を unit test にする
-
-- [ ] P1 FreshRSS server URL の http 許可と credential 送信 policy を固定する
-  - 対象: `src/lib/account/add-account-form.ts`, `src/components/settings/add-account/account-config-form.tsx`, `src-tauri/src/infra/provider/greader.rs`
-  - form validation は `http:` と `https:` を許可しているため、FreshRSS credential を平文 HTTP へ送ることを product として許すか、localhost 例外だけにするかが曖昧
-  - `https`、public `http`、loopback `http`、credential-in-URL、trailing slash の payload normalization を frontend/Rust provider test で固定する
-
-- [ ] P1 rename feed dialog submit の feed/account snapshot を固定する
-  - 対象: `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller.ts`, `src/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-view-props.tsx`
-  - rename dialog を開いた後に selected feed/account が変わると、表示中タイトルと submit 先 feed がズレる可能性があり、別 feed を rename する事故につながりやすい
-  - open 時の feed id/account id/title snapshot を submit payload に使うか、対象消失時に dialog を閉じるかを決め、account switch / feed delete / stale folder の test を追加する
 
 - [ ] P1 destructive action confirmation の対象 snapshot と二重実行 policy を統一する
   - 対象: `src/components/app-confirm-dialog.tsx`, `src/hooks/use-delete-feed.ts`, `src/components/reader/article-list.tsx`, `src/components/settings/mute-settings.tsx`
@@ -379,11 +349,6 @@
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/stores/ui-store.ts`, `src/hooks/use-articles.ts`
   - account delete 成功後に accounts/feed queries は invalidation するが、reader の selected feed/article/tag や retained/recentlyRead cache が削除 account を指し続けると、次の操作が missing id で落ちやすい
   - delete account 後の selected account/feed/article/tag、browser overlay、article cache の cleanup/fallback を component/store test で固定する
-
-- [ ] P1 account OPML export の stale account snapshot と object URL lifecycle を固定する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
-  - export 中に account rename/delete/navigation が起きると、download filename と OPML content の account snapshot がズレたり、unmount 後 click/revoke が競合しやすい
-  - request 開始時の account id/name snapshot、delete during export、anchor click throw、timer cleanup、URL revoke を hook test にする
 
 - [ ] P1 updater progress / ready event を download session 単位で検証する
   - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`
