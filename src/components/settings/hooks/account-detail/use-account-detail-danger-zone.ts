@@ -43,6 +43,7 @@ export function useAccountDetailDangerZone({
   const exportInFlightRef = useRef(false);
   const pendingExportUrlRef = useRef<string | null>(null);
   const pendingExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
   const { t: tc } = useTranslation("common");
   const showConfirm = useUiStore((state) => state.showConfirm);
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
@@ -62,7 +63,13 @@ export function useAccountDetailDangerZone({
     }
   }, []);
 
-  useEffect(() => revokePendingExportUrl, [revokePendingExportUrl]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      revokePendingExportUrl();
+    };
+  }, [revokePendingExportUrl]);
 
   const handleExportOpml = async () => {
     if (exportInFlightRef.current) {
@@ -75,8 +82,13 @@ export function useAccountDetailDangerZone({
     };
     exportInFlightRef.current = true;
     try {
+      const exportResult = await exportOpml(exportAccountSnapshot.id);
+      if (!mountedRef.current) {
+        return;
+      }
+
       Result.pipe(
-        await exportOpml(exportAccountSnapshot.id),
+        exportResult,
         Result.inspectError(showExportError),
         Result.inspect((opmlString) => {
           const blob = new Blob([opmlString], { type: "application/xml" });

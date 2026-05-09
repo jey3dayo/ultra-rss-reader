@@ -29,6 +29,7 @@ export type AccountDetailCredentialsEditorResult = {
 };
 
 const MASKED_PASSWORD_VALUE = "••••••••";
+const MISSING_PASSWORD_ERROR_MARKER = "Password is not configured";
 
 function isValidServerUrl(value: string): boolean {
   try {
@@ -57,8 +58,15 @@ type AccountDetailCredentialsEditorAction =
   | { type: "clear-credential-drafts"; passwordWasSaved: boolean; draftRevision: number }
   | { type: "clear-password-input" };
 
+function accountHasMissingSavedPassword(account: AccountDetailCredentialsEditorParams["account"]): boolean {
+  return (
+    account.connection_verification_status === "error" &&
+    (account.connection_verification_error ?? "").includes(MISSING_PASSWORD_ERROR_MARKER)
+  );
+}
+
 function accountMayHaveSavedPassword(account: AccountDetailCredentialsEditorParams["account"]): boolean {
-  return account.kind.toLowerCase() === "freshrss" && account.connection_verification_status !== "error";
+  return account.kind.toLowerCase() === "freshrss" && !accountHasMissingSavedPassword(account);
 }
 
 function createInitialAccountDetailCredentialsEditorState(

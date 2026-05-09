@@ -406,11 +406,30 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
-  it("does not show the masked password for a FreshRSS account with failed credential verification", () => {
+  it("keeps the masked password for a FreshRSS account with a non-keyring verification error", () => {
     const account = {
       ...sampleAccounts[1],
       connection_verification_status: "error" as const,
-      connection_verification_error: "Keyring password not found",
+      connection_verification_error: "Auth error: invalid credentials",
+    };
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    expect(result.current.passwordDisplayValue).toBe("••••••••");
+  });
+
+  it("does not show the masked password for a FreshRSS account with a missing saved password", () => {
+    const account = {
+      ...sampleAccounts[1],
+      connection_verification_status: "error" as const,
+      connection_verification_error:
+        "Validation error: Password is not configured. Re-enter your password in account settings, save it, and try again.",
     };
 
     const { result } = renderHook(() =>

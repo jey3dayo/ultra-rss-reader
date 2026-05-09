@@ -145,6 +145,30 @@ describe("useAccountDetailDangerZone", () => {
     expect(clickedDownloads).toEqual(["Local Work-feeds.opml"]);
   });
 
+  it("ignores a completed OPML export after unmount without creating an object URL", async () => {
+    const exportResult = createDeferred<ReturnType<typeof Result.succeed<string>>>();
+    exportOpmlMock.mockReturnValue(exportResult.promise);
+
+    const { result, unmount } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    const exportOpmlPromise = result.current.handleExportOpml();
+    unmount();
+
+    exportResult.resolve(Result.succeed("<opml />"));
+    await exportOpmlPromise;
+
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  });
+
   it("revokes the previous OPML object URL before replacing it and revokes the active URL on unmount", async () => {
     const createObjectUrlMock = vi.fn().mockReturnValueOnce("blob:first").mockReturnValueOnce("blob:second");
     Object.defineProperty(URL, "createObjectURL", {
