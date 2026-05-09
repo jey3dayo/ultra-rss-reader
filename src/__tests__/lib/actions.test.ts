@@ -7,6 +7,11 @@ import type { AppAction } from "@/lib/actions";
 import actionsSource from "@/lib/actions.ts?raw";
 import { APP_ACTION_REGISTRY, APP_ACTIONS } from "@/lib/app-actions";
 import { keyboardEvents, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
+import {
+  bindWindowEvents,
+  createCustomEventDetailListener,
+  isWindowNavigationDirection,
+} from "@/lib/window/window-events";
 import { useUiStore } from "@/stores/ui-store";
 import menuSource from "../../../src-tauri/src/menu.rs?raw";
 
@@ -57,8 +62,18 @@ const goForwardBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWeb
   }),
 );
 
-function expectCustomEvent<T>(value: unknown): asserts value is CustomEvent<T> {
-  expect(value).toBeInstanceOf(CustomEvent);
+function captureNavigationDetails(eventName: typeof APP_EVENTS.navigateArticle | typeof APP_EVENTS.navigateFeed) {
+  const details: Array<1 | -1> = [];
+  const cleanup = bindWindowEvents([
+    {
+      type: eventName,
+      listener: createCustomEventDetailListener(isWindowNavigationDirection, (detail) => {
+        details.push(detail);
+      }),
+    },
+  ]);
+
+  return { details, cleanup };
 }
 
 function stubWindowLocationReload(reload: Location["reload"]) {
@@ -321,31 +336,27 @@ describe("executeAction", () => {
 
   describe("article navigation actions", () => {
     it("dispatches navigate-article event with direction -1 for prev-article", () => {
-      const handler = vi.fn();
-      window.addEventListener(APP_EVENTS.navigateArticle, handler);
+      const { details, cleanup } = captureNavigationDetails(APP_EVENTS.navigateArticle);
 
-      executeAction("prev-article");
+      try {
+        executeAction("prev-article");
 
-      expect(handler).toHaveBeenCalledTimes(1);
-      const event = handler.mock.calls[0]?.[0];
-      expectCustomEvent<number>(event);
-      expect(event.detail).toBe(-1);
-
-      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
+        expect(details).toEqual([-1]);
+      } finally {
+        cleanup();
+      }
     });
 
     it("dispatches navigate-article event with direction 1 for next-article", () => {
-      const handler = vi.fn();
-      window.addEventListener(APP_EVENTS.navigateArticle, handler);
+      const { details, cleanup } = captureNavigationDetails(APP_EVENTS.navigateArticle);
 
-      executeAction("next-article");
+      try {
+        executeAction("next-article");
 
-      expect(handler).toHaveBeenCalledTimes(1);
-      const event = handler.mock.calls[0]?.[0];
-      expectCustomEvent<number>(event);
-      expect(event.detail).toBe(1);
-
-      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
+        expect(details).toEqual([1]);
+      } finally {
+        cleanup();
+      }
     });
 
     it("clears the selected article and focuses the list target for mouse-back outside browser mode", async () => {
@@ -388,63 +399,58 @@ describe("executeAction", () => {
     });
 
     it("buffers article navigation while browser close is in flight and flushes it later", () => {
-      const handler = vi.fn();
-      window.addEventListener(APP_EVENTS.navigateArticle, handler);
+      const { details, cleanup } = captureNavigationDetails(APP_EVENTS.navigateArticle);
       useUiStore.setState({
         browserCloseInFlight: true,
         pendingBrowserCloseAction: null,
       });
 
-      executeAction("next-article");
+      try {
+        executeAction("next-article");
 
-      expect(handler).not.toHaveBeenCalled();
-      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+        expect(details).toEqual([]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
 
-      flushPendingBrowserCloseAction();
+        flushPendingBrowserCloseAction();
 
-      expect(handler).toHaveBeenCalledTimes(1);
-      const event = handler.mock.calls[0]?.[0];
-      expectCustomEvent<number>(event);
-      expect(event.detail).toBe(1);
-      expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
-      expect(useUiStore.getState().browserCloseInFlight).toBe(false);
-
-      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
+        expect(details).toEqual([1]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+        expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+      } finally {
+        cleanup();
+      }
     });
 
     it("overwrites pending browser close navigation with the latest action before flush", () => {
-      const articleHandler = vi.fn();
-      const feedHandler = vi.fn();
-      window.addEventListener(APP_EVENTS.navigateArticle, articleHandler);
-      window.addEventListener(APP_EVENTS.navigateFeed, feedHandler);
+      const articleEvents = captureNavigationDetails(APP_EVENTS.navigateArticle);
+      const feedEvents = captureNavigationDetails(APP_EVENTS.navigateFeed);
       useUiStore.setState({
         browserCloseInFlight: true,
         pendingBrowserCloseAction: null,
       });
 
-      executeAction("next-article");
-      executeAction("prev-feed");
+      try {
+        executeAction("next-article");
+        executeAction("prev-feed");
 
-      expect(articleHandler).not.toHaveBeenCalled();
-      expect(feedHandler).not.toHaveBeenCalled();
-      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("prev-feed");
+        expect(articleEvents.details).toEqual([]);
+        expect(feedEvents.details).toEqual([]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBe("prev-feed");
 
-      flushPendingBrowserCloseAction();
+        flushPendingBrowserCloseAction();
 
-      expect(articleHandler).not.toHaveBeenCalled();
-      expect(feedHandler).toHaveBeenCalledTimes(1);
-      const event = feedHandler.mock.calls[0]?.[0];
-      expectCustomEvent<number>(event);
-      expect(event.detail).toBe(-1);
-      expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
-      expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+        expect(articleEvents.details).toEqual([]);
+        expect(feedEvents.details).toEqual([-1]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+        expect(useUiStore.getState().browserCloseInFlight).toBe(false);
 
-      flushPendingBrowserCloseAction();
+        flushPendingBrowserCloseAction();
 
-      expect(feedHandler).toHaveBeenCalledTimes(1);
-
-      window.removeEventListener(APP_EVENTS.navigateArticle, articleHandler);
-      window.removeEventListener(APP_EVENTS.navigateFeed, feedHandler);
+        expect(feedEvents.details).toEqual([-1]);
+      } finally {
+        articleEvents.cleanup();
+        feedEvents.cleanup();
+      }
     });
   });
 

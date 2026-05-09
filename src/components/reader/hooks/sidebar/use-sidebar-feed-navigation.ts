@@ -3,12 +3,12 @@ import { useCallback, useEffect, useRef } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/articles/article-list";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
-import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window/window-events";
+import {
+  bindWindowEvents,
+  createCustomEventDetailListener,
+  isWindowNavigationDirection,
+} from "@/lib/window/window-events";
 import type { SidebarFeedNavigationParams } from "../../sidebar-feed-section.types";
-
-function isFeedNavigationDirection(value: unknown): value is 1 | -1 {
-  return value === 1 || value === -1;
-}
 
 const FEED_FOCUS_SCHEDULE_WARNING = "Failed to schedule sidebar feed focus.";
 
@@ -126,7 +126,7 @@ export function useSidebarFeedNavigation({
   );
 
   useEffect(() => {
-    const handler = createCustomEventDetailListener(isFeedNavigationDirection, (direction) => {
+    const handler = createCustomEventDetailListener(isWindowNavigationDirection, (direction) => {
       navigateFeed(direction);
     });
 

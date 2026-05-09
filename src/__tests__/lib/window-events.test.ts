@@ -5,6 +5,7 @@ import {
   createKeyboardEventListener,
   createMouseEventListener,
   createPointerEventListener,
+  isWindowNavigationDirection,
 } from "@/lib/window/window-events";
 
 describe("window-events", () => {
@@ -116,6 +117,14 @@ describe("window-events", () => {
     );
 
     expect(() => listener(new CustomEvent("navigate", { detail: { direction: 1 } }))).toThrow(handlerError);
+  });
+
+  it("accepts only app navigation direction details", () => {
+    expect(isWindowNavigationDirection(1)).toBe(true);
+    expect(isWindowNavigationDirection(-1)).toBe(true);
+    expect(isWindowNavigationDirection(0)).toBe(false);
+    expect(isWindowNavigationDirection("next")).toBe(false);
+    expect(isWindowNavigationDirection({ direction: 1 })).toBe(false);
   });
 
   it("unbinds registered window events", () => {

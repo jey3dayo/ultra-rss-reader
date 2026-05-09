@@ -58,6 +58,10 @@ export function createCustomEventDetailListener<T>(
   };
 }
 
+export function isWindowNavigationDirection(detail: unknown): detail is 1 | -1 {
+  return detail === 1 || detail === -1;
+}
+
 export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
   const registeredBindings: RegisteredWindowEventBinding[] = [];
 
