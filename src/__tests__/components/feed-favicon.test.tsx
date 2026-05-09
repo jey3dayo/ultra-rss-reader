@@ -69,6 +69,37 @@ describe("FeedFavicon", () => {
     expect(screen.getByText("G")).toHaveClass("h-5", "w-5");
   });
 
+  it("uses an https favicon proxy and strips path and query data from feed URLs", () => {
+    const { container } = render(
+      <FeedFavicon
+        title="Private"
+        url="http://example.com/feed.xml?token=secret&user=alice"
+        siteUrl="http://example.com/private/path?session=secret"
+      />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+    expect(image?.getAttribute("src")).not.toContain("token");
+    expect(image?.getAttribute("src")).not.toContain("session");
+    expect(image?.getAttribute("src")).not.toContain("private/path");
+  });
+
+  it("keeps the fallback on rerender after the same favicon source fails", () => {
+    const { container, rerender } = render(
+      <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+
+    fireEvent.error(image as HTMLImageElement);
+    rerender(<FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("retries favicon loading when the resolved favicon source changes after a failure", () => {
     const { container, rerender } = render(
       <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,

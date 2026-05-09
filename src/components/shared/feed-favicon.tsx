@@ -20,6 +20,8 @@ type FaviconSizeClassNames = {
   requestSize: number;
 };
 
+const GOOGLE_FAVICON_ENDPOINT = "https://www.google.com/s2/favicons";
+
 const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   sm: {
     fallback: "h-5 w-5 text-[10px]",
@@ -41,6 +43,14 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   },
 };
 
+function resolveGoogleFaviconSrc(host: string, requestSize: number): string {
+  const params = new URLSearchParams({
+    domain: host,
+    sz: String(requestSize),
+  });
+  return `${GOOGLE_FAVICON_ENDPOINT}?${params.toString()}`;
+}
+
 export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
   const [failedFaviconSrc, setFailedFaviconSrc] = useState<string | null>(null);
   let resolvedHost: string | null = null;
@@ -52,9 +62,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
   );
   const sizeClassName = faviconSizeClassNames[size];
   const fallbackLabel = title.trim().charAt(0).toUpperCase() || "?";
-  const faviconSrc = resolvedHost
-    ? `https://www.google.com/s2/favicons?domain=${resolvedHost}&sz=${sizeClassName.requestSize}`
-    : null;
+  const faviconSrc = resolvedHost ? resolveGoogleFaviconSrc(resolvedHost, sizeClassName.requestSize) : null;
 
   return faviconSrc === null || failedFaviconSrc === faviconSrc ? (
     <span
