@@ -732,10 +732,7 @@ describe("seedDevDatabaseFromProd", () => {
         execFileImpl: async (command, args) => {
           const key = `${command}:${String(args[0])}:${String(args[args.length - 1])}`;
           pendingCommands.add(key);
-          if (
-            command === "lsof" ||
-            String(args[args.length - 1]) === "ultra-rss-reader"
-          ) {
+          if (String(args[args.length - 1]) === "ultra-rss-reader") {
             await new Promise<void>((resolve) => {
               releaseCommands.set(key, resolve);
             });
