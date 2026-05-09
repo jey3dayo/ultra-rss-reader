@@ -97,8 +97,12 @@ export function SidebarHeaderView({
   };
 
   const handleSyncClick = () => {
+    if (isSyncCoolingDown) {
+      return;
+    }
+
     if (!isSyncing && !isSyncDisabled) {
-      startFeedbackSpin(isSyncCoolingDown ? COOLDOWN_SYNC_SPIN_MS : ACCEPTED_SYNC_SPIN_MS);
+      startFeedbackSpin(ACCEPTED_SYNC_SPIN_MS);
     }
 
     onSync();
@@ -119,7 +123,6 @@ export function SidebarHeaderView({
           onClick={handleSyncClick}
           disabled={isSyncing || isSyncDisabled}
           ariaDisabled={isSyncCoolingDown}
-          allowAriaDisabledClick={true}
           className={cn(
             headerActionButtonClassName,
             isMobile ? mobileHeaderActionButtonClassName : "w-11",

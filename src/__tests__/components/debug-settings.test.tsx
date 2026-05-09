@@ -93,7 +93,7 @@ describe("DebugSettings", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(screen.queryByRole("button", { name: "Open: Image viewer overlay" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Open: Web preview geometry check" }));
+    await user.click(screen.getByRole("button", { name: "Open geometry check" }));
 
     expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
@@ -109,7 +109,7 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByRole("button", { name: "Open: Web preview toast check" }));
+    await user.click(screen.getByRole("button", { name: "Open toast check" }));
 
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
     expect(useUiStore.getState().contentMode).toBe("browser");

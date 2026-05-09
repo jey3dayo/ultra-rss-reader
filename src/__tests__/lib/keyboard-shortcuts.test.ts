@@ -470,26 +470,23 @@ describe("keyboard shortcut resolver", () => {
   it.each([
     { modifier: "Cmd", metaKey: true, ctrlKey: false },
     { modifier: "Ctrl", metaKey: false, ctrlKey: true },
-  ])(
-    "lets the native menu own $modifier+R even when Web Preview reload is remapped to it",
-    ({ metaKey, ctrlKey }) => {
-      const result = resolveKeyboardAction({
-        key: "r",
-        metaKey,
-        ctrlKey,
-        shiftKey: false,
-        targetTag: "DIV",
-        selectedArticleId: "art-1",
-        contentMode: "browser",
-        viewMode: "all",
-        keyToAction: buildKeyToActionMap({
-          shortcut_reload_webview: "⌘+r",
-        }),
-      });
+  ])("lets the native menu own $modifier+R even when Web Preview reload is remapped to it", ({ metaKey, ctrlKey }) => {
+    const result = resolveKeyboardAction({
+      key: "r",
+      metaKey,
+      ctrlKey,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      viewMode: "all",
+      keyToAction: buildKeyToActionMap({
+        shortcut_reload_webview: "⌘+r",
+      }),
+    });
 
-      expect(Result.unwrapError(result)).toBe("no_action");
-    },
-  );
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
 
   it("lets Web Preview reload use a non-native custom shortcut", () => {
     const result = resolveKeyboardAction({
