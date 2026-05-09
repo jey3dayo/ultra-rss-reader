@@ -55,6 +55,21 @@ describe("resolveFeedTreePointerDropOutcome", () => {
     });
   });
 
+  it("treats blank folder drop target ids as no target", () => {
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, { kind: "folder", folderId: "" }, false)).toEqual({
+      type: "drop-none",
+    });
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, { kind: "folder", folderId: "   " }, false)).toEqual({
+      type: "drop-none",
+    });
+  });
+
+  it("keeps cancel priority before folder target validation", () => {
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, { kind: "folder", folderId: "" }, true)).toEqual({
+      type: "cancel",
+    });
+  });
+
   it("returns drop-none when an active drag ends outside any target", () => {
     expect(resolveFeedTreePointerDropOutcome(draggingSession, null, false)).toEqual({ type: "drop-none" });
   });

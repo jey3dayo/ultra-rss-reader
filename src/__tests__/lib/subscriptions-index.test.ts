@@ -314,6 +314,35 @@ describe("subscriptions index helpers", () => {
     ).toEqual([firstEqualDateArticle.id, secondEqualDateArticle.id]);
   });
 
+  it("keeps invalid detail preview date ties in input order behind valid articles", () => {
+    const firstInvalidArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-invalid-date-1",
+      title: "First invalid date post",
+      published_at: "not-a-date",
+    };
+    const secondInvalidArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-invalid-date-2",
+      title: "Second invalid date post",
+      published_at: "",
+    };
+    const validArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-valid-date",
+      title: "Valid date post",
+      published_at: "2026-04-03T10:00:00Z",
+    };
+
+    expect(
+      buildSubscriptionDetailMetrics({
+        feed: feeds[0],
+        articles: [firstInvalidArticle, secondInvalidArticle, validArticle],
+        feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
+      }).previewArticles.map((article) => article.id),
+    ).toEqual([validArticle.id, firstInvalidArticle.id]);
+  });
+
   it("falls back to articles for missing detail summaries and preserves summary priority when present", () => {
     const newerUnstarredArticle: ArticleDto = {
       ...articles[0],

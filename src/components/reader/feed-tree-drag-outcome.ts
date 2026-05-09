@@ -18,7 +18,7 @@ export function resolveFeedTreePointerDropOutcome(
     return { type: "cancel" };
   }
 
-  if (target?.kind === "folder") {
+  if (target?.kind === "folder" && target.folderId.trim()) {
     return { type: "drop-folder", folderId: target.folderId };
   }
 

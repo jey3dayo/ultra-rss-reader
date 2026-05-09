@@ -546,18 +546,26 @@ export function buildSubscriptionDetailMetrics({
 }
 
 function shouldPlaceSubscriptionPreviewArticleBefore(candidate: ArticleDto, current: ArticleDto): boolean {
+  return compareSubscriptionPreviewArticles(candidate, current) < 0;
+}
+
+function compareSubscriptionPreviewArticles(candidate: ArticleDto, current: ArticleDto): number {
   const candidateTime = getDateInputTimeMs(candidate.published_at);
   const currentTime = getDateInputTimeMs(current.published_at);
 
   if (candidateTime === null) {
-    return false;
+    return currentTime === null ? 0 : 1;
   }
 
   if (currentTime === null) {
-    return true;
+    return -1;
   }
 
-  return candidateTime > currentTime;
+  if (candidateTime === currentTime) {
+    return 0;
+  }
+
+  return candidateTime > currentTime ? -1 : 1;
 }
 
 export function formatSubscriptionDate(value: string | null | undefined, locale?: string): string {
