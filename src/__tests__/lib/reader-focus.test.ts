@@ -10,6 +10,7 @@ import {
   isArticleListPaneTarget,
   isArticleListRowTarget,
   isSidebarPaneTarget,
+  resolveReaderFocusReturnAction,
   SIDEBAR_FALLBACK_TARGET_ATTRIBUTE,
   SIDEBAR_SELECTED_TARGET_ATTRIBUTE,
   SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE,
@@ -192,6 +193,55 @@ describe("reader-focus", () => {
     expect(isSidebarPaneTarget(null)).toBe(false);
     expect(isArticleListPaneTarget(null)).toBe(false);
     expect(isArticleListRowTarget(null)).toBe(false);
+  });
+
+  it("resolves reader ArrowLeft focus returns without exposing pane selectors to global keyboard handling", () => {
+    const articleListPane = createDiv({ "data-article-list-pane": "true" });
+    const articleRow = createButton({ "data-article-id": "article-1", role: "option" });
+    const articleContent = createDiv({ "data-article-content-pane": "true" });
+    articleListPane.append(articleRow);
+    document.body.append(articleListPane, articleContent);
+
+    expect(
+      resolveReaderFocusReturnAction({
+        key: "ArrowLeft",
+        focusedPane: "content",
+        target: articleRow,
+        targetIsTextEditing: false,
+      }),
+    ).toBe("focus-sidebar");
+    expect(
+      resolveReaderFocusReturnAction({
+        key: "ArrowLeft",
+        focusedPane: "content",
+        target: articleContent,
+        targetIsTextEditing: false,
+      }),
+    ).toBe("focus-list");
+    expect(
+      resolveReaderFocusReturnAction({
+        key: "ArrowLeft",
+        focusedPane: "content",
+        target: articleContent,
+        targetIsTextEditing: true,
+      }),
+    ).toBeNull();
+    expect(
+      resolveReaderFocusReturnAction({
+        key: "ArrowRight",
+        focusedPane: "content",
+        target: articleContent,
+        targetIsTextEditing: false,
+      }),
+    ).toBeNull();
+    expect(
+      resolveReaderFocusReturnAction({
+        key: "ArrowLeft",
+        focusedPane: "list",
+        target: articleContent,
+        targetIsTextEditing: false,
+      }),
+    ).toBeNull();
   });
 });
 

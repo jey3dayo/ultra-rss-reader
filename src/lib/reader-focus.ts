@@ -1,5 +1,6 @@
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import { queryElementByDataAttribute } from "./dom/data-attribute";
+import type { FocusedPane } from "./layout/layout-state.types";
 
 export const SIDEBAR_SELECTED_TARGET_ATTRIBUTE = "data-sidebar-selected-target";
 export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";
@@ -12,6 +13,7 @@ export type ReaderFocusTargetAttribute =
   | typeof ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE;
 export type SidebarSmartViewKindAttribute = typeof SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE;
 export type ReaderFocusAttribute = ReaderFocusTargetAttribute | SidebarSmartViewKindAttribute;
+export type ReaderFocusReturnAction = "focus-sidebar" | "focus-list";
 
 export function isReaderFocusTargetDisabled(target: HTMLElement): boolean {
   return target.hasAttribute("disabled") || target.getAttribute("aria-disabled") === "true";
@@ -67,6 +69,27 @@ export function isArticleListPaneTarget(target: Element | null): boolean {
 
 export function isArticleListRowTarget(target: Element | null): boolean {
   return Boolean(target?.closest('[role="option"][data-article-id]'));
+}
+
+export function resolveReaderFocusReturnAction(params: {
+  key: string;
+  focusedPane: FocusedPane;
+  target: Element | null;
+  targetIsTextEditing: boolean;
+}): ReaderFocusReturnAction | null {
+  if (params.key !== "ArrowLeft" || params.focusedPane !== "content" || params.targetIsTextEditing) {
+    return null;
+  }
+
+  if (isArticleListPaneTarget(params.target)) {
+    return "focus-sidebar";
+  }
+
+  if (!isArticleListRowTarget(params.target)) {
+    return "focus-list";
+  }
+
+  return null;
 }
 
 export function focusArticleListTarget(selectedArticleId: string | null): boolean {

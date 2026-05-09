@@ -12,9 +12,8 @@ import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from 
 import {
   focusArticleListRowTargetWhenReady,
   focusSelectedSidebarTarget,
-  isArticleListPaneTarget,
-  isArticleListRowTarget,
   isSidebarPaneTarget,
+  resolveReaderFocusReturnAction,
 } from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -105,12 +104,13 @@ export function useKeyboard() {
         return;
       }
 
-      if (
-        e.key === "ArrowLeft" &&
-        currentStore.focusedPane === "content" &&
-        isArticleListPaneTarget(targetElement) &&
-        !isTextEditingTarget(targetElement)
-      ) {
+      const readerFocusReturnAction = resolveReaderFocusReturnAction({
+        key: e.key,
+        focusedPane: currentStore.focusedPane,
+        target: targetElement,
+        targetIsTextEditing: isTextEditingTarget(targetElement),
+      });
+      if (readerFocusReturnAction === "focus-sidebar") {
         e.preventDefault();
         e.stopPropagation();
         currentStore.openSidebar();
@@ -121,12 +121,7 @@ export function useKeyboard() {
         return;
       }
 
-      if (
-        e.key === "ArrowLeft" &&
-        currentStore.focusedPane === "content" &&
-        !isArticleListRowTarget(targetElement) &&
-        !isTextEditingTarget(targetElement)
-      ) {
+      if (readerFocusReturnAction === "focus-list") {
         e.preventDefault();
         e.stopPropagation();
         currentStore.setFocusedPane("list");
