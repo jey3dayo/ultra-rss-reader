@@ -34,6 +34,18 @@ function readStartupSyncStorage(): StartupSyncStorage | null {
   }
 }
 
+function startupSyncAccountStorageKey(accountId: string): string {
+  return `${STORAGE_KEYS.startupSyncLastTriggeredAt}:${accountId}`;
+}
+
+function storageKeysForStartupSync(accountId?: string): readonly string[] {
+  if (!accountId) {
+    return startupSyncStorageKeys;
+  }
+
+  return [startupSyncAccountStorageKey(accountId)];
+}
+
 function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue: string): void {
   try {
     storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
@@ -53,13 +65,14 @@ function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue
 export function getLastStartupSyncTriggeredAt(
   storage = readStartupSyncStorage(),
   now = getCurrentTimeMs(),
+  accountId?: string,
 ): number | null {
   if (!storage) {
     return null;
   }
 
   try {
-    for (const storageKey of startupSyncStorageKeys) {
+    for (const storageKey of storageKeysForStartupSync(accountId)) {
       const rawValue = storage.getItem(storageKey);
       if (!rawValue) {
         continue;
@@ -75,7 +88,7 @@ export function getLastStartupSyncTriggeredAt(
         continue;
       }
 
-      if (storageKey === LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt) {
+      if (!accountId && storageKey === LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt) {
         migrateLegacyStartupSyncTimestamp(storage, rawValue);
       }
 
@@ -89,18 +102,27 @@ export function getLastStartupSyncTriggeredAt(
   }
 }
 
-export function shouldThrottleStartupSync(storage = readStartupSyncStorage(), now = getCurrentTimeMs()): boolean {
-  const lastTriggeredAt = getLastStartupSyncTriggeredAt(storage, now);
+export function shouldThrottleStartupSync(
+  storage = readStartupSyncStorage(),
+  now = getCurrentTimeMs(),
+  accountId?: string,
+): boolean {
+  const lastTriggeredAt = getLastStartupSyncTriggeredAt(storage, now, accountId);
   return lastTriggeredAt != null && now - lastTriggeredAt < STARTUP_SYNC_THROTTLE_MS;
 }
 
-export function markStartupSyncTriggered(storage = readStartupSyncStorage(), now = getCurrentTimeMs()): void {
+export function markStartupSyncTriggered(
+  storage = readStartupSyncStorage(),
+  now = getCurrentTimeMs(),
+  accountId?: string,
+): void {
   if (!storage) {
     return;
   }
 
   try {
-    storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(now));
+    const storageKey = accountId ? startupSyncAccountStorageKey(accountId) : STORAGE_KEYS.startupSyncLastTriggeredAt;
+    storage.setItem(storageKey, String(now));
   } catch (error) {
     logStartupSyncStorageFailure("Failed to write startup sync metadata to localStorage.", error);
     // Ignore storage failures and fall back to process-local guarding only.

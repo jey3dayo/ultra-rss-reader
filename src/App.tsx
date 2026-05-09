@@ -45,13 +45,14 @@ function AppInner() {
       return;
     }
 
-    if (shouldThrottleStartupSync()) {
+    const startupSyncAccountId = selectedAccountId ?? undefined;
+    if (shouldThrottleStartupSync(undefined, undefined, startupSyncAccountId)) {
       return;
     }
 
     startupSyncRequested.current = true;
-    markStartupSyncTriggered();
-    void triggerStartupSync(selectedAccountId ?? undefined)
+    markStartupSyncTriggered(undefined, undefined, startupSyncAccountId);
+    void triggerStartupSync(startupSyncAccountId)
       .then((result) =>
         Result.pipe(
           result,
@@ -82,14 +83,24 @@ function AppInner() {
       }
 
       const accounts = Result.unwrap(accountsResult);
-      const syncTasks = extractSyncOnWakeAccountIds(accounts).map((accountId) =>
-        syncAccount(accountId).then((syncResult) => {
-          if (Result.isFailure(syncResult)) {
-            console.warn("Sync on wake failed:", Result.unwrapError(syncResult));
-          }
-        }),
+      const syncResults = await Promise.allSettled(
+        extractSyncOnWakeAccountIds(accounts).map(async (accountId) => ({
+          accountId,
+          result: await syncAccount(accountId),
+        })),
       );
-      await Promise.all(syncTasks);
+
+      for (const syncResult of syncResults) {
+        if (syncResult.status === "rejected") {
+          console.warn("Sync on wake rejected:", syncResult.reason);
+          continue;
+        }
+
+        const { accountId, result } = syncResult.value;
+        if (Result.isFailure(result)) {
+          console.warn("Sync on wake failed:", accountId, Result.unwrapError(result));
+        }
+      }
     } finally {
       syncOnWakeInFlight.current = false;
     }
@@ -110,7 +121,9 @@ function AppInner() {
       const hiddenDuration = getCurrentTimeMs() - lastHiddenAt.current;
       if (hiddenDuration < APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS) return;
 
-      void runSyncOnWakeRef.current();
+      void runSyncOnWakeRef.current().catch((error: unknown) => {
+        console.warn("Sync on wake rejected at app boundary:", error);
+      });
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
