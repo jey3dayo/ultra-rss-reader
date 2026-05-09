@@ -7,18 +7,26 @@ import { useUiStore } from "@/stores/ui-store";
 const updateMuteKeywordMutateAsyncMock = vi.fn();
 const createMuteKeywordMutateAsyncMock = vi.fn();
 const deleteMuteKeywordMutateAsyncMock = vi.fn();
+const muteKeywordRules = [
+  {
+    id: "mute-1",
+    keyword: "spoiler",
+    scope: "title" as const,
+    created_at: "2026-04-30T00:00:00.000Z",
+    updated_at: "2026-04-30T00:00:00.000Z",
+  },
+  {
+    id: "mute-2",
+    keyword: "ending",
+    scope: "body" as const,
+    created_at: "2026-04-30T00:00:00.000Z",
+    updated_at: "2026-04-30T00:00:00.000Z",
+  },
+];
 
 vi.mock("@/hooks/use-mute-keywords", () => ({
   useMuteKeywords: () => ({
-    data: [
-      {
-        id: "mute-1",
-        keyword: "spoiler",
-        scope: "title",
-        created_at: "2026-04-30T00:00:00.000Z",
-        updated_at: "2026-04-30T00:00:00.000Z",
-      },
-    ],
+    data: muteKeywordRules,
   }),
   useCreateMuteKeyword: () => ({
     isPending: false,
@@ -109,6 +117,27 @@ describe("MuteSettings", () => {
       });
     });
     expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveValue("");
+    expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent("Body");
+  });
+
+  it("keeps the add draft when mute keyword creation fails", async () => {
+    const user = userEvent.setup();
+    createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("create failed"));
+
+    render(<MuteSettings />);
+
+    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "spoiler alert");
+    await user.click(screen.getByRole("combobox", { name: "Scope" }));
+    await user.click(await screen.findByRole("option", { name: "Body" }));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(createMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
+        keyword: "spoiler alert",
+        scope: "body",
+      });
+    });
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveValue("spoiler alert");
     expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent("Body");
   });
 
@@ -214,7 +243,7 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getAllByText(/spoiler/).length).toBeGreaterThan(0);
@@ -227,6 +256,21 @@ describe("MuteSettings", () => {
     expect(deleteMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
   });
 
+  it("retargets the delete confirmation when another saved rule is requested", async () => {
+    const user = userEvent.setup();
+
+    render(<MuteSettings />);
+
+    const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
+    await user.click(deleteButtons[0]!);
+    expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
+
+    await user.click(deleteButtons[1]!);
+    expect(within(screen.getByRole("dialog")).getAllByText(/ending/).length).toBeGreaterThan(0);
+    expect(within(screen.getByRole("dialog")).queryByText(/spoiler/)).not.toBeInTheDocument();
+    expect(deleteMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
+  });
+
   it("confirms delete and closes the delete confirmation", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
@@ -234,7 +278,7 @@ describe("MuteSettings", () => {
 
     render(<MuteSettings />);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
     const confirmDeleteButton = deleteButtons[deleteButtons.length - 1];
     if (!confirmDeleteButton) {
@@ -251,5 +295,29 @@ describe("MuteSettings", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("keeps the delete confirmation open when deletion fails", async () => {
+    const user = userEvent.setup();
+    deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("delete failed"));
+
+    render(<MuteSettings />);
+
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
+    const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
+    const confirmDeleteButton = deleteButtons[deleteButtons.length - 1];
+    if (!confirmDeleteButton) {
+      throw new Error("expected delete confirmation button");
+    }
+
+    await user.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(deleteMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
+        muteKeywordId: "mute-1",
+      });
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
   });
 });
