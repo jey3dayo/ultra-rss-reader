@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { Result } from "@praha/byethrow";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
@@ -197,6 +198,31 @@ describe("useAccountDetailNameEditor", () => {
 
     expect(renameAccountMock).not.toHaveBeenCalled();
     expect(result.current.editingName).toBe(false);
+  });
+
+  it("keeps the editor open and clears saving state when rename fails", async () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    renameAccountMock.mockResolvedValue(Result.fail({ message: "network down" }));
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("FreshRSS Personal");
+    });
+    await act(async () => {
+      await result.current.commitRename();
+    });
+
+    expect(renameAccountMock).toHaveBeenCalledWith(account.id, "FreshRSS Personal");
+    expect(result.current.editingName).toBe(true);
+    expect(result.current.savingName).toBe(false);
+    expect(result.current.nameDraft).toBe("FreshRSS Personal");
   });
 });
 
