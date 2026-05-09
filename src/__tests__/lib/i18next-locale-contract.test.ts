@@ -68,6 +68,27 @@ const meaningLocaleResources = {
   },
 } as const;
 
+const readerBrowserMeaningCopy = {
+  en: {
+    previewAction: "Open Web Preview",
+    externalBrowserAction: "Open in External Browser",
+    readerDisplayMode: "Article text only",
+    previewDisplayMode: "Article text + Web Preview",
+    inAppBrowserTarget: "Web Preview",
+    externalBrowserTarget: "Default browser",
+    cmdClickPreviewAction: "{{modifier}}-click opens Web Preview",
+  },
+  ja: {
+    previewAction: "Webプレビューを開く",
+    externalBrowserAction: "外部ブラウザで開く",
+    readerDisplayMode: "本文のみ",
+    previewDisplayMode: "本文 + Webプレビュー",
+    inAppBrowserTarget: "Webプレビュー",
+    externalBrowserTarget: "既定のブラウザ",
+    cmdClickPreviewAction: "{{modifier}}クリックでWebプレビューを開く",
+  },
+} as const;
+
 const localeResourceFilePaths = Object.keys(
   import.meta.glob<LocaleNode>("/src/locales/{en,ja}/*.json", { eager: true }),
 );
@@ -193,6 +214,29 @@ describe("i18next locale contract", () => {
     }
 
     expect(missingMeaningKeys).toEqual([]);
+  });
+
+  it("keeps reader, web preview, and external browser meaning copy aligned by locale", () => {
+    for (const locale of ["en", "ja"] as const) {
+      const { reader, settings } = meaningLocaleResources[locale];
+      const expected = readerBrowserMeaningCopy[locale];
+
+      expect({
+        previewAction: reader.view_in_browser,
+        externalBrowserAction: reader.open_in_external_browser,
+        readerDisplayMode: settings.reading.standard,
+        previewDisplayMode: settings.reading.preview,
+        inAppBrowserTarget: settings.reading.in_app_browser,
+        externalBrowserTarget: settings.reading.default_browser,
+        cmdClickPreviewAction: settings.reading.cmd_click_browser,
+      }).toEqual(expected);
+      expect(reader.browser_view).toBe(settings.reading.in_app_browser);
+      expect(reader.display_mode_preview).toBe(settings.reading.in_app_browser);
+      expect(reader.open_in_browser).toBe(reader.view_in_browser);
+      expect(reader.shortcuts.view_in_browser).toBe(reader.view_in_browser);
+      expect(reader.shortcuts.open_external_browser.toLowerCase()).toBe(reader.open_in_external_browser.toLowerCase());
+      expect(settings.debug.browser).toBe(settings.reading.in_app_browser);
+    }
   });
 
   it("keeps planned account provider status localized", () => {

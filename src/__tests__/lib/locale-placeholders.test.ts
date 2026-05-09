@@ -316,23 +316,33 @@ describe("locale interpolation placeholders", () => {
     expect(enReader.back_to_reader).toContain("Reader");
     expect(enReader.view_in_browser).toContain("Web Preview");
     expect(enReader.open_in_external_browser.toLowerCase()).toContain("external browser");
+    expect(enReader.browser_view).toBe(enSettings.reading.in_app_browser);
+    expect(enReader.display_mode_preview).toBe(enSettings.reading.in_app_browser);
     expect(enReader.shortcuts.view_in_browser).toContain("Web Preview");
     expect(enReader.shortcuts.open_external_browser.toLowerCase()).toContain("external browser");
     expect(enSettings.reading.preview).toContain("Web Preview");
     expect(enSettings.reading.in_app_browser).toBe("Web Preview");
     expect(enSettings.reading.default_browser.toLowerCase()).toContain("browser");
+    expect(enSettings.reading.cmd_click_browser).toContain("{{modifier}}-click");
+    expect(enSettings.reading.cmd_click_browser).toContain("Web Preview");
 
     expect(jaReader.back_to_reader).toContain("記事");
     expect(jaReader.view_in_browser).toContain("Webプレビュー");
     expect(jaReader.open_in_external_browser).toContain("外部ブラウザ");
+    expect(jaReader.browser_view).toBe(jaSettings.reading.in_app_browser);
+    expect(jaReader.display_mode_preview).toBe(jaSettings.reading.in_app_browser);
     expect(jaReader.shortcuts.view_in_browser).toContain("Webプレビュー");
     expect(jaReader.shortcuts.open_external_browser).toContain("外部ブラウザ");
     expect(jaSettings.reading.preview).toContain("Webプレビュー");
     expect(jaSettings.reading.in_app_browser).toBe("Webプレビュー");
     expect(jaSettings.reading.default_browser).toContain("ブラウザ");
+    expect(jaSettings.reading.cmd_click_browser).toContain("{{modifier}}クリック");
+    expect(jaSettings.reading.cmd_click_browser).toContain("Webプレビュー");
 
     expect(enReader.view_in_browser).not.toBe(enReader.open_in_external_browser);
+    expect(enSettings.reading.cmd_click_browser.toLowerCase()).not.toContain("external browser");
     expect(jaReader.view_in_browser).not.toBe(jaReader.open_in_external_browser);
+    expect(jaSettings.reading.cmd_click_browser).not.toContain("外部ブラウザ");
   });
 
   it("keeps locale leaves non-empty and translated away from raw key strings", () => {
