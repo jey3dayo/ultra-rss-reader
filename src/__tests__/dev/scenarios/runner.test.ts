@@ -57,7 +57,7 @@ function invocationOrder({ mock, index }: MockInvocation): number {
   return order;
 }
 
-function expectMockInvocationsInOrder(invocations: MockInvocation[]) {
+function expectMockInvocationsInOrder(...invocations: MockInvocation[]) {
   for (let index = 1; index < invocations.length; index += 1) {
     expect(invocationOrder(invocations[index - 1])).toBeLessThan(invocationOrder(invocations[index]));
   }
@@ -357,8 +357,8 @@ describe("runDevScenario", () => {
     expect(mockWindow.unmaximize).toHaveBeenCalledTimes(1);
     expect(mockWindow.setSize).toHaveBeenCalledTimes(1);
     expect(mockWindow.center).toHaveBeenCalled();
-    expectMockInvocationsInOrder([firstInvocation(mockWindow.unmaximize), firstInvocation(mockWindow.scaleFactor)]);
-    expectMockInvocationsInOrder([firstInvocation(mockWindow.setSize), firstInvocation(mockWindow.center)]);
+    expectMockInvocationsInOrder(firstInvocation(mockWindow.unmaximize), firstInvocation(mockWindow.scaleFactor));
+    expectMockInvocationsInOrder(firstInvocation(mockWindow.setSize), firstInvocation(mockWindow.center));
   });
 
   it("keeps unmaximize, target resolution, retry verification, and center ordering stable", async () => {
@@ -384,14 +384,14 @@ describe("runDevScenario", () => {
     expect(mockWindow.setSize).toHaveBeenCalled();
     expect(mockWindow.center).toHaveBeenCalled();
     expect(timeoutSpy.mock.calls.filter(([, delayMs]) => delayMs === 80)).toHaveLength(2);
-    expectMockInvocationsInOrder([
+    expectMockInvocationsInOrder(
       firstInvocation(mockWindow.unmaximize),
       firstInvocation(mockWindow.scaleFactor),
       firstInvocation(mockWindow.setSize),
       firstInvocation(mockWindow.center),
       nextInvocation(mockWindow.scaleFactor, 2),
       nextInvocation(mockWindow.center, 1),
-    ]);
+    );
   });
 
   it("keeps the current logical window height when only a dev window width is requested", async () => {
