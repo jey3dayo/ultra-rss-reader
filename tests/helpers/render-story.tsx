@@ -7,6 +7,11 @@ export type StoryArgs = Record<string, unknown>;
 type StoryParameters = Record<string, unknown>;
 type StoryGlobals = Record<string, unknown>;
 type StoryRenderContext<TArgs extends StoryArgs> = Pick<StoryContext<TArgs>, "args" | "parameters" | "globals">;
+type StoryRenderContextUpdate<TArgs extends StoryArgs> = {
+  args?: Partial<TArgs>;
+  parameters?: StoryParameters;
+  globals?: StoryGlobals;
+};
 type StoryRender<TArgs extends StoryArgs> = (args: TArgs, context: StoryContext<TArgs>) => ReactNode;
 type ResolvedStoryFromStorybookBoundary<TArgs extends StoryArgs> = {
   args: TArgs;
@@ -14,7 +19,7 @@ type ResolvedStoryFromStorybookBoundary<TArgs extends StoryArgs> = {
   decorators: StoryDecorator<TArgs>[];
 };
 export type StoryDecorator<TArgs extends StoryArgs> = (
-  Story: () => ReactNode,
+  Story: (update?: StoryRenderContextUpdate<TArgs>) => ReactNode,
   context: StoryContext<TArgs>,
 ) => ReactNode;
 
@@ -37,6 +42,21 @@ function createStoryRenderContext<TArgs extends StoryArgs>(
   } satisfies StoryRenderContext<TArgs>;
 }
 
+function mergeStoryRenderContext<TArgs extends StoryArgs>(
+  context: StoryContext<TArgs>,
+  update: StoryRenderContextUpdate<TArgs> | undefined,
+): StoryContext<TArgs> {
+  if (update === undefined) {
+    return context;
+  }
+
+  return createStoryRenderContext(
+    mergePartialStoryArgsShape(context.args, update.args) as TArgs,
+    { ...context.parameters, ...(update.parameters ?? {}) },
+    { ...context.globals, ...(update.globals ?? {}) },
+  ) as StoryContext<TArgs>;
+}
+
 function isStoryDecorator<TArgs extends StoryArgs>(decorator: unknown): decorator is StoryDecorator<TArgs> {
   return typeof decorator === "function";
 }
@@ -44,7 +64,16 @@ function isStoryDecorator<TArgs extends StoryArgs>(decorator: unknown): decorato
 function collectStoryDecorators<TArgs extends StoryArgs>(
   decorators: StoryMeta<TArgs>["decorators"],
 ): StoryDecorator<TArgs>[] {
-  return (Array.isArray(decorators) ? decorators : decorators ? [decorators] : []).filter(isStoryDecorator<TArgs>);
+  const candidateDecorators = Array.isArray(decorators) ? decorators : decorators ? [decorators] : [];
+  const storyDecorators: StoryDecorator<TArgs>[] = [];
+
+  for (const decorator of candidateDecorators) {
+    if (isStoryDecorator<TArgs>(decorator)) {
+      storyDecorators.push(decorator);
+    }
+  }
+
+  return storyDecorators;
 }
 
 function resolveStoryFromStorybookBoundary<TArgs extends StoryArgs>(
@@ -62,7 +91,7 @@ function resolveStoryFromStorybookBoundary<TArgs extends StoryArgs>(
   return {
     args,
     context,
-    decorators: [...collectStoryDecorators(meta.decorators), ...collectStoryDecorators(story.decorators)],
+    decorators: [...collectStoryDecorators<TArgs>(meta.decorators), ...collectStoryDecorators<TArgs>(story.decorators)],
   } satisfies ResolvedStoryFromStorybookBoundary<TArgs>;
 }
 
@@ -98,12 +127,22 @@ export function renderStory<TArgs extends StoryArgs>(
   options?: RenderOptions,
 ) {
   assertRenderStoryOptionsFromCallBoundary(options);
-  const { args, context, decorators } = resolveStoryFromStorybookBoundary(meta, story);
+  const { context, decorators } = resolveStoryFromStorybookBoundary(meta, story);
   const renderStoryFn = story.render ?? meta.render;
-  const baseStory = () => (renderStoryFn ? renderStoryFn(args, context) : createElement(meta.component, args));
-  const ui = decorators.reduceRight<() => ReactNode>(
-    (Story, decorator) => () => decorator(Story, context),
-    baseStory,
-  )();
+  const renderResolvedStory = (storyContext: StoryContext<TArgs>) =>
+    renderStoryFn ? renderStoryFn(storyContext.args, storyContext) : createElement(meta.component, storyContext.args);
+  const renderDecoratedStory = (decoratorIndex: number, storyContext: StoryContext<TArgs>): ReactNode => {
+    const decorator = decorators[decoratorIndex];
+
+    if (decorator === undefined) {
+      return renderResolvedStory(storyContext);
+    }
+
+    return decorator(
+      (update) => renderDecoratedStory(decoratorIndex + 1, mergeStoryRenderContext(storyContext, update)),
+      storyContext,
+    );
+  };
+  const ui = renderDecoratedStory(0, context);
   return render(ui, options);
 }
