@@ -167,6 +167,45 @@ describe("useArticleAutoMark", () => {
     expect(secondSetRead.mutate).not.toHaveBeenCalled();
   });
 
+  it("allows the same article to auto-mark again after it was read and returned to unread", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          afterReading: "immediately",
+          isRead: false,
+          setRead,
+        }),
+      },
+    );
+
+    rerender(
+      createParams({
+        articleId: "art-1",
+        afterReading: "immediately",
+        isRead: true,
+        setRead,
+      }),
+    );
+    rerender(
+      createParams({
+        articleId: "art-1",
+        afterReading: "immediately",
+        isRead: false,
+        setRead,
+      }),
+    );
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(2);
+  });
+
   it("immediately marks unread articles and records success only after mutation success", () => {
     const addRecentlyRead = vi.fn();
     const mutate: AutoMarkMutate = (variables, options) => {
@@ -319,7 +358,7 @@ describe("useArticleAutoMark", () => {
     );
   });
 
-  it("keeps newer auto mark state when a stale delayed mutation fails", () => {
+  it("ignores rollback and toast when a stale delayed mutation fails after the article changes", () => {
     const showToast = vi.fn();
     const addRecentlyRead = vi.fn();
     const mutationCallbacks = new Map<string, NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>>();
@@ -386,8 +425,54 @@ describe("useArticleAutoMark", () => {
     );
 
     expect(setRead.mutate).toHaveBeenCalledTimes(2);
-    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-2"]));
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1", "art-2"]));
     expect(addRecentlyRead).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("Failed stale article");
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("ignores rollback and toast when a stale delayed mutation fails after view mode changes", () => {
+    const showToast = vi.fn();
+    let onError: NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]> | null = null;
+    const mutate: AutoMarkMutate = (_variables, options) => {
+      onError = options?.onError ?? null;
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          showToast,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    rerender(
+      createParams({
+        articleId: "art-1",
+        viewMode: "all",
+        retainArticle: useUiStore.getState().retainArticle,
+        setRead,
+        showToast,
+      }),
+    );
+
+    act(() => {
+      onError?.(new Error("Failed stale view"), { id: "art-1", read: true }, undefined, createMutationContext());
+    });
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(showToast).not.toHaveBeenCalled();
   });
 });

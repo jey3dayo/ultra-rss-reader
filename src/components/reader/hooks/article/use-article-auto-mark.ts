@@ -50,12 +50,20 @@ export function useArticleAutoMark({
   showToast,
 }: UseArticleAutoMarkParams) {
   const autoMarkedArticleIdRef = useRef<string | null>(null);
+  const latestArticleStateRef = useRef({ articleId, viewMode });
   const pendingAutoMarkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  latestArticleStateRef.current = { articleId, viewMode };
 
   useEffect(() => {
     if (pendingAutoMarkTimeoutRef.current !== null) {
       clearTimeout(pendingAutoMarkTimeoutRef.current);
       pendingAutoMarkTimeoutRef.current = null;
+    }
+
+    if (isRead && autoMarkedArticleIdRef.current === articleId) {
+      autoMarkedArticleIdRef.current = null;
+      return;
     }
 
     if (afterReading === "never" || isRead || autoMarkedArticleIdRef.current === articleId) {
@@ -82,8 +90,14 @@ export function useArticleAutoMark({
             addRecentlyRead(articleId);
           },
           onError: (error) => {
+            const latestArticleState = latestArticleStateRef.current;
+            const isLatestArticleState =
+              latestArticleState.articleId === articleId && latestArticleState.viewMode === viewMode;
             if (autoMarkedArticleIdRef.current === articleId) {
               autoMarkedArticleIdRef.current = null;
+            }
+            if (!isLatestArticleState) {
+              return;
             }
             if (shouldRollbackRetainedArticle) {
               removeRetainedArticle(articleId);
