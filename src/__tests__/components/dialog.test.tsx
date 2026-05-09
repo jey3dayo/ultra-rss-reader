@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import i18n from "@/lib/i18n";
 
 function renderDialogContent(props: Partial<React.ComponentProps<typeof DialogContent>> = {}) {
@@ -8,6 +8,17 @@ function renderDialogContent(props: Partial<React.ComponentProps<typeof DialogCo
     <Dialog open>
       <DialogContent {...props}>
         <DialogTitle>Test dialog</DialogTitle>
+      </DialogContent>
+    </Dialog>,
+  );
+}
+
+function renderDialogFooter(props: Partial<React.ComponentProps<typeof DialogFooter>> = {}) {
+  render(
+    <Dialog open>
+      <DialogContent showCloseButton={false}>
+        <DialogTitle>Test dialog</DialogTitle>
+        <DialogFooter showCloseButton {...props} />
       </DialogContent>
     </Dialog>,
   );
@@ -24,6 +35,20 @@ describe("DialogContent", () => {
     await i18n.changeLanguage("ja");
 
     renderDialogContent();
+
+    expect(screen.getByRole("button", { name: i18n.t("close") })).toBeInTheDocument();
+  });
+
+  it("uses the provided footer close label", () => {
+    renderDialogFooter({ closeLabel: "Close from footer" });
+
+    expect(screen.getByRole("button", { name: "Close from footer" })).toBeInTheDocument();
+  });
+
+  it("falls back to the common close locale label in the footer", async () => {
+    await i18n.changeLanguage("ja");
+
+    renderDialogFooter();
 
     expect(screen.getByRole("button", { name: i18n.t("close") })).toBeInTheDocument();
   });
