@@ -112,6 +112,49 @@ describe("useBrowserWebviewStateChanged", () => {
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
   });
 
+  it("ignores a late finished state change for the previous request while the new request is loading", () => {
+    const clearSurfaceIssue = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] =
+        useState<BrowserWebviewState | null>(() =>
+          createState("https://example.com/new", true),
+        );
+      const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      const handleStateChanged = useBrowserWebviewStateChanged({
+        browserStateRef,
+        fallbackInFlightRef,
+        setBrowserState,
+        clearSurfaceIssue,
+        getRequestedUrl: () => "https://example.com/new",
+      });
+
+      return { browserState, browserStateRef, handleStateChanged };
+    });
+
+    act(() => {
+      result.current.handleStateChanged({
+        url: "https://example.com/old",
+        can_go_back: true,
+        can_go_forward: false,
+        is_loading: false,
+      });
+    });
+
+    expect(result.current.browserState).toEqual({
+      url: "https://example.com/new",
+      can_go_back: true,
+      can_go_forward: false,
+      is_loading: true,
+    });
+    expect(result.current.browserStateRef.current).toEqual(
+      result.current.browserState,
+    );
+    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
+  });
+
   it("treats a late loaded event as recovery after a load timeout surface failure", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {

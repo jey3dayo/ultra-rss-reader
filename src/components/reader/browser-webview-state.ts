@@ -60,7 +60,6 @@ export function mergeBrowserState(
 
   if (
     previousState.is_loading &&
-    nextState.is_loading &&
     previousState.url === intendedUrl &&
     nextState.url !== intendedUrl
   ) {
