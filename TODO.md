@@ -40,6 +40,16 @@
   - `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts` の listener 初期化失敗を拾い、bounds sync が silent に止まらない契約を追加する
   - `src/components/reader/hooks/browser/use-browser-webview-load-timeout.ts` の timeout message は、URL 直出しを避けた localized surface message に寄せる
 
+- [ ] similarity browser visibility lifecycle helper 候補を追加する
+  - `similarity-ts src/` で 93% 類似になった `use-browser-webview-sync` / `use-sidebar-visibility-fallback` / `use-browser-overlay-focus-return` の visibility / focus listener pattern を棚卸しする
+  - 共通化する場合は listener registration / cleanup / hidden state guard だけを helper 化し、WebView bounds や sidebar fallback の business rule は各 hook に残す
+  - browser webview failure surface とは分け、visibility lifecycle boilerplate の重複整理だけを扱う
+
+- [ ] similarity browser lifecycle small hook false-positive review 候補を追加する
+  - `use-browser-webview-bounds-sync` / `use-browser-webview-load-timeout` / `use-browser-webview-request-state` / `use-browser-overlay-shortcuts` / `use-mouse-navigation` が 90% 前後で類似検出された理由を確認する
+  - hook skeleton だけの類似なら共通化せず、timeout / request / shortcut / mouse navigation の責務差分を保つ判断を TODO コメントか test で固定する
+  - browser visibility lifecycle helper とは分け、small lifecycle hook の共通化可否判断だけを扱う
+
 - [ ] command palette feed landing failure 候補を小粒で直す
   - `src/hooks/use-feed-landing.ts` の feed 未選択・feed 不在・landing fetch 失敗を、呼び出し元で扱える result として返せるか確認する
   - `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts` の feed / dev scenario 失敗 toast を i18n key 化する
@@ -1248,6 +1258,11 @@
   - `src/__tests__/hooks/use-sidebar-account-switcher.test.tsx` で selected missing / single account / multiple accounts と focus frame を固定する
   - account menu action とは分け、account switcher view model と DOM scheduling 境界だけを扱う
 
+- [ ] similarity reader focus retry helper 候補を追加する
+  - `src/lib/reader-focus.ts` の `focusArticleListRowTargetWhenReady` と `focusSidebarSmartViewTargetWhenReady` が 88% 類似なので、retry / frame scheduling 部分を共通 helper に寄せる
+  - target selector / fallback focus rule は呼び出し側に残し、article list と smart view の focus behavior が変わらないことを focused test で固定する
+  - account switcher focus frame とは分け、reader focus retry loop の重複だけを扱う
+
 - [ ] tag dialog autofocus shared boundary 候補を追加する
   - `src/components/reader/create-tag-dialog-view.tsx` と `src/components/reader/rename-tag-dialog-view.tsx` の translation / input ref / open 時 autofocus frame の重複を整理する
   - create / rename tag dialog view test で open 時 focus/select と unmount 前後の frame cleanup を確認する
@@ -1257,6 +1272,16 @@
   - `src/components/reader/article-list-header.tsx` の `useTranslation("reader")` 直参照を controller / view props の `labels` へ寄せる
   - `src/__tests__/components/article-list-header.test.tsx` で mark all read / search / close search label が props 由来になることを固定する
   - article list loading naming とは分け、header label contract だけを扱う
+
+- [ ] similarity reader UI state hook factory 候補を追加する
+  - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
+  - 共通化する場合は public hook return names を保ち、article view と command palette の focused hook test で state transition が変わらないことを固定する
+  - command palette controller contract とは分け、UI boolean state hook の重複だけを扱う
+
+- [ ] similarity article list navigation false-positive review 候補を追加する
+  - `useArticleListNavigation` / `useAddFeedDialogActions` / `buildSubscriptionReviewCandidates` が 91-93% 類似として出ているため、実際に共通化可能な navigation math か hook boilerplate かを確認する
+  - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
+  - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
 
 - [ ] feed discovery resolved URL safety 候補を追加する
   - `src-tauri/src/infra/feed_discovery.rs` で `<base>` / `<link href>` 解決後の feed candidate URL にも private / unsupported URL filter を適用する
@@ -1607,6 +1632,16 @@
   - `tests/setup.ts` の `MemoryStorage` fallback が DOM Storage と同じ key/value string coercion と insertion order を守ることを固定する
   - `src/__tests__/helpers/test-setup-storage.test.ts` で `setItem` / `getItem` / `removeItem` / `key()` の挙動を確認する
   - localStorage getter failure guards とは分け、test fallback storage semantics だけを扱う
+
+- [ ] similarity test-only error type fixture 候補を追加する
+  - `TestAppError` と `UserVisibleError` が 95.5% 類似なので、test-only user-visible error fixture type / builder を共有できるか確認する
+  - `app-root.test.tsx` と `use-updater.test.ts` の error shape assertion が同じ意図なら helper 化し、違うなら local type 名で意図差分を明示する
+  - AppError DTO invariant とは分け、test fixture type duplication だけを扱う
+
+- [ ] similarity hook test props reuse 候補を追加する
+  - `UseArticleActionShortcutsParams` と `TestShortcutsProps` が 91% 類似なので、hook test props が production hook params を再定義していないか確認する
+  - test wrapper の追加 props だけを local type に残し、hook params は production type import に寄せられるか判断する
+  - article action shortcut behavior 変更とは分け、test props type duplication だけを扱う
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
