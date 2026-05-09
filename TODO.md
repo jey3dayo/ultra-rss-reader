@@ -40,11 +40,6 @@
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
 
-- [ ] P2 app foreground window show/focus error policy を整理する
-  - 対象: `src-tauri/src/lib.rs`
-  - second instance / foreground handling で `let _ = window.show(); let _ = window.set_focus();` と error を捨てており、packaged app の復帰失敗を追跡しにくい
-  - expected unsupported と unexpected error を分けて log するか、manual verification に残すか決める
-
 - [ ] P1 browser webview native emit failure diagnostics を補強する
   - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`
   - browser state / close / fallback / diagnostics event の `app_handle.emit(...)` failure が `let _ =` で捨てられ、frontend listener 不在や payload serialization failure を追跡しづらい

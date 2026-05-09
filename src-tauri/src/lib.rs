@@ -87,6 +87,22 @@ fn startup_preferences_read_warning_message(error: &DomainError) -> String {
     )
 }
 
+fn startup_main_window_show_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to show main window during startup focus restore: {error}")
+}
+
+fn startup_main_window_focus_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to focus main window during startup focus restore: {error}")
+}
+
+fn startup_main_webview_focus_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to focus main webview during startup focus restore: {error}")
+}
+
+fn startup_focus_main_thread_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to schedule startup focus restore on the main thread: {error}")
+}
+
 #[cfg(not(test))]
 fn focus_main_webview_on_startup<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) {
     tauri::async_runtime::spawn(async move {
@@ -96,16 +112,24 @@ fn focus_main_webview_on_startup<R: tauri::Runtime>(app_handle: tauri::AppHandle
         tokio::time::sleep(Duration::from_millis(150)).await;
 
         let app_handle_for_main_thread = app_handle.clone();
-        let _ = app_handle.run_on_main_thread(move || {
+        if let Err(error) = app_handle.run_on_main_thread(move || {
             if let Some(window) = app_handle_for_main_thread.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
+                if let Err(error) = window.show() {
+                    tracing::warn!("{}", startup_main_window_show_warning(&error));
+                }
+                if let Err(error) = window.set_focus() {
+                    tracing::warn!("{}", startup_main_window_focus_warning(&error));
+                }
             }
 
             if let Some(webview) = app_handle_for_main_thread.get_webview("main") {
-                let _ = webview.set_focus();
+                if let Err(error) = webview.set_focus() {
+                    tracing::warn!("{}", startup_main_webview_focus_warning(&error));
+                }
             }
-        });
+        }) {
+            tracing::warn!("{}", startup_focus_main_thread_warning(&error));
+        }
     });
 }
 
@@ -394,7 +418,9 @@ mod tests {
     use super::{
         cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, database_init_error_message,
-        main_window_title_bar_uses_overlay, startup_preferences_or_default,
+        main_window_title_bar_uses_overlay, startup_focus_main_thread_warning,
+        startup_main_webview_focus_warning, startup_main_window_focus_warning,
+        startup_main_window_show_warning, startup_preferences_or_default,
         startup_preferences_read_warning_message,
     };
     use crate::domain::error::DomainError;
@@ -498,6 +524,34 @@ mod tests {
         assert!(metadata_debug.contains("metadata denied"));
         assert!(remove_warning.contains("/tmp/logs/old.log"));
         assert!(remove_warning.contains("remove denied"));
+    }
+
+    #[test]
+    fn startup_focus_restore_failures_are_diagnostics_only() {
+        let show_error = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "show denied");
+        let window_focus_error =
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "window focus denied");
+        let webview_focus_error =
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "webview focus denied");
+        let schedule_error = std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "main thread unavailable",
+        );
+
+        let show_warning = startup_main_window_show_warning(&show_error);
+        let window_focus_warning = startup_main_window_focus_warning(&window_focus_error);
+        let webview_focus_warning = startup_main_webview_focus_warning(&webview_focus_error);
+        let schedule_warning = startup_focus_main_thread_warning(&schedule_error);
+
+        assert!(show_warning.contains("Failed to show main window"));
+        assert!(show_warning.contains("startup focus restore"));
+        assert!(show_warning.contains("show denied"));
+        assert!(window_focus_warning.contains("Failed to focus main window"));
+        assert!(window_focus_warning.contains("window focus denied"));
+        assert!(webview_focus_warning.contains("Failed to focus main webview"));
+        assert!(webview_focus_warning.contains("webview focus denied"));
+        assert!(schedule_warning.contains("Failed to schedule startup focus restore"));
+        assert!(schedule_warning.contains("main thread unavailable"));
     }
 
     #[test]
