@@ -163,12 +163,42 @@ describe("preference contract", () => {
     });
   });
 
+  it("keeps key-specific freeform preference string limits and control-character policy stable", () => {
+    const selectedAccountIdSchema = getPreferenceValueSchema("selected_account_id");
+    const debugWebPreviewUrlSchema = getPreferenceValueSchema("debug_web_preview_url");
+    const shortcutSchema = getPreferenceValueSchema("shortcut_next_article");
+
+    expect(selectedAccountIdSchema?.safeParse(" account-1 ").data).toBe("account-1");
+    expect(selectedAccountIdSchema?.safeParse("a".repeat(256)).success).toBe(true);
+    expect(selectedAccountIdSchema?.safeParse("a".repeat(257)).success).toBe(false);
+    expect(selectedAccountIdSchema?.safeParse("account\n1").success).toBe(false);
+    expect(normalizePreferenceValue("selected_account_id", " account-1 ")).toBe("account-1");
+    expect(normalizePreferenceValue("selected_account_id", "account\n1")).toBe("");
+
+    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/path?q=1").success).toBe(true);
+    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(2048)).success).toBe(true);
+    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(2049)).success).toBe(false);
+    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success).toBe(false);
+    expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(2049))).toBe("");
+
+    expect(shortcutSchema?.safeParse(" Shift+J ").data).toBe("Shift+J");
+    expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
+    expect(shortcutSchema?.safeParse("a".repeat(129)).success).toBe(false);
+    expect(shortcutSchema?.safeParse("Shift+\nJ").success).toBe(false);
+  });
+
   it("classifies likely unknown passthrough typos without rejecting backend-owned keys", () => {
     expect(getLikelyPreferenceKeyTypo("them")).toBe("theme");
     expect(getLikelyPreferenceKeyTypo("shortcut_next_articl")).toBe("shortcut_next_article");
     expect(getLikelyPreferenceKeyTypo("selected_account_id")).toBeNull();
     expect(getLikelyPreferenceKeyTypo("custom_backend_preference")).toBeNull();
     expect(isRetiredBackendPassthroughPreferenceKey("custom_backend_preference")).toBe(false);
+  });
+
+  it("keeps typo suggestions bounded by edit-distance cost as preference key sets grow", () => {
+    expect(getLikelyPreferenceKeyTypo("show_sidebar_recent_article")).toBe("show_sidebar_recent_articles");
+    expect(getLikelyPreferenceKeyTypo("shortcut_prev_articl")).toBe("shortcut_prev_article");
+    expect(getLikelyPreferenceKeyTypo(`theme_${"x".repeat(128)}`)).toBeNull();
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {

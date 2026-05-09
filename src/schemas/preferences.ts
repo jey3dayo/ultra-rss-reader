@@ -23,12 +23,16 @@ const afterReadingSchema = z.enum(["never", "immediately", "after_0_3s", "after_
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
 const startupFolderExpansionSchema = z.enum(["all_collapsed", "unread_folders", "restore_previous"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
-const freeformStringSchema = z.string();
 const hasControlCharacter = (value: string): boolean =>
   Array.from(value).some((character) => {
     const codePoint = character.codePointAt(0);
     return codePoint !== undefined && ((codePoint >= 0 && codePoint <= 31) || (codePoint >= 127 && codePoint <= 159));
   });
+const freeformPreferenceStringSchema = z.string().refine((value) => !hasControlCharacter(value));
+const debugWebPreviewUrlSchema = freeformPreferenceStringSchema.max(2048);
+const selectedAccountIdSchema = freeformPreferenceStringSchema
+  .transform((value) => value.trim())
+  .pipe(z.string().min(1).max(256));
 export const shortcutPreferenceValueSchema = z
   .string()
   .refine((value) => !hasControlCharacter(value))
@@ -87,7 +91,7 @@ export const preferenceSchemas = {
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
   debug_browser_hud: booleanStringSchema,
-  debug_web_preview_url: freeformStringSchema,
+  debug_web_preview_url: debugWebPreviewUrlSchema,
   mute_auto_mark_read: booleanStringSchema,
 };
 
@@ -202,6 +206,10 @@ function isKnownPreferenceKey(key: string): key is KnownPreferenceKey {
   return objectHasOwnProperty.call(preferenceSchemas, key);
 }
 
+function isBackendOwnedPreferenceKey(key: string): key is (typeof backendOwnedPreferenceKeys)[number] {
+  return backendOwnedPreferenceKeys.some((backendOwnedKey) => backendOwnedKey === key);
+}
+
 function getEditDistanceWithinLimit(source: string, target: string, limit: number): number {
   if (Math.abs(source.length - target.length) > limit) {
     return limit + 1;
@@ -235,15 +243,17 @@ export function getLikelyPreferenceKeyTypo(key: string): string | null {
     return null;
   }
 
+  let likelyCandidate: string | null = null;
+  let likelyCandidateDistance = preferenceTypoDetectionDistance + 1;
   for (const candidate of typoDetectionCandidateKeys) {
-    if (
-      getEditDistanceWithinLimit(key, candidate, preferenceTypoDetectionDistance) <= preferenceTypoDetectionDistance
-    ) {
-      return candidate;
+    const distance = getEditDistanceWithinLimit(key, candidate, preferenceTypoDetectionDistance);
+    if (distance < likelyCandidateDistance) {
+      likelyCandidate = candidate;
+      likelyCandidateDistance = distance;
     }
   }
 
-  return null;
+  return likelyCandidateDistance <= preferenceTypoDetectionDistance ? likelyCandidate : null;
 }
 
 export function isRetiredBackendPassthroughPreferenceKey(key: string): boolean {
@@ -274,6 +284,10 @@ export function getPreferenceValueSchema(key: string): z.ZodType | undefined {
     return shortcutPreferenceValueSchema;
   }
 
+  if (isBackendOwnedPreferenceKey(key)) {
+    return selectedAccountIdSchema;
+  }
+
   return undefined;
 }
 
@@ -289,6 +303,11 @@ export function normalizePreferenceValue(key: string, value: string): string {
   if (isShortcutPreferenceKey(key)) {
     const result = shortcutPreferenceValueSchema.safeParse(value);
     return result.success ? result.data : (preferenceDefaults[key] ?? "");
+  }
+
+  if (isBackendOwnedPreferenceKey(key)) {
+    const result = selectedAccountIdSchema.safeParse(value);
+    return result.success ? result.data : "";
   }
 
   if (!isKnownPreferenceKey(key)) {

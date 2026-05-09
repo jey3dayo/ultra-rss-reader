@@ -876,6 +876,62 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("ignores stale persist failures while the latest normalized preference write is still pending", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const staleSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    const latestSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    vi.mocked(setPreference).mockReturnValueOnce(staleSave.promise).mockReturnValueOnce(latestSave.promise);
+
+    try {
+      usePreferencesStore.getState().setPref("theme", "sepia");
+      usePreferencesStore.getState().setPref("theme", "dark");
+
+      staleSave.reject(new Error("old write failed"));
+      await staleSave.promise.catch(() => undefined);
+      await Promise.resolve();
+
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(usePreferencesStore.getState().prefs.theme).toBe("dark");
+      expect(setPreference).toHaveBeenNthCalledWith(1, "theme", "light");
+      expect(setPreference).toHaveBeenNthCalledWith(2, "theme", "dark");
+    } finally {
+      latestSave.resolve(Result.succeed(null));
+      consoleError.mockRestore();
+    }
+  });
+
+  it("ignores stale persist failures after a newer normalized preference value succeeds", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const staleSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    const latestSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    vi.mocked(setPreference).mockReturnValueOnce(staleSave.promise).mockReturnValueOnce(latestSave.promise);
+
+    try {
+      usePreferencesStore.getState().setPref("theme", "midnight");
+      usePreferencesStore.getState().setPref("theme", "dark");
+
+      latestSave.resolve(Result.succeed(null));
+      await latestSave.promise;
+      await Promise.resolve();
+
+      staleSave.reject(new Error("old normalized write failed"));
+      await staleSave.promise.catch(() => undefined);
+      await Promise.resolve();
+
+      expect(setPreference).toHaveBeenNthCalledWith(1, "theme", "light");
+      expect(setPreference).toHaveBeenNthCalledWith(2, "theme", "dark");
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(usePreferencesStore.getState().prefs.theme).toBe("dark");
+      expect(document.documentElement).toHaveClass("dark");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("does not reuse completed request ids for later preference writes", async () => {
     await i18n.changeLanguage("ja");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -973,6 +1029,28 @@ describe("usePreferencesStore preferences", () => {
       expect(consoleError).toHaveBeenCalledWith("Failed to persist preference language:", expect.any(Error));
       expect(usePreferencesStore.getState().prefs.language).toBe("en");
     } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("keeps saved language as the DB source of truth when applying the UI language rejects", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const changeLanguage = vi.spyOn(i18n, "changeLanguage").mockRejectedValue(new Error("i18n unavailable"));
+
+    try {
+      usePreferencesStore.getState().setPref("language", "en");
+      await vi.waitFor(() => {
+        expect(setPreference).toHaveBeenCalledWith("language", "en");
+      });
+      await Promise.resolve();
+
+      expect(usePreferencesStore.getState().prefs.language).toBe("en");
+      expect(i18n.language).toBe("ja");
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(consoleError).toHaveBeenCalledWith("Failed to apply UI language preference:", expect.any(Error));
+    } finally {
+      changeLanguage.mockRestore();
       consoleError.mockRestore();
     }
   });
