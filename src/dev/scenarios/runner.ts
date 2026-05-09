@@ -18,25 +18,43 @@ type RunDevScenarioOptions = {
   context?: DevScenarioContext;
 };
 
+function toDevScenarioActionError(action: string, error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error);
+  return new Error(`Dev scenario action "${action}" failed: ${message}`);
+}
+
+async function unwrapDevScenarioAction<T>(
+  action: string,
+  resultPromise: Promise<Result.Result<T, unknown>>,
+): Promise<T> {
+  const result = await resultPromise;
+  if (Result.isFailure(result)) {
+    throw toDevScenarioActionError(action, result.error);
+  }
+
+  return result.value;
+}
+
 function createDefaultDevScenarioContext(): DevScenarioContext {
   return {
     ui: useUiStore.getState(),
     queryClient,
     actions: {
       executeAction,
-      listAccounts: async () => listAccounts().then(Result.unwrap()),
-      listFeeds: async (accountId: string) => listFeeds(accountId).then(Result.unwrap()),
+      listAccounts: () => unwrapDevScenarioAction("listAccounts", listAccounts()),
+      listFeeds: (accountId: string) => unwrapDevScenarioAction("listFeeds", listFeeds(accountId)),
       listArticles: async (feedId: string, offset?: number, limit?: number) =>
-        listArticles(feedId, offset, limit).then(Result.unwrap()),
-      listTags: async () => listTags().then(Result.unwrap()),
-      getTagArticleCounts: async (accountId?: string) => getTagArticleCounts(accountId).then(Result.unwrap()),
+        unwrapDevScenarioAction("listArticles", listArticles(feedId, offset, limit)),
+      listTags: () => unwrapDevScenarioAction("listTags", listTags()),
+      getTagArticleCounts: (accountId?: string) =>
+        unwrapDevScenarioAction("getTagArticleCounts", getTagArticleCounts(accountId)),
       listArticlesByTag: async (
         tagId: string,
         offset?: number,
         limit?: number,
         accountId?: string,
         mode?: "all" | "unread" | "starred",
-      ) => listArticlesByTag(tagId, offset, limit, accountId, mode).then(Result.unwrap()),
+      ) => unwrapDevScenarioAction("listArticlesByTag", listArticlesByTag(tagId, offset, limit, accountId, mode)),
     },
   };
 }

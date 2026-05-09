@@ -5,10 +5,7 @@ import type { AfterReadingPreference } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
 
-type ArticleStatusMutation<TVariables> = Pick<
-  UseMutationResult<unknown, Error, TVariables, unknown>,
-  "mutate"
->;
+type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 
 type UseArticleAutoMarkParams = {
   articleId: string;
@@ -22,10 +19,7 @@ type UseArticleAutoMarkParams = {
   showToast: ArticleStatusToast;
 };
 
-type DelayedAfterReadingPreference = Exclude<
-  UseArticleAutoMarkParams["afterReading"],
-  "never" | "immediately"
->;
+type DelayedAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never" | "immediately">;
 
 const delayedAutoMarkTimeoutsMs = {
   after_0_3s: 300,
@@ -57,9 +51,7 @@ export function useArticleAutoMark({
 }: UseArticleAutoMarkParams) {
   const autoMarkedArticleIdRef = useRef<string | null>(null);
   const latestArticleStateRef = useRef({ articleId, viewMode });
-  const pendingAutoMarkTimeoutRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const pendingAutoMarkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   latestArticleStateRef.current = { articleId, viewMode };
 
@@ -81,11 +73,7 @@ export function useArticleAutoMark({
       return;
     }
 
-    if (
-      afterReading === "never" ||
-      isRead ||
-      autoMarkedArticleIdRef.current === articleId
-    ) {
+    if (afterReading === "never" || isRead || autoMarkedArticleIdRef.current === articleId) {
       return;
     }
 
@@ -94,8 +82,7 @@ export function useArticleAutoMark({
       pendingAutoMarkTimeoutRef.current = null;
 
       const shouldRollbackRetainedArticle =
-        viewMode === "unread" &&
-        !useUiStore.getState().retainedArticleIds.has(articleId);
+        viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
       if (viewMode === "unread") {
         retainArticle(articleId);
       }
@@ -112,8 +99,7 @@ export function useArticleAutoMark({
           onError: (error) => {
             const latestArticleState = latestArticleStateRef.current;
             const isLatestArticleState =
-              latestArticleState.articleId === articleId &&
-              latestArticleState.viewMode === viewMode;
+              latestArticleState.articleId === articleId && latestArticleState.viewMode === viewMode;
             if (autoMarkedArticleIdRef.current === articleId) {
               autoMarkedArticleIdRef.current = null;
             }
@@ -145,14 +131,5 @@ export function useArticleAutoMark({
     pendingAutoMarkTimeoutRef.current = timeout;
 
     return clearPendingAutoMarkTimeout;
-  }, [
-    addRecentlyRead,
-    afterReading,
-    articleId,
-    isRead,
-    retainArticle,
-    setRead,
-    showToast,
-    viewMode,
-  ]);
+  }, [addRecentlyRead, afterReading, articleId, isRead, retainArticle, setRead, showToast, viewMode]);
 }

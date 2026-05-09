@@ -68,10 +68,10 @@ function resolveDevWindowSizeFieldState(value: string | undefined): ReadDevWindo
   const parsed = parsePositiveIntegerResult(value);
 
   if (Result.isSuccess(parsed)) {
-    return { kind: "value", value: Result.unwrap(parsed) };
+    return { kind: "value", value: parsed.value };
   }
 
-  const error = Result.unwrapError(parsed);
+  const error = parsed.error;
   if (error === "missing_value") {
     return { kind: "missing" };
   }
@@ -123,11 +123,11 @@ function resolveLoadedDevRuntimeOptions(
   result: Awaited<ReturnType<typeof getDevRuntimeOptions>>,
 ): Result.Result<DevRuntimeOptions, LoadDevRuntimeOptionsError> {
   if (Result.isFailure(result)) {
-    logRuntimeDiagnostic("dev-runtime-options-load", "Failed to load runtime dev options:", Result.unwrapError(result));
+    logRuntimeDiagnostic("dev-runtime-options-load", "Failed to load runtime dev options:", result.error);
     return Result.fail("request_failed");
   }
 
-  return Result.succeed(Result.unwrap(result));
+  return Result.succeed(result.value);
 }
 
 function shouldRetryDevRuntimeOptionsLoad(error: LoadDevRuntimeOptionsError | null): boolean {
@@ -136,7 +136,7 @@ function shouldRetryDevRuntimeOptionsLoad(error: LoadDevRuntimeOptionsError | nu
 
 export function parseDevIntent(value: string | undefined): DevIntent {
   const intent = parseDevIntentResult(value);
-  return Result.isSuccess(intent) ? Result.unwrap(intent) : null;
+  return Result.isSuccess(intent) ? intent.value : null;
 }
 
 export function readDevIntent(): DevIntent {
@@ -207,11 +207,11 @@ export async function loadDevRuntimeOptionsResult(): Result.ResultAsync<DevRunti
     const resolved = resolveLoadedDevRuntimeOptions(result);
     if (Result.isFailure(resolved)) {
       runtimeDevOptionsCache = null;
-      runtimeDevOptionsErrorCache = Result.unwrapError(resolved);
+      runtimeDevOptionsErrorCache = resolved.error;
       return resolved;
     }
 
-    const options = Result.unwrap(resolved);
+    const options = resolved.value;
     runtimeDevOptionsCache = options;
     runtimeDevOptionsErrorCache = null;
     return resolved;
@@ -224,7 +224,7 @@ export async function loadDevRuntimeOptionsResult(): Result.ResultAsync<DevRunti
 
 export async function loadDevRuntimeOptions(): Promise<DevRuntimeOptions | null> {
   const result = await loadDevRuntimeOptionsResult();
-  return Result.isSuccess(result) ? Result.unwrap(result) : null;
+  return Result.isSuccess(result) ? result.value : null;
 }
 
 export function resetDevRuntimeOptionsCacheForTests(): void {

@@ -73,6 +73,17 @@ function toDevScenarioRuntimeException(error: DevScenarioRuntimeError): Error {
   return new Error(error.message);
 }
 
+function unwrapDevScenarioRuntimeResult<T>(
+  result: Result.Result<T, DevScenarioRuntimeError>,
+  toException: (error: DevScenarioRuntimeError) => Error,
+): T {
+  if (Result.isFailure(result)) {
+    throw toException(result.error);
+  }
+
+  return result.value;
+}
+
 function loadDevScenariosModuleResult(): Result.ResultAsync<DevScenariosModule, DevScenarioRuntimeError> {
   if (!import.meta.env.DEV) {
     return Promise.resolve(
@@ -103,14 +114,12 @@ export async function loadRuntimeDevScenariosResult(): Result.ResultAsync<
 > {
   const moduleResult = await loadDevScenariosModuleResult();
   if (Result.isFailure(moduleResult)) {
-    return Result.fail(Result.unwrapError(moduleResult));
+    return Result.fail(moduleResult.error);
   }
+  const module = moduleResult.value;
 
   return Result.try({
-    try: async () =>
-      Result.unwrap(moduleResult)
-        .listDevScenarios()
-        .map(({ id, title, keywords }) => ({ id, title, keywords })),
+    try: async () => module.listDevScenarios().map(({ id, title, keywords }) => ({ id, title, keywords })),
     catch: toDevScenarioModuleError,
   });
 }
@@ -120,12 +129,13 @@ export async function runRuntimeDevScenarioResult(
 ): Result.ResultAsync<void, DevScenarioRuntimeError> {
   const moduleResult = await loadDevScenariosModuleResult();
   if (Result.isFailure(moduleResult)) {
-    return Result.fail(Result.unwrapError(moduleResult));
+    return Result.fail(moduleResult.error);
   }
+  const module = moduleResult.value;
 
   return Result.try({
     try: async () => {
-      await Result.unwrap(moduleResult).runDevScenario(id);
+      await module.runDevScenario(id);
     },
     catch: (error) => ({
       type: "scenario_failed",
@@ -136,17 +146,12 @@ export async function runRuntimeDevScenarioResult(
 
 export async function loadRuntimeDevScenarios(): Promise<RuntimeDevScenario[]> {
   const result = await loadRuntimeDevScenariosResult();
-  if (Result.isFailure(result)) {
-    throw toDevScenarioRuntimeException(Result.unwrapError(result));
-  }
-  return Result.unwrap(result);
+  return unwrapDevScenarioRuntimeResult(result, toDevScenarioRuntimeException);
 }
 
 export async function runRuntimeDevScenario(id: DevScenarioId): Promise<void> {
   const result = await runRuntimeDevScenarioResult(id);
-  if (Result.isFailure(result)) {
-    throw toDevScenarioRuntimeException(Result.unwrapError(result));
-  }
+  unwrapDevScenarioRuntimeResult(result, toDevScenarioRuntimeException);
 }
 
 export function resetDevScenariosModuleCacheForTests(): void {

@@ -10,6 +10,7 @@ export function useTagDialogAutofocus(open: boolean) {
     }
 
     const frame = requestAnimationFrame(() => {
+      // Timer guard pattern: only the latest scheduled frame may mutate focus state.
       if (pendingFocusFrameRef.current !== frame) {
         return;
       }

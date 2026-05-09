@@ -44,6 +44,18 @@ function normalizeQueryId(id: string | null): string | null {
   return normalizedId;
 }
 
+function unwrapGeneratedQueryResult<TData>(
+  result: Result.Result<TData, { message: string }>,
+  queryKey: string,
+  queryId: string,
+): TData {
+  if (Result.isFailure(result)) {
+    throw new Error(`[${queryKey}:${queryId}] ${result.error.message}`);
+  }
+
+  return result.value;
+}
+
 export function createQuery<TData, TId extends string | null>(
   queryKey: string,
   fetcher: (id: string) => Result.ResultAsync<TData, { message: string }>,
@@ -59,7 +71,7 @@ export function createQuery<TData, TId extends string | null>(
         }
 
         return fetcher(queryId)
-          .then(Result.unwrap())
+          .then((result) => unwrapGeneratedQueryResult(result, queryKey, queryId))
           .catch((error: unknown) => {
             createQueryDiagnosticsReporter({ type: "query-function-rejected", queryKey, queryId, error });
             throw error;

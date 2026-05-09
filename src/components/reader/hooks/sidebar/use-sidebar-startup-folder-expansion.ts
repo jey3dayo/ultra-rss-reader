@@ -33,6 +33,30 @@ const StoredSidebarExpandedFoldersStorageSchema = z
   })
   .strict();
 
+function removeSidebarExpandedFoldersStorage(): void {
+  window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
+}
+
+function writeSidebarExpandedFoldersStorage(storage: SidebarExpandedFoldersStorage): void {
+  window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(storage));
+}
+
+function normalizeSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFoldersStorage | null {
+  if (raw.length > MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH) {
+    removeSidebarExpandedFoldersStorage();
+    return null;
+  }
+
+  const parsed = parseStoredSidebarExpandedFolders(raw);
+  if (!parsed) {
+    removeSidebarExpandedFoldersStorage();
+    return null;
+  }
+
+  writeNormalizedSidebarExpandedFoldersStorage(raw, parsed);
+  return parsed;
+}
+
 function normalizeStoredSidebarExpandedFolders(accounts: StoredSidebarExpandedFolders): SidebarExpandedFoldersStorage {
   return {
     version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
@@ -54,6 +78,16 @@ function parseStoredSidebarExpandedFolders(raw: string): SidebarExpandedFoldersS
   return null;
 }
 
+function writeNormalizedSidebarExpandedFoldersStorage(
+  raw: string | null,
+  storage: SidebarExpandedFoldersStorage,
+): void {
+  const normalized = JSON.stringify(storage);
+  if (raw !== normalized) {
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, normalized);
+  }
+}
+
 function readStoredSidebarExpandedFolders(): SidebarExpandedFoldersStorage {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders);
@@ -61,23 +95,7 @@ function readStoredSidebarExpandedFolders(): SidebarExpandedFoldersStorage {
       return normalizeStoredSidebarExpandedFolders({});
     }
 
-    if (raw.length > MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH) {
-      window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
-      return normalizeStoredSidebarExpandedFolders({});
-    }
-
-    const parsed = parseStoredSidebarExpandedFolders(raw);
-    if (!parsed) {
-      window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
-      return normalizeStoredSidebarExpandedFolders({});
-    }
-
-    const normalized = JSON.stringify(parsed);
-    if (raw !== normalized) {
-      window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, normalized);
-    }
-
-    return parsed;
+    return normalizeSidebarExpandedFoldersStorage(raw) ?? normalizeStoredSidebarExpandedFolders({});
   } catch {
     return normalizeStoredSidebarExpandedFolders({});
   }
@@ -125,11 +143,11 @@ function pruneStoredSidebarExpandedFolders(
 
 function getStoredSidebarExpandedFolders(accountId: string, folderList: StartupFolderExpansionFolder[]): string[] {
   const storage = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), folderList);
-  const normalized = JSON.stringify(storage);
   try {
-    if (window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) !== normalized) {
-      window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, normalized);
-    }
+    writeNormalizedSidebarExpandedFoldersStorage(
+      window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders),
+      storage,
+    );
   } catch {
     // Ignore storage cleanup failures; restore still uses the in-memory parsed state.
   }
@@ -156,7 +174,7 @@ function setStoredSidebarExpandedFolders(
       ),
     };
     const nextState = normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
-    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(nextState));
+    writeSidebarExpandedFoldersStorage(nextState);
   } catch {
     // Ignore quota or storage availability failures; expansion state remains in React state.
   }

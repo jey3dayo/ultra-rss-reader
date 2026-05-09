@@ -19,6 +19,11 @@ type OverflowMeasurementFrame = {
   cancel: () => void;
 };
 
+type ScrollOverflowObserverLifecycle = {
+  connect: () => void;
+  disconnect: () => void;
+};
+
 function scheduleOverflowMeasurement(callback: () => void): OverflowMeasurementFrame {
   if (typeof window.requestAnimationFrame === "function") {
     const animationFrame = window.requestAnimationFrame(callback);
@@ -35,6 +40,56 @@ function scheduleOverflowMeasurement(callback: () => void): OverflowMeasurementF
   return {
     cancel: () => {
       window.clearTimeout(timeout);
+    },
+  };
+}
+
+function createScrollOverflowObserverLifecycle(
+  viewport: HTMLDivElement,
+  onContentChange: () => void,
+): ScrollOverflowObserverLifecycle | null {
+  if (typeof ResizeObserver === "undefined") {
+    return null;
+  }
+
+  const resizeObserver = new ResizeObserver(() => {
+    observeContentElement();
+    onContentChange();
+  });
+  let observedContentElement: HTMLElement | null = null;
+  const observeContentElement = () => {
+    const content = viewport.firstElementChild;
+    if (!(content instanceof HTMLElement) || content === observedContentElement) {
+      return;
+    }
+    if (observedContentElement) {
+      resizeObserver.unobserve(observedContentElement);
+    }
+    observedContentElement = content;
+    resizeObserver.observe(content);
+  };
+  const mutationObserver =
+    typeof MutationObserver === "undefined"
+      ? null
+      : new MutationObserver(() => {
+          observeContentElement();
+          onContentChange();
+        });
+
+  return {
+    connect: () => {
+      resizeObserver.observe(viewport);
+      observeContentElement();
+      mutationObserver?.observe(viewport, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+      });
+    },
+    disconnect: () => {
+      mutationObserver?.disconnect();
+      resizeObserver.disconnect();
     },
   };
 }
@@ -96,57 +151,15 @@ export function useScrollOverflowState(dependency: unknown) {
       updateOverflow();
     });
     const removeWindowEvents = bindWindowEvents([{ type: "resize", listener: updateOverflow }]);
-
-    if (typeof ResizeObserver === "undefined") {
-      return () => {
-        isActive = false;
-        measurementFrame.cancel();
-        pendingMeasurementFrame?.cancel();
-        removeWindowEvents();
-      };
-    }
-
-    let resizeObserver: ResizeObserver;
-    let observedContentElement: HTMLElement | null = null;
-    const observeContentElement = () => {
-      const content = viewport.firstElementChild;
-      if (!(content instanceof HTMLElement) || content === observedContentElement) {
-        return;
-      }
-      if (observedContentElement) {
-        resizeObserver.unobserve(observedContentElement);
-      }
-      observedContentElement = content;
-      resizeObserver.observe(content);
-    };
-    resizeObserver = new ResizeObserver(() => {
-      observeContentElement();
-      scheduleUpdateOverflow();
-    });
-    const mutationObserver =
-      typeof MutationObserver === "undefined"
-        ? null
-        : new MutationObserver(() => {
-            observeContentElement();
-            scheduleUpdateOverflow();
-          });
-
-    resizeObserver.observe(viewport);
-    observeContentElement();
-    mutationObserver?.observe(viewport, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-    });
+    const observerLifecycle = createScrollOverflowObserverLifecycle(viewport, scheduleUpdateOverflow);
+    observerLifecycle?.connect();
 
     return () => {
       isActive = false;
       measurementFrame.cancel();
       pendingMeasurementFrame?.cancel();
       removeWindowEvents();
-      mutationObserver?.disconnect();
-      resizeObserver.disconnect();
+      observerLifecycle?.disconnect();
     };
   }, [dependency, viewportElement]);
 
