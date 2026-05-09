@@ -47,7 +47,9 @@ describe("pickWindowsEnvOverrides", () => {
         TAURI_DEV_PORT: "1420",
         TAURI_SIGNING_PRIVATE_KEY: "secret-key",
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "secret-password",
+        TAURI_UPDATE_SECRET: "secret-value",
         VITE_API_TOKEN: "secret-token",
+        VITE_DEV_CREDENTIALS: "secret-credentials",
         RUST_REGISTRY_TOKEN: "secret-token",
         PATH: "/usr/bin",
         HOME: "/home/dev",
@@ -317,7 +319,9 @@ describe("buildWslTauriSpawnSpec", () => {
       TAURI_DEV_PORT: "1420",
       TAURI_SIGNING_PRIVATE_KEY: "key'part",
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "password",
+      TAURI_UPDATE_SECRET: "secret",
       VITE_API_TOKEN: "token",
+      VITE_DEV_CREDENTIALS: "credentials",
     });
     const spawnSpec = buildWslTauriSpawnSpec(["dev"], "C:\\repo", envOverrides);
 
@@ -328,9 +332,13 @@ describe("buildWslTauriSpawnSpec", () => {
     expect(powerShellScript).toContain("$env:TAURI_DEV_PORT = '1420'");
     expect(powerShellScript).not.toContain("TAURI_SIGNING_PRIVATE_KEY");
     expect(powerShellScript).not.toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD");
+    expect(powerShellScript).not.toContain("TAURI_UPDATE_SECRET");
     expect(powerShellScript).not.toContain("VITE_API_TOKEN");
+    expect(powerShellScript).not.toContain("VITE_DEV_CREDENTIALS");
     expect(powerShellScript).not.toContain("key'part");
     expect(powerShellScript).not.toContain("password");
+    expect(powerShellScript).not.toContain("secret");
     expect(powerShellScript).not.toContain("token");
+    expect(powerShellScript).not.toContain("credentials");
   });
 });

@@ -95,11 +95,6 @@
   - native browser diagnostics flag が startup preference だけを読む場合、settings で Debug HUD を切り替えても native emit が即時追従しない可能性がある
   - preference update event / app restart required / frontend-only HUD のどれを正にするか決め、debug diagnostics の manual verification に残す
 
-- [ ] P2 WSL Windows env forwarding secret suffix を補強する
-  - 対象: `scripts/lib/windows-dispatch.ts`, `scripts/tauri-cli-dispatch.ts`, `src/__tests__/scripts/tauri-cli-dispatch.test.ts`
-  - Windows dispatch の env allowlist で `VITE_*` / `TAURI_*` を広く通す場合、`*_SECRET` / `*_TOKEN` / `*_CREDENTIALS` が Windows 側へ漏れる可能性がある
-  - forwarded env の secret suffix denylist と explicit allowlist を test で固定し、必要な dev env だけを通す
-
 - [ ] P0 release tag と app/package/Cargo version の一致を release workflow で固定する
   - 対象: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `.github/workflows/release.yml`
   - release tag と app/package/Cargo version がズレると、別バージョンの artifact を正規 release として配布できる
