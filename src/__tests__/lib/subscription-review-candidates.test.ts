@@ -327,6 +327,40 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
   });
 
+  it("clamps negative signal counts before deriving review reasons and facts", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        {
+          ...feeds[0],
+          id: "feed-negative-signals",
+          unread_count: -10,
+        },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-negative-signals",
+          latest_article_at: "2026-01-01T00:00:00Z",
+          starred_count: -3,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates[0]).toMatchObject({
+      feedId: "feed-negative-signals",
+      unreadCount: 0,
+      starredCount: 0,
+      reasonKeys: ["stale_90d", "no_unread", "no_stars"],
+    });
+    expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([
+      { key: "stale_days", value: 94 },
+      { key: "unread_count", value: 0 },
+      { key: "starred_count", value: 0 },
+    ]);
+  });
+
   it("sorts equally stale candidates by reason count, unread count, starred count, then title", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [

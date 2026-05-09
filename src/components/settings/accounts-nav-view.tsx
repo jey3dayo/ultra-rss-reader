@@ -31,9 +31,9 @@ function getServerHostLabel(serverUrl?: string | null): string | null {
   }
 
   try {
-    return new URL(normalized).host || normalized;
+    return new URL(normalized).host || null;
   } catch {
-    return normalized;
+    return null;
   }
 }
 

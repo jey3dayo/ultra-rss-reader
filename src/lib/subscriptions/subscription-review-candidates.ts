@@ -162,6 +162,10 @@ export function buildFolderNameByIdMap(folders: FolderDto[]): Map<string, string
   return new Map(folders.map((folder) => [folder.id, folder.name]));
 }
 
+function clampNonnegativeCount(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
@@ -180,14 +184,15 @@ export function buildSubscriptionReviewCandidates({
 
       const latestArticleDate = parseDateInput(latestArticleAt);
       const staleDays = latestArticleDate === null ? null : Math.max(0, differenceInDays(now, latestArticleDate));
-      const starredCount = summary?.starred_count ?? 0;
+      const unreadCount = clampNonnegativeCount(feed.unread_count);
+      const starredCount = clampNonnegativeCount(summary?.starred_count ?? 0);
       const hasFetchedArticle = latestArticleAt !== null;
       const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
       if (staleDays != null && staleDays >= 90) {
         reasonKeys.push("stale_90d");
       }
-      if (hasFetchedArticle && feed.unread_count === 0) {
+      if (hasFetchedArticle && unreadCount === 0) {
         reasonKeys.push("no_unread");
       }
       if (hasFetchedArticle && starredCount === 0) {
@@ -201,7 +206,7 @@ export function buildSubscriptionReviewCandidates({
         folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
         latestArticleAt,
         staleDays,
-        unreadCount: feed.unread_count,
+        unreadCount,
         starredCount,
         reasonKeys,
       } satisfies SubscriptionReviewCandidate;

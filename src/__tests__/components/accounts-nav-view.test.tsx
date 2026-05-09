@@ -60,6 +60,48 @@ describe("AccountsNavView", () => {
     ).toBeNull();
   });
 
+  it("resolves server host descriptions without exposing unsafe raw URL details", () => {
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-trimmed",
+          name: "debug",
+          kind: "freshrss",
+          username: "debug",
+          serverUrl: " \nhttps://feeds.example.com/api/greader.php\t ",
+          isActive: false,
+        },
+        true,
+      ),
+    ).toBe("feeds.example.com");
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-userinfo",
+          name: "debug",
+          kind: "freshrss",
+          username: "debug",
+          serverUrl: "https://alice:secret@feeds.example.com/api/greader.php",
+          isActive: false,
+        },
+        true,
+      ),
+    ).toBe("feeds.example.com");
+    expect(
+      resolveAccountDescription(
+        {
+          id: "acc-malformed",
+          name: "debug",
+          kind: "freshrss",
+          username: "debug",
+          serverUrl: "not a\nurl",
+          isActive: false,
+        },
+        true,
+      ),
+    ).toBeNull();
+  });
+
   it("hides account descriptions when there is only one account", () => {
     render(
       <AccountsNavView
