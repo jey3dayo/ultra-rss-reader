@@ -19,6 +19,7 @@ const SECRET_LIKE_VALUE_PATTERN = /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs
 export type SpawnSpec = {
   command: string;
   args: string[];
+  env?: NodeJS.ProcessEnv;
   shell?: boolean;
 };
 

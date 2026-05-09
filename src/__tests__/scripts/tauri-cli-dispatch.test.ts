@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildChildEnvForSpawnSpec,
   buildLocalTauriSpawnSpec,
   buildPnpmCommand,
   buildWslTauriSpawnSpec,
@@ -345,5 +346,33 @@ describe("buildWslTauriSpawnSpec", () => {
     expect(powerShellScript).not.toContain("secret");
     expect(powerShellScript).not.toContain("token");
     expect(powerShellScript).not.toContain("credentials");
+  });
+
+  it("keeps forwarded env overrides in both the spawn spec and child env", () => {
+    const forwardedEnv = pickWindowsEnvOverrides({
+      DEV_CREDENTIALS: "1",
+      VITE_DEV_INTENT: "open-subscriptions-index",
+      TAURI_DEV_PORT: "1432",
+      VITE_API_TOKEN: "secret-token",
+    });
+    const spawnSpec = buildWslTauriSpawnSpec(["dev"], "C:\\repo", forwardedEnv);
+    const childEnv = buildChildEnvForSpawnSpec(spawnSpec, {
+      PATH: "/usr/bin",
+      VITE_DEV_INTENT: "stale",
+      VITE_API_TOKEN: "secret-token",
+    });
+
+    expect(spawnSpec.env).toEqual({
+      DEV_CREDENTIALS: "1",
+      VITE_DEV_INTENT: "open-subscriptions-index",
+      TAURI_DEV_PORT: "1432",
+    });
+    expect(childEnv).toMatchObject({
+      PATH: "/usr/bin",
+      DEV_CREDENTIALS: "1",
+      VITE_DEV_INTENT: "open-subscriptions-index",
+      TAURI_DEV_PORT: "1432",
+      VITE_API_TOKEN: "secret-token",
+    });
   });
 });

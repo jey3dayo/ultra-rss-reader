@@ -132,7 +132,17 @@ export function buildWslTauriSpawnSpec(
   windowsCwd: string,
   envOverrides: Record<string, string> = {},
 ): SpawnSpec {
-  return buildWslWindowsSpawnSpec("pnpm", ["exec", "tauri", ...cliArgs], windowsCwd, envOverrides);
+  return {
+    ...buildWslWindowsSpawnSpec("pnpm", ["exec", "tauri", ...cliArgs], windowsCwd, envOverrides),
+    env: envOverrides,
+  };
+}
+
+export function buildChildEnvForSpawnSpec(
+  spawnSpec: SpawnSpec,
+  baseEnv: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  return spawnSpec.env ? { ...baseEnv, ...spawnSpec.env } : baseEnv;
 }
 
 async function resolveSpawnSpec(cliArgs: string[]): Promise<SpawnSpec> {
@@ -156,7 +166,7 @@ async function main(): Promise<void> {
   const spawnSpec = await resolveSpawnSpec(cliArgs);
   const child = spawn(spawnSpec.command, spawnSpec.args, {
     stdio: "inherit",
-    env: process.env,
+    env: buildChildEnvForSpawnSpec(spawnSpec),
     shell: spawnSpec.shell,
   });
 

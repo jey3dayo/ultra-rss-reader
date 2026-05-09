@@ -1,4 +1,5 @@
 import { execFile, spawn } from "node:child_process";
+import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -33,6 +34,7 @@ type SpawnImpl = (
 type ListeningProcess = {
   pid: number;
   commandLine: string;
+  cwd?: string;
 };
 
 type ManagerResult = "checked" | "spawned";
@@ -43,10 +45,71 @@ type TauriDevViteManagerOptions = {
   scriptUrl?: string;
   getListeningProcessImpl?: (port: number) => Promise<ListeningProcess | null>;
   stopProcessImpl?: (pid: number) => void;
+  forceStopProcessImpl?: (pid: number) => void;
   waitForPortToBeFreeImpl?: (port: number) => Promise<void>;
   spawnImpl?: SpawnImpl;
   log?: (message: string) => void;
 };
+
+type PortOwnerProcess = {
+  commandLine: string;
+  cwd?: string;
+};
+
+type ExpectedViteOwner = {
+  port: number;
+  packageRoot: string;
+};
+
+function normalizePathForComparison(value: string): string {
+  const slashPath = value.replaceAll("\\", "/").replace(/\/+$/, "");
+  if (/^[a-zA-Z]:\//.test(slashPath)) {
+    return slashPath.toLowerCase();
+  }
+
+  return path.resolve(slashPath).replaceAll("\\", "/").replace(/\/+$/, "").toLowerCase();
+}
+
+function splitCommandLine(commandLine: string): string[] {
+  const args: string[] = [];
+  const pattern = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^']*)'|(\S+)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(commandLine)) !== null) {
+    args.push(match[1] ?? match[2] ?? match[3] ?? "");
+  }
+
+  return args;
+}
+
+function hasExpectedVitePort(commandArgs: readonly string[], port: number): boolean {
+  const expectedPort = String(port);
+
+  return commandArgs.some((arg, index) => {
+    if (arg === "--port") {
+      return commandArgs[index + 1] === expectedPort;
+    }
+
+    return arg === `--port=${expectedPort}`;
+  });
+}
+
+function commandArgsReferencePackageRoot(commandArgs: readonly string[], packageRoot: string): boolean {
+  const normalizedPackageRoot = normalizePathForComparison(packageRoot);
+
+  return commandArgs.some((arg) => {
+    const normalizedArg = normalizePathForComparison(arg);
+    return (
+      normalizedArg === normalizedPackageRoot ||
+      normalizedArg.startsWith(`${normalizedPackageRoot}/node_modules/`) ||
+      normalizedArg.startsWith(`${normalizedPackageRoot}/.pnpm/`)
+    );
+  });
+}
+
+function resolvePackageRoot(scriptUrl: string): string {
+  return path.resolve(fileURLToPath(new URL("..", scriptUrl)));
+}
 
 export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind {
   const normalized = commandLine.trim().toLowerCase();
@@ -63,6 +126,28 @@ export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind
   }
 
   return "foreign";
+}
+
+export function classifyPortOwner(processInfo: PortOwnerProcess, expectedOwner: ExpectedViteOwner): PortOwnerKind {
+  const ownerKind = classifyPortOwnerCommandLine(processInfo.commandLine);
+  if (ownerKind !== "vite") {
+    return ownerKind;
+  }
+
+  const commandArgs = splitCommandLine(processInfo.commandLine);
+  if (processInfo.cwd) {
+    if (normalizePathForComparison(processInfo.cwd) !== normalizePathForComparison(expectedOwner.packageRoot)) {
+      return "foreign";
+    }
+  } else if (!commandArgsReferencePackageRoot(commandArgs, expectedOwner.packageRoot)) {
+    return "foreign";
+  }
+
+  if (!hasExpectedVitePort(commandArgs, expectedOwner.port)) {
+    return "foreign";
+  }
+
+  return "vite";
 }
 
 export function buildViteSpawnSpec(scriptUrl: string = import.meta.url, port: number = DEFAULT_DEV_PORT): SpawnSpec {
@@ -173,8 +258,11 @@ async function getListeningProcessOnUnix(port: number): Promise<ListeningProcess
     return null;
   }
 
-  const commandLine = await capture("ps", ["-p", String(pid), "-o", "command="], [0, 1]);
-  return { pid, commandLine };
+  const [commandLine, cwd] = await Promise.all([
+    capture("ps", ["-p", String(pid), "-o", "command="], [0, 1]),
+    getProcessCwdOnUnix(pid),
+  ]);
+  return { pid, commandLine, cwd };
 }
 
 async function getListeningProcessFromSs(port: number): Promise<ListeningProcess | null> {
@@ -186,8 +274,36 @@ async function getListeningProcessFromSs(port: number): Promise<ListeningProcess
   }
 
   const pid = Number(pidMatch[1]);
-  const commandLine = await capture("ps", ["-p", String(pid), "-o", "command="], [0, 1]);
-  return { pid, commandLine };
+  const [commandLine, cwd] = await Promise.all([
+    capture("ps", ["-p", String(pid), "-o", "command="], [0, 1]),
+    getProcessCwdOnUnix(pid),
+  ]);
+  return { pid, commandLine, cwd };
+}
+
+async function getProcessCwdOnUnix(pid: number): Promise<string | undefined> {
+  if (process.platform === "linux") {
+    try {
+      const cwd = await capture("pwdx", [String(pid)], [0, 1]);
+      const cwdMatch = cwd.match(/^\d+:\s*(.+)$/);
+      return cwdMatch?.[1]?.trim() || undefined;
+    } catch (error: unknown) {
+      if (getExecErrorCode(error) !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  try {
+    const cwdOutput = await capture("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], [0, 1]);
+    const cwdLine = cwdOutput.split(/\r?\n/).find((line) => line.startsWith("n"));
+    return cwdLine?.slice(1).trim() || undefined;
+  } catch (error: unknown) {
+    if (getExecErrorCode(error) !== "ENOENT") {
+      throw error;
+    }
+    return undefined;
+  }
 }
 
 async function getListeningProcessOnWindows(port: number): Promise<ListeningProcess | null> {
@@ -248,6 +364,10 @@ function stopProcess(pid: number): void {
   process.kill(pid, "SIGTERM");
 }
 
+function forceStopProcess(pid: number): void {
+  process.kill(pid, "SIGKILL");
+}
+
 function isCheckMode(args: string[]): boolean {
   return args.includes("--check");
 }
@@ -258,16 +378,18 @@ export async function runTauriDevViteManager({
   scriptUrl = import.meta.url,
   getListeningProcessImpl = getListeningProcess,
   stopProcessImpl = stopProcess,
+  forceStopProcessImpl = forceStopProcess,
   waitForPortToBeFreeImpl = waitForPortToBeFree,
   spawnImpl = spawn,
   log = console.log,
 }: TauriDevViteManagerOptions = {}): Promise<ManagerResult> {
   const port = resolveTauriDevPort(env);
+  const packageRoot = resolvePackageRoot(scriptUrl);
   const checkMode = isCheckMode(args);
   const existingProcess = await getListeningProcessImpl(port);
 
   if (existingProcess) {
-    const ownerKind = classifyPortOwnerCommandLine(existingProcess.commandLine);
+    const ownerKind = classifyPortOwner(existingProcess, { packageRoot, port });
     if (ownerKind !== "vite") {
       throw new Error(
         `Port ${port} is already in use by another process (pid ${existingProcess.pid}): ${existingProcess.commandLine || "unknown"}`,
@@ -281,7 +403,15 @@ export async function runTauriDevViteManager({
 
     log(`[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`);
     stopProcessImpl(existingProcess.pid);
-    await waitForPortToBeFreeImpl(port);
+    try {
+      await waitForPortToBeFreeImpl(port);
+    } catch (error) {
+      log(
+        `[tauri-dev-vite-manager] existing Vite dev server did not stop after SIGTERM; sending SIGKILL to pid ${existingProcess.pid}`,
+      );
+      forceStopProcessImpl(existingProcess.pid);
+      await waitForPortToBeFreeImpl(port);
+    }
   }
 
   if (checkMode) {
