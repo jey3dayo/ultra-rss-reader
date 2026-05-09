@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
 import { useUiStore } from "@/stores/ui-store";
@@ -8,9 +8,11 @@ export function AppConfirmDialog() {
   const confirmDialog = useUiStore((s) => s.confirmDialog);
   const closeConfirm = useUiStore((s) => s.closeConfirm);
   const [confirmInFlight, setConfirmInFlight] = useState(false);
+  const confirmInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!confirmDialog.open) {
+      confirmInFlightRef.current = false;
       setConfirmInFlight(false);
     }
   }, [confirmDialog.open]);
@@ -22,7 +24,7 @@ export function AppConfirmDialog() {
   }, [closeConfirm, confirmInFlight]);
 
   const handleConfirm = useCallback(async () => {
-    if (confirmInFlight) {
+    if (confirmInFlightRef.current) {
       return;
     }
 
@@ -32,6 +34,7 @@ export function AppConfirmDialog() {
       return;
     }
 
+    confirmInFlightRef.current = true;
     setConfirmInFlight(true);
 
     try {
@@ -39,9 +42,10 @@ export function AppConfirmDialog() {
       closeConfirm();
     } catch (error) {
       console.error("Failed to run confirm dialog action.", error);
+      confirmInFlightRef.current = false;
       setConfirmInFlight(false);
     }
-  }, [closeConfirm, confirmDialog.onConfirm, confirmInFlight]);
+  }, [closeConfirm, confirmDialog.onConfirm]);
 
   return (
     <ConfirmDialogView

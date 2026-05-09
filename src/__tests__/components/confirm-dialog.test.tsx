@@ -93,6 +93,28 @@ describe("AppConfirmDialog", () => {
     }
   });
 
+  it("keeps the confirm dialog open when the confirm action throws synchronously", async () => {
+    const user = userEvent.setup();
+    const error = new Error("confirm failed");
+    const onConfirm = vi.fn(() => {
+      throw error;
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    useUiStore.getState().showConfirm("Apply this action?", onConfirm, { actionLabel: "Apply" });
+
+    try {
+      render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+      await user.click(screen.getByRole("button", { name: "Apply" }));
+
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().confirmDialog.open).toBe(true);
+      expect(consoleError).toHaveBeenCalledWith("Failed to run confirm dialog action.", error);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("cancels and closes without running the confirm action", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
