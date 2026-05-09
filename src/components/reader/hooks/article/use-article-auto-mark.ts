@@ -5,7 +5,10 @@ import type { AfterReadingPreference } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
 
-type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
+type ArticleStatusMutation<TVariables> = Pick<
+  UseMutationResult<unknown, Error, TVariables, unknown>,
+  "mutate"
+>;
 
 type UseArticleAutoMarkParams = {
   articleId: string;
@@ -19,7 +22,10 @@ type UseArticleAutoMarkParams = {
   showToast: ArticleStatusToast;
 };
 
-type DelayedAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never" | "immediately">;
+type DelayedAfterReadingPreference = Exclude<
+  UseArticleAutoMarkParams["afterReading"],
+  "never" | "immediately"
+>;
 
 const delayedAutoMarkTimeoutsMs = {
   after_0_3s: 300,
@@ -51,22 +57,35 @@ export function useArticleAutoMark({
 }: UseArticleAutoMarkParams) {
   const autoMarkedArticleIdRef = useRef<string | null>(null);
   const latestArticleStateRef = useRef({ articleId, viewMode });
-  const pendingAutoMarkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAutoMarkTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   latestArticleStateRef.current = { articleId, viewMode };
 
   useEffect(() => {
-    if (pendingAutoMarkTimeoutRef.current !== null) {
-      clearTimeout(pendingAutoMarkTimeoutRef.current);
+    const clearPendingAutoMarkTimeout = () => {
+      const pendingTimeout = pendingAutoMarkTimeoutRef.current;
+      if (pendingTimeout === null) {
+        return;
+      }
+
+      clearTimeout(pendingTimeout);
       pendingAutoMarkTimeoutRef.current = null;
-    }
+    };
+
+    clearPendingAutoMarkTimeout();
 
     if (isRead && autoMarkedArticleIdRef.current === articleId) {
       autoMarkedArticleIdRef.current = null;
       return;
     }
 
-    if (afterReading === "never" || isRead || autoMarkedArticleIdRef.current === articleId) {
+    if (
+      afterReading === "never" ||
+      isRead ||
+      autoMarkedArticleIdRef.current === articleId
+    ) {
       return;
     }
 
@@ -75,7 +94,8 @@ export function useArticleAutoMark({
       pendingAutoMarkTimeoutRef.current = null;
 
       const shouldRollbackRetainedArticle =
-        viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
+        viewMode === "unread" &&
+        !useUiStore.getState().retainedArticleIds.has(articleId);
       if (viewMode === "unread") {
         retainArticle(articleId);
       }
@@ -92,7 +112,8 @@ export function useArticleAutoMark({
           onError: (error) => {
             const latestArticleState = latestArticleStateRef.current;
             const isLatestArticleState =
-              latestArticleState.articleId === articleId && latestArticleState.viewMode === viewMode;
+              latestArticleState.articleId === articleId &&
+              latestArticleState.viewMode === viewMode;
             if (autoMarkedArticleIdRef.current === articleId) {
               autoMarkedArticleIdRef.current = null;
             }
@@ -113,13 +134,25 @@ export function useArticleAutoMark({
       return;
     }
 
-    pendingAutoMarkTimeoutRef.current = setTimeout(markArticleAsRead, delayedAutoMarkTimeoutsMs[afterReading]);
-
-    return () => {
-      if (pendingAutoMarkTimeoutRef.current !== null) {
-        clearTimeout(pendingAutoMarkTimeoutRef.current);
-        pendingAutoMarkTimeoutRef.current = null;
+    const timeout = setTimeout(() => {
+      // Timer guard pattern: only the latest scheduled timeout may mutate read state.
+      if (pendingAutoMarkTimeoutRef.current !== timeout) {
+        return;
       }
-    };
-  }, [addRecentlyRead, afterReading, articleId, isRead, retainArticle, setRead, showToast, viewMode]);
+
+      markArticleAsRead();
+    }, delayedAutoMarkTimeoutsMs[afterReading]);
+    pendingAutoMarkTimeoutRef.current = timeout;
+
+    return clearPendingAutoMarkTimeout;
+  }, [
+    addRecentlyRead,
+    afterReading,
+    articleId,
+    isRead,
+    retainArticle,
+    setRead,
+    showToast,
+    viewMode,
+  ]);
 }

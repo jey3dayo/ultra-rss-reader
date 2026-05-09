@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CreateTagDialogView } from "@/components/reader/create-tag-dialog-view";
 
@@ -33,7 +34,9 @@ describe("CreateTagDialogView", () => {
     const selectSpy = vi.spyOn(input, "select");
 
     if (pendingFrames.length === 0) {
-      throw new Error("expected requestAnimationFrame callback to be scheduled");
+      throw new Error(
+        "expected requestAnimationFrame callback to be scheduled",
+      );
     }
     for (const scheduledFrame of pendingFrames) {
       scheduledFrame(0);
@@ -83,10 +86,48 @@ describe("CreateTagDialogView", () => {
     expect(cancelAnimationFrame).toHaveBeenCalledWith(5);
     const scheduledFrame = scheduledFrames[0];
     if (!scheduledFrame) {
-      throw new Error("expected requestAnimationFrame callback to be scheduled");
+      throw new Error(
+        "expected requestAnimationFrame callback to be scheduled",
+      );
     }
     scheduledFrame(0);
     expect(focusSpy).not.toHaveBeenCalled();
     expect(selectSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps stale StrictMode autofocus frames from focusing after cleanup", () => {
+    const scheduledFrames: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn((callback: FrameRequestCallback) => {
+        scheduledFrames.push(callback);
+        return scheduledFrames.length;
+      }),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    render(
+      <StrictMode>
+        <CreateTagDialogView
+          open={true}
+          name="Review"
+          loading={false}
+          onOpenChange={vi.fn()}
+          onNameChange={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </StrictMode>,
+    );
+
+    const input = screen.getByLabelText("Name") as HTMLInputElement;
+    const focusSpy = vi.spyOn(input, "focus");
+    const selectSpy = vi.spyOn(input, "select");
+
+    for (const scheduledFrame of scheduledFrames) {
+      scheduledFrame(0);
+    }
+
+    expect(focusSpy).toHaveBeenCalledTimes(1);
+    expect(selectSpy).toHaveBeenCalledTimes(1);
   });
 });

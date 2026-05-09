@@ -14,6 +14,7 @@ Async code that changes UI state, native state, storage, cache, or user-visible 
 - Optimistic updates must explicitly choose rollback or optimistic-state retention on persist failure.
 - Cleanup paths must be clear for component unmount, modal close, route/view change, and repeated trigger.
 - Avoid letting stale promise resolution overwrite newer user intent.
+- Deferred timers/frames must keep their owner-specific side effect local, clear the pending ref on cleanup, and check that the pending ref still matches the firing handle before running. Do not extract a shared hook when the deferred effects have different semantics, such as DOM focus/select versus article mutation.
 - Keep async ordering policy in the hook/store/helper that owns the side effect, not scattered across view components.
 - React Query invalidation and mutation wrappers should define whether post-success invalidation failure changes mutation success, logs only, or becomes visible to the user.
 
@@ -21,6 +22,7 @@ Async code that changes UI state, native state, storage, cache, or user-visible 
 
 - For UI state updates, test rapid repeated calls with deferred promises when stale ordering is plausible.
 - For hooks, test unmount before promise settle when the hook owns local state or global loading state.
+- For delayed timers/frames, test stale callback no-op behavior after cleanup or reschedule, including React StrictMode double effect when it can duplicate scheduling.
 - For fire-and-forget native/storage calls, test rejected promise and `Result.fail` separately when both can occur.
 - For optimistic updates, assert both the visible state and the user-visible error surface after failure.
 
