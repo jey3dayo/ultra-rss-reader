@@ -8,6 +8,8 @@ import {
   focusSelectedAccountPaneTarget,
   focusSelectedSidebarTarget,
   focusSidebarSmartViewTargetWhenReady,
+  getAccountPaneNavigationTargetSelector,
+  getAccountPaneSelectedTargetSelector,
   getReaderFocusBooleanSelector,
   getSidebarSmartViewKindSelector,
   isArticleListPaneTarget,
@@ -17,10 +19,12 @@ import {
   SIDEBAR_FALLBACK_TARGET_ATTRIBUTE,
   SIDEBAR_SELECTED_TARGET_ATTRIBUTE,
   SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE,
+  scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 
 describe("reader-focus", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
     document.body.replaceChildren();
   });
@@ -45,9 +49,11 @@ describe("reader-focus", () => {
     expect(getReaderFocusBooleanSelector(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE)).toBe(
       '[data-account-pane-selected-target="true"]',
     );
+    expect(getAccountPaneSelectedTargetSelector()).toBe('[data-account-pane-selected-target="true"]');
     expect(getReaderFocusBooleanSelector(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE)).toBe(
       '[data-account-pane-navigation-target="true"]',
     );
+    expect(getAccountPaneNavigationTargetSelector()).toBe('[data-account-pane-navigation-target="true"]');
     expect(getSidebarSmartViewKindSelector("unread")).toBe('[data-sidebar-smart-view-kind="unread"]');
   });
 
@@ -194,6 +200,39 @@ describe("reader-focus", () => {
     expect(row).not.toHaveFocus();
   });
 
+  it("falls back to a cancellable timeout when requestAnimationFrame is unavailable", () => {
+    vi.useFakeTimers();
+    const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
+    const callback = vi.fn();
+    Object.defineProperty(window, "requestAnimationFrame", { value: undefined, configurable: true });
+
+    const cleanup = scheduleReaderFocusFrame(callback);
+    cleanup();
+    vi.runOnlyPendingTimers();
+
+    expect(callback).not.toHaveBeenCalled();
+    restoreProperty(window, "requestAnimationFrame", requestAnimationFrameDescriptor);
+  });
+
+  it("falls back to a timeout when requestAnimationFrame throws", () => {
+    vi.useFakeTimers();
+    const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
+    const requestAnimationFrame = vi.fn(() => {
+      throw new Error("frame failed");
+    });
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const callback = vi.fn();
+    Object.defineProperty(window, "requestAnimationFrame", { value: requestAnimationFrame, configurable: true });
+
+    scheduleReaderFocusFrame(callback);
+    vi.runOnlyPendingTimers();
+
+    expect(requestAnimationFrame).toHaveBeenCalledOnce();
+    expect(callback).toHaveBeenCalledOnce();
+    expect(consoleWarn).toHaveBeenCalledOnce();
+    restoreProperty(window, "requestAnimationFrame", requestAnimationFrameDescriptor);
+  });
+
   it("focuses the article content pane", () => {
     const articlePane = createDiv({ "data-article-content-pane": "true", tabindex: "0" });
     document.body.append(articlePane);
@@ -331,4 +370,13 @@ function setThrowingScrollIntoView(element: HTMLElement) {
     }),
     configurable: true,
   });
+}
+
+function restoreProperty<T extends object>(target: T, property: keyof T, descriptor: PropertyDescriptor | undefined) {
+  if (descriptor) {
+    Object.defineProperty(target, property, descriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(target, property);
 }

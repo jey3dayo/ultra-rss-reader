@@ -5,7 +5,11 @@ import {
   normalizePaneNavigationKey,
   selectCurrentAccountPaneTargetAndFocusSidebar,
 } from "@/lib/account/account-pane-navigation";
-import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import {
+  ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE,
+  ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
+  getAccountPaneNavigationTargetSelector,
+} from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("account-pane-navigation", () => {
@@ -33,6 +37,16 @@ describe("account-pane-navigation", () => {
     expect(normalizePaneNavigationKey("ArrowLeft")).toBeNull();
     expect(normalizePaneNavigationKey("Tab")).toBeNull();
     expect(normalizePaneNavigationKey("")).toBeNull();
+  });
+
+  it("uses the reader focus account-pane navigation selector contract", () => {
+    const querySelectorAll = vi.spyOn(document, "querySelectorAll");
+    const button = createAccountPaneButton({ selected: true });
+    document.body.append(button);
+
+    expect(focusAdjacentAccountPaneTarget(1)).toBe(true);
+
+    expect(querySelectorAll).toHaveBeenCalledWith(getAccountPaneNavigationTargetSelector());
   });
 
   it("rejects blank account pane account ids before selecting an account", () => {

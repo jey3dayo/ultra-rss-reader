@@ -18,6 +18,9 @@ export type ReaderFocusAttribute = ReaderFocusTargetAttribute | SidebarSmartView
 export type ReaderFocusReturnAction = "focus-sidebar" | "focus-list";
 type ReaderFocusRetryGenerationKey = "article-list-row" | "sidebar-smart-view";
 export type ReaderFocusRetryCleanup = () => void;
+export type ReaderFocusFrameCleanup = () => void;
+
+const READER_FOCUS_FRAME_SCHEDULE_WARNING = "Failed to schedule reader focus frame.";
 
 const readerFocusRetryGenerations: Record<ReaderFocusRetryGenerationKey, number> = {
   "article-list-row": 0,
@@ -28,8 +31,53 @@ export function getReaderFocusBooleanSelector(attribute: ReaderFocusTargetAttrib
   return `[${attribute}="true"]`;
 }
 
+export function getAccountPaneNavigationTargetSelector(): string {
+  return getReaderFocusBooleanSelector(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE);
+}
+
+export function getAccountPaneSelectedTargetSelector(): string {
+  return getReaderFocusBooleanSelector(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE);
+}
+
 export function getSidebarSmartViewKindSelector(kind: SmartViewKind): string {
   return `[${SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE}="${kind}"]`;
+}
+
+export function scheduleReaderFocusFrame(callback: () => void): ReaderFocusFrameCleanup {
+  const timeoutFallback = () => {
+    if (typeof window === "undefined" || typeof window.setTimeout !== "function") {
+      callback();
+      return null;
+    }
+
+    return window.setTimeout(callback, 0);
+  };
+
+  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+    const timeoutId = timeoutFallback();
+    return () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }
+
+  try {
+    const frameId = window.requestAnimationFrame(callback);
+    return () => {
+      if (typeof window.cancelAnimationFrame === "function") {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  } catch (error) {
+    console.warn(READER_FOCUS_FRAME_SCHEDULE_WARNING, error);
+    const timeoutId = timeoutFallback();
+    return () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }
 }
 
 export function isReaderFocusTargetDisabled(target: HTMLElement): boolean {
@@ -232,7 +280,7 @@ export function focusSelectedAccountPaneTarget(): boolean {
   }
 
   return focusFirstAvailableTarget([
-    document.querySelector<HTMLElement>(getReaderFocusBooleanSelector(ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE)),
-    document.querySelector<HTMLElement>(getReaderFocusBooleanSelector(ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE)),
+    document.querySelector<HTMLElement>(getAccountPaneSelectedTargetSelector()),
+    document.querySelector<HTMLElement>(getAccountPaneNavigationTargetSelector()),
   ]);
 }

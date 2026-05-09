@@ -14,6 +14,7 @@ import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedAccountPaneTarget,
   focusSidebarSmartViewTargetWhenReady,
+  scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
@@ -42,15 +43,13 @@ export function AccountPane() {
       return;
     }
 
-    const animationFrameId = requestAnimationFrame(() => {
+    const cleanupFocusFrame = scheduleReaderFocusFrame(() => {
       if (accountPaneOpen) {
         focusSelectedAccountPaneTarget();
       }
     });
 
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
+    return cleanupFocusFrame;
   }, [accountPaneOpen]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
