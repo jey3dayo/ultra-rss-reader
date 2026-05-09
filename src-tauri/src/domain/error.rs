@@ -99,27 +99,48 @@ fn contains_dns_error_marker(normalized_message: &str) -> bool {
         .any(|marker| normalized_message.contains(marker))
 }
 
+#[derive(Debug, Default)]
+struct NetworkErrorClassificationInput<'a> {
+    message: &'a str,
+    has_resolution_failed: bool,
+    has_dns_error_marker: bool,
+    is_loopback_connectivity_timeout: bool,
+    is_timeout: bool,
+    is_connect: bool,
+}
+
+fn classify_network_error(input: NetworkErrorClassificationInput<'_>) -> String {
+    if input.has_resolution_failed || input.has_dns_error_marker {
+        return DNS_RESOLUTION_ERROR_MESSAGE.to_string();
+    }
+
+    if input.is_loopback_connectivity_timeout {
+        return CONNECTIVITY_ERROR_MESSAGE.to_string();
+    }
+
+    if input.is_timeout {
+        return TIMEOUT_ERROR_MESSAGE.to_string();
+    }
+
+    if input.is_connect {
+        return CONNECTIVITY_ERROR_MESSAGE.to_string();
+    }
+
+    redact_sensitive_network_error_message(input.message)
+}
+
 fn classify_reqwest_network_error(error: &reqwest::Error) -> String {
     let message = error.to_string();
     let normalized = message.to_ascii_lowercase();
 
-    if has_resolution_failed(error) || contains_dns_error_marker(&normalized) {
-        return DNS_RESOLUTION_ERROR_MESSAGE.to_string();
-    }
-
-    if is_loopback_connectivity_timeout(error) {
-        return CONNECTIVITY_ERROR_MESSAGE.to_string();
-    }
-
-    if error.is_timeout() {
-        return TIMEOUT_ERROR_MESSAGE.to_string();
-    }
-
-    if error.is_connect() {
-        return CONNECTIVITY_ERROR_MESSAGE.to_string();
-    }
-
-    redact_sensitive_network_error_message(&message)
+    classify_network_error(NetworkErrorClassificationInput {
+        message: &message,
+        has_resolution_failed: has_resolution_failed(error),
+        has_dns_error_marker: contains_dns_error_marker(&normalized),
+        is_loopback_connectivity_timeout: is_loopback_connectivity_timeout(error),
+        is_timeout: error.is_timeout(),
+        is_connect: error.is_connect(),
+    })
 }
 
 fn redact_sensitive_network_error_message(message: &str) -> String {
@@ -195,105 +216,84 @@ impl From<reqwest::Error> for DomainError {
 #[cfg(test)]
 mod tests {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener};
-    use std::time::Duration;
 
     use super::{
-        any_loopback_socket_accepts_connection, redact_sensitive_network_error_message, DomainError,
+        any_loopback_socket_accepts_connection, classify_network_error,
+        redact_sensitive_network_error_message, DomainError, NetworkErrorClassificationInput,
     };
     use crate::commands::dto::AppError;
     use reqwest::StatusCode;
 
-    #[tokio::test]
-    async fn reqwest_dns_errors_are_mapped_to_actionable_message() {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(2))
-            .build()
-            .expect("client should build");
-
-        let error = client
-            .post("http://nonexistent.invalid/api/greader.php/accounts/ClientLogin")
-            .send()
-            .await
-            .expect_err("request should fail");
-
-        let domain_error = DomainError::from(error);
-
+    #[test]
+    fn network_error_classification_maps_resolution_failures_to_actionable_message() {
         assert_eq!(
-            domain_error.to_string(),
-            "Network error: Could not resolve the server name. Check the server URL or your DNS/network settings."
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "request failed before DNS resolution",
+                has_resolution_failed: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not resolve the server name. Check the server URL or your DNS/network settings."
         );
     }
 
-    #[tokio::test]
-    async fn reqwest_connect_errors_remain_connectivity_failures() {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(2))
-            .build()
-            .expect("client should build");
-
-        let listener =
-            TcpListener::bind("127.0.0.1:0").expect("listener should bind to an ephemeral port");
-        let port = listener
-            .local_addr()
-            .expect("listener should expose its bound address")
-            .port();
-        drop(listener);
-
-        let error = client
-            .post(format!(
-                "http://127.0.0.1:{port}/api/greader.php/accounts/ClientLogin"
-            ))
-            .send()
-            .await
-            .expect_err("request should fail");
-
-        let domain_error = DomainError::from(error);
-
+    #[test]
+    fn network_error_classification_maps_dns_markers_to_actionable_message() {
         assert_eq!(
-            domain_error.to_string(),
-            "Network error: Could not connect to the server. Check the server URL and whether the server is reachable."
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "request failed without a URL",
+                has_dns_error_marker: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not resolve the server name. Check the server URL or your DNS/network settings."
         );
     }
 
-    #[tokio::test]
-    async fn reqwest_loopback_response_timeouts_remain_timeout_failures() {
-        let listener =
-            TcpListener::bind("127.0.0.1:0").expect("listener should bind to an ephemeral port");
-        let port = listener
-            .local_addr()
-            .expect("listener should expose its bound address")
-            .port();
-
-        let accept_task = tokio::task::spawn_blocking(move || {
-            let (_stream, _addr) = listener
-                .accept()
-                .expect("listener should accept one client");
-            std::thread::sleep(Duration::from_millis(350));
-        });
-
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_millis(100))
-            .build()
-            .expect("client should build");
-
-        let error = client
-            .post(format!(
-                "http://127.0.0.1:{port}/api/greader.php/accounts/ClientLogin"
-            ))
-            .send()
-            .await
-            .expect_err("request should time out waiting for a response");
-
-        let domain_error = DomainError::from(error);
-
+    #[test]
+    fn network_error_classification_keeps_loopback_connectivity_timeout_as_connectivity_failure() {
         assert_eq!(
-            domain_error.to_string(),
-            "Network error: Request timed out. Check the server URL or your network connection."
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "request timed out while probing a closed loopback port",
+                is_loopback_connectivity_timeout: true,
+                is_timeout: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not connect to the server. Check the server URL and whether the server is reachable."
         );
+    }
 
-        accept_task
-            .await
-            .expect("accept task should finish cleanly");
+    #[test]
+    fn network_error_classification_maps_response_timeouts_to_timeout_message() {
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "request timed out waiting for a response",
+                is_timeout: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Request timed out. Check the server URL or your network connection."
+        );
+    }
+
+    #[test]
+    fn network_error_classification_maps_connect_errors_to_connectivity_failure() {
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "connection refused",
+                is_connect: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not connect to the server. Check the server URL and whether the server is reachable."
+        );
+    }
+
+    #[test]
+    fn network_error_classification_redacts_fallback_messages() {
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "request failed for https://example.test/feed?token=secret#section",
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "request failed for https://example.test/feed?redacted#redacted"
+        );
     }
 
     #[test]

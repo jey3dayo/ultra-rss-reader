@@ -394,9 +394,11 @@ impl GReaderProvider {
             );
 
             let Some(next) = response.continuation else {
+                continuation = None;
                 break;
             };
             if continuation.as_deref() == Some(next.as_str()) {
+                continuation = None;
                 break;
             }
             continuation = Some(next);
@@ -876,6 +878,25 @@ mod tests {
         assert_eq!(
             provider.auth_base,
             "https://freshrss.example.com/api/greader.php"
+        );
+    }
+
+    #[test]
+    fn normalize_label_remote_id_decodes_missing_label() {
+        assert_eq!(
+            normalize_label_remote_id("user/-/label/Dev%20News", None),
+            Some(("user/-/label/Dev News".to_string(), "Dev News".to_string()))
+        );
+    }
+
+    #[test]
+    fn normalize_label_remote_id_prefers_label_over_encoded_id() {
+        assert_eq!(
+            normalize_label_remote_id("user/-/label/Encoded%20Id", Some("Display Name")),
+            Some((
+                "user/-/label/Display Name".to_string(),
+                "Display Name".to_string(),
+            ))
         );
     }
 

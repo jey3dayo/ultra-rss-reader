@@ -550,6 +550,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_subscription_sends_local_provider_user_agent() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .match_header("user-agent", LOCAL_PROVIDER_USER_AGENT)
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        provider.create_subscription(&feed_url, None).await.unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn create_subscription_retains_feed_metadata_when_items_are_incomplete() {
         let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
