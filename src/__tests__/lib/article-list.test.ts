@@ -642,6 +642,17 @@ describe("article-list utils", () => {
     ).toBe(false);
   });
 
+  it("returns false for article lists with different lengths before comparing row fields", () => {
+    const articleWithThrowingId: ArticleDto = { ...sampleArticles[0] };
+    Object.defineProperty(articleWithThrowingId, "id", {
+      get: () => {
+        throw new Error("row fields should not be read for length mismatches");
+      },
+    });
+
+    expect(areArticleListsEquivalent([articleWithThrowingId], [])).toBe(false);
+  });
+
   it("returns unread ids and unread count from the currently visible list", () => {
     expect(getUnreadArticleIds(sampleArticles)).toEqual(["art-1"]);
     expect(countUnreadArticles(sampleArticles)).toBe(1);
