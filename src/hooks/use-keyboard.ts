@@ -8,6 +8,7 @@ import {
 } from "@/lib/account/account-pane-navigation";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
+import { isGlobalShortcutTextEditingTarget } from "@/lib/keyboard/global-shortcut-targets";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import {
   focusArticleListRowTargetWhenReady,
@@ -21,17 +22,6 @@ import { useUiStore } from "../stores/ui-store";
 
 function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
   window.dispatchEvent(new Event(name));
-}
-
-function isTextEditingTarget(target: Element | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.tagName === "INPUT" ||
-      target.tagName === "TEXTAREA" ||
-      target.isContentEditable ||
-      target.getAttribute("role") === "textbox" ||
-      target.getAttribute("role") === "searchbox")
-  );
 }
 
 function isGlobalShortcutBlockedByModal(): boolean {
@@ -78,7 +68,7 @@ export function useKeyboard() {
       const shouldRouteAccountPaneKey =
         currentStore.accountPaneOpen &&
         currentStore.focusedPane === "sidebar" &&
-        !isTextEditingTarget(targetElement) &&
+        !isGlobalShortcutTextEditingTarget(targetElement) &&
         (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
       if (shouldRouteAccountPaneKey) {
         if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {
@@ -117,7 +107,7 @@ export function useKeyboard() {
         key: e.key,
         focusedPane: currentStore.focusedPane,
         target: targetElement,
-        targetIsTextEditing: isTextEditingTarget(targetElement),
+        targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
       });
       if (readerFocusReturnAction === "focus-sidebar") {
         e.preventDefault();
@@ -145,7 +135,7 @@ export function useKeyboard() {
         ctrlKey: e.ctrlKey,
         shiftKey: e.shiftKey,
         targetTag: targetElement?.tagName,
-        targetIsTextEditing: isTextEditingTarget(targetElement),
+        targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
         selectedArticleId,
         contentMode,
         viewMode,

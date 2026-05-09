@@ -15,8 +15,6 @@ export const keyboardEvents = {
   addToReadingList: "ultra-rss:add-to-reading-list",
 } as const;
 
-export type { ViewMode } from "@/lib/reader/view-mode.types";
-
 export type KeyboardAction =
   | { type: "open-settings" }
   | { type: "open-command-palette" }
@@ -225,7 +223,10 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 /** Preference key prefix for shortcut overrides. */
 export const shortcutPrefKey = (id: ShortcutActionId): ShortcutPreferenceKey => `shortcut_${id}`;
 
-const shortcutActionIdSet = new Set<string>(shortcutDefinitions.map((definition) => definition.id));
+const shortcutDefinitionById = new Map<ShortcutActionId, ShortcutDefinition>(
+  shortcutDefinitions.map((definition) => [definition.id, definition]),
+);
+const shortcutActionIdSet = new Set<string>(shortcutDefinitionById.keys());
 
 export function isShortcutActionId(value: string): value is ShortcutActionId {
   return shortcutActionIdSet.has(value);
@@ -249,7 +250,7 @@ export type ShortcutConflict =
 const nativeMenuOwnedShortcuts = new Set(["\u2318+r"]);
 
 function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
-  const definition = shortcutDefinitions.find((item) => item.id === id);
+  const definition = shortcutDefinitionById.get(id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
 
@@ -299,17 +300,21 @@ for (const definition of shortcutDefinitions) {
 /** Build a reverse mapping: key string -> ShortcutActionId. */
 export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
   const map: KeyToActionMap = new Map();
-  const normalizedKeys = shortcutDefinitions
-    .map((definition) => normalizeShortcutMapKey(getShortcutKey(definition.id, prefs)))
-    .filter((key): key is string => key !== null);
-  const duplicateKeys = new Set(normalizedKeys.filter((key, index) => normalizedKeys.indexOf(key) !== index));
+  const keyCounts = new Map<string, number>();
+
+  for (const definition of shortcutDefinitions) {
+    const key = normalizeShortcutMapKey(getShortcutKey(definition.id, prefs));
+    if (key !== null) {
+      keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
+    }
+  }
 
   for (const def of shortcutDefinitions) {
     const key = normalizeShortcutMapKey(getShortcutKey(def.id, prefs));
     if (key === null) {
       continue;
     }
-    if (duplicateKeys.has(key) || isNativeMenuOwnedShortcut(key)) {
+    if ((keyCounts.get(key) ?? 0) > 1 || isNativeMenuOwnedShortcut(key)) {
       continue;
     }
     map.set(key, def.id);

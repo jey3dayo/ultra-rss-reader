@@ -8,6 +8,16 @@ import {
 } from "@/constants/browser";
 import { APP_EVENTS, type AppEventName } from "@/constants/events";
 import {
+  MOTION_CLASS_NAMES,
+  MOTION_DATA_ATTRIBUTES,
+  MOTION_GLOBAL_CSS_CONTRACT_SELECTORS,
+  MOTION_KEYFRAMES_NAMES,
+  type MotionClassName,
+  type MotionDataAttribute,
+  type MotionGlobalCssContractSelector,
+  type MotionKeyframesName,
+} from "@/constants/motion";
+import {
   DEFAULT_PLATFORM_CAPABILITIES,
   type DEFAULT_PLATFORM_INFO,
   type DefaultPlatformInfo,
@@ -18,7 +28,14 @@ import {
   type PlatformKind,
   SHORTCUT_MODIFIER_BY_PLATFORM,
 } from "@/constants/platform";
-import { LEGACY_STORAGE_KEYS, type LegacyStorageKey, STORAGE_KEYS, type StorageKey } from "@/constants/storage";
+import {
+  LEGACY_STORAGE_KEYS,
+  type LegacyStorageKey,
+  STORAGE_KEY_POLICIES,
+  STORAGE_KEYS,
+  type StorageKey,
+  type StorageKeyName,
+} from "@/constants/storage";
 
 function expectNoDuplicates(values: readonly string[]) {
   expect(new Set(values).size).toBe(values.length);
@@ -53,6 +70,24 @@ describe("constants source of truth", () => {
     expect(storageKeys.some((key) => (legacyStorageKeys as readonly string[]).includes(key))).toBe(false);
     expectTypeOf<StorageKey>().toEqualTypeOf<(typeof storageKeys)[number]>();
     expectTypeOf<LegacyStorageKey>().toEqualTypeOf<(typeof legacyStorageKeys)[number]>();
+  });
+
+  it("classifies storage keys as runtime tokens with explicit policies", () => {
+    expect(Object.keys(STORAGE_KEY_POLICIES)).toEqual(Object.keys(STORAGE_KEYS));
+    expectTypeOf<keyof typeof STORAGE_KEY_POLICIES>().toEqualTypeOf<StorageKeyName>();
+  });
+
+  it("classifies motion constants as design tokens", () => {
+    expectNoDuplicates(MOTION_CLASS_NAMES);
+    expectNoDuplicates(MOTION_KEYFRAMES_NAMES);
+    expectNoDuplicates(MOTION_DATA_ATTRIBUTES);
+    expectNoDuplicates(MOTION_GLOBAL_CSS_CONTRACT_SELECTORS);
+    expectTypeOf<MotionClassName>().toEqualTypeOf<(typeof MOTION_CLASS_NAMES)[number]>();
+    expectTypeOf<MotionKeyframesName>().toEqualTypeOf<(typeof MOTION_KEYFRAMES_NAMES)[number]>();
+    expectTypeOf<MotionDataAttribute>().toEqualTypeOf<(typeof MOTION_DATA_ATTRIBUTES)[number]>();
+    expectTypeOf<MotionGlobalCssContractSelector>().toEqualTypeOf<
+      (typeof MOTION_GLOBAL_CSS_CONTRACT_SELECTORS)[number]
+    >();
   });
 
   it("uses platform constants as the platform-kind and capability source of truth", () => {

@@ -316,6 +316,34 @@ describe("keyboard shortcut resolver", () => {
     expect(map.get("l")).toBe("next_feed");
   });
 
+  it("keeps shortcut ids unique in display order", () => {
+    const shortcutIds = shortcutDefinitions.map((definition) => definition.id);
+
+    expect(new Set(shortcutIds).size).toBe(shortcutDefinitions.length);
+    expect(shortcutIds).toEqual([
+      "next_article",
+      "prev_article",
+      "next_feed",
+      "prev_feed",
+      "reload_webview",
+      "focus_sidebar",
+      "toggle_sidebar",
+      "toggle_read",
+      "toggle_star",
+      "open_in_app_browser",
+      "open_external_browser",
+      "mark_all_read",
+      "show_unread",
+      "show_all",
+      "show_starred",
+      "cycle_filter",
+      "search",
+      "open_command_palette",
+      "close_or_clear",
+      "open_settings",
+    ]);
+  });
+
   it("builds direct filter shortcuts into the default key map", () => {
     const map = buildKeyToActionMap({});
 

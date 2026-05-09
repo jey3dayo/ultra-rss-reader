@@ -1,27 +1,11 @@
 import { useEffect } from "react";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
+import { isGlobalShortcutTextEditingTarget } from "@/lib/keyboard/global-shortcut-targets";
 import { bindWindowEvents, createMouseEventListener } from "@/lib/window/window-events";
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) {
-    return false;
-  }
-
-  if (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    (target instanceof HTMLElement && target.isContentEditable)
-  ) {
-    return true;
-  }
-
-  return Boolean(
-    target.closest(
-      'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"], [role="searchbox"]',
-    ),
-  );
+  return target instanceof Element && isGlobalShortcutTextEditingTarget(target);
 }
 
 function isIgnoredMouseNavigationTarget(target: EventTarget | null): boolean {
