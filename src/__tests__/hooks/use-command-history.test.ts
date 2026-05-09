@@ -138,18 +138,20 @@ describe("use-command-history", () => {
     expect(getHistory()).toEqual([]);
   });
 
-  it("fails safely when storage write throws", () => {
+  it("warns once while repeated storage writes fail", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("storage unavailable");
     });
 
     expect(() => addToHistory("feed-1")).not.toThrow();
+    expect(() => addToHistory("feed-2")).not.toThrow();
     expect(getHistory()).toEqual([]);
     expect(warn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("fails safely when storage read throws", () => {
+  it("warns once while repeated storage reads fail", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("storage unavailable");
@@ -158,9 +160,10 @@ describe("use-command-history", () => {
     expect(() => getHistory()).not.toThrow();
     expect(getHistory()).toEqual([]);
     expect(warn).toHaveBeenCalledWith("Failed to read command history from localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("fails safely when the localStorage getter throws", () => {
+  it("warns once while repeated localStorage getter access fails", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
       throw new Error("storage getter unavailable");
@@ -170,6 +173,7 @@ describe("use-command-history", () => {
     expect(() => addToHistory("feed-1")).not.toThrow();
     expect(() => clearHistory()).not.toThrow();
     expect(warn).toHaveBeenCalledWith("Command history localStorage is unavailable.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("fails safely when storage clear throws", () => {
@@ -182,5 +186,6 @@ describe("use-command-history", () => {
     expect(() => clearHistory()).not.toThrow();
     expect(getHistory()).toEqual(["feed-1"]);
     expect(warn).toHaveBeenCalledWith("Failed to clear command history from localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });

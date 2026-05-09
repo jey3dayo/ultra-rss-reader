@@ -1,8 +1,33 @@
 import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 
+type CommandHistoryStorageFailureKind = "unavailable" | "normalize" | "read" | "write" | "clear";
+
+const warnedStorageFailureKinds = new Set<CommandHistoryStorageFailureKind>();
+
+function resetCommandHistoryStorageFailure(kind: CommandHistoryStorageFailureKind): void {
+  warnedStorageFailureKinds.delete(kind);
+}
+
 function logCommandHistoryStorageFailure(message: string, error: unknown): void {
+  if (!import.meta.env.DEV) {
+    return;
+  }
+
   console.warn(message, error);
+}
+
+function warnCommandHistoryStorageFailureOnce(
+  kind: CommandHistoryStorageFailureKind,
+  message: string,
+  error: unknown,
+): void {
+  if (warnedStorageFailureKinds.has(kind)) {
+    return;
+  }
+
+  warnedStorageFailureKinds.add(kind);
+  logCommandHistoryStorageFailure(message, error);
 }
 
 function readStorage(): Storage | null {
@@ -11,9 +36,11 @@ function readStorage(): Storage | null {
   }
 
   try {
-    return window.localStorage;
+    const storage = window.localStorage;
+    resetCommandHistoryStorageFailure("unavailable");
+    return storage;
   } catch (error) {
-    logCommandHistoryStorageFailure("Command history localStorage is unavailable.", error);
+    warnCommandHistoryStorageFailureOnce("unavailable", "Command history localStorage is unavailable.", error);
     return null;
   }
 }
@@ -26,8 +53,9 @@ function writeNormalizedHistory(storage: Storage, raw: string, history: readonly
 
   try {
     storage.setItem(STORAGE_KEYS.commandHistory, normalized);
+    resetCommandHistoryStorageFailure("normalize");
   } catch (error) {
-    logCommandHistoryStorageFailure("Failed to normalize command history in localStorage.", error);
+    warnCommandHistoryStorageFailureOnce("normalize", "Failed to normalize command history in localStorage.", error);
     // Ignore cleanup write failures; callers can still use the normalized in-memory history.
   }
 }
@@ -40,6 +68,7 @@ export function getHistory(): string[] {
 
   try {
     const raw = storage.getItem(STORAGE_KEYS.commandHistory);
+    resetCommandHistoryStorageFailure("read");
     if (!raw) {
       return [];
     }
@@ -53,7 +82,7 @@ export function getHistory(): string[] {
     writeNormalizedHistory(storage, raw, history);
     return history;
   } catch (error) {
-    logCommandHistoryStorageFailure("Failed to read command history from localStorage.", error);
+    warnCommandHistoryStorageFailureOnce("read", "Failed to read command history from localStorage.", error);
     return [];
   }
 }
@@ -76,8 +105,9 @@ export function addToHistory(id: string): void {
   try {
     const next = compactCommandHistory(getHistory(), id);
     storage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(next));
+    resetCommandHistoryStorageFailure("write");
   } catch (error) {
-    logCommandHistoryStorageFailure("Failed to write command history to localStorage.", error);
+    warnCommandHistoryStorageFailureOnce("write", "Failed to write command history to localStorage.", error);
     // Ignore storage failures so the palette still works in constrained environments.
   }
 }
@@ -90,8 +120,9 @@ export function clearHistory(): void {
 
   try {
     storage.removeItem(STORAGE_KEYS.commandHistory);
+    resetCommandHistoryStorageFailure("clear");
   } catch (error) {
-    logCommandHistoryStorageFailure("Failed to clear command history from localStorage.", error);
+    warnCommandHistoryStorageFailureOnce("clear", "Failed to clear command history from localStorage.", error);
     // Ignore storage failures so callers do not need to handle persistence errors.
   }
 }
