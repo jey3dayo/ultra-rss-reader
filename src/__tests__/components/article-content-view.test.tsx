@@ -16,6 +16,7 @@ describe("ArticleContentView", () => {
 
     const thumbnail = screen.getByAltText("");
     expect(thumbnail).toHaveAttribute("src", "https://example.com/thumbnail.png");
+    expect(thumbnail).toHaveAttribute("referrerpolicy", "no-referrer");
     expect(thumbnail.parentElement).toHaveClass("mb-10");
     expect(thumbnail.parentElement).toHaveClass("rounded-lg", "bg-surface-1/70");
     expect(screen.getByText("Hello", { exact: false })).toBeInTheDocument();
@@ -32,6 +33,26 @@ describe("ArticleContentView", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Only text")).toBeInTheDocument();
+  });
+
+  it("omits article thumbnails that are outside the reader image policy", () => {
+    const { container, rerender } = render(
+      <ArticleContentView
+        thumbnailUrl="http://example.com/thumbnail.png"
+        contentHtml={fromSanitizedArticleHtml("<p>Only text</p>")}
+      />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
+
+    rerender(
+      <ArticleContentView
+        thumbnailUrl="data:image/svg+xml,<svg></svg>"
+        contentHtml={fromSanitizedArticleHtml("<p>Only text</p>")}
+      />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
   });
 
   it("hides a duplicated feed-name label at the start of article content", () => {

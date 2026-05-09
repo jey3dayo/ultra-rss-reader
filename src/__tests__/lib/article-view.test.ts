@@ -8,6 +8,7 @@ import {
   findLatestArticleOrNull,
   findSelectedArticle,
   formatArticleDate,
+  normalizeArticleRemoteImageUrl,
   resolveArticleDateLocale,
   resolveArticleSummaryWebsiteHref,
   resolveArticleSummaryWebsiteLabel,
@@ -85,6 +86,18 @@ describe("article-view utils", () => {
         ctrlKey: false,
       }),
     ).toBe(true);
+  });
+
+  it("normalizes article remote image URLs to the reader image privacy contract", () => {
+    expect(normalizeArticleRemoteImageUrl(" https://cdn.example.com/thumb.jpg?track=1 ")).toBe(
+      "https://cdn.example.com/thumb.jpg?track=1",
+    );
+    expect(normalizeArticleRemoteImageUrl("/fixtures/article-thumbnail.png")).toBe("/fixtures/article-thumbnail.png");
+    expect(normalizeArticleRemoteImageUrl("http://cdn.example.com/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("//cdn.example.com/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("data:image/svg+xml,<svg></svg>")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("https://user:pass@cdn.example.com/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("not a url")).toBeNull();
   });
 
   it("keeps article titles in the web preview on a regular click when configured", () => {

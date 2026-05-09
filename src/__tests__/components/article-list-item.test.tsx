@@ -101,6 +101,60 @@ describe("ArticleListItem", () => {
     });
   });
 
+  it("rejects non-https and credentialed thumbnails at the row presentation boundary", () => {
+    for (const thumbnail of [
+      "http://example.com/image.jpg",
+      "data:image/svg+xml,<svg></svg>",
+      "https://user:pass@example.com/image.jpg",
+      "not a url",
+    ]) {
+      expect(
+        resolveArticleListItemPresentation({
+          title: "First Article",
+          summary: "A hello world article",
+          thumbnail,
+          feedName: "Tech Blog",
+          viewedAtLabel: null,
+          isRead: false,
+          isStarred: false,
+          isRecentlyRead: false,
+          textPreview: "true",
+          imagePreviews: "medium",
+          unreadSuffix: "(unread)",
+          starredSuffix: "(starred)",
+        }),
+      ).toMatchObject({
+        normalizedThumbnail: "",
+        showThumbnail: false,
+      });
+    }
+  });
+
+  it("renders accepted thumbnails without sending a referrer", () => {
+    const { container } = render(
+      <ArticleListItem
+        article={{
+          ...sampleArticles[0],
+          thumbnail: " https://example.com/thumb.jpg ",
+          is_read: false,
+          is_starred: false,
+        }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="medium"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(container.querySelector("img")).toHaveAttribute("src", "https://example.com/thumb.jpg");
+    expect(container.querySelector("img")).toHaveAttribute("referrerpolicy", "no-referrer");
+  });
+
   it("normalizes title whitespace for row labels and display", () => {
     expect(
       resolveArticleListItemPresentation({

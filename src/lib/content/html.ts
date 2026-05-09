@@ -29,16 +29,29 @@ export function stripHtmlTags(html: string): string {
 
   // Fallback: regex-based stripping
   return html
-    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi, "")
     .replace(/<(br|p|div|section|article|header|footer|main|aside|blockquote|pre|li|ul|ol|h[1-6])\b[^>]*\/?>/gi, " ")
     .replace(/<\/(p|div|section|article|header|footer|main|aside|blockquote|pre|li|ul|ol|h[1-6])>/gi, " ")
     .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
+    .replace(
+      /&(?:#(\d+)|#x([\da-f]+)|amp|lt|gt|quot|apos|nbsp);/gi,
+      (entity, decimal: string | undefined, hex: string | undefined) => {
+        if (decimal || hex) {
+          const codePoint = Number.parseInt(decimal ?? hex ?? "", decimal ? 10 : 16);
+          return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : entity;
+        }
+
+        const namedEntities: Record<string, string> = {
+          "&amp;": "&",
+          "&lt;": "<",
+          "&gt;": ">",
+          "&quot;": '"',
+          "&apos;": "'",
+          "&nbsp;": " ",
+        };
+        return namedEntities[entity.toLowerCase()] ?? entity;
+      },
+    )
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -80,6 +93,13 @@ function stripLeadingDuplicateLabel(html: string, label?: string | null): string
     firstMeaningfulNode instanceof Element &&
     firstMeaningfulNode.querySelector("img, picture, video, iframe, object, embed, svg, a, button")
   ) {
+    return html;
+  }
+
+  const hasRemainingMeaningfulContent = Array.from(body.childNodes).some(
+    (node) => node !== firstMeaningfulNode && normalizeVisibleText(node.textContent ?? ""),
+  );
+  if (!hasRemainingMeaningfulContent) {
     return html;
   }
 

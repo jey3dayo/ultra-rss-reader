@@ -58,6 +58,7 @@ describe("FeedFavicon", () => {
     const image = container.querySelector("img");
     expect(image).not.toBeNull();
     expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+    expect(image).toHaveAttribute("referrerpolicy", "no-referrer");
 
     fireEvent.error(image as HTMLImageElement);
 

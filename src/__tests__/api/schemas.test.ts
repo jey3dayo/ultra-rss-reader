@@ -648,6 +648,25 @@ describe("DTO schemas", () => {
     expect(() => ArticleDtoSchema.parse({ ...data, url: "   " })).toThrow();
     expect(() => ArticleDtoSchema.parse({ ...data, thumbnail: "   " })).toThrow();
   });
+  it("rejects ArticleDto thumbnails outside the reader image privacy contract", () => {
+    const data = {
+      id: "art-1",
+      feed_id: "feed-1",
+      title: "Hello",
+      content_sanitized: "<p>Hi</p>",
+      summary: null,
+      url: "https://example.com/article",
+      author: null,
+      published_at: "2026-03-25T10:00:00Z",
+      thumbnail: "https://example.com/thumb.png",
+      is_read: false,
+      is_starred: false,
+    };
+
+    expect(() => ArticleDtoSchema.parse({ ...data, thumbnail: "http://example.com/thumb.png" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, thumbnail: "data:image/svg+xml,<svg></svg>" })).toThrow();
+    expect(() => ArticleDtoSchema.parse({ ...data, thumbnail: "https://user:pass@example.com/thumb.png" })).toThrow();
+  });
   it("parses valid TagDto", () => {
     expect(
       TagDtoSchema.parse({
@@ -1092,6 +1111,16 @@ describe("PreferencesDtoSchema", () => {
     expect(() => PreferencesDtoSchema.parse({ theme: 1 })).toThrow();
     expect(() => PreferencesDtoSchema.parse([])).toThrow();
     expect(() => PreferencesDtoSchema.parse(null)).toThrow();
+  });
+
+  it("keeps unknown preference passthrough bounded by size, prefix, and retirement policy", () => {
+    expect(PreferencesDtoSchema.parse({ custom_backend_preference: "a".repeat(1024) })).toEqual({
+      custom_backend_preference: "a".repeat(1024),
+    });
+
+    expect(() => PreferencesDtoSchema.parse({ [`${"a".repeat(129)}`]: "too-long-key" })).toThrow();
+    expect(() => PreferencesDtoSchema.parse({ custom_backend_preference: "a".repeat(1025) })).toThrow();
+    expect(() => PreferencesDtoSchema.parse({ shortcut_unknown_action: "x" })).toThrow();
   });
 });
 
@@ -1629,10 +1658,6 @@ describe("command args schemas", () => {
       key: "debug_web_preview_url",
       value: "",
     });
-    expect(setPreferenceArgs.parse({ key: "selected_account_id", value: "" })).toEqual({
-      key: "selected_account_id",
-      value: "",
-    });
     expect(setPreferenceArgs.parse({ key: "custom_backend_preference", value: "preserved" })).toEqual({
       key: "custom_backend_preference",
       value: "preserved",
@@ -1640,6 +1665,7 @@ describe("command args schemas", () => {
 
     expect(() => setPreferenceArgs.parse({ key: "theme", value: "sepia" })).toThrow();
     expect(() => setPreferenceArgs.parse({ key: "sync_on_startup", value: "yes" })).toThrow();
+    expect(() => setPreferenceArgs.parse({ key: "selected_account_id", value: "" })).toThrow();
   });
   it("rejects non-displayable shortcut preference values", () => {
     expect(() => setPreferenceArgs.parse({ key: "shortcut_next_article", value: "k\n" })).toThrow();

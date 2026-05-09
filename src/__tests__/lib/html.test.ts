@@ -58,6 +58,20 @@ describe("stripHtmlTags", () => {
   it("extracts text from malformed html without preserving script or style bodies", () => {
     expect(stripHtmlTags("<p>Hello <strong>world</p><script>alert(1)</script><style>.x{}</style>")).toBe("Hello world");
   });
+
+  it("keeps fallback extraction aligned for entities, partial scripts, and CJK spacing", () => {
+    const originalDomParser = globalThis.DOMParser;
+    // @ts-expect-error - test-only fallback path coverage.
+    globalThis.DOMParser = undefined;
+
+    try {
+      expect(stripHtmlTags("<p>価格&#58; 100&nbsp;円</p><script>alert(1)")).toBe("価格: 100 円");
+      expect(stripHtmlTags("<p>吾輩は</p><p>猫である</p>")).toBe("吾輩は 猫である");
+      expect(stripHtmlTags("<style>.hidden{display:none}")).toBe("");
+    } finally {
+      globalThis.DOMParser = originalDomParser;
+    }
+  });
 });
 
 describe("normalizeArticleBodyHtml", () => {
@@ -81,6 +95,12 @@ describe("normalizeArticleBodyHtml", () => {
 
   it("keeps leading nodes that only start with the feed label text", () => {
     const html = "<p>Tech Blog Weekly</p><p>Body text</p>";
+
+    expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
+  });
+
+  it("keeps a label-only body instead of deleting all article content", () => {
+    const html = "<p>Tech Blog</p>";
 
     expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
   });

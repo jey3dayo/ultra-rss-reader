@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { formatArticleTime } from "@/lib/articles/article-list";
+import { normalizeArticleRemoteImageUrl } from "@/lib/articles/article-view";
 import { stripHtmlTags } from "@/lib/content/html";
 import { focusArticleContentTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
@@ -73,7 +74,7 @@ export function resolveArticleListItemPresentation({
   const normalizedTitle =
     title.replace(ARTICLE_LIST_ITEM_TITLE_WHITESPACE_PATTERN, " ").trim() || ARTICLE_LIST_ITEM_TITLE_FALLBACK;
   const normalizedFeedName = feedName?.trim() ?? "";
-  const normalizedThumbnail = thumbnail?.trim() ?? "";
+  const normalizedThumbnail = normalizeArticleRemoteImageUrl(thumbnail) ?? "";
   const summaryText = summary ? stripHtmlTags(summary) : "";
   const normalizedSummary = summaryText.trim();
   const showFeedName = Boolean(normalizedFeedName) && normalizedFeedName !== normalizedTitle;
@@ -243,7 +244,14 @@ export function ArticleListItem({
                 imagePreviews === "large" && "h-20 w-28",
               )}
             >
-              <img src={presentation.normalizedThumbnail} alt="" className="h-full w-full object-cover" />
+              <img
+                src={presentation.normalizedThumbnail}
+                alt=""
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           )}
         </div>

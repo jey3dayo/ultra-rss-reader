@@ -67,6 +67,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
       src={faviconSrc}
       alt=""
       className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
+      referrerPolicy="no-referrer"
       onError={() => {
         setFailedFaviconSrc(faviconSrc);
       }}

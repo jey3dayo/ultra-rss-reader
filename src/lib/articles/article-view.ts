@@ -142,6 +142,28 @@ export function shouldOpenArticleTitleInExternalBrowser(params: LinkNavigationPa
   return metaKey || ctrlKey || openLinks === "default_browser";
 }
 
+export function normalizeArticleRemoteImageUrl(value: string | null | undefined): string | null {
+  const normalizedValue = value?.trim();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (normalizedValue.startsWith("/") && !normalizedValue.startsWith("//")) {
+    return normalizedValue;
+  }
+
+  try {
+    const url = new URL(normalizedValue);
+    if (url.protocol !== "https:" || url.username || url.password) {
+      return null;
+    }
+
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 export function resolveArticleDateLocale(locale: string | undefined): string {
   if (!locale) {
     return "en";
