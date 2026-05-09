@@ -1,7 +1,5 @@
-import type { Dispatch, MutableRefObject, ReactNode, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
+import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
-import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
-import type { FeedTreePointerDragSession } from "./feed-tree-drag-session";
 import type { SidebarDensity } from "./sidebar-density";
 
 export type FeedTreeFeedViewModel = {
@@ -78,67 +76,4 @@ export type FeedTreeRowProps = {
   onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
   onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
   consumeSuppressedHandleClick?: () => boolean;
-};
-
-export type UseFeedTreeDragParams = {
-  isOpen: boolean;
-  hasFeeds: boolean;
-  canDragFeeds: boolean;
-  activeDropTarget: ActiveDropTarget;
-  draggedFeedId?: string | null;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDragEnterFolder?: (folderId: string) => void;
-  onDragEnterUnfoldered?: () => void;
-  onDropToFolder?: (folderId: string) => void;
-  onDropToUnfoldered?: () => void;
-  onDragEnd?: () => void;
-};
-
-export type UseFeedTreeDragResult = {
-  isPointerTracking: boolean;
-  pointerDragPreview: FeedTreeDragOverlayPreview | null;
-  activeVisualDropTarget: ActiveDropTarget;
-  activeUnfoldered: boolean;
-  showUnfolderedDropZone: boolean;
-  normalizedDraggedFeedId: string | null;
-  handlePointerDownFeed: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedHandleClick: () => boolean;
-};
-
-export type UseFeedTreePointerDragEventsParams = {
-  isPointerTracking: boolean;
-  pointerDragRef: MutableRefObject<FeedTreePointerDragSession | null>;
-  setPointerDragPreview: Dispatch<SetStateAction<FeedTreeDragOverlayPreview | null>>;
-  setPointerHoverTarget: Dispatch<SetStateAction<ActiveDropTarget>>;
-  queueSuppressHandleClickReset: () => void;
-  clearPointerTracking: () => void;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDragEnterFolder?: (folderId: string) => void;
-  onDragEnterUnfoldered?: () => void;
-  onDropToFolder?: (folderId: string) => void;
-  onDropToUnfoldered?: () => void;
-  onDragEnd?: () => void;
-};
-
-export type ApplyFeedTreeHoverTargetParams = {
-  target: ActiveDropTarget;
-  setPointerHoverTarget: Dispatch<SetStateAction<ActiveDropTarget>>;
-  onDragEnterFolder?: (folderId: string) => void;
-  onDragEnterUnfoldered?: () => void;
-};
-
-export type FeedTreePointerDropOutcome =
-  | { type: "clear" }
-  | { type: "cancel" }
-  | { type: "drop-folder"; folderId: string }
-  | { type: "drop-unfoldered" }
-  | { type: "drop-none" };
-
-export type ApplyFeedTreePointerDropOutcomeParams = {
-  outcome: FeedTreePointerDropOutcome;
-  queueSuppressHandleClickReset: () => void;
-  clearPointerTracking: () => void;
-  onDragEnd?: () => void;
-  onDropToFolder?: (folderId: string) => void;
-  onDropToUnfoldered?: () => void;
 };

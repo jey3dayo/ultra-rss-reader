@@ -4,6 +4,7 @@ import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
 import { useCallback, useRef } from "react";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
+import type { DiscoveredFeedDto } from "@/api/tauri-commands";
 import type {
   AddFeedDialogAction,
   AddFeedDialogControllerDerived,
@@ -11,7 +12,13 @@ import type {
   AddFeedDialogState,
 } from "../../add-feed-dialog.types";
 import { createFolderIfNeededResult } from "../../feed-folder-flow";
-import { invalidateArticleQueries, invalidateFeedQueries } from "../../feed-query-cache";
+import {
+  invalidateArticleQueries,
+  invalidateFeedQueries,
+  isLatestFeedMutation,
+  runFeedMutationWithOptimisticRollback,
+  startLatestFeedMutation,
+} from "../../feed-query-cache";
 
 type UseAddFeedDialogActionsParams = {
   accountId: string;
@@ -30,6 +37,21 @@ type UseAddFeedDialogActionsResult = {
   handleDiscover: () => Promise<void>;
   handleSubmit: () => Promise<void>;
 };
+
+export function resolveAddFeedDiscoveryAction(
+  feeds: DiscoveredFeedDto[],
+  requestId: number,
+): Extract<AddFeedDialogAction, { type: "discover-empty" | "discover-single" | "discover-multiple" }> {
+  if (feeds.length === 0) {
+    return { type: "discover-empty", requestId };
+  }
+
+  if (feeds.length === 1) {
+    return { type: "discover-single", feeds, requestId };
+  }
+
+  return { type: "discover-multiple", feeds, requestId };
+}
 
 export function useAddFeedDialogActions({
   accountId,
@@ -54,13 +76,15 @@ export function useAddFeedDialogActions({
       return;
     }
 
-    const requestId = discoveryRequestIdRef.current + 1;
-    discoveryRequestIdRef.current = requestId;
+    const requestId = startLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef });
     const requestUrl = trimmedUrl;
     dispatch({ type: "start-discover", requestId });
 
     const handleDiscoveryError = (message: string) => {
-      if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
+      if (
+        !isLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef }, requestId) ||
+        requestUrl !== latestDiscoveryUrlRef.current
+      ) {
         return;
       }
 
@@ -82,17 +106,14 @@ export function useAddFeedDialogActions({
     Result.pipe(
       discoveryResult,
       Result.inspect((feeds) => {
-        if (discoveryRequestIdRef.current !== requestId || requestUrl !== latestDiscoveryUrlRef.current) {
+        if (
+          !isLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef }, requestId) ||
+          requestUrl !== latestDiscoveryUrlRef.current
+        ) {
           return;
         }
 
-        if (feeds.length === 0) {
-          dispatch({ type: "discover-empty", requestId });
-        } else if (feeds.length === 1) {
-          dispatch({ type: "discover-single", feeds, requestId });
-        } else {
-          dispatch({ type: "discover-multiple", feeds, requestId });
-        }
+        dispatch(resolveAddFeedDiscoveryAction(feeds, requestId));
       }),
       Result.inspectError((error) => {
         handleDiscoveryError(error.message);
@@ -115,68 +136,72 @@ export function useAddFeedDialogActions({
       return;
     }
 
-    submitInFlightRef.current = true;
-    dispatch({ type: "set-loading", loading: true });
+    await runFeedMutationWithOptimisticRollback({
+      rollback: () => {
+        submitInFlightRef.current = false;
+        dispatch({ type: "set-loading", loading: false });
+      },
+      shouldRollback: () => true,
+      run: async () => {
+        submitInFlightRef.current = true;
+        dispatch({ type: "set-loading", loading: true });
 
-    try {
-      const folderResult = await createFolderIfNeededResult({
-        accountId,
-        selectedFolderId: folderSelection.selectedFolderId,
-        isCreatingFolder: folderSelection.isCreatingFolder,
-        newFolderName: folderSelection.newFolderName,
-      });
-      if (Result.isFailure(folderResult)) {
-        const error = Result.unwrapError(folderResult);
-        const message = t("failed_to_create_folder", {
-          message: error.message,
+        const folderResult = await createFolderIfNeededResult({
+          accountId,
+          selectedFolderId: folderSelection.selectedFolderId,
+          isCreatingFolder: folderSelection.isCreatingFolder,
+          newFolderName: folderSelection.newFolderName,
         });
-        dispatch({ type: "set-submit-error", error: message });
-        showToast(message);
-        return;
-      }
-
-      const folderId = Result.unwrap(folderResult);
-      let feedId: string | null = null;
-      let hasError = false;
-
-      Result.pipe(
-        await addLocalFeed(accountId, feedUrl),
-        Result.inspect((feed) => {
-          feedId = feed.id;
-        }),
-        Result.inspectError((error) => {
-          hasError = true;
-          dispatch({
-            type: "set-submit-error",
-            error: t("failed_to_add_feed", { message: error.message }),
+        if (Result.isFailure(folderResult)) {
+          const error = Result.unwrapError(folderResult);
+          const message = t("failed_to_create_folder", {
+            message: error.message,
           });
-        }),
-      );
+          dispatch({ type: "set-submit-error", error: message });
+          showToast(message);
+          return;
+        }
 
-      if (hasError) {
-        return;
-      }
+        const folderId = Result.unwrap(folderResult);
+        let feedId: string | null = null;
+        let hasError = false;
 
-      if (folderId && feedId) {
         Result.pipe(
-          await updateFeedFolder(feedId, folderId),
+          await addLocalFeed(accountId, feedUrl),
+          Result.inspect((feed) => {
+            feedId = feed.id;
+          }),
           Result.inspectError((error) => {
-            console.error("Failed to assign folder:", error);
-            showToast(t("feed_added_folder_failed", { message: error.message }));
+            hasError = true;
+            dispatch({
+              type: "set-submit-error",
+              error: t("failed_to_add_feed", { message: error.message }),
+            });
           }),
         );
-      }
 
-      invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
-      invalidateArticleQueries(queryClient, {
-        includeAccountUnreadCount: false,
-        includeFeeds: false,
-      });
-      onOpenChange(false);
-    } finally {
-      submitInFlightRef.current = false;
-      dispatch({ type: "set-loading", loading: false });
-    }
+        if (hasError) {
+          return;
+        }
+
+        if (folderId && feedId) {
+          Result.pipe(
+            await updateFeedFolder(feedId, folderId),
+            Result.inspectError((error) => {
+              console.error("Failed to assign folder:", error);
+              showToast(t("feed_added_folder_failed", { message: error.message }));
+            }),
+          );
+        }
+
+        invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
+        invalidateArticleQueries(queryClient, {
+          includeAccountUnreadCount: false,
+          includeFeeds: false,
+        });
+        onOpenChange(false);
+      },
+    });
   }, [
     accountId,
     derived.isManualUrlValid,

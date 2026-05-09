@@ -9,11 +9,13 @@ export type {
   FeedEditDisplayPreset,
   SubmitFeedEditsParams,
 } from "./rename-feed-dialog.types";
-export type FeedEditorState<ExtraState extends object = object> = {
+export type FeedMutationEditorState<ExtraState extends object = object> = {
   title: string;
   displayPreset: FeedEditDisplayPreset;
   loading: boolean;
 } & ExtraState;
+
+export type FeedEditorState<ExtraState extends object = object> = FeedMutationEditorState<ExtraState>;
 
 export async function submitFeedEdits({
   feed,

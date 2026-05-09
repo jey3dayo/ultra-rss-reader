@@ -8,20 +8,28 @@ type SidebarAccountStatusLabelSource = Pick<AccountDto, "id">;
 export type SidebarAccountStatusLabels = Record<string, string>;
 export type SidebarAccountStatusLabelsParams = readonly SidebarAccountStatusLabelSource[] | undefined;
 
-export type SidebarSourcesResult = {
+type SidebarAccountSourceModel = {
   accounts: AccountDto[] | undefined;
   accountStatusLabels: SidebarAccountStatusLabels;
   selectedAccount: AccountDto | undefined;
+  accountArticles: ArticleDto[] | undefined;
+};
+
+type SidebarFeedTreeSourceModel = {
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;
   isFeedTreeLoading: boolean;
   showFeedTreeSkeleton: boolean;
-  tags: TagDto[] | undefined;
-  tagArticleCounts: Record<string, number> | undefined;
-  accountArticles: ArticleDto[] | undefined;
   starredCountByFeedId: ReadonlyMap<string, number>;
   feedList: FeedDto[];
   folderList: FolderDto[];
   totalUnread: number;
   starredCount: number;
 };
+
+type SidebarTagSourceModel = {
+  tags: TagDto[] | undefined;
+  tagArticleCounts: Record<string, number> | undefined;
+};
+
+export type SidebarSourcesResult = SidebarAccountSourceModel & SidebarFeedTreeSourceModel & SidebarTagSourceModel;
