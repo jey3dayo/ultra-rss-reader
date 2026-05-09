@@ -70,21 +70,6 @@
   - 対象候補: `playwright.storybook.config.ts` / legacy settings form files / `src/dev/scenarios/index.ts`
   - dead code type surface とは分け、file-level export/entrypoint contract と削除可否だけを扱う
 
-- [ ] P3 similarity reader UI state hook factory 候補を追加する
-  - `useArticleViewUiState` と `useCommandPaletteUiState` が 88% 類似なので、open/close/toggle 系 state hook factory へ寄せられるか確認する
-  - 共通化する場合は public hook return names を保ち、article view と command palette の focused hook test で state transition が変わらないことを固定する
-  - command palette controller contract とは分け、UI boolean state hook の重複だけを扱う
-
-- [ ] P3 similarity account detail editor state review 候補を追加する
-  - `useArticleListViewState` と `use-account-detail-name-editor` が 90% 類似なので、draft / saving / error state の reducer pattern を共通化できるか確認する
-  - 共通化する場合は generic edit-state reducer だけに限定し、article list presentation state と account name validation / submit flow は混ぜない
-  - account detail section contract とは分け、editor/view state skeleton の similarity 判定だけを扱う
-
-- [ ] P3 similarity article list navigation false-positive review 候補を追加する
-  - `useArticleListNavigation` / `useAddFeedDialogActions` / `buildSubscriptionReviewCandidates` が 91-93% 類似として出ているため、実際に共通化可能な navigation math か hook boilerplate かを確認する
-  - 共通化できる場合は item index movement / wrap / selection lookup の pure helper だけに限定し、add feed action や subscription review の domain logic は混ぜない
-  - article list iterable performance とは分け、navigation-like similarity の判定と小さな helper 抽出だけを扱う
-
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] P3 参照範囲が広い settings 配置候補を別バッチで見直す
