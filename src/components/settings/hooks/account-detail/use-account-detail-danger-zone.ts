@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import {
   invalidateArticleQueries,
   invalidateFeedQueries,
   invalidateQueryKeysLogOnly,
+  queryKeys,
 } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -32,6 +33,83 @@ export function buildOpmlExportFilename(accountName: string): string {
     .replace(/[<>:"/\\|?*]/g, "")
     .trim();
   return safeName ? `${safeName}-feeds.opml` : "feeds.opml";
+}
+
+function collectDeletedAccountFeedIds(
+  queryClient: QueryClient,
+  deletedAccountId: string,
+): Set<string> {
+  const feedIds = new Set<string>();
+  const feedQueryResults = queryClient.getQueriesData<unknown>({
+    queryKey: queryKeys.feeds.root,
+  });
+
+  for (const [, data] of feedQueryResults) {
+    if (!Array.isArray(data)) {
+      continue;
+    }
+
+    for (const candidate of data) {
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        "id" in candidate &&
+        typeof candidate.id === "string" &&
+        "account_id" in candidate &&
+        candidate.account_id === deletedAccountId
+      ) {
+        feedIds.add(candidate.id);
+      }
+    }
+  }
+
+  return feedIds;
+}
+
+function isDeletedAccountArticleQuery(
+  queryKey: QueryKey,
+  deletedAccountId: string,
+  deletedFeedIds: Set<string>,
+): boolean {
+  const root = queryKey[0];
+
+  if (
+    (root === queryKeys.accountArticles.root[0] ||
+      root === queryKeys.starredArticles.root[0] ||
+      root === queryKeys.recentArticles.root[0] ||
+      root === queryKeys.search.root[0] ||
+      root === queryKeys.feedArticleSummaries.root[0]) &&
+    queryKey[1] === deletedAccountId
+  ) {
+    return true;
+  }
+
+  if (
+    root === queryKeys.articlesByTag.root[0] &&
+    queryKey[2] === deletedAccountId
+  ) {
+    return true;
+  }
+
+  return (
+    root === queryKeys.articles.root[0] &&
+    typeof queryKey[1] === "string" &&
+    deletedFeedIds.has(queryKey[1])
+  );
+}
+
+function removeDeletedAccountArticleCaches(
+  queryClient: QueryClient,
+  deletedAccountId: string,
+): void {
+  const deletedFeedIds = collectDeletedAccountFeedIds(
+    queryClient,
+    deletedAccountId,
+  );
+  queryClient.removeQueries({
+    predicate: ({ queryKey }) =>
+      isDeletedAccountArticleQuery(queryKey, deletedAccountId, deletedFeedIds),
+  });
 }
 
 export function useAccountDetailDangerZone({
@@ -125,6 +203,7 @@ export function useAccountDetailDangerZone({
         const fallbackAccountId = remainingAccountIds[0] ?? "";
 
         useUiStore.getState().handleAccountDeleted(account.id, remainingAccountIds);
+        removeDeletedAccountArticleCaches(queryClient, account.id);
         if (savedAccountId.trim() === account.id) {
           setPref("selected_account_id", fallbackAccountId);
         }

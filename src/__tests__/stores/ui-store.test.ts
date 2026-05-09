@@ -374,6 +374,43 @@ describe("useUiStore", () => {
     });
   });
 
+  it("keeps account setup owner transitions scoped to the active setup session", () => {
+    useUiStore.getState().startAccountSetupVerification();
+    useUiStore.getState().markAccountSetupSucceeded("acc-add");
+
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      owner: "add-account",
+      state: "verifying",
+    });
+
+    useUiStore.getState().startAccountSetup("acc-add");
+    useUiStore.getState().markAccountSetupSucceeded("acc-other");
+
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "acc-add",
+      owner: "add-account",
+      state: "syncing",
+    });
+
+    useUiStore.getState().startAccountSetup("acc-detail", { owner: "account-detail" });
+    useUiStore.getState().markAccountSetupFailed("acc-add", "stale add-account result");
+
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "acc-detail",
+      owner: "account-detail",
+      state: "syncing",
+    });
+
+    useUiStore.getState().markAccountSetupFailed("acc-detail", "detail sync failed");
+
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "acc-detail",
+      owner: "account-detail",
+      state: "failed",
+      errorMessage: "detail sync failed",
+    });
+  });
+
   it("closeCommandPalette sets false", () => {
     useUiStore.getState().openCommandPalette();
     useUiStore.getState().closeCommandPalette();
