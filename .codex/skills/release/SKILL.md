@@ -188,6 +188,8 @@ Then verify that the exact remote tag exists in `git ls-remote --tags origin`. I
 
 - For annotated tags, `refs/tags/v{new_version}` is the tag object and `refs/tags/v{new_version}^{}` is the peeled release commit. Verify both refs exist when possible, and compare the peeled `^{}` ref to the release commit hash.
 - Use a command shaped like `git ls-remote --tags origin "v{new_version}" "v{new_version}^{}"` so the tag object and peeled commit are visible in one check.
+- The release workflow concurrency group is keyed by the release tag for both tag push and manual dispatch, with `cancel-in-progress: false`. Do not manually dispatch the same tag while a tag-push run is still active unless you intentionally want it queued behind the active run.
+- If rerunning the same tag after a cancellation or failed artifact upload, first inspect the draft Release assets and delete any partial assets for that tag before rerunning. The workflow preflight will stop before artifact creation if the checkout commit, tag target commit, or version files do not match.
 
 ### Update GitHub Release Notes
 
