@@ -7,6 +7,7 @@ fn log_dir_error_message(_action: &str, _error: impl std::fmt::Display) -> Strin
     "Check OS permissions and try again.".to_string()
 }
 
+#[cfg(test)]
 fn log_dir_privacy_checklist() -> &'static [&'static str] {
     &[
         "Share only the relevant app.log excerpt.",

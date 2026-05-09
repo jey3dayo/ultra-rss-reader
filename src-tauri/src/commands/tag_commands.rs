@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+use rusqlite::{params, OptionalExtension};
 use tauri::State;
 
 use crate::commands::article_commands::{article_command_pagination, DEFAULT_ARTICLE_LIST_LIMIT};
 use crate::commands::dto::{AppError, ArticleDto, TagDto};
 use crate::commands::AppState;
+use crate::domain::error::DomainError;
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, TagId};
 use crate::infra::db::sqlite_tag::SqliteTagRepository;
@@ -59,6 +61,44 @@ fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
         .any(|tag| tag.id.0 != tag_id && tag.name.eq_ignore_ascii_case(name))
 }
 
+fn validate_article_tag_targets(
+    db: &crate::infra::db::connection::DbManager,
+    article_id: &str,
+    tag_id: &str,
+) -> Result<(), AppError> {
+    let article_exists = db
+        .reader()
+        .query_row(
+            "SELECT 1 FROM articles WHERE id = ?1",
+            params![article_id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map_err(DomainError::from)?
+        .is_some();
+    if !article_exists {
+        return Err(AppError::UserVisible {
+            message: "Article not found".to_string(),
+        });
+    }
+
+    let tag_exists = db
+        .reader()
+        .query_row("SELECT 1 FROM tags WHERE id = ?1", params![tag_id], |_| {
+            Ok(())
+        })
+        .optional()
+        .map_err(DomainError::from)?
+        .is_some();
+    if !tag_exists {
+        return Err(AppError::UserVisible {
+            message: "Tag not found".to_string(),
+        });
+    }
+
+    Ok(())
+}
+
 fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
     ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
 }
@@ -92,14 +132,19 @@ fn create_tag_impl(
 
     let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.writer());
+    if let Some(existing) = repo.find_by_name(&name)? {
+        return Err(AppError::UserVisible {
+            message: format!("Tag name \"{}\" already exists", existing.name),
+        });
+    }
 
     let tag = Tag {
         id: TagId::new(),
         name,
         color,
     };
-    let result = repo.find_or_create(&tag)?;
-    Ok(TagDto::from(result))
+    repo.save(&tag)?;
+    Ok(TagDto::from(tag))
 }
 
 #[tauri::command]
@@ -179,6 +224,7 @@ fn tag_article_impl(
     tag_id: String,
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
+    validate_article_tag_targets(&db, &article_id, &tag_id)?;
     let repo = SqliteTagRepository::new(db.writer());
     repo.tag_article(&ArticleId(article_id), &TagId(tag_id))?;
     Ok(())
@@ -199,6 +245,7 @@ fn untag_article_impl(
     tag_id: String,
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
+    validate_article_tag_targets(&db, &article_id, &tag_id)?;
     let repo = SqliteTagRepository::new(db.writer());
     repo.untag_article(&ArticleId(article_id), &TagId(tag_id))?;
     Ok(())
@@ -265,6 +312,58 @@ mod tests {
         std::sync::Mutex::new(DbManager::new_in_memory().unwrap())
     }
 
+    fn insert_article_and_tag(db: &DbManager) -> (ArticleId, TagId) {
+        let account_id = AccountId("account-1".to_string());
+        let feed_id = crate::domain::types::FeedId("feed-1".to_string());
+        let article_id = ArticleId("article-1".to_string());
+        let tag_id = TagId("tag-1".to_string());
+
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![account_id.0, "Local", "Primary"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url, site_url)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    feed_id.0,
+                    account_id.0,
+                    "Example Feed",
+                    "https://example.com/feed.xml",
+                    "https://example.com"
+                ],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                params![
+                    article_id.0,
+                    feed_id.0,
+                    "local-guid-1",
+                    "Example Article",
+                    "",
+                    "",
+                    1,
+                    "2026-04-01T00:00:00Z",
+                    "2026-04-01T00:00:00Z"
+                ],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO tags (id, name) VALUES (?1, ?2)",
+                params![tag_id.0, "Read Later"],
+            )
+            .unwrap();
+
+        (article_id, tag_id)
+    }
+
     #[test]
     fn validate_color_accepts_full_hex_and_rejects_empty_short_or_invalid_values() {
         assert!(validate_color("#ff0000"));
@@ -315,6 +414,20 @@ mod tests {
         let tag = create_tag_impl(&db, "  Read Later  ".to_string(), None).unwrap();
 
         assert_eq!(tag.name, "Read Later");
+    }
+
+    #[test]
+    fn create_tag_rejects_duplicate_names_case_insensitively() {
+        let db = test_db();
+        create_tag_impl(&db, "Read Later".to_string(), None).unwrap();
+
+        let error = create_tag_impl(&db, "read later".to_string(), None)
+            .expect_err("duplicate tag name should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Tag name \"Read Later\" already exists"
+        ));
     }
 
     #[test]
@@ -461,19 +574,52 @@ mod tests {
 
         assert!(matches!(
             article_error,
-            AppError::UserVisible { message } if message.contains("FOREIGN KEY constraint failed")
+            AppError::UserVisible { message } if message == "Article not found"
         ));
     }
 
     #[test]
-    fn untag_article_missing_link_is_successful_noop() {
+    fn tag_article_missing_tag_is_user_visible_error() {
+        let db = test_db();
+        let (article_id, _) = {
+            let db = db.lock().unwrap();
+            insert_article_and_tag(&db)
+        };
+
+        let error = tag_article_impl(&db, article_id.0, "missing-tag".to_string())
+            .expect_err("missing tag should surface as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Tag not found"
+        ));
+    }
+
+    #[test]
+    fn untag_article_missing_article_or_tag_is_user_visible_error() {
         let db = test_db();
 
-        untag_article_impl(
+        let error = untag_article_impl(
             &db,
             "missing-article".to_string(),
             "missing-tag".to_string(),
         )
-        .unwrap();
+        .expect_err("missing article should surface as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Article not found"
+        ));
+    }
+
+    #[test]
+    fn untag_article_missing_link_is_successful_noop_when_targets_exist() {
+        let db = test_db();
+        let (article_id, tag_id) = {
+            let db = db.lock().unwrap();
+            insert_article_and_tag(&db)
+        };
+
+        untag_article_impl(&db, article_id.0, tag_id.0).unwrap();
     }
 }

@@ -34,7 +34,10 @@ const initialMuteSettingsState: MuteSettingsState = {
   confirmRule: null,
 };
 
-function muteSettingsReducer(state: MuteSettingsState, action: MuteSettingsAction): MuteSettingsState {
+function muteSettingsReducer(
+  state: MuteSettingsState,
+  action: MuteSettingsAction,
+): MuteSettingsState {
   switch (action.type) {
     case "set-keyword":
       return { ...state, keyword: action.value };
@@ -60,9 +63,13 @@ export function MuteSettings() {
   const updateMuteKeyword = useUpdateMuteKeyword();
   const ruleScopeUpdateRevisionRef = useRef<Record<string, number>>({});
   const autoMarkReadRevisionRef = useRef(0);
-  const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
+  const [state, dispatch] = useReducer(
+    muteSettingsReducer,
+    initialMuteSettingsState,
+  );
   const { keyword, scope, confirmRule } = state;
-  const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
+  const autoMarkReadEnabled =
+    resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
   const keywordLength = Array.from(keyword.trim()).length;
 
   const handleAdd = async () => {
@@ -100,7 +107,10 @@ export function MuteSettings() {
     }
   };
 
-  const handleRuleScopeChange = async (ruleId: string, nextScope: MuteKeywordScope) => {
+  const handleRuleScopeChange = async (
+    ruleId: string,
+    nextScope: MuteKeywordScope,
+  ) => {
     const currentRule = rules.find((candidate) => candidate.id === ruleId);
     if (!currentRule || currentRule.scope === nextScope) {
       return;
@@ -146,7 +156,9 @@ export function MuteSettings() {
       usePreferencesStore.setState((state) => ({
         prefs: { ...state.prefs, mute_auto_mark_read: String(previousValue) },
       }));
-      showToast(t("mute.auto_mark_read_failed", { message: getErrorMessage(error) }));
+      showToast(
+        t("mute.auto_mark_read_failed", { message: getErrorMessage(error) }),
+      );
     }
   };
 
@@ -161,7 +173,8 @@ export function MuteSettings() {
     confirmRule,
     onKeywordChange: (value) => dispatch({ type: "set-keyword", value }),
     onScopeChange: (value) => dispatch({ type: "set-scope", value }),
-    onRuleScopeChange: (ruleId, nextScope) => void handleRuleScopeChange(ruleId, nextScope),
+    onRuleScopeChange: (ruleId, nextScope) =>
+      void handleRuleScopeChange(ruleId, nextScope),
     onAutoMarkReadChange: (checked) => void handleAutoMarkReadChange(checked),
     onAdd: () => void handleAdd(),
     onRequestDelete: handleRequestDelete,
