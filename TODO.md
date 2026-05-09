@@ -74,21 +74,6 @@
   - `src/__tests__/stores/preferences-store.test.ts` で theme / language の deferred `setPreference` を使い、古い失敗と新しい成功の順序差を固定する
   - rejected persist failure guard とは分け、単一 preference の async ordering と user-visible failure surface だけを扱う
 
-- [ ] menu event unknown payload formatting guard 候補を追加する
-  - `src/hooks/use-menu-events.ts` の debug trace / warn が unknown payload を template literal へ直接入れるため、Symbol や throwing `toString` で handler が落ちないか確認する
-  - `src/__tests__/hooks/use-menu-events.test.tsx` で non-string payload は action dispatch せず、safe string fallback で warn/debug できることを固定する
-  - app action registry source-of-truth や native menu emitted action parity とは分け、menu event payload の logging boundary だけを扱う
-
-- [ ] generated mutation invalidate error surface 候補を追加する
-  - `src/hooks/create-mutation.ts` の `onSuccess` で `invalidate()` が throw した時、mutation 成功自体を失敗扱いにするか、error boundary へ出すかを決める
-  - `src/__tests__/hooks/create-mutation.test.tsx` で mutationFn success 後の invalidate throw が toastなし reject / console warn / no-op のどれになるか固定する
-  - query key literal cleanup や individual hook invalidation target とは分け、generated mutation helper の post-success error surface だけを扱う
-
-- [ ] command palette runtime production loader guard 候補を追加する
-  - `src/components/reader/hooks/command-palette/use-command-palette-runtime.ts` の DEV scenario loader が production env で呼ばれないことを focused test として固定する
-  - `src/__tests__/hooks/use-command-palette-runtime.test.tsx` で `vi.stubEnv("DEV", false)` 時に `loadRuntimeDevScenarios` が未呼び出しで、`devScenarios` が空のままになることを確認する
-  - dev scenario dynamic import registry や runtime error surface とは分け、production guard の hook boundary だけを扱う
-
 - [ ] sidebar subscription sort preference contract 候補を追加する
   - `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` が `sortSubscriptions` を受け取りつつ `_sortSubscriptions` として未使用なので、設定値を適用するか alphabetical 固定の廃止済み contract として整理する
   - `src/__tests__/components/use-sidebar-feed-tree.test.tsx` と `src/__tests__/components/sidebar-feed-tree-helpers.test.ts` で `newest_first` / `alphabetical` の期待値を明示する
@@ -185,20 +170,10 @@
   - 対象候補: `src/lib/articles/article-list.ts` / `src/lib/subscriptions/subscriptions-index.ts` / `src/components/reader/hooks/command-palette/use-command-palette-data.ts`
   - test-only fixture や dev mock は後回しにし、同一入力で出力順が変わらない pure helper test を追加する
 
-- [ ] react-doctor use-articles index map cleanup 候補を追加する
-  - `src/hooks/use-articles.ts` の loop 内 `find` を事前 `Map` 化し、article mutation / tag mutation の出力順と cache update が変わらないようにする
-  - `src/__tests__/hooks/use-articles.test.tsx` で同一入力時の article/tag association と invalidation side effect を固定する
-  - mutation invalidation 候補とは分け、`useArticles` 周辺の lookup complexity だけを扱う
-
 - [ ] react-doctor immutable sort cleanup 候補を追加する
   - `js-tosorted-immutable` の `[...array].sort()` を runtime file から `toSorted()` へ寄せる
   - 対象候補: `src/lib/sidebar/sidebar.ts` / `src/components/reader/hooks/sidebar/use-sidebar-feed-tree.ts` / `src/lib/subscriptions/subscriptions-index.ts`
   - ES target / runtime support を確認し、test fixture の sort cleanup とは別バッチにする
-
-- [ ] react-doctor form preventDefault review 候補を追加する
-  - `src/components/settings/add-account/account-config-form-view.tsx` と `src/components/settings/add-account/form-view.tsx` の submit handling を review する
-  - Tauri desktop app として progressive enhancement 指摘をそのまま直すか、button-driven form contract として明示するか判断する
-  - add account URL validation とは分け、form semantics と keyboard submit contract だけを扱う
 
 - [ ] react-doctor Tailwind padding shorthand 候補を追加する
   - `react-doctor/design-no-redundant-padding-axes` の `px-N py-N` 同値指定を runtime view / Storybook specimen / debug view に分けて `p-N` へ寄せる
@@ -219,11 +194,6 @@
   - `src/hooks/use-badge.ts` の cascading setState を reducer / derived value / command result path に整理する
   - badge count 更新と platform unavailable 時の fallback が変わらない hook test を追加する
   - updater badge behavior や native command contract とは分け、badge hook 内の React state 整理だけを扱う
-
-- [ ] react-doctor feed favicon ref state 候補を追加する
-  - `src/components/shared/feed-favicon.tsx` の render で読まれない state を `useRef` に寄せ、不要 rerender を避ける
-  - load/error event 後の fallback rendering と retry boundary が変わらない component test を追加する
-  - feed detail panel 表示とは分け、favicon component の state-only handler だけを扱う
 
 - [ ] react-doctor shortcuts help effect handler 候補を追加する
   - `src/components/reader/shortcuts-help-modal.tsx` の `useEffect` による event-handler 相当処理を open/change handler 境界へ寄せる
@@ -495,16 +465,6 @@
   - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する
   - tag settings UI validation とは分け、repository/domain invariant だけを扱う
 
-- [ ] add account service picker props boundary 候補を追加する
-  - `src/components/settings/add-account/service-picker.tsx` の `useTranslation("settings")` と `SERVICE_CATEGORIES` 直参照を controller 由来 props へ寄せる
-  - add account focused test で service picker view が props の category / service / description copy だけで render できることを固定する
-  - add account form validation とは分け、service picker view/controller boundary だけを扱う
-
-- [ ] add account disabled service locale 候補を追加する
-  - `src/locales/en/settings.json` の `account.coming_soon` が日本語のままになっている点を修正し、disabled provider 表示で使う contract を固定する
-  - `src/__tests__/components/add-account-form.test.tsx` と locale contract test で “Coming soon” / “準備中” が locale 由来で出ることを確認する
-  - service picker props boundary とは分け、disabled service badge/copy だけを扱う
-
 - [ ] account detail copy failure locale 候補を追加する
   - `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts` の server URL copy failure toast が raw `error.message` にならないようにする
   - `src/__tests__/components/account-detail.test.tsx` で clipboard failure 時に `ja` / `en` の locale wrapper 経由 toast になることを固定する
@@ -519,11 +479,6 @@
   - `src/lib/content/html.ts` の `stripHtmlTags()` が block element / `br` / list item 境界を潰して `LeadBody` のような summary を作らないようにする
   - `src/__tests__/lib/html.test.ts` と必要なら `src/__tests__/components/article-list-item.test.tsx` で `<p>Lead</p><p>Body</p>` が `Lead Body` になることを固定する
   - article content danger boundary とは分け、plain text summary spacing だけを扱う
-
-- [ ] article web preview blank URL guard 候補を追加する
-  - `src/components/reader/hooks/article/use-article-browser-overlay-display.ts` と `src/lib/feed/feed-landing.ts` で whitespace-only article URL を preview 可能扱いしない
-  - `src/__tests__/lib/feed-landing.test.ts` と既存 hook/component test で blank URL は overlay を開かず `missing_web_preview` へ落ちることを固定する
-  - ArticleDto URL schema normalization とは分け、Web Preview availability boundary だけを扱う
 
 - [ ] article reader relative link policy 候補を追加する
   - `src/components/reader/article-reader-body.tsx` で sanitized 本文内の相対リンククリックを app origin ではなく記事 URL 基準にするか無効化するか固定する
