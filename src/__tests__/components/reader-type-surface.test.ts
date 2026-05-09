@@ -31,6 +31,22 @@ const localOnlyTypeSurfaceFiles = [
   "src/components/settings/add-account/form-view.types.ts",
 ] as const;
 
+const cleanupContractTestFiles = {
+  semanticTokenAndRoleContracts: [
+    "src/__tests__/components/article-filter-toggle-button.test.ts",
+    "src/__tests__/components/article-list-context-strip.test.tsx",
+    "src/__tests__/components/article-list-footer.test.tsx",
+    "src/__tests__/components/article-list-item.test.tsx",
+    "src/__tests__/components/surface-card.test.tsx",
+  ],
+  readerPureHelperContracts: [
+    "src/__tests__/components/article-list-item.test.tsx",
+    "src/__tests__/components/feed-mark-all-read.test.ts",
+    "src/__tests__/components/use-article-list-navigation.test.tsx",
+  ],
+  publicWrapperSurfaceContracts: ["src/__tests__/components/ui-wrapper-public-api.test.ts"],
+} as const;
+
 const typeSurfaceSearchDirectories = [
   "src/components/reader",
   "src/components/settings",
@@ -122,5 +138,20 @@ describe("reader type surface", () => {
 
   it("keeps local-only exported type contracts externally referenced", () => {
     expect(collectUnusedExports(localOnlyTypeSurfaceFiles)).toEqual([]);
+  });
+
+  it("tracks small cleanup contracts without adding broad visual snapshots", () => {
+    const contractTestFiles = Object.values(cleanupContractTestFiles).flat();
+
+    expect(contractTestFiles.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+
+    for (const contractTestFile of contractTestFiles) {
+      const source = readRepoFile(contractTestFile);
+
+      expect(source, `${contractTestFile} should avoid snapshot-based visual coverage`).not.toContain("toMatchSnapshot");
+      expect(source, `${contractTestFile} should stay focused on contract assertions`).toMatch(
+        /toHaveAttribute|toHaveClass|expectTypeOf|toEqual|toContain|toBe|toHaveBeenCalledWith/,
+      );
+    }
   });
 });
