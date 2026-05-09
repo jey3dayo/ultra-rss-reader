@@ -193,6 +193,72 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
   });
+
+  it("surfaces rejected credential saves, keeps drafts, and allows retry", async () => {
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockRejectedValueOnce(new Error("keychain unavailable")).mockResolvedValueOnce(
+      Result.succeed({
+        ...account,
+        server_url: "https://reader.example.com",
+        username: "alice",
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.setCredServerUrl("https://reader.example.com");
+      result.current.setCredUsername("alice");
+    });
+
+    let firstSaved = true;
+    await act(async () => {
+      firstSaved = await result.current.commitCredentials();
+    });
+
+    expect(firstSaved).toBe(false);
+    expect(useUiStore.getState().toastMessage?.message).toBe("Failed to update sync settings: keychain unavailable");
+    expect(result.current.credServerUrl).toBe("https://reader.example.com");
+    expect(result.current.credUsername).toBe("alice");
+
+    let secondSaved = false;
+    await act(async () => {
+      secondSaved = await result.current.commitCredentials();
+    });
+
+    expect(secondSaved).toBe(true);
+    expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not start a connection test after a rejected credential save", async () => {
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockRejectedValue(new Error("keychain unavailable"));
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
+    expect(result.current.testingConnection).toBe(false);
+  });
 });
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {

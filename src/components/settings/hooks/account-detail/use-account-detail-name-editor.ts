@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { type KeyboardEvent, type RefObject, useReducer, useRef } from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -72,11 +72,20 @@ export function useAccountDetailNameEditor({
   const [state, dispatch] = useReducer(accountDetailNameEditorReducer, initialAccountDetailNameEditorState);
   const { editingName, savingName, nameDraft } = state;
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const cancelScheduledFocusRef = useRef<(() => void) | null>(null);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
+
+  const cancelScheduledFocus = useCallback(() => {
+    cancelScheduledFocusRef.current?.();
+    cancelScheduledFocusRef.current = null;
+  }, []);
+
+  useEffect(() => cancelScheduledFocus, [cancelScheduledFocus]);
 
   const startEditingName = () => {
     dispatch({ type: "start-edit", value: account.name });
-    scheduleAccountDetailInputFocus(nameInputRef);
+    cancelScheduledFocus();
+    cancelScheduledFocusRef.current = scheduleAccountDetailInputFocus(nameInputRef);
   };
 
   const commitRename = async () => {
@@ -112,6 +121,7 @@ export function useAccountDetailNameEditor({
       event.preventDefault();
       void commitRename();
     } else if (event.key === "Escape") {
+      cancelScheduledFocus();
       dispatch({ type: "cancel-edit" });
     }
   };

@@ -4,6 +4,7 @@ import type { TFunction } from "i18next";
 import { type RefObject, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -164,8 +165,16 @@ export function useAccountDetailCredentialsEditor({
       }
 
       let saved = false;
+      let saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>;
+      try {
+        saveResult = await updateAccountCredentials(account.id, serverUrl, username, password);
+      } catch (error) {
+        showCredentialSaveError({ message: getErrorMessage(error) });
+        return false;
+      }
+
       Result.pipe(
-        await updateAccountCredentials(account.id, serverUrl, username, password),
+        saveResult,
         Result.inspectError(showCredentialSaveError),
         Result.inspect((updated) => {
           saved = true;
