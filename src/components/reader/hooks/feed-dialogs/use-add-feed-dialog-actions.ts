@@ -4,7 +4,12 @@ import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
 import { useCallback, useRef } from "react";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
-import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
+import {
+  addLocalFeed,
+  discoverFeeds,
+  updateFeedFolder,
+} from "@/api/tauri-commands";
+import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import type {
   AddFeedDialogAction,
   AddFeedDialogControllerDerived,
@@ -15,9 +20,7 @@ import { createFolderIfNeededResult } from "../../feed-folder-flow";
 import {
   invalidateArticleQueries,
   invalidateFeedQueries,
-  isLatestFeedMutation,
   runFeedMutationWithOptimisticRollback,
-  startLatestFeedMutation,
 } from "../../feed-query-cache";
 
 type UseAddFeedDialogActionsParams = {
@@ -41,7 +44,10 @@ type UseAddFeedDialogActionsResult = {
 export function resolveAddFeedDiscoveryAction(
   feeds: DiscoveredFeedDto[],
   requestId: number,
-): Extract<AddFeedDialogAction, { type: "discover-empty" | "discover-single" | "discover-multiple" }> {
+): Extract<
+  AddFeedDialogAction,
+  { type: "discover-empty" | "discover-single" | "discover-multiple" }
+> {
   if (feeds.length === 0) {
     return { type: "discover-empty", requestId };
   }
@@ -65,9 +71,9 @@ export function useAddFeedDialogActions({
   showToast,
   t,
 }: UseAddFeedDialogActionsParams): UseAddFeedDialogActionsResult {
-  const discoveryRequestIdRef = useRef(0);
+  const discoveryLifecycle = useAsyncCommandLifecycle();
   const latestDiscoveryUrlRef = useRef(trimmedUrl);
-  const submitInFlightRef = useRef(false);
+  const submitLifecycle = useAsyncCommandLifecycle();
   latestDiscoveryUrlRef.current = trimmedUrl;
 
   const handleDiscover = useCallback(async () => {
@@ -76,17 +82,16 @@ export function useAddFeedDialogActions({
       return;
     }
 
-    const requestId = startLatestFeedMutation({
-      latestRequestIdRef: discoveryRequestIdRef,
-    });
+    const discoveryRun = discoveryLifecycle.start();
+    const requestId = discoveryRun.requestId;
     const requestUrl = trimmedUrl;
     dispatch({ type: "start-discover", requestId });
 
+    const isLatestDiscovery = () =>
+      discoveryRun.isLatest() && requestUrl === latestDiscoveryUrlRef.current;
+
     const handleDiscoveryError = (message: string) => {
-      if (
-        !isLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef }, requestId) ||
-        requestUrl !== latestDiscoveryUrlRef.current
-      ) {
+      if (!isLatestDiscovery()) {
         return;
       }
 
@@ -101,17 +106,17 @@ export function useAddFeedDialogActions({
     try {
       discoveryResult = await discoverFeeds(requestUrl);
     } catch (error) {
-      handleDiscoveryError(error instanceof Error ? error.message : String(error));
+      handleDiscoveryError(
+        error instanceof Error ? error.message : String(error),
+      );
+      discoveryRun.finish();
       return;
     }
 
     Result.pipe(
       discoveryResult,
       Result.inspect((feeds) => {
-        if (
-          !isLatestFeedMutation({ latestRequestIdRef: discoveryRequestIdRef }, requestId) ||
-          requestUrl !== latestDiscoveryUrlRef.current
-        ) {
+        if (!isLatestDiscovery()) {
           return;
         }
 
@@ -121,7 +126,15 @@ export function useAddFeedDialogActions({
         handleDiscoveryError(error.message);
       }),
     );
-  }, [derived.hasManualUrl, derived.isManualUrlValid, dispatch, t, trimmedUrl]);
+    discoveryRun.finish();
+  }, [
+    derived.hasManualUrl,
+    derived.isManualUrlValid,
+    dispatch,
+    discoveryLifecycle,
+    t,
+    trimmedUrl,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     const feedUrl = state.selectedFeedUrl ?? state.url.trim();
@@ -134,18 +147,18 @@ export function useAddFeedDialogActions({
       return;
     }
 
-    if (submitInFlightRef.current) {
+    if (submitLifecycle.isInFlight()) {
       return;
     }
 
+    const submitRun = submitLifecycle.start();
     await runFeedMutationWithOptimisticRollback({
       rollback: () => {
-        submitInFlightRef.current = false;
+        submitRun.finish();
         dispatch({ type: "set-loading", loading: false });
       },
       shouldRollback: () => true,
       run: async () => {
-        submitInFlightRef.current = true;
         dispatch({ type: "set-loading", loading: true });
 
         const folderResult = await createFolderIfNeededResult({
@@ -191,7 +204,9 @@ export function useAddFeedDialogActions({
             await updateFeedFolder(feedId, folderId),
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error);
-              showToast(t("feed_added_folder_failed", { message: error.message }));
+              showToast(
+                t("feed_added_folder_failed", { message: error.message }),
+              );
             }),
           );
         }
@@ -202,6 +217,7 @@ export function useAddFeedDialogActions({
           includeFeeds: false,
         });
         onOpenChange(false);
+        submitRun.finish();
       },
     });
   }, [
@@ -214,6 +230,7 @@ export function useAddFeedDialogActions({
     onOpenChange,
     queryClient,
     showToast,
+    submitLifecycle,
     state.selectedFeedUrl,
     state.url,
     t,

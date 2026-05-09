@@ -1,13 +1,30 @@
-import { useEffect, useEffectEvent, useLayoutEffect } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 
 import { useUiStore } from "@/stores/ui-store";
 
-type BrowserUrlCleanup = ReturnType<typeof useEffect>;
+type BrowserUrlCleanup = void | (() => void);
 type BrowserUrlScope = {
   browserUrl: string;
   isCurrent: () => boolean;
 };
 type BrowserUrlEffect = (scope: BrowserUrlScope) => BrowserUrlCleanup;
+type AsyncCommandLifecycleRun = {
+  requestId: number;
+  isLatest: () => boolean;
+  finish: () => void;
+};
+type AsyncCommandLifecycle = {
+  isInFlight: () => boolean;
+  reset: () => void;
+  start: () => AsyncCommandLifecycleRun;
+};
 
 function isCurrentBrowserUrl(browserUrl: string) {
   return useUiStore.getState().browserUrl === browserUrl;
@@ -21,10 +38,54 @@ function createBrowserUrlEffectCallback(
     return undefined;
   }
 
-  return runEffect({
+  const cleanup = runEffect({
     browserUrl,
     isCurrent: () => isCurrentBrowserUrl(browserUrl),
   });
+  if (typeof cleanup !== "function") {
+    return cleanup;
+  }
+
+  return () => {
+    try {
+      cleanup();
+    } catch (error) {
+      console.warn("Failed to cleanup browser URL effect.", error);
+    }
+  };
+}
+
+export function useAsyncCommandLifecycle(): AsyncCommandLifecycle {
+  const latestRequestIdRef = useRef(0);
+  const inFlightRef = useRef(false);
+
+  const isInFlight = useCallback(() => inFlightRef.current, []);
+
+  const reset = useCallback(() => {
+    latestRequestIdRef.current += 1;
+    inFlightRef.current = false;
+  }, []);
+
+  const start = useCallback((): AsyncCommandLifecycleRun => {
+    const requestId = latestRequestIdRef.current + 1;
+    latestRequestIdRef.current = requestId;
+    inFlightRef.current = true;
+
+    return {
+      requestId,
+      isLatest: () => latestRequestIdRef.current === requestId,
+      finish: () => {
+        if (latestRequestIdRef.current === requestId) {
+          inFlightRef.current = false;
+        }
+      },
+    };
+  }, []);
+
+  return useMemo(
+    () => ({ isInFlight, reset, start }),
+    [isInFlight, reset, start],
+  );
 }
 
 export function useBrowserUrlEffect(
@@ -34,7 +95,10 @@ export function useBrowserUrlEffect(
 ) {
   const runEffect = useEffectEvent(effect);
 
-  useEffect(() => createBrowserUrlEffectCallback(browserUrl, runEffect), [browserUrl, ...dependencies]);
+  useEffect(
+    () => createBrowserUrlEffectCallback(browserUrl, runEffect),
+    [browserUrl, ...dependencies],
+  );
 }
 
 export function useBrowserUrlLayoutEffect(
@@ -44,5 +108,8 @@ export function useBrowserUrlLayoutEffect(
 ) {
   const runEffect = useEffectEvent(effect);
 
-  useLayoutEffect(() => createBrowserUrlEffectCallback(browserUrl, runEffect), [browserUrl, ...dependencies]);
+  useLayoutEffect(
+    () => createBrowserUrlEffectCallback(browserUrl, runEffect),
+    [browserUrl, ...dependencies],
+  );
 }
