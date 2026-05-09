@@ -580,11 +580,6 @@
   - React Doctor の `async-await-in-loop` が sidebar test に出ており、連続 user event の意図的逐次実行と独立 fixture setup が混ざっている可能性がある
   - keyboard navigation / pointer interaction は逐次維持し、独立 render setup や mock response setup は並列化できるか確認する
 
-- [ ] P2 preferences schema contract の sorted key assertion を target-aware にする
-  - 対象: `src/__tests__/schemas/preferences-schema-contract.test.ts`, `src/schemas/preferences.ts`
-  - React Doctor が `.toSorted()` warning を preferences schema contract に出しており、schema key order assertion が spread sort 前提になっている
-  - Node/WebView target 方針に合わせて `toSorted` へ寄せるか stable sort helper に逃がし、unknown enum、default value、missing nested setting の diagnostics を維持する
-
 - [ ] P2 UI reference specimen registry test の sort helper を design registry と共有する
   - 対象: `src/__tests__/components/ui-reference-specimen-registry.test.ts`, `src/__tests__/components/design-ui-primitives.test.tsx`
   - React Doctor が UI reference / design primitive test に `.toSorted()` warning を検出しており、primitive registry の並び順検証が各 test に分散している
@@ -795,11 +790,6 @@
   - expanded folders は localStorage JSON に account -> folder ids を保存するため、account削除、folder削除、巨大JSON、invalid shape、storage write failure で stale expansion が残りやすい
   - missing account pruning、missing folder pruning、oversized payload cleanup、write failure UI維持、migration version の test を追加する
 
-- [ ] P2 article list search focus timer を rapid open/close と unmount で stale focus しないようにする
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-search.ts`, `src/components/reader/article-list-header-search.tsx`
-  - search open 時の `setTimeout(focus, 0)` が rapid toggle や unmount 後に走ると、別 pane へ focus が戻った後に検索入力へ奪い返す可能性がある
-  - generation guard、timer cleanup、Escape close、locale label変更、header unmount の component test を追加する
-
 - [ ] P2 account detail OPML export URL lifecycle を timer cleanup / revoke ordering で固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/components/settings/account-detail/*`
   - OPML export は object URL を作って timer で revoke するため、account switch、modal close、二重 export、download cancel で stale URL や premature revoke が起きやすい
@@ -974,11 +964,6 @@
   - 対象: `src/components/reader/hooks/article/use-article-browser-overlay-close.ts`, `src/lib/sidebar/sidebar-smart-views.ts`
   - similarity は高いが lifecycle close action と static view model builder で責務が異なり、機械的共通化すると domain boundary が崩れる
   - similarity TODO では false positive として記録し、共通化しない理由、今後見るべき重複単位、必要なら rule/comment を追加する
-
-- [ ] P2 similarity 90.27%: account sync statuses と subscription review candidates の map/filter pattern を hot path 優先で整理する
-  - 対象: `src/hooks/use-account-sync-statuses.ts`, `src/lib/subscriptions/subscription-review-candidates.ts`
-  - どちらも source list から view model を作る処理で、array chain と Map build の責務が似ているため、件数が増えると片方だけ最適化される drift が起きやすい
-  - shared utility ではなく collection building guideline を作り、production hot path は single-pass化、test/helperは readability 優先に分類する
 
 - [ ] P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する
   - 対象: `src/components/settings/account-detail/query-cache.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/hooks/use-updater.ts`
