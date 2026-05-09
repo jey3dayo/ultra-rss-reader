@@ -134,6 +134,36 @@ describe("useToggleStar", () => {
     expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery("acc-1", "   \n\t  "))).toBeUndefined();
   });
 
+  it("normalizes search account ids before enabling and caching search queries", async () => {
+    const searchArticlesSpy = vi
+      .spyOn(tauriCommands, "searchArticles")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const initialProps: { accountId: string | null; query: string } = {
+      accountId: " \n\t ",
+      query: " fresh ",
+    };
+
+    const { rerender } = renderHook(
+      ({ accountId, query }: { accountId: string | null; query: string }) => useSearchArticles(accountId, query),
+      {
+        initialProps,
+        wrapper,
+      },
+    );
+
+    expect(searchArticlesSpy).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(null, "fresh"))).toBeDefined();
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(" \n\t ", "fresh"))).toBeUndefined();
+
+    rerender({ accountId: " acc-1 ", query: " fresh " });
+
+    await waitFor(() => {
+      expect(searchArticlesSpy).toHaveBeenCalledWith("acc-1", "fresh");
+    });
+    expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual(sampleArticles);
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(" acc-1 ", "fresh"))).toBeUndefined();
+  });
+
   it("treats whitespace-only manual article query ids as null-equivalent disabled ids", () => {
     const listArticlesSpy = vi.spyOn(tauriCommands, "listArticles").mockResolvedValue(Result.succeed(sampleArticles));
     const listAccountArticlesSpy = vi

@@ -14,7 +14,12 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
-import { invalidateArticleQueries, invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
+import {
+  invalidateArticleQueries,
+  invalidateQueryKeysLogOnly,
+  normalizeQueryAccountId,
+  queryKeys,
+} from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -44,8 +49,8 @@ type TagQueryKey = readonly [string];
 const TAG_QUERY_KEYS = {
   tags: ["tags"],
   articleTags: ["articleTags"],
-  articlesByTag: ["articlesByTag"],
-  tagArticleCounts: ["tagArticleCounts"],
+  articlesByTag: queryKeys.articlesByTag.root,
+  tagArticleCounts: queryKeys.tagArticleCounts.root,
 } as const satisfies Record<string, TagQueryKey>;
 
 export const tagQueryKeys = {
@@ -59,12 +64,12 @@ export const tagQueryKeys = {
   articlesByTag: {
     root: TAG_QUERY_KEYS.articlesByTag,
     byTagAndAccount: (tagId: string | null, accountId: string | null | undefined, mode: ReaderFilter) =>
-      [...TAG_QUERY_KEYS.articlesByTag, tagId, accountId, { mode }] as const,
+      queryKeys.articlesByTag.byTagAndAccount(tagId, normalizeQueryAccountId(accountId), mode),
   },
   tagArticleCounts: {
     root: TAG_QUERY_KEYS.tagArticleCounts,
     byAccount: (accountId: string | null | undefined) =>
-      [...TAG_QUERY_KEYS.tagArticleCounts, accountId ?? null] as const,
+      queryKeys.tagArticleCounts.byAccount(normalizeQueryAccountId(accountId)),
   },
 } as const;
 
@@ -98,7 +103,7 @@ export function useTags() {
 }
 
 export function useTagArticleCounts(accountId: string | null | undefined) {
-  const queryAccountId = accountId ?? null;
+  const queryAccountId = normalizeQueryAccountId(accountId);
 
   return useQuery({
     queryKey: tagQueryKeys.tagArticleCounts.byAccount(queryAccountId),
@@ -127,13 +132,18 @@ function requireTagId(tagId: string | null): string {
 export function useArticlesByTag(tagId: string | null, accountId?: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
   const normalizedTagId = normalizeTagId(tagId);
+  const normalizedAccountId = normalizeQueryAccountId(accountId);
 
   return useQuery({
-    queryKey: tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, accountId, mode),
+    queryKey: tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, normalizedAccountId, mode),
     queryFn: () =>
-      listArticlesByTag(requireTagId(normalizedTagId), undefined, undefined, accountId ?? undefined, mode).then(
-        Result.unwrap(),
-      ),
+      listArticlesByTag(
+        requireTagId(normalizedTagId),
+        undefined,
+        undefined,
+        normalizedAccountId ?? undefined,
+        mode,
+      ).then(Result.unwrap()),
     enabled: normalizedTagId !== null,
   });
 }

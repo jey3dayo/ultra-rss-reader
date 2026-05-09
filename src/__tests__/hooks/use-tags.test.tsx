@@ -124,6 +124,36 @@ describe("useArticlesByTag", () => {
     });
     expect(queryClient.getQueryData(["articlesByTag", "tag-1", "acc-1", { mode: "unread" }])).toEqual(sampleArticles);
   });
+
+  it("normalizes blank and whitespace account ids to the all-account article tag key", async () => {
+    const listArticlesByTagSpy = vi
+      .spyOn(tauriCommands, "listArticlesByTag")
+      .mockResolvedValue(Result.succeed(sampleArticles));
+    const initialProps: { accountId: string | null | undefined } = {
+      accountId: undefined,
+    };
+
+    const { rerender } = renderHook(
+      ({ accountId }: { accountId: string | null | undefined }) => useArticlesByTag("tag-1", accountId),
+      {
+        initialProps,
+        wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, undefined, "all");
+    });
+
+    rerender({ accountId: null });
+    rerender({ accountId: " \n\t " });
+
+    expect(queryClient.getQueryData(tagQueryKeys.articlesByTag.byTagAndAccount("tag-1", null, "all"))).toEqual(
+      sampleArticles,
+    );
+    expect(queryClient.getQueryState(["articlesByTag", "tag-1", " \n\t ", { mode: "all" }])).toBeUndefined();
+    expect(listArticlesByTagSpy).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("useTagArticleCounts", () => {
@@ -178,6 +208,35 @@ describe("useTagArticleCounts", () => {
     expect(queryClient.getQueryData(["tagArticleCounts", "acc-1"])).toEqual({
       "tag-acc-1": 1,
     });
+  });
+
+  it("normalizes whitespace account ids to the all-account count key", async () => {
+    const getTagArticleCountsSpy = vi
+      .spyOn(tauriCommands, "getTagArticleCounts")
+      .mockResolvedValue(Result.succeed({ "tag-all": 2 }));
+    const initialProps: { accountId: string | null | undefined } = {
+      accountId: undefined,
+    };
+
+    const { rerender } = renderHook(
+      ({ accountId }: { accountId: string | null | undefined }) => useTagArticleCounts(accountId),
+      {
+        initialProps,
+        wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(getTagArticleCountsSpy).toHaveBeenCalledWith(undefined);
+    });
+
+    rerender({ accountId: " \n\t " });
+
+    expect(queryClient.getQueryData(tagQueryKeys.tagArticleCounts.byAccount(null))).toEqual({
+      "tag-all": 2,
+    });
+    expect(queryClient.getQueryState(["tagArticleCounts", " \n\t "])).toBeUndefined();
+    expect(getTagArticleCountsSpy).toHaveBeenCalledTimes(1);
   });
 });
 

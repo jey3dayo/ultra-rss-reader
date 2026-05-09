@@ -1,16 +1,29 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it } from "vitest";
-import { queryClient } from "@/lib/query/query-client";
+import { queryClient, queryClientDefaultOptions } from "@/lib/query/query-client";
 
 describe("query client retry policy", () => {
   it("keeps local IPC read queries non-retrying in production and tests", () => {
     expect(queryClient.getDefaultOptions().queries?.retry).toBe(false);
+    expect(queryClientDefaultOptions.queries.retry).toBe(false);
     expect(createTestQueryClient().getDefaultOptions().queries?.retry).toBe(false);
   });
 
   it("keeps test mutations non-retrying by default", () => {
     expect(queryClient.getDefaultOptions().mutations?.retry).toBe(false);
+    expect(queryClientDefaultOptions.mutations.retry).toBe(false);
     expect(createTestQueryClient().getDefaultOptions().mutations?.retry).toBe(false);
+  });
+
+  it("keeps the desktop app query lifecycle policy explicit", () => {
+    expect(queryClient.getDefaultOptions().queries?.staleTime).toBe(0);
+    expect(queryClient.getDefaultOptions().queries?.gcTime).toBe(5 * 60 * 1000);
+    expect(queryClient.getDefaultOptions().queries?.refetchOnWindowFocus).toBe(false);
+    expect(queryClientDefaultOptions.queries).toMatchObject({
+      staleTime: 0,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    });
   });
 
   it("allows tests to override query retry when a retry-specific scenario needs it", () => {

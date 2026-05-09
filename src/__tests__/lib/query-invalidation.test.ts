@@ -6,6 +6,7 @@ import {
   invalidateArticleQueries,
   invalidateFeedQueries,
   invalidateSyncCompletedQueries,
+  normalizeQueryAccountId,
   queryKeys,
   resolveArticleInvalidationQueryKeys,
   resolveFeedInvalidationQueryKeys,
@@ -20,6 +21,7 @@ function createInvalidateSpy() {
 
 describe("query-invalidation", () => {
   it("keeps typed query key helpers aligned with existing tuple shapes", () => {
+    expect(queryKeys.accounts.root).toEqual(["accounts"]);
     expect(queryKeys.feeds.byAccount("acc-1")).toEqual(["feeds", "acc-1"]);
     expect(queryKeys.articles.byFeed("feed-1", "unread")).toEqual(["articles", "feed-1", { mode: "unread" }]);
     expect(queryKeys.accountArticles.byAccount("acc-1", "all")).toEqual(["accountArticles", "acc-1", { mode: "all" }]);
@@ -34,7 +36,24 @@ describe("query-invalidation", () => {
       { mode: "starred" },
     ]);
     expect(queryKeys.recentArticles.byAccount("acc-1", "all")).toEqual(["recentArticles", "acc-1", { mode: "all" }]);
+    expect(queryKeys.accountUnreadCount.byAccount("acc-1")).toEqual(["accountUnreadCount", "acc-1"]);
+    expect(queryKeys.accountUnreadCount.byAccount(null)).toEqual(["accountUnreadCount", null]);
+    expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all")).toEqual([
+      "articlesByTag",
+      "tag-1",
+      "acc-1",
+      { mode: "all" },
+    ]);
+    expect(queryKeys.tagArticleCounts.byAccount("acc-1")).toEqual(["tagArticleCounts", "acc-1"]);
+    expect(queryKeys.tagArticleCounts.byAccount(null)).toEqual(["tagArticleCounts", null]);
     expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual(["search", "acc-1", "fresh"]);
+  });
+
+  it("normalizes account ids used in query keys", () => {
+    expect(normalizeQueryAccountId(" acc-1\n")).toBe("acc-1");
+    expect(normalizeQueryAccountId(" \t\n")).toBeNull();
+    expect(normalizeQueryAccountId(null)).toBeNull();
+    expect(normalizeQueryAccountId(undefined)).toBeNull();
   });
 
   it("keeps article cache patch roots aligned with invalidation roots", () => {

@@ -3,6 +3,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { createTauriMockCallRecorder, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useAccountUnreadCount } from "@/hooks/use-account-unread-count";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 describe("useAccountUnreadCount", () => {
   beforeEach(() => {
@@ -54,5 +55,24 @@ describe("useAccountUnreadCount", () => {
       cmd: "count_account_unread_articles",
       args: { accountId: "acc-1" },
     });
+  });
+
+  it("uses the shared account unread query key helper after trimming ids", async () => {
+    const recorder = createTauriMockCallRecorder((cmd) => {
+      if (cmd === "count_account_unread_articles") {
+        return 5;
+      }
+
+      return undefined;
+    });
+    setupTauriMocks(recorder.handler);
+    const { queryClient, wrapper } = createQueryWrapper();
+
+    renderHook(() => useAccountUnreadCount(" acc-1 ", true), { wrapper });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountUnreadCount.byAccount("acc-1"))).toBe(5);
+    });
+    expect(queryClient.getQueryState(["accountUnreadCount", " acc-1 "])).toBeUndefined();
   });
 });

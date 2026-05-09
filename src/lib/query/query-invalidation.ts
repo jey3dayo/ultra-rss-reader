@@ -29,6 +29,7 @@ function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions 
 }
 
 export const QUERY_KEY_ROOTS = {
+  accounts: ["accounts"],
   feeds: ["feeds"],
   folders: ["folders"],
   articles: ["articles"],
@@ -46,6 +47,9 @@ export const QUERY_KEY_ROOTS = {
 } as const satisfies Record<string, QueryInvalidationKey>;
 
 export const queryKeys = {
+  accounts: {
+    root: QUERY_KEY_ROOTS.accounts,
+  },
   feeds: {
     root: QUERY_KEY_ROOTS.feeds,
     byAccount: (accountId: string) => [QUERY_KEY_ROOTS.feeds[0], accountId] as const,
@@ -77,6 +81,7 @@ export const queryKeys = {
   },
   accountUnreadCount: {
     root: QUERY_KEY_ROOTS.accountUnreadCount,
+    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.accountUnreadCount[0], accountId] as const,
   },
   accountStarredCount: {
     root: QUERY_KEY_ROOTS.accountStarredCount,
@@ -84,9 +89,12 @@ export const queryKeys = {
   },
   articlesByTag: {
     root: QUERY_KEY_ROOTS.articlesByTag,
+    byTagAndAccount: (tagId: string | null, accountId: string | null, mode: ReaderFilter) =>
+      [QUERY_KEY_ROOTS.articlesByTag[0], tagId, accountId, readerArticleModeOptions(mode)] as const,
   },
   tagArticleCounts: {
     root: QUERY_KEY_ROOTS.tagArticleCounts,
+    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.tagArticleCounts[0], accountId] as const,
   },
   search: {
     root: QUERY_KEY_ROOTS.search,
@@ -100,9 +108,15 @@ export const queryKeys = {
     root: QUERY_KEY_ROOTS.feedArticleSummaries,
     byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feedArticleSummaries[0], accountId] as const,
     subscriptionsIndex: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.feedArticleSummaries[0], accountId?.trim() || null] as const,
+      [QUERY_KEY_ROOTS.feedArticleSummaries[0], normalizeQueryAccountId(accountId)] as const,
   },
 } as const;
+
+export function normalizeQueryAccountId(accountId: string | null | undefined): string | null {
+  const normalizedAccountId = accountId?.trim();
+
+  return normalizedAccountId ? normalizedAccountId : null;
+}
 
 export const ARTICLE_CACHE_QUERY_ROOTS = [
   queryKeys.articles.root,

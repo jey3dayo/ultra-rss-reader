@@ -32,6 +32,7 @@ import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
   invalidateArticleQueries,
+  normalizeQueryAccountId,
   queryKeys,
   resolveArticleInvalidationQueryKeys,
 } from "@/lib/query/query-invalidation";
@@ -512,13 +513,14 @@ export const useMarkFeedRead = createMutation(markFeedRead, invalidateArticleMut
 export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticleMutationQueries);
 
 export function useSearchArticles(accountId: string | null, query: string) {
+  const normalizedAccountId = normalizeQueryAccountId(accountId);
   const normalizedQuery = query.trim();
 
   return useQuery({
-    queryKey: queryKeys.search.byAccountAndQuery(accountId, normalizedQuery),
+    queryKey: queryKeys.search.byAccountAndQuery(normalizedAccountId, normalizedQuery),
     queryFn: () =>
-      searchArticles(requireEnabledQueryValue(accountId, "accountId"), normalizedQuery).then(Result.unwrap()),
-    enabled: !!accountId && normalizedQuery.length > 0,
+      searchArticles(requireEnabledQueryValue(normalizedAccountId, "accountId"), normalizedQuery).then(Result.unwrap()),
+    enabled: normalizedAccountId !== null && normalizedQuery.length > 0,
   });
 }
 
