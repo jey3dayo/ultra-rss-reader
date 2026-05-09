@@ -8,8 +8,10 @@ import {
   resolveArticleListHeaderControlAvailability,
   useArticleListHeaderControls,
 } from "@/components/reader/hooks/article-list/use-article-list-header-controls";
+import { useArticleListViewProps } from "@/components/reader/hooks/article-list/use-article-list-view-props";
 import type { LayoutMode } from "@/lib/layout/layout-state.types";
 import { useUiStore } from "@/stores/ui-store";
+import i18n from "@tests/helpers/i18n-setup";
 
 const articleListHeaderLabels = {
   markAllReadLabel: "Mark all as read",
@@ -249,15 +251,24 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute("placeholder", "Search articles…");
-    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveClass(
+    expect(
+      screen.getByRole("textbox", { name: "Search articles" }),
+    ).toHaveAttribute("placeholder", "Search articles…");
+    expect(
+      screen.getByRole("textbox", { name: "Search articles" }),
+    ).toHaveClass(
       "focus:ring-2",
       "focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
       "focus-visible:ring-2",
       "focus-visible:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
     );
-    expect(screen.getByTestId("article-list-search-motion")).toHaveClass("motion-content-swap");
-    expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute("data-motion-phase", "entering");
+    expect(screen.getByTestId("article-list-search-motion")).toHaveClass(
+      "motion-content-swap",
+    );
+    expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute(
+      "data-motion-phase",
+      "entering",
+    );
   });
 
   it("uses action and search labels from view props", () => {
@@ -285,13 +296,94 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("button", { name: "Props mark all" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Props search" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Props close search" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Props search" })).toHaveAttribute(
-      "placeholder",
-      "Props search placeholder",
+    expect(
+      screen.getByRole("button", { name: "Props mark all" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Props search" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Props close search" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "Props search" }),
+    ).toHaveAttribute("placeholder", "Props search placeholder");
+  });
+
+  it("maps translated header labels through the article list view props boundary", () => {
+    const searchInputRef = createRef<HTMLInputElement>();
+    const listRef = createRef<HTMLDivElement>();
+    const viewportRef = createRef<HTMLDivElement>();
+    const handleMarkAllRead = vi.fn();
+    const handleSidebarToggle = vi.fn();
+    const handleToggleSearch = vi.fn();
+    const handleCloseSearch = vi.fn();
+    const setSearchQuery = vi.fn();
+
+    const { result } = renderHook(() =>
+      useArticleListViewProps({
+        t: i18n.getFixedT("en", "reader"),
+        tc: i18n.getFixedT("en", "common"),
+        layoutMode: "wide",
+        showSearch: true,
+        searchQuery: "query",
+        searchInputRef,
+        showSidebarButton: true,
+        sidebarButtonLabel: "Hide sidebar",
+        sidebarButtonText: undefined,
+        isSidebarVisible: true,
+        feedModeControl: null,
+        handleMarkAllRead,
+        handleSidebarToggle,
+        handleToggleSearch,
+        handleCloseSearch,
+        setSearchQuery,
+        contextStripContext: {
+          primaryLabel: null,
+          secondaryLabel: null,
+          tone: null,
+        },
+        listRef,
+        viewportRef,
+        handleListKeyDownCapture: vi.fn(),
+        isLoadingFeedArticles: false,
+        isLoadingAccountArticles: false,
+        isLoadingFolderArticles: false,
+        isLoadingRecentArticles: false,
+        isLoadingTagArticles: false,
+        isSearchLoading: false,
+        isSearchEmptyState: false,
+        setupEmptyState: "none",
+        trimmedDebouncedQuery: "",
+        articleGroups: [],
+        dimArchived: "true",
+        textPreview: "none",
+        imagePreviews: "none",
+        selectionStyle: "unread",
+        selectArticle: vi.fn(),
+        effectiveViewMode: "all",
+        footerModes: ["all"],
+        footerDisabledModes: [],
+        setViewMode: vi.fn(),
+      }),
     );
+
+    expect(result.current.headerProps.labels).toEqual({
+      markAllReadLabel: "Mark all as read",
+      markAllReadButtonText: "Read",
+      searchArticlesLabel: "Search articles",
+      searchArticlesButtonText: "Search",
+      closeSearchLabel: "Close search",
+      searchArticlesPlaceholder: "Search articles…",
+    });
+    expect(result.current.headerProps.sidebarButtonLabel).toBe("Hide sidebar");
+    expect(result.current.headerProps.onMarkAllRead).toBe(handleMarkAllRead);
+    expect(result.current.headerProps.onToggleSidebar).toBe(
+      handleSidebarToggle,
+    );
+    expect(result.current.headerProps.onToggleSearch).toBe(handleToggleSearch);
+    expect(result.current.headerProps.onCloseSearch).toBe(handleCloseSearch);
+    expect(result.current.headerProps.onSearchQueryChange).toBe(setSearchQuery);
   });
 
   it("closes search when pressing Escape in the focused search input", async () => {
@@ -421,7 +513,9 @@ describe("ArticleListHeader", () => {
     );
 
     const header = container.firstElementChild;
-    expect(header?.firstElementChild).toContainElement(screen.getByRole("button", { name: "Hide sidebar" }));
+    expect(header?.firstElementChild).toContainElement(
+      screen.getByRole("button", { name: "Hide sidebar" }),
+    );
   });
 
   it("can show a compact sidebar affordance label next to the icon", () => {
@@ -469,11 +563,24 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("button", { name: "Mark all as read" })).not.toHaveTextContent("Read");
-    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("size-11", "rounded-md");
-    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Search articles" })).not.toHaveTextContent("Search");
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("size-11", "rounded-md");
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-foreground-soft");
+    expect(
+      screen.getByRole("button", { name: "Mark all as read" }),
+    ).not.toHaveTextContent("Read");
+    expect(
+      screen.getByRole("button", { name: "Mark all as read" }),
+    ).toHaveClass("size-11", "rounded-md");
+    expect(
+      screen.getByRole("button", { name: "Mark all as read" }),
+    ).toHaveClass("text-foreground-soft");
+    expect(
+      screen.getByRole("button", { name: "Search articles" }),
+    ).not.toHaveTextContent("Search");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass(
+      "size-11",
+      "rounded-md",
+    );
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass(
+      "text-foreground-soft",
+    );
   });
 });
