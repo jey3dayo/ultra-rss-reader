@@ -2,6 +2,11 @@ type StorybookIndexEntry = {
   id: string;
 };
 
+type DuplicateStorybookIndexStoryIdDiagnostic = {
+  id: string;
+  count: number;
+};
+
 export const uiReferenceCanvasStoryIds = [
   "ui-reference-foundations-canvas--default",
   "ui-reference-input-controls-canvas--default",
@@ -43,6 +48,29 @@ export function getStorybookIndexStoryIdsFromEntries(entries: Record<string, unk
 
 export function getStorybookIndexStoryIds(payload: unknown): string[] {
   return getStorybookIndexStoryIdsFromEntries(getStorybookIndexEntries(payload));
+}
+
+export function sortedStorybookStoryIds(storyIds: Iterable<string>): string[] {
+  return [...storyIds].sort((left, right) => left.localeCompare(right));
+}
+
+export function createStorybookStoryIdIndex(storyIds: Iterable<string>): Set<string> {
+  return new Set(sortedStorybookStoryIds(storyIds));
+}
+
+export function getDuplicateStorybookStoryIdDiagnostics(
+  storyIds: Iterable<string>,
+): DuplicateStorybookIndexStoryIdDiagnostic[] {
+  const storyIdCounts = new Map<string, number>();
+
+  for (const storyId of storyIds) {
+    storyIdCounts.set(storyId, (storyIdCounts.get(storyId) ?? 0) + 1);
+  }
+
+  return sortedStorybookStoryIds(storyIdCounts.keys()).flatMap((id) => {
+    const count = storyIdCounts.get(id) ?? 0;
+    return count > 1 ? [{ id, count }] : [];
+  });
 }
 
 export function getStorybookIframeUrl(storyId: string): string {

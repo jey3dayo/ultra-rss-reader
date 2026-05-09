@@ -3,6 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import preview, { STORYBOOK_PREVIEW_BACKGROUND_TOKEN } from "../../../.storybook/preview";
 import {
+  createStorybookStoryIdIndex,
+  getDuplicateStorybookStoryIdDiagnostics,
+  sortedStorybookStoryIds,
+} from "../../../e2e/storybook/storybook-index-payload";
+import {
   setAppLikeScenarioStoryRuntime,
   setComponentIsolationStoryRuntime,
   setStoryTauriRuntimeMissing,
@@ -64,8 +69,25 @@ function titlesUnder(group: string) {
   return titles.filter((title) => title.startsWith(`${group}/`));
 }
 
-function sortedCopy<T>(items: Iterable<T>, compareFn?: (left: T, right: T) => number): T[] {
-  return [...items].sort(compareFn);
+function sortedStoryTitles(items: Iterable<string>): string[] {
+  return sortedStorybookStoryIds(items);
+}
+
+function sortedStoryTitlesUnder(group: string): string[] {
+  return sortedStoryTitles(titlesUnder(group));
+}
+
+function sortedStoryTitleGroups(items: Iterable<string>, segmentIndex: number): string[] {
+  return sortedStoryTitles(new Set([...items].map((title) => title.split("/")[segmentIndex])));
+}
+
+function storyTitlesUnderRoleGroup(group: string) {
+  const groupTitles = titlesUnder(group);
+
+  return {
+    groups: sortedStoryTitleGroups(groupTitles, 1),
+    titles: groupTitles,
+  };
 }
 
 function storybookBackgroundMap(): Record<StorybookBackgroundName, string | undefined> {
@@ -123,20 +145,29 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("keeps all story titles inside the approved top-level Explorer groups", () => {
-    const actualGroups = sortedCopy(new Set(titles.map((title) => title.split("/")[0])));
-    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_TOP_LEVEL_GROUPS));
+    expect(sortedStoryTitleGroups(titles, 0)).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_TOP_LEVEL_GROUPS));
   });
 
-  it("keeps sorted story title copies from mutating the source order", () => {
+  it("keeps stable sorted story id helpers from mutating the source order", () => {
     const sourceTitles = ["Reader/Zeta", "Reader/Alpha", "Reader/Beta"];
 
-    expect(sortedCopy(sourceTitles)).toEqual(["Reader/Alpha", "Reader/Beta", "Reader/Zeta"]);
+    expect(sortedStorybookStoryIds(sourceTitles)).toEqual(["Reader/Alpha", "Reader/Beta", "Reader/Zeta"]);
     expect(sourceTitles).toEqual(["Reader/Zeta", "Reader/Alpha", "Reader/Beta"]);
   });
 
+  it("builds Storybook story id indexes with duplicate diagnostics", () => {
+    const storyIds = ["reader-sidebar--default", "ui-reference-foundations-canvas--default", "reader-sidebar--default"];
+
+    expect([...createStorybookStoryIdIndex(storyIds)]).toEqual([
+      "reader-sidebar--default",
+      "ui-reference-foundations-canvas--default",
+    ]);
+    expect(getDuplicateStorybookStoryIdDiagnostics(storyIds)).toEqual([{ id: "reader-sidebar--default", count: 2 }]);
+  });
+
   it("uses document-aligned UI Reference story names", () => {
-    expect(sortedCopy(titlesUnder(STORYBOOK_EXPLORER_GROUPS.uiReference))).toEqual(
-      sortedCopy(STORYBOOK_EXPLORER_UI_REFERENCE_TITLES),
+    expect(sortedStoryTitlesUnder(STORYBOOK_EXPLORER_GROUPS.uiReference)).toEqual(
+      sortedStoryTitles(STORYBOOK_EXPLORER_UI_REFERENCE_TITLES),
     );
   });
 
@@ -151,11 +182,10 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("moves shared stories into dedicated role groups", () => {
-    const sharedTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.shared);
-    const actualGroups = sortedCopy(new Set(sharedTitles.map((title) => title.split("/")[1])));
+    const sharedStories = storyTitlesUnderRoleGroup(STORYBOOK_EXPLORER_GROUPS.shared);
 
-    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.shared));
-    expect(sharedTitles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(sharedStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.shared));
+    expect(sharedStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
   it("keeps primitives in the dedicated group", () => {
@@ -172,25 +202,23 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("nests settings stories by role", () => {
-    const settingsTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.settings);
-    const actualGroups = sortedCopy(new Set(settingsTitles.map((title) => title.split("/")[1])));
+    const settingsStories = storyTitlesUnderRoleGroup(STORYBOOK_EXPLORER_GROUPS.settings);
 
-    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.settings));
-    expect(settingsTitles.every((title) => title.split("/").length === 3)).toBe(true);
-    expect(settingsTitles).toContain(
+    expect(settingsStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.settings));
+    expect(settingsStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(settingsStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Page", "DataSettingsView"),
     );
-    expect(settingsTitles).toContain(
+    expect(settingsStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Page", "MuteSettingsView"),
     );
   });
 
   it("nests reader stories by role", () => {
-    const readerTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.reader);
-    const actualGroups = sortedCopy(new Set(readerTitles.map((title) => title.split("/")[1])));
+    const readerStories = storyTitlesUnderRoleGroup(STORYBOOK_EXPLORER_GROUPS.reader);
 
-    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.reader));
-    expect(readerTitles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(readerStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.reader));
+    expect(readerStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
   it("includes the sidebar feed-tree skeleton review story", () => {
@@ -200,18 +228,17 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("keeps subscriptions workspace stories in their own group", () => {
-    const subscriptionsTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.subscriptions);
-    const actualGroups = sortedCopy(new Set(subscriptionsTitles.map((title) => title.split("/")[1])));
+    const subscriptionsStories = storyTitlesUnderRoleGroup(STORYBOOK_EXPLORER_GROUPS.subscriptions);
 
-    expect(actualGroups).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.subscriptions));
-    expect(subscriptionsTitles.every((title) => title.split("/").length === 3)).toBe(true);
-    expect(subscriptionsTitles).toContain(
+    expect(subscriptionsStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.subscriptions));
+    expect(subscriptionsStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(subscriptionsStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.subscriptions, "Summary", "SubscriptionsOverviewSummary"),
     );
-    expect(subscriptionsTitles).toContain(
+    expect(subscriptionsStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.subscriptions, "List", "SubscriptionsListPane"),
     );
-    expect(subscriptionsTitles).toContain(
+    expect(subscriptionsStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.subscriptions, "Detail", "SubscriptionDetailPane"),
     );
   });
@@ -227,12 +254,13 @@ describe("Storybook Explorer organization", () => {
   });
 
   it("isolates internal stories under debug or review only", () => {
-    const internalTitles = titlesUnder(STORYBOOK_EXPLORER_GROUPS.internal);
-    const actualGroups = sortedCopy(new Set(internalTitles.map((title) => title.split("/")[1])));
+    const internalStories = storyTitlesUnderRoleGroup(STORYBOOK_EXPLORER_GROUPS.internal);
 
-    expect(actualGroups, internalTitles.join("\n")).toEqual(sortedCopy(STORYBOOK_EXPLORER_SUBGROUPS.internal));
-    expect(internalTitles.every((title) => title.split("/").length === 3)).toBe(true);
-    expect(internalTitles).toContain(
+    expect(internalStories.groups, internalStories.titles.join("\n")).toEqual(
+      sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.internal),
+    );
+    expect(internalStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(internalStories.titles).toContain(
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.internal, "Review", "ArticleReadingRhythm"),
     );
   });
