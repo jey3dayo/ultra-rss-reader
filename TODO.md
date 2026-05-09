@@ -80,6 +80,11 @@
   - focus helper が data attribute selector に強く依存しており、view refactor で attribute が外れると keyboard navigation が silent fallback になりやすい
   - selector source of truth または repo contract test を追加し、主要 focus target attribute の存在を固定する
 
+- [ ] P2 old unread read action stale count contract を補強する
+  - 対象: `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`, feed/folder/smart context menus
+  - old unread count fetch と confirm action の間で unread count が変わった時、confirm message と実行結果のズレが起き得る
+  - count fetch failure / count becomes zero / action reject の user feedback を focused test で固定する
+
 - [ ] P2 account detail export object URL cleanup を固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`
   - OPML export の object URL revoke が timer 依存で、download click failure / unmount / rapid export で URL cleanup が漏れないか未固定
@@ -109,11 +114,6 @@
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts`
   - account dropdown の outside click と selected item focus が document / requestAnimationFrame 前提で、sidebar collapse や account list update と競合しやすい
   - open -> accounts change -> close -> restore focus の順序と RAF cleanup を focused test で固定する
-
-- [ ] P1 sidebar cooldown interval runtime boundary を補強する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`
-  - manual sync cooldown 表示が `window.setInterval` 前提で、runtime unavailable / timer drift / rapid cooldown reset の契約が未固定
-  - missing window、cooldown extended、component unmount の interval cleanup を hook test で固定する
 
 - [ ] P1 browser overlay focus return RAF fallback を補強する
   - 対象: `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`
