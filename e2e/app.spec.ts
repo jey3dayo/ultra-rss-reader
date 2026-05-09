@@ -11,6 +11,28 @@ const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
 const subscriptionsReviewFilterButtonName = /(Needs review|要確認)\s*を表示/i;
 const subscriptionsInventoryHeadingName = /All subscriptions|全購読/i;
 const subscriptionsReviewHeadingName = /Needs review|要確認/i;
+const appLayoutHiddenPaneSelector = [
+  '[data-testid="compact-account-pane-shell"][aria-hidden="true"]',
+  '[data-testid="wide-account-pane-content"][aria-hidden="true"]',
+  '[data-testid="wide-sidebar-content"][aria-hidden="true"]',
+  '[data-testid="sliding-pane-tray"] > [aria-hidden="true"]',
+].join(",");
+const focusableSelector = [
+  "a[href]",
+  "area[href]",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "summary",
+  "iframe",
+  "object",
+  "embed",
+  "audio[controls]",
+  "video[controls]",
+  "[contenteditable]",
+  "[tabindex]",
+].join(",");
 
 function subscriptionRows(page: Page) {
   return page.locator('[data-testid^="subscriptions-folder-tree-rail-"] button');
@@ -50,6 +72,41 @@ async function openSubscriptionInventory(page: Page) {
     expect(page.getByRole("heading", { name: subscriptionsInventoryHeadingName })).toBeVisible(),
     expect(subscriptionRows(page).first()).toBeVisible(),
   ]);
+}
+
+async function expectHiddenAppLayoutPanesBlockFocus(page: Page, expectedHiddenPaneCount: number) {
+  await expect
+    .poll(async () => page.locator(appLayoutHiddenPaneSelector).count())
+    .toBeGreaterThanOrEqual(expectedHiddenPaneCount);
+
+  const result = await page.evaluate(
+    ({ hiddenPaneSelector, focusableElementSelector }) => {
+      const hiddenPanes = Array.from(document.querySelectorAll<HTMLElement>(hiddenPaneSelector));
+      const focusableElements = hiddenPanes.flatMap((pane) =>
+        Array.from(pane.querySelectorAll<HTMLElement>(focusableElementSelector)),
+      );
+      const focusableWithoutFallback = focusableElements.filter((element) => element.tabIndex !== -1);
+      const programmaticTarget = focusableElements[0] ?? null;
+
+      programmaticTarget?.focus();
+
+      return {
+        hiddenPaneCount: hiddenPanes.length,
+        focusableCount: focusableElements.length,
+        focusableWithoutFallbackCount: focusableWithoutFallback.length,
+        programmaticFocusCaptured: programmaticTarget !== null && document.activeElement === programmaticTarget,
+      };
+    },
+    {
+      hiddenPaneSelector: appLayoutHiddenPaneSelector,
+      focusableElementSelector: focusableSelector,
+    },
+  );
+
+  expect(result.hiddenPaneCount).toBeGreaterThanOrEqual(expectedHiddenPaneCount);
+  expect(result.focusableCount).toBeGreaterThan(0);
+  expect(result.focusableWithoutFallbackCount).toBe(0);
+  expect(result.programmaticFocusCaptured).toBe(false);
 }
 
 test.describe("Ultra RSS Reader - basic rendering", () => {
@@ -156,6 +213,33 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     expect(mobilePaneMetrics).not.toBeNull();
     expect(mobilePaneMetrics?.scrollLeft).toBe(0);
+  });
+
+  test("keeps hidden AppLayout panes out of keyboard focus across the WebView support matrix", async ({ page }) => {
+    const layoutCases = [
+      { name: "wide", width: 1280, expectedHiddenPaneCount: 1 },
+      { name: "compact", width: 900, expectedHiddenPaneCount: 2 },
+      { name: "mobile", width: 390, expectedHiddenPaneCount: 3 },
+    ];
+
+    for (const layoutCase of layoutCases) {
+      await test.step(layoutCase.name, async () => {
+        await page.setViewportSize({ width: layoutCase.width, height: 900 });
+        await page.goto("/");
+        await expectHiddenAppLayoutPanesBlockFocus(page, layoutCase.expectedHiddenPaneCount);
+      });
+    }
+
+    await test.step("subscriptions workspace", async () => {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await page.goto("/");
+      await openSubscriptionsIndex(page);
+
+      await Promise.all([
+        expect(page.getByTestId("sliding-pane-tray")).toHaveCount(0),
+        expect(page.locator(appLayoutHiddenPaneSelector)).toHaveCount(0),
+      ]);
+    });
   });
 
   test("groups secondary article actions under More actions on mobile", async ({ page }) => {

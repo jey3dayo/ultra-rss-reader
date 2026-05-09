@@ -17,6 +17,12 @@ const defaultCapabilities = {
   uses_dev_file_credentials: false,
 };
 
+function getSlidingPanes() {
+  return Array.from(screen.getByTestId("sliding-pane-tray").children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  );
+}
+
 describe("App", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
@@ -61,6 +67,43 @@ describe("App", () => {
     expect(panes?.[2]).not.toHaveAttribute("inert");
 
     expect(tray).toHaveStyle({ transform: "translateX(-200%)" });
+  });
+
+  it("mobile: removes hidden pane descendants from fallback keyboard focus when inert is unsupported", () => {
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
+
+    render(<AppLayout />, { wrapper: createWrapper() });
+
+    const [sidebarPane, listPane, contentPane] = getSlidingPanes();
+    const hiddenFocusable = sidebarPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+    const visibleFocusable = listPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+
+    expect(sidebarPane).toHaveAttribute("aria-hidden", "true");
+    expect(contentPane).toHaveAttribute("aria-hidden", "true");
+    expect(hiddenFocusable).not.toBeNull();
+    expect(hiddenFocusable).toHaveAttribute("tabindex", "-1");
+    expect(visibleFocusable).not.toBeNull();
+    expect(visibleFocusable).not.toHaveAttribute("tabindex", "-1");
+
+    hiddenFocusable?.focus();
+    expect(document.activeElement).not.toBe(hiddenFocusable);
+  });
+
+  it("mobile: restores descendant tab order when a hidden pane becomes visible", () => {
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar" });
+
+    const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
+
+    const initialListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+    expect(initialListFocusable).not.toBeNull();
+    expect(initialListFocusable).toHaveAttribute("tabindex", "-1");
+
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
+    rerender(<AppLayout />);
+
+    const restoredListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+    expect(restoredListFocusable).not.toBeNull();
+    expect(restoredListFocusable).not.toHaveAttribute("tabindex", "-1");
   });
 
   it("mobile: no fixed-width sidebar/list classes", () => {
