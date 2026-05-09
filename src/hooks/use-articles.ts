@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import {
   type ArticleDto,
   clearArticleViewHistory,
@@ -433,11 +434,21 @@ export function useAccountStarredCount(accountId: string | null) {
 
 export function useSetRead() {
   const qc = useQueryClient();
+  const latestRequestIdsRef = useRef(new Map<string, number>());
+  const nextRequestIdRef = useRef(0);
 
   return useMutation({
     mutationFn: ({ id, read }: SetReadMutationInput) => markArticleRead(id, read).then(Result.unwrap()),
-    onSuccess: (_data, variables) => {
-      patchCachedArticleReadState(qc, variables.id, variables.read);
+    onMutate: (variables) => {
+      const requestId = nextRequestIdRef.current + 1;
+      nextRequestIdRef.current = requestId;
+      latestRequestIdsRef.current.set(variables.id, requestId);
+      return { requestId };
+    },
+    onSuccess: (_data, variables, context) => {
+      if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
+        patchCachedArticleReadState(qc, variables.id, variables.read);
+      }
       invalidateArticleMutationQueries(qc);
     },
   });
@@ -524,10 +535,24 @@ export function useSearchArticles(accountId: string | null, query: string) {
   });
 }
 
-export const useToggleStar = createMutation(
-  ({ id, starred }: ToggleStarMutationInput) => toggleArticleStar(id, starred),
-  (qc, variables) => {
-    patchCachedArticleStarState(qc, variables.id, variables.starred);
-    invalidateArticleMutationQueries(qc);
-  },
-);
+export function useToggleStar() {
+  const qc = useQueryClient();
+  const latestRequestIdsRef = useRef(new Map<string, number>());
+  const nextRequestIdRef = useRef(0);
+
+  return useMutation({
+    mutationFn: ({ id, starred }: ToggleStarMutationInput) => toggleArticleStar(id, starred).then(Result.unwrap()),
+    onMutate: (variables) => {
+      const requestId = nextRequestIdRef.current + 1;
+      nextRequestIdRef.current = requestId;
+      latestRequestIdsRef.current.set(variables.id, requestId);
+      return { requestId };
+    },
+    onSuccess: (_data, variables, context) => {
+      if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
+        patchCachedArticleStarState(qc, variables.id, variables.starred);
+      }
+      invalidateArticleMutationQueries(qc);
+    },
+  });
+}

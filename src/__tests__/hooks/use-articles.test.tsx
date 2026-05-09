@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -25,6 +25,14 @@ const sampleFeedsForAccountOne = sampleFeeds.map((feed) => ({
   ...feed,
   account_id: "acc-1",
 }));
+
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
 
 describe("article mutation cache contract", () => {
   it("keeps article mutation invalidation roots aligned with query cache roots", () => {
@@ -435,6 +443,43 @@ describe("useToggleStar", () => {
     ]);
     expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toBeUndefined();
   });
+
+  it("does not let an older star mutation success overwrite the latest cache patch", async () => {
+    const firstToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    const secondToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    vi.spyOn(tauriCommands, "toggleArticleStar")
+      .mockReturnValueOnce(firstToggle.promise)
+      .mockReturnValueOnce(secondToggle.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-1"), []);
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    const firstPromise = result.current.mutateAsync({ id: "art-1", starred: true });
+    const secondPromise = result.current.mutateAsync({ id: "art-1", starred: false });
+
+    await act(async () => {
+      secondToggle.resolve(Result.succeed(null));
+      await secondPromise;
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: false })]),
+      );
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
+    });
+
+    await act(async () => {
+      firstToggle.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: false })]),
+    );
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
+  });
 });
 
 describe("useSetRead", () => {
@@ -485,6 +530,40 @@ describe("useSetRead", () => {
 
     expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
+  });
+
+  it("does not let an older read mutation success overwrite the latest cache patch", async () => {
+    const firstRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    const secondRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    vi.spyOn(tauriCommands, "markArticleRead")
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(secondRead.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+
+    const firstPromise = result.current.mutateAsync({ id: "art-1", read: true });
+    const secondPromise = result.current.mutateAsync({ id: "art-1", read: false });
+
+    await act(async () => {
+      secondRead.resolve(Result.succeed(null));
+      await secondPromise;
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+      );
+    });
+
+    await act(async () => {
+      firstRead.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+    );
   });
 });
 

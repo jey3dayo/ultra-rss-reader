@@ -79,6 +79,16 @@ function listReadFeedArticles(feedId: string | undefined) {
   return articles;
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+  return { promise, reject, resolve };
+}
+
 describe("useFeedLanding", () => {
   beforeEach(() => {
     useUiStore.setState({
@@ -386,6 +396,62 @@ describe("useFeedLanding", () => {
       feedId: "feed-1",
       message: "temporary list failure",
     });
+  });
+
+  it("does not let an older failed landing restore over the latest feed landing", async () => {
+    const firstArticles = createDeferred<typeof sampleArticles>();
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            ...listSampleFeedsByAccountId(args.accountId),
+            { ...sampleFeeds[0], id: "feed-next", title: "Next Feed" },
+          ];
+        case "list_articles":
+          if (args.feedId === "feed-1") {
+            return firstArticles.promise;
+          }
+          return [{ ...sampleArticles[0], id: "art-next", feed_id: "feed-next" }];
+        default:
+          return undefined;
+      }
+    });
+
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
+
+    let firstResult: Awaited<ReturnType<(typeof result)["current"]>> | undefined;
+    const firstPromise = result.current("feed-1").then((value) => {
+      firstResult = value;
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
+    });
+
+    await act(async () => {
+      await result.current("feed-next");
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-next",
+      });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-next");
+    });
+
+    firstArticles.reject(new Error("stale list failure"));
+    await firstPromise;
+
+    expect(firstResult).toSatisfy(Result.isFailure);
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "feed-next",
+    });
+    expect(useUiStore.getState().selectedArticleId).toBe("art-next");
   });
 
   it("returns a fallback failure message when the fetch error message getter throws", async () => {

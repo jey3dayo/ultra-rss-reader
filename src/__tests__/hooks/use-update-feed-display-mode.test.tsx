@@ -215,4 +215,51 @@ describe("useUpdateFeedDisplaySettings", () => {
       }),
     ]);
   });
+
+  it("does not let an older failed update roll back the latest display settings", async () => {
+    seedFeeds();
+    const firstUpdate = createDeferred<Awaited<ReturnType<typeof tauriCommands.updateFeedDisplaySettings>>>();
+    const secondUpdate = createDeferred<Awaited<ReturnType<typeof tauriCommands.updateFeedDisplaySettings>>>();
+    vi.spyOn(tauriCommands, "updateFeedDisplaySettings")
+      .mockReturnValueOnce(firstUpdate.promise)
+      .mockReturnValueOnce(secondUpdate.promise);
+    const { result } = createHook();
+
+    const firstPromise = result.current("feed-1", "on", "on");
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          reader_mode: "on",
+          web_preview_mode: "on",
+        }),
+      ]);
+    });
+
+    const secondPromise = result.current("feed-1", "off", "off");
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          reader_mode: "off",
+          web_preview_mode: "off",
+        }),
+      ]);
+    });
+
+    secondUpdate.resolve(Result.succeed(null));
+    await expect(secondPromise).resolves.toBe(true);
+
+    firstUpdate.resolve(Result.fail({ type: "UserVisible", message: "stale boom" }));
+    await expect(firstPromise).resolves.toBe(false);
+
+    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        reader_mode: "off",
+        web_preview_mode: "off",
+      }),
+    ]);
+    expect(showToastMock).not.toHaveBeenCalledWith("failed_to_update_display_settings:stale boom");
+  });
 });

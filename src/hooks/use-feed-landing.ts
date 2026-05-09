@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { listArticles, listFeedStarredArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -73,9 +73,12 @@ export function useFeedLanding() {
   const sortUnread = usePreferencesStore(
     (state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
   );
+  const latestRequestIdRef = useRef(0);
 
   return useCallback(
     async (feedId: string) => {
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
       if (!selectedAccountId) {
         return Result.fail({
           type: "missing_account",
@@ -134,6 +137,14 @@ export function useFeedLanding() {
             throw error;
           });
 
+        if (requestId !== latestRequestIdRef.current) {
+          return Result.fail({
+            type: "landing_fetch_failed",
+            feedId,
+            message: "Stale feed landing request",
+          } satisfies FeedLandingFailure);
+        }
+
         const landingArticleResult = resolveFeedLandingArticleResult({
           articles,
           sortUnread,
@@ -170,10 +181,12 @@ export function useFeedLanding() {
         } satisfies FeedLandingSuccess);
       } catch (error) {
         console.error("Failed to land on feed article:", error);
-        if (selectedFeedOptimistically) {
-          restoreFeedLandingUiSnapshot(previousUiState);
-        } else {
-          store.closeBrowser();
+        if (requestId === latestRequestIdRef.current) {
+          if (selectedFeedOptimistically) {
+            restoreFeedLandingUiSnapshot(previousUiState);
+          } else {
+            store.closeBrowser();
+          }
         }
         return Result.fail({
           type: "landing_fetch_failed",
