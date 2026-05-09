@@ -353,6 +353,44 @@ describe("useAppIconTheme", () => {
     });
   });
 
+  it("does not replay a stale intermediate system theme request when the latest request matches the in-flight icon", async () => {
+    const firstIconRequest = createDeferred<void>();
+    const mql = createMatchMedia(true);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => mql),
+    );
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-dark.png");
+    });
+
+    act(() => {
+      mql.dispatch(false);
+      mql.dispatch(true);
+    });
+
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      firstIconRequest.resolve();
+    });
+
+    await flushAsyncWork();
+
+    expect(setIconMock).toHaveBeenCalledTimes(1);
+  });
+
   it("does not apply queued icon requests after unmount", async () => {
     const firstIconRequest = createDeferred<void>();
     vi.stubGlobal(

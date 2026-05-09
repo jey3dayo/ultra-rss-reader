@@ -1,5 +1,7 @@
+import type { BrowserSurfaceIssueKind } from "@/constants/browser";
+
 export type BrowserSurfaceIssue = {
-  kind: "failed" | "unsupported";
+  kind: BrowserSurfaceIssueKind;
   title: string;
   description: string;
   detail?: string | null;

@@ -224,7 +224,7 @@ describe("useBadge", () => {
 
   it("treats badge runtime failures as no-op and reflects the next badge state", async () => {
     setBadgeCountMock.mockRejectedValueOnce(new Error("badge runtime unavailable")).mockResolvedValue(undefined);
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
@@ -250,7 +250,7 @@ describe("useBadge", () => {
     getCurrentWindowMock.mockReturnValueOnce(firstWindowReady.promise).mockReturnValue({
       setBadgeCount: setBadgeCountMock,
     });
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
@@ -276,7 +276,7 @@ describe("useBadge", () => {
   it("reapplies the latest badge count after an older native badge write settles", async () => {
     const firstBadgeWrite = createDeferred<void>();
     setBadgeCountMock.mockReturnValueOnce(firstBadgeWrite.promise).mockResolvedValue(undefined);
-    useUiStore.setState({ selectedAccountId: "acc-2" });
+    useUiStore.setState({ selectedAccountId: "acc-1" });
     usePreferencesStore.setState({ prefs: { unread_badge: "dont_display" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });

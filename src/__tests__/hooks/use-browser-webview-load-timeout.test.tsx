@@ -60,6 +60,31 @@ describe("useBrowserWebviewLoadTimeout", () => {
     expect(showSurfaceFailure).not.toHaveBeenCalled();
   });
 
+  it("uses a generic timeout surface detail without exposing the requested URL", () => {
+    const requestedUrl = "https://example.com/private-token";
+    const showSurfaceFailure = vi.fn();
+    useUiStore.setState({ browserUrl: requestedUrl });
+
+    renderHook(() => {
+      useBrowserWebviewLoadTimeout({
+        browserUrl: requestedUrl,
+        isLoading: true,
+        isStillLoading: () => true,
+        showSurfaceFailure,
+      });
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
+    });
+
+    expect(showSurfaceFailure).toHaveBeenCalledWith({
+      type: "UserVisible",
+      message: "Timed out waiting for embedded browser webview to finish loading.",
+    });
+    expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
+  });
+
   it("clears the timeout when loading completes before the timeout threshold", () => {
     const showSurfaceFailure = vi.fn();
     const { rerender } = renderHook(

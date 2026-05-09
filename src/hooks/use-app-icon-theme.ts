@@ -16,6 +16,14 @@ type AppIconRequest = {
   supportsRuntimeWindowIconReplacement: boolean;
 };
 
+function isSameAppIconRequest(a: AppIconRequest, b: AppIconRequest) {
+  return (
+    a.theme === b.theme &&
+    a.platformLoaded === b.platformLoaded &&
+    a.supportsRuntimeWindowIconReplacement === b.supportsRuntimeWindowIconReplacement
+  );
+}
+
 function shouldSkipRuntimeIconReplacement({
   platformLoaded,
   supportsRuntimeWindowIconReplacement,
@@ -81,6 +89,10 @@ export function useAppIconTheme() {
           platformLoaded: request.platformLoaded,
           supportsRuntimeWindowIconReplacement: request.supportsRuntimeWindowIconReplacement,
         });
+
+        if (pendingRequestRef.current !== null && isSameAppIconRequest(request, pendingRequestRef.current)) {
+          pendingRequestRef.current = null;
+        }
       }
     } finally {
       applyingRef.current = false;
