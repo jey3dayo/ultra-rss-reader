@@ -191,6 +191,11 @@ description = "Knip baseline drift gate; pinned tool and issue count"
 run = "pnpm run quality:knip"
 run_windows = "pnpm.CMD run quality:knip"
 
+[tasks."report:similarity"]
+description = "Similarity scan report with TODO false-positive baseline"
+run = "pnpm run report:similarity"
+run_windows = "pnpm.CMD run report:similarity"
+
 # ========================================
 # テスト
 # ========================================

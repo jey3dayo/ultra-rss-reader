@@ -10,6 +10,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Use `mise run quality:react-doctor:diff` as the local React Doctor regression gate for changed files. It pins `react-doctor@0.1.4` and fails on score, error, warning, affected-file, or tool-version drift from the checked-in baseline.
 - Use `mise run quality:react-doctor:full` as an informational full-codebase React Doctor report. It shares the pinned version but does not fail the task on known full-scan baseline debt.
 - Use `mise run quality:knip` for Knip baseline drift checks. It pins `knip@6.12.2` and fails when the known issue/finding counts change.
+- Use `mise run report:similarity` for the similarity-ts TODO baseline report. Read thresholds as 0.95 for near-copy candidates, 0.9 for TODO triage, and 0.87 for broad discovery; raise `--min-lines` / `--min-tokens` before extracting helpers from tiny callback-shape matches.
 - Default desktop development entry point: `mise run app:dev`.
 - Use `mise run app:dev:browser` only when browser-mode UI debugging is enough.
 
@@ -80,7 +81,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
 - Classify new TODO entries as implementation, contract test, rule update, manual verification, or type placement cleanup. If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of growing `TODO.md`.
 - Use the P0/P1/P2/P3 taxonomy in [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md) when adding or triaging TODO entries.
-- React Doctor / Knip baselines live in `scripts/quality-baseline.ts`. Update those constants only after running the matching pinned task, reviewing whether the drift is expected, and keeping the tool versions pinned in `package.json` / `pnpm-lock.yaml`. Test `@latest` versions outside the baseline tasks.
+- React Doctor / Knip baselines live in `scripts/quality-baseline.ts`; similarity false-positive baselines live in `scripts/similarity-report.ts`. Update those constants only after running the matching pinned task, reviewing whether the drift is expected, and keeping the tool versions pinned in `package.json` / `pnpm-lock.yaml`. Test `@latest` versions outside the baseline tasks.
 
 ## Localization Notes
 
