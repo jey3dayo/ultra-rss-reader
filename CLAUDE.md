@@ -48,6 +48,14 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Reader-only pure helpers may stay under `src/components/reader/`; move them to `src/lib/` only when `lib`, `stores`, or another feature needs them.
 - Keep external tool routing shims under `rules/tools/`; put day-to-day project rules in `.claude/rules/`.
 
+## Type Surface Policy
+
+- Prefer `type` aliases for object shapes, unions, mapped types, and component or hook contracts. Use `interface` only when declaration merging or external augmentation is required, such as `ImportMetaEnv`, `Window`, or library module augmentation.
+- Keep `Props`, `Params`, and `Result` names tied to their owner: component view props in the component file unless imported by multiple runtime consumers, hook params/results next to the hook unless shared across hooks/controllers, and cross-feature domain contracts in `src/lib/**/*.types.ts`.
+- Derive DTO and runtime-boundary types from schemas with `z.output` / `z.infer` or from the Tauri command wrapper source of truth. Do not duplicate schema shapes as hand-written React or store types unless the view model intentionally differs.
+- Treat `as` assertions as boundary code only. Prefer `unknown` plus narrowing, schema parsing, `satisfies`, or small typed helpers; keep unavoidable assertions in test/runtime adapter helpers where the proof is local.
+- Use `.types.ts` files for shared contracts, not for convenience exports. If a type has one runtime consumer, localize it during nearby refactors instead of adding another exported surface.
+
 ## Operational Notes
 
 - Dev builds log to stdout. Set `RUST_LOG=info` or higher when diagnosing sync, browser, or provider issues.

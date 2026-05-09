@@ -30,6 +30,36 @@
 
 ## 次の並列バッチ候補
 
+- [ ] TypeScript type surface inventory 候補を追加する
+  - `CLAUDE.md` の Type Surface Policy に沿って、`.types.ts` / exported `Props` / `Params` / `Result` / schema-derived DTO type の inventory を作る
+  - `src/components/reader/*types.ts`、`src/components/settings/*types.ts`、`src/lib/**/*.types.ts`、`src/stores/*.types.ts` を owner / consumer count / runtime boundary で分類する
+  - いきなり移動せず、public contract / feature-local / local-only / schema-derived の 4 区分へ分けて後続 worker scope を確定する
+
+- [ ] TypeScript type/interface convention cleanup 候補を追加する
+  - `interface` と `type` の使い分けを `CLAUDE.md` の方針へ寄せ、augmentation 目的以外の object shape は `type` alias へ寄せる
+  - 対象候補: `src/stores/preferences-store.types.ts` / `src/stores/ui-store.ts` / `src/lib/keyboard/keyboard-shortcuts.ts` / `src/vite-env.d.ts`
+  - declaration merging が必要な `ImportMetaEnv` / `Window` / i18next module augmentation は残し、型名と export surface のみを整理する
+
+- [ ] TypeScript React view props locality 候補を追加する
+  - exported `*Props` のうち runtime consumer が 1 component / 1 story / 1 test に閉じているものを local type へ戻せるか棚卸しする
+  - 対象候補: `article-list.types.ts` / `sidebar.types.ts` / `browser-view.types.ts` / `settings-page.types.ts` / `account-detail/types.ts`
+  - view contract と hook/controller contract を同じ `.types.ts` に混ぜず、移動は feature 単位の小バッチに分ける
+
+- [ ] TypeScript hook params/result colocation 候補を追加する
+  - `Use*Params` / `Use*Result` が hook-local なのに `.types.ts` へ残っている箇所を、hook file local へ戻すか shared controller contract として残すか判断する
+  - 対象候補: reader article-list hooks、sidebar hooks、browser hooks、settings account-detail hooks
+  - hook return を view props と兼用している箇所は名前を分け、`Params` / `Result` / `ViewProps` の責務を明確化する
+
+- [ ] TypeScript schema-derived type duplication 候補を追加する
+  - Tauri IPC / localStorage / app-config の runtime schema から導ける型を手書き type と重複させていないか確認する
+  - 対象候補: `src/api/schemas/*`、`src/schemas/*`、`src/api/tauri-commands.ts`、`tests/helpers/fixtures.ts`
+  - `z.output` / `z.infer` / command wrapper return type を source of truth にし、view model が intentionally different な場合だけ別名 type を残す
+
+- [ ] TypeScript assertion and narrowing cleanup 候補を追加する
+  - `as Record<string, string>` / `as StoryContext<TArgs>` / DOM event `as CustomEvent` などの assertion を boundary helper へ閉じ込められるか確認する
+  - 対象候補: `src/__tests__/config/repo-contracts.test.ts` / `tests/helpers/render-story.tsx` / `src/__tests__/hooks/use-browser-debug-geometry-events.test.tsx`
+  - production code では `unknown` + narrow / schema parse / `satisfies` を優先し、test helper assertion は proof が局所化された helper 名へ寄せる
+
 - [ ] reader hook error feedback 候補をまとめて見直す
   - `src/components/reader/hooks/article/use-article-status-actions.ts` の既読・スター操作失敗時に、toast と状態復帰の契約を追加する
   - `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts` の本実行 `markOldUnreadRead.mutate` 失敗時に、count 成功後の mutation error を通知できるか確認する
