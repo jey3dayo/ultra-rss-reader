@@ -50,21 +50,6 @@
   - sanitizer が `source` の `srcset` / `sizes` / `media` などを許可するため、将来 article body rendering が media を増やした時に remote request 面積が広がりやすい
   - reader body で実際に描画される tag/attribute と CSP/privacy doc を照合し、media tag を残す/落とす/手動検証へ分ける
 
-- [ ] P2 local feed sync の article upsert と sync_state 保存を atomic にする
-  - 対象: `src-tauri/src/commands/sync_providers.rs`
-  - articles/count は保存済みだが validator `sync_state` 保存だけ失敗すると、次回同じ feed を再取得し、逆方向の不整合も将来 refactor で入りやすい
-  - `sync_state` table failure test で記事保存済み時の state 方針を固定し、article upsert、mute auto-read、count、state を service transaction へまとめる
-
-- [ ] P2 provider article URL の credential / fragment / control char normalization を固定する
-  - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/api/schemas/article.ts`, `src/components/reader/article-toolbar-view.tsx`
-  - feed item の article URL は open/copy/browser preview に流れるため、`https://user:pass@host`、fragment token、control char をどこで落とすか未固定だと privacy と UI 表示が揺れる
-  - normalizer、ArticleDtoSchema、open/copy action のどこで sanitize するか決め、credential-in-URL と invalid URL の fixture を追加する
-
-- [ ] P2 article view history cleanup / retention policy を決める
-  - 対象: `src-tauri/migrations/V17__article_view_history.sql`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
-  - viewed history が増え続ける場合、recent view や DB size に効き、削除 feed/account との cascade/no-op も将来 migration で揺れやすい
-  - retention days、max rows、account/feed delete cascade、clear history command の count contract を Rust test にする
-
 - [ ] P1 debug input trace が typed key や target text を記録しすぎないようにする
   - 対象: `src/components/app-shell.tsx`, `src/lib/debug-input-trace.ts`, `src/components/settings/debug-settings.tsx`
   - Debug HUD の raw keyboard/pointer trace は入力欄や URL/credential field の target description を扱うため、debug log 上に sensitive interaction が残る可能性がある
@@ -90,20 +75,10 @@
   - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
   - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
 
-- [ ] P1 purge_old_articles が開いている記事・tag・history を破壊しない contract を作る
-  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/components/reader/article-view.tsx`
-  - background sync 後の purge が read article を削除するため、現在開いている read article、tag assignment、recent history、browser preview の参照が消えるタイミングが曖昧
-  - selected article が purge 対象、starred/tagged/read history 付き article、account keep_read_items_days 変更直後の behavior を Rust/frontend test にする
-
 - [ ] P2 dev mocks の mutation side effect と real DB cascade の差分を検出する
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
-
-- [ ] P1 article search の FTS/LIKE 全件 materialize を bounded pagination にする
-  - 対象: `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/commands/article_commands.rs`
-  - search は FTS と LIKE の全 hit を Vec に集めてから dedupe/sort/pagination するため、大量記事や短い query で memory と latency が急増しやすい
-  - top-N merge、per-query cap、timeout、short query rejection、large account fixture の Rust benchmark/contract test を追加する
 
 - [ ] P1 macOS background browser open の child process failure を user-visible にする
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/article-browser-actions.ts`
@@ -312,25 +287,6 @@
   - 対象: `src-tauri/src/lib.rs`, `src/components/app-shell.tsx`, `src/hooks/use-screen-snapshot.ts`
   - startup focus restore は `tauri::async_runtime::spawn` + sleep 後に main window/webview を探すため、window close や slow startup で stale focus warning が出やすい
   - app handle drop、main window missing、webview missing、permission denied、retry不要条件の Rust test / manual verification を追加する
-
-- [ ] P2 live FreshRSS tests の env prerequisite を ignored/manual test contract に分ける
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `CLAUDE.md`
-  - `FRESHRSS_URL` / `FRESHRSS_USER` / `FRESHRSS_PASS` を `expect` する live test があり、通常 CI と手元検証の境界が曖昧だと secret 依存 test が混ざりやすい
-  - ignored test marker、manual live command、secret redaction、missing env skip message、recorded fixture fallback を整理する
-
-- [ ] P2 keyring integration tests の credential cleanup を account id collision に強くする
-  - 対象: `src-tauri/tests/integration_test.rs`, `src-tauri/src/infra/keyring_store.rs`, `src-tauri/src/commands/account_commands.rs`
-  - integration test は keyring password を実際に set/delete するため、固定 account id や panic 中断で credential が残ると次回 test / 手元環境に影響する
-  - unique test account id、drop cleanup、panic cleanup、missing keyring、delete failure warning の方針を固定する
-- [ ] P2 sync provider test fixture の DB lock scope を helper 化する
-  - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/tests/integration_test.rs`
-  - sync provider tests は `db.lock().unwrap()` と repo setup が大量にあり、lock scope が長くなると async boundary へ持ち込みやすい
-  - setup helper、read/write lock scope、drop before await、poison handling、fixture account/feed/article 作成を共通化する
-
-- [ ] P2 pending mutation remote id cleanup を sync_flow / repository / integration test で一本化する
-  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/tests/integration_test.rs`
-  - pending mutation cleanup は deleted ids、read/starred push、remote_entry_id を跨ぐため、片方の flow だけ cleanup されると重複 push / stale delete が残りやすい
-  - partial push success、provider reject、post-write DB failure、duplicate remote id、account scoped cleanup の integration test を追加する
 
 - [ ] P3 Rust test unwrap policy を production boundary と fixture boundary に分ける
   - 対象: `src-tauri/src/**/*.rs`, `src-tauri/tests/**/*.rs`, `CLAUDE.md`
