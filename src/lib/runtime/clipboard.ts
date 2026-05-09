@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { AppError } from "@/api/schemas";
 import { copyToClipboard } from "@/api/tauri-commands";
+import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export type ClipboardErrorCategory = "runtime_unavailable" | "permission_denied" | "invalid_text" | "unknown";
 
@@ -47,6 +48,40 @@ function categorizeClipboardError(error: AppError): ClipboardCopyError {
   };
 }
 
+function toClipboardCopyError(error: unknown): ClipboardCopyError {
+  if (error instanceof Error) {
+    return {
+      type: "UserVisible",
+      message: error.message,
+      category: resolveClipboardErrorCategory(error.message),
+    };
+  }
+
+  const message = String(error);
+  return {
+    type: "UserVisible",
+    message,
+    category: resolveClipboardErrorCategory(message),
+  };
+}
+
+async function copyTextWithFrontendClipboard(value: string): Result.ResultAsync<void, ClipboardCopyError> {
+  if (typeof navigator === "undefined" || typeof navigator.clipboard?.writeText !== "function") {
+    return Result.fail({
+      type: "UserVisible",
+      message: "Clipboard unavailable",
+      category: "runtime_unavailable",
+    });
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    return Result.succeed(undefined);
+  } catch (error) {
+    return Result.fail(toClipboardCopyError(error));
+  }
+}
+
 export async function copyTextToClipboard(value: string): Result.ResultAsync<void, ClipboardCopyError> {
   if (value.trim().length === 0) {
     return Result.fail({
@@ -54,6 +89,10 @@ export async function copyTextToClipboard(value: string): Result.ResultAsync<voi
       message: "Invalid clipboard text",
       category: "invalid_text",
     });
+  }
+
+  if (!hasTauriRuntime()) {
+    return copyTextWithFrontendClipboard(value);
   }
 
   const result = await copyToClipboard(value);

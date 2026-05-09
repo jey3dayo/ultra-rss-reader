@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copyTextToClipboard, copyValueToClipboard, resolveClipboardErrorCategory } from "@/lib/runtime/clipboard";
 
 const { copyToClipboardMock } = vi.hoisted(() => ({
@@ -11,9 +12,27 @@ vi.mock("@/api/tauri-commands", () => ({
 }));
 
 describe("clipboard", () => {
+  const originalClipboard = navigator.clipboard;
+
   beforeEach(() => {
+    setTauriRuntimePresent();
     copyToClipboardMock.mockReset();
   });
+
+  afterEach(() => {
+    resetTauriRuntimeFlags();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: originalClipboard,
+    });
+  });
+
+  function setFrontendClipboard(writeText: (value: string) => Promise<void>) {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+  }
 
   it.each(["", "   ", "\n\t"])("does nothing for blank clipboard values: %j", async (value) => {
     const onSuccess = vi.fn();
@@ -135,5 +154,61 @@ describe("clipboard", () => {
       ...error,
       category: "runtime_unavailable",
     });
+  });
+
+  it("uses native clipboard when the Tauri runtime is available", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    setFrontendClipboard(writeText);
+    copyToClipboardMock.mockResolvedValue(Result.succeed(null));
+
+    const result = await copyTextToClipboard("copy me");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(copyToClipboardMock).toHaveBeenCalledWith("copy me");
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the frontend clipboard when the Tauri runtime is unavailable", async () => {
+    setTauriRuntimeMissing();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    setFrontendClipboard(writeText);
+
+    const result = await copyTextToClipboard("copy me");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(writeText).toHaveBeenCalledWith("copy me");
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
+  });
+
+  it("returns runtime unavailable when neither Tauri nor frontend clipboard is available", async () => {
+    setTauriRuntimeMissing();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+
+    const result = await copyTextToClipboard("copy me");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({
+      type: "UserVisible",
+      message: "Clipboard unavailable",
+      category: "runtime_unavailable",
+    });
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
+  });
+
+  it("classifies frontend clipboard permission failures", async () => {
+    setTauriRuntimeMissing();
+    const writeText = vi.fn().mockRejectedValue(new DOMException("Write permission denied", "NotAllowedError"));
+    setFrontendClipboard(writeText);
+
+    const result = await copyTextToClipboard("copy me");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toMatchObject({
+      category: "permission_denied",
+    });
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
   });
 });
