@@ -1,3 +1,5 @@
+# Source of truth: this file owns area and release-category labels derived from paths or branch prefixes.
+# PR Insights owns only risk/* and size/* labels.
 frontend:
   - changed-files:
       - any-glob-to-any-file:

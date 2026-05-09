@@ -2,6 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
+  extractIssueTemplateDoneWhenDescription,
+  extractIssueTemplateDoneWhenPlaceholder,
   extractYamlInlineListValues,
   extractYamlLabelsFields,
   extractYamlTopLevelKeys,
@@ -74,6 +76,10 @@ describe("release repository contract", () => {
   const prInsightsLabelerWorkflow = readText(".github/workflows/pr-insights-labeler.yml");
   const releaseConfig = readText(".github/release.yml");
   const labelerConfig = readText(".github/labeler.yml");
+  const pullRequestTemplate = readText(".github/PULL_REQUEST_TEMPLATE.md");
+  const issueTemplateFileNames = readdirSync(".github/ISSUE_TEMPLATE").filter(
+    (fileName) => fileName.endsWith(".yml") && fileName !== "config.yml",
+  );
   const miseToml = readText("mise.toml");
 
   it("keeps release tag, package, Tauri, and Cargo versions in one parity contract", () => {
@@ -212,13 +218,54 @@ describe("release repository contract", () => {
   });
 
   it("keeps release note category labels covered by issue and PR label contracts", () => {
-    const issueTemplateLabels = readdirSync(".github/ISSUE_TEMPLATE")
-      .filter((fileName) => fileName.endsWith(".yml"))
-      .flatMap((fileName) => extractYamlInlineListValues(readText(`.github/ISSUE_TEMPLATE/${fileName}`), "labels"));
+    const issueTemplateLabels = issueTemplateFileNames.flatMap((fileName) =>
+      extractYamlInlineListValues(readText(`.github/ISSUE_TEMPLATE/${fileName}`), "labels"),
+    );
     const contractLabels = new Set([...extractYamlTopLevelKeys(labelerConfig), ...issueTemplateLabels]);
 
     for (const label of extractYamlLabelsFields(releaseConfig)) {
       expect(contractLabels.has(label), `${label} is not covered by issue templates or .github/labeler.yml`).toBe(true);
+    }
+  });
+
+  it("keeps local labeler and PR insights labeler source-of-truth split explicit", () => {
+    const localLabelerLabels = extractYamlTopLevelKeys(labelerConfig);
+    const releaseLabels = extractYamlLabelsFields(releaseConfig);
+    const prInsightsOwnedPrefixes = ["risk/", "size/"];
+
+    expect(labelerConfig).toContain("this file owns area and release-category labels");
+    expect(labelerWorkflow).toContain(".github/labeler.yml owns area and release-category labels");
+    expect(prInsightsLabelerWorkflow).toContain("PR Insights owns risk/* and size/* labels only");
+    expect(
+      localLabelerLabels.filter((label) => prInsightsOwnedPrefixes.some((prefix) => label.startsWith(prefix))),
+    ).toEqual([]);
+    expect(releaseLabels.filter((label) => prInsightsOwnedPrefixes.some((prefix) => label.startsWith(prefix)))).toEqual(
+      [],
+    );
+  });
+
+  it("keeps issue Done When placeholders tied back to the PR DoD checklist", () => {
+    const prDodChecks = ["動作確認完了", "型エラー 0 件", "リント違反 0 件", "全テスト成功", "フォーマッター適用済み"];
+
+    for (const check of prDodChecks) {
+      expect(pullRequestTemplate, `PR DoD missing ${check}`).toContain(check);
+    }
+
+    for (const fileName of issueTemplateFileNames) {
+      const source = readText(`.github/ISSUE_TEMPLATE/${fileName}`);
+      const doneWhenDescription = extractIssueTemplateDoneWhenDescription(source);
+      const doneWhenPlaceholder = extractIssueTemplateDoneWhenPlaceholder(source);
+
+      expect(doneWhenDescription, `${fileName} Done When should classify gate differences`).toContain(
+        "PR DoD 共通 gate",
+      );
+      expect(doneWhenDescription, `${fileName} Done When should classify gate differences`).toContain("固有 gate");
+      expect(doneWhenDescription, `${fileName} Done When should classify gate differences`).toContain(
+        "manual verification gate",
+      );
+      expect(doneWhenPlaceholder, `${fileName} Done When should reference PR DoD`).toContain(
+        "PR 作成時は PR template の確認済み DoD を満たす",
+      );
     }
   });
 });

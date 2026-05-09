@@ -34,3 +34,23 @@ export function extractYamlLabelsFields(source: string): string[] {
     .map((label) => label.trim().replace(/^"|"$/g, ""))
     .filter((label) => label.length > 0 && label !== "*");
 }
+
+function extractIssueTemplateDoneWhenSection(source: string): string {
+  const sectionStart = source.search(/^\s+- type: textarea\n\s+id: done-when\n/m);
+  if (sectionStart === -1) {
+    return "";
+  }
+
+  const nextSectionStart = source.indexOf("\n  - type:", sectionStart + 1);
+  return source.slice(sectionStart, nextSectionStart === -1 ? undefined : nextSectionStart);
+}
+
+export function extractIssueTemplateDoneWhenPlaceholder(source: string): string {
+  const doneWhenSection = extractIssueTemplateDoneWhenSection(source);
+  return doneWhenSection.match(/^\s+placeholder: \|\n(?<placeholder>(?: {8}.+\n?)*)/m)?.groups?.placeholder ?? "";
+}
+
+export function extractIssueTemplateDoneWhenDescription(source: string): string {
+  const doneWhenSection = extractIssueTemplateDoneWhenSection(source);
+  return doneWhenSection.match(/^\s+description: (?<description>.+)$/m)?.groups?.description ?? "";
+}

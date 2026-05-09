@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Source of truth: .github/labeler.yml owns area and release-category labels.
       - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b
         with:
           configuration-path: .github/labeler.yml

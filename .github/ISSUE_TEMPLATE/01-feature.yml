@@ -85,11 +85,13 @@ body:
     id: done-when
     attributes:
       label: Done When
-      description: 完了条件をチェックリストで書いてください
+      description: PR DoD 共通 gate、feature 固有 gate、manual verification gate を分けて完了条件を書いてください
       placeholder: |
+        - [ ] PR DoD 共通 gate（型・lint・test・format）が通っている
         - [ ] 主要フローが実装されている
         - [ ] 必要な automated tests が追加されている
         - [ ] manual verification が必要なら観点が整理されている
+        - [ ] PR 作成時は PR template の確認済み DoD を満たす
     validations:
       required: true
   - type: textarea

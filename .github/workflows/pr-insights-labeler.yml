@@ -25,6 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply PR Insights Labels
+        # Source of truth: PR Insights owns risk/* and size/* labels only.
         uses: jey3dayo/pr-insights-labeler@e9bccb2e8c9ed048d6022d6ae2e5c85eeed80f16
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
