@@ -35,11 +35,11 @@ export function BrowserSurfaceStateCard({
       </div>
       <p className="mt-2 text-pretty text-sm leading-6 text-foreground-soft">{issue.description}</p>
       {showTechnicalDetail && issue.detail ? (
-        <div className="mt-3 space-y-1.5 text-left">
+        <div className="mt-3 min-w-0 space-y-1.5 text-left">
           <p className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft uppercase">
             {labels.technicalDetail}
           </p>
-          <p className="rounded-md border border-browser-overlay-state-detail-border bg-browser-overlay-state-detail-surface px-3 py-2 text-xs break-words text-foreground-soft [overflow-wrap:anywhere]">
+          <p className="min-w-0 rounded-md border border-browser-overlay-state-detail-border bg-browser-overlay-state-detail-surface px-3 py-2 text-xs break-words text-foreground-soft [overflow-wrap:anywhere]">
             {issue.detail}
           </p>
         </div>

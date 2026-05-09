@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
 const ARTICLE_LIST_ITEM_TITLE_FALLBACK = "Untitled article";
+const ARTICLE_LIST_ITEM_TITLE_WHITESPACE_PATTERN = /\s+/g;
 
 type ArticleListItemProps = {
   article: ArticleDto;
@@ -69,7 +70,8 @@ export function resolveArticleListItemPresentation({
 }: ArticleListItemPresentationInput): ArticleListItemPresentation {
   const isRead = articleIsRead || isRecentlyRead;
   const isUnread = !isRead;
-  const normalizedTitle = title.trim() || ARTICLE_LIST_ITEM_TITLE_FALLBACK;
+  const normalizedTitle =
+    title.replace(ARTICLE_LIST_ITEM_TITLE_WHITESPACE_PATTERN, " ").trim() || ARTICLE_LIST_ITEM_TITLE_FALLBACK;
   const normalizedFeedName = feedName?.trim() ?? "";
   const normalizedThumbnail = thumbnail?.trim() ?? "";
   const summaryText = summary ? stripHtmlTags(summary) : "";

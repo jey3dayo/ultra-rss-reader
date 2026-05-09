@@ -104,7 +104,7 @@ describe("ArticleListItem", () => {
   it("normalizes title whitespace for row labels and display", () => {
     expect(
       resolveArticleListItemPresentation({
-        title: "  First Article  ",
+        title: "  First\n\tArticle  ",
         summary: "A hello world article",
         thumbnail: null,
         feedName: "Tech Blog",
@@ -125,7 +125,7 @@ describe("ArticleListItem", () => {
 
     render(
       <ArticleListItem
-        article={{ ...sampleArticles[0], title: "  First Article  ", is_read: false, is_starred: false }}
+        article={{ ...sampleArticles[0], title: "  First\n\tArticle  ", is_read: false, is_starred: false }}
         isSelected
         isRecentlyRead={false}
         dimArchived="true"
@@ -143,6 +143,25 @@ describe("ArticleListItem", () => {
       "First Article (unread)",
     );
     expect(screen.getByRole("heading", { name: "First Article" })).toBeInTheDocument();
+  });
+
+  it("renders no thumbnail frame for whitespace-only thumbnails", () => {
+    const { container } = render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], thumbnail: "\n\t  ", is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="medium"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(container.querySelector("img")).toBeNull();
   });
 
   it("uses the title fallback for empty row labels and display", () => {

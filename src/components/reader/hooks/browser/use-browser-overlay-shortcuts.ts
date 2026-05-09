@@ -16,10 +16,11 @@ export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: U
       }
 
       event.preventDefault();
+      event.stopImmediatePropagation();
       handleCloseOverlay();
     });
 
-    const removeWindowEvents = bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
+    const removeWindowEvents = bindWindowEvents([{ type: "keydown", listener: handleKeyDown, options: true }]);
     return () => {
       removeWindowEvents();
     };

@@ -132,6 +132,7 @@ describe("BrowserSurfaceStateCard", () => {
     });
 
     expect(detail).toHaveClass("rounded-md");
+    expect(detail).toHaveClass("min-w-0");
     expect(detail).toHaveClass("border-browser-overlay-state-detail-border");
     expect(detail).toHaveClass("bg-browser-overlay-state-detail-surface");
     expect(detail).toHaveClass("break-words");

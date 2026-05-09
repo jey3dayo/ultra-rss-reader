@@ -15,18 +15,25 @@ describe("useBrowserOverlayShortcuts", () => {
 
   it("owns only an unhandled Escape while the browser overlay has a URL", () => {
     const handleCloseOverlay = vi.fn();
+    const laterWindowShortcut = vi.fn();
     renderHook(() =>
       useBrowserOverlayShortcuts({
         browserUrl: "https://example.com/article",
         handleCloseOverlay,
       }),
     );
+    window.addEventListener("keydown", laterWindowShortcut);
 
-    const escapeEvent = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-    window.dispatchEvent(escapeEvent);
+    try {
+      const escapeEvent = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      window.dispatchEvent(escapeEvent);
 
-    expect(handleCloseOverlay).toHaveBeenCalledTimes(1);
-    expect(escapeEvent.defaultPrevented).toBe(true);
+      expect(handleCloseOverlay).toHaveBeenCalledTimes(1);
+      expect(laterWindowShortcut).not.toHaveBeenCalled();
+      expect(escapeEvent.defaultPrevented).toBe(true);
+    } finally {
+      window.removeEventListener("keydown", laterWindowShortcut);
+    }
   });
 
   it("does not claim article shortcuts or already-handled Escape events", () => {
