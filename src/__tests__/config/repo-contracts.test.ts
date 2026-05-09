@@ -1172,6 +1172,7 @@ describe("repository static contracts", () => {
       "{{ github.event_name == 'workflow_dispatch' &&\n            format('refs/tags/{0}', inputs.release_tag) || github.ref }}";
     const workflowDispatchReleaseNameExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
+    const workflowDispatchReleaseTagExpression = "$" + "{{ inputs.release_tag }}";
 
     expect(releaseWorkflow).toContain("workflow_dispatch:");
     expect(releaseWorkflow).toContain("release_tag:");
@@ -1182,6 +1183,14 @@ describe("repository static contracts", () => {
       "(github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v'))",
     );
     expect(releaseWorkflow).toContain(`ref: >-\n            ${checkoutReleaseRefExpression}`);
+    expect(releaseWorkflow).toContain("name: Validate manual release tag");
+    expect(releaseWorkflow).toContain(`RELEASE_TAG: ${workflowDispatchReleaseTagExpression}`);
+    expect(releaseWorkflow).toContain(
+      'if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$ ]]; then',
+    );
+    expect(releaseWorkflow).toContain(
+      "::error::release_tag must match vX.Y.Z, optionally with prerelease or build metadata",
+    );
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).not.toContain("github.event_name == 'workflow_dispatch' && github.ref");
