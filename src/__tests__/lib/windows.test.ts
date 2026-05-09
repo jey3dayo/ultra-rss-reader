@@ -92,6 +92,14 @@ describe("windows", () => {
     expect(Result.unwrapError(result)).toEqual(new Error("denied"));
   });
 
+  it("wraps non-error object Tauri failures with a stable fallback message", async () => {
+    setFullscreenMock.mockRejectedValue({ code: "permission_denied" });
+
+    const result = await setWindowFullscreen(true);
+
+    expect(Result.unwrapError(result)).toEqual(new Error("Unknown window error"));
+  });
+
   it("wraps symbol Tauri failures as readable Error values", async () => {
     setFullscreenMock.mockRejectedValue(Symbol("window denied"));
 
@@ -112,7 +120,7 @@ describe("windows", () => {
 
     const result = await setWindowFullscreen(true);
 
-    expect(Result.unwrapError(result)).toEqual(new Error("[object Object]"));
+    expect(Result.unwrapError(result)).toEqual(new Error("Unknown window error"));
   });
 
   it("wraps non-error dynamic import failures as Error values", async () => {

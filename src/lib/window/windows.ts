@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
 
+const UNKNOWN_WINDOW_ERROR_MESSAGE = "Unknown window error";
+
 function readErrorLikeMessage(error: object): string | null {
   try {
     const message = Reflect.get(error, "message");
@@ -10,10 +12,14 @@ function readErrorLikeMessage(error: object): string | null {
 }
 
 function stringifyUnknownError(error: unknown): string {
+  if (error !== null && typeof error === "object") {
+    return UNKNOWN_WINDOW_ERROR_MESSAGE;
+  }
+
   try {
     return String(error);
   } catch {
-    return Object.prototype.toString.call(error);
+    return UNKNOWN_WINDOW_ERROR_MESSAGE;
   }
 }
 
