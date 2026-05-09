@@ -74,6 +74,31 @@ describe("ArticleTagChips", () => {
     });
   });
 
+  it("removes earlier available candidates when they are assigned later in the same projection", () => {
+    expect(
+      buildArticleTagPickerLists({
+        articleTags: [
+          { id: "tag-review", name: "Review", color: null },
+          { id: "tag-later", name: "Later", color: "#3b82f6" },
+        ],
+        allTags: [
+          { id: "tag-later", name: "Later", color: "#3b82f6" },
+          { id: "tag-inbox", name: "Inbox", color: null },
+          { id: "tag-important", name: "Important", color: "#ef4444" },
+        ],
+      }),
+    ).toEqual({
+      assignedTags: [
+        { id: "tag-review", name: "Review", color: null },
+        { id: "tag-later", name: "Later", color: "#3b82f6" },
+      ],
+      availableTags: [
+        { id: "tag-inbox", name: "Inbox", color: null },
+        { id: "tag-important", name: "Important", color: "#ef4444" },
+      ],
+    });
+  });
+
   it("finds existing tags by trimmed case-insensitive name", () => {
     const tags = [
       { id: "tag-later", name: "Later", color: "#3b82f6" },

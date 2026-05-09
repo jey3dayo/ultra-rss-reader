@@ -77,32 +77,28 @@ export function buildArticleTagPickerLists(params: {
   availableTags: ArticleTagPickerTagView[];
 } {
   const { articleTags, allTags } = params;
+  const tagsLength = Math.max(articleTags?.length ?? 0, allTags?.length ?? 0);
   const assignedTagIds = new Set<string>();
   const assignedTags: ArticleTagPickerTagView[] = [];
-  const availableTags: ArticleTagPickerTagView[] = [];
+  const availableTagsById = new Map<string, ArticleTagPickerTagView>();
 
-  for (const tag of articleTags ?? []) {
-    if (!tag.id || assignedTagIds.has(tag.id)) {
-      continue;
+  for (let index = 0; index < tagsLength; index += 1) {
+    const articleTag = articleTags?.[index];
+    if (articleTag?.id && !assignedTagIds.has(articleTag.id)) {
+      assignedTagIds.add(articleTag.id);
+      assignedTags.push(toArticleTagPickerTagView(articleTag));
+      availableTagsById.delete(articleTag.id);
     }
 
-    assignedTagIds.add(tag.id);
-    assignedTags.push(toArticleTagPickerTagView(tag));
-  }
-
-  const availableTagIds = new Set<string>();
-  for (const tag of allTags ?? []) {
-    if (!tag.id || assignedTagIds.has(tag.id) || availableTagIds.has(tag.id)) {
-      continue;
+    const availableTag = allTags?.[index];
+    if (availableTag?.id && !assignedTagIds.has(availableTag.id) && !availableTagsById.has(availableTag.id)) {
+      availableTagsById.set(availableTag.id, toArticleTagPickerTagView(availableTag));
     }
-
-    availableTagIds.add(tag.id);
-    availableTags.push(toArticleTagPickerTagView(tag));
   }
 
   return {
     assignedTags,
-    availableTags,
+    availableTags: Array.from(availableTagsById.values()),
   };
 }
 
