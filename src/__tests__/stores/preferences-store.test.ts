@@ -1,9 +1,10 @@
 import { Result } from "@praha/byethrow";
 import i18n from "i18next";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { preferenceDefaults, resolvePreferenceValue } from "@/schemas/preferences";
+import { preferenceDefaults, type PreferenceWritableKey, resolvePreferenceValue } from "@/schemas/preferences";
+import type { PreferencesActions } from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("@/api/tauri-commands", () => ({
@@ -201,6 +202,21 @@ describe("usePreferencesStore preferences", () => {
 
     expect(resolvePreferenceValue(usePreferencesStore.getState().prefs, "theme")).toBe("light");
     expect(usePreferencesStore.getState().theme()).toBe("light");
+  });
+
+  it("keeps setPref keys within the writable preference boundary", () => {
+    expectTypeOf<PreferencesActions["setPref"]>().parameter(0).toExtend<PreferenceWritableKey>();
+    expectTypeOf<PreferencesActions["setPref"]>().parameter(0).not.toEqualTypeOf<string>();
+
+    const assertWritableKeys = (setPref: PreferencesActions["setPref"]) => {
+      setPref("reader_mode_default", "true");
+      setPref("web_preview_mode_default", "false");
+      setPref("selected_account_id", "account-1");
+
+      // @ts-expect-error Unknown preference keys must not cross the store action boundary.
+      setPref("unknown_preference_key", "value");
+    };
+    expectTypeOf(assertWritableKeys).returns.toEqualTypeOf<void>();
   });
 
   it("keeps manual theme switches as Tauri document-root view transitions when supported", async () => {
@@ -562,6 +578,38 @@ describe("usePreferencesStore preferences", () => {
       expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "設定の保存に失敗しました: db offline",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("keeps paired reading display preset preferences optimistic when one persist fails", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(setPreference)
+      .mockResolvedValueOnce(Result.succeed(null))
+      .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "web preview write failed" }));
+
+    try {
+      usePreferencesStore.getState().setPref("reader_mode_default", "true");
+      usePreferencesStore.getState().setPref("web_preview_mode_default", "true");
+
+      await vi.waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "設定の保存に失敗しました: web preview write failed",
+        });
+      });
+
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        reader_mode_default: "true",
+        web_preview_mode_default: "true",
+      });
+      expect(setPreference).toHaveBeenNthCalledWith(1, "reader_mode_default", "true");
+      expect(setPreference).toHaveBeenNthCalledWith(2, "web_preview_mode_default", "true");
+      expect(consoleError).toHaveBeenCalledWith("Failed to persist preference web_preview_mode_default:", {
+        type: "UserVisible",
+        message: "web preview write failed",
       });
     } finally {
       consoleError.mockRestore();
