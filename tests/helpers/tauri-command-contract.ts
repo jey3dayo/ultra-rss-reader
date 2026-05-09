@@ -49,19 +49,6 @@ export function extractSafeInvokeCommandsWithArgs(source: string): string[] {
   return [...commands].sort();
 }
 
-export function orderedSetDifference(left: readonly string[], right: readonly string[]): string[] {
-  const rightSet = new Set(right);
-  const difference: string[] = [];
-
-  for (const item of left) {
-    if (!rightSet.has(item)) {
-      difference.push(item);
-    }
-  }
-
-  return difference;
-}
-
 export type CommandIndex = {
   readonly commands: readonly string[];
   readonly commandSet: ReadonlySet<string>;

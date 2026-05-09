@@ -390,11 +390,6 @@
   - React Doctor の `js-combine-iterations` が dev mocks に集中しており、mock dataset 追加のたびに Storybook/dev scenario 起動コストが増えやすい
   - feed/article/tag/account index を builder 初期化時に作り、fixture順序、duplicate id、unread/starred count、tag assignment の test を維持する
 
-- [ ] P2 Tauri command contract helper の Set / toSorted 移行をまとめる
-  - 対象: `tests/helpers/tauri-command-contract.ts`, `src/__tests__/api/tauri-commands.test.ts`, `src/__tests__/api/browser-webview-command-contract.test.ts`
-  - React Doctor が `array.includes()` in loop と `[...array].sort()` を helper/test に検出しており、command 数が増えるほど contract test が遅くなる
-  - command name Set、sorted snapshot helper、missing/extra command diagnostics、browser/native command parity を崩さず整理する
-
 - [ ] P2 Storybook explorer organization test の sort / filter chain を helper 化する
   - 対象: `src/__tests__/components/storybook-explorer-organization.test.ts`, `e2e/storybook/storybook-index-payload.ts`
   - React Doctor が Storybook organization test に `js-combine-iterations` と `js-tosorted-immutable` を検出しており、story 数が増えるほど validation が重くなる
@@ -470,20 +465,10 @@
   - React Doctor の `js-combine-iterations` が article list source test に出ており、feed/folder/account source の抽出 assertion が重複走査になっている可能性がある
   - account filtered sources、folder grouping、unread count、empty source、sort order の fixture helper を作り、assertion message を読みやすく保つ
 
-- [ ] P2 actions test の action registry scan を id Map へ寄せる
-  - 対象: `src/__tests__/lib/actions.test.ts`, `src/lib/actions.ts`, `src/hooks/use-menu-events.ts`
-  - React Doctor の `js-combine-iterations` が action registry test に出ており、action id / shortcut / menu event の照合で全件走査を繰り返している可能性がある
-  - action id Map、duplicate id diagnostics、menu action parity、disabled action handling、native event unknown action の test helper を追加する
-
 - [ ] P2 tauri-mocks helper の command filtering を command index へ寄せる
   - 対象: `tests/helpers/tauri-mocks.ts`, `tests/helpers/tauri-command-contract.ts`, `src/__tests__/api/tauri-commands.test.ts`
   - React Doctor の `js-combine-iterations` が mock command helper に複数出ており、invoke mock の setup / assertion が command 数に比例して重くなる
   - command name index、call history index、per-command reset、unknown command diagnostics、async reject path を崩さず整理する
-
-- [ ] P2 general settings view props test の option lookup を Map 化する
-  - 対象: `src/__tests__/components/use-general-settings-view-props.test.ts`, `src/components/settings/hooks/use-general-settings-view-props.ts`
-  - React Doctor が `js-combine-iterations` と `js-index-maps` を同 test に検出しており、settings option を loop 内 find で探している可能性がある
-  - option id Map、duplicate option id、disabled state、label/description presence、preference update callback の assertion helper を追加する
 
 - [ ] P2 sidebar test の async loop を user-event ordering と fixture setup に分離する
   - 対象: `src/__tests__/components/sidebar.test.tsx`, `src/components/reader/sidebar-view.tsx`
@@ -524,11 +509,6 @@
   - 対象: `src/__tests__/**/*.test.ts`, `src/__tests__/**/*.test.tsx`, `tests/helpers/*`
   - React Doctor の `.toSorted()` warning 29 件の大半は test-only なので、runtime target 確認後に production 変更と分けて一括処理できる
   - test helper bulk rewrite、Node 24 support、snapshot order stability、readability regression の review checklist を用意する
-
-- [ ] P2 fixtures helper の unused export を reader/settings/API fixture に分割する
-  - 対象: `tests/helpers/fixtures.ts`, `src/__tests__/components/article-view.test.tsx`, `src/__tests__/api/tauri-commands.test.ts`
-  - React Doctor / Knip が fixtures helper の unused export を検出しており、巨大 fixture file に reader/settings/API 用 helper が混在して死んだ export を見分けにくい
-  - reader article fixture、settings account fixture、API command fixture、generic date/id helper に分け、使わない export は削除する
 
 - [ ] P2 use-articles の unused export と mutation invalidation を同じバッチで棚卸しする
   - 対象: `src/hooks/use-articles.ts`, `src/hooks/create-mutation.ts`, `src/__tests__/hooks/use-articles.test.tsx`
