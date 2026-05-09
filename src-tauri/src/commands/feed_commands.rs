@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+use rusqlite::{params, OptionalExtension};
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto, FolderDto};
@@ -23,6 +24,8 @@ use crate::infra::feed_discovery;
 
 const FEED_TITLE_MAX_CHARS: usize = 200;
 const FOLDER_NAME_MAX_CHARS: usize = 100;
+const UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE: &str =
+    "feed not found or folder does not belong to feed account";
 
 pub(super) fn lock_db(
     db: &Mutex<DbManager>,
@@ -194,10 +197,80 @@ fn update_feed_folder_in_db(
     feed_id: String,
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
+    validate_update_feed_folder_target(db, &feed_id, folder_id.as_deref())?;
     let repo = SqliteFeedRepository::new(db.writer());
-    let fid = folder_id.map(FolderId);
-    repo.update_folder(&FeedId(feed_id), fid.as_ref())?;
+    let fid = folder_id.as_ref().map(|id| FolderId(id.clone()));
+    if let Err(error) = repo.update_folder(&FeedId(feed_id.clone()), fid.as_ref()) {
+        return Err(classify_update_feed_folder_error(
+            db,
+            &feed_id,
+            folder_id.as_deref(),
+            error,
+        ));
+    }
     Ok(())
+}
+
+fn classify_update_feed_folder_error(
+    db: &DbManager,
+    feed_id: &str,
+    folder_id: Option<&str>,
+    error: DomainError,
+) -> AppError {
+    let is_target_validation_error = matches!(
+        &error,
+        DomainError::Validation(message)
+            if message == UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE
+    );
+    if !is_target_validation_error {
+        return error.into();
+    }
+
+    match validate_update_feed_folder_target(db, feed_id, folder_id) {
+        Ok(()) => error.into(),
+        Err(classified_error) => classified_error,
+    }
+}
+
+fn validate_update_feed_folder_target(
+    db: &DbManager,
+    feed_id: &str,
+    folder_id: Option<&str>,
+) -> Result<(), AppError> {
+    let feed_repo = SqliteFeedRepository::new(db.reader());
+    let feed = feed_repo
+        .find_by_id(&FeedId(feed_id.to_string()))?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Feed not found".to_string(),
+        })?;
+
+    let Some(folder_id) = folder_id else {
+        return Ok(());
+    };
+
+    let folder_account_id = db
+        .reader()
+        .query_row(
+            "SELECT account_id FROM folders WHERE id = ?1",
+            params![folder_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| AppError::UserVisible {
+            message: format!("Failed to validate target folder: {error}"),
+        })?;
+
+    match folder_account_id {
+        None => Err(AppError::UserVisible {
+            message: "Folder not found".to_string(),
+        }),
+        Some(folder_account_id) if folder_account_id != feed.account_id.0 => {
+            Err(AppError::UserVisible {
+                message: "Folder belongs to another account".to_string(),
+            })
+        }
+        Some(_) => Ok(()),
+    }
 }
 
 fn recalculate_feed_unread_count_in_db(db: &DbManager, feed_id: &FeedId) -> Result<i32, AppError> {
@@ -410,12 +483,13 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{
-        add_local_feed_with_db, add_local_feed_with_provider, create_folder_in_db,
-        delete_feed_in_db, lock_db, recalculate_feed_unread_count_in_db, rename_feed_in_db,
-        update_feed_display_settings_in_db, update_feed_folder_in_db,
-        validate_add_local_feed_account_in_db,
+        add_local_feed_with_db, add_local_feed_with_provider, classify_update_feed_folder_error,
+        create_folder_in_db, delete_feed_in_db, lock_db, recalculate_feed_unread_count_in_db,
+        rename_feed_in_db, update_feed_display_settings_in_db, update_feed_folder_in_db,
+        validate_add_local_feed_account_in_db, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
     };
     use crate::commands::dto::AppError;
+    use crate::domain::error::DomainError;
     use crate::domain::types::{AccountId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
     use crate::infra::provider::local::LocalProvider;
@@ -493,7 +567,7 @@ mod tests {
         assert!(matches!(
             error,
             AppError::UserVisible { message }
-                if message == "Validation error: feed not found or folder does not belong to feed account"
+                if message == "Folder belongs to another account"
         ));
     }
 
@@ -540,8 +614,51 @@ mod tests {
 
         assert!(matches!(
             error,
-            AppError::UserVisible { message }
-                if message == "Validation error: feed not found or folder does not belong to feed account"
+            AppError::UserVisible { message } if message == "Feed not found"
+        ));
+    }
+
+    #[test]
+    fn update_feed_folder_command_rejects_missing_folder() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let feed_id = insert_test_feed(&db, &account_id);
+
+        let error = update_feed_folder_in_db(&db, feed_id.0, Some("missing-folder".to_string()))
+            .expect_err("missing folder mutation should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Folder not found"
+        ));
+    }
+
+    #[test]
+    fn update_feed_folder_command_classifies_concurrent_folder_delete() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let feed_id = insert_test_feed(&db, &account_id);
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Folder", 0],
+            )
+            .unwrap();
+        db.writer()
+            .execute("DELETE FROM folders WHERE id = ?1", params![folder_id.0])
+            .unwrap();
+
+        let error = classify_update_feed_folder_error(
+            &db,
+            &feed_id.0,
+            Some(&folder_id.0),
+            DomainError::Validation(UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE.to_string()),
+        );
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Folder not found"
         ));
     }
 
@@ -565,7 +682,7 @@ mod tests {
         assert!(matches!(
             error,
             AppError::UserVisible { message }
-                if message == "Validation error: feed not found or folder does not belong to feed account"
+                if message == "Folder belongs to another account"
         ));
     }
 

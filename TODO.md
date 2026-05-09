@@ -160,11 +160,6 @@
   - settings modal 内のカテゴリ/アカウント切替が `aria-current` と `aria-pressed` を併用しており、navigation / tabs / radio 相当の操作モデルが曖昧
   - 現行 keyboard 操作を維持するか arrow key selection を足すか決め、selected state の role/aria contract を test で固定する
 
-- [ ] P2 feed folder update の missing folder / concurrent delete message を分ける
-  - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`
-  - `feed not found or folder does not belong to feed account` に missing feed、missing folder、cross-account folder、concurrent folder delete が混ざると、UI rollback と toast の原因分類ができない
-  - affected row 0 の原因を分けるか log diagnostic を追加し、concurrent folder delete / missing feed / cross-account folder の DB test を追加する
-
 - [ ] P2 mute keyword auto mark read の long transaction / partial failure contract を固定する
   - 対象: `src-tauri/src/commands/mute_keyword_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - mute keyword 作成・更新時に全 account の muted unread を mark read するため、対象記事が多い時の long transaction、途中失敗、UI feedback の境界が曖昧になりやすい
