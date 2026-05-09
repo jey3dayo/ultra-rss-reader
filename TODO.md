@@ -155,16 +155,6 @@
   - clipboard/opener/updater/window permission が広く見えるため、使っていない permission が残ると Tauri capability の意図が drift する
   - frontend invoke/use site と permission list を照合し、unused permission を削るか理由をコメント/contract test に残す
 
-- [ ] P3 PR insights labeler と local labeler の source of truth を整理する
-  - 対象: `.github/workflows/pr-insights-labeler.yml`, `.github/workflows/labeler.yml`, `.github/labeler.yml`
-  - `risk/*` や `size/*` は PR insights、area labels は labeler という境界が崩れると、同じ PR に矛盾した label が付く
-  - label ownership 表を TODO/CLAUDE.md に寄せ、workflow inputs と issue template の説明が一致する config test を追加する
-
-- [ ] P3 issue template の Done When と PR DoD の差分を棚卸しする
-  - 対象: `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, `CLAUDE.md`
-  - issue template の Done When と PR template / agent DoD が別々に増えると、タスク作成時と完了時の quality gate がズレる
-  - 共通 gate、issue type 固有 gate、manual verification gate に分類し、文言 drift を config/docs test で検出する
-
 - [ ] P1 feed folder drag/drop の optimistic rollback を latest-only にする
   - 対象: `src/hooks/use-update-feed-folder.ts`, `src/components/reader/hooks/sidebar/use-sidebar-controller-actions.ts`
   - feed を folder A -> B -> C と連続移動した時、古い mutation failure が後から来ると `previousFeedsQueries` で最新の folder state を巻き戻し得る
@@ -194,11 +184,6 @@
   - 対象: `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts`, `src/components/reader/folder-select-view.tsx`
   - folder options は duplicate id を落とすが duplicate name や selected folder deleted の表示方針が未固定だと、add/rename feed dialog の folder assignment が分かりにくい
   - duplicate name、blank name fallback、selected folder missing、新規 folder 作成中の account switch を view/helper test にする
-
-- [ ] P2 query client global retry=false の transient failure UX を棚卸しする
-  - 対象: `src/lib/query/query-client.ts`, `src/hooks/use-account-sync-status.ts`, `src/hooks/use-articles.ts`
-  - 全 query の retry が false のため、一時的な DB busy/runtime unavailable が即 error 表示になり、手動 retry 導線がない view では stale/empty に見えやすい
-  - query group ごとに retryなし/1回 retry/manual retry の方針を分類し、DB busy と transient invoke failure の user-facing behavior を test にする
 
 - [ ] P2 preferences freeform string の key別 max length / control char policy を固定する
   - 対象: `src/schemas/preferences.ts`, `src-tauri/src/commands/preference_commands.rs`
@@ -244,11 +229,6 @@
   - 対象: `src/**/*.stories.tsx`, `src/dev/mock-data.ts`, `src/__tests__/components/storybook-explorer-organization.test.ts`
   - stories が hand-written DTO や partial props を直接渡すと、schema/contract 変更時に dev canvas だけ壊れても `mise run check` で見逃されやすい
   - story fixtures を schema-derived fixture helper に寄せるか、story render smoke で DTO parse を通す方針を決める
-
-- [ ] P2 i18n key placeholder / missing key contract を namespace 単位で固定する
-  - 対象: `src/locales/*/*.json`, `src/lib/i18n.ts`, `src/__tests__/schemas`
-  - 翻訳 key は増えているが、補間 placeholder の不一致や片言語だけ missing key があると、runtime まで気づけない UI regression になりやすい
-  - 全 locale namespace の key 差分、placeholder 名差分、unused key を検出する lint/test を追加し、意図的な locale-only key の例外リストを作る
 
 - [ ] P2 command palette action が account switch 後 stale resource を実行しないようにする
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/hooks/command-palette`, `src/stores/ui-store.ts`
@@ -369,11 +349,6 @@
   - 対象: `scripts/tauri-dev-vite-manager.ts`, `src/__tests__/scripts/tauri-dev-vite-manager.test.ts`
   - port owner 判定が command line の Vite 文字列中心なので、同じ port を使う別 repo の Vite を停止してしまう可能性がある
   - cwd/project root/package name を判定に含めるか user confirmation に逃がし、same repo / other repo / unknown command line の test を追加する
-
-- [ ] P3 UI store toast timer を store lifecycle / test isolation として整理する
-  - 対象: `src/stores/ui-store.ts`, `src/__tests__/stores/ui-store.test.ts`
-  - module-level `toastTimer` は store reset や test isolation と別 lifecycle なので、テスト間や HMR 中に古い timer が新しい toast を消す可能性がある
-  - store reset helper で timer を clear するか、timer id を store state に寄せるか決める
 
 - [ ] P3 rAF focus helper の unavailable / throwing fallback を共通化する
   - 対象: `src/components/reader/hooks/*`, `src/components/settings/hooks/account-detail/account-detail-editor-focus.ts`, `src/lib/reader-focus.ts`
@@ -509,11 +484,6 @@
   - 対象: `src/components/app-shell.tsx`
   - settings modal preload が failure を console に出すだけだと、chunk outage や asset path 破損時に hover/focus のたびに同じ preload が失敗し続け、原因が diagnostics に残りにくい
   - preload failure cache、manual retry、reload action、production/dev logging の behavior を app shell test にする
-
-- [ ] P2 app action event dispatch の CustomEvent detail schema を listener 側と照合する
-  - 対象: `src/lib/actions.ts`, `src/hooks/use-keyboard.ts`, `src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-navigation.ts`
-  - central action dispatcher は DOM event 名と detail を手書きで流すため、listener 側の expected detail とズレると menu/keyboard 経由だけが壊れる
-  - action id、event name、detail shape、listener guard の一覧 contract test を追加し、unknown detail は diagnostics に残す
 
 - [ ] P3 command history warning once cache を test/runtime reset できるようにする
   - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`
@@ -870,11 +840,6 @@
   - React Doctor の `design-no-redundant-size-axes` が `w-4 h-4` を検出しており、Tailwind v3.4+ なら `size-4` に寄せられる
   - production component を先に直し、Storybook は visual diff 影響がない範囲で同じ表記へ揃える
 
-- [ ] P3 locale contract test の deep property access を hoist する
-  - 対象: `src/__tests__/lib/i18next-locale-contract.test.ts`
-  - React Doctor の `js-cache-property-access` が loop 内の `settings.reading.in_app_browser` repeated read を検出している
-  - test readability を落とさず、該当 locale / setting branch の fixture 名を保ったまま const hoist へ寄せる
-
 - [ ] P3 React Compiler 未導入状態の採用判断メモを作る
   - 対象: `CLAUDE.md`, `.claude/rules/*`, `TODO.md`, `vite.config.ts`
   - React Doctor は React 19.2.6 を検出している一方で React Compiler は未検出なので、今後の memoization / effect cleanup の判断基準が compiler 有無で揺れやすい
@@ -885,11 +850,6 @@
   - React Doctor の `js-combine-iterations` が production schema の同一行を重複検出しており、key/value normalization が増えるほど parse 時の中間配列が増えやすい
   - schema strictness を変えず、unknown key、blank value、duplicate storage entry、malformed persisted value の contract test を維持して single-pass 化する
 
-- [ ] P2 repo-contracts test の file list scan を index 化する
-  - 対象: `src/__tests__/config/repo-contracts.test.ts`
-  - React Doctor が `js-combine-iterations`、`js-tosorted-immutable`、`js-set-map-lookups`、`js-index-maps` を同一巨大 test に多数検出しており、repo ファイル数増加に比例して gate が重くなる
-  - `rg --files` 結果を拡張子、dirname、basename、import target の Map/Set に分け、各 assertion が同じ全件走査を繰り返さないようにする
-
 - [ ] P2 dev mocks の repeated array chain を fixture builder 単位で整理する
   - 対象: `src/dev/mocks.ts`, `src/__tests__/dev/dev-mock-data.test.ts`
   - React Doctor の `js-combine-iterations` が dev mocks に集中しており、mock dataset 追加のたびに Storybook/dev scenario 起動コストが増えやすい
@@ -899,11 +859,6 @@
   - 対象: `tests/helpers/tauri-command-contract.ts`, `src/__tests__/api/tauri-commands.test.ts`, `src/__tests__/api/browser-webview-command-contract.test.ts`
   - React Doctor が `array.includes()` in loop と `[...array].sort()` を helper/test に検出しており、command 数が増えるほど contract test が遅くなる
   - command name Set、sorted snapshot helper、missing/extra command diagnostics、browser/native command parity を崩さず整理する
-
-- [ ] P2 locale placeholder contract の repeated includes を Set 化する
-  - 対象: `src/__tests__/lib/locale-placeholders.test.ts`, `src/__tests__/lib/i18next-locale-contract.test.ts`
-  - React Doctor が locale test に `js-set-map-lookups`、`js-tosorted-immutable`、`js-cache-property-access` を検出しており、locale追加時の gate コストと error message が悪化しやすい
-  - locale key Set、placeholder Set、sorted diagnostics、nested settings access hoist を入れ、missing placeholder の表示品質を維持する
 
 - [ ] P2 Storybook explorer organization test の sort / filter chain を helper 化する
   - 対象: `src/__tests__/components/storybook-explorer-organization.test.ts`, `e2e/storybook/storybook-index-payload.ts`
@@ -924,11 +879,6 @@
   - 対象: `src/__tests__/components/add-account-services.test.ts`, `src/components/settings/add-account/services.ts`, `src/components/settings/add-account/services.types.ts`
   - React Doctor の `js-combine-iterations` が add-account service test に出ており、service option の filter/map が実装と test で重複している可能性がある
   - supported service、disabled service、provider label、config schema availability の test helper を service source of truth から組み立てる
-
-- [ ] P2 ui-store の SyncProgressUiState unused type を store API として残すか決める
-  - 対象: `src/stores/ui-store.ts`, `src/components/app-shell.tsx`, `src/hooks/use-account-sync-statuses.ts`
-  - React Doctor / Knip が `SyncProgressUiState` を unused type として検出しており、sync progress 表示の public state なのか過去実装の残骸なのか曖昧になっている
-  - store selector、sync progress toast、account sync status hook の参照を確認し、不要なら削除、必要なら public state contract test へ明示する
 
 - [ ] P2 tauri-commands API surface の unused type / export を command schema と突き合わせる
   - 対象: `src/api/tauri-commands.ts`, `src/api/schemas/index.ts`, `src/__tests__/api/tauri-commands.test.ts`
@@ -1070,11 +1020,6 @@
   - React Doctor の `.toSorted()` warning 29 件の大半は test-only なので、runtime target 確認後に production 変更と分けて一括処理できる
   - test helper bulk rewrite、Node 24 support、snapshot order stability、readability regression の review checklist を用意する
 
-- [ ] P2 i18n test setup の unused export を Vitest lifecycle contract として整理する
-  - 対象: `tests/helpers/i18n-setup.ts`, `src/__tests__/lib/i18next-locale-contract.test.ts`, `src/__tests__/lib/locale-placeholders.test.ts`
-  - React Doctor / Knip が `resetTestI18nState` を unused export として検出しており、test isolation に必要な helper なのか過去の cleanup 残骸なのか曖昧になっている
-  - global setup、per-test reset、locale change side effect、parallel test 実行の状態漏れを確認し、不要なら削除、必要なら import して contract test に明示する
-
 - [ ] P2 fixtures helper の unused export を reader/settings/API fixture に分割する
   - 対象: `tests/helpers/fixtures.ts`, `src/__tests__/components/article-view.test.tsx`, `src/__tests__/api/tauri-commands.test.ts`
   - React Doctor / Knip が fixtures helper の unused export を検出しており、巨大 fixture file に reader/settings/API 用 helper が混在して死んだ export を見分けにくい
@@ -1104,11 +1049,6 @@
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
   - React Doctor / Knip が seed script の unused export と async parallel warning を検出しており、CLI 実行用関数と unit test 用 helper が同じ surface に出ている
   - CLI main、pure transform、DB adapter、test fixture helper を分離し、export は test が使う pure helper に限定する
-
-- [ ] P2 tauri-types test helper の unused type を generated command fixtures と照合する
-  - 対象: `tests/helpers/tauri-types.ts`, `tests/helpers/tauri-command-contract.ts`, `src/__tests__/api/tauri-commands.test.ts`
-  - React Doctor / Knip が Tauri test helper type を unused として検出しており、generated command schema と手書き test type が二重管理になっている可能性がある
-  - generated schema-derived type に寄せるもの、mock-only type として残すもの、削除する legacy type を分類する
 
 - [ ] P2 article-display helper の unused type を sanitized article view contract と揃える
   - 対象: `src/lib/articles/article-display.ts`, `src/lib/articles/article-view.ts`, `src/components/reader/article-content-view.tsx`
@@ -1245,11 +1185,6 @@
   - backend DTO は `z.record(string,string)` + `superRefine`、domain schema は known key / shortcut / passthrough を持っており、unknown key や retired key の扱いが二重管理になりやすい
   - blank key、reserved `shortcut_` prefix、retired backend key、max key length、UTF-8 byte limit、unknown passthrough の contract を揃える
 
-- [ ] P2 test setup storage shim の descriptor restore contract を全 storage test と揃える
-  - 対象: `tests/setup.ts`, `src/__tests__/helpers/test-setup-storage.test.ts`, `src/__tests__/lib/startup-sync-storage.test.ts`
-  - global/window の `localStorage` / `sessionStorage` descriptor を test setup で差し替えるため、他 test の spy や getter throw が restore されないと後続 test が壊れやすい
-  - descriptor restore、getter throw、working localStorage + broken sessionStorage、parallel test isolation の helper policy を明文化する
-
 - [ ] P2 `ts-expect-error` を negative contract test と legacy escape に分類する
   - 対象: `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.test.tsx`, `src/__tests__/components/*surface*.test.tsx`, `src/__tests__/components/settings-nav-view.test.tsx`
   - `ts-expect-error` が runtime boundary fixture と design surface negative test に混在しており、型改善後に残った不要 suppression を見逃しやすい
@@ -1294,11 +1229,6 @@
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/components/settings/account-detail/*`
   - OPML export は object URL を作って timer で revoke するため、account switch、modal close、二重 export、download cancel で stale URL や premature revoke が起きやすい
   - previous URL revoke、unmount revoke、rapid export、filename sanitize、download click failure の hook test を追加する
-
-- [ ] P2 app/window event listener tests を bindWindowEvents helper coverage に寄せる
-  - 対象: `src/__tests__/lib/actions.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`, `src/__tests__/hooks/use-browser-overlay-shortcuts.test.tsx`, `src/lib/window/window-events.ts`
-  - window.add/removeEventListener の手書き test が多く、capture/options/cleanup failure の contract が各 test でばらつきやすい
-  - bind helper、event detail factory、cleanup assertion、duplicate listener防止、throwing target の shared test を作る
 
 - [ ] P3 requestAnimationFrame / setTimeout flush helper を UI tests で共通化する
   - 対象: `src/__tests__/components/article-view.test.tsx`, `src/__tests__/components/sidebar.test.tsx`, `src/__tests__/hooks/use-updater.test.ts`, `src/__tests__/hooks/use-app-icon-theme.test.tsx`
@@ -1440,20 +1370,10 @@
   - 多くの command args が `z.string()` のままなので、空白だけの account/feed/article/tag id が frontend schema を通り、Rust 側の missing target policy へ遅れて到達しやすい
   - accountId/feedId/articleId/tagId/folderId の shared schema、trim/no-trim 方針、legacy id 互換、blank id error category の schema test を追加する
 
-- [ ] P2 `createQuery` の rejected queryFn と `enabled` 前提崩れを diagnostics 化する
-  - 対象: `src/hooks/create-query.ts`, generated query users
-  - query id が null の時は `enabled` で止める前提だが、TanStack Query の呼び出し順や future refactor で queryFn が走ると rejected promise だけが error boundary に見える
-  - queryFn guard の return policy、blank id telemetry、generated hookごとの enabled condition、test-only forced queryFn の unit test を追加する
-
 - [ ] P2 query key object segment の stable serialization contract を固定する
   - 対象: `src/lib/query/query-invalidation.ts`, `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`
   - reader mode を `{ mode }` object segment として query key に入れているため、hashing は安定しても partial invalidation、snapshot、manual key比較で array/string segment と扱いが揺れやすい
   - object segment を続ける/tuple literalへ寄せる判断、partial match、invalidate root、devtools display、query key snapshot test を追加する
-
-- [ ] P2 log-only invalidation の failure aggregation を feature diagnostics へ接続する
-  - 対象: `src/lib/query/query-invalidation.ts`, `src/hooks/create-mutation.ts`, `src/components/app-shell.tsx`
-  - invalidation failure は console warn だけなので、mutation は成功したが UI が stale のままになるケースを user/support が検出しにくい
-  - strict/log-only分類、queryKey redaction、toast有無、debug HUD/diagnostics counter、sync completed invalidation failure の test を追加する
 
 - [ ] P2 dev/runtime error console policy を user-visible diagnostics と揃える
   - 対象: `src/dev/intent.ts`, `src/App.tsx`, `src/stores/platform-store.ts`, `src/hooks/use-app-icon-theme.ts`, `src/hooks/use-badge.ts`
@@ -1494,11 +1414,6 @@
   - 対象: `src/components/reader/hooks/browser/use-browser-debug-geometry-events.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/components/reader/hooks/browser/use-browser-webview-load-timeout.ts`, `src/components/reader/hooks/browser/use-browser-overlay-shortcuts.ts`
   - 複数 hook が window event / timer / browserUrl current guard / cleanup を似た形で実装しており、cleanup failure や stale URL check が片側だけ抜けやすい
   - 既存 `useBrowserUrlEffect` を拡張するか small helper を追加し、URL change、unmount、cleanup throw、DEV-only event dispatch の hook test をまとめる
-
-- [ ] P2 similarity 90.98%: global window listener hooks を bindWindowEvents contract へ寄せ切る
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/hooks/use-mouse-navigation.ts`, `src/hooks/use-updater.ts`, `src/components/reader/hooks/sidebar/use-sidebar-account-selection.ts`
-  - 類似ペアが多く、window event registration / cleanup / stale callback のパターンが散っているため、1 箇所だけ cleanup throw や defaultPrevented handling が違う状態になりやすい
-  - bindWindowEvents の allowed patterns、capture option、listener factory、cleanup error diagnostics を repo contract と focused tests へ追加する
 
 - [ ] P2 similarity 90.27%: autofocus と auto-mark-read timer は共通化せず timer guard pattern だけ明文化する
   - 対象: `src/components/reader/use-tag-dialog-autofocus.ts`, `src/components/reader/hooks/article/use-article-auto-mark.ts`
