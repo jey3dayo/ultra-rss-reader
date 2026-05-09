@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { buildViteSpawnSpec, classifyPortOwnerCommandLine } from "../../../scripts/tauri-dev-vite-manager.ts";
+import { describe, expect, it, vi } from "vitest";
+import {
+  buildViteSpawnSpec,
+  classifyPortOwnerCommandLine,
+  resolveTauriDevPort,
+  runTauriDevViteManager,
+} from "../../../scripts/tauri-dev-vite-manager.ts";
 
 describe("classifyPortOwnerCommandLine", () => {
   it("treats pnpm exec vite as restartable", () => {
@@ -35,5 +40,78 @@ describe("buildViteSpawnSpec", () => {
     expect(spawnSpec.args).toHaveLength(6);
     expect(spawnSpec.args[0]).toMatch(/node_modules[\\/]+vite[\\/]+bin[\\/]+vite\.js$/);
     expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1420", "--strictPort"]);
+  });
+
+  it("uses the same explicit port that the manager checks before launch", () => {
+    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts", 1432);
+
+    expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1432", "--strictPort"]);
+  });
+});
+
+describe("resolveTauriDevPort", () => {
+  it("uses the default port when TAURI_DEV_PORT is not set", () => {
+    expect(resolveTauriDevPort({})).toBe(1420);
+  });
+
+  it.each(["", "  ", "1420.5", "0", "-1", "not-a-port"])("rejects invalid TAURI_DEV_PORT=%j", (value) => {
+    expect(() => resolveTauriDevPort({ TAURI_DEV_PORT: value })).toThrow("TAURI_DEV_PORT");
+  });
+
+  it("accepts positive integer TAURI_DEV_PORT values", () => {
+    expect(resolveTauriDevPort({ TAURI_DEV_PORT: "1432" })).toBe(1432);
+  });
+});
+
+describe("runTauriDevViteManager", () => {
+  it("does not stop an existing Vite process in check mode", async () => {
+    const stopProcessImpl = vi.fn();
+    const waitForPortToBeFreeImpl = vi.fn();
+    const spawnImpl = vi.fn();
+
+    await runTauriDevViteManager({
+      args: ["--check"],
+      env: { TAURI_DEV_PORT: "1432" },
+      getListeningProcessImpl: vi.fn(async (port) => ({
+        pid: 123,
+        commandLine: `node ./node_modules/vite/bin/vite.js --port ${port}`,
+      })),
+      stopProcessImpl,
+      waitForPortToBeFreeImpl,
+      spawnImpl,
+      log: vi.fn(),
+    });
+
+    expect(stopProcessImpl).not.toHaveBeenCalled();
+    expect(waitForPortToBeFreeImpl).not.toHaveBeenCalled();
+    expect(spawnImpl).not.toHaveBeenCalled();
+  });
+
+  it("uses the resolved TAURI_DEV_PORT for listener checks and Vite launch", async () => {
+    const checkedPorts: number[] = [];
+    const spawnImpl = vi.fn(() => ({
+      killed: false,
+      kill: vi.fn(() => true),
+      on: vi.fn(),
+    }));
+
+    await runTauriDevViteManager({
+      args: [],
+      env: { TAURI_DEV_PORT: "1432" },
+      getListeningProcessImpl: vi.fn(async (port) => {
+        checkedPorts.push(port);
+        return null;
+      }),
+      spawnImpl,
+      log: vi.fn(),
+      scriptUrl: "file:///C:/repo/scripts/tauri-dev-vite-manager.ts",
+    });
+
+    expect(checkedPorts).toEqual([1432]);
+    expect(spawnImpl).toHaveBeenCalledWith(
+      process.execPath,
+      expect.arrayContaining(["--port", "1432"]),
+      expect.objectContaining({ stdio: "inherit" }),
+    );
   });
 });

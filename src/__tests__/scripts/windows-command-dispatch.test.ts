@@ -34,12 +34,17 @@ describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
       pickWindowsEnvOverrides({
         DEV_CREDENTIALS: "1",
         RUST_LOG: "info",
+        TAURI_DEV_PORT: "1420",
+        TAURI_SIGNING_PRIVATE_KEY: "secret-key",
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "secret-password",
+        VITE_API_TOKEN: "secret-token",
         PATH: "/usr/bin",
         HOME: "/home/dev",
       }),
     ).toEqual({
       DEV_CREDENTIALS: "1",
       RUST_LOG: "info",
+      TAURI_DEV_PORT: "1420",
     });
   });
 });
@@ -77,5 +82,27 @@ describe("buildWslWindowsCommandSpawnSpec", () => {
     expect(powerShellScript).toContain("Set-Location -LiteralPath 'C:\\repo'");
     expect(powerShellScript).toContain("& 'cargo' 'clippy' '--manifest-path' 'src-tauri/Cargo.toml'");
     expect(powerShellScript).toContain("$env:RUST_LOG = 'info'");
+  });
+
+  it("quotes Windows cwd, command args, and env overrides in the dry-run PowerShell payload", () => {
+    const spawnSpec = buildWslWindowsCommandSpawnSpec(
+      "pnpm",
+      ["exec", "tauri", "dev", "--", "O'Neil"],
+      "C:\\repo dir",
+      {
+        DEV_CREDENTIALS: "windows user",
+        VITE_DEV_INTENT: "open-subscriptions-index",
+        RUST_LOG: "debug'level",
+      },
+    );
+
+    const encodedCommand = spawnSpec.args[1].split(" -EncodedCommand ")[1];
+    const powerShellScript = Buffer.from(encodedCommand, "base64").toString("utf16le");
+
+    expect(powerShellScript).toContain("Set-Location -LiteralPath 'C:\\repo dir'");
+    expect(powerShellScript).toContain("$env:DEV_CREDENTIALS = 'windows user'");
+    expect(powerShellScript).toContain("$env:VITE_DEV_INTENT = 'open-subscriptions-index'");
+    expect(powerShellScript).toContain("$env:RUST_LOG = 'debug''level'");
+    expect(powerShellScript).toContain("& 'pnpm' 'exec' 'tauri' 'dev' '--' 'O''Neil'");
   });
 });
