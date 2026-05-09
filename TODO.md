@@ -297,6 +297,11 @@
   - menu label の i18n と frontend shortcut 表示は別レイヤーなので、まずは action id と emitted event の contract test を優先する
   - native menu の checked state と UI preference state の同期は挙動影響があるため、型・テスト整理とは分ける
 
+- [ ] P1 Rust DB repository test 候補を別バッチで追加する
+  - sqlite account / feed / folder / article / tag / sync state repository の境界値を、migration 適用済み DB fixture で固定する
+  - WAL / SHM や app data path の運用検証とは分け、repository method の入出力契約に限定する
+  - 既存 integration test が広い場合は、repository ごとの小さい fixture helper を先に作る
+
 - [ ] P1 updater / release readiness 検証候補を別バッチで見直す
   - `.github/workflows/release.yml`、`src-tauri/tauri.conf.json`、`updater_commands.rs` の updater 設定・署名・fallback を確認する
   - local test で固定できる設定検証と、実 release artifact が必要な検証を分ける
