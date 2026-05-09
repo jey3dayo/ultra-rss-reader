@@ -22,6 +22,13 @@ export type ServiceDescriptionKey =
   | "account.feedbin_hold_desc"
   | "account.feedly_hold_desc";
 
+export type ServicePresentation = {
+  icon: ComponentType<{ className?: string }>;
+  iconBg: string;
+  name: string;
+  description: string;
+};
+
 type ServiceDefinitionBase = {
   icon: ComponentType<{ className?: string }>;
   iconBg: string;

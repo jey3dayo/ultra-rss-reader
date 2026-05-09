@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useSidebarUiActions } from "@/components/reader/hooks/sidebar/use-sidebar-ui-actions";
+import type { UpdateFeedFolderArgs } from "@/hooks/use-update-feed-folder";
 import type { PreferenceWritableKey } from "@/schemas/preferences";
 import type {
   SidebarSetSelectedAccountPreference,
@@ -7,12 +8,7 @@ import type {
   SidebarUiActionsResult,
 } from "./use-sidebar-ui-actions";
 
-type SidebarUpdateFeedFolderArgs = {
-  feedId: string;
-  folderId: string | null;
-};
-
-type SidebarUpdateFeedFolder = (variables: SidebarUpdateFeedFolderArgs) => Promise<unknown>;
+type SidebarUpdateFeedFolder = (variables: UpdateFeedFolderArgs) => Promise<unknown>;
 
 export type SidebarControllerActionsParams = Omit<SidebarUiActionsParams, "setSelectedAccountPreference"> & {
   setPref: <K extends PreferenceWritableKey>(key: K, value: string) => void;

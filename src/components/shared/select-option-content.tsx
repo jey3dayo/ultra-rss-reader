@@ -5,6 +5,21 @@ type SelectOptionContentProps = {
   options: readonly OptionWithLabel[];
 };
 
+type SelectValueChangeHandlerParams = {
+  disabled?: boolean;
+  onChange: (value: string) => void;
+};
+
+export function createSelectValueChangeHandler({ disabled, onChange }: SelectValueChangeHandlerParams) {
+  return (next: string | null) => {
+    if (disabled || next === null) {
+      return;
+    }
+
+    onChange(next);
+  };
+}
+
 export function SelectOptionValue({ options }: SelectOptionContentProps) {
   return <SelectValue>{(selectedValue: string | null) => getOptionLabelByValue(options, selectedValue)}</SelectValue>;
 }

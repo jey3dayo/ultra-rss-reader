@@ -2,8 +2,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
+import { createSelectValueChangeHandler } from "@/components/shared/select-option-content";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { createStackedSelectFieldChangeHandler, StackedSelectField } from "@/components/shared/stacked-select-field";
+import { StackedSelectField } from "@/components/shared/stacked-select-field";
 
 describe("stacked shared fields", () => {
   it("associates stacked input fields with their label", () => {
@@ -153,7 +154,7 @@ describe("stacked shared fields", () => {
 
   it("drops null stacked select values before calling change handlers", () => {
     const onChange = vi.fn();
-    const handleChange = createStackedSelectFieldChangeHandler({ disabled: false, onChange });
+    const handleChange = createSelectValueChangeHandler({ disabled: false, onChange });
 
     handleChange(null);
 
@@ -162,7 +163,7 @@ describe("stacked shared fields", () => {
 
   it("drops stacked select values before calling change handlers when disabled", () => {
     const onChange = vi.fn();
-    const handleChange = createStackedSelectFieldChangeHandler({ disabled: true, onChange });
+    const handleChange = createSelectValueChangeHandler({ disabled: true, onChange });
 
     handleChange("reader");
 

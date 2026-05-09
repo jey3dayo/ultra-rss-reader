@@ -18,3 +18,9 @@ export type FeedDialogControllerFolderSelectProps = {
   handleFolderChange: (value: string) => void;
   setNewFolderName: (value: string) => void;
 };
+
+export type FeedDialogFolderSelectionParams = {
+  selectedFolderId: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+};

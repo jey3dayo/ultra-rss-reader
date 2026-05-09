@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import type { FeedDialogFolderSelectionParams } from "../../feed-dialog-form.types";
 import { type FolderSelectOption, NEW_FOLDER_VALUE } from "../../folder-select-view";
 
 type FolderOptionSource = {
@@ -6,11 +7,7 @@ type FolderOptionSource = {
   name: string;
 };
 
-type FolderSelectionState = {
-  selectedFolderId: string | null;
-  newFolderName: string;
-  isCreatingFolder: boolean;
-};
+type FolderSelectionState = FeedDialogFolderSelectionParams;
 
 type FolderSelectionAction =
   | { type: "reset"; folderId: string | null }

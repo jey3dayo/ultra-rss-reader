@@ -5,8 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { createLabeledSelectRowChangeHandler, LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import { createSelectValueChangeHandler } from "@/components/shared/select-option-content";
 
 describe("shared form controls", () => {
   it("renders form action buttons with loading and disabled states", async () => {
@@ -467,8 +468,8 @@ describe("shared form controls", () => {
 
   it("drops disabled and null labeled select values before calling change handlers", () => {
     const onChange = vi.fn();
-    const enabledHandleChange = createLabeledSelectRowChangeHandler({ disabled: false, onChange });
-    const disabledHandleChange = createLabeledSelectRowChangeHandler({ disabled: true, onChange });
+    const enabledHandleChange = createSelectValueChangeHandler({ disabled: false, onChange });
+    const disabledHandleChange = createSelectValueChangeHandler({ disabled: true, onChange });
 
     enabledHandleChange(null);
     disabledHandleChange("standard");

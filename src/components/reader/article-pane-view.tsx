@@ -21,7 +21,7 @@ export type ArticlePaneProps = {
   feedName?: string;
 };
 
-type ArticlePaneToolbarState = {
+export type ArticlePaneToolbarState = {
   article: ArticleDto | null;
   isBrowserOpen: boolean;
   onCloseView: () => void;

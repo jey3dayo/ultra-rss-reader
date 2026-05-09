@@ -1,19 +1,13 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
 import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
-import type { AccountDetailAccount } from "../../account-detail/types";
+import type { AccountDetailEditorContext } from "../../account-detail/types";
 import { scheduleAccountDetailInputFocus } from "./account-detail-editor-focus";
 
-type AccountDetailNameEditorParams = {
-  account: AccountDetailAccount;
-  queryClient: QueryClient;
-  t: TFunction<"settings">;
-};
+type AccountDetailNameEditorParams = AccountDetailEditorContext;
 
 export type AccountDetailNameEditorResult = {
   editingName: boolean;

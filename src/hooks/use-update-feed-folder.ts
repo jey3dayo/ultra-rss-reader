@@ -6,7 +6,7 @@ import { updateFeedFolder } from "@/api/tauri-commands";
 import { invalidateFeedQueries, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
-type UpdateFeedFolderArgs = {
+export type UpdateFeedFolderArgs = {
   feedId: string;
   folderId: string | null;
 };

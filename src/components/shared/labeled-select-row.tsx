@@ -1,6 +1,10 @@
 import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
+import {
+  createSelectValueChangeHandler,
+  SelectOptionItems,
+  SelectOptionValue,
+} from "@/components/shared/select-option-content";
 import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
@@ -17,21 +21,6 @@ type LabeledSelectRowProps = {
   triggerClassName?: string;
 };
 
-type LabeledSelectRowChangeHandlerParams = {
-  disabled?: boolean;
-  onChange: (value: string) => void;
-};
-
-export function createLabeledSelectRowChangeHandler({ disabled, onChange }: LabeledSelectRowChangeHandlerParams) {
-  return (next: string | null) => {
-    if (disabled || next === null) {
-      return;
-    }
-
-    onChange(next);
-  };
-}
-
 export function LabeledSelectRow({
   label,
   name,
@@ -44,7 +33,7 @@ export function LabeledSelectRow({
   triggerClassName,
 }: LabeledSelectRowProps) {
   const labelId = useId();
-  const handleValueChange = createLabeledSelectRowChangeHandler({ disabled, onChange });
+  const handleValueChange = createSelectValueChangeHandler({ disabled, onChange });
 
   return (
     <LabeledControlRow label={label} labelId={labelId} className={rowClassName}>

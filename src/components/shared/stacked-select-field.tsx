@@ -1,5 +1,9 @@
 import { useId } from "react";
-import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
+import {
+  createSelectValueChangeHandler,
+  SelectOptionItems,
+  SelectOptionValue,
+} from "@/components/shared/select-option-content";
 import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
@@ -17,21 +21,6 @@ type StackedSelectFieldProps = {
   triggerClassName?: string;
 };
 
-type StackedSelectFieldChangeHandlerParams = {
-  disabled?: boolean;
-  onChange: (value: string) => void;
-};
-
-export function createStackedSelectFieldChangeHandler({ disabled, onChange }: StackedSelectFieldChangeHandlerParams) {
-  return (next: string | null) => {
-    if (disabled || next === null) {
-      return;
-    }
-
-    onChange(next);
-  };
-}
-
 export function StackedSelectField({
   labelId,
   label,
@@ -46,7 +35,7 @@ export function StackedSelectField({
 }: StackedSelectFieldProps) {
   const generatedLabelId = useId();
   const resolvedLabelId = labelId ?? generatedLabelId;
-  const handleValueChange = createStackedSelectFieldChangeHandler({ disabled, onChange });
+  const handleValueChange = createSelectValueChangeHandler({ disabled, onChange });
 
   return (
     <div className={cn("block text-sm text-foreground-soft", className)}>

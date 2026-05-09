@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { DiscoveredFeedDto, FolderDto } from "@/api/tauri-commands";
-import type { FeedDialogControllerFolderSelectProps } from "./feed-dialog-form.types";
+import type { FeedDialogControllerFolderSelectProps, FeedDialogFolderSelectionParams } from "./feed-dialog-form.types";
 
 type AddFeedDialogSuccessMessage = "feed_url_ready" | "feed_detected";
 
@@ -64,11 +64,7 @@ export type AddFeedDialogControllerDerived = {
   discoveredFeedOptions: DiscoveredFeedOption[];
 };
 
-export type AddFeedDialogFolderSelectionParams = {
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
-};
+export type AddFeedDialogFolderSelectionParams = FeedDialogFolderSelectionParams;
 
 export type DiscoveredFeedOption = {
   value: string;

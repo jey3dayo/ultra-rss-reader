@@ -8,15 +8,8 @@ import { useArticleViewUiState } from "@/components/reader/hooks/article/use-art
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import type { ArticlePaneProps } from "../../article-pane-view";
+import type { ArticlePaneProps, ArticlePaneToolbarState } from "../../article-pane-view";
 import type { BrowserOverlayToolbarAction } from "../../browser-view.types";
-
-type ArticlePaneToolbarState = {
-  article: ArticlePaneProps["article"] | null;
-  isBrowserOpen: boolean;
-  onCloseView: () => void;
-  onToggleBrowserOverlay: () => void;
-};
 
 type ArticlePaneBrowserOverlayState = {
   onCloseOverlay: () => void;

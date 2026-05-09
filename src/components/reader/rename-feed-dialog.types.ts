@@ -2,7 +2,11 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/articles/article-display";
-import type { FeedDialogControllerFolderSelectProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
+import type {
+  FeedDialogControllerFolderSelectProps,
+  FeedDialogFolderSelectionParams,
+  FeedDialogSelectOption,
+} from "./feed-dialog-form.types";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
 
@@ -10,11 +14,7 @@ type FeedEditErrorLike = {
   message: string;
 };
 
-type FeedEditFolderSelectionParams = {
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
-};
+type FeedEditFolderSelectionParams = FeedDialogFolderSelectionParams;
 
 export type SubmitFeedEditsParams = {
   feed: FeedDto;

@@ -1,20 +1,14 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
 import { type RefObject, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
-import type { AccountDetailAccount } from "../../account-detail/types";
+import type { AccountDetailEditorContext } from "../../account-detail/types";
 import { focusFirstAccountDetailInput } from "./account-detail-editor-focus";
 
-type AccountDetailCredentialsEditorParams = {
-  account: AccountDetailAccount;
-  queryClient: QueryClient;
-  t: TFunction<"settings">;
-};
+type AccountDetailCredentialsEditorParams = AccountDetailEditorContext;
 
 export type AccountDetailCredentialsEditorResult = {
   credServerUrl: string | null;

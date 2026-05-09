@@ -1,25 +1,17 @@
 import { ChevronRight } from "lucide-react";
-import type { ComponentType } from "react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
-import type { ServiceKind } from "./services.types";
-
-type ServicePickerServiceBase = {
-  icon: ComponentType<{ className?: string }>;
-  iconBg: string;
-  name: string;
-  description: string;
-};
+import type { ServiceKind, ServicePresentation } from "./services.types";
 
 export type ServicePickerService =
-  | (ServicePickerServiceBase & {
+  | (ServicePresentation & {
       kind: AddAccountProviderKind;
       disabled?: false;
       disabledLabel?: never;
     })
-  | (ServicePickerServiceBase & {
+  | (ServicePresentation & {
       kind: Exclude<ServiceKind, AddAccountProviderKind>;
       disabled: true;
       disabledLabel?: string;
