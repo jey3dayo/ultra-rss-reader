@@ -33,6 +33,20 @@ describe("command-palette-history", () => {
     expect(parseCommandPaletteHistoryEntry("action:removed-action")).toBeNull();
   });
 
+  it("rejects blank resource ids and trims padded resource ids", () => {
+    expect(parseCommandPaletteHistoryEntry("feed:   ")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("tag:\n")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("article:\t ")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("feed: feed-1 ")).toEqual({
+      kind: "feed",
+      id: "feed-1",
+    });
+    expect(parseCommandPaletteHistoryEntry("tag:\ntag-1\t")).toEqual({
+      kind: "tag",
+      id: "tag-1",
+    });
+  });
+
   it("formats history values from structured entries", () => {
     expect(createCommandPaletteHistoryValue({ kind: "action", id: "open-settings" })).toBe("action:open-settings");
     expect(createCommandPaletteHistoryValue({ kind: "feed", id: "feed-1" })).toBe("feed:feed-1");
