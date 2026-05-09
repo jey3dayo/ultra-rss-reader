@@ -41,7 +41,9 @@ describe("useBrowserWebviewCleanup", () => {
       type: "UserVisible",
       message: "close failed",
     };
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     closeBrowserWebviewMock.mockResolvedValue(Result.fail(closeError));
 
     const { unmount } = renderHook(() => {
@@ -52,13 +54,53 @@ describe("useBrowserWebviewCleanup", () => {
     await Promise.resolve();
 
     expect(closeBrowserWebviewMock).toHaveBeenCalledTimes(1);
-    expect(consoleError).toHaveBeenCalledWith("Failed to close embedded browser webview:", closeError);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to close embedded browser webview (native-close-failed):",
+      closeError,
+    );
   });
 
-  it("logs rejected close command promises during unmount cleanup", async () => {
-    const closeError = new Error("close rejected");
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    closeBrowserWebviewMock.mockRejectedValue(closeError);
+  it.each([
+    [
+      "beforeunload-blocked",
+      new Error("close rejected by beforeunload handler"),
+    ],
+    [
+      "page-script-failed",
+      new Error("close rejected after page script failure"),
+    ],
+    ["native-close-failed", new Error("close rejected")],
+  ])(
+    "logs %s rejected close command promises during unmount cleanup",
+    async (category, closeError) => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      closeBrowserWebviewMock.mockRejectedValue(closeError);
+
+      const { unmount } = renderHook(() => {
+        useBrowserWebviewCleanup();
+      });
+
+      unmount();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(closeBrowserWebviewMock).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith(
+        `Failed to close embedded browser webview (${category}):`,
+        closeError,
+      );
+    },
+  );
+
+  it("logs already-closed cleanup as informational drift", async () => {
+    const closeError: AppError = {
+      type: "UserVisible",
+      message: "Embedded browser webview is not open",
+    };
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => {});
+    closeBrowserWebviewMock.mockResolvedValue(Result.fail(closeError));
 
     const { unmount } = renderHook(() => {
       useBrowserWebviewCleanup();
@@ -66,9 +108,11 @@ describe("useBrowserWebviewCleanup", () => {
 
     unmount();
     await Promise.resolve();
-    await Promise.resolve();
 
     expect(closeBrowserWebviewMock).toHaveBeenCalledTimes(1);
-    expect(consoleError).toHaveBeenCalledWith("Failed to close embedded browser webview:", closeError);
+    expect(consoleInfo).toHaveBeenCalledWith(
+      "Embedded browser webview was already closed during cleanup:",
+      closeError,
+    );
   });
 });

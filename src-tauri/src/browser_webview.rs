@@ -627,6 +627,9 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
   let mouseNavigationInFlight = false;
   const isEditableTarget = (target) => {{
     if (!(target instanceof Element)) return false;
+    if (target.closest('[data-disable-global-shortcuts="true"]')) {{
+      return true;
+    }}
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
       return true;
     }}
@@ -711,7 +714,13 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     event.stopPropagation();
   }}, true);
   window.addEventListener('mouseup', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target) || mouseNavigationInFlight) {{
+    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (mouseNavigationInFlight) {{
       return;
     }}
 
@@ -720,8 +729,6 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
       return;
     }}
 
-    event.preventDefault();
-    event.stopPropagation();
     mouseNavigationInFlight = true;
 
     if (event.button === 3) {{
@@ -774,6 +781,9 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
   const bindings = {bindings_json};
   const isEditableTarget = (target) => {{
     if (!(target instanceof Element)) return false;
+    if (target.closest('[data-disable-global-shortcuts="true"]')) {{
+      return true;
+    }}
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
       return true;
     }}
@@ -1998,6 +2008,8 @@ mod tests {
         assert!(script.contains("window.innerHeight * 0.8"));
         assert!(script.contains("event.button === 3"));
         assert!(script.contains("event.button !== 4"));
+        assert!(script.contains("data-disable-global-shortcuts=\"true\""));
+        assert!(script.contains("if (mouseNavigationInFlight)"));
     }
 
     #[test]
@@ -2081,6 +2093,7 @@ mod tests {
         assert!(script.contains("JSON.stringify({ action, url: window.location.href })"));
         assert!(script.contains("window.addEventListener('keydown'"));
         assert!(script.contains("window.addEventListener('mouseup'"));
+        assert!(script.contains("data-disable-global-shortcuts=\"true\""));
     }
 
     #[test]

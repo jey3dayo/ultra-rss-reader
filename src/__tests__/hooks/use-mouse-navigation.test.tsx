@@ -34,6 +34,7 @@ function MouseNavigationHarness() {
           <span>Disabled region</span>
         </button>
       </div>
+      <div data-testid="layer-host" />
     </div>
   );
 }
@@ -44,6 +45,16 @@ describe("useMouseNavigation", () => {
     emitDebugInputTraceMock.mockReset();
   });
 
+  function expectSideButtonNavigationBlocked() {
+    fireEvent.mouseDown(window, { button: 3 });
+    fireEvent.mouseUp(window, { button: 3 });
+    fireEvent.mouseDown(window, { button: 4 });
+    fireEvent.mouseUp(window, { button: 4 });
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
+  }
+
   it("dispatches mouse-back for button 3", () => {
     render(<MouseNavigationHarness />);
 
@@ -51,7 +62,9 @@ describe("useMouseNavigation", () => {
     fireEvent.mouseUp(window, { button: 3 });
 
     expect(executeActionMock).toHaveBeenCalledWith("mouse-back");
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("window-mouse 3 -> mouse-back");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith(
+      "window-mouse 3 -> mouse-back",
+    );
   });
 
   it("dispatches mouse-forward for button 4", () => {
@@ -61,7 +74,9 @@ describe("useMouseNavigation", () => {
     fireEvent.mouseUp(window, { button: 4 });
 
     expect(executeActionMock).toHaveBeenCalledWith("mouse-forward");
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("window-mouse 4 -> mouse-forward");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith(
+      "window-mouse 4 -> mouse-forward",
+    );
   });
 
   it("captures mouse side-button down events without dispatching actions", () => {
@@ -99,7 +114,9 @@ describe("useMouseNavigation", () => {
     expect(stopPropagationSpy).toHaveBeenCalledOnce();
     expect(event.defaultPrevented).toBe(true);
     expect(executeActionMock).toHaveBeenCalledWith("mouse-forward");
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("window-mouse 4 -> mouse-forward");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith(
+      "window-mouse 4 -> mouse-forward",
+    );
   });
 
   it("captures side-button mousedown, prevents browser handling, and dispatches no action", () => {
@@ -141,7 +158,9 @@ describe("useMouseNavigation", () => {
     expect(stopPropagation).toHaveBeenCalled();
     expect(bubbleListener).not.toHaveBeenCalled();
     expect(executeActionMock).toHaveBeenCalledWith("mouse-forward");
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("window-mouse 4 -> mouse-forward");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith(
+      "window-mouse 4 -> mouse-forward",
+    );
   });
 
   it("ignores side buttons on editable inputs", () => {
@@ -184,24 +203,27 @@ describe("useMouseNavigation", () => {
     expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
   });
 
-  it.each(["textbox", "searchbox"] as const)("ignores side buttons on %s role descendants", (role) => {
-    render(<MouseNavigationHarness />);
-    const target = document.createElement("span");
-    const wrapper = document.createElement("div");
-    wrapper.setAttribute("role", role);
-    wrapper.append(target);
-    document.body.append(wrapper);
+  it.each(["textbox", "searchbox"] as const)(
+    "ignores side buttons on %s role descendants",
+    (role) => {
+      render(<MouseNavigationHarness />);
+      const target = document.createElement("span");
+      const wrapper = document.createElement("div");
+      wrapper.setAttribute("role", role);
+      wrapper.append(target);
+      document.body.append(wrapper);
 
-    fireEvent.mouseDown(target, { button: 3 });
-    fireEvent.mouseUp(target, { button: 3 });
-    fireEvent.mouseDown(target, { button: 4 });
-    fireEvent.mouseUp(target, { button: 4 });
+      fireEvent.mouseDown(target, { button: 3 });
+      fireEvent.mouseUp(target, { button: 3 });
+      fireEvent.mouseDown(target, { button: 4 });
+      fireEvent.mouseUp(target, { button: 4 });
 
-    expect(executeActionMock).not.toHaveBeenCalled();
-    expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
+      expect(executeActionMock).not.toHaveBeenCalled();
+      expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
 
-    wrapper.remove();
-  });
+      wrapper.remove();
+    },
+  );
 
   it("ignores side buttons from data-disabled shortcut descendants", () => {
     render(<MouseNavigationHarness />);
@@ -215,6 +237,26 @@ describe("useMouseNavigation", () => {
     expect(executeActionMock).not.toHaveBeenCalled();
     expect(emitDebugInputTraceMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["settings modal", '<div role="dialog" aria-label="Settings"></div>'],
+    ["confirm dialog overlay", '<div data-slot="dialog-overlay"></div>'],
+    ["command palette modal", '<div aria-modal="true"></div>'],
+    ["context menu", '<div role="menu"></div>'],
+    [
+      "browser overlay",
+      '<div data-browser-overlay-root class="pointer-events-auto"><div data-testid="browser-overlay-shell"></div></div>',
+    ],
+  ])(
+    "ignores side buttons while the %s owns the foreground layer",
+    (_label, markup) => {
+      render(<MouseNavigationHarness />);
+      const layerHost = screen.getByTestId("layer-host");
+      layerHost.innerHTML = markup;
+
+      expectSideButtonNavigationBlocked();
+    },
+  );
 
   it("ignores primary mouse buttons and already handled side buttons", () => {
     render(<MouseNavigationHarness />);

@@ -6,12 +6,22 @@ import type { UnreadBadgePreference } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-function unreadCountToBadgeCount(count: number | undefined): number | undefined {
-  return count !== undefined && Number.isFinite(count) && count > 0 ? count : undefined;
+function unreadCountToBadgeCount(
+  count: number | undefined,
+): number | undefined {
+  return count !== undefined && Number.isFinite(count) && count > 0
+    ? count
+    : undefined;
 }
 
-function resolveUnreadBadgePreference(value: string | undefined): UnreadBadgePreference {
-  if (value === "all_unread" || value === "only_inbox" || value === "dont_display") {
+function resolveUnreadBadgePreference(
+  value: string | undefined,
+): UnreadBadgePreference {
+  if (
+    value === "all_unread" ||
+    value === "only_inbox" ||
+    value === "dont_display"
+  ) {
     return value;
   }
 
@@ -37,7 +47,8 @@ function resolveBadgeCount({
     return unreadCountToBadgeCount(accountUnreadCount);
   }
 
-  const totalUnread = feeds?.reduce((sum, feed) => sum + feed.unread_count, 0) ?? 0;
+  const totalUnread =
+    feeds?.reduce((sum, feed) => sum + feed.unread_count, 0) ?? 0;
   return unreadCountToBadgeCount(totalUnread);
 }
 
@@ -66,7 +77,9 @@ export function useBadge() {
   const latestBadgeCountRef = useRef<number | undefined>(undefined);
   const mountedRef = useRef(true);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
+  const badgePref = usePreferencesStore((s) =>
+    resolveUnreadBadgePreference(s.prefs.unread_badge),
+  );
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
   const { data: feeds } = useFeeds(feedAccountId);
   const { data: accountUnreadCount } = useAccountUnreadCount(
@@ -94,19 +107,31 @@ export function useBadge() {
     badgeRequestSeqRef.current += 1;
     const requestSeq = badgeRequestSeqRef.current;
     latestBadgeCountRef.current = badgeCount;
-    const shouldApplyRequest = (seq: number) => mountedRef.current && badgeRequestSeqRef.current === seq;
+    const shouldApplyRequest = (seq: number) =>
+      mountedRef.current && badgeRequestSeqRef.current === seq;
+
+    const replayLatestBadgeRequest = async (
+      appliedRequestSeq: number,
+    ): Promise<void> => {
+      if (
+        !mountedRef.current ||
+        appliedRequestSeq === badgeRequestSeqRef.current
+      ) {
+        return;
+      }
+
+      const latestRequestSeq = badgeRequestSeqRef.current;
+      await applyBadgeCountCommand(latestBadgeCountRef.current, () =>
+        shouldApplyRequest(latestRequestSeq),
+      );
+      await replayLatestBadgeRequest(latestRequestSeq);
+    };
 
     void (async () => {
-      await applyBadgeCountCommand(badgeCount, () => shouldApplyRequest(requestSeq));
-
-      let appliedRequestSeq = requestSeq;
-      while (mountedRef.current && appliedRequestSeq !== badgeRequestSeqRef.current) {
-        const latestRequestSeq = badgeRequestSeqRef.current;
-        const latestBadgeCount = latestBadgeCountRef.current;
-
-        await applyBadgeCountCommand(latestBadgeCount, () => shouldApplyRequest(latestRequestSeq));
-        appliedRequestSeq = latestRequestSeq;
-      }
+      await applyBadgeCountCommand(badgeCount, () =>
+        shouldApplyRequest(requestSeq),
+      );
+      await replayLatestBadgeRequest(requestSeq);
     })().catch((error: unknown) => {
       console.error("Failed to apply unread badge count:", error);
     });

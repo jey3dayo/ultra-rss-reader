@@ -9,7 +9,7 @@ type BrowserUrlScope = {
 };
 type BrowserUrlEffect = (scope: BrowserUrlScope) => BrowserUrlCleanup;
 
-export function isCurrentBrowserUrl(browserUrl: string) {
+function isCurrentBrowserUrl(browserUrl: string) {
   return useUiStore.getState().browserUrl === browserUrl;
 }
 
@@ -34,7 +34,10 @@ export function useBrowserUrlEffect(
 ) {
   const runEffect = useEffectEvent(effect);
 
-  useEffect(() => createBrowserUrlEffectCallback(browserUrl, runEffect), [browserUrl, ...dependencies]);
+  useEffect(
+    () => createBrowserUrlEffectCallback(browserUrl, runEffect),
+    [browserUrl, ...dependencies],
+  );
 }
 
 export function useBrowserUrlLayoutEffect(
@@ -44,5 +47,8 @@ export function useBrowserUrlLayoutEffect(
 ) {
   const runEffect = useEffectEvent(effect);
 
-  useLayoutEffect(() => createBrowserUrlEffectCallback(browserUrl, runEffect), [browserUrl, ...dependencies]);
+  useLayoutEffect(
+    () => createBrowserUrlEffectCallback(browserUrl, runEffect),
+    [browserUrl, ...dependencies],
+  );
 }
