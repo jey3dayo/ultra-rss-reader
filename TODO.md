@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P3 TODO priority taxonomy を CLAUDE.md / TODO.md で同期する
-  - 対象: `CLAUDE.md`, `TODO.md`
-  - TODO が大量化しているため、P1/P2/P3 の意味が agent ごとに揺れると、重要度の低い cleanup とデータ破壊系リスクが同じ扱いになりやすい
-  - P1 は data loss/security/stale destructive action、P2 は runtime boundary/contract drift、P3 は observability/polish のように短い分類を明記する
-
 - [ ] P2 React Doctor の unused type / unused export を機械削除できる単位へ分ける
   - 対象: `src/stores/ui-store.ts`, `src/api/tauri-commands.ts`, `src/constants/*`, `src/components/**`, `tests/helpers/*`
   - unused type 67 件、unused export 58 件が出ており、公開 contract と dead surface が混ざると型配置整理や import 移動のたびに判断コストが増える
@@ -44,11 +39,6 @@
   - 対象: `src/components/settings/shared/settings-content-layout.tsx`, `src/components/settings/**`
   - React Doctor は `useContext` を React 19 の `use()` 移行候補として検出しているが、現時点で全体方針がないまま局所移行すると style が揺れる
   - React 19 API adoption policy、compiler有無、library compatibility、context read test を整理し、移行するなら settings shared から小さく始める
-
-- [ ] P3 React Doctor の `.toSorted()` / combine-iterations 指摘を test/dev と production で分けて処理する
-  - 対象: `src/__tests__/**`, `tests/helpers/**`, `src/dev/**`, `src/lib/**`
-  - `.toSorted()` 29 件、combine iterations 59 件は test/dev noise と production hot path が混在しており、一括置換すると Node/WebView target や readability を崩しやすい
-  - runtime target、polyfill不要性、production-only優先、test helper bulk rewrite の順でバッチ化する
 
 - [ ] P2 React Doctor unused type を settings view contract 単位で整理する
   - 対象: `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/actions-settings-view.tsx`, `src/components/settings/mute-settings-view.tsx`, `src/components/settings/settings-preference.types.ts`, `src/components/settings/add-account/services.types.ts`
@@ -70,29 +60,10 @@
   - sequential await warning 25 件は order-dependent contract test と独立処理の performance issue が混在している
   - order が必要な test は理由を明示し、独立 command / fixture setup は `Promise.all` / `Promise.allSettled` 化して flake と実行時間を下げる
 
-- [ ] P3 React Compiler 未導入状態の採用判断メモを作る
-  - 対象: `CLAUDE.md`, `.claude/rules/*`, `TODO.md`, `vite.config.ts`
-  - React Doctor は React 19.2.6 を検出している一方で React Compiler は未検出なので、今後の memoization / effect cleanup の判断基準が compiler 有無で揺れやすい
-  - すぐ導入するかではなく、compiler adoption preflight、unsupported pattern scan、performance gate、opt-in/opt-out 方針を task 化する
-
-- [ ] P2 article-view test の repeated extraction を reader fixture helper へ寄せる
-  - 対象: `src/__tests__/components/article-view.test.tsx`, `src/__tests__/lib/article-list.test.ts`, `tests/helpers/fixtures.ts`
-  - React Doctor の `js-combine-iterations` が article view/list test に出ており、article fixture から group/item を抽出する処理が散っている可能性がある
-  - selected article、empty group、read/unread/starred、tag filtered list の helper を共有し、test readability と assertion diagnostics を維持する
 - [ ] P2 e2e app sequential await を test isolation と並列化可否で分類する
   - 対象: `e2e/app.spec.ts`, `src/__tests__/dev/scenario-runtime.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
   - React Doctor の `server-sequential-independent-await` が e2e と hook test に出ており、独立 setup を直列実行していると Playwright / Vitest の待ち時間が増える
   - browser state 共有、fixture isolation、user event ordering、screenshot timing に依存しない await だけ並列化する
-
-- [ ] P3 `.toSorted()` 移行前に Node / WebView target の ES2023 support を明文化する
-  - 対象: `tsconfig.json`, `vite.config.ts`, `src-tauri/tauri.conf.json`, `CLAUDE.md`
-  - React Doctor は `.toSorted()` を推奨するが、test Node、Vite build target、Tauri WebView の support 前提を固定しないまま置換すると runtime 差が出る
-  - production code、test-only code、dev script の target を分け、必要なら `.toSorted()` は test/dev から先に適用する
-
-- [ ] P3 React Doctor warning category の suppression policy を rule 化する
-  - 対象: `CLAUDE.md`, `.claude/rules/*`, `TODO.md`
-  - `no-prevent-default` のように Tauri app では意図的な warning と、mutation invalidation のような実バグ候補が同じ TODO に積まれると優先度がぼやける
-  - suppress / false-positive / accepted-risk / must-fix の分類、コメントを書く場所、再スキャン時の更新手順を決める
 
 - [ ] P2 sidebar test の async loop を user-event ordering と fixture setup に分離する
   - 対象: `src/__tests__/components/sidebar.test.tsx`, `src/components/reader/sidebar-view.tsx`
