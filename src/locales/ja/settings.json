@@ -144,7 +144,8 @@
     "update_success": "ミュートキーワードを更新しました",
     "update_failed": "ミュートキーワードの更新に失敗しました: {{message}}",
     "delete_success": "ミュートキーワードを削除しました",
-    "delete_failed": "ミュートキーワードの削除に失敗しました: {{message}}"
+    "delete_failed": "ミュートキーワードの削除に失敗しました: {{message}}",
+    "deleted_resource_noop": "このミュートキーワードはすでに削除されています。"
   },
   "tags": {
     "heading": "タグ",
@@ -164,7 +165,8 @@
     "rename_success": "タグを更新しました",
     "rename_failed": "タグの更新に失敗しました: {{message}}",
     "delete_success": "タグを削除しました",
-    "delete_failed": "タグの削除に失敗しました: {{message}}"
+    "delete_failed": "タグの削除に失敗しました: {{message}}",
+    "deleted_resource_noop": "このタグはすでに削除されています。"
   },
   "shortcuts": {
     "heading": "ショートカット",
@@ -286,6 +288,7 @@
     "failed_to_update_sync": "同期設定の更新に失敗しました: {{message}}",
     "failed_to_export_opml": "OPMLのエクスポートに失敗しました: {{message}}",
     "failed_to_delete": "アカウントの削除に失敗しました: {{message}}",
+    "deleted_resource_noop": "このアカウントはすでに削除されています。",
     "category_local": "ローカル",
     "category_self_hosted": "セルフホスト",
     "category_services": "サービス",

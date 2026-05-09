@@ -193,7 +193,13 @@
     "feed_landing_failed": "Failed to open feed \"{{feedId}}\": {{message}}",
     "feed_landing_missing_account": "No account is selected.",
     "feed_landing_feed_not_found": "Feed not found.",
+    "feed_landing_deleted_feed_noop": "This feed was already removed.",
     "dev_scenario_failed": "Failed to run dev scenario \"{{scenarioId}}\": {{message}}"
+  },
+  "deleted_resource_noop": {
+    "article": "This article was already removed.",
+    "feed": "This feed was already removed.",
+    "tag": "This tag was already removed."
   },
   "shortcuts_help": {
     "title": "Keyboard shortcuts",

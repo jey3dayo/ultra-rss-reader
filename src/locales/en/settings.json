@@ -144,7 +144,8 @@
     "update_success": "Mute keyword updated",
     "update_failed": "Failed to update mute keyword: {{message}}",
     "delete_success": "Mute keyword deleted",
-    "delete_failed": "Failed to delete mute keyword: {{message}}"
+    "delete_failed": "Failed to delete mute keyword: {{message}}",
+    "deleted_resource_noop": "This mute keyword was already removed."
   },
   "tags": {
     "heading": "Tags",
@@ -164,7 +165,8 @@
     "rename_success": "Tag updated",
     "rename_failed": "Failed to update tag: {{message}}",
     "delete_success": "Tag deleted",
-    "delete_failed": "Failed to delete tag: {{message}}"
+    "delete_failed": "Failed to delete tag: {{message}}",
+    "deleted_resource_noop": "This tag was already removed."
   },
   "shortcuts": {
     "heading": "Shortcuts",
@@ -286,6 +288,7 @@
     "failed_to_update_sync": "Failed to update sync settings: {{message}}",
     "failed_to_export_opml": "Failed to export OPML: {{message}}",
     "failed_to_delete": "Failed to delete account: {{message}}",
+    "deleted_resource_noop": "This account was already removed.",
     "category_local": "Local",
     "category_self_hosted": "Self-Hosted",
     "category_services": "Services",

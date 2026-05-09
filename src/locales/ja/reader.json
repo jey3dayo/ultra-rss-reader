@@ -193,7 +193,13 @@
     "feed_landing_failed": "フィード \"{{feedId}}\" を開けませんでした: {{message}}",
     "feed_landing_missing_account": "アカウントが選択されていません。",
     "feed_landing_feed_not_found": "フィードが見つかりません。",
+    "feed_landing_deleted_feed_noop": "このフィードはすでに削除されています。",
     "dev_scenario_failed": "開発シナリオ \"{{scenarioId}}\" の実行に失敗しました: {{message}}"
+  },
+  "deleted_resource_noop": {
+    "article": "この記事はすでに削除されています。",
+    "feed": "このフィードはすでに削除されています。",
+    "tag": "このタグはすでに削除されています。"
   },
   "shortcuts_help": {
     "title": "キーボードショートカット",
