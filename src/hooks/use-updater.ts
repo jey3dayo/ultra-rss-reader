@@ -1,17 +1,22 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
-import { UpdateDownloadProgressEventPayloadSchema } from "@/api/schemas/update-info";
+import {
+  UpdateDownloadProgressEventPayloadSchema,
+  UpdateReadyEventPayloadSchema,
+  type UpdateInfoDto,
+} from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
-type UpdateInfo = { version: string; body: string | null };
+type UpdateInfo = UpdateInfoDto;
 
 /** Share a single in-flight update check across startup and manual triggers. */
 let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
 let downloadInFlight = false;
+let activeDownloadSessionId: number | null = null;
 
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
@@ -78,6 +83,7 @@ function startDownload(): void {
   }
 
   downloadInFlight = true;
+  activeDownloadSessionId = null;
   const store = useUiStore.getState();
   store.showToast({
     message: i18n.t("updater.downloading_percent", { percent: 0 }),
@@ -93,12 +99,14 @@ function startDownload(): void {
         Result.inspectError((e) => {
           showUpdateFailureToast(e.message);
           downloadInFlight = false;
+          activeDownloadSessionId = null;
         }),
       ),
     )
     .catch((error: unknown) => {
       showUpdateFailureToast(getErrorMessage(error));
       downloadInFlight = false;
+      activeDownloadSessionId = null;
     });
 }
 
@@ -120,7 +128,33 @@ function readDownloadProgressPercent(payload: unknown): number | null | undefine
     return undefined;
   }
 
+  if (!downloadInFlight) {
+    return undefined;
+  }
+
+  if (activeDownloadSessionId === null) {
+    activeDownloadSessionId = result.data.session_id;
+  }
+
+  if (result.data.session_id !== activeDownloadSessionId) {
+    return undefined;
+  }
+
   return normalizeDownloadProgressPercent(result.data.percent);
+}
+
+function isCurrentDownloadReady(payload: unknown): boolean {
+  const result = UpdateReadyEventPayloadSchema.safeParse(payload);
+  if (!result.success || !downloadInFlight) {
+    return false;
+  }
+
+  if (activeDownloadSessionId !== null && result.data.session_id !== activeDownloadSessionId) {
+    return false;
+  }
+
+  activeDownloadSessionId = result.data.session_id;
+  return true;
 }
 
 function restartPreparedUpdate(): void {
@@ -274,8 +308,12 @@ export function useUpdater(): void {
             variant: "update",
           });
         }),
-        listen("update-ready", () => {
+        listen("update-ready", (event) => {
+          if (!isCurrentDownloadReady(event.payload)) {
+            return;
+          }
           downloadInFlight = false;
+          activeDownloadSessionId = null;
           showRestartToast();
         }),
       ],

@@ -18,7 +18,23 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: mockListen,
 }));
 
-type UpdateInfo = { version: string; body: string | null } | null;
+type UpdateInfo = {
+  version: string;
+  body: string | null;
+  channel: "stable";
+  prerelease: false;
+  source: string;
+} | null;
+
+function updateInfo(version: string): NonNullable<UpdateInfo> {
+  return {
+    version,
+    body: null,
+    channel: "stable",
+    prerelease: false,
+    source: "github-latest-json",
+  };
+}
 
 async function getUiStore() {
   const { useUiStore } = await import("@/stores/ui-store");
@@ -73,12 +89,12 @@ describe("performUpdateCheck", () => {
 
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
 
-    deferred.resolve(Result.succeed({ version: "1.2.3", body: null }));
+    deferred.resolve(Result.succeed(updateInfo("1.2.3")));
 
     const [firstResult, secondResult] = await Promise.all([firstCheck, secondCheck]);
 
-    expect(firstResult).toEqual({ version: "1.2.3", body: null });
-    expect(secondResult).toEqual({ version: "1.2.3", body: null });
+    expect(firstResult).toEqual(updateInfo("1.2.3"));
+    expect(secondResult).toEqual(updateInfo("1.2.3"));
   });
 
   it("shares a single in-flight update check between startup and manual triggers", async () => {
@@ -96,7 +112,7 @@ describe("performUpdateCheck", () => {
 
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
 
-    deferred.resolve(Result.succeed({ version: "1.2.3", body: null }));
+    deferred.resolve(Result.succeed(updateInfo("1.2.3")));
     await manualCheck;
 
     expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
@@ -184,7 +200,7 @@ describe("performUpdateCheck", () => {
     mockDownloadAndInstallUpdate
       .mockRejectedValueOnce(new Error("download command rejected"))
       .mockResolvedValueOnce(Result.fail(testUserVisibleAppError("network down")));
-    mockCheckForUpdate.mockResolvedValue(Result.succeed({ version: "1.2.4", body: null }));
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(updateInfo("1.2.4")));
 
     const {
       updaterModule: { showUpdateAvailableToast },
@@ -332,7 +348,7 @@ describe("performUpdateCheck", () => {
     const { unmount } = renderHook(() => useUpdater());
     unmount();
 
-    deferred.resolve(Result.succeed({ version: "1.2.3", body: null }));
+    deferred.resolve(Result.succeed(updateInfo("1.2.3")));
     await flushAsyncWork();
 
     expect(showToast).not.toHaveBeenCalled();
@@ -429,7 +445,7 @@ describe("performUpdateCheck", () => {
 
   it("re-checks updates from the fallback toast instead of auto-retrying the download", async () => {
     mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError("network down")));
-    mockCheckForUpdate.mockResolvedValue(Result.succeed({ version: "1.2.4", body: null }));
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(updateInfo("1.2.4")));
 
     const {
       updaterModule: { showUpdateAvailableToast },

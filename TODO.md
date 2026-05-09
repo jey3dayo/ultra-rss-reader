@@ -120,16 +120,6 @@
   - feed item の article URL は open/copy/browser preview に流れるため、`https://user:pass@host`、fragment token、control char をどこで落とすか未固定だと privacy と UI 表示が揺れる
   - normalizer、ArticleDtoSchema、open/copy action のどこで sanitize するか決め、credential-in-URL と invalid URL の fixture を追加する
 
-- [ ] P2 Windows Rust test scope が integration_test だけになっている理由を固定する
-  - 対象: `mise.toml`, `.github/workflows/ci.yml`
-  - Windows の `test:rust` が `--test integration_test` のみに絞られており、unit tests が Windows 固有の path/keyring/OS 差を拾わない可能性がある
-  - 絞り込み理由を明文化するか、Windows で走らせる safe Rust unit subset を作り、path/keyring/browser geometry 周辺だけでも gate へ入れる
-
-- [ ] P2 actionlint の shellcheck 無効化を補う workflow shell gate を追加する
-  - 対象: `mise.toml`, `.github/workflows/*.yml`
-  - `actionlint -shellcheck=` で shellcheck integration を切っているため、workflow 内 shell script の引用や未定義変数の問題を拾いにくい
-  - shellcheck を導入するか、workflow script を外部 script 化して lint するか決め、CI shell の最小 gate を追加する
-
 - [ ] P3 schema_version を single-row contract に寄せる
   - 対象: `src-tauri/migrations/*.sql`, `src-tauri/src/infra/db/migration.rs`
   - 古い migration は `INSERT`、近い migration は `DELETE FROM schema_version` + insert で、helper は single row 前提のため、新規 migration 追加時に履歴/現行値の扱いが揺れやすい
@@ -144,11 +134,6 @@
   - 対象: `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`
   - 元の toolbar button 等を記憶していても、選択 article row があれば先にそこへ focus するため、キーボード操作では「閉じたら元の操作ボタンへ戻る」期待とズレやすい
   - open-in-browser button から overlay open/close した時の focus return test を追加し、article row 優先か previous target 優先かを明文化する
-
-- [ ] P3 CI cache restore-key による stale dependency 復元リスクを検証する
-  - 対象: `.github/workflows/ci.yml`, `.github/workflows/release.yml`
-  - pnpm store cache に restore-key があるため、lockfile 変更時も古い cache が復元される。通常は安全でも corrupted store や package manager mismatch 時の切り分けが難しい
-  - cache miss/hit、pnpm version mismatch、lockfile update 時の behavior を確認し、release job だけ restore-key を外すか運用手順に残す
 
 - [ ] P1 external opener に渡す article/feed URL の scheme policy を固定する
   - 対象: `src/components/reader/hooks/article/use-article-actions.ts`, `src/lib/actions.ts`, `src/api/tauri-commands.ts`

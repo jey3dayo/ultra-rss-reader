@@ -752,21 +752,72 @@ describe("DTO schemas", () => {
     ).toThrow();
   });
   it("parses valid UpdateInfoDto", () => {
-    expect(UpdateInfoDtoSchema.parse({ version: " 1.0.0 ", body: "Release notes" })).toEqual({
+    expect(
+      UpdateInfoDtoSchema.parse({
+        version: " 1.0.0 ",
+        body: "Release notes",
+        channel: "stable",
+        prerelease: false,
+        source: " github-latest-json ",
+      }),
+    ).toEqual({
       version: "1.0.0",
       body: "Release notes",
+      channel: "stable",
+      prerelease: false,
+      source: "github-latest-json",
     });
   });
   it("keeps UpdateInfoDto body null or empty for updater UI compatibility", () => {
-    expect(UpdateInfoDtoSchema.parse({ version: "1.0.0", body: null })).toEqual({ version: "1.0.0", body: null });
-    expect(UpdateInfoDtoSchema.parse({ version: "1.0.0", body: "" })).toEqual({
+    expect(
+      UpdateInfoDtoSchema.parse({
+        version: "1.0.0",
+        body: null,
+        channel: "stable",
+        prerelease: false,
+        source: "github-latest-json",
+      }),
+    ).toEqual({
+      version: "1.0.0",
+      body: null,
+      channel: "stable",
+      prerelease: false,
+      source: "github-latest-json",
+    });
+    expect(
+      UpdateInfoDtoSchema.parse({
+        version: "1.0.0",
+        body: "",
+        channel: "stable",
+        prerelease: false,
+        source: "github-latest-json",
+      }),
+    ).toEqual({
       version: "1.0.0",
       body: "",
+      channel: "stable",
+      prerelease: false,
+      source: "github-latest-json",
     });
   });
   it("rejects UpdateInfoDto with blank version", () => {
-    expect(() => UpdateInfoDtoSchema.parse({ version: "", body: null })).toThrow();
-    expect(() => UpdateInfoDtoSchema.parse({ version: "   ", body: null })).toThrow();
+    const stableUpdate = {
+      body: null,
+      channel: "stable",
+      prerelease: false,
+      source: "github-latest-json",
+    };
+    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "" })).toThrow();
+    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "   " })).toThrow();
+  });
+  it("rejects non-stable or prerelease UpdateInfoDto manifests", () => {
+    const stableUpdate = {
+      version: "1.0.0",
+      body: null,
+      source: "github-latest-json",
+    };
+    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, channel: "beta", prerelease: false })).toThrow();
+    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, channel: "stable", prerelease: true })).toThrow();
   });
   it("accepts finite updater progress event payloads and rejects malformed values", () => {
     expect(

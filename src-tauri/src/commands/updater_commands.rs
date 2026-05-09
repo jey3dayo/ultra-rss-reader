@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -8,32 +8,95 @@ use tokio::sync::Mutex;
 use tracing::warn;
 
 use super::dto::AppError;
+use super::AppState;
 
 static DOWNLOADING: AtomicBool = AtomicBool::new(false);
+static DOWNLOAD_SESSION_ID: AtomicU64 = AtomicU64::new(0);
+const UPDATE_CHANNEL_STABLE: &str = "stable";
+const UPDATE_SOURCE_LATEST_JSON: &str = "github-latest-json";
 
-/// Cached update handle from the last successful check.
-/// Stored in Tauri managed state so `download_and_install_update` can reuse it
-/// without a second network round-trip.
-pub struct PendingUpdate(pub Arc<Mutex<Option<Update>>>);
+pub(crate) struct PendingUpdateHandle {
+    update: Update,
+    version: String,
+    source: String,
+}
+
+/// Cached update handle from the last successful check. The version/source
+/// metadata is verified again before install so a stale handle cannot be used
+/// after a later check cleared or replaced the pending update.
+pub struct PendingUpdate(pub(crate) Arc<Mutex<Option<PendingUpdateHandle>>>);
 
 fn clear_pending_update<T>(pending: &mut Option<T>) {
     *pending = None;
 }
 
+struct DownloadGuard;
+
+impl DownloadGuard {
+    fn acquire() -> Result<Self, AppError> {
+        DOWNLOADING
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| Self)
+            .map_err(|_| AppError::UserVisible {
+                message: "Update download already in progress".to_string(),
+            })
+    }
+}
+
+impl Drop for DownloadGuard {
+    fn drop(&mut self) {
+        DOWNLOADING.store(false, Ordering::SeqCst);
+    }
+}
+
+fn next_download_session_id() -> u64 {
+    DOWNLOAD_SESSION_ID.fetch_add(1, Ordering::SeqCst) + 1
+}
+
+struct SyncInstallGuard<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl<'a> SyncInstallGuard<'a> {
+    fn acquire(syncing: &'a std::sync::atomic::AtomicBool) -> Result<Self, AppError> {
+        syncing
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| Self(syncing))
+            .map_err(|_| AppError::UserVisible {
+                message: "Sync or update install already in progress".to_string(),
+            })
+    }
+}
+
+impl Drop for SyncInstallGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
 #[tauri::command]
-pub fn restart_app(app: AppHandle) {
-    app.restart();
+pub fn restart_app(app: AppHandle) -> Result<(), AppError> {
+    let state = app.state::<AppState>();
+    let _guard = SyncInstallGuard::acquire(state.syncing.as_ref())?;
+    app.restart()
 }
 
 #[derive(Debug, Serialize)]
 pub struct UpdateInfo {
     pub version: String,
     pub body: Option<String>,
+    pub channel: String,
+    pub prerelease: bool,
+    pub source: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct DownloadProgress {
+    session_id: u64,
     percent: Option<u8>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct UpdateReady {
+    session_id: u64,
 }
 
 fn update_event_emit_warning(event: &str, error: &impl std::fmt::Display) -> String {
@@ -46,6 +109,103 @@ where
 {
     if let Err(error) = app.emit(event, payload) {
         warn!("{}", update_event_emit_warning(event, &error));
+    }
+}
+
+fn is_prerelease_version(version: &str) -> bool {
+    version
+        .split_once('-')
+        .is_some_and(|(_, pre)| !pre.is_empty())
+}
+
+fn semantic_version_parts(version: &str) -> Option<[u64; 3]> {
+    let core = version.split_once('-').map_or(version, |(core, _)| core);
+    let mut parts = core.split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    let patch = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some([major, minor, patch])
+}
+
+fn is_strictly_newer_version(candidate: &str, current: &str) -> bool {
+    match (
+        semantic_version_parts(candidate),
+        semantic_version_parts(current),
+    ) {
+        (Some(candidate_parts), Some(current_parts)) => candidate_parts > current_parts,
+        _ => candidate > current,
+    }
+}
+
+fn update_channel(update: &Update) -> String {
+    update
+        .raw_json
+        .get("channel")
+        .and_then(|value| value.as_str())
+        .unwrap_or(UPDATE_CHANNEL_STABLE)
+        .trim()
+        .to_string()
+}
+
+fn update_prerelease(update: &Update) -> bool {
+    update
+        .raw_json
+        .get("prerelease")
+        .and_then(|value| value.as_bool())
+        .unwrap_or_else(|| is_prerelease_version(&update.version))
+}
+
+fn update_source(update: &Update) -> String {
+    update
+        .raw_json
+        .get("source")
+        .and_then(|value| value.as_str())
+        .unwrap_or(UPDATE_SOURCE_LATEST_JSON)
+        .trim()
+        .to_string()
+}
+
+fn update_policy_error(update: &Update) -> Option<String> {
+    let channel = update_channel(update);
+    if channel != UPDATE_CHANNEL_STABLE {
+        return Some(format!("Unsupported update channel: {channel}"));
+    }
+
+    if update_prerelease(update) {
+        return Some(format!(
+            "Prerelease update is not allowed: {}",
+            update.version
+        ));
+    }
+
+    if !is_strictly_newer_version(&update.version, &update.current_version) {
+        return Some(format!(
+            "Downgrade or same-version update is not allowed: {} <= {}",
+            update.version, update.current_version
+        ));
+    }
+
+    None
+}
+
+fn make_update_info(update: &Update) -> UpdateInfo {
+    UpdateInfo {
+        version: update.version.clone(),
+        body: update.body.clone(),
+        channel: update_channel(update),
+        prerelease: update_prerelease(update),
+        source: update_source(update),
+    }
+}
+
+fn make_pending_update_handle(update: Update) -> PendingUpdateHandle {
+    PendingUpdateHandle {
+        version: update.version.clone(),
+        source: update_source(&update),
+        update,
     }
 }
 
@@ -62,36 +222,36 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
         message: format!("Failed to check for update: {e}"),
     })?;
 
-    let info = update.as_ref().map(|u| UpdateInfo {
-        version: u.version.clone(),
-        body: u.body.clone(),
-    });
+    let update = match update {
+        Some(update) => {
+            if let Some(message) = update_policy_error(&update) {
+                warn!("{message}");
+                None
+            } else {
+                Some(update)
+            }
+        }
+        None => None,
+    };
+
+    let info = update.as_ref().map(make_update_info);
 
     // Cache the update handle for download_and_install_update
-    *pending.0.lock().await = update;
+    *pending.0.lock().await = update.map(make_pending_update_handle);
 
     Ok(info)
 }
 
 #[tauri::command]
 pub async fn download_and_install_update(app: AppHandle) -> Result<(), AppError> {
-    if DOWNLOADING
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_err()
-    {
-        return Err(AppError::UserVisible {
-            message: "Update download already in progress".to_string(),
-        });
-    }
+    let _download_guard = DownloadGuard::acquire()?;
+    let state = app.state::<AppState>();
+    let _sync_guard = SyncInstallGuard::acquire(state.syncing.as_ref())?;
 
-    let result = do_download_and_install(&app).await;
-
-    DOWNLOADING.store(false, Ordering::SeqCst);
-
-    result
+    do_download_and_install(&app, next_download_session_id()).await
 }
 
-async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
+async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(), AppError> {
     // Take the cached update handle, falling back to a fresh check if empty
     let pending = app.state::<PendingUpdate>();
     let update = {
@@ -99,8 +259,8 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
         guard.take()
     };
 
-    let update = match update {
-        Some(u) => u,
+    let pending_update = match update {
+        Some(handle) => handle,
         None => {
             let updater = app.updater().map_err(|e| AppError::Retryable {
                 message: format!("Failed to initialize updater: {e}"),
@@ -113,9 +273,21 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
                 })?
                 .ok_or_else(|| AppError::UserVisible {
                     message: "No update available".to_string(),
-                })?
+                })
+                .map(make_pending_update_handle)?
         }
     };
+    let update = pending_update.update;
+
+    if pending_update.version != update.version || pending_update.source != update_source(&update) {
+        return Err(AppError::UserVisible {
+            message: "Pending update handle changed before install".to_string(),
+        });
+    }
+
+    if let Some(message) = update_policy_error(&update) {
+        return Err(AppError::UserVisible { message });
+    }
 
     let app_handle = app.clone();
     let mut total_downloaded: usize = 0;
@@ -133,7 +305,10 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
                 emit_update_event_log_only(
                     &app_handle,
                     "update-download-progress",
-                    DownloadProgress { percent },
+                    DownloadProgress {
+                        session_id,
+                        percent,
+                    },
                 );
             },
             || {},
@@ -146,14 +321,21 @@ async fn do_download_and_install(app: &AppHandle) -> Result<(), AppError> {
     // On Windows, download_and_install may restart the app immediately,
     // so this emit may never be reached. The frontend handles both cases:
     // if the app restarts, the user sees the update applied on next launch.
-    emit_update_event_log_only(app, "update-ready", ());
+    emit_update_event_log_only(app, "update-ready", UpdateReady { session_id });
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{clear_pending_update, update_event_emit_warning};
+    use std::panic;
+
+    use super::{
+        clear_pending_update, is_prerelease_version, is_strictly_newer_version,
+        next_download_session_id, update_event_emit_warning, DownloadGuard, DOWNLOADING,
+        DOWNLOAD_SESSION_ID,
+    };
+    use std::sync::atomic::Ordering;
 
     #[test]
     fn clear_pending_update_drops_stale_cached_update_before_runtime_check() {
@@ -172,5 +354,53 @@ mod tests {
             warning,
             "Failed to emit update-ready event during update flow: listener unavailable"
         );
+    }
+
+    #[test]
+    fn prerelease_version_detection_requires_non_empty_suffix() {
+        assert!(is_prerelease_version("1.2.3-beta.1"));
+        assert!(!is_prerelease_version("1.2.3"));
+        assert!(!is_prerelease_version("1.2.3-"));
+    }
+
+    #[test]
+    fn semantic_version_policy_rejects_same_version_and_downgrade() {
+        assert!(is_strictly_newer_version("1.10.0", "1.9.9"));
+        assert!(!is_strictly_newer_version("1.2.3", "1.2.3"));
+        assert!(!is_strictly_newer_version("1.2.2", "1.2.3"));
+    }
+
+    #[test]
+    fn download_guard_releases_flag_on_drop() {
+        DOWNLOADING.store(false, Ordering::SeqCst);
+
+        {
+            let _guard = DownloadGuard::acquire().expect("guard should acquire idle flag");
+            assert!(DOWNLOADING.load(Ordering::SeqCst));
+            assert!(DownloadGuard::acquire().is_err());
+        }
+
+        assert!(!DOWNLOADING.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn download_guard_releases_flag_after_panic_unwind() {
+        DOWNLOADING.store(false, Ordering::SeqCst);
+
+        let result = panic::catch_unwind(|| {
+            let _guard = DownloadGuard::acquire().expect("guard should acquire idle flag");
+            panic!("simulated panic while downloading");
+        });
+
+        assert!(result.is_err());
+        assert!(!DOWNLOADING.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn download_session_id_advances_per_download_attempt() {
+        DOWNLOAD_SESSION_ID.store(0, Ordering::SeqCst);
+
+        assert_eq!(next_download_session_id(), 1);
+        assert_eq!(next_download_session_id(), 2);
     }
 }
