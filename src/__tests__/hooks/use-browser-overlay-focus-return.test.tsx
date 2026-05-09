@@ -66,6 +66,40 @@ describe("useBrowserOverlayFocusReturn", () => {
     expect(document.activeElement).toBe(replacementButton);
   });
 
+  it("falls back to the previous return key when the selected article row is aria-disabled", () => {
+    const previousButton = document.createElement("button");
+    previousButton.dataset.browserOverlayReturnFocus = "toolbar-action";
+    document.body.append(previousButton);
+    previousButton.focus();
+
+    const selectedArticleButton = document.createElement("button");
+    selectedArticleButton.dataset.articleId = "article-1";
+    selectedArticleButton.setAttribute("aria-disabled", "true");
+    document.body.append(selectedArticleButton);
+
+    const { result, rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "article-1",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    act(() => {
+      result.current.rememberOverlayFocusReturnTarget();
+    });
+    previousButton.remove();
+
+    const replacementButton = document.createElement("button");
+    replacementButton.dataset.browserOverlayReturnFocus = "toolbar-action";
+    document.body.append(replacementButton);
+
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(replacementButton);
+  });
+
   it("falls back to the open-in-browser control when the remembered target disappeared", () => {
     const previousButton = document.createElement("button");
     previousButton.dataset.browserOverlayReturnFocus = "missing-action";

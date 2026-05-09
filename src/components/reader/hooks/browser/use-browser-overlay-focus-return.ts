@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
+import { isReaderFocusTargetDisabled } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 
 type UseBrowserOverlayFocusReturnParams = {
@@ -50,7 +51,7 @@ export function useBrowserOverlayFocusReturn({
     }
 
     const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
-    if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
+    if (!selectedArticleTarget || isReaderFocusTargetDisabled(selectedArticleTarget)) {
       return;
     }
 
@@ -88,7 +89,7 @@ export function useBrowserOverlayFocusReturn({
         }
 
         const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
-        if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
+        if (selectedArticleTarget && !isReaderFocusTargetDisabled(selectedArticleTarget)) {
           useUiStore.getState().setFocusedPane("list");
           selectedArticleTarget.focus({ preventScroll: true });
           return;
@@ -100,13 +101,13 @@ export function useBrowserOverlayFocusReturn({
             "data-browser-overlay-return-focus",
             previousTargetKey,
           );
-          if (nextTarget && !nextTarget.hasAttribute("disabled")) {
+          if (nextTarget && !isReaderFocusTargetDisabled(nextTarget)) {
             nextTarget.focus();
             return;
           }
         }
 
-        if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
+        if (previousTarget?.isConnected && !isReaderFocusTargetDisabled(previousTarget)) {
           previousTarget.focus();
           return;
         }
@@ -114,13 +115,13 @@ export function useBrowserOverlayFocusReturn({
         const openInBrowserTarget = document.querySelector<HTMLElement>(
           '[data-browser-overlay-return-focus="open-in-browser"]',
         );
-        if (openInBrowserTarget && !openInBrowserTarget.hasAttribute("disabled")) {
+        if (openInBrowserTarget && !isReaderFocusTargetDisabled(openInBrowserTarget)) {
           openInBrowserTarget.focus();
           return;
         }
 
         const fallbackTarget = document.querySelector<HTMLElement>("[data-article-list-root='true']");
-        if (fallbackTarget && !fallbackTarget.hasAttribute("disabled")) {
+        if (fallbackTarget && !isReaderFocusTargetDisabled(fallbackTarget)) {
           useUiStore.getState().setFocusedPane("list");
           fallbackTarget.focus({ preventScroll: true });
         }
