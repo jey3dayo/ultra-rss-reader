@@ -3,6 +3,7 @@ import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
 import {
   getPreferenceValueSchema,
   type HiddenPreferenceKey,
+  normalizePreferenceRecord,
   normalizePreferenceValue,
   type PreferenceDefaultsRecord,
   preferenceDefaults,
@@ -137,6 +138,27 @@ describe("preference contract", () => {
       expect(resolvePreferenceValue({ after_reading: stored }, "after_reading")).toBe(normalized);
       expect(afterReadingSchema?.safeParse(normalized).success).toBe(true);
     }
+  });
+
+  it("normalizes known, shortcut, and unknown preference values at the frontend boundary", () => {
+    expect(normalizePreferenceValue("theme", "dark")).toBe("dark");
+    expect(normalizePreferenceValue("theme", "sepia")).toBe("light");
+    expect(normalizePreferenceValue("debug_web_preview_url", "")).toBe("");
+    expect(normalizePreferenceValue("custom_backend_preference", "  preserved  ")).toBe("  preserved  ");
+    expect(normalizePreferenceValue("shortcut_next_article", " Shift+J ")).toBe("Shift+J");
+    expect(normalizePreferenceValue("shortcut_next_article", "   ")).toBe(preferenceDefaults.shortcut_next_article);
+
+    expect(
+      normalizePreferenceRecord({
+        theme: "sepia",
+        shortcut_next_article: " Shift+J ",
+        custom_backend_preference: "  preserved  ",
+      }),
+    ).toEqual({
+      theme: "light",
+      shortcut_next_article: "Shift+J",
+      custom_backend_preference: "  preserved  ",
+    });
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {

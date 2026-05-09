@@ -1325,6 +1325,27 @@ describe("command args schemas", () => {
       value: "acc-1",
     });
   });
+  it("validates known preference values while preserving backend-only and unknown passthrough keys", () => {
+    expect(setPreferenceArgs.parse({ key: "theme", value: "dark" })).toEqual({
+      key: "theme",
+      value: "dark",
+    });
+    expect(setPreferenceArgs.parse({ key: "debug_web_preview_url", value: "" })).toEqual({
+      key: "debug_web_preview_url",
+      value: "",
+    });
+    expect(setPreferenceArgs.parse({ key: "selected_account_id", value: "" })).toEqual({
+      key: "selected_account_id",
+      value: "",
+    });
+    expect(setPreferenceArgs.parse({ key: "custom_backend_preference", value: "preserved" })).toEqual({
+      key: "custom_backend_preference",
+      value: "preserved",
+    });
+
+    expect(() => setPreferenceArgs.parse({ key: "theme", value: "sepia" })).toThrow();
+    expect(() => setPreferenceArgs.parse({ key: "sync_on_startup", value: "yes" })).toThrow();
+  });
   it("rejects non-displayable shortcut preference values", () => {
     expect(() => setPreferenceArgs.parse({ key: "shortcut_next_article", value: "k\n" })).toThrow();
     expect(() =>
@@ -1341,6 +1362,8 @@ describe("command args schemas", () => {
     ).toThrow();
   });
   it("keeps preference value max length aligned to the backend UTF-8 byte limit", () => {
+    const maxUtf8Value = `${"あ".repeat(341)}a`;
+
     expect(
       setPreferenceArgs.parse({
         key: "debug_web_preview_url",
@@ -1349,6 +1372,16 @@ describe("command args schemas", () => {
     ).toEqual({
       key: "debug_web_preview_url",
       value: "a".repeat(1024),
+    });
+    expect(new TextEncoder().encode(maxUtf8Value).length).toBe(1024);
+    expect(
+      setPreferenceArgs.parse({
+        key: "debug_web_preview_url",
+        value: maxUtf8Value,
+      }),
+    ).toEqual({
+      key: "debug_web_preview_url",
+      value: maxUtf8Value,
     });
     expect(() =>
       setPreferenceArgs.parse({
