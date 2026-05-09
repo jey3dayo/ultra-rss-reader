@@ -222,6 +222,33 @@ describe("article tag mutations", () => {
     });
   });
 
+  it("keeps tag creation successful when post-success invalidation fails", async () => {
+    const invalidationError = new Error("tag cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    vi.spyOn(tauriCommands, "createTag").mockResolvedValue(
+      Result.succeed({
+        id: "tag-new",
+        name: "Review",
+        color: null,
+      }),
+    );
+
+    const { result } = renderHook(() => useCreateTag(), { wrapper });
+
+    await expect(result.current.mutateAsync({ name: "Review" })).resolves.toEqual({
+      id: "tag-new",
+      name: "Review",
+      color: null,
+    });
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        queryKey: ["tags"],
+        error: invalidationError,
+      });
+    });
+  });
+
   it("invalidates article tag assignment caches after assigning a tag", async () => {
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     vi.spyOn(tauriCommands, "tagArticle").mockResolvedValue(Result.succeed(null));

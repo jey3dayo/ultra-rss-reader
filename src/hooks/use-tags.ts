@@ -14,7 +14,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
-import { invalidateArticleQueries } from "@/lib/query/query-invalidation";
+import { invalidateArticleQueries, invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -87,9 +87,7 @@ export function resolveTagMutationInvalidationQueryKeys(
 }
 
 function invalidateTagQueryKeys(qc: QueryClient, queryKeys: ReadonlyArray<TagQueryKey>) {
-  for (const queryKey of queryKeys) {
-    void qc.invalidateQueries({ queryKey });
-  }
+  invalidateQueryKeysLogOnly(qc, queryKeys);
 }
 
 export function useTags() {
