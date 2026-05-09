@@ -105,6 +105,40 @@ describe("resolveSidebarAccountSelectionAction", () => {
     });
   });
 
+  it("repairs stale or blank saved account preferences when restoring the reader account", () => {
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: true,
+        selectedAccountId: null,
+        savedAccountId: "acc-unknown",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({
+      type: "restore",
+      accountId: "acc-1",
+      focusedPane: "list",
+      persistPreference: true,
+    });
+
+    expect(
+      resolveSidebarAccountSelectionAction({
+        accounts,
+        preferencesLoaded: true,
+        selectedAccountId: null,
+        savedAccountId: "   ",
+        layoutMode: "wide",
+        activeDevIntent: null,
+      }),
+    ).toEqual({
+      type: "restore",
+      accountId: "acc-1",
+      focusedPane: "list",
+      persistPreference: true,
+    });
+  });
+
   it("normalizes whitespace-padded selected account ids before deciding restore or persist", () => {
     expect(
       resolveSidebarAccountSelectionAction({

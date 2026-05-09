@@ -27,20 +27,25 @@ type ArticleListPrimarySourceSnapshot = {
 
 function recoverStaleReaderSelection(selection: UseArticleListSourcesParams["selection"]): void {
   const currentSelection = useUiStore.getState().selection;
-  if (currentSelection.type !== selection.type) {
-    return;
-  }
 
-  if (selection.type === "feed" && currentSelection.feedId !== selection.feedId) {
-    return;
-  }
-
-  if (selection.type === "folder" && currentSelection.folderId !== selection.folderId) {
-    return;
-  }
-
-  if (selection.type === "tag" && currentSelection.tagId !== selection.tagId) {
-    return;
+  switch (selection.type) {
+    case "feed":
+      if (currentSelection.type !== "feed" || currentSelection.feedId !== selection.feedId) {
+        return;
+      }
+      break;
+    case "folder":
+      if (currentSelection.type !== "folder" || currentSelection.folderId !== selection.folderId) {
+        return;
+      }
+      break;
+    case "tag":
+      if (currentSelection.type !== "tag" || currentSelection.tagId !== selection.tagId) {
+        return;
+      }
+      break;
+    default:
+      return;
   }
 
   useUiStore.getState().selectAll();
