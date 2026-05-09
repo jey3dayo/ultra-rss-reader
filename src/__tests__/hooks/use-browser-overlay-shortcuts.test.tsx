@@ -56,6 +56,33 @@ describe("useBrowserOverlayShortcuts", () => {
     expect(articleShortcut.defaultPrevented).toBe(false);
   });
 
+  it("leaves browser toolbar and global action shortcuts available while the overlay is open", () => {
+    const handleCloseOverlay = vi.fn();
+    const laterWindowShortcut = vi.fn();
+    renderHook(() =>
+      useBrowserOverlayShortcuts({
+        browserUrl: "https://example.com/article",
+        handleCloseOverlay,
+      }),
+    );
+    window.addEventListener("keydown", laterWindowShortcut);
+
+    try {
+      const reloadShortcut = new KeyboardEvent("keydown", { key: "r", bubbles: true, cancelable: true });
+      const openExternalShortcut = new KeyboardEvent("keydown", { key: "b", bubbles: true, cancelable: true });
+
+      window.dispatchEvent(reloadShortcut);
+      window.dispatchEvent(openExternalShortcut);
+
+      expect(handleCloseOverlay).not.toHaveBeenCalled();
+      expect(laterWindowShortcut).toHaveBeenCalledTimes(2);
+      expect(reloadShortcut.defaultPrevented).toBe(false);
+      expect(openExternalShortcut.defaultPrevented).toBe(false);
+    } finally {
+      window.removeEventListener("keydown", laterWindowShortcut);
+    }
+  });
+
   it("does not bind shortcut ownership without a browser URL", () => {
     const handleCloseOverlay = vi.fn();
     renderHook(() =>
