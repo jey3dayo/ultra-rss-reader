@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
+import { resetRuntimeDiagnosticOnceSuppressionForTests, RUNTIME_DIAGNOSTIC_POLICIES } from "@/lib/runtime/diagnostics";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -129,6 +130,7 @@ function setPlatformState({
 describe("useAppIconTheme", () => {
   beforeEach(() => {
     setIconMock.mockReset();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     usePlatformStore.setState(usePlatformStore.getInitialState());
   });
@@ -155,6 +157,53 @@ describe("useAppIconTheme", () => {
     for (const iconPath of Object.values(APP_ICON_THEME_PATHS)) {
       expect(existsSync(`${process.cwd()}/public${iconPath}`), iconPath).toBe(true);
     }
+  });
+
+  it("classifies runtime diagnostics without toast and with secret redaction", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => createMatchMedia(false)),
+    );
+    setIconMock.mockRejectedValue(
+      new Error("TOKEN=secret https://alice:password@example.com/icon.png?token=secret#secret"),
+    );
+    usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    const first = render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalledTimes(1);
+    });
+    first.unmount();
+
+    render(<HookHarness />);
+
+    await flushAsyncWork();
+
+    const appIconPolicy = RUNTIME_DIAGNOSTIC_POLICIES["app-icon-theme"];
+    expect(appIconPolicy).toMatchObject({
+      devOnlyConsole: false,
+      productionDiagnostics: true,
+      toast: "never",
+      once: true,
+      redactSecrets: true,
+    });
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to apply light app icon theme",
+      expect.objectContaining({
+        message: "TOKEN=<redacted> https://example.com/icon.png?redacted#redacted",
+      }),
+    );
+    expect(String(consoleError.mock.calls[0]?.[1])).not.toContain("secret");
+    expect(String(consoleError.mock.calls[0]?.[1])).not.toContain("password");
+
+    consoleError.mockRestore();
   });
 
   it("tracks system theme changes", async () => {

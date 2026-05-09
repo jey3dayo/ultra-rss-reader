@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { setWindowIcon } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
@@ -51,7 +52,7 @@ async function setAppIcon(
   Result.pipe(
     await setWindowIcon(APP_ICON_THEME_PATHS[theme]),
     Result.inspectError((error) => {
-      console.error(`Failed to apply ${theme} app icon theme`, error);
+      logRuntimeDiagnostic("app-icon-theme", `Failed to apply ${theme} app icon theme`, error);
     }),
   );
 }
@@ -113,7 +114,7 @@ export function useAppIconTheme() {
       queueMicrotask(() => {
         drainScheduledRef.current = false;
         void drainIconRequests().catch((error: unknown) => {
-          console.error("Failed to apply app icon theme:", error);
+          logRuntimeDiagnostic("app-icon-theme", "Failed to apply app icon theme:", error);
         });
       });
     },

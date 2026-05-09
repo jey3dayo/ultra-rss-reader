@@ -10,6 +10,7 @@ import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
 import { invalidateSyncCompletedQueries } from "./lib/query/query-invalidation";
+import { logRuntimeDiagnostic } from "./lib/runtime/diagnostics";
 import { attachTauriListeners } from "./lib/runtime/tauri-event-listeners";
 import { markStartupSyncTriggered, shouldThrottleStartupSync } from "./lib/sync/startup-sync-storage";
 import { usePreferencesStore } from "./stores/preferences-store";
@@ -57,12 +58,12 @@ function AppInner() {
         Result.pipe(
           result,
           Result.inspectError((error) => {
-            console.warn("Startup sync failed:", error);
+            logRuntimeDiagnostic("startup-sync", "Startup sync failed:", error);
           }),
         ),
       )
       .catch((error: unknown) => {
-        console.warn("Startup sync rejected:", error);
+        logRuntimeDiagnostic("startup-sync", "Startup sync rejected:", error);
       });
   }, [activeDevIntent, devIntentReady, preferencesLoaded, selectedAccountId]);
 
@@ -78,7 +79,11 @@ function AppInner() {
     try {
       const accountsResult = await listAccounts();
       if (Result.isFailure(accountsResult)) {
-        console.warn("Sync on wake failed to list accounts:", Result.unwrapError(accountsResult));
+        logRuntimeDiagnostic(
+          "sync-on-wake",
+          "Sync on wake failed to list accounts:",
+          Result.unwrapError(accountsResult),
+        );
         return;
       }
 
@@ -92,13 +97,13 @@ function AppInner() {
 
       for (const syncResult of syncResults) {
         if (syncResult.status === "rejected") {
-          console.warn("Sync on wake rejected:", syncResult.reason);
+          logRuntimeDiagnostic("sync-on-wake", "Sync on wake rejected:", syncResult.reason);
           continue;
         }
 
         const { accountId, result } = syncResult.value;
         if (Result.isFailure(result)) {
-          console.warn("Sync on wake failed:", accountId, Result.unwrapError(result));
+          logRuntimeDiagnostic("sync-on-wake", "Sync on wake failed:", accountId, Result.unwrapError(result));
         }
       }
     } finally {
@@ -122,7 +127,7 @@ function AppInner() {
       if (hiddenDuration < APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS) return;
 
       void runSyncOnWakeRef.current().catch((error: unknown) => {
-        console.warn("Sync on wake rejected at app boundary:", error);
+        logRuntimeDiagnostic("sync-on-wake", "Sync on wake rejected at app boundary:", error);
       });
     };
 

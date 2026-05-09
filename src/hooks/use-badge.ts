@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { FeedDto } from "@/api/schemas/feed";
 import { useAccountUnreadCount } from "@/hooks/use-account-unread-count";
 import { useFeeds } from "@/hooks/use-feeds";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import type { UnreadBadgePreference } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -47,16 +48,24 @@ async function applyBadgeCountCommand(
   count: number | undefined,
   shouldApplyRequest: () => boolean,
 ): Promise<BadgeCommandResult> {
+  let getCurrentWindow: typeof import("@tauri-apps/api/window").getCurrentWindow;
+
   try {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    ({ getCurrentWindow } = await import("@tauri-apps/api/window"));
+  } catch {
+    // Non-Tauri context (browser dev mode) — no-op
+    return "unavailable";
+  }
+
+  try {
     const currentWindow = await getCurrentWindow();
     if (!shouldApplyRequest()) {
       return "skipped";
     }
     await currentWindow.setBadgeCount(count);
     return "applied";
-  } catch {
-    // Non-Tauri context (browser dev mode) — no-op
+  } catch (error: unknown) {
+    logRuntimeDiagnostic("unread-badge", "Failed to apply unread badge count:", error);
     return "unavailable";
   }
 }
@@ -110,7 +119,7 @@ export function useBadge() {
       await applyBadgeCountCommand(badgeCount, () => shouldApplyRequest(requestSeq));
       await replayLatestBadgeRequest(requestSeq);
     })().catch((error: unknown) => {
-      console.error("Failed to apply unread badge count:", error);
+      logRuntimeDiagnostic("unread-badge", "Failed to apply unread badge count:", error);
     });
   }, [badgeCount]);
 }

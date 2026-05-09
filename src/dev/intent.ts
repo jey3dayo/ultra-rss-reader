@@ -3,6 +3,7 @@ import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
 import { type DevScenarioId, isDevScenarioId } from "@/dev/scenario-ids";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export type DevIntent = DevScenarioId | null;
@@ -122,7 +123,7 @@ function resolveLoadedDevRuntimeOptions(
   result: Awaited<ReturnType<typeof getDevRuntimeOptions>>,
 ): Result.Result<DevRuntimeOptions, LoadDevRuntimeOptionsError> {
   if (Result.isFailure(result)) {
-    console.warn("Failed to load runtime dev options:", Result.unwrapError(result));
+    logRuntimeDiagnostic("dev-runtime-options-load", "Failed to load runtime dev options:", Result.unwrapError(result));
     return Result.fail("request_failed");
   }
 

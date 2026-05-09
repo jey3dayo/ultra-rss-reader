@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type { PlatformInfo } from "@/api/schemas";
 import { getPlatformInfo } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 
 type PlatformState = {
   platform: PlatformInfo;
@@ -45,7 +46,7 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
             set({ platform, loaded: true, loadError: false });
           }),
           Result.inspectError((error) => {
-            console.error("Failed to load platform info:", error);
+            logRuntimeDiagnostic("platform-info-load", "Failed to load platform info:", error);
             set({
               platform: DEFAULT_PLATFORM_INFO,
               loaded: true,
@@ -55,7 +56,7 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
         );
       })
       .catch((error: unknown) => {
-        console.error("Failed to load platform info:", error);
+        logRuntimeDiagnostic("platform-info-load", "Failed to load platform info:", error);
         set({
           platform: DEFAULT_PLATFORM_INFO,
           loaded: true,
