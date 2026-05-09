@@ -250,12 +250,12 @@ describe("test fixtures", () => {
     if (Date.now() < 0) {
       const seedAccount = sampleAccountSeeds[0];
       if (seedAccount?.capabilities) {
-        // @ts-expect-error seed fixtures are readonly; use createSampleAccounts() for mutable test state.
+        // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> rejects direct seed mutation.
         seedAccount.name = "Direct Seed Mutation";
-        // @ts-expect-error nested seed fixture fields are readonly as part of the fixture seed contract.
+        // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> keeps nested fields readonly.
         seedAccount.capabilities.supports_search = true;
       }
-      // @ts-expect-error seed fixture collections are readonly; clone helpers return mutable arrays.
+      // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> rejects collection mutation.
       sampleAccountSeeds.push(...createSampleAccounts());
       const mutableAccounts = createSampleAccounts();
       const mutableAccount = mutableAccounts[0];
@@ -433,7 +433,7 @@ describe("renderStory", () => {
         {
           args: { label: "story" },
         },
-        // @ts-expect-error This fixes the runtime boundary for JS or incorrectly typed callers.
+        // @ts-expect-error legacy escape: renderStory third argument rejects non-RenderOptions callers.
         true,
       ),
     ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");

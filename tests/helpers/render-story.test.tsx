@@ -140,7 +140,7 @@ describe("renderStory", () => {
         {
           args: { label: "story" },
         },
-        // @ts-expect-error This fixes the runtime boundary for JS or incorrectly typed callers.
+        // @ts-expect-error legacy escape: renderStory third argument rejects non-RenderOptions callers.
         true,
       ),
     ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");

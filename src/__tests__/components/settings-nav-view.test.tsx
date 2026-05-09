@@ -31,7 +31,7 @@ describe("SettingsNavView", () => {
 
     expect(modalItem.id).toBe("general");
     expect(specimenItem.id).toBe("custom-category");
-    // @ts-expect-error Account navigation is handled by AccountsNavView, not modal category SettingsNavView ids.
+    // @ts-expect-error negative type contract: SettingsNavItemId excludes AccountsNavView category ids.
     void (accountNavId satisfies SettingsNavItemId);
   });
 
