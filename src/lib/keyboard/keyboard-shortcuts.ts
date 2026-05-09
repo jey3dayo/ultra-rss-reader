@@ -237,6 +237,14 @@ export function isShortcutPreferenceKey(key: string): key is ShortcutPreferenceK
 
 export type KeyboardShortcutPrefs = Partial<Record<ShortcutPreferenceKey, string>>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
+export type ShortcutConflict =
+  | {
+      type: "duplicate";
+      actionId: ShortcutActionId;
+    }
+  | {
+      type: "native_menu";
+    };
 
 const nativeMenuOwnedShortcuts = new Set(["\u2318+r"]);
 
@@ -248,6 +256,38 @@ function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): str
 function normalizeShortcutMapKey(key: string): string | null {
   const trimmedKey = key.trim();
   return trimmedKey.length > 0 ? trimmedKey : null;
+}
+
+export function isNativeMenuOwnedShortcut(key: string): boolean {
+  const normalizedKey = normalizeShortcutMapKey(key);
+  return normalizedKey !== null && nativeMenuOwnedShortcuts.has(normalizedKey);
+}
+
+export function getShortcutConflict(
+  targetId: ShortcutActionId,
+  key: string,
+  prefs: KeyboardShortcutPrefs,
+): ShortcutConflict | null {
+  const normalizedKey = normalizeShortcutMapKey(key);
+  if (normalizedKey === null) {
+    return null;
+  }
+
+  if (isNativeMenuOwnedShortcut(normalizedKey)) {
+    return { type: "native_menu" };
+  }
+
+  for (const definition of shortcutDefinitions) {
+    if (definition.id === targetId) {
+      continue;
+    }
+
+    if (normalizeShortcutMapKey(getShortcutKey(definition.id, prefs)) === normalizedKey) {
+      return { type: "duplicate", actionId: definition.id };
+    }
+  }
+
+  return null;
 }
 
 /** All default shortcut preference entries (for preferences-store defaults). */

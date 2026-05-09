@@ -2,7 +2,13 @@ import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
-import { type ShortcutActionId, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
+import {
+  formatKeyForDisplay,
+  getShortcutConflict,
+  type ShortcutActionId,
+  shortcutDefinitions,
+  shortcutPrefKey,
+} from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -46,14 +52,20 @@ export function ShortcutsSettings() {
 
   const findConflict = useCallback(
     (targetId: ShortcutActionId, key: string): string | null => {
-      for (const def of shortcutDefinitions) {
-        if (def.id === targetId) continue;
-        const existingKey = getKey(def.id);
-        if (existingKey === key) return tReader(def.labelKey);
+      const conflict = getShortcutConflict(targetId, key, prefs);
+
+      if (conflict?.type === "native_menu") {
+        return "native menu";
       }
+
+      if (conflict?.type === "duplicate") {
+        const definition = shortcutDefinitions.find((shortcut) => shortcut.id === conflict.actionId);
+        return definition ? tReader(definition.labelKey) : null;
+      }
+
       return null;
     },
-    [getKey, tReader],
+    [prefs, tReader],
   );
 
   const handleStartRecording = useCallback((id: ShortcutActionId) => {
@@ -67,14 +79,19 @@ export function ShortcutsSettings() {
     (id: ShortcutActionId, key: string) => {
       const conflict = findConflict(id, key);
       if (conflict) {
-        setConflictMessage(t("shortcuts.conflict_message", { key, name: conflict }));
+        setConflictMessage(
+          t("shortcuts.conflict_message", {
+            key: formatKeyForDisplay(key, platformKind),
+            name: conflict,
+          }),
+        );
       } else {
         setConflictMessage(null);
         setPref(shortcutPrefKey(id), key);
       }
       setRecordingId(null);
     },
-    [findConflict, setPref, t],
+    [findConflict, platformKind, setPref, t],
   );
 
   const handleCancel = useCallback(() => {
