@@ -91,6 +91,11 @@ settings UI.
 
 ## Verification Checklist
 
+Use the checklist entries below as the execution units for P3 feed content
+privacy hardening measurement. Keep the reader thumbnail, reader sanitized
+body, and Web Preview checks as separate records so manual verification results
+do not merge reader-mode privacy impact with embedded-browser compatibility.
+
 - [ ] Reader thumbnail: accepted thumbnail schemes, rejected mixed-content or
   credentialed thumbnails, referrer policy, and broken-image readability are
   recorded per provider.
