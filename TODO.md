@@ -90,11 +90,6 @@
   - 元の toolbar button 等を記憶していても、選択 article row があれば先にそこへ focus するため、キーボード操作では「閉じたら元の操作ボタンへ戻る」期待とズレやすい
   - open-in-browser button から overlay open/close した時の focus return test を追加し、article row 優先か previous target 優先かを明文化する
 
-- [ ] P1 external opener に渡す article/feed URL の scheme policy を固定する
-  - 対象: `src/components/reader/hooks/article/use-article-actions.ts`, `src/lib/actions.ts`, `src/api/tauri-commands.ts`
-  - provider 由来 URL が外部ブラウザ/open command に流れるため、`javascript:`、`file:`, credential-in-URL、control char をどこで拒否するか未固定だと OS opener 境界で事故りやすい
-  - frontend action と Rust opener command の両方で allowed scheme を固定し、invalid URL は toast だけで native invoke しない contract test を追加する
-
 - [ ] P1 updater install/restart 中の sync・DB write gate を固定する
   - 対象: `src/hooks/use-updater.ts`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`
   - update download/install は restart を伴う一方、manual/automatic sync や DB maintenance が走っている時の禁止・待機・中断方針が見えにくい
@@ -145,16 +140,6 @@
   - `getPreferredAccountId` は missing saved id を先頭 account へ fallback するが、DB preference 自体を直さない場合、起動ごとに stale id を読み続ける
   - account delete、import後 account id 変更、blank saved id の時に selected_account_id を修復するか read-time fallback に留めるか test で固定する
 
-- [ ] P2 account switcher outside-click listener の pointer/touch/focusout coverage を確認する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-account-switcher.ts`
-  - outside close が `mousedown` だけだと touch/pointer/keyboard focus 移動で menu が残る可能性があり、account switcher の操作モデルが環境でズレる
-  - pointerdown、touch、Escape、focusout、unmount cleanup の behavior を component/hook test にする
-
-- [ ] P2 folder select の duplicate label / deleted selected folder 表示を固定する
-  - 対象: `src/components/reader/hooks/feed-dialogs/use-folder-selection.ts`, `src/components/reader/folder-select-view.tsx`
-  - folder options は duplicate id を落とすが duplicate name や selected folder deleted の表示方針が未固定だと、add/rename feed dialog の folder assignment が分かりにくい
-  - duplicate name、blank name fallback、selected folder missing、新規 folder 作成中の account switch を view/helper test にする
-
 - [ ] P2 preferences freeform string の key別 max length / control char policy を固定する
   - 対象: `src/schemas/preferences.ts`, `src-tauri/src/commands/preference_commands.rs`
   - freeform preference は key によって URL、shortcut、selected account id など意味が違うため、長大文字列や control char が DB/UI に残ると後段 helper が壊れやすい
@@ -189,16 +174,6 @@
   - 対象: `src/hooks/use-articles.ts`, `src/dev/mocks.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - frontend/dev mock は title includes に近い挙動だが、backend FTS は quote、operator、絵文字、全角空白、長大 query で挙動が変わりやすい
   - blank、quoted phrase、`OR`/`NEAR` 風文字列、combining mark、長大 query の normalize/escape/max length を schema/Rust/dev mock で揃える
-
-- [ ] P2 command palette action が account switch 後 stale resource を実行しないようにする
-  - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/hooks/command-palette`, `src/stores/ui-store.ts`
-  - palette を開いたまま selected account/feed が変わると、表示中 resource action が古い account scope の article/feed に対して実行される可能性がある
-  - palette open 時 snapshot、account switch 時 close、実行直前再検証のどれにするか決め、resource action と recent command の test を追加する
-
-- [ ] P2 keyboard shortcut preference の duplicate / reserved key conflict を固定する
-  - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/hooks/use-shortcuts-settings-view-props.ts`, `src/schemas/preferences.ts`
-  - shortcut preference は native menu hint、browser reserved key、global handler の 3 層にまたがるため、duplicate assignment や reserved key 保存時の挙動が曖昧になりやすい
-  - duplicate shortcut、reserved OS/browser key、invalid modifier、empty reset の validation と display fallback を settings/lib test にする
 
 - [ ] P2 tag mutation の duplicate name / stale article assignment policy を固定する
   - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/tag-context-menu.tsx`
@@ -240,11 +215,6 @@
   - ResizeObserver と window resize が毎回 async sync を投げるため、連続 resize で古い `resize` command が後から届き、WebView bounds が過去の矩形へ戻る可能性がある
   - request generation、latest-only resize、throttle/debounce、native side idempotence を hook/native test と実機計測に分ける
 
-- [ ] P1 article body anchor click の URL scheme / base URL policy を toolbar opener と揃える
-  - 対象: `src/components/reader/article-reader-body.tsx`, `src/components/reader/article-browser-actions.ts`, `src-tauri/src/commands/share_commands.rs`
-  - sanitized body 内 anchor は本文 HTML から直接 external opener に流れるため、relative URL、protocol-relative URL、mailto/tel/file/javascript などの扱いが toolbar link とズレやすい
-  - article base URL あり/なし、relative path、fragment-only、unsupported scheme、credential-in-URL の behavior を component/lib test で固定する
-
 - [ ] P1 sync scheduler panic recovery を backoff / warning と同じ経路に乗せる
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/commands/sync_commands.rs`
   - `sync_account` panic は catch されるが backoff persistence や user-visible warning が通常 error と別経路なので、同じ account が短周期で panic を繰り返す可能性がある
@@ -269,11 +239,6 @@
   - 対象: `src/components/reader/browser-view.tsx`, `src/stores/preferences-store.ts`
   - theme を連続変更した時に wipe timer と system theme subscription が重なると、overlay key reset や reduced motion 切替が現在 preference とズレる可能性がある
   - system light/dark change、manual rapid toggle、reduced motion enabled mid-animation の component test を追加する
-
-- [ ] P2 command history の巨大 localStorage JSON parse 負荷と corruption cleanup を固定する
-  - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`, `src/schemas/storage.ts`
-  - command palette open 時に巨大 JSON や deeply nested invalid data を parse すると、UI thread を止めたり毎回同じ corruption を読み続ける可能性がある
-  - max raw size、parse failure cleanup、schema failure cleanup、quota exceeded の behavior を unit test にする
 
 - [ ] P2 sync scheduler backoff の invalid `next_retry_at` cleanup policy を固定する
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/infra/db/sqlite_sync_state.rs`
@@ -315,21 +280,6 @@
   - `delete_feed` は missing を error にする一方、`delete_tag` は missing no-op になっており、confirm 後の stale target を成功扱いにするかが操作ごとにズレる
   - delete feed/tag/account/mute keyword の missing target、already deleted、cross-account target の policy を command/component test で統一する
 
-- [ ] P2 pagination offset の上限と large offset performance policy を固定する
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/infra/db/sqlite_tag.rs`
-  - limit は 200 で止めているが offset は無制限なので、破損 UI state や手動 IPC で巨大 offset が入り、SQLite scan と response latency が悪化しやすい
-  - max offset、large offset empty response、negative/nonfinite rejection、tag/account/feed/recent/search の parity test を追加する
-
-- [ ] P2 paginated article list の page boundary mutation contract を固定する
-  - 対象: `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list`
-  - stable order はあるが、page 1 と page 2 の間に sync/purge/mark read が入ると offset pagination が duplicate/skip を起こす可能性がある
-  - cursor 化が必要か、offset pagination は best-effort とするかを決め、article inserted/deleted/read-state changed during pagination の test を追加する
-
-- [ ] P2 list_articles_by_tag の limit source of truth を command args schema と backend で一本化する
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/tag_commands.rs`
-  - TS 側は `MAX_IPC_PAGINATION_LIMIT`、Rust 側は `MAX_TAG_ARTICLE_LIST_LIMIT` を別定義しており、片方だけ変わると tag view だけ挙動がズレる
-  - tag article limit の TS/Rust fixture、boundary 200、over-limit error message を schema contract test にする
-
 - [ ] P2 GReader remote folder removal が local folder assignment を残す条件を固定する
   - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_flow.rs`
   - remote subscription から folder が消えた時に existing local folder を保持する helper があり、remote 側の folder removal を反映するのか local override とみなすのか曖昧
@@ -355,16 +305,6 @@
   - dev mock の delete_feed/delete_tag/update_folder は配列操作中心で、real DB cascade や foreign key error とズレると Storybook/dev だけ成功する操作が増える
   - delete feed cascading articles/tags/history、delete tag cascade、folder move missing target の dev mock parity test を追加する
 
-- [ ] P2 external opener の `mailto:` 許可と article link opener の許可差を明文化する
-  - 対象: `src/api/schemas/commands.ts`, `src/components/reader/article-reader-body.tsx`, `src/components/reader/article-browser-actions.ts`
-  - `plugin:opener|open_url` は `mailto:` を許す一方、`open_in_browser` / Reading List / WebView は http(s) のみで、どの UI action が mailto を許すか分かりにくい
-  - toolbar/body link/copy/open external/Web Preview/Reading List の scheme matrix を test と TODO contract にする
-
-- [ ] P3 article command pagination constants を single source に寄せる候補を作る
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/commands/tag_commands.rs`
-  - default limit と max limit が TS/Rust/tag command に分散しているため、今後の pagination UI 変更で片側だけ更新されやすい
-  - constants 共有は難しければ repo contract test で数値一致を固定し、default 20/50 と max 200 の意味をコメント化する
-
 - [ ] P1 fullscreen toggle の unhandled rejection を global action boundary で吸収する
   - 対象: `src/lib/actions.ts`, `src/lib/window/windows.ts`, `src/hooks/use-keyboard.ts`, `src/hooks/use-menu-events.ts`
   - `toggleFullscreen()` を fire-and-forget で呼び、`setWindowFullscreen` reject を catch していないため、native menu / keyboard 経由で unhandled rejection が出ても toast や diagnostics に残らない
@@ -389,11 +329,6 @@
   - 対象: `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts`, `src/hooks/use-feed-landing.ts`
   - feed select 後に palette を閉じて非同期 `openFeedLanding` の失敗 toast を出すため、直後に account switch や別 feed selection があると古い feedId のエラーが現在文脈へ出る
   - palette session id、selected account snapshot、feedId revalidation のどれを採るか決め、delayed failure と account switch の test を追加する
-
-- [ ] P2 article share menu の email client opener と external opener の scheme policy を照合する
-  - 対象: `src/components/reader/article-share-menu.tsx`, `src/api/schemas/commands.ts`, `src/components/reader/article-browser-actions.ts`
-  - share menu の email action は `mailto:` を OS opener へ流す一方、toolbar/body/browser actions の allowed scheme と別経路なので、URL encode、subject/body length、invalid article URL の扱いが drift しやすい
-  - mailto subject/body encode、newline rejection、long URL fallback、opener failure toast の component/lib test を追加する
 
 - [ ] P2 app shell lazy preload failure の retry/backoff を一度だけにする
   - 対象: `src/components/app-shell.tsx`
