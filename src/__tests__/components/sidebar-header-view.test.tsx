@@ -155,12 +155,29 @@ describe("SidebarHeaderView", () => {
     const icon = syncButton.querySelector("svg");
 
     fireEvent.click(syncButton);
-    expect(onSync).toHaveBeenCalledTimes(1);
+    expect(onSync).not.toHaveBeenCalled();
     expect(icon).not.toHaveClass("animate-spin");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(450);
     });
+    expect(icon).not.toHaveClass("animate-spin");
+  });
+
+  it("does not activate or spin on disabled clicks while preserving the disabled priority", () => {
+    vi.useFakeTimers();
+    const onSync = vi.fn();
+
+    render(<SidebarHeaderView {...defaultProps} onSync={onSync} syncState={{ status: "disabled" }} />);
+
+    const syncButton = screen.getByRole("button", { name: "Sync feeds" });
+    const icon = syncButton.querySelector("svg");
+
+    fireEvent.click(syncButton);
+
+    expect(syncButton).toBeDisabled();
+    expect(syncButton).not.toHaveAttribute("aria-disabled");
+    expect(onSync).not.toHaveBeenCalled();
     expect(icon).not.toHaveClass("animate-spin");
   });
 

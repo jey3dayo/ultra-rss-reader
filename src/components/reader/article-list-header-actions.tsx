@@ -1,5 +1,5 @@
 import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,7 @@ type ArticleListHeaderActionsProps = {
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onCloseSearch: () => void;
+  searchToggleContainerRef?: RefObject<HTMLSpanElement | null>;
   markAllReadLabel: string;
   markAllReadButtonText: string;
   searchArticlesLabel: string;
@@ -34,6 +35,7 @@ export function ArticleListHeaderActions({
   onToggleSidebar,
   onToggleSearch,
   onCloseSearch,
+  searchToggleContainerRef,
   markAllReadLabel,
   markAllReadButtonText: _markAllReadButtonText,
   searchArticlesLabel,
@@ -81,14 +83,16 @@ export function ArticleListHeaderActions({
         <IconToolbarButton label={markAllReadLabel} onClick={onMarkAllRead}>
           <CheckCheck className="size-4" />
         </IconToolbarButton>
-        <IconToolbarButton
-          label={searchArticlesLabel}
-          onClick={onToggleSearch}
-          ariaPressed={showSearch}
-          className={cn(showSearch && iconToolbarActiveClassName)}
-        >
-          <Search className="size-4" />
-        </IconToolbarButton>
+        <span ref={searchToggleContainerRef} className="inline-flex">
+          <IconToolbarButton
+            label={searchArticlesLabel}
+            onClick={onToggleSearch}
+            ariaPressed={showSearch}
+            className={cn(showSearch && iconToolbarActiveClassName)}
+          >
+            <Search className="size-4" />
+          </IconToolbarButton>
+        </span>
         {showSearch && (
           <IconToolbarButton label={closeSearchLabel} onClick={onCloseSearch}>
             <X className="size-4" />

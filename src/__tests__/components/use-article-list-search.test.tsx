@@ -130,6 +130,32 @@ describe("useArticleListSearch", () => {
     expect(result.current.showSearch).toBe(true);
   });
 
+  it("cancels stale focus retries after rapid close and unmount", () => {
+    const focus = vi.fn();
+    const callbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const { result, unmount } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+    const input = document.createElement("input");
+    input.focus = focus;
+    result.current.searchInputRef.current = input;
+
+    act(() => {
+      result.current.openSearch();
+      result.current.handleCloseSearch();
+    });
+    unmount();
+    act(() => {
+      callbacks.forEach((callback) => callback(0));
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(focus).toHaveBeenCalledTimes(1);
+  });
+
   it("closes search and clears the debounced query immediately", () => {
     const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 

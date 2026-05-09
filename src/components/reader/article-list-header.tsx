@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import { useCallback, useRef, type ReactNode, type RefObject } from "react";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
 
@@ -44,6 +44,11 @@ export function ArticleListHeader({
   onCloseSearch,
   onSearchQueryChange,
 }: ArticleListHeaderProps) {
+  const searchToggleContainerRef = useRef<HTMLSpanElement>(null);
+  const restoreSearchToggleFocus = useCallback(() => {
+    searchToggleContainerRef.current?.querySelector("button")?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <>
       <div className="flex h-12 items-center border-b border-border/70 bg-[var(--workspace-header-surface)] px-3 backdrop-blur-sm">
@@ -58,6 +63,7 @@ export function ArticleListHeader({
           onToggleSidebar={onToggleSidebar}
           onToggleSearch={onToggleSearch}
           onCloseSearch={onCloseSearch}
+          searchToggleContainerRef={searchToggleContainerRef}
           markAllReadLabel={labels.markAllReadLabel}
           markAllReadButtonText={labels.markAllReadButtonText}
           searchArticlesLabel={labels.searchArticlesLabel}
@@ -74,6 +80,7 @@ export function ArticleListHeader({
           searchArticlesPlaceholder={labels.searchArticlesPlaceholder}
           onSearchQueryChange={onSearchQueryChange}
           onCloseSearch={onCloseSearch}
+          onRestoreSearchToggleFocus={restoreSearchToggleFocus}
         />
       )}
     </>

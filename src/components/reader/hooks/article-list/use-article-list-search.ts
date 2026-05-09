@@ -22,9 +22,12 @@ const initialArticleListSearchState: ArticleListSearchState = {
   debouncedQuery: "",
 };
 
-function scheduleSearchFocusRetry(focus: () => void): void {
+function scheduleSearchFocusRetry(focus: () => void): () => void {
+  let frameId: number | null = null;
+  let timeoutId: number | null = null;
+
   if (typeof requestAnimationFrame === "function") {
-    requestAnimationFrame(focus);
+    frameId = requestAnimationFrame(focus);
   }
 
   const scheduleTimeout =
@@ -33,7 +36,16 @@ function scheduleSearchFocusRetry(focus: () => void): void {
       : typeof setTimeout === "function"
         ? setTimeout
         : null;
-  scheduleTimeout?.(focus, 0);
+  timeoutId = scheduleTimeout?.(focus, 0) ?? null;
+
+  return () => {
+    if (frameId !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(frameId);
+    }
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+  };
 }
 
 function articleListSearchReducer(
@@ -70,6 +82,20 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const searchInputRef = useRef<HTMLInputElement>(null);
   const previousAccountIdRef = useRef(selectedAccountId);
   const debounceGenerationRef = useRef(0);
+  const focusRetryCleanupRef = useRef<(() => void) | null>(null);
+  const focusGenerationRef = useRef(0);
+
+  const cancelSearchFocusRetry = useCallback(() => {
+    focusGenerationRef.current += 1;
+    focusRetryCleanupRef.current?.();
+    focusRetryCleanupRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cancelSearchFocusRetry();
+    };
+  }, [cancelSearchFocusRetry]);
 
   useEffect(() => {
     if (previousAccountIdRef.current === selectedAccountId) {
@@ -78,8 +104,9 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
 
     previousAccountIdRef.current = selectedAccountId;
     debounceGenerationRef.current += 1;
+    cancelSearchFocusRetry();
     dispatch({ type: "reset-search" });
-  }, [selectedAccountId]);
+  }, [cancelSearchFocusRetry, selectedAccountId]);
 
   useEffect(() => {
     const generation = debounceGenerationRef.current;
@@ -99,10 +126,18 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
 
   const focusSearchInput = useCallback(() => {
-    const focus = () => searchInputRef.current?.focus({ preventScroll: true });
+    cancelSearchFocusRetry();
+    const generation = focusGenerationRef.current;
+    const focus = () => {
+      if (generation !== focusGenerationRef.current) {
+        return;
+      }
+
+      searchInputRef.current?.focus({ preventScroll: true });
+    };
     focus();
-    scheduleSearchFocusRetry(focus);
-  }, []);
+    focusRetryCleanupRef.current = scheduleSearchFocusRetry(focus);
+  }, [cancelSearchFocusRetry]);
 
   const openSearch = useCallback(() => {
     dispatch({ type: "open-search" });
@@ -119,8 +154,9 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
 
   const handleCloseSearch = useCallback(() => {
     debounceGenerationRef.current += 1;
+    cancelSearchFocusRetry();
     dispatch({ type: "close-search" });
-  }, []);
+  }, [cancelSearchFocusRetry]);
 
   const setSearchQuery = useCallback((value: string) => {
     debounceGenerationRef.current += 1;

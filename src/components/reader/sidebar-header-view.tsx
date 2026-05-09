@@ -96,10 +96,11 @@ export function SidebarHeaderView({
   };
 
   const handleSyncClick = () => {
-    if (!isSyncing && !isSyncDisabled && !isSyncCoolingDown) {
-      startFeedbackSpin(ACCEPTED_SYNC_SPIN_MS);
+    if (isSyncing || isSyncDisabled || isSyncCoolingDown) {
+      return;
     }
 
+    startFeedbackSpin(ACCEPTED_SYNC_SPIN_MS);
     onSync();
   };
 

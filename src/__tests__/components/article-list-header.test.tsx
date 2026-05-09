@@ -452,6 +452,46 @@ describe("ArticleListHeader", () => {
     ).toHaveFocus();
   });
 
+  it("returns focus to the exact search toggle without depending on the aria label string", async () => {
+    const user = userEvent.setup();
+
+    function ControlledHeader() {
+      const [showSearch, setShowSearch] = useState(true);
+      const searchInputRef = useRef<HTMLInputElement>(null);
+
+      return (
+        <>
+          <button type="button" aria-label="Search articles">
+            External search button
+          </button>
+          <ArticleListHeader
+            showSearch={showSearch}
+            searchQuery=""
+            searchInputRef={searchInputRef}
+            labels={articleListHeaderLabels}
+            showSidebarButton={false}
+            sidebarButtonLabel="Show sidebar"
+            onMarkAllRead={vi.fn()}
+            onToggleSidebar={vi.fn()}
+            onToggleSearch={() => setShowSearch(true)}
+            onCloseSearch={() => setShowSearch(false)}
+            onSearchQueryChange={vi.fn()}
+          />
+        </>
+      );
+    }
+
+    render(<ControlledHeader />, { wrapper: createWrapper() });
+
+    const searchButtons = screen.getAllByRole("button", { name: "Search articles" });
+    const headerSearchToggle = searchButtons[1];
+    screen.getByRole("textbox", { name: "Search articles" }).focus();
+
+    await user.keyboard("{Escape}");
+
+    expect(headerSearchToggle).toHaveFocus();
+  });
+
   it("shows a sidebar toggle button when requested", async () => {
     const user = userEvent.setup();
     const onToggleSidebar = vi.fn();
