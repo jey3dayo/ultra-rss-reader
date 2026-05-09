@@ -300,16 +300,6 @@
   - `src/__tests__/hooks/use-sidebar-startup-folder-expansion.test.ts` で storage quota / unavailable 時も UI state 更新は維持されることを固定する
   - sidebar navigation frame cleanup とは分け、expanded folder persistence failure だけを扱う
 
-- [ ] account repository provider kind decode 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_account.rs` で DB 上の未知 `kind` を `ProviderKind::Local` に丸めず decode error にする
-  - Rust test で `kind='UnknownProvider'` の account row を `find_all` / `find_by_id` した時に persistence error になり、Local として返らないことを固定する
-  - account deletion keyring order とは分け、account repository enum decode だけを扱う
-
-- [ ] account verification status decode 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_account.rs` で未知 `connection_verification_status` を `Unverified` に丸めず decode error にする
-  - Rust test で `connection_verification_status='expired'` の row が persistence error になり、Unverified として返らないことを固定する
-  - provider kind decode とは分け、connection verification status decode だけを扱う
-
 - [ ] tag repository blank name invariant 候補を追加する
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
   - Rust test で repository/service 直利用でも blank tag が保存されず、`find_all` に空白 tag が出ないことを固定する

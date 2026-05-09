@@ -120,6 +120,18 @@ export const sampleFeedSeeds: ReadonlyFixtureSeed<FeedFixture> = [
     reader_mode: "inherit",
     web_preview_mode: "inherit",
   },
+  {
+    id: "feed-3",
+    account_id: "acc-2",
+    folder_id: null,
+    remote_id: null,
+    title: "Fresh Inbox",
+    url: "https://example.com/fresh.xml",
+    site_url: "https://example.com/fresh",
+    unread_count: 2,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
 ];
 
 export const sampleArticleSeeds: ReadonlyFixtureSeed<ArticleFixture> = [

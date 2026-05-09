@@ -88,8 +88,13 @@ describe("test fixtures", () => {
     const accountsById = new Map(sampleAccounts.map((account) => [account.id, account]));
     const foldersById = new Map(sampleFolders.map((folder) => [folder.id, folder]));
     const folderedFeeds = sampleFeeds.filter((feed) => feed.folder_id !== null);
+    const folderCapableFeeds = sampleFeeds.filter(
+      (feed) => accountsById.get(feed.account_id)?.capabilities?.supports_folders === true,
+    );
 
     expect(folderedFeeds.length).toBeGreaterThan(0);
+    expect(folderCapableFeeds.some((feed) => feed.folder_id !== null)).toBe(true);
+    expect(folderCapableFeeds.some((feed) => feed.folder_id === null)).toBe(true);
 
     for (const feed of folderedFeeds) {
       const folder = foldersById.get(feed.folder_id ?? "");
