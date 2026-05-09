@@ -29,7 +29,7 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { useWindowAlwaysOnTop } from "../hooks/use-window-always-on-top";
 import { copyValueToClipboard } from "../lib/runtime/clipboard";
-import { attachTauriListeners } from "../lib/runtime/tauri-event-listeners";
+import { attachTauriListeners, TAURI_EVENT_LISTENER_FAILURE_EVENT } from "../lib/runtime/tauri-event-listeners";
 import { cn } from "../lib/utils";
 import { usePlatformStore } from "../stores/platform-store";
 import { usePreferencesStore } from "../stores/preferences-store";
@@ -73,6 +73,8 @@ const LazySettingsModal = lazy(async () => {
   const mod = await loadSettingsModalModule();
   return { default: mod.SettingsModal };
 });
+
+const TAURI_EVENT_LISTENER_FAILURE_TOAST = "デスクトップ連携の一部を開始できませんでした。";
 
 type SettingsModalBoundaryProps = {
   children: ReactNode;
@@ -392,6 +394,17 @@ export function AppShell() {
   useEffect(() => {
     loadPlatformInfo();
   }, [loadPlatformInfo]);
+
+  useEffect(() => {
+    const handleTauriEventListenerFailure = () => {
+      useUiStore.getState().showToast(TAURI_EVENT_LISTENER_FAILURE_TOAST);
+    };
+
+    window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, handleTauriEventListenerFailure);
+    return () => {
+      window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, handleTauriEventListenerFailure);
+    };
+  }, []);
 
   return (
     <div className="relative flex h-full flex-col bg-background text-foreground">

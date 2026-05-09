@@ -79,6 +79,7 @@ describe("useMenuEvents", () => {
     expectMenuActionHandler(handler)({ payload: "open-feed-cleanup" });
 
     expect(executeActionMock).not.toHaveBeenCalled();
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action open-feed-cleanup");
     expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: open-feed-cleanup");
     warnSpy.mockRestore();
   });
@@ -99,6 +100,7 @@ describe("useMenuEvents", () => {
     expectMenuActionHandler(handler)({ payload: { action: "open-settings" } });
 
     expect(executeActionMock).not.toHaveBeenCalled();
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action [object Object]");
     expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: [object Object]");
     warnSpy.mockRestore();
   });

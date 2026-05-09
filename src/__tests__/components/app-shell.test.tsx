@@ -12,6 +12,7 @@ import {
   resolveFocusDebugHudPortalTarget,
 } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
+import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -113,6 +114,18 @@ describe("AppShell", () => {
     expect(screen.getByText("App Layout")).toBeInTheDocument();
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(false);
+    });
+  });
+
+  it("surfaces Tauri event listener attach failures as a toast", async () => {
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    window.dispatchEvent(new CustomEvent(TAURI_EVENT_LISTENER_FAILURE_EVENT));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "デスクトップ連携の一部を開始できませんでした。",
+      });
     });
   });
 

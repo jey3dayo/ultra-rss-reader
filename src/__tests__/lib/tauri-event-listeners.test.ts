@@ -1,6 +1,10 @@
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { attachTauriListeners, createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
+import {
+  attachTauriListeners,
+  createTauriListenerGroup,
+  TAURI_EVENT_LISTENER_FAILURE_EVENT,
+} from "@/lib/runtime/tauri-event-listeners";
 
 function createDeferredCleanup() {
   let resolveCleanup: (cleanup: () => void) => void = () => {};
@@ -159,6 +163,8 @@ describe("tauri-event-listeners", () => {
     setTauriRuntimePresent();
     const error = new Error("listen failed");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onFailure = vi.fn();
+    window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
     const group = createTauriListenerGroup([Promise.reject(error)]);
 
     await group.ready;
@@ -167,6 +173,8 @@ describe("tauri-event-listeners", () => {
       "[tauri-event-listeners] Failed to register or cleanup Tauri event listener.",
       error,
     );
+    expect(onFailure).toHaveBeenCalledTimes(1);
+    window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
   });
 
   it("keeps runtime listener registration failure observable when only unavailable is silenced", async () => {

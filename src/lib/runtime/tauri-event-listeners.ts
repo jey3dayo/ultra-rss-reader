@@ -12,12 +12,26 @@ type TauriListenerGroup = {
   dispose: () => void;
 };
 
+export const TAURI_EVENT_LISTENER_FAILURE_EVENT = "ultra-rss:tauri-event-listener-failure";
+
+let hasReportedTauriListenerFailure = false;
+
+function dispatchTauriListenerFailureEvent() {
+  if (hasReportedTauriListenerFailure || typeof window === "undefined") {
+    return;
+  }
+
+  hasReportedTauriListenerFailure = true;
+  window.dispatchEvent(new CustomEvent(TAURI_EVENT_LISTENER_FAILURE_EVENT));
+}
+
 function defaultTauriListenerErrorHandler(error: unknown) {
   if (!hasTauriRuntime()) {
     return;
   }
 
   console.warn("[tauri-event-listeners] Failed to register or cleanup Tauri event listener.", error);
+  dispatchTauriListenerFailureEvent();
 }
 
 function defaultTauriUnavailableHandler() {}
