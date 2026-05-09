@@ -30,11 +30,6 @@
 
 ## 問題化リスク追加候補
 
-- [ ] P2 React Doctor の unused type / unused export を機械削除できる単位へ分ける
-  - 対象: `src/stores/ui-store.ts`, `src/api/tauri-commands.ts`, `src/constants/*`, `src/components/**`, `tests/helpers/*`
-  - unused type 67 件、unused export 58 件が出ており、公開 contract と dead surface が混ざると型配置整理や import 移動のたびに判断コストが増える
-  - public API、test helper、storybook/dev-only、real dead code に分類し、worker 単位で削除または contract test へ明示する
-
 - [ ] P2 e2e app sequential await を test isolation と並列化可否で分類する
   - 対象: `e2e/app.spec.ts`, `src/__tests__/dev/scenario-runtime.test.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
   - React Doctor の `server-sequential-independent-await` が e2e と hook test に出ており、独立 setup を直列実行していると Playwright / Vitest の待ち時間が増える
