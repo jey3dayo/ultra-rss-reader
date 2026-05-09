@@ -555,6 +555,31 @@
   - 複数 decorator が同じ context を受け取り、outer/inner order と args override が変わらないことを `fixtures.test.ts` または dedicated helper test で固定する
   - render helper assertion cleanup や individual story fixture 変更とは分け、decorator composition order だけを扱う
 
+- [ ] i18n resource file inventory contract 候補を追加する
+  - `src/lib/i18n-resources.ts` の `i18nResourceNamespaces` / `i18nResources` と `src/locales/{en,ja}/*.json` のファイル実体が drift しない contract を追加する
+  - `src/__tests__/lib/i18next-locale-contract.test.ts` で namespace 名、resource map key、locale JSON file basename が完全一致することを固定する
+  - locale leaf sanity や copy 文面変更とは分け、resource file の追加漏れ・消し忘れだけを扱う
+
+- [ ] shortcut locale key coverage contract 候補を追加する
+  - `src/lib/keyboard/keyboard-shortcuts.ts` の `shortcutDefinitions` が参照する `labelKey` / `categoryKey` を reader locale に必ず持つ contract を追加する
+  - `src/__tests__/lib/i18next-locale-contract.test.ts` で en/ja の `reader.shortcuts.*` coverage と orphan shortcut key を確認する
+  - shortcut 実行挙動、recording UI、native menu accelerator とは分け、表示ラベル key coverage だけを扱う
+
+- [ ] locale interpolation token parser guard 候補を追加する
+  - `src/__tests__/lib/locale-placeholders.test.ts` の placeholder 抽出が `{{name}}` 形式だけを拾うため、i18next format suffix や未知 token が入った時の扱いを明示する
+  - raw `{{...}}` token と normalized placeholder name の両方を比較し、en/ja で token 形が揺れたら落ちる contract を追加する
+  - placeholder の文面や語順は変更せず、補間 token の parser boundary だけを扱う
+
+- [ ] locale rich text allowlist contract 候補を追加する
+  - `src/locales/{en,ja}/reader.json` の確認文で `<strong>{{name}}</strong>` / `<strong>{{title}}</strong>` だけが rich text を含む前提を contract 化する
+  - `locale-placeholders.test.ts` に locale string の HTML tag allowlist を追加し、任意 key への HTML 混入や tag mismatch を検知する
+  - article sanitized HTML や React rendering boundary とは分け、locale resource 内の rich text allowlist だけを扱う
+
+- [ ] locale ellipsis typography cleanup 候補を追加する
+  - `src/locales/{en,ja}/settings.json` の `data.opening_log_dir` が `Opening...` / `開いています...` になっており、他 locale の `…` 表記と揺れている点を整理する
+  - locale typography test で user-facing loading / progress copy に three-period ellipsis が混入しないことを allowlist 付きで固定する
+  - Storybook specimen の ellipsis cleanup とは分け、product locale copy の punctuation contract だけを扱う
+
 - [ ] similarity updater/sidebar lifecycle false-positive review 候補を追加する
   - `use-sidebar-account-selection` と `use-updater`、`use-browser-webview-bounds-sync` と `use-updater` が 91-92% 類似なので、effect cleanup / status polling skeleton だけの一致か確認する
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
