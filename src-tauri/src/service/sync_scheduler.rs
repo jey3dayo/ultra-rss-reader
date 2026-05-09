@@ -7,7 +7,9 @@ use std::time::{Duration, Instant};
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::commands::dto::{AccountSyncWarning, AccountSyncWarningKind, SyncProgressKind};
+use crate::commands::dto::{
+    AccountSyncWarning, AccountSyncWarningKind, AppError, SyncProgressKind,
+};
 use crate::commands::sync_commands::{
     purge_old_articles, sync_account, SyncProgressReporter, SYNC_COMPLETED_EVENT,
     SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
@@ -40,12 +42,6 @@ struct RetryBackoffState {
     error_count: i32,
     next_retry_at: Option<String>,
     retry_in_seconds: u64,
-}
-
-struct AccountSyncCompletion {
-    account_finished_success: bool,
-    scheduler_succeeded: bool,
-    next_sync: Instant,
 }
 
 struct SchedulerSyncGuard<'a>(&'a std::sync::atomic::AtomicBool);
@@ -190,43 +186,15 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             account.name
                         );
                         reporter.emit_account_finished(account, false);
-                        let backoff_state = match increment_error_count(&state.db, account, &e) {
-                            Ok(backoff_state) => backoff_state,
-                            Err(error) => {
-                                tracing::warn!(
-                                    "Background sync could not persist backoff state for account '{}': {error}",
-                                    account.name
-                                );
-                                warnings_to_emit
-                                    .push(backoff_persistence_failure_warning(account, &error));
-                                RetryBackoffState {
-                                    error_count: 1,
-                                    next_retry_at: None,
-                                    retry_in_seconds: calculate_backoff_secs(account, 1),
-                                }
-                            }
-                        };
-                        let backoff = calculate_backoff(account, backoff_state.error_count);
+                        let backoff = complete_failed_account_sync(
+                            &state.db,
+                            account,
+                            &e,
+                            &mut warnings_to_emit,
+                        );
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + backoff;
                         }
-                        warnings_to_emit.push(AccountSyncWarning {
-                            account_id: account.id.as_ref().to_string(),
-                            account_name: account.name.clone(),
-                            kind: AccountSyncWarningKind::RetryScheduled,
-                            message: format!(
-                                "Background sync failed and will retry automatically for '{}'.",
-                                account.name
-                            ),
-                            retry_at: backoff_state.next_retry_at.clone(),
-                            retry_in_seconds: Some(backoff_state.retry_in_seconds),
-                        });
-                        tracing::info!(
-                            "Account '{}' backoff: {}s (error_count={})",
-                            account.name,
-                            backoff.as_secs(),
-                            backoff_state.error_count
-                        );
                         all_succeeded = false;
                     }
                     Err(_) => {
@@ -234,13 +202,20 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             "Background sync panicked for account '{}', scheduler continues",
                             account.name
                         );
-                        let completion = complete_panicked_account_sync(account);
-                        reporter
-                            .emit_account_finished(account, completion.account_finished_success);
-                        all_succeeded = completion.scheduler_succeeded;
+                        reporter.emit_account_finished(account, false);
+                        let panic_error = AppError::UserVisible {
+                            message: "Background sync panicked".to_string(),
+                        };
+                        let backoff = complete_failed_account_sync(
+                            &state.db,
+                            account,
+                            &panic_error,
+                            &mut warnings_to_emit,
+                        );
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
-                            schedule.next_sync = completion.next_sync;
+                            schedule.next_sync = Instant::now() + backoff;
                         }
+                        all_succeeded = false;
                     }
                 }
             }
@@ -316,14 +291,6 @@ fn upsert_account_schedule(
     }
 }
 
-fn complete_panicked_account_sync(account: &Account) -> AccountSyncCompletion {
-    AccountSyncCompletion {
-        account_finished_success: false,
-        scheduler_succeeded: false,
-        next_sync: Instant::now() + account_interval(account),
-    }
-}
-
 fn prune_deleted_account_schedules(
     schedules: &mut HashMap<String, AccountSchedule>,
     accounts: &[Account],
@@ -368,6 +335,48 @@ fn backoff_persistence_failure_warning(
     }
 }
 
+fn complete_failed_account_sync(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    error: &crate::commands::dto::AppError,
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+) -> Duration {
+    let backoff_state = match increment_error_count(db, account, error) {
+        Ok(backoff_state) => backoff_state,
+        Err(error) => {
+            tracing::warn!(
+                "Background sync could not persist backoff state for account '{}': {error}",
+                account.name
+            );
+            warnings_to_emit.push(backoff_persistence_failure_warning(account, &error));
+            RetryBackoffState {
+                error_count: 1,
+                next_retry_at: None,
+                retry_in_seconds: calculate_backoff_secs(account, 1),
+            }
+        }
+    };
+    let backoff = calculate_backoff(account, backoff_state.error_count);
+    warnings_to_emit.push(AccountSyncWarning {
+        account_id: account.id.as_ref().to_string(),
+        account_name: account.name.clone(),
+        kind: AccountSyncWarningKind::RetryScheduled,
+        message: format!(
+            "Background sync failed and will retry automatically for '{}'.",
+            account.name
+        ),
+        retry_at: backoff_state.next_retry_at.clone(),
+        retry_in_seconds: Some(backoff_state.retry_in_seconds),
+    });
+    tracing::info!(
+        "Account '{}' backoff: {}s (error_count={})",
+        account.name,
+        backoff.as_secs(),
+        backoff_state.error_count
+    );
+    backoff
+}
+
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
     Duration::from_secs(calculate_backoff_secs(account, error_count))
 }
@@ -385,18 +394,29 @@ fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bool {
     let Some(db_guard) = db.lock().ok() else {
         return false;
     };
-    let repo = SqliteSyncStateRepository::new(db_guard.reader());
+    let repo = SqliteSyncStateRepository::new(db_guard.writer());
     let scope_key = SyncStateScopeKey::scheduler();
-    let Some(state) = repo.get(account_id, &scope_key).ok().flatten() else {
+    let Some(mut state) = repo.get(account_id, &scope_key).ok().flatten() else {
         return false;
     };
     if state.error_count == 0 {
         return false;
     }
-    // If next_retry_at is set and in the future, we're in backoff
     if let Some(ref next_retry) = state.next_retry_at {
         if let Ok(retry_time) = chrono::DateTime::parse_from_rfc3339(next_retry) {
             return chrono::Utc::now() < retry_time;
+        }
+        tracing::warn!(
+            "Clearing invalid scheduler next_retry_at for account '{}': {}",
+            account_id.as_ref(),
+            next_retry
+        );
+        state.next_retry_at = None;
+        if let Err(error) = repo.save(&state) {
+            tracing::warn!(
+                "Failed to clear invalid scheduler next_retry_at for account '{}': {error}",
+                account_id.as_ref()
+            );
         }
     }
     false
@@ -528,6 +548,25 @@ mod tests {
                     account_id.0,
                     SyncStateScopeKey::scheduler().as_string(),
                     error_count
+                ],
+            )
+            .unwrap();
+    }
+
+    fn insert_scheduler_sync_state(
+        db: &DbManager,
+        account_id: &AccountId,
+        error_count: i32,
+        next_retry_at: Option<&str>,
+    ) {
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, error_count, next_retry_at) VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    account_id.0,
+                    SyncStateScopeKey::scheduler().as_string(),
+                    error_count,
+                    next_retry_at,
                 ],
             )
             .unwrap();
@@ -861,15 +900,54 @@ mod tests {
     }
 
     #[test]
-    fn panicked_account_sync_completes_progress_as_failed_and_reschedules() {
-        let account = test_account(900);
-        let before = Instant::now();
+    fn failed_account_sync_persists_backoff_and_emits_retry_warning() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+        }
+        let mut warnings = Vec::new();
 
-        let completion = complete_panicked_account_sync(&account);
+        let backoff = complete_failed_account_sync(
+            &db,
+            &account,
+            &AppError::UserVisible {
+                message: "Background sync panicked".to_string(),
+            },
+            &mut warnings,
+        );
 
-        assert!(!completion.account_finished_success);
-        assert!(!completion.scheduler_succeeded);
-        assert!(completion.next_sync >= before + Duration::from_secs(900));
-        assert!(completion.next_sync <= Instant::now() + Duration::from_secs(900));
+        assert_eq!(backoff, calculate_backoff(&account, 1));
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].kind, AccountSyncWarningKind::RetryScheduled);
+        assert_eq!(
+            warnings[0].retry_in_seconds,
+            Some(calculate_backoff_secs(&account, 1))
+        );
+        assert!(warnings[0].retry_at.is_some());
+        assert!(is_in_backoff(&db, &account.id));
+    }
+
+    #[test]
+    fn is_in_backoff_clears_invalid_next_retry_at_and_allows_retry() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+            insert_scheduler_sync_state(&db_guard, &account.id, 2, Some("not-a-date"));
+        }
+
+        assert!(!is_in_backoff(&db, &account.id));
+
+        let db_guard = db.lock().unwrap();
+        let repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = repo
+            .get(&account.id, SyncStateScopeKey::scheduler())
+            .unwrap()
+            .unwrap();
+        assert_eq!(state.error_count, 2);
+        assert_eq!(state.next_retry_at, None);
     }
 }

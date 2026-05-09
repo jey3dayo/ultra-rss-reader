@@ -9,8 +9,9 @@ use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
 use crate::domain::provider::{FeedIdentifier, Mutation, PullScope, SyncCursor};
-use crate::domain::types::{AccountId, FeedId, FolderId};
+use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
@@ -30,6 +31,58 @@ use crate::repository::pending_mutation::{
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 use super::feed_commands::lock_db;
+
+fn upsert_articles_in_current_transaction(
+    conn: &rusqlite::Connection,
+    articles: &[Article],
+) -> Result<(), AppError> {
+    let mut stmt = conn
+        .prepare(
+            "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+             ON CONFLICT(id) DO UPDATE SET
+               title = excluded.title,
+               content_raw = excluded.content_raw,
+               content_sanitized = excluded.content_sanitized,
+               content_text = excluded.content_text,
+               sanitizer_version = excluded.sanitizer_version,
+               summary = excluded.summary,
+               url = excluded.url,
+               author = excluded.author,
+               published_at = excluded.published_at,
+               thumbnail = excluded.thumbnail,
+               fetched_at = excluded.fetched_at",
+        )
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    for article in articles {
+        stmt.execute(rusqlite::params![
+            article.id.0,
+            article.feed_id.0,
+            article.remote_id,
+            article.title,
+            article.content_raw,
+            article.content_sanitized,
+            article.sanitizer_version,
+            article.summary,
+            article.url,
+            article.author,
+            article.published_at.to_rfc3339(),
+            article.thumbnail,
+            article.is_read,
+            article.is_starred,
+            article.fetched_at.to_rfc3339(),
+            if article.content_sanitized.trim().is_empty() {
+                article.summary.clone().unwrap_or_default()
+            } else {
+                sanitizer::extract_visible_text(&article.content_sanitized)
+            },
+        ])
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ProviderSyncOutcome {
@@ -233,18 +286,45 @@ pub(super) async fn sync_local_feed(
             })
             .collect();
 
-        if !articles.is_empty() {
-            let db_guard = lock_db(db)?;
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            let feed_repo_w = SqliteFeedRepository::new(db_guard.writer());
-            article_repo.upsert(&articles)?;
-            let candidate_ids = articles
-                .iter()
-                .map(|article| article.id.clone())
-                .collect::<Vec<_>>();
-            article_repo.mark_muted_unread_as_read(account_id, Some(&candidate_ids))?;
-            feed_repo_w.recalculate_unread_count(&feed.id)?;
-        }
+        let next_state = SyncState {
+            account_id: account_id.clone(),
+            scope_key: scope_key.as_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: result
+                .next_cursor
+                .as_ref()
+                .and_then(|cursor| cursor.etag.clone()),
+            last_modified: result
+                .next_cursor
+                .as_ref()
+                .and_then(|cursor| cursor.last_modified.clone()),
+            last_success_at: Some(chrono::Utc::now().to_rfc3339()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        };
+        let db_guard = lock_db(db)?;
+        let tx = db_guard
+            .writer()
+            .unchecked_transaction()
+            .map_err(crate::domain::error::DomainError::from)
+            .map_err(AppError::from)?;
+        upsert_articles_in_current_transaction(&tx, &articles)?;
+        let candidate_ids = articles
+            .iter()
+            .map(|article| article.id.clone())
+            .collect::<Vec<ArticleId>>();
+        mark_muted_unread_as_read_with_conn(&tx, account_id, Some(&candidate_ids))?;
+        let feed_repo = SqliteFeedRepository::new(&tx);
+        feed_repo.recalculate_unread_count(&feed.id)?;
+        let sync_state_repo = SqliteSyncStateRepository::new(&tx);
+        sync_state_repo.save(&next_state)?;
+        tx.commit()
+            .map_err(crate::domain::error::DomainError::from)
+            .map_err(AppError::from)?;
+
+        return Ok(());
     }
 
     let next_state = SyncState {
@@ -3074,6 +3154,28 @@ mod tests {
             .expect_err("post-write integrity failures should be returned");
 
         mock.assert_async().await;
+        let db_guard = db.lock().unwrap();
+        let article_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                rusqlite::params![feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let sync_state_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+                rusqlite::params![
+                    account.id.as_ref(),
+                    local_feed_scope_key(&feed.url).as_string()
+                ],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(article_count, 0);
+        assert_eq!(sync_state_count, 0);
         match error {
             AppError::UserVisible { message } => {
                 assert!(message.contains("no such table: preferences"));
