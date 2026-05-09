@@ -41,11 +41,14 @@ type RunAccountSetupSyncParams = {
   t: TFunction<"settings">;
   onSyncStatusChanged?: () => void;
   owner?: AccountSetupSessionOwner;
+  shouldApplyFinalUiAction?: () => boolean;
 };
 
 function resolveSetupFailureMessage(t: TFunction<"settings">, syncResult: Awaited<ReturnType<typeof syncAccount>>) {
   if (Result.isFailure(syncResult)) {
-    return t("account.sync_failed", { message: Result.unwrapError(syncResult).message });
+    return t("account.sync_failed", {
+      message: Result.unwrapError(syncResult).message,
+    });
   }
 
   return resolveSyncFeedbackMessage(summarizeSyncResult(Result.unwrap(syncResult)), {
@@ -64,6 +67,7 @@ export async function runAccountSetupSync({
   t,
   onSyncStatusChanged,
   owner,
+  shouldApplyFinalUiAction,
 }: RunAccountSetupSyncParams) {
   useUiStore.getState().startAccountSetup(accountId, { owner });
 
@@ -98,6 +102,10 @@ export async function runAccountSetupSync({
 
   const uiState = useUiStore.getState();
   uiState.markAccountSetupSucceeded(accountId);
+  if (shouldApplyFinalUiAction && !shouldApplyFinalUiAction()) {
+    uiState.clearAccountSetup();
+    return;
+  }
   uiState.selectAccount(accountId);
   uiState.selectSmartView("unread");
   uiState.closeSettings();

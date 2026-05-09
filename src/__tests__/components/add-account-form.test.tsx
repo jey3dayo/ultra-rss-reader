@@ -654,6 +654,157 @@ describe("AddAccountForm", () => {
     });
   });
 
+  it("drops FreshRSS-only fields when switching providers before Local submit", async () => {
+    const addAccountCalls = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "add_account") {
+        addAccountCalls(args);
+        return {
+          ...sampleAccounts[0],
+          id: "acc-local",
+          kind: "Local",
+          name: "Local",
+          server_url: null,
+          sync_interval_secs: 3600,
+          sync_on_startup: true,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
+        };
+      }
+      if (cmd === "trigger_sync_account") {
+        return new Promise(() => {});
+      }
+      return null;
+    });
+
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Name"), "Work RSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: /Back/ }));
+    await selectService(user, "Local Feeds");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(addAccountCalls).toHaveBeenCalledWith({
+        kind: "Local",
+        name: "Local",
+      });
+    });
+  });
+
+  it("ignores add account success after switching away from the provider snapshot", async () => {
+    const addAccount = setupPendingAddAccount();
+    const user = userEvent.setup();
+
+    const { unmount } = render(<AddAccountForm />, {
+      wrapper: createWrapper(),
+    });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Name"), "Work RSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        owner: "add-account",
+        state: "verifying",
+      });
+    });
+
+    unmount();
+    useUiStore.getState().openSettingsAccount("acc-existing");
+
+    addAccount.resolve({
+      ...sampleAccounts[1],
+      id: "acc-stale",
+      kind: "FreshRss",
+      name: "FreshRSS",
+      username: "alice",
+      server_url: "https://freshrss.example.com",
+      sync_interval_secs: 3600,
+      sync_on_startup: true,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Testing connection…" })).not.toBeInTheDocument();
+    });
+    expect(useUiStore.getState().selectedAccountId).not.toBe("acc-stale");
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-existing");
+    expect(useUiStore.getState().accountSetupSession).toBeNull();
+  });
+
+  it("does not let stale setup sync completion override later navigation", async () => {
+    const user = userEvent.setup();
+    let releaseSync = () => {};
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        return {
+          ...sampleAccounts[1],
+          id: "acc-new",
+          kind: "FreshRss",
+          name: "FreshRSS",
+          username: "alice",
+          server_url: "https://freshrss.example.com",
+          sync_interval_secs: 3600,
+          sync_on_startup: true,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
+        };
+      }
+      if (cmd === "trigger_sync_account") {
+        return new Promise((resolve) => {
+          releaseSync = () =>
+            resolve({
+              synced: true,
+              total: 1,
+              succeeded: 1,
+              failed: [],
+              warnings: [],
+            });
+        });
+      }
+      return null;
+    });
+
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        accountId: "acc-new",
+        owner: "add-account",
+        state: "syncing",
+      });
+    });
+
+    useUiStore.getState().openSettingsAccount("acc-existing");
+    releaseSync();
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountSetupSession).toBeNull();
+    });
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-new");
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-existing");
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+  });
+
   it("keeps setup sync ownership stable across duplicate submit, navigation away, rejection, and retry", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
@@ -688,7 +839,9 @@ describe("AddAccountForm", () => {
       return null;
     });
 
-    const { unmount } = render(<AddAccountForm />, { wrapper: createWrapper() });
+    const { unmount } = render(<AddAccountForm />, {
+      wrapper: createWrapper(),
+    });
 
     await selectService(user, "FreshRSS");
     await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");

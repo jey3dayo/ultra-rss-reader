@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useReducer, useRef } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
@@ -40,6 +40,15 @@ type AccountConfigUiState = {
 type AccountConfigUiAction =
   | { type: "set-submitting"; value: boolean }
   | { type: "set-error-message"; value: string | null };
+
+type AddAccountRequestSnapshot = {
+  requestId: number;
+  kind: AddAccountProviderKind;
+  name: string;
+  serverUrl?: string;
+  username?: string;
+  password?: string;
+};
 
 const initialAccountConfigUiState: AccountConfigUiState = {
   submitting: false,
@@ -84,9 +93,36 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
   const { submitting, errorMessage } = uiState;
   const submittingRef = useRef(submitting);
   const submittedSuccessfullyRef = useRef(false);
+  const mountedRef = useRef(false);
+  const submitRequestIdRef = useRef(0);
+  const formRef = useRef(form);
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const serviceDef = findServiceDefinition(kind);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  const isCurrentSubmitSnapshot = (snapshot: AddAccountRequestSnapshot) => {
+    const current = formRef.current;
+    return (
+      mountedRef.current &&
+      snapshot.requestId === submitRequestIdRef.current &&
+      current.kind === snapshot.kind &&
+      current.name === snapshot.name &&
+      current.serverUrl === (snapshot.serverUrl ?? "") &&
+      current.username === (snapshot.username ?? "") &&
+      current.password === (snapshot.password ?? "")
+    );
+  };
 
   const handleSubmit = async () => {
     if (submittingRef.current || submittedSuccessfullyRef.current) {
@@ -104,11 +140,23 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     }
 
     if (debugState?.submitMessage) {
-      dispatchUi({ type: "set-error-message", value: debugState.submitMessage });
+      dispatchUi({
+        type: "set-error-message",
+        value: debugState.submitMessage,
+      });
       return;
     }
 
     const payload = Result.unwrap(payloadResult);
+    const requestSnapshot: AddAccountRequestSnapshot = {
+      requestId: submitRequestIdRef.current + 1,
+      kind: payload.kind,
+      name: form.name,
+      serverUrl: form.serverUrl,
+      username: form.username,
+      password: form.password,
+    };
+    submitRequestIdRef.current = requestSnapshot.requestId;
     submittingRef.current = true;
     dispatchUi({ type: "set-submitting", value: true });
     useUiStore.getState().startAccountSetupVerification();
@@ -116,6 +164,11 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
       Result.pipe(
         await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
         Result.inspectError((e) => {
+          if (!isCurrentSubmitSnapshot(requestSnapshot)) {
+            useUiStore.getState().clearAccountSetup();
+            return;
+          }
+
           let message: string;
           if (e.type === "Retryable") {
             message = t("account.error_network");
@@ -132,6 +185,11 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           useUiStore.getState().clearAccountSetup();
         }),
         Result.inspect((account) => {
+          if (!isCurrentSubmitSnapshot(requestSnapshot)) {
+            useUiStore.getState().clearAccountSetup();
+            return;
+          }
+
           submittedSuccessfullyRef.current = true;
           upsertCachedAccount(qc, account);
           invalidateQueryKeysLogOnly(qc, [["accounts"], queryKeys.feeds.root]);
@@ -143,12 +201,28 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
             queryClient: qc,
             t,
             owner: "add-account",
+            shouldApplyFinalUiAction: () => {
+              if (!isCurrentSubmitSnapshot(requestSnapshot)) {
+                return false;
+              }
+
+              const state = useUiStore.getState();
+              return (
+                state.accountSetupSession?.owner === "add-account" &&
+                state.accountSetupSession.state !== "verifying" &&
+                state.accountSetupSession.accountId === account.id &&
+                state.settingsAccountId === account.id &&
+                !state.settingsAddAccount
+              );
+            },
           });
         }),
       );
     } finally {
       submittingRef.current = false;
-      dispatchUi({ type: "set-submitting", value: false });
+      if (mountedRef.current) {
+        dispatchUi({ type: "set-submitting", value: false });
+      }
     }
   };
 
