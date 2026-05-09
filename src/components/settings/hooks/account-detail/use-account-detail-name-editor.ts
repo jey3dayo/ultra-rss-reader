@@ -45,7 +45,7 @@ function accountDetailNameEditorReducer(
 ): AccountDetailNameEditorState {
   switch (action.type) {
     case "start-edit":
-      return { ...state, editingName: true, nameDraft: action.value };
+      return { ...state, editingName: true, savingName: false, nameDraft: action.value };
     case "set-name-draft":
       return { ...state, nameDraft: action.value };
     case "set-saving-name":
@@ -69,8 +69,10 @@ export function useAccountDetailNameEditor({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const cancelScheduledFocusRef = useRef<(() => void) | null>(null);
   const editSessionRef = useRef(0);
+  const activeAccountIdRef = useRef(account.id);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
   const editSessionAtRender = editSessionRef.current;
+  activeAccountIdRef.current = account.id;
 
   const cancelScheduledFocus = useCallback(() => {
     cancelScheduledFocusRef.current?.();
@@ -99,9 +101,16 @@ export function useAccountDetailNameEditor({
     }
 
     dispatch({ type: "set-saving-name", value: true });
+    const requestAccountId = account.id;
+    const requestEditSession = editSessionRef.current;
     let renameSucceeded = false;
+    const renameResult = await renameAccount(requestAccountId, trimmed);
+    if (activeAccountIdRef.current !== requestAccountId || editSessionRef.current !== requestEditSession) {
+      return;
+    }
+
     Result.pipe(
-      await renameAccount(account.id, trimmed),
+      renameResult,
       Result.inspectError(showRenameError),
       Result.inspect((updated) => {
         renameSucceeded = true;

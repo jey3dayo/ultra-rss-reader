@@ -224,6 +224,47 @@ describe("useAccountDetailNameEditor", () => {
     expect(result.current.savingName).toBe(false);
     expect(result.current.nameDraft).toBe("FreshRSS Personal");
   });
+
+  it("ignores a stale rename response after switching accounts and starting a new edit", async () => {
+    const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
+    const secondAccount = { ...sampleAccounts[2], id: "acc-2", name: "Local Account" };
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], [firstAccount, secondAccount]);
+    const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
+    renameAccountMock.mockReturnValue(staleRename.promise);
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailNameEditor({
+          account,
+          queryClient,
+          t,
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("Stale Name");
+    });
+    const saveStaleRename = result.current.commitRename();
+
+    rerender({ account: secondAccount });
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("Current Draft");
+    });
+
+    await act(async () => {
+      staleRename.resolve(Result.succeed({ ...firstAccount, name: "Stale Name" }));
+      await saveStaleRename;
+    });
+
+    expect(queryClient.getQueryData(["accounts"])).toEqual([firstAccount, secondAccount]);
+    expect(result.current.editingName).toBe(true);
+    expect(result.current.savingName).toBe(false);
+    expect(result.current.nameDraft).toBe("Current Draft");
+  });
 });
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {
@@ -231,4 +272,18 @@ function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputEl
     configurable: true,
     value: input,
   });
+}
+
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolveDeferred: (value: T | PromiseLike<T>) => void = () => {};
+  let rejectDeferred: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveDeferred = resolve;
+    rejectDeferred = reject;
+  });
+  return { promise, resolve: resolveDeferred, reject: rejectDeferred };
 }

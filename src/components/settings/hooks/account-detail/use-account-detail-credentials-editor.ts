@@ -117,12 +117,16 @@ export function useAccountDetailCredentialsEditor({
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const pendingCredentialSaveRevisionRef = useRef<number | null>(null);
   const pendingConnectionTestRef = useRef(false);
+  const activeAccountIdRef = useRef(account.id);
+  const draftRevisionRef = useRef(state.draftRevision);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
   const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
+  activeAccountIdRef.current = account.id;
+  draftRevisionRef.current = state.draftRevision;
 
   const commitCredentials = async (): Promise<boolean> => {
     if (pendingCredentialSaveRef.current) {
@@ -190,13 +194,21 @@ export function useAccountDetailCredentialsEditor({
 
     pendingConnectionTestRef.current = true;
     dispatch({ type: "set-testing-connection", value: true });
+    const requestAccountId = account.id;
+    const requestDraftRevision = state.draftRevision;
     try {
       const credentialsSaved = await commitCredentials();
       if (!credentialsSaved) {
         return;
       }
+      if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
+        return;
+      }
 
-      const result = await testAccountConnection(account.id);
+      const result = await testAccountConnection(requestAccountId);
+      if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
+        return;
+      }
       if (Result.isFailure(result)) {
         showConnectionError(Result.unwrapError(result));
         await queryClient.invalidateQueries({ queryKey: ["accounts"] });

@@ -259,6 +259,80 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
     expect(result.current.testingConnection).toBe(false);
   });
+
+  it("ignores a stale connection success when the draft changes before the result returns", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], [account]);
+    const staleConnection = createDeferred<ReturnType<typeof testAccountConnectionMock>>();
+    testAccountConnectionMock.mockReturnValue(staleConnection.promise);
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    let testConnection: Promise<void> = Promise.resolve();
+    await act(async () => {
+      testConnection = result.current.handleTestConnection();
+      await Promise.resolve();
+    });
+    expect(testAccountConnectionMock).toHaveBeenCalledWith(account.id);
+
+    act(() => {
+      result.current.setCredUsername("new-draft");
+    });
+
+    await act(async () => {
+      staleConnection.resolve(Result.succeed({ ...account, username: "stale-user" }));
+      await testConnection;
+    });
+
+    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(result.current.credUsername).toBe("new-draft");
+    expect(result.current.testingConnection).toBe(false);
+  });
+
+  it("ignores a stale connection failure after switching accounts", async () => {
+    const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
+    const secondAccount = { ...sampleAccounts[2], id: "acc-2", name: "Local Account" };
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const staleConnection = createDeferred<ReturnType<typeof testAccountConnectionMock>>();
+    testAccountConnectionMock.mockReturnValue(staleConnection.promise);
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailCredentialsEditor({
+          account,
+          queryClient,
+          t,
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    let testConnection: Promise<void> = Promise.resolve();
+    await act(async () => {
+      testConnection = result.current.handleTestConnection();
+      await Promise.resolve();
+    });
+    expect(testAccountConnectionMock).toHaveBeenCalledWith(firstAccount.id);
+
+    rerender({ account: secondAccount });
+
+    await act(async () => {
+      staleConnection.resolve(Result.fail({ message: "stale failure" }));
+      await testConnection;
+    });
+
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(result.current.testingConnection).toBe(false);
+  });
 });
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {
@@ -266,4 +340,18 @@ function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputEl
     configurable: true,
     value: input,
   });
+}
+
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolveDeferred: (value: T | PromiseLike<T>) => void = () => {};
+  let rejectDeferred: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveDeferred = resolve;
+    rejectDeferred = reject;
+  });
+  return { promise, resolve: resolveDeferred, reject: rejectDeferred };
 }
