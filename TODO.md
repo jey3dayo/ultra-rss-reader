@@ -188,26 +188,3 @@
 ## 次の並列バッチ候補
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
-
-- [ ] P3 参照範囲が広い root-level type を別バッチで分割する
-  - reader selection は `src/lib/reader/reader-selection.types.ts` を source of truth にする。新しい `UiSelection` alias は増やさない
-  - さらに state type を分割する場合は、`src/stores/ui-store.ts` 自体を slice 化できる段階で実施する。store action / selector / dev scenario への参照が広いため別バッチにする
-
-- [ ] P3 小粒 cleanup 候補を別バッチで見直す
-  - UI class variant の追加テストは shared component の semantic token / role contract に限定する。hover 全量や visual snapshot は固定しない
-  - pure helper の追加テストは、article list selection / navigation / grouping / mark-all-read count など挙動の契約として価値があるものだけ残す
-  - view-level props の `export type` は hook / Storybook / tests の contract として使うものだけ残す。外部 import がない helper props は触るファイルごとに local type へ戻す
-  - reader の残りは browser geometry など参照範囲が広い単位で見直す
-  - `src/components/ui/` の primitive wrapper props は shadcn/Base UI wrapper API として扱う。外部 import がなくても、公開 wrapper contract の方針を決めるまでは一括 local 化しない
-  - shared component の `.types.ts` は、複数ファイルで共有する contract だけ残す。`dialog.types.ts` の `ConfirmDialogVariant` のように store / view にまたがるものは、呼び出し境界が変わる時に見直す
-  - Browser geometry の数値固定や picker 専用 chip variant の網羅は参照範囲が広く、実機/呼び出し側 layout 影響を見てから別バッチで扱う
-
-- [ ] P3 store slice boundary 整理候補を別バッチで見直す
-  - `ui-store.ts` の reader selection / layout state / settings modal / toast / sync progress / account setup session を、参照範囲ごとに slice 化できるか確認する
-  - `preferences-store.ts` は schema と永続化 contract があるため、UI store 分割とは同じバッチに混ぜない
-  - store selector の import 先が多いため、まずは type alias / action group の棚卸しだけ行い、挙動変更は避ける
-
-- [ ] P0 provider / sync flow boundary 整理候補を別バッチで見直す
-  - `sync_flow.rs` / `sync_scheduler.rs` / provider traits / greader provider の責務を、provider adapter と app sync orchestration に分けて棚卸しする
-  - pending mutation / sync state / account sync status はデータ整合性に関わるため、UI sync feedback の型整理とは混ぜない
-  - network error / auth error / rate limit など失敗種別は domain error contract の test を先に固定する
