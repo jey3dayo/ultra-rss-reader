@@ -514,11 +514,9 @@ impl FeedProvider for GReaderProvider {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(DomainError::Auth(format!(
-                "Authentication failed: {}",
-                response.status()
-            )));
+        let status = response.status();
+        if !status.is_success() {
+            return Err(DomainError::from_provider_http_status(status));
         }
 
         let text = response.text().await?;
@@ -926,6 +924,37 @@ mod tests {
         provider.authenticate(&creds).await.unwrap();
         assert_eq!(provider.auth_token.as_deref(), Some("test-token-123"));
         mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn authenticate_maps_provider_http_status_categories() {
+        let cases = [
+            (401, "Auth error: HTTP 401 Unauthorized"),
+            (429, "Rate limit error: HTTP 429 Too Many Requests"),
+            (502, "Network error: HTTP 502 Bad Gateway"),
+        ];
+
+        for (status, expected_message) in cases {
+            let mut server = mockito::Server::new_async().await;
+            let auth_mock = server
+                .mock("POST", "/api/greader.php/accounts/ClientLogin")
+                .match_header("Content-Type", "application/x-www-form-urlencoded")
+                .with_status(status)
+                .create_async()
+                .await;
+
+            let mut provider = GReaderProvider::for_freshrss(&server.url());
+            let error = provider
+                .authenticate(&Credentials {
+                    password: Some("p".into()),
+                    token: Some("u".into()),
+                })
+                .await
+                .expect_err("auth status errors should preserve domain failure category");
+
+            assert_eq!(error.to_string(), expected_message);
+            auth_mock.assert_async().await;
+        }
     }
 
     #[tokio::test]
