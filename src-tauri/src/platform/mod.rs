@@ -53,7 +53,15 @@ fn uses_dev_file_credentials_from_env<F>(get_env: F) -> bool
 where
     F: Fn(&str) -> Option<String>,
 {
-    get_env("DEV_CREDENTIALS").is_some() || get_env("ULTRA_RSS_DEV_CREDENTIALS").is_some()
+    fn is_truthy(value: &str) -> bool {
+        matches!(
+            value.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        )
+    }
+
+    get_env("DEV_CREDENTIALS").is_some_and(|value| is_truthy(&value))
+        || get_env("ULTRA_RSS_DEV_CREDENTIALS").is_some_and(|value| is_truthy(&value))
 }
 
 impl PlatformInfo {
@@ -110,7 +118,53 @@ mod tests {
     }
 
     #[test]
-    fn dev_file_credentials_flag_is_enabled_only_when_env_var_exists() {
+    fn platform_capabilities_are_owned_by_native_platform_kind() {
+        let cases = [
+            (PlatformKind::Macos, (true, true, false, true, false)),
+            (PlatformKind::Windows, (false, false, true, true, false)),
+            (PlatformKind::Linux, (false, false, false, false, false)),
+            (PlatformKind::Unknown, (false, false, false, false, false)),
+        ];
+
+        for (
+            kind,
+            (
+                supports_reading_list,
+                supports_background_browser_open,
+                supports_runtime_window_icon_replacement,
+                supports_native_browser_navigation,
+                uses_dev_file_credentials,
+            ),
+        ) in cases
+        {
+            let info = platform_info_for_kind(kind);
+
+            assert_eq!(info.kind, kind);
+            assert_eq!(
+                info.capabilities.supports_reading_list,
+                supports_reading_list
+            );
+            assert_eq!(
+                info.capabilities.supports_background_browser_open,
+                supports_background_browser_open
+            );
+            assert_eq!(
+                info.capabilities.supports_runtime_window_icon_replacement,
+                supports_runtime_window_icon_replacement
+            );
+            assert_eq!(
+                info.capabilities.supports_native_browser_navigation,
+                supports_native_browser_navigation
+            );
+            assert_eq!(
+                info.capabilities.uses_dev_file_credentials,
+                uses_dev_file_credentials
+            );
+        }
+    }
+
+    #[test]
+    fn dev_file_credentials_flag_is_enabled_only_for_truthy_env_values() {
         let enabled = uses_dev_file_credentials_from_env(|key| {
             if key == "DEV_CREDENTIALS" {
                 Some("1".to_string())
@@ -126,9 +180,33 @@ mod tests {
             }
         });
         let disabled = uses_dev_file_credentials_from_env(|_| None);
+        let false_value_disabled = uses_dev_file_credentials_from_env(|key| {
+            if key == "DEV_CREDENTIALS" {
+                Some("false".to_string())
+            } else {
+                None
+            }
+        });
+        let zero_value_disabled = uses_dev_file_credentials_from_env(|key| {
+            if key == "DEV_CREDENTIALS" {
+                Some("0".to_string())
+            } else {
+                None
+            }
+        });
+        let blank_value_disabled = uses_dev_file_credentials_from_env(|key| {
+            if key == "DEV_CREDENTIALS" {
+                Some(" ".to_string())
+            } else {
+                None
+            }
+        });
 
         assert!(enabled);
         assert!(legacy_enabled);
         assert!(!disabled);
+        assert!(!false_value_disabled);
+        assert!(!zero_value_disabled);
+        assert!(!blank_value_disabled);
     }
 }

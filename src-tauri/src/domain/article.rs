@@ -39,7 +39,7 @@ pub fn generate_entry_id(
     entry_url: Option<&str>,
     title: Option<&str>,
 ) -> ArticleId {
-    if let Some(id) = guid {
+    if let Some(id) = guid.map(str::trim) {
         if !id.is_empty() {
             return ArticleId(format!("{account_id}:{id}"));
         }
@@ -65,6 +65,18 @@ mod tests {
     #[test]
     fn guid_takes_precedence() {
         let id = generate_entry_id("acc1", Some("guid-123"), "http://feed.com", None, None);
+        assert_eq!(id, ArticleId("acc1:guid-123".to_string()));
+    }
+
+    #[test]
+    fn guid_is_trimmed_before_use() {
+        let id = generate_entry_id(
+            "acc1",
+            Some("  guid-123  "),
+            "http://feed.com",
+            Some("http://article.com/1"),
+            Some("My Title"),
+        );
         assert_eq!(id, ArticleId("acc1:guid-123".to_string()));
     }
 
@@ -103,6 +115,38 @@ mod tests {
             None,
         );
         assert_eq!(id.0.len(), 64); // should use URL hash, not empty guid
+    }
+
+    #[test]
+    fn whitespace_guid_falls_back_to_url() {
+        let id = generate_entry_id(
+            "acc1",
+            Some("  \n\t  "),
+            "http://feed.com",
+            Some("http://article.com"),
+            Some("Ignored Title"),
+        );
+        let no_guid_id = generate_entry_id(
+            "acc1",
+            None,
+            "http://feed.com",
+            Some("http://article.com"),
+            Some("Different Title"),
+        );
+        assert_eq!(id, no_guid_id);
+    }
+
+    #[test]
+    fn whitespace_guid_without_url_falls_back_to_title() {
+        let id = generate_entry_id(
+            "acc1",
+            Some("  \n\t  "),
+            "http://feed.com",
+            None,
+            Some("My Title"),
+        );
+        let no_guid_id = generate_entry_id("acc1", None, "http://feed.com", None, Some("My Title"));
+        assert_eq!(id, no_guid_id);
     }
 
     #[test]

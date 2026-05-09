@@ -131,6 +131,16 @@ pub(crate) fn should_emit_sync_succeeded(result: &SyncResult) -> bool {
     result.synced && result.succeeded > 0 && result.failed.is_empty() && result.warnings.is_empty()
 }
 
+pub(crate) fn should_emit_sync_warning(result: &SyncResult) -> bool {
+    result.synced && !result.warnings.is_empty()
+}
+
+fn emit_sync_warning_event(app_handle: &tauri::AppHandle, result: &SyncResult) {
+    if should_emit_sync_warning(result) {
+        let _ = app_handle.emit(SYNC_WARNING_EVENT, result.warnings.clone());
+    }
+}
+
 fn map_account_sync_status(sync_state: Option<SyncState>) -> AccountSyncStatus {
     match sync_state {
         Some(sync_state) => AccountSyncStatus {
@@ -192,6 +202,16 @@ fn mark_startup_remote_state_repair_complete(db: &Mutex<DbManager>) -> Result<()
     Ok(())
 }
 
+#[cfg(not(test))]
+fn local_provider() -> LocalProvider {
+    LocalProvider::new()
+}
+
+#[cfg(test)]
+fn local_provider() -> LocalProvider {
+    LocalProvider::new_allowing_private_feed_urls_for_tests()
+}
+
 /// Sync a single account, returning warnings on soft anomalies and Err on hard failures.
 pub(crate) async fn sync_account(
     db: &Mutex<DbManager>,
@@ -199,7 +219,7 @@ pub(crate) async fn sync_account(
 ) -> Result<super::sync_providers::ProviderSyncOutcome, AppError> {
     match account.kind {
         ProviderKind::Local => {
-            let provider = LocalProvider::new();
+            let provider = local_provider();
             let feeds = {
                 let db_guard = lock_db(db)?;
                 let feed_repo = SqliteFeedRepository::new(db_guard.reader());
@@ -225,7 +245,7 @@ pub(crate) async fn sync_feed(
 ) -> Result<super::sync_providers::ProviderSyncOutcome, AppError> {
     match account.kind {
         ProviderKind::Local => {
-            let provider = LocalProvider::new();
+            let provider = local_provider();
             sync_local_feed(db, &provider, &account.id, feed).await?;
             Ok(super::sync_providers::ProviderSyncOutcome::default())
         }
@@ -604,6 +624,7 @@ pub async fn trigger_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
         );
+        emit_sync_warning_event(&app_handle, &result);
         let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
             let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
@@ -630,9 +651,7 @@ pub async fn trigger_automatic_sync(
     )
     .await?;
     if result.synced {
-        if !result.warnings.is_empty() {
-            let _ = app_handle.emit(SYNC_WARNING_EVENT, result.warnings.clone());
-        }
+        emit_sync_warning_event(&app_handle, &result);
         let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
             let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
@@ -733,6 +752,7 @@ pub async fn trigger_sync_account(
     }
     reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
+        emit_sync_warning_event(&app_handle, &result);
         let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
             let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
@@ -837,6 +857,7 @@ pub async fn trigger_sync_feed(
 
     reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
+        emit_sync_warning_event(&app_handle, &result);
         let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
             let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
@@ -946,6 +967,26 @@ mod tests {
         };
 
         assert!(!should_emit_sync_succeeded(&result));
+    }
+
+    #[test]
+    fn should_emit_sync_warning_when_synced_result_has_warnings() {
+        let result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: Vec::new(),
+            warnings: vec![AccountSyncWarning {
+                account_id: "acc-1".to_string(),
+                account_name: "FreshRSS".to_string(),
+                kind: crate::commands::dto::AccountSyncWarningKind::Generic,
+                message: "Skipped entries.".to_string(),
+                retry_at: None,
+                retry_in_seconds: None,
+            }],
+        };
+
+        assert!(should_emit_sync_warning(&result));
     }
 
     #[test]

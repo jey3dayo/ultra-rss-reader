@@ -34,6 +34,17 @@ const ITEM_MARK_ALL_READ_MENU_ID: &str = "item-mark-all-read";
 const SHARE_COPY_LINK_MENU_ID: &str = "share-copy-link";
 const SHARE_OPEN_BROWSER_MENU_ID: &str = "share-open-browser";
 const SHARE_READING_LIST_MENU_ID: &str = "share-reading-list";
+const ACCOUNTS_SYNC_ACCELERATOR: &str = "CmdOrCtrl+R";
+
+const ITEM_MENU_SHORTCUT_HINTS: &[(&str, &str)] = &[
+    (ITEM_PREV_MENU_ID, "K"),
+    (ITEM_NEXT_MENU_ID, "J"),
+    (ITEM_READER_MENU_ID, "V"),
+    (ITEM_BROWSER_MENU_ID, "B"),
+    (ITEM_TOGGLE_STAR_MENU_ID, "S"),
+    (ITEM_TOGGLE_READ_MENU_ID, "M"),
+    (ITEM_MARK_ALL_READ_MENU_ID, "A"),
+];
 
 fn resolve_menu_action(menu_id: &str) -> Option<&'static str> {
     match menu_id {
@@ -72,6 +83,46 @@ fn is_toggle_check_menu_item(menu_id: &str) -> bool {
     )
 }
 
+#[cfg(test)]
+fn native_menu_accelerator(menu_id: &str) -> Option<&'static str> {
+    match menu_id {
+        ACCOUNTS_SYNC_MENU_ID => Some(ACCOUNTS_SYNC_ACCELERATOR),
+        _ => None,
+    }
+}
+
+fn item_menu_shortcut_hint(menu_id: &str) -> Option<&'static str> {
+    ITEM_MENU_SHORTCUT_HINTS
+        .iter()
+        .find_map(|(id, hint)| (*id == menu_id).then_some(*hint))
+}
+
+fn item_menu_label(label: &str, menu_id: &str) -> String {
+    match item_menu_shortcut_hint(menu_id) {
+        Some(hint) => format!("{label}\t{hint}"),
+        None => label.to_string(),
+    }
+}
+
+fn is_check_for_updates_menu_available(_updater_initialization_available: bool) -> bool {
+    true
+}
+
+fn is_reading_list_menu_available() -> bool {
+    cfg!(target_os = "macos")
+}
+
+fn is_sort_unread_checked(prefs: &HashMap<String, String>) -> bool {
+    prefs
+        .get("reading_sort")
+        .or_else(|| prefs.get("sort_unread"))
+        .is_some_and(|v| v != "newest_first")
+}
+
+fn is_group_by_feed_checked(prefs: &HashMap<String, String>) -> bool {
+    prefs.get("group_by").is_some_and(|v| v == "feed")
+}
+
 /// Build the full application menu bar.
 /// `prefs` is used to set initial CheckMenuItem states from persisted preferences.
 pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<Menu<tauri::Wry>> {
@@ -93,7 +144,9 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
         .build(app)?;
 
     let check_updates_item =
-        MenuItemBuilder::with_id(CHECK_FOR_UPDATES_MENU_ID, labels.check_for_updates).build(app)?;
+        MenuItemBuilder::with_id(CHECK_FOR_UPDATES_MENU_ID, labels.check_for_updates)
+            .enabled(is_check_for_updates_menu_available(false))
+            .build(app)?;
 
     let app_submenu = SubmenuBuilder::new(app, labels.app_submenu_title)
         .item(&about_item)
@@ -125,10 +178,8 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
     let view_starred = MenuItemBuilder::with_id(VIEW_STARRED_MENU_ID, labels.starred)
         .accelerator("CmdOrCtrl+3")
         .build(app)?;
-    let sort_unread_checked = prefs
-        .get("sort_unread")
-        .is_some_and(|v| v != "newest_first");
-    let group_by_feed_checked = prefs.get("group_by").is_some_and(|v| v == "feed");
+    let sort_unread_checked = is_sort_unread_checked(prefs);
+    let group_by_feed_checked = is_group_by_feed_checked(prefs);
     let view_sort_unread =
         CheckMenuItemBuilder::with_id(VIEW_SORT_UNREAD_MENU_ID, labels.sort_unread_to_top)
             .checked(sort_unread_checked)
@@ -154,7 +205,7 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
 
     // --- Accounts submenu ---
     let accounts_sync = MenuItemBuilder::with_id(ACCOUNTS_SYNC_MENU_ID, labels.sync_all)
-        .accelerator("CmdOrCtrl+R")
+        .accelerator(ACCOUNTS_SYNC_ACCELERATOR)
         .build(app)?;
     let accounts_show =
         MenuItemBuilder::with_id(ACCOUNTS_SHOW_MENU_ID, labels.show_accounts).build(app)?;
@@ -184,34 +235,39 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
     // --- Item submenu ---
     // \t in labels displays key hints on the right side WITHOUT registering accelerators.
     // These keys are handled by the frontend.
-    let item_prev =
-        MenuItemBuilder::with_id(ITEM_PREV_MENU_ID, format!("{}\tK", labels.previous_item))
-            .build(app)?;
-    let item_next = MenuItemBuilder::with_id(ITEM_NEXT_MENU_ID, format!("{}\tJ", labels.next_item))
-        .build(app)?;
+    let item_prev = MenuItemBuilder::with_id(
+        ITEM_PREV_MENU_ID,
+        item_menu_label(labels.previous_item, ITEM_PREV_MENU_ID),
+    )
+    .build(app)?;
+    let item_next = MenuItemBuilder::with_id(
+        ITEM_NEXT_MENU_ID,
+        item_menu_label(labels.next_item, ITEM_NEXT_MENU_ID),
+    )
+    .build(app)?;
     let item_reader = MenuItemBuilder::with_id(
         ITEM_READER_MENU_ID,
-        format!("{}\tV", labels.open_web_preview),
+        item_menu_label(labels.open_web_preview, ITEM_READER_MENU_ID),
     )
     .build(app)?;
     let item_browser = MenuItemBuilder::with_id(
         ITEM_BROWSER_MENU_ID,
-        format!("{}\tB", labels.open_external_browser),
+        item_menu_label(labels.open_external_browser, ITEM_BROWSER_MENU_ID),
     )
     .build(app)?;
     let item_toggle_star = MenuItemBuilder::with_id(
         ITEM_TOGGLE_STAR_MENU_ID,
-        format!("{}\tS", labels.toggle_star),
+        item_menu_label(labels.toggle_star, ITEM_TOGGLE_STAR_MENU_ID),
     )
     .build(app)?;
     let item_toggle_read = MenuItemBuilder::with_id(
         ITEM_TOGGLE_READ_MENU_ID,
-        format!("{}\tM", labels.mark_as_read_unread),
+        item_menu_label(labels.mark_as_read_unread, ITEM_TOGGLE_READ_MENU_ID),
     )
     .build(app)?;
     let item_mark_all_read = MenuItemBuilder::with_id(
         ITEM_MARK_ALL_READ_MENU_ID,
-        format!("{}\tA", labels.mark_all_as_read),
+        item_menu_label(labels.mark_all_as_read, ITEM_MARK_ALL_READ_MENU_ID),
     )
     .build(app)?;
 
@@ -239,7 +295,7 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
         .separator()
         .item(&share_open_browser);
 
-    if cfg!(target_os = "macos") {
+    if is_reading_list_menu_available() {
         let share_reading_list =
             MenuItemBuilder::with_id(SHARE_READING_LIST_MENU_ID, labels.add_to_reading_list)
                 .build(app)?;
@@ -308,13 +364,33 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_menu_action;
+    use std::collections::HashMap;
+
+    use super::{
+        is_check_for_updates_menu_available, is_group_by_feed_checked,
+        is_reading_list_menu_available, is_sort_unread_checked, is_toggle_check_menu_item,
+        item_menu_label, item_menu_shortcut_hint, native_menu_accelerator, resolve_menu_action,
+        MENU_ACTION_EVENT,
+    };
 
     #[test]
     fn resolves_menu_actions_for_known_ids() {
         assert_eq!(
             resolve_menu_action("view-unread"),
             Some("set-filter-unread")
+        );
+        assert_eq!(resolve_menu_action("view-all"), Some("set-filter-all"));
+        assert_eq!(
+            resolve_menu_action("view-starred"),
+            Some("set-filter-starred")
+        );
+        assert_eq!(
+            resolve_menu_action("view-sort-unread"),
+            Some("toggle-sort-unread")
+        );
+        assert_eq!(
+            resolve_menu_action("view-group-by-feed"),
+            Some("toggle-group-by-feed")
         );
         assert_eq!(
             resolve_menu_action("accounts-add"),
@@ -327,7 +403,140 @@ mod tests {
     }
 
     #[test]
+    fn menu_action_event_payloads_match_frontend_action_ids() {
+        let contracts = [
+            ("settings", "open-settings"),
+            ("check-for-updates", "check-for-updates"),
+            ("view-unread", "set-filter-unread"),
+            ("view-all", "set-filter-all"),
+            ("view-starred", "set-filter-starred"),
+            ("view-sort-unread", "toggle-sort-unread"),
+            ("view-group-by-feed", "toggle-group-by-feed"),
+            ("view-fullscreen", "toggle-fullscreen"),
+            ("accounts-sync", "sync-all"),
+            ("accounts-show", "open-settings-accounts"),
+            ("accounts-add", "open-settings-accounts-add"),
+            ("subs-add", "open-add-feed"),
+            ("subs-prev", "prev-feed"),
+            ("subs-next", "next-feed"),
+            ("item-prev", "prev-article"),
+            ("item-next", "next-article"),
+            ("item-reader", "open-in-reader"),
+            ("item-browser", "open-in-browser"),
+            ("item-toggle-star", "toggle-star"),
+            ("item-toggle-read", "toggle-read"),
+            ("item-mark-all-read", "mark-all-read"),
+            ("share-copy-link", "copy-link"),
+            ("share-open-browser", "open-in-default-browser"),
+            ("share-reading-list", "add-to-reading-list"),
+        ];
+
+        assert_eq!(MENU_ACTION_EVENT, "menu-action");
+        for (menu_id, action_id) in contracts {
+            assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
+        }
+    }
+
+    #[test]
+    fn item_menu_shortcut_hints_match_fixed_frontend_shortcuts() {
+        let contracts = [
+            ("item-prev", "prev-article", "K"),
+            ("item-next", "next-article", "J"),
+            ("item-reader", "open-in-reader", "V"),
+            ("item-browser", "open-in-browser", "B"),
+            ("item-toggle-star", "toggle-star", "S"),
+            ("item-toggle-read", "toggle-read", "M"),
+            ("item-mark-all-read", "mark-all-read", "A"),
+        ];
+
+        for (menu_id, action_id, shortcut_hint) in contracts {
+            assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
+            assert_eq!(
+                item_menu_shortcut_hint(menu_id),
+                Some(shortcut_hint),
+                "{menu_id}"
+            );
+            assert_eq!(
+                item_menu_label("Menu label", menu_id),
+                format!("Menu label\t{shortcut_hint}"),
+                "{menu_id}"
+            );
+        }
+
+        assert_eq!(item_menu_shortcut_hint("view-unread"), None);
+        assert_eq!(item_menu_label("Menu label", "view-unread"), "Menu label");
+    }
+
+    #[test]
+    fn sync_all_native_accelerator_is_explicitly_owned_by_menu() {
+        assert_eq!(resolve_menu_action("accounts-sync"), Some("sync-all"));
+        assert_eq!(
+            native_menu_accelerator("accounts-sync"),
+            Some("CmdOrCtrl+R")
+        );
+        assert_eq!(native_menu_accelerator("item-reader"), None);
+    }
+
+    #[test]
     fn returns_none_for_unknown_menu_ids() {
         assert_eq!(resolve_menu_action("unknown-menu-id"), None);
+    }
+
+    #[test]
+    fn toggle_check_menu_items_are_limited_to_preference_toggles() {
+        assert!(is_toggle_check_menu_item("view-sort-unread"));
+        assert!(is_toggle_check_menu_item("view-group-by-feed"));
+        assert!(!is_toggle_check_menu_item("view-unread"));
+        assert!(!is_toggle_check_menu_item("view-all"));
+        assert!(!is_toggle_check_menu_item("view-starred"));
+    }
+
+    #[test]
+    fn check_for_updates_menu_availability_ignores_updater_initialization_availability() {
+        assert!(is_check_for_updates_menu_available(true));
+        assert!(is_check_for_updates_menu_available(false));
+        assert_eq!(
+            resolve_menu_action("check-for-updates"),
+            Some("check-for-updates")
+        );
+        assert!(!is_toggle_check_menu_item("check-for-updates"));
+    }
+
+    #[test]
+    fn reading_list_menu_availability_matches_native_platform_capability() {
+        assert_eq!(is_reading_list_menu_available(), cfg!(target_os = "macos"));
+        assert_eq!(
+            resolve_menu_action("share-reading-list"),
+            Some("add-to-reading-list")
+        );
+        assert!(!is_toggle_check_menu_item("share-reading-list"));
+    }
+
+    #[test]
+    fn sort_unread_checked_state_uses_current_reading_sort_before_legacy_key() {
+        let mut prefs = HashMap::from([
+            ("sort_unread".to_string(), "newest_first".to_string()),
+            ("reading_sort".to_string(), "oldest_first".to_string()),
+        ]);
+        assert!(is_sort_unread_checked(&prefs));
+
+        prefs.insert("reading_sort".to_string(), "newest_first".to_string());
+        prefs.insert("sort_unread".to_string(), "oldest_first".to_string());
+        assert!(!is_sort_unread_checked(&prefs));
+
+        prefs.remove("reading_sort");
+        assert!(is_sort_unread_checked(&prefs));
+    }
+
+    #[test]
+    fn group_by_feed_checked_state_only_tracks_feed_grouping() {
+        let mut prefs = HashMap::from([("group_by".to_string(), "feed".to_string())]);
+        assert!(is_group_by_feed_checked(&prefs));
+
+        prefs.insert("group_by".to_string(), "date".to_string());
+        assert!(!is_group_by_feed_checked(&prefs));
+
+        prefs.insert("group_by".to_string(), "none".to_string());
+        assert!(!is_group_by_feed_checked(&prefs));
     }
 }

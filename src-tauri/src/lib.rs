@@ -8,6 +8,7 @@ pub mod platform;
 pub mod repository;
 pub mod service;
 
+use std::collections::HashMap;
 #[cfg(not(test))]
 use std::sync::atomic::AtomicBool;
 #[cfg(not(test))]
@@ -68,6 +69,24 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
     }
 }
 
+fn startup_preferences_or_default(
+    result: Result<HashMap<String, String>, DomainError>,
+) -> HashMap<String, String> {
+    match result {
+        Ok(prefs) => prefs,
+        Err(error) => {
+            tracing::warn!("{}", startup_preferences_read_warning_message(&error));
+            HashMap::new()
+        }
+    }
+}
+
+fn startup_preferences_read_warning_message(error: &DomainError) -> String {
+    format!(
+        "Failed to read startup preferences; using default menu state and diagnostics settings: {error}"
+    )
+}
+
 #[cfg(not(test))]
 fn focus_main_webview_on_startup<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) {
     tauri::async_runtime::spawn(async move {
@@ -90,7 +109,7 @@ fn focus_main_webview_on_startup<R: tauri::Runtime>(app_handle: tauri::AppHandle
     });
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
     use std::time::{Duration, SystemTime};
 
@@ -100,24 +119,73 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
     };
     let entries = match std::fs::read_dir(log_dir) {
         Ok(e) => e,
-        Err(_) => return,
+        Err(error) => {
+            tracing::warn!("{}", cleanup_old_logs_read_dir_warning(log_dir, &error));
+            return;
+        }
     };
-    for entry in entries.flatten() {
+    for entry_result in entries {
+        let entry = match entry_result {
+            Ok(entry) => entry,
+            Err(error) => {
+                tracing::debug!(
+                    "Failed to inspect log directory entry in {}: {error}",
+                    log_dir.display()
+                );
+                continue;
+            }
+        };
         let path = entry.path();
         if path.file_name().is_some_and(|name| name == "app.log") {
             continue;
         }
-        if let Ok(meta) = entry.metadata() {
-            if !meta.is_file() {
+        let meta = match entry.metadata() {
+            Ok(meta) => meta,
+            Err(error) => {
+                tracing::debug!("{}", cleanup_old_logs_metadata_debug(&path, &error));
                 continue;
             }
-            if let Ok(modified) = meta.modified() {
-                if modified < cutoff {
-                    let _ = std::fs::remove_file(path);
-                }
+        };
+        if !meta.is_file() {
+            continue;
+        }
+        let modified = match meta.modified() {
+            Ok(modified) => modified,
+            Err(error) => {
+                tracing::debug!(
+                    "Failed to read log file modified time for {}: {error}",
+                    path.display()
+                );
+                continue;
+            }
+        };
+        if modified < cutoff {
+            if let Err(error) = std::fs::remove_file(&path) {
+                tracing::warn!("{}", cleanup_old_logs_remove_warning(&path, &error));
             }
         }
     }
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn cleanup_old_logs_read_dir_warning(log_dir: &std::path::Path, error: &std::io::Error) -> String {
+    format!(
+        "Failed to read log directory {} during cleanup: {error}",
+        log_dir.display()
+    )
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn cleanup_old_logs_metadata_debug(path: &std::path::Path, error: &std::io::Error) -> String {
+    format!(
+        "Failed to read log file metadata for {}: {error}",
+        path.display()
+    )
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn cleanup_old_logs_remove_warning(path: &std::path::Path, error: &std::io::Error) -> String {
+    format!("Failed to remove old log file {}: {error}", path.display())
 }
 
 #[cfg(not(test))]
@@ -180,7 +248,7 @@ pub fn run() {
             // Read initial preferences for menu CheckMenuItem states
             let prefs = {
                 let repo = SqlitePreferenceRepository::new(db.reader());
-                repo.get_all().unwrap_or_default()
+                startup_preferences_or_default(repo.get_all())
             };
 
             browser_webview::set_browser_webview_diagnostics_enabled(
@@ -321,7 +389,14 @@ pub fn run() {
 mod tests {
     use std::path::Path;
 
-    use super::{database_init_error_message, main_window_title_bar_uses_overlay};
+    use std::collections::HashMap;
+
+    use super::{
+        cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
+        cleanup_old_logs_remove_warning, database_init_error_message,
+        main_window_title_bar_uses_overlay, startup_preferences_or_default,
+        startup_preferences_read_warning_message,
+    };
     use crate::domain::error::DomainError;
 
     #[test]
@@ -365,6 +440,64 @@ mod tests {
             message.contains("try deleting the database file"),
             "non-migration init errors should keep the existing recovery guidance: {message}"
         );
+    }
+
+    #[test]
+    fn startup_preferences_keep_loaded_values() {
+        let prefs = startup_preferences_or_default(Ok(HashMap::from([(
+            "debug_browser_hud".to_string(),
+            "true".to_string(),
+        )])));
+
+        assert_eq!(
+            prefs.get("debug_browser_hud").map(String::as_str),
+            Some("true")
+        );
+    }
+
+    #[test]
+    fn startup_preferences_fall_back_to_defaults_on_read_error() {
+        let error = DomainError::Persistence("database is locked".to_string());
+        let warning = startup_preferences_read_warning_message(&error);
+        let prefs = startup_preferences_or_default(Err(error));
+
+        assert!(
+            prefs.is_empty(),
+            "startup should continue with default menu state and diagnostics settings"
+        );
+        assert!(warning.contains("Failed to read startup preferences"));
+        assert!(warning.contains("using default menu state and diagnostics settings"));
+        assert!(warning.contains("database is locked"));
+    }
+
+    #[test]
+    fn cleanup_old_logs_read_dir_failure_keeps_cleanup_non_fatal() {
+        let missing_dir = Path::new("/tmp/ultra-rss-reader-missing-log-dir");
+
+        cleanup_old_logs(missing_dir, 7);
+    }
+
+    #[test]
+    fn cleanup_old_logs_observability_messages_include_path_and_reason() {
+        let read_dir_error = std::io::Error::new(std::io::ErrorKind::NotFound, "missing directory");
+        let metadata_error =
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "metadata denied");
+        let remove_error =
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "remove denied");
+
+        let read_dir_warning =
+            cleanup_old_logs_read_dir_warning(Path::new("/tmp/logs"), &read_dir_error);
+        let metadata_debug =
+            cleanup_old_logs_metadata_debug(Path::new("/tmp/logs/old.log"), &metadata_error);
+        let remove_warning =
+            cleanup_old_logs_remove_warning(Path::new("/tmp/logs/old.log"), &remove_error);
+
+        assert!(read_dir_warning.contains("/tmp/logs"));
+        assert!(read_dir_warning.contains("missing directory"));
+        assert!(metadata_debug.contains("/tmp/logs/old.log"));
+        assert!(metadata_debug.contains("metadata denied"));
+        assert!(remove_warning.contains("/tmp/logs/old.log"));
+        assert!(remove_warning.contains("remove denied"));
     }
 
     #[test]

@@ -11,9 +11,13 @@ use super::traits::{Credentials, FeedProvider};
 
 const LOCAL_PROVIDER_TIMEOUT: Duration = Duration::from_secs(15);
 const LOCAL_PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
+const PRIVATE_URL_VALIDATION_MESSAGE: &str =
+    "Requests to private/loopback addresses are not allowed";
+const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
+    allow_private_feed_urls: bool,
 }
 
 impl Default for LocalProvider {
@@ -24,14 +28,56 @@ impl Default for LocalProvider {
 
 impl LocalProvider {
     pub fn new() -> Self {
+        Self::with_private_feed_url_policy(false)
+    }
+
+    fn with_private_feed_url_policy(allow_private_feed_urls: bool) -> Self {
         Self {
-            http_client: reqwest::Client::builder()
-                .timeout(LOCAL_PROVIDER_TIMEOUT)
-                .redirect(reqwest::redirect::Policy::limited(5))
-                .user_agent(LOCAL_PROVIDER_USER_AGENT)
-                .build()
-                .unwrap_or_default(),
+            http_client: Self::build_http_client(allow_private_feed_urls),
+            allow_private_feed_urls,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_allowing_private_feed_urls_for_tests() -> Self {
+        Self::with_private_feed_url_policy(true)
+    }
+
+    fn build_http_client(allow_private_feed_urls: bool) -> reqwest::Client {
+        reqwest::Client::builder()
+            .timeout(LOCAL_PROVIDER_TIMEOUT)
+            .redirect(Self::redirect_policy(allow_private_feed_urls))
+            .user_agent(LOCAL_PROVIDER_USER_AGENT)
+            .build()
+            .unwrap_or_default()
+    }
+
+    fn redirect_policy(allow_private_feed_urls: bool) -> reqwest::redirect::Policy {
+        reqwest::redirect::Policy::custom(move |attempt| {
+            if attempt.previous().len() > 5 {
+                return attempt.error("too many redirects");
+            }
+
+            if allow_private_feed_urls {
+                return attempt.follow();
+            }
+
+            match validate_external_feed_url(attempt.url()) {
+                Ok(()) => attempt.follow(),
+                Err(error) => attempt.error(error.to_string()),
+            }
+        })
+    }
+
+    fn validate_feed_url(&self, feed_url: &str) -> DomainResult<reqwest::Url> {
+        let url = reqwest::Url::parse(feed_url)
+            .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
+
+        if !self.allow_private_feed_urls {
+            validate_external_feed_url(&url)?;
+        }
+
+        Ok(url)
     }
 
     fn header_value_to_string(
@@ -43,6 +89,74 @@ impl LocalProvider {
             .and_then(|value| value.to_str().ok())
             .map(ToString::to_string)
     }
+
+    fn select_feed_site_url(feed: &feed_rs::model::Feed, fallback_url: &str) -> String {
+        feed.links
+            .iter()
+            .find(|link| {
+                let rel = link.rel.as_deref().unwrap_or("alternate");
+                let media_type = link.media_type.as_deref().unwrap_or("text/html");
+                !link.href.trim().is_empty()
+                    && rel.eq_ignore_ascii_case("alternate")
+                    && media_type.eq_ignore_ascii_case("text/html")
+            })
+            .or_else(|| feed.links.iter().find(|link| !link.href.trim().is_empty()))
+            .map(|link| link.href.clone())
+            .unwrap_or_else(|| fallback_url.to_string())
+    }
+}
+
+fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return Err(DomainError::Validation(
+            UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    if url.host_str().is_some_and(is_private_host) {
+        return Err(DomainError::Validation(
+            PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn is_private_host(host: &str) -> bool {
+    let host_lower = host.to_lowercase();
+
+    if host_lower == "localhost" {
+        return true;
+    }
+
+    let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
+        return match ip {
+            std::net::IpAddr::V4(v4) => {
+                v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
+            }
+            std::net::IpAddr::V6(v6) => {
+                v6.is_loopback()
+                    || v6.is_unspecified()
+                    || (v6.segments()[0] & 0xfe00) == 0xfc00
+                    || (v6.segments()[0] & 0xffc0) == 0xfe80
+            }
+        };
+    }
+
+    false
+}
+
+fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
+    let message = error.to_string();
+    if message.contains(PRIVATE_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(PRIVATE_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
+    }
+
+    DomainError::from(error)
 }
 
 #[async_trait]
@@ -52,13 +166,7 @@ impl FeedProvider for LocalProvider {
     }
 
     fn capabilities(&self) -> ProviderCapabilities {
-        ProviderCapabilities {
-            supports_folders: false,
-            supports_starring: false,
-            supports_search: false,
-            supports_delta_sync: false,
-            supports_remote_state: false,
-        }
+        self.kind().capabilities()
     }
 
     async fn authenticate(&mut self, _: &Credentials) -> DomainResult<()> {
@@ -87,7 +195,8 @@ impl FeedProvider for LocalProvider {
             }
         };
 
-        let mut request = self.http_client.get(&feed_url);
+        let feed_url = self.validate_feed_url(&feed_url)?;
+        let mut request = self.http_client.get(feed_url.clone());
         if let Some(current) = cursor.as_ref() {
             if let Some(etag) = current.etag.as_deref() {
                 request = request.header(IF_NONE_MATCH, etag);
@@ -97,7 +206,10 @@ impl FeedProvider for LocalProvider {
             }
         }
 
-        let response = request.send().await?;
+        let response = request
+            .send()
+            .await
+            .map_err(map_local_provider_request_error)?;
         let status = response.status();
         let response_etag = Self::header_value_to_string(response.headers(), ETAG);
         let response_last_modified =
@@ -138,7 +250,7 @@ impl FeedProvider for LocalProvider {
         }
 
         let bytes = response.bytes().await?;
-        let entries = normalizer::normalize_feed(&bytes, &feed_url)?;
+        let entries = normalizer::normalize_feed(&bytes, feed_url.as_str())?;
 
         Ok(PullResult {
             entries,
@@ -163,13 +275,15 @@ impl FeedProvider for LocalProvider {
         _folder: Option<&str>,
     ) -> DomainResult<RemoteSubscription> {
         // For local feeds, just validate the URL by fetching and parsing
+        let url = self.validate_feed_url(url)?;
         let response = self
             .http_client
-            .get(url)
+            .get(url.clone())
             .send()
-            .await?
+            .await
+            .map_err(map_local_provider_request_error)?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?;
+            .map_err(DomainError::from_provider_http_error)?;
         let bytes = response.bytes().await?;
         let feed =
             feed_rs::parser::parse(&bytes[..]).map_err(|e| DomainError::Parse(e.to_string()))?;
@@ -178,14 +292,11 @@ impl FeedProvider for LocalProvider {
             remote_id: url.to_string(),
             title: feed
                 .title
-                .map(|t| t.content)
+                .as_ref()
+                .map(|t| t.content.clone())
                 .unwrap_or_else(|| url.to_string()),
             url: url.to_string(),
-            site_url: feed
-                .links
-                .first()
-                .map(|l| l.href.clone())
-                .unwrap_or_default(),
+            site_url: Self::select_feed_site_url(&feed, url.as_str()),
             folder_remote_id: None,
             icon_url: feed.icon.map(|i| i.uri),
         })
@@ -213,6 +324,10 @@ mod tests {
     </channel>
     </rss>"#;
 
+    fn local_provider_allowing_private_feed_urls() -> LocalProvider {
+        LocalProvider::new_allowing_private_feed_urls_for_tests()
+    }
+
     #[tokio::test]
     async fn pull_entries_fetches_and_parses() {
         let mut server = mockito::Server::new_async().await;
@@ -224,7 +339,7 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let scope = PullScope::Feed(FeedIdentifier::Local {
             feed_url: format!("{}/feed.xml", server.url()),
         });
@@ -262,7 +377,7 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let feed_url = format!("{}/feed.json", server.url());
         let scope = PullScope::Feed(FeedIdentifier::Local {
             feed_url: feed_url.clone(),
@@ -301,7 +416,7 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let scope = PullScope::Feed(FeedIdentifier::Local {
             feed_url: format!("{}/feed.xml", server.url()),
         });
@@ -345,7 +460,7 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let scope = PullScope::Feed(FeedIdentifier::Local {
             feed_url: format!("{}/feed.xml", server.url()),
         });
@@ -380,7 +495,30 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_subscription_uses_url_when_feed_title_and_site_link_are_missing() {
+    async fn pull_entries_rejects_loopback_feed_url_before_http_request() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = LocalProvider::new();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/feed.xml", server.url()),
+        });
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("loopback feed URL should be rejected before request");
+
+        assert!(matches!(error, DomainError::Validation(_)));
+        assert!(!mock.matched_async().await);
+    }
+
+    #[tokio::test]
+    async fn create_subscription_uses_feed_url_when_feed_title_and_site_link_are_missing() {
         let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -394,18 +532,86 @@ mod tests {
         let feed_url = format!("{}/feed.xml", server.url());
         let mock = server
             .mock("GET", "/feed.xml")
+            .match_header("user-agent", LOCAL_PROVIDER_USER_AGENT)
             .with_body(feed)
             .with_header("content-type", "application/rss+xml")
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
         assert_eq!(subscription.remote_id, feed_url);
         assert_eq!(subscription.title, subscription.url);
-        assert_eq!(subscription.site_url, "");
+        assert_eq!(subscription.site_url, subscription.url);
+        assert_eq!(subscription.site_url, feed_url);
         assert_eq!(subscription.folder_remote_id, None);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_retains_feed_metadata_when_items_are_incomplete() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Metadata Feed</title>
+    <link>https://example.com/home</link>
+    <item>
+      <guid>missing-title-and-link</guid>
+    </item>
+    <item>
+      <title></title>
+      <link></link>
+    </item>
+  </channel>
+</rss>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.remote_id, feed_url);
+        assert_eq!(subscription.title, "Metadata Feed");
+        assert_eq!(subscription.site_url, "https://example.com/home");
+        assert_eq!(subscription.url, subscription.remote_id);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_prefers_atom_alternate_html_link_over_self_feed_link() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed.xml</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="self" type="application/atom+xml" href="https://example.com/feed.xml"/>
+  <link rel="alternate" type="text/html" href="https://example.com/"/>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/atom+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.site_url, "https://example.com/");
         mock.assert_async().await;
     }
 
@@ -420,13 +626,76 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let error = provider
             .create_subscription(&feed_url, None)
             .await
             .expect_err("HTTP status errors should not be parsed as feeds");
 
         assert!(matches!(error, DomainError::Network(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_rejects_loopback_feed_url_before_http_request() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+        let feed_url = format!("{}/feed.xml", server.url());
+
+        let provider = LocalProvider::new();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("loopback feed URL should be rejected before request");
+
+        assert!(matches!(error, DomainError::Validation(_)));
+        assert!(!mock.matched_async().await);
+    }
+
+    #[tokio::test]
+    async fn create_subscription_returns_auth_error_for_unauthorized_status() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/private.xml", server.url());
+        let mock = server
+            .mock("GET", "/private.xml")
+            .with_status(401)
+            .with_body("unauthorized")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("401 should be classified as auth failure");
+
+        assert!(matches!(error, DomainError::Auth(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_returns_rate_limit_error_for_too_many_requests_status() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/rate-limited.xml", server.url());
+        let mock = server
+            .mock("GET", "/rate-limited.xml")
+            .with_status(429)
+            .with_body("too many requests")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("429 should be classified as rate limit failure");
+
+        assert!(matches!(error, DomainError::RateLimit(_)));
         mock.assert_async().await;
     }
 
@@ -442,7 +711,7 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let error = provider
             .create_subscription(&feed_url, None)
             .await
@@ -475,7 +744,7 @@ mod tests {
             .create_async()
             .await;
 
-        let provider = LocalProvider::new();
+        let provider = local_provider_allowing_private_feed_urls();
         let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
         assert_eq!(subscription.title, "Atom Feed");

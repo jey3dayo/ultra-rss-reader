@@ -33,6 +33,9 @@ struct DownloadProgress {
 
 #[tauri::command]
 pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppError> {
+    let pending = app.state::<PendingUpdate>();
+    *pending.0.lock().await = None;
+
     let updater = app.updater().map_err(|e| AppError::Retryable {
         message: format!("Failed to initialize updater: {e}"),
     })?;
@@ -47,7 +50,6 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
     });
 
     // Cache the update handle for download_and_install_update
-    let pending = app.state::<PendingUpdate>();
     *pending.0.lock().await = update;
 
     Ok(info)

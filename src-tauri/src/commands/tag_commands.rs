@@ -10,6 +10,9 @@ use crate::infra::db::sqlite_tag::SqliteTagRepository;
 use crate::repository::article::{ArticleListMode, Pagination};
 use crate::repository::tag::TagRepository;
 
+const DEFAULT_TAG_ARTICLE_LIST_LIMIT: usize = 50;
+const MAX_TAG_ARTICLE_LIST_LIMIT: usize = 200;
+
 fn lock_db(
     db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
 ) -> Result<std::sync::MutexGuard<'_, crate::infra::db::connection::DbManager>, AppError> {
@@ -62,9 +65,27 @@ fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppErr
     ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
 }
 
+fn normalize_tag_article_list_limit(limit: Option<usize>) -> Result<usize, AppError> {
+    let limit = limit.unwrap_or(DEFAULT_TAG_ARTICLE_LIST_LIMIT);
+    if limit > MAX_TAG_ARTICLE_LIST_LIMIT {
+        return Err(AppError::UserVisible {
+            message: format!("Tag article list limit must be {MAX_TAG_ARTICLE_LIST_LIMIT} or less"),
+        });
+    }
+    Ok(limit)
+}
+
 #[tauri::command]
 pub fn create_tag(
     state: State<'_, AppState>,
+    name: String,
+    color: Option<String>,
+) -> Result<TagDto, AppError> {
+    create_tag_impl(&state.db, name, color)
+}
+
+fn create_tag_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
     name: String,
     color: Option<String>,
 ) -> Result<TagDto, AppError> {
@@ -81,7 +102,7 @@ pub fn create_tag(
     }
     let color = normalize_color(color)?;
 
-    let db = lock_db(&state.db)?;
+    let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.writer());
 
     let tag = Tag {
@@ -161,7 +182,15 @@ pub fn tag_article(
     article_id: String,
     tag_id: String,
 ) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
+    tag_article_impl(&state.db, article_id, tag_id)
+}
+
+fn tag_article_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    article_id: String,
+    tag_id: String,
+) -> Result<(), AppError> {
+    let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.writer());
     repo.tag_article(&ArticleId(article_id), &TagId(tag_id))?;
     Ok(())
@@ -173,7 +202,15 @@ pub fn untag_article(
     article_id: String,
     tag_id: String,
 ) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
+    untag_article_impl(&state.db, article_id, tag_id)
+}
+
+fn untag_article_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    article_id: String,
+    tag_id: String,
+) -> Result<(), AppError> {
+    let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.writer());
     repo.untag_article(&ArticleId(article_id), &TagId(tag_id))?;
     Ok(())
@@ -199,14 +236,26 @@ pub fn list_articles_by_tag(
     limit: Option<usize>,
     account_id: Option<String>,
 ) -> Result<Vec<ArticleDto>, AppError> {
-    let db = lock_db(&state.db)?;
+    list_articles_by_tag_impl(&state.db, tag_id, mode, offset, limit, account_id)
+}
+
+fn list_articles_by_tag_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    tag_id: String,
+    mode: Option<String>,
+    offset: Option<usize>,
+    limit: Option<usize>,
+    account_id: Option<String>,
+) -> Result<Vec<ArticleDto>, AppError> {
+    let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.reader());
+    let mode = parse_article_list_mode(mode.as_deref())?;
+    let limit = normalize_tag_article_list_limit(limit)?;
     let pagination = Pagination {
         offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(50),
+        limit,
     };
     let aid = account_id.map(AccountId);
-    let mode = parse_article_list_mode(mode.as_deref())?;
     let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref(), mode)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
@@ -276,6 +325,98 @@ mod tests {
     }
 
     #[test]
+    fn create_tag_trims_name_before_saving() {
+        let db = test_db();
+
+        let tag = create_tag_impl(&db, "  Read Later  ".to_string(), None).unwrap();
+
+        assert_eq!(tag.name, "Read Later");
+    }
+
+    #[test]
+    fn create_tag_rejects_names_over_50_characters_after_trim() {
+        let db = test_db();
+
+        create_tag_impl(&db, format!(" {} ", "a".repeat(50)), None)
+            .expect("50 character tag name should be accepted after trimming");
+
+        let error = create_tag_impl(&db, "a".repeat(51), None)
+            .expect_err("51 character tag name should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Tag name must be 50 characters or less"
+        ));
+    }
+
+    #[test]
+    fn create_tag_lowercases_color_before_saving() {
+        let db = test_db();
+
+        let tag = create_tag_impl(&db, "Accent".to_string(), Some("#Cf7868".to_string())).unwrap();
+
+        assert_eq!(tag.color.as_deref(), Some("#cf7868"));
+    }
+
+    #[test]
+    fn list_articles_by_tag_rejects_unknown_mode_with_user_visible_error() {
+        let db = test_db();
+
+        let error = list_articles_by_tag_impl(
+            &db,
+            "tag-1".to_string(),
+            Some("archived".to_string()),
+            None,
+            None,
+            None,
+        )
+        .expect_err("unknown tag article mode should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Invalid article list mode: archived"
+        ));
+    }
+
+    #[test]
+    fn list_articles_by_tag_accepts_boundary_limit() {
+        let db = test_db();
+
+        let articles = list_articles_by_tag_impl(
+            &db,
+            "tag-1".to_string(),
+            None,
+            None,
+            Some(MAX_TAG_ARTICLE_LIST_LIMIT),
+            None,
+        )
+        .expect("max tag article list limit should be accepted");
+
+        assert!(articles.is_empty());
+    }
+
+    #[test]
+    fn list_articles_by_tag_rejects_limit_over_boundary() {
+        let db = test_db();
+
+        let error = list_articles_by_tag_impl(
+            &db,
+            "tag-1".to_string(),
+            None,
+            None,
+            Some(MAX_TAG_ARTICLE_LIST_LIMIT + 1),
+            None,
+        )
+        .expect_err("tag article list limit over max should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Tag article list limit must be 200 or less"
+        ));
+    }
+
+    #[test]
     fn duplicate_tag_name_check_rejects_other_tags_case_insensitively() {
         let current = Tag {
             id: TagId("tag-current".to_string()),
@@ -300,5 +441,34 @@ mod tests {
         let db = test_db();
 
         delete_tag_impl(&db, "missing-tag".to_string()).unwrap();
+    }
+
+    #[test]
+    fn tag_article_missing_article_or_tag_is_user_visible_error() {
+        let db = test_db();
+
+        let article_error = tag_article_impl(
+            &db,
+            "missing-article".to_string(),
+            "missing-tag".to_string(),
+        )
+        .expect_err("missing article and tag should surface as a command error");
+
+        assert!(matches!(
+            article_error,
+            AppError::UserVisible { message } if message.contains("FOREIGN KEY constraint failed")
+        ));
+    }
+
+    #[test]
+    fn untag_article_missing_link_is_successful_noop() {
+        let db = test_db();
+
+        untag_article_impl(
+            &db,
+            "missing-article".to_string(),
+            "missing-tag".to_string(),
+        )
+        .unwrap();
     }
 }

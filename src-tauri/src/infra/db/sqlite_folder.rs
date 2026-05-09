@@ -57,8 +57,8 @@ impl FolderRepository for SqliteFolderRepository<'_> {
     }
 
     fn delete(&self, id: &FolderId) -> DomainResult<()> {
-        let account_id = self
-            .conn
+        let tx = self.conn.unchecked_transaction()?;
+        let account_id = tx
             .query_row(
                 "SELECT account_id FROM folders WHERE id = ?1",
                 params![id.0],
@@ -66,25 +66,28 @@ impl FolderRepository for SqliteFolderRepository<'_> {
             )
             .optional()?;
 
-        self.conn
-            .execute("DELETE FROM folders WHERE id = ?1", params![id.0])?;
+        tx.execute("DELETE FROM folders WHERE id = ?1", params![id.0])?;
 
         if let Some(account_id) = account_id {
-            let mut stmt = self
-                .conn
-                .prepare("SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id")?;
-            let folder_ids = stmt
-                .query_map(params![account_id], |row| row.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?;
+            let folder_ids = {
+                let mut stmt = tx.prepare(
+                    "SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id",
+                )?;
+                let folder_ids = stmt
+                    .query_map(params![account_id], |row| row.get::<_, String>(0))?
+                    .collect::<Result<Vec<_>, _>>()?;
+                folder_ids
+            };
 
             for (sort_order, folder_id) in folder_ids.iter().enumerate() {
-                self.conn.execute(
+                tx.execute(
                     "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
                     params![sort_order as i32, folder_id],
                 )?;
             }
         }
 
+        tx.commit()?;
         Ok(())
     }
 
@@ -219,6 +222,51 @@ mod tests {
 
         let other_folder = repo.find_by_account(&other_account_id).unwrap();
         assert_eq!(other_folder[0].sort_order, 7);
+    }
+
+    #[test]
+    fn delete_rolls_back_when_renumber_fails() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        for (id, name, sort_order) in [
+            ("folder-a", "A", 0),
+            ("folder-b", "B", 1),
+            ("folder-c", "C", 2),
+        ] {
+            repo.save(&Folder {
+                id: FolderId(id.to_string()),
+                account_id: account_id.clone(),
+                remote_id: None,
+                name: name.to_string(),
+                sort_order,
+            })
+            .unwrap();
+        }
+        db.writer()
+            .execute_batch(
+                "CREATE TRIGGER fail_folder_c_renumber
+                 BEFORE UPDATE OF sort_order ON folders
+                 WHEN OLD.id = 'folder-c'
+                 BEGIN
+                   SELECT RAISE(ABORT, 'renumber failed');
+                 END;",
+            )
+            .unwrap();
+
+        let result = repo.delete(&FolderId("folder-b".to_string()));
+
+        assert!(result.is_err());
+        let folders = repo.find_by_account(&account_id).unwrap();
+        let orders = folders
+            .iter()
+            .map(|folder| (folder.id.0.as_str(), folder.sort_order))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            orders,
+            vec![("folder-a", 0), ("folder-b", 1), ("folder-c", 2)]
+        );
     }
 
     #[test]

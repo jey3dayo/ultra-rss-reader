@@ -23,7 +23,9 @@ struct GReaderSubscription {
     title: String,
     url: String,
     #[serde(rename = "htmlUrl")]
+    #[serde(default)]
     html_url: String,
+    #[serde(default)]
     categories: Vec<GReaderCategory>,
     #[serde(rename = "iconUrl")]
     icon_url: Option<String>,
@@ -45,7 +47,6 @@ struct StreamContentsResponse {
 struct GReaderItem {
     id: String,
     title: Option<String>,
-    #[allow(dead_code)]
     canonical: Option<Vec<GReaderLink>>,
     alternate: Option<Vec<GReaderLink>>,
     summary: Option<GReaderContent>,
@@ -60,6 +61,7 @@ struct GReaderItem {
     )]
     timestamp_usec: Option<i64>,
     origin: Option<GReaderOrigin>,
+    #[serde(default)]
     categories: Vec<String>,
 }
 
@@ -218,7 +220,7 @@ impl GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?
+            .map_err(DomainError::from_provider_http_error)?
             .json()
             .await?;
 
@@ -264,7 +266,7 @@ impl GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?
+            .map_err(DomainError::from_provider_http_error)?
             .json()
             .await?;
 
@@ -336,6 +338,18 @@ impl GReaderProvider {
             .or_else(|| item.published.map(|ts| ts.saturating_mul(1_000_000)))
     }
 
+    fn first_non_empty_link_href(links: Option<&[GReaderLink]>) -> Option<String> {
+        links?.iter().find_map(|link| {
+            let href = link.href.trim();
+            (!href.is_empty()).then(|| href.to_string())
+        })
+    }
+
+    fn item_url(item: &GReaderItem) -> Option<String> {
+        Self::first_non_empty_link_href(item.alternate.as_deref())
+            .or_else(|| Self::first_non_empty_link_href(item.canonical.as_deref()))
+    }
+
     async fn pull_item_ids_page(
         &self,
         stream_id: &str,
@@ -357,7 +371,7 @@ impl GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?
+            .map_err(DomainError::from_provider_http_error)?
             .json::<StreamItemIdsResponse>()
             .await
             .map_err(DomainError::from)
@@ -388,6 +402,12 @@ impl GReaderProvider {
             continuation = Some(next);
         }
 
+        if let Some(remaining_continuation) = continuation {
+            return Err(DomainError::Network(format!(
+                "Incomplete GReader item id sync: reached {G_READER_MAX_PAGES} pages with continuation remaining for stream {stream_id}: {remaining_continuation}"
+            )));
+        }
+
         Ok(ids)
     }
 
@@ -401,11 +421,7 @@ impl GReaderProvider {
             .map(|origin| origin.stream_id.clone())
             .or_else(|| fallback_stream_id.map(str::to_string))?;
 
-        let url = item
-            .alternate
-            .as_ref()
-            .and_then(|links| links.first())
-            .map(|l| l.href.clone());
+        let url = Self::item_url(&item);
 
         let content = item
             .content
@@ -415,13 +431,13 @@ impl GReaderProvider {
 
         let summary = item.summary.map(|s| s.content);
 
-        let is_read = if item.categories.iter().any(|c| c.contains(STATE_READ)) {
+        let is_read = if item.categories.iter().any(|c| c == STATE_READ) {
             Some(true)
         } else {
             Some(false)
         };
 
-        let is_starred = if item.categories.iter().any(|c| c.contains(STATE_STARRED)) {
+        let is_starred = if item.categories.iter().any(|c| c == STATE_STARRED) {
             Some(true)
         } else {
             Some(false)
@@ -429,6 +445,7 @@ impl GReaderProvider {
 
         let published_at = item
             .published
+            .or(item.updated)
             .and_then(|ts| DateTime::from_timestamp(ts, 0));
 
         let updated_at = item.updated.and_then(|ts| DateTime::from_timestamp(ts, 0));
@@ -459,13 +476,7 @@ impl FeedProvider for GReaderProvider {
     }
 
     fn capabilities(&self) -> ProviderCapabilities {
-        ProviderCapabilities {
-            supports_folders: true,
-            supports_starring: true,
-            supports_search: true,
-            supports_delta_sync: true,
-            supports_remote_state: true,
-        }
+        self.kind.capabilities()
     }
 
     async fn authenticate(&mut self, credentials: &Credentials) -> DomainResult<()> {
@@ -522,7 +533,7 @@ impl FeedProvider for GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?
+            .map_err(DomainError::from_provider_http_error)?
             .json()
             .await?;
 
@@ -557,7 +568,7 @@ impl FeedProvider for GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?
+            .map_err(DomainError::from_provider_http_error)?
             .json()
             .await?;
 
@@ -663,7 +674,7 @@ impl FeedProvider for GReaderProvider {
                 .send()
                 .await?
                 .error_for_status()
-                .map_err(|e| DomainError::Network(e.to_string()))?;
+                .map_err(DomainError::from_provider_http_error)?;
         }
 
         Ok(())
@@ -695,7 +706,7 @@ impl FeedProvider for GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?;
+            .map_err(DomainError::from_provider_http_error)?;
 
         let _text = resp.text().await?;
 
@@ -732,7 +743,7 @@ impl FeedProvider for GReaderProvider {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?;
+            .map_err(DomainError::from_provider_http_error)?;
 
         Ok(())
     }
@@ -954,6 +965,165 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn get_subscriptions_allows_missing_categories_and_html_url() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let sub_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/subscription/list?output=json",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "subscriptions": [
+                        {
+                            "id": "feed/https://example.com/rss",
+                            "title": "Example Feed",
+                            "url": "https://example.com/rss"
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let subs = provider.get_subscriptions().await.unwrap();
+
+        assert_eq!(subs.len(), 1);
+        assert_eq!(subs[0].remote_id, "feed/https://example.com/rss");
+        assert_eq!(subs[0].site_url, "");
+        assert_eq!(subs[0].folder_remote_id, None);
+        sub_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_subscriptions_normalizes_label_remote_ids() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let sub_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/subscription/list?output=json",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "subscriptions": [
+                        {
+                            "id": "feed/https://example.com/dev",
+                            "title": "Dev Feed",
+                            "url": "https://example.com/dev",
+                            "htmlUrl": "https://example.com/dev",
+                            "categories": [
+                                {"id": "user/-/label/Dev%20News"}
+                            ]
+                        },
+                        {
+                            "id": "feed/https://example.com/display",
+                            "title": "Display Feed",
+                            "url": "https://example.com/display",
+                            "htmlUrl": "https://example.com/display",
+                            "categories": [
+                                {"id": "user/-/label/Encoded%20Id", "label": "Display Name"}
+                            ]
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let subs = provider.get_subscriptions().await.unwrap();
+
+        assert_eq!(
+            subs.iter()
+                .map(|sub| sub.folder_remote_id.as_deref())
+                .collect::<Vec<_>>(),
+            [
+                Some("user/-/label/Dev News"),
+                Some("user/-/label/Display Name")
+            ]
+        );
+        sub_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_subscriptions_maps_provider_http_status_categories() {
+        let cases = [
+            (401, "Auth error: HTTP 401 Unauthorized"),
+            (429, "Rate limit error: HTTP 429 Too Many Requests"),
+            (502, "Network error: HTTP 502 Bad Gateway"),
+        ];
+
+        for (status, expected_message) in cases {
+            let mut server = mockito::Server::new_async().await;
+            server
+                .mock("POST", "/api/greader.php/accounts/ClientLogin")
+                .with_status(200)
+                .with_body("Auth=tok\n")
+                .create_async()
+                .await;
+
+            let sub_mock = server
+                .mock(
+                    "GET",
+                    "/api/greader.php/reader/api/0/subscription/list?output=json",
+                )
+                .match_header("Authorization", "GoogleLogin auth=tok")
+                .with_status(status)
+                .create_async()
+                .await;
+
+            let mut provider = GReaderProvider::for_freshrss(&server.url());
+            provider
+                .authenticate(&Credentials {
+                    password: Some("p".into()),
+                    token: Some("u".into()),
+                })
+                .await
+                .unwrap();
+
+            let error = provider.get_subscriptions().await.unwrap_err();
+
+            assert_eq!(error.to_string(), expected_message);
+            sub_mock.assert_async().await;
+        }
+    }
+
+    #[tokio::test]
     async fn get_folders_filters_labels() {
         let mut server = mockito::Server::new_async().await;
         server
@@ -1146,6 +1316,224 @@ mod tests {
         assert_eq!(result.skipped_entries, 1);
 
         stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_defaults_missing_item_categories_to_unread_and_unstarred() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*output=json.*".to_string(),
+                ),
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-without-categories",
+                            "title": "Missing categories",
+                            "alternate": [{"href": "https://example.com/missing-categories"}],
+                            "summary": {"content": "Summary"},
+                            "published": 1700000000,
+                            "updated": 1700000100,
+                            "origin": {
+                                "streamId": "feed/https://example.com/rss",
+                                "title": "Example"
+                            }
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let result = provider.pull_entries(PullScope::All, None).await.unwrap();
+
+        assert_eq!(result.entries.len(), 1);
+        assert_eq!(
+            result.entries[0].id.as_deref(),
+            Some("entry-without-categories")
+        );
+        assert_eq!(result.entries[0].is_read, Some(false));
+        assert_eq!(result.entries[0].is_starred, Some(false));
+        stream_mock.assert_async().await;
+    }
+
+    #[test]
+    fn map_item_to_entry_uses_exact_read_and_starred_state_ids() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Exact state ids only".to_string()),
+            canonical: None,
+            alternate: None,
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![
+                format!("{STATE_READ}/archive"),
+                format!("label/{STATE_STARRED}"),
+                STATE_READING_LIST.to_string(),
+            ],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(entry.is_read, Some(false));
+        assert_eq!(entry.is_starred, Some(false));
+    }
+
+    #[test]
+    fn map_item_to_entry_uses_updated_as_published_fallback() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Updated fallback".to_string()),
+            canonical: None,
+            alternate: None,
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: Some(1_700_000_100),
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        let expected = DateTime::from_timestamp(1_700_000_100, 0);
+        assert_eq!(entry.published_at, expected);
+        assert_eq!(entry.updated_at, expected);
+    }
+
+    #[test]
+    fn map_item_to_entry_uses_alternate_before_canonical_url_fallback() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Canonical fallback".to_string()),
+            canonical: Some(vec![
+                GReaderLink {
+                    href: String::new(),
+                },
+                GReaderLink {
+                    href: "https://example.com/canonical".to_string(),
+                },
+            ]),
+            alternate: Some(vec![
+                GReaderLink {
+                    href: String::new(),
+                },
+                GReaderLink {
+                    href: "https://example.com/alternate".to_string(),
+                },
+            ]),
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(entry.url.as_deref(), Some("https://example.com/alternate"));
+    }
+
+    #[test]
+    fn map_item_to_entry_uses_canonical_url_when_alternate_is_missing() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Canonical fallback".to_string()),
+            canonical: Some(vec![
+                GReaderLink {
+                    href: String::new(),
+                },
+                GReaderLink {
+                    href: "https://example.com/canonical".to_string(),
+                },
+            ]),
+            alternate: None,
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(entry.url.as_deref(), Some("https://example.com/canonical"));
+    }
+
+    #[test]
+    fn map_item_to_entry_uses_canonical_url_when_alternate_href_is_blank() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Canonical fallback".to_string()),
+            canonical: Some(vec![GReaderLink {
+                href: "https://example.com/canonical".to_string(),
+            }]),
+            alternate: Some(vec![GReaderLink {
+                href: " \n\t ".to_string(),
+            }]),
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(entry.url.as_deref(), Some("https://example.com/canonical"));
     }
 
     #[tokio::test]
@@ -1553,6 +1941,69 @@ mod tests {
         read_page_1.assert_async().await;
         read_page_2.assert_async().await;
         starred_page.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_all_item_ids_errors_when_max_pages_leave_continuation() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let mut page_mocks = Vec::new();
+        for page in 0..G_READER_MAX_PAGES {
+            let mut query_matchers = vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_READ.into()),
+            ];
+            if page > 0 {
+                query_matchers.push(mockito::Matcher::UrlEncoded(
+                    "c".into(),
+                    format!("page-{page}"),
+                ));
+            }
+
+            page_mocks.push(
+                server
+                    .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+                    .match_query(mockito::Matcher::AllOf(query_matchers))
+                    .match_header("Authorization", "GoogleLogin auth=tok")
+                    .with_status(200)
+                    .with_body(format!(
+                        r#"{{ "itemRefs": [{{ "id": "{page}" }}], "continuation": "page-{}" }}"#,
+                        page + 1
+                    ))
+                    .create_async()
+                    .await,
+            );
+        }
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let error = provider
+            .pull_all_item_ids(STATE_READ)
+            .await
+            .expect_err("remaining continuation after max pages should fail");
+
+        assert!(matches!(error, DomainError::Network(_)));
+        assert_eq!(
+            error.to_string(),
+            "Network error: Incomplete GReader item id sync: reached 100 pages with continuation remaining for stream user/-/state/com.google/read: page-100"
+        );
+        for page_mock in page_mocks {
+            page_mock.assert_async().await;
+        }
     }
 
     // === Live integration tests ===

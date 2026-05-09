@@ -120,7 +120,8 @@ pub trait ArticleRepository {
         account_id: &AccountId,
         read_remote_ids: &[String],
         starred_remote_ids: &[String],
-        pending_remote_ids: &[String],
+        pending_read_remote_ids: &[String],
+        pending_starred_remote_ids: &[String],
     ) -> DomainResult<()>;
     fn search(
         &self,

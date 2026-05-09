@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection};
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::types::AccountId;
 use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,
@@ -43,11 +43,29 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
     }
 
     fn save(&self, mutation: &PendingMutation) -> DomainResult<()> {
+        if mutation.remote_entry_id.trim().is_empty() {
+            return Err(DomainError::Validation(
+                "pending mutation remote_entry_id cannot be blank".to_string(),
+            ));
+        }
+
         let tx = self.conn.unchecked_transaction()?;
-        tx.execute(
-            "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
-            params![mutation.account_id.0, mutation.remote_entry_id],
-        )?;
+        let replacement_types = mutation.mutation_type.replacement_type_values();
+        let placeholders = std::iter::repeat_n("?", replacement_types.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let delete_sql = format!(
+            "DELETE FROM pending_mutations
+             WHERE account_id = ?1 AND remote_entry_id = ?2 AND mutation_type IN ({placeholders})"
+        );
+        let mut delete_params: Vec<&dyn rusqlite::types::ToSql> =
+            Vec::with_capacity(2 + replacement_types.len());
+        delete_params.push(&mutation.account_id.0);
+        delete_params.push(&mutation.remote_entry_id);
+        for mutation_type in replacement_types {
+            delete_params.push(mutation_type);
+        }
+        tx.execute(&delete_sql, rusqlite::params_from_iter(delete_params))?;
         tx.execute(
             "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at) VALUES (?1, ?2, ?3, ?4)",
             params![
@@ -119,6 +137,35 @@ mod tests {
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].mutation_type, PendingMutationType::MarkRead);
         assert!(found[0].id.is_some());
+    }
+
+    #[test]
+    fn save_rejects_blank_remote_entry_id_without_inserting_rows() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        for remote_entry_id in ["", "   ", "\n\t"] {
+            let error = repo
+                .save(&PendingMutation {
+                    id: None,
+                    account_id: account_id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: remote_entry_id.to_string(),
+                    created_at: "2024-01-01T00:00:00Z".to_string(),
+                })
+                .expect_err("blank remote_entry_id should be rejected");
+
+            assert!(error.to_string().contains("remote_entry_id"));
+        }
+
+        let count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 0);
     }
 
     #[test]
@@ -273,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn save_replaces_existing_pending_mutation_for_same_remote_entry() {
+    fn save_replaces_existing_pending_mutation_for_same_remote_entry_and_axis() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqlitePendingMutationRepository::new(db.writer());
@@ -289,7 +336,7 @@ mod tests {
         repo.save(&PendingMutation {
             id: None,
             account_id: account_id.clone(),
-            mutation_type: PendingMutationType::Unstar,
+            mutation_type: PendingMutationType::MarkUnread,
             remote_entry_id: "entry-1".to_string(),
             created_at: "2024-01-01T00:00:01Z".to_string(),
         })
@@ -297,8 +344,78 @@ mod tests {
 
         let found = repo.find_by_account(&account_id).unwrap();
         assert_eq!(found.len(), 1);
-        assert_eq!(found[0].mutation_type, PendingMutationType::Unstar);
+        assert_eq!(found[0].mutation_type, PendingMutationType::MarkUnread);
         assert_eq!(found[0].created_at, "2024-01-01T00:00:01Z");
+    }
+
+    #[test]
+    fn save_deduplicates_by_mutation_axis_for_same_remote_entry() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        for (mutation_type, created_at) in [
+            (PendingMutationType::MarkRead, "2024-01-01T00:00:00Z"),
+            (PendingMutationType::Star, "2024-01-01T00:00:01Z"),
+            (PendingMutationType::MarkUnread, "2024-01-01T00:00:02Z"),
+            (PendingMutationType::Unstar, "2024-01-01T00:00:03Z"),
+        ] {
+            repo.save(&PendingMutation {
+                id: None,
+                account_id: account_id.clone(),
+                mutation_type,
+                remote_entry_id: "entry-1".to_string(),
+                created_at: created_at.to_string(),
+            })
+            .unwrap();
+        }
+
+        let found = repo.find_by_account(&account_id).unwrap();
+
+        assert_eq!(
+            found
+                .iter()
+                .map(|mutation| (mutation.mutation_type, mutation.created_at.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                (PendingMutationType::MarkUnread, "2024-01-01T00:00:02Z"),
+                (PendingMutationType::Unstar, "2024-01-01T00:00:03Z")
+            ]
+        );
+    }
+
+    #[test]
+    fn save_does_not_replace_different_mutation_axis_for_same_remote_entry() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::Star,
+            remote_entry_id: "entry-1".to_string(),
+            created_at: "2024-01-01T00:00:01Z".to_string(),
+        })
+        .unwrap();
+
+        let found = repo.find_by_account(&account_id).unwrap();
+
+        assert_eq!(
+            found
+                .iter()
+                .map(|mutation| mutation.mutation_type)
+                .collect::<Vec<_>>(),
+            [PendingMutationType::MarkRead, PendingMutationType::Star]
+        );
     }
 
     #[test]

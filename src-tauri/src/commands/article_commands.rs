@@ -19,6 +19,10 @@ use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,
 };
 
+const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
+const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;
+const MAX_ARTICLE_COMMAND_LIST_LIMIT: usize = 200;
+
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
     crate::commands::parse_browser_http_url(&url)?;
@@ -51,6 +55,24 @@ fn should_use_background_browser_open(
 fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {
     matches!(account_kind, "FreshRss")
         && feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+}
+
+fn article_command_pagination(
+    offset: Option<usize>,
+    limit: Option<usize>,
+    default_limit: usize,
+) -> Result<Pagination, AppError> {
+    let limit = limit.unwrap_or(default_limit);
+    if limit > MAX_ARTICLE_COMMAND_LIST_LIMIT {
+        return Err(AppError::UserVisible {
+            message: format!("Article list limit must be {MAX_ARTICLE_COMMAND_LIST_LIMIT} or less"),
+        });
+    }
+
+    Ok(Pagination {
+        offset: offset.unwrap_or(0),
+        limit,
+    })
 }
 
 fn has_blocking_x_frame_options(headers: &HeaderMap) -> bool {
@@ -86,6 +108,19 @@ fn has_blocking_frame_ancestors(headers: &HeaderMap) -> bool {
 
 fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
     ArticleListMode::from_optional_str(mode).map_err(|message| AppError::UserVisible { message })
+}
+
+fn validate_feed_article_filters(
+    unread_only: Option<bool>,
+    starred_only: Option<bool>,
+) -> Result<(), AppError> {
+    if unread_only.unwrap_or(false) && starred_only.unwrap_or(false) {
+        return Err(AppError::UserVisible {
+            message: "Article list filters are mutually exclusive".to_string(),
+        });
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -259,6 +294,41 @@ fn queue_bulk_pending_mutations(
     Ok(())
 }
 
+fn save_pending_mutation(
+    conn: &rusqlite::Connection,
+    mutation: &PendingMutation,
+) -> Result<(), AppError> {
+    let replacement_types = mutation.mutation_type.replacement_type_values();
+    let placeholders = std::iter::repeat_n("?", replacement_types.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let delete_sql = format!(
+        "DELETE FROM pending_mutations
+         WHERE account_id = ?1 AND remote_entry_id = ?2 AND mutation_type IN ({placeholders})"
+    );
+    let mut delete_params: Vec<&dyn rusqlite::types::ToSql> =
+        Vec::with_capacity(2 + replacement_types.len());
+    delete_params.push(&mutation.account_id.0);
+    delete_params.push(&mutation.remote_entry_id);
+    for mutation_type in replacement_types {
+        delete_params.push(mutation_type);
+    }
+    conn.execute(&delete_sql, rusqlite::params_from_iter(delete_params))
+        .map_err(DomainError::from)?;
+    conn.execute(
+        "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+         VALUES (?1, ?2, ?3, ?4)",
+        rusqlite::params![
+            mutation.account_id.0,
+            mutation.mutation_type.as_str(),
+            mutation.remote_entry_id,
+            mutation.created_at
+        ],
+    )
+    .map_err(DomainError::from)?;
+    Ok(())
+}
+
 fn recalculate_bulk_feed_unread_counts(
     conn: &rusqlite::Connection,
     rows: &[BulkArticleMutationRow],
@@ -346,10 +416,11 @@ fn mark_article_read_with_conn(
     article_id: ArticleId,
     read: bool,
 ) -> Result<(), AppError> {
-    let repo = SqliteArticleRepository::new(conn);
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let repo = SqliteArticleRepository::new(&tx);
     repo.mark_as_read(&article_id, read)?;
 
-    let feed_id_str = conn
+    let feed_id_str = tx
         .query_row(
             "SELECT feed_id FROM articles WHERE id = ?1",
             rusqlite::params![article_id.0],
@@ -359,7 +430,7 @@ fn mark_article_read_with_conn(
         .map_err(DomainError::from)?;
 
     if let Some(feed_id_str) = feed_id_str {
-        let feed_repo = SqliteFeedRepository::new(conn);
+        let feed_repo = SqliteFeedRepository::new(&tx);
         feed_repo.recalculate_unread_count(&FeedId(feed_id_str))?;
 
         let mutation_type = if read {
@@ -367,9 +438,10 @@ fn mark_article_read_with_conn(
         } else {
             PendingMutationType::MarkUnread
         };
-        maybe_queue_mutation(conn, &article_id, mutation_type)?;
+        maybe_queue_mutation_in_current_transaction(&tx, &article_id, mutation_type)?;
     }
 
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
@@ -377,10 +449,17 @@ fn mark_articles_read_with_conn(
     conn: &rusqlite::Connection,
     ids: &[ArticleId],
 ) -> Result<(), AppError> {
-    let repo = SqliteArticleRepository::new(conn);
-    repo.mark_many_as_read(ids)?;
+    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
 
     if !ids.is_empty() {
+        for id in ids {
+            tx.execute(
+                "UPDATE articles SET is_read = 1 WHERE id = ?1",
+                rusqlite::params![id.0],
+            )
+            .map_err(DomainError::from)?;
+        }
+
         let placeholders: Vec<String> = ids
             .iter()
             .enumerate()
@@ -390,7 +469,7 @@ fn mark_articles_read_with_conn(
             "SELECT DISTINCT feed_id FROM articles WHERE id IN ({})",
             placeholders.join(", ")
         );
-        let mut stmt = conn.prepare(&sql).map_err(DomainError::from)?;
+        let mut stmt = tx.prepare(&sql).map_err(DomainError::from)?;
         let params: Vec<&dyn rusqlite::ToSql> =
             ids.iter().map(|id| &id.0 as &dyn rusqlite::ToSql).collect();
         let feed_ids: Vec<String> = stmt
@@ -398,16 +477,18 @@ fn mark_articles_read_with_conn(
             .map_err(DomainError::from)?
             .collect::<Result<Vec<_>, _>>()
             .map_err(DomainError::from)?;
-        let feed_repo = SqliteFeedRepository::new(conn);
+        drop(stmt);
+        let feed_repo = SqliteFeedRepository::new(&tx);
         for fid in feed_ids {
             feed_repo.recalculate_unread_count(&FeedId(fid))?;
         }
+
+        for id in ids {
+            maybe_queue_mutation_in_current_transaction(&tx, id, PendingMutationType::MarkRead)?;
+        }
     }
 
-    for id in ids {
-        maybe_queue_mutation(conn, id, PendingMutationType::MarkRead)?;
-    }
-
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
@@ -431,14 +512,24 @@ fn toggle_article_star_with_conn(
 
 #[tauri::command]
 pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
+    let url = crate::commands::parse_browser_http_url(&url)?;
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(5))
         .build()
         .map_err(DomainError::from)?;
 
-    let response = match client.head(&url).send().await.map_err(DomainError::from)? {
+    let response = match client
+        .head(url.as_str())
+        .send()
+        .await
+        .map_err(DomainError::from)?
+    {
         head_response if head_response.status().is_success() => head_response,
-        _ => client.get(&url).send().await.map_err(DomainError::from)?,
+        _ => client
+            .get(url.as_str())
+            .send()
+            .await
+            .map_err(DomainError::from)?,
     };
 
     let headers = response.headers();
@@ -454,14 +545,12 @@ pub fn list_articles(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
+    validate_feed_article_filters(unread_only, starred_only)?;
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteArticleRepository::new(db.reader());
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(50),
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = if starred_only.unwrap_or(false) {
         repo.find_starred_by_feed(&FeedId(feed_id), &pagination)?
     } else if unread_only.unwrap_or(false) {
@@ -484,10 +573,7 @@ pub fn list_account_articles(
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteArticleRepository::new(db.reader());
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(50),
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = if unread_only.unwrap_or(false) {
         repo.find_unread_by_account(&AccountId(account_id), &pagination)?
     } else {
@@ -528,10 +614,7 @@ pub fn list_folder_articles(
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteArticleRepository::new(db.reader());
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(50),
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
     let folder_id = FolderId(folder_id);
     let articles = match mode {
@@ -553,10 +636,7 @@ pub fn list_starred_articles(
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteArticleRepository::new(db.reader());
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(50),
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = repo.find_starred_by_account(&AccountId(account_id), &pagination)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
@@ -573,10 +653,7 @@ pub fn list_recent_articles(
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteArticleRepository::new(db.reader());
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(20),
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_RECENT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
     let articles =
         repo.find_recently_viewed_by_account(&AccountId(account_id), &pagination, mode)?;
@@ -911,7 +988,8 @@ fn maybe_queue_mutation(
                 ))
             },
         )
-        .ok();
+        .optional()
+        .map_err(DomainError::from)?;
 
     if let Some((remote_entry_id, account_kind, account_id, feed_remote_id)) = row {
         if supports_remote_mutations(&account_kind, feed_remote_id.as_deref()) {
@@ -923,6 +1001,49 @@ fn maybe_queue_mutation(
                 remote_entry_id,
                 created_at: chrono::Utc::now().to_rfc3339(),
             })?;
+        }
+    }
+
+    Ok(())
+}
+
+fn maybe_queue_mutation_in_current_transaction(
+    conn: &rusqlite::Connection,
+    article_id: &ArticleId,
+    mutation_type: PendingMutationType,
+) -> Result<(), AppError> {
+    let row: Option<(String, String, String, Option<String>)> = conn
+        .query_row(
+            "SELECT a.remote_id, acc.kind, f.account_id, f.remote_id
+             FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             JOIN accounts acc ON f.account_id = acc.id
+             WHERE a.id = ?1 AND a.remote_id IS NOT NULL",
+            rusqlite::params![article_id.0],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(DomainError::from)?;
+
+    if let Some((remote_entry_id, account_kind, account_id, feed_remote_id)) = row {
+        if supports_remote_mutations(&account_kind, feed_remote_id.as_deref()) {
+            save_pending_mutation(
+                conn,
+                &PendingMutation {
+                    id: None,
+                    account_id: AccountId(account_id),
+                    mutation_type,
+                    remote_entry_id,
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                },
+            )?;
         }
     }
 
@@ -941,10 +1062,7 @@ pub fn search_articles(
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteArticleRepository::new(db.reader());
-    let pagination = Pagination {
-        offset: offset.unwrap_or(0),
-        limit: limit.unwrap_or(50),
-    };
+    let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = repo.search(&AccountId(account_id), &query, &pagination)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
@@ -953,11 +1071,14 @@ pub fn search_articles(
 mod tests {
     use super::check_browser_embed_support;
     use super::{
-        bulk_mark_account_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
-        has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
-        mark_articles_read_with_conn, maybe_queue_mutation, parse_article_list_mode,
+        article_command_pagination, bulk_mark_account_read, bulk_mark_old_unread_read,
+        bulk_unstar_account_articles, has_blocking_frame_ancestors, has_blocking_x_frame_options,
+        mark_article_read_with_conn, mark_articles_read_with_conn, maybe_queue_mutation,
+        parse_article_list_mode, recalculate_bulk_feed_unread_counts,
         should_use_background_browser_open, supports_remote_mutations,
-        toggle_article_star_with_conn, OldUnreadScope,
+        toggle_article_star_with_conn, validate_feed_article_filters, validate_older_than_days,
+        BulkArticleMutationRow, OldUnreadScope, DEFAULT_ARTICLE_LIST_LIMIT,
+        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
     };
     use crate::commands::dto::AppError;
     use crate::domain::types::{AccountId, ArticleId, FeedId};
@@ -1042,6 +1163,19 @@ mod tests {
         get_mock.assert_async().await;
     }
 
+    #[tokio::test]
+    async fn embed_support_rejects_non_http_urls_before_requesting() {
+        let error = check_browser_embed_support("mailto:hello@example.com".to_string())
+            .await
+            .expect_err("non-http URLs should use the browser URL validation contract");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message == "Only http:// and https:// URLs are supported"
+        ));
+    }
+
     #[test]
     fn background_open_is_used_only_when_requested_and_supported() {
         let info = platform_info_for_kind(PlatformKind::Macos);
@@ -1082,6 +1216,70 @@ mod tests {
         assert!(matches!(
             error,
             AppError::UserVisible { message } if message == "Invalid article list mode: archived"
+        ));
+    }
+
+    #[test]
+    fn feed_article_filters_reject_mutually_exclusive_flags() {
+        let error = validate_feed_article_filters(Some(true), Some(true))
+            .expect_err("unread and starred filters should not be combined");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Article list filters are mutually exclusive"
+        ));
+        validate_feed_article_filters(Some(true), Some(false))
+            .expect("unread-only filter should be accepted");
+        validate_feed_article_filters(Some(false), Some(true))
+            .expect("starred-only filter should be accepted");
+        validate_feed_article_filters(None, None).expect("missing filters should be accepted");
+    }
+
+    #[test]
+    fn article_command_pagination_uses_list_default_limit() {
+        let pagination = article_command_pagination(Some(7), None, DEFAULT_ARTICLE_LIST_LIMIT)
+            .expect("default list pagination should be accepted");
+
+        assert_eq!(pagination.offset, 7);
+        assert_eq!(pagination.limit, 50);
+    }
+
+    #[test]
+    fn article_command_pagination_uses_recent_default_limit() {
+        let pagination = article_command_pagination(None, None, DEFAULT_RECENT_ARTICLE_LIST_LIMIT)
+            .expect("default recent pagination should be accepted");
+
+        assert_eq!(pagination.offset, 0);
+        assert_eq!(pagination.limit, 20);
+    }
+
+    #[test]
+    fn article_command_pagination_accepts_boundary_limit() {
+        let pagination = article_command_pagination(
+            Some(3),
+            Some(MAX_ARTICLE_COMMAND_LIST_LIMIT),
+            DEFAULT_ARTICLE_LIST_LIMIT,
+        )
+        .expect("max article command list limit should be accepted");
+
+        assert_eq!(pagination.offset, 3);
+        assert_eq!(pagination.limit, 200);
+    }
+
+    #[test]
+    fn article_command_pagination_rejects_limit_over_boundary() {
+        let result = article_command_pagination(
+            None,
+            Some(MAX_ARTICLE_COMMAND_LIST_LIMIT + 1),
+            DEFAULT_ARTICLE_LIST_LIMIT,
+        );
+        let Err(error) = result else {
+            panic!("article command list limit over max should be rejected");
+        };
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Article list limit must be 200 or less"
         ));
     }
 
@@ -1169,6 +1367,26 @@ mod tests {
         assert_eq!(pending_count, 0);
     }
 
+    #[test]
+    fn article_pending_mutation_query_errors_are_reported() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        db.writer()
+            .execute("DROP TABLE articles", [])
+            .expect("articles table drop should succeed");
+
+        let error = maybe_queue_mutation(
+            db.writer(),
+            &ArticleId("article-1".to_string()),
+            PendingMutationType::MarkRead,
+        )
+        .expect_err("pending mutation query DB errors should be reported");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message } if message.contains("no such table: articles")
+        ));
+    }
+
     fn insert_bulk_account(db: &DbManager, id: &str, kind: &str) {
         db.writer()
             .execute(
@@ -1218,6 +1436,117 @@ mod tests {
                 rusqlite::params![id, feed_id, remote_id, id, published_at, is_read, is_starred],
             )
             .expect("article insert should succeed");
+    }
+
+    fn feed_unread_count(db: &DbManager, feed_id: &str) -> i64 {
+        db.reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = ?1",
+                rusqlite::params![feed_id],
+                |row| row.get(0),
+            )
+            .expect("feed unread count query should succeed")
+    }
+
+    fn article_is_read(db: &DbManager, article_id: &str) -> bool {
+        db.reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                rusqlite::params![article_id],
+                |row| row.get(0),
+            )
+            .expect("article read state query should succeed")
+    }
+
+    fn install_pending_mutation_insert_failure_trigger(db: &DbManager) {
+        db.writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_pending_mutation_insert
+                 BEFORE INSERT ON pending_mutations
+                 BEGIN
+                   SELECT RAISE(FAIL, 'pending mutation insert failed');
+                 END;",
+            )
+            .expect("pending mutation failure trigger should install");
+    }
+
+    #[test]
+    fn mark_article_read_rolls_back_local_state_when_pending_mutation_queue_fails() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a'", [])
+            .expect("feed unread count setup should succeed");
+        install_pending_mutation_insert_failure_trigger(&db);
+
+        let error =
+            mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+                .expect_err("pending mutation queue failure should reject the read mutation");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message.contains("pending mutation insert failed")
+        ));
+        assert!(!article_is_read(&db, "article-a"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+    }
+
+    #[test]
+    fn mark_articles_read_rolls_back_local_state_when_pending_mutation_queue_fails() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "article-b",
+            "feed-a",
+            Some("remote-b"),
+            "2026-04-02T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 2 WHERE id = 'feed-a'", [])
+            .expect("feed unread count setup should succeed");
+        install_pending_mutation_insert_failure_trigger(&db);
+
+        let error = mark_articles_read_with_conn(
+            db.writer(),
+            &[
+                ArticleId("article-a".to_string()),
+                ArticleId("article-b".to_string()),
+            ],
+        )
+        .expect_err("pending mutation queue failure should reject the bulk read mutation");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message.contains("pending mutation insert failed")
+        ));
+        assert!(!article_is_read(&db, "article-a"));
+        assert!(!article_is_read(&db, "article-b"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 2);
     }
 
     #[test]
@@ -1278,6 +1607,97 @@ mod tests {
     }
 
     #[test]
+    fn bulk_feed_unread_recalculation_handles_duplicate_rows_once_per_feed() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "Local");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, None);
+        insert_bulk_feed(&db, "feed-b", "acc-a", None, None);
+        insert_bulk_article(
+            &db,
+            "article-a1",
+            "feed-a",
+            None,
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "article-a2",
+            "feed-a",
+            None,
+            "2026-04-02T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "article-b1",
+            "feed-b",
+            None,
+            "2026-04-03T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 99 WHERE id = 'feed-a'", [])
+            .expect("feed-a stale count update should succeed");
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 77 WHERE id = 'feed-b'", [])
+            .expect("feed-b stale count update should succeed");
+
+        let duplicate_rows = vec![
+            BulkArticleMutationRow {
+                article_id: "article-a1".to_string(),
+                feed_id: "feed-a".to_string(),
+                remote_entry_id: None,
+                account_kind: "Local".to_string(),
+                account_id: "acc-a".to_string(),
+                feed_remote_id: None,
+            },
+            BulkArticleMutationRow {
+                article_id: "article-a2".to_string(),
+                feed_id: "feed-a".to_string(),
+                remote_entry_id: None,
+                account_kind: "Local".to_string(),
+                account_id: "acc-a".to_string(),
+                feed_remote_id: None,
+            },
+            BulkArticleMutationRow {
+                article_id: "article-a1-duplicate".to_string(),
+                feed_id: "feed-a".to_string(),
+                remote_entry_id: None,
+                account_kind: "Local".to_string(),
+                account_id: "acc-a".to_string(),
+                feed_remote_id: None,
+            },
+        ];
+
+        recalculate_bulk_feed_unread_counts(db.writer(), &duplicate_rows)
+            .expect("bulk feed unread recalculation should succeed");
+
+        let feed_a_unread: i64 = db
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = 'feed-a'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("feed-a unread count query should succeed");
+        let feed_b_unread: i64 = db
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = 'feed-b'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("feed-b unread count query should succeed");
+
+        assert_eq!(feed_a_unread, 2);
+        assert_eq!(feed_b_unread, 77);
+    }
+
+    #[test]
     fn bulk_mark_old_unread_read_respects_scope_and_published_threshold() {
         let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
         insert_bulk_account(&db, "acc-a", "Local");
@@ -1335,6 +1755,49 @@ mod tests {
 
         assert_eq!(count, 1);
         assert_eq!(read_ids, vec!["old-in-folder"]);
+    }
+
+    #[test]
+    fn old_unread_scope_parse_accepts_command_scope_values() {
+        assert_eq!(
+            OldUnreadScope::parse("account").unwrap(),
+            OldUnreadScope::Account
+        );
+        assert_eq!(OldUnreadScope::parse("feed").unwrap(), OldUnreadScope::Feed);
+        assert_eq!(
+            OldUnreadScope::parse("folder").unwrap(),
+            OldUnreadScope::Folder
+        );
+    }
+
+    #[test]
+    fn old_unread_scope_parse_rejects_invalid_scope_with_user_visible_error() {
+        let error = OldUnreadScope::parse("tag").expect_err("unknown scope should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Invalid old unread scope"
+        ));
+    }
+
+    #[test]
+    fn validate_older_than_days_accepts_supported_command_values() {
+        assert_eq!(validate_older_than_days(7).unwrap(), 7);
+        assert_eq!(validate_older_than_days(30).unwrap(), 30);
+        assert_eq!(validate_older_than_days(90).unwrap(), 90);
+    }
+
+    #[test]
+    fn validate_older_than_days_rejects_invalid_values_with_user_visible_error() {
+        for value in [0, -7, 1, 365] {
+            let error =
+                validate_older_than_days(value).expect_err("invalid period should be rejected");
+
+            assert!(matches!(
+                error,
+                AppError::UserVisible { message } if message == "Invalid old unread period"
+            ));
+        }
     }
 
     #[test]

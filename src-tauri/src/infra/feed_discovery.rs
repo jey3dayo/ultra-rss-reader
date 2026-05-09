@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::domain::error::{DomainError, DomainResult};
 
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
@@ -160,7 +162,9 @@ fn is_feed_body_fallback(body: &str) -> bool {
 /// `<link rel="alternate" type="application/feed+json" ...>` tags.
 fn extract_feed_links(html: &str, base_url: &str) -> Vec<DiscoveredFeed> {
     let mut feeds = Vec::new();
+    let mut seen_urls = HashSet::new();
     let html_lower = html.to_lowercase();
+    let feed_base_url = resolve_html_base_url(html, &html_lower, base_url);
 
     // Find all <link ...> tags
     let mut search_from = 0;
@@ -188,7 +192,12 @@ fn extract_feed_links(html: &str, base_url: &str) -> Vec<DiscoveredFeed> {
         }
 
         let title = extract_attribute(tag, "title").unwrap_or_default();
-        let resolved_url = resolve_url(base_url, &href);
+        let Some(resolved_url) = resolve_feed_candidate_url(&feed_base_url, &href) else {
+            continue;
+        };
+        if !seen_urls.insert(resolved_url.clone()) {
+            continue;
+        }
 
         feeds.push(DiscoveredFeed {
             url: resolved_url,
@@ -197,6 +206,22 @@ fn extract_feed_links(html: &str, base_url: &str) -> Vec<DiscoveredFeed> {
     }
 
     feeds
+}
+
+fn resolve_html_base_url(html: &str, html_lower: &str, base_url: &str) -> String {
+    let Some(start) = html_lower.find("<base") else {
+        return base_url.to_string();
+    };
+    let remaining = &html_lower[start..];
+    let Some(end) = remaining.find('>') else {
+        return base_url.to_string();
+    };
+    let tag = &html[start..start + end + 1];
+    let Some(href) = extract_attribute(tag, "href").filter(|href| !href.trim().is_empty()) else {
+        return base_url.to_string();
+    };
+
+    resolve_url(base_url, &href)
 }
 
 fn has_alternate_rel(tag: &str) -> bool {
@@ -222,19 +247,63 @@ fn is_feed_link_type(feed_type: &str) -> bool {
 
 /// Extract the value of an HTML attribute from a tag string.
 fn extract_attribute(tag: &str, attr_name: &str) -> Option<String> {
-    let tag_lower = tag.to_lowercase();
-    let patterns = [format!("{attr_name}=\""), format!("{attr_name}='")];
+    let mut cursor = 0;
 
-    for pattern in &patterns {
-        if let Some(start) = tag_lower.find(pattern.as_str()) {
-            let quote = pattern.chars().last().unwrap();
-            let value_start = start + pattern.len();
-            let remaining = &tag[value_start..];
-            if let Some(end) = remaining.find(quote) {
-                return Some(remaining[..end].to_string());
-            }
+    while cursor < tag.len() {
+        let Some(name_start_offset) = tag[cursor..].find(|c: char| !c.is_ascii_whitespace()) else {
+            break;
+        };
+        let name_start = cursor + name_start_offset;
+        let name_end = tag[name_start..]
+            .find(|c: char| c.is_ascii_whitespace() || c == '=' || c == '>')
+            .map_or(tag.len(), |end| name_start + end);
+
+        if name_start == name_end {
+            cursor = name_start + 1;
+            continue;
         }
+
+        let mut after_name = name_end;
+        while tag[after_name..].starts_with(|c: char| c.is_ascii_whitespace()) {
+            after_name += tag[after_name..].chars().next()?.len_utf8();
+        }
+
+        if !tag[after_name..].starts_with('=') {
+            cursor = after_name;
+            continue;
+        }
+
+        let mut value_start = after_name + '='.len_utf8();
+        while tag[value_start..].starts_with(|c: char| c.is_ascii_whitespace()) {
+            value_start += tag[value_start..].chars().next()?.len_utf8();
+        }
+
+        let quote = tag[value_start..].chars().next()?;
+        if quote != '"' && quote != '\'' {
+            let value_end = tag[value_start..]
+                .find(|c: char| c.is_ascii_whitespace() || c == '>')
+                .map_or(tag.len(), |end| value_start + end);
+            if value_end == value_start {
+                cursor = value_start + quote.len_utf8();
+                continue;
+            }
+            if tag[name_start..name_end].eq_ignore_ascii_case(attr_name) {
+                return Some(tag[value_start..value_end].to_string());
+            }
+
+            cursor = value_end;
+            continue;
+        }
+
+        value_start += quote.len_utf8();
+        let value_end_offset = tag[value_start..].find(quote)?;
+        if tag[name_start..name_end].eq_ignore_ascii_case(attr_name) {
+            return Some(tag[value_start..value_start + value_end_offset].to_string());
+        }
+
+        cursor = value_start + value_end_offset + quote.len_utf8();
     }
+
     None
 }
 
@@ -244,6 +313,13 @@ fn resolve_url(base: &str, href: &str) -> String {
         .and_then(|base_url| base_url.join(href))
         .map(|url| url.to_string())
         .unwrap_or_else(|_| href.to_string())
+}
+
+fn resolve_feed_candidate_url(base: &str, href: &str) -> Option<String> {
+    let resolved_url = resolve_url(base, href);
+    let parsed_url = reqwest::Url::parse(&resolved_url).ok()?;
+    validate_discovery_url(&parsed_url).ok()?;
+    Some(parsed_url.to_string())
 }
 
 #[cfg(test)]
@@ -316,6 +392,98 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_feed_links_accepts_attribute_whitespace_around_equals() {
+        let html = r#"
+            <html><head>
+            <link rel = "alternate" type = "application/rss+xml" title = "RSS" href = "/rss.xml">
+            <link rel='alternate' type = 'application/atom+xml' title='Atom' href = 'atom.xml'>
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("https://example.com/rss.xml", "RSS"),
+                ("https://example.com/articles/atom.xml", "Atom"),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_extract_feed_links_accepts_unquoted_attributes() {
+        let html = r#"
+            <html><head>
+            <link rel=alternate type=application/rss+xml href=/feed.xml title=Feed>
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com/feed.xml", "Feed")],
+        );
+    }
+
+    #[test]
+    fn test_extract_feed_links_dedupes_resolved_urls_preserving_first_order() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" title="First RSS" href="/feed.xml">
+            <link rel="alternate" type="application/atom+xml" title="Atom" href="/atom.xml">
+            <link rel="alternate" type="application/rss+xml" title="Duplicate RSS" href="https://example.com/feed.xml">
+            <link rel="alternate" type="application/feed+json" title="JSON" href="/feed.json">
+            <link rel="alternate" type="application/rss+xml" title="Duplicate Atom" href="./atom.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("https://example.com/feed.xml", "First RSS"),
+                ("https://example.com/atom.xml", "Atom"),
+                ("https://example.com/feed.json", "JSON"),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_extract_feed_links_normalizes_candidates_without_network() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml; charset=utf-8" title="RSS" href="./feed.xml">
+            <link rel="alternate" type="application/atom+xml" title="" href="//cdn.example.com/atom.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("https://example.com/articles/feed.xml", "RSS"),
+                ("https://cdn.example.com/atom.xml", ""),
+            ],
+        );
+    }
+
+    #[test]
     fn test_extract_feed_links_rejects_non_alternate_rel_tokens() {
         let html = r#"
             <html><head>
@@ -372,6 +540,70 @@ mod tests {
         );
         assert_eq!(feeds[1].url, "https://example.com/articles/atom.xml");
         assert_eq!(feeds[2].url, "https://example.com/json/feed.json");
+    }
+
+    #[test]
+    fn test_extract_feed_links_resolves_relative_href_from_html_base_href() {
+        let html = r#"
+            <html><head>
+            <base href="https://cdn.example.com/site/subdir/">
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="feeds/rss.xml">
+            <link rel="alternate" type="application/atom+xml" title="Atom" href="../atom.xml">
+            <link rel="alternate" type="application/feed+json" title="JSON" href="/json/feed.json">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("https://cdn.example.com/site/subdir/feeds/rss.xml", "RSS"),
+                ("https://cdn.example.com/site/atom.xml", "Atom"),
+                ("https://cdn.example.com/json/feed.json", "JSON"),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_extract_feed_links_resolves_relative_base_href_from_final_page_url() {
+        let html = r#"
+            <html><head>
+            <base href="../feeds/">
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].url, "https://example.com/articles/feeds/rss.xml");
+    }
+
+    #[test]
+    fn test_extract_feed_links_filters_resolved_private_and_unsupported_candidates() {
+        let html = r#"
+            <html><head>
+            <base href="http://127.0.0.1/private/">
+            <link rel="alternate" type="application/rss+xml" title="Loopback Relative" href="rss.xml">
+            <link rel="alternate" type="application/atom+xml" title="Loopback Absolute" href="http://127.0.0.1/atom.xml">
+            <link rel="alternate" type="application/feed+json" title="File Feed" href="file:///tmp/feed.json">
+            <link rel="alternate" type="application/rss+xml" title="Public Feed" href="https://example.com/feed.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.org/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com/feed.xml", "Public Feed")],
+        );
     }
 
     #[test]
@@ -474,6 +706,46 @@ mod tests {
     #[test]
     fn test_extract_attribute_single_quotes() {
         let tag = "<link rel='alternate' type='application/rss+xml' href='/feed.xml'>";
+        assert_eq!(
+            extract_attribute(tag, "href"),
+            Some("/feed.xml".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_attribute_allows_whitespace_around_equals() {
+        let tag = r#"<link rel = "alternate" type = 'application/rss+xml' href = "/feed.xml">"#;
+
+        assert_eq!(
+            extract_attribute(tag, "href"),
+            Some("/feed.xml".to_string())
+        );
+        assert_eq!(
+            extract_attribute(tag, "type"),
+            Some("application/rss+xml".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_attribute_accepts_unquoted_values() {
+        let tag = r#"<link rel=alternate type=application/rss+xml href=/feed.xml title=Feed>"#;
+
+        assert_eq!(extract_attribute(tag, "rel"), Some("alternate".to_string()));
+        assert_eq!(
+            extract_attribute(tag, "type"),
+            Some("application/rss+xml".to_string())
+        );
+        assert_eq!(
+            extract_attribute(tag, "href"),
+            Some("/feed.xml".to_string())
+        );
+        assert_eq!(extract_attribute(tag, "title"), Some("Feed".to_string()));
+    }
+
+    #[test]
+    fn test_extract_attribute_ignores_attribute_like_text_inside_values() {
+        let tag = r#"<link title='href = "/not-feed.xml"' href = "/feed.xml">"#;
+
         assert_eq!(
             extract_attribute(tag, "href"),
             Some("/feed.xml".to_string())

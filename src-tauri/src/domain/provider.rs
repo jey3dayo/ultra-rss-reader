@@ -99,3 +99,24 @@ pub struct ProviderCapabilities {
     pub supports_delta_sync: bool,
     pub supports_remote_state: bool,
 }
+
+impl ProviderKind {
+    pub fn capabilities(&self) -> ProviderCapabilities {
+        match self {
+            Self::Local => ProviderCapabilities {
+                supports_folders: false,
+                supports_starring: false,
+                supports_search: false,
+                supports_delta_sync: false,
+                supports_remote_state: false,
+            },
+            Self::FreshRss => ProviderCapabilities {
+                supports_folders: true,
+                supports_starring: true,
+                supports_search: true,
+                supports_delta_sync: true,
+                supports_remote_state: true,
+            },
+        }
+    }
+}

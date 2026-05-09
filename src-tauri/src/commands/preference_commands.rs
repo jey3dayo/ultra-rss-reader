@@ -92,13 +92,19 @@ fn is_allowed_shortcut_preference_key(key: &str) -> bool {
 
 fn is_valid_shortcut_preference_value(value: &str) -> bool {
     let trimmed = value.trim();
-    !trimmed.is_empty() && trimmed.len() <= 128
+    !trimmed.is_empty() && trimmed.len() <= 128 && !value.chars().any(char::is_control)
 }
 
 fn validate_preference_input(key: &str, value: &str) -> Result<(), AppError> {
     if !is_allowed_preference_key(key) {
         return Err(AppError::UserVisible {
             message: format!("Unknown preference key: {key}"),
+        });
+    }
+
+    if key == "debug_browser_hud" && !matches!(value, "true" | "false") {
+        return Err(AppError::UserVisible {
+            message: format!("Invalid boolean preference value for key: {key}"),
         });
     }
 
@@ -171,6 +177,9 @@ mod tests {
         assert!(validate_preference_input("shortcut_open_command_palette", "⌘+k").is_ok());
         assert!(validate_preference_input("shortcut_next_article", "").is_err());
         assert!(validate_preference_input("shortcut_next_article", "   ").is_err());
+        assert!(validate_preference_input("shortcut_next_article", "k\n").is_err());
+        assert!(validate_preference_input("shortcut_next_article", "k\0").is_err());
+        assert!(validate_preference_input("shortcut_next_article", "\u{1b}").is_err());
     }
 
     #[test]
@@ -178,6 +187,25 @@ mod tests {
         assert!(validate_preference_input("debug_web_preview_url", &"a".repeat(1024)).is_ok());
         assert!(validate_preference_input("debug_web_preview_url", &"a".repeat(1025)).is_err());
         assert!(validate_preference_input("debug_web_preview_url", &"あ".repeat(342)).is_err());
+    }
+
+    #[test]
+    fn validates_debug_browser_hud_as_boolean_string() {
+        assert!(validate_preference_input("debug_browser_hud", "true").is_ok());
+        assert!(validate_preference_input("debug_browser_hud", "false").is_ok());
+
+        let error = validate_preference_input("debug_browser_hud", "sometimes")
+            .expect_err("debug browser HUD should reject non-boolean strings");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(
+                    message,
+                    "Invalid boolean preference value for key: debug_browser_hud"
+                );
+            }
+            other => panic!("unexpected error category: {other:?}"),
+        }
     }
 
     #[test]

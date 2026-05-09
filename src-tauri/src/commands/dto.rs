@@ -9,15 +9,20 @@ pub enum AppError {
     Retryable { message: String },
 }
 
+fn non_empty_app_error_message(message: String) -> String {
+    if message.trim().is_empty() {
+        "An application error occurred".to_string()
+    } else {
+        message
+    }
+}
+
 impl From<DomainError> for AppError {
     fn from(e: DomainError) -> Self {
+        let message = non_empty_app_error_message(e.to_string());
         match &e {
-            DomainError::Network(_) => AppError::Retryable {
-                message: e.to_string(),
-            },
-            _ => AppError::UserVisible {
-                message: e.to_string(),
-            },
+            DomainError::Network(_) | DomainError::RateLimit(_) => AppError::Retryable { message },
+            _ => AppError::UserVisible { message },
         }
     }
 }
@@ -172,6 +177,9 @@ pub struct AccountDto {
     pub id: String,
     pub kind: String,
     pub name: String,
+    pub display_name: String,
+    pub icon_url: Option<String>,
+    pub capabilities: AccountProviderCapabilitiesDto,
     pub server_url: Option<String>,
     pub username: Option<String>,
     pub sync_interval_secs: i64,
@@ -181,6 +189,15 @@ pub struct AccountDto {
     pub connection_verification_status: String,
     pub connection_verified_at: Option<String>,
     pub connection_verification_error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AccountProviderCapabilitiesDto {
+    pub supports_folders: bool,
+    pub supports_starring: bool,
+    pub supports_search: bool,
+    pub supports_delta_sync: bool,
+    pub supports_remote_state: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -196,6 +213,7 @@ pub struct FeedDto {
     pub id: String,
     pub account_id: String,
     pub folder_id: Option<String>,
+    pub remote_id: Option<String>,
     pub title: String,
     pub url: String,
     pub site_url: String,
@@ -296,10 +314,21 @@ impl From<crate::domain::mute_keyword::MuteKeyword> for MuteKeywordDto {
 
 impl From<crate::domain::account::Account> for AccountDto {
     fn from(a: crate::domain::account::Account) -> Self {
+        let capabilities = a.kind.capabilities();
+        let display_name = a.name.clone();
         Self {
             id: a.id.0,
             kind: format!("{:?}", a.kind),
             name: a.name,
+            display_name,
+            icon_url: None,
+            capabilities: AccountProviderCapabilitiesDto {
+                supports_folders: capabilities.supports_folders,
+                supports_starring: capabilities.supports_starring,
+                supports_search: capabilities.supports_search,
+                supports_delta_sync: capabilities.supports_delta_sync,
+                supports_remote_state: capabilities.supports_remote_state,
+            },
             server_url: a.server_url,
             username: a.username,
             sync_interval_secs: a.sync_interval_secs,
@@ -335,6 +364,7 @@ impl From<crate::domain::feed::Feed> for FeedDto {
             id: f.id.0,
             account_id: f.account_id.0,
             folder_id: f.folder_id.map(|id| id.0),
+            remote_id: f.remote_id,
             title: f.title,
             url: f.url,
             site_url: f.site_url,
@@ -374,7 +404,9 @@ impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
 
 #[cfg(test)]
 mod tests {
-    use super::{AppError, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto};
+    use super::{
+        AccountDto, AppError, FeedDto, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto,
+    };
     use crate::domain::error::DomainError;
 
     #[test]
@@ -418,6 +450,32 @@ mod tests {
     }
 
     #[test]
+    fn domain_error_conversion_never_returns_blank_app_error_messages() {
+        let errors = [
+            DomainError::Network(String::new()),
+            DomainError::RateLimit("   ".to_string()),
+            DomainError::Parse(String::new()),
+            DomainError::Persistence("   ".to_string()),
+            DomainError::Auth(String::new()),
+            DomainError::Validation("   ".to_string()),
+            DomainError::Keychain(String::new()),
+            DomainError::Migration("   ".to_string()),
+        ];
+
+        for domain_error in errors {
+            let app_error = AppError::from(domain_error);
+            let message = match app_error {
+                AppError::UserVisible { message } | AppError::Retryable { message } => message,
+            };
+
+            assert!(
+                !message.trim().is_empty(),
+                "AppError message should not be blank"
+            );
+        }
+    }
+
+    #[test]
     fn platform_info_dto_serializes_expected_ipc_shape() {
         let dto = PlatformInfoDto {
             kind: PlatformKindDto::Macos,
@@ -441,5 +499,59 @@ mod tests {
         assert!(capabilities.contains_key("supports_runtime_window_icon_replacement"));
         assert!(capabilities.contains_key("supports_native_browser_navigation"));
         assert!(capabilities.contains_key("uses_dev_file_credentials"));
+    }
+
+    #[test]
+    fn account_dto_serializes_provider_display_contract() {
+        let account = crate::domain::account::Account {
+            id: crate::domain::types::AccountId("acc-1".to_string()),
+            kind: crate::domain::provider::ProviderKind::FreshRss,
+            name: "Work FreshRSS".to_string(),
+            server_url: Some("https://freshrss.example.com".to_string()),
+            username: Some("reader".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status:
+                crate::domain::account::ConnectionVerificationStatus::Verified,
+            connection_verified_at: Some("2026-04-15T01:00:00Z".to_string()),
+            connection_verification_error: None,
+        };
+
+        let value =
+            serde_json::to_value(AccountDto::from(account)).expect("account dto should serialize");
+
+        assert_eq!(value["display_name"], "Work FreshRSS");
+        assert_eq!(value["icon_url"], serde_json::Value::Null);
+        let capabilities = value["capabilities"]
+            .as_object()
+            .expect("account capabilities should be an object");
+        assert_eq!(capabilities["supports_folders"], true);
+        assert_eq!(capabilities["supports_starring"], true);
+        assert_eq!(capabilities["supports_search"], true);
+        assert_eq!(capabilities["supports_delta_sync"], true);
+        assert_eq!(capabilities["supports_remote_state"], true);
+    }
+
+    #[test]
+    fn feed_dto_exposes_remote_id() {
+        let feed = crate::domain::feed::Feed {
+            id: crate::domain::types::FeedId("feed-1".to_string()),
+            account_id: crate::domain::types::AccountId("acc-1".to_string()),
+            folder_id: None,
+            remote_id: Some("feed/https://example.com/rss.xml".to_string()),
+            title: "Example".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 3,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+
+        let value = serde_json::to_value(FeedDto::from(feed)).expect("feed dto should serialize");
+
+        assert_eq!(value["remote_id"], "feed/https://example.com/rss.xml");
     }
 }

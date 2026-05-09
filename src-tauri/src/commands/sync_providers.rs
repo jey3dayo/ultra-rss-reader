@@ -24,7 +24,9 @@ use crate::infra::sanitizer;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
-use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
+use crate::repository::pending_mutation::{
+    PendingMutationAxis, PendingMutationRepository, PendingMutationType,
+};
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 use super::feed_commands::lock_db;
@@ -240,8 +242,8 @@ pub(super) async fn sync_local_feed(
                 .iter()
                 .map(|article| article.id.clone())
                 .collect::<Vec<_>>();
-            let _ = article_repo.mark_muted_unread_as_read(account_id, Some(&candidate_ids));
-            let _ = feed_repo_w.recalculate_unread_count(&feed.id);
+            article_repo.mark_muted_unread_as_read(account_id, Some(&candidate_ids))?;
+            feed_repo_w.recalculate_unread_count(&feed.id)?;
         }
     }
 
@@ -375,14 +377,21 @@ pub(super) async fn repair_greader_remote_state(
         })
         .await?;
 
-    let pending_remote_ids: Vec<String> = {
+    let (pending_read_remote_ids, pending_starred_remote_ids): (Vec<String>, Vec<String>) = {
         let db_guard = lock_db(db)?;
         let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        pending_repo
-            .find_by_account(&account.id)?
-            .into_iter()
-            .map(|pm| pm.remote_entry_id)
-            .collect()
+        let pending = pending_repo.find_by_account(&account.id)?;
+        let pending_read_ids = pending
+            .iter()
+            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::ReadState)
+            .map(|pm| pm.remote_entry_id.clone())
+            .collect();
+        let pending_starred_ids = pending
+            .iter()
+            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::StarState)
+            .map(|pm| pm.remote_entry_id.clone())
+            .collect();
+        (pending_read_ids, pending_starred_ids)
     };
 
     let remote_state = provider.pull_state().await?;
@@ -393,7 +402,8 @@ pub(super) async fn repair_greader_remote_state(
             &account.id,
             &remote_state.read_ids,
             &remote_state.starred_ids,
-            &pending_remote_ids,
+            &pending_read_remote_ids,
+            &pending_starred_remote_ids,
         )?;
 
         let feed_repo = SqliteFeedRepository::new(db_guard.reader());
@@ -405,7 +415,7 @@ pub(super) async fn repair_greader_remote_state(
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
         for feed in &feeds {
             if is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
-                let _ = feed_repo.recalculate_unread_count(&feed.id);
+                feed_repo.recalculate_unread_count(&feed.id)?;
             }
         }
     }
@@ -454,7 +464,7 @@ pub(super) async fn sync_greader_feed(
     {
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        let _ = feed_repo.recalculate_unread_count(&feed.id);
+        feed_repo.recalculate_unread_count(&feed.id)?;
     }
     let article_count_after = article_count_for_feed(db, &feed.id)?;
 
@@ -505,22 +515,22 @@ fn pending_mutation_targets_provider_managed_greader_feed(
     pending_mutation_id: i64,
 ) -> Result<bool, AppError> {
     let db_guard = lock_db(db)?;
-    let feed_remote_id = db_guard
-        .reader()
-        .query_row(
-            "SELECT f.remote_id
+    match db_guard.reader().query_row(
+        "SELECT f.remote_id
              FROM pending_mutations pm
              JOIN articles a ON a.remote_id = pm.remote_entry_id
              JOIN feeds f ON f.id = a.feed_id
              WHERE pm.id = ?1 AND f.account_id = pm.account_id
              LIMIT 1",
-            rusqlite::params![pending_mutation_id],
-            |row| row.get::<_, Option<String>>(0),
-        )
-        .ok()
-        .flatten();
-
-    Ok(is_provider_managed_greader_feed(feed_remote_id.as_deref()))
+        rusqlite::params![pending_mutation_id],
+        |row| row.get::<_, Option<String>>(0),
+    ) {
+        Ok(feed_remote_id) => Ok(is_provider_managed_greader_feed(feed_remote_id.as_deref())),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(false),
+        Err(error) => Err(AppError::from(crate::domain::error::DomainError::from(
+            error,
+        ))),
+    }
 }
 
 async fn sync_greader_account_entries(
@@ -580,7 +590,7 @@ async fn sync_greader_account_entries(
             let db_guard = lock_db(db)?;
             let article_repo = SqliteArticleRepository::new(db_guard.writer());
             article_repo.upsert(&articles)?;
-            let _ = article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids));
+            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
         }
 
         if !result.has_more {
@@ -757,7 +767,8 @@ async fn sync_greader_feeds(
         pending_repo.find_by_account(&account.id)?
     };
 
-    let mut pushed_remote_ids: Vec<String> = Vec::new();
+    let mut pushed_read_remote_ids: Vec<String> = Vec::new();
+    let mut pushed_starred_remote_ids: Vec<String> = Vec::new();
     for pm in &pending_mutations {
         let Some(pending_mutation_id) = pm.id else {
             continue;
@@ -794,7 +805,14 @@ async fn sync_greader_feeds(
 
         match provider.push_mutations(&[mutation]).await {
             Ok(()) => {
-                pushed_remote_ids.push(pm.remote_entry_id.clone());
+                match pm.mutation_type.axis() {
+                    PendingMutationAxis::ReadState => {
+                        pushed_read_remote_ids.push(pm.remote_entry_id.clone());
+                    }
+                    PendingMutationAxis::StarState => {
+                        pushed_starred_remote_ids.push(pm.remote_entry_id.clone());
+                    }
+                }
                 let db_guard = lock_db(db)?;
                 let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
                 pending_repo.delete(&[pending_mutation_id])?;
@@ -820,18 +838,29 @@ async fn sync_greader_feeds(
     }
 
     let pull_state_started_at = Instant::now();
-    let pending_remote_ids: Vec<String> = {
+    let (pending_read_remote_ids, pending_starred_remote_ids): (Vec<String>, Vec<String>) = {
         let db_guard = lock_db(db)?;
         let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        let mut ids: Vec<String> = pending_repo
-            .find_by_account(&account.id)?
-            .into_iter()
-            .map(|pm| pm.remote_entry_id)
+        let pending = pending_repo.find_by_account(&account.id)?;
+        let mut read_ids: Vec<String> = pending
+            .iter()
+            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::ReadState)
+            .map(|pm| pm.remote_entry_id.clone())
             .collect();
-        ids.extend(pushed_remote_ids);
-        ids.sort();
-        ids.dedup();
-        ids
+        read_ids.extend(pushed_read_remote_ids);
+        read_ids.sort();
+        read_ids.dedup();
+
+        let mut starred_ids: Vec<String> = pending
+            .iter()
+            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::StarState)
+            .map(|pm| pm.remote_entry_id.clone())
+            .collect();
+        starred_ids.extend(pushed_starred_remote_ids);
+        starred_ids.sort();
+        starred_ids.dedup();
+
+        (read_ids, starred_ids)
     };
     let now = chrono::Utc::now();
     let should_pull_remote_state = should_pull_remote_state(db, &account.id, now)?;
@@ -844,7 +873,8 @@ async fn sync_greader_feeds(
                 &account.id,
                 &remote_state.read_ids,
                 &remote_state.starred_ids,
-                &pending_remote_ids,
+                &pending_read_remote_ids,
+                &pending_starred_remote_ids,
             )?;
         }
         mark_remote_state_sync_completed(db, &account.id, now)?;
@@ -862,7 +892,7 @@ async fn sync_greader_feeds(
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
         for feed in &feeds {
-            let _ = feed_repo.recalculate_unread_count(&feed.id);
+            feed_repo.recalculate_unread_count(&feed.id)?;
         }
     }
 
@@ -1042,7 +1072,7 @@ async fn reconcile_greader_unread_state_for_feed(
 
     let db_guard = lock_db(db)?;
     let article_repo = SqliteArticleRepository::new(db_guard.writer());
-    let _ = article_repo.mark_muted_unread_as_read(&account.id, None);
+    article_repo.mark_muted_unread_as_read(&account.id, None)?;
 
     Ok(())
 }
@@ -1083,7 +1113,7 @@ async fn fetch_greader_unread_entries_for_feed(
                 .iter()
                 .map(|article| article.id.clone())
                 .collect::<Vec<_>>();
-            let _ = article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids));
+            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
         }
 
         if !result.has_more {
@@ -1207,7 +1237,7 @@ async fn sync_greader_feed_entries(
                 .iter()
                 .map(|article| article.id.clone())
                 .collect::<Vec<_>>();
-            let _ = article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids));
+            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
         }
 
         if !result.has_more {
@@ -1427,6 +1457,81 @@ mod tests {
         assert_eq!(warnings.len(), 1);
         assert_eq!(warnings[0].kind, AccountSyncWarningKind::Generic);
         assert!(warnings[0].message.contains("Stale"));
+    }
+
+    #[test]
+    fn pending_mutation_target_lookup_returns_db_error_without_deleting_pending_mutation() {
+        let db = test_db();
+        let account = test_account("https://rss.example.com");
+        let pending_mutation_id = {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        account.id.as_ref(),
+                        PendingMutationType::MarkRead.as_str(),
+                        "entry-1",
+                        "2024-01-01T00:00:00Z"
+                    ],
+                )
+                .unwrap();
+            let pending_mutation_id = db_guard.writer().last_insert_rowid();
+            db_guard
+                .writer()
+                .execute("DROP TABLE articles", [])
+                .unwrap();
+            pending_mutation_id
+        };
+
+        let result =
+            pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id);
+
+        assert!(result.is_err());
+        let pending_count: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(pending_count, 1);
+    }
+
+    #[test]
+    fn pending_mutation_target_lookup_treats_missing_target_as_non_greader() {
+        let db = test_db();
+        let account = test_account("https://rss.example.com");
+        let pending_mutation_id = {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        account.id.as_ref(),
+                        PendingMutationType::MarkRead.as_str(),
+                        "missing-entry",
+                        "2024-01-01T00:00:00Z"
+                    ],
+                )
+                .unwrap();
+            db_guard.writer().last_insert_rowid()
+        };
+
+        let targets_greader =
+            pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id)
+                .unwrap();
+
+        assert!(!targets_greader);
     }
 
     fn test_feed(account_id: &AccountId) -> Feed {
@@ -2861,7 +2966,7 @@ mod tests {
 
         let db = test_db();
         let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
-        let provider = LocalProvider::new();
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
 
         sync_local_feed(&db, &provider, &account.id, &feed)
             .await
@@ -2891,6 +2996,44 @@ mod tests {
         assert_eq!(state.timestamp_usec, None);
         assert_eq!(state.error_count, 0);
         assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_returns_post_write_integrity_error() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(LOCAL_RSS_INITIAL)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute("DROP TABLE preferences", [])
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error = sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .expect_err("post-write integrity failures should be returned");
+
+        mock.assert_async().await;
+        match error {
+            AppError::UserVisible { message } => {
+                assert!(message.contains("no such table: preferences"));
+            }
+            AppError::Retryable { message } => {
+                panic!("post-write DB failures should not be retryable: {message}");
+            }
+        }
     }
 
     #[tokio::test]
@@ -2955,7 +3098,7 @@ mod tests {
                 .unwrap();
         }
 
-        let provider = LocalProvider::new();
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
         sync_local_feed(&db, &provider, &account.id, &feed)
             .await
             .unwrap();
@@ -3045,7 +3188,7 @@ mod tests {
                 .unwrap();
         }
 
-        let provider = LocalProvider::new();
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
         sync_local_feed(&db, &provider, &account.id, &feed)
             .await
             .unwrap();
@@ -3112,7 +3255,7 @@ mod tests {
                 .unwrap();
         }
 
-        let provider = LocalProvider::new();
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
         sync_local_feed(&db, &provider, &account.id, &feed)
             .await
             .unwrap();

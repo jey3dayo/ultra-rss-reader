@@ -8,7 +8,7 @@ pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<Remo
         .entries
         .into_iter()
         .map(|entry| {
-            let url = entry.links.first().map(|l| l.href.clone());
+            let url = select_article_url(&entry.links);
             let published_at = entry.published.or(entry.updated);
             let updated_at = entry.updated;
             let thumbnail = extract_thumbnail(&entry);
@@ -42,6 +42,36 @@ pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<Remo
         .collect())
 }
 
+fn select_article_url(links: &[feed_rs::model::Link]) -> Option<String> {
+    links
+        .iter()
+        .find(|link| is_article_html_link(link))
+        .or_else(|| links.iter().find(|link| !link.href.trim().is_empty()))
+        .map(|link| link.href.trim().to_string())
+}
+
+fn is_article_html_link(link: &feed_rs::model::Link) -> bool {
+    if link.href.trim().is_empty() {
+        return false;
+    }
+
+    let rel = link.rel.as_deref().unwrap_or("alternate");
+    if !rel.eq_ignore_ascii_case("alternate") {
+        return false;
+    }
+
+    link.media_type
+        .as_deref()
+        .is_none_or(is_html_article_media_type)
+}
+
+fn is_html_article_media_type(media_type: &str) -> bool {
+    let media_type = media_type.split(';').next().unwrap_or("").trim();
+
+    media_type.eq_ignore_ascii_case("text/html")
+        || media_type.eq_ignore_ascii_case("application/xhtml+xml")
+}
+
 fn extract_thumbnail(entry: &feed_rs::model::Entry) -> Option<String> {
     // Try media content first, then enclosures
     entry
@@ -54,12 +84,15 @@ fn extract_thumbnail(entry: &feed_rs::model::Entry) -> Option<String> {
             entry
                 .links
                 .iter()
-                .find(|l| {
-                    l.media_type.as_deref() == Some("image/jpeg")
-                        || l.media_type.as_deref() == Some("image/png")
-                })
-                .map(|l| l.href.clone())
+                .find(|l| is_image_media_type(l.media_type.as_deref()) && !l.href.trim().is_empty())
+                .map(|l| l.href.trim().to_string())
         })
+}
+
+fn is_image_media_type(media_type: Option<&str>) -> bool {
+    media_type
+        .map(|media_type| media_type.trim().to_ascii_lowercase().starts_with("image/"))
+        .unwrap_or(false)
 }
 
 #[cfg(test)]
@@ -102,6 +135,171 @@ mod tests {
         assert_eq!(first.url, Some("https://example.com/article1".to_string()));
         assert_eq!(first.id, Some("guid-1".to_string()));
         assert!(first.published_at.is_some());
+    }
+
+    #[test]
+    fn article_url_prefers_alternate_html_link_over_self_and_enclosure_links() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="self" href="https://example.com/feed.atom" type="application/atom+xml"/>
+  <entry>
+    <title>Atom Article</title>
+    <id>atom-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="self" href="https://example.com/api/items/atom-1" type="application/atom+xml"/>
+    <link rel="enclosure" href="https://cdn.example.com/audio.mp3" type="audio/mpeg"/>
+    <link rel="alternate" href="https://example.com/articles/atom-1" type="text/html"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/articles/atom-1".to_string())
+        );
+    }
+
+    #[test]
+    fn article_url_accepts_html_media_type_with_parameters() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Parameterized HTML Type</title>
+    <id>atom-parameterized-html</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="self" href="https://example.com/feed.atom" type="application/atom+xml"/>
+    <link rel="alternate" href="https://example.com/articles/parameterized-html" type="text/html; charset=utf-8"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/articles/parameterized-html".to_string())
+        );
+    }
+
+    #[test]
+    fn article_url_keeps_rss_item_link_when_link_has_no_rel_or_media_type() {
+        let entries =
+            normalize_feed(SAMPLE_RSS.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/article1".to_string())
+        );
+    }
+
+    #[test]
+    fn article_url_trims_selected_link_href() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Atom Article</title>
+    <id>atom-trimmed-link</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link href="  https://example.com/article  "/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/article".to_string())
+        );
+    }
+
+    #[test]
+    fn thumbnail_fallback_accepts_common_image_media_types() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>WebP Thumbnail</title>
+    <id>atom-webp</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/webp" type="text/html"/>
+    <link rel="enclosure" href="https://cdn.example.com/thumb.webp" type="image/webp"/>
+  </entry>
+  <entry>
+    <title>GIF Thumbnail</title>
+    <id>atom-gif</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/gif" type="text/html"/>
+    <link rel="enclosure" href="https://cdn.example.com/thumb.gif" type=" IMAGE/GIF "/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].thumbnail,
+            Some("https://cdn.example.com/thumb.webp".to_string())
+        );
+        assert_eq!(
+            entries[1].thumbnail,
+            Some("https://cdn.example.com/thumb.gif".to_string())
+        );
+    }
+
+    #[test]
+    fn thumbnail_fallback_skips_non_image_media_types() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Audio Enclosure</title>
+    <id>atom-audio</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/audio" type="text/html"/>
+    <link rel="enclosure" href="https://cdn.example.com/audio.mp3" type="audio/mpeg"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(entries[0].thumbnail, None);
+    }
+
+    #[test]
+    fn thumbnail_fallback_skips_blank_image_href_and_trims_selected_href() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Trimmed WebP Thumbnail</title>
+    <id>atom-trimmed-webp</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/trimmed-webp" type="text/html"/>
+    <link rel="enclosure" href=" " type="image/png"/>
+    <link rel="enclosure" href="  https://cdn.example.com/thumb.webp  " type="image/webp"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].thumbnail,
+            Some("https://cdn.example.com/thumb.webp".to_string())
+        );
     }
 
     #[test]

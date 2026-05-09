@@ -23,6 +23,8 @@ const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
     "Embedded browser bounds must be finite and have positive width/height";
 const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
+const BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR: &str =
+    "Embedded browser webview has no current URL to reload";
 
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 enum BrowserWebviewTimeoutFallbackEmission {
@@ -59,6 +61,12 @@ impl BrowserWebviewBounds {
             || !self.height.is_finite()
             || self.width <= 0.0
             || self.height <= 0.0
+        {
+            return Err(browser_webview_error(INVALID_BROWSER_BOUNDS_ERROR));
+        }
+
+        if self.unit == BrowserWebviewBoundsUnit::Physical
+            && (self.width.round() < 1.0 || self.height.round() < 1.0)
         {
             return Err(browser_webview_error(INVALID_BROWSER_BOUNDS_ERROR));
         }
@@ -104,6 +112,26 @@ fn browser_webview_error(message: impl Into<String>) -> AppError {
 
 fn browser_webview_not_open_error() -> AppError {
     browser_webview_error(BROWSER_WEBVIEW_NOT_OPEN_ERROR)
+}
+
+fn empty_reload_source_error() -> AppError {
+    browser_webview_error(BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR)
+}
+
+fn validate_browser_webview_fallback_url(fallback_url: String) -> Result<String, AppError> {
+    if fallback_url.trim().is_empty() {
+        return Err(empty_reload_source_error());
+    }
+
+    if fallback_url.chars().any(char::is_control) {
+        return Err(browser_webview_error(
+            crate::commands::BROWSER_URL_SCHEME_ERROR,
+        ));
+    }
+
+    crate::commands::parse_browser_http_url(&fallback_url)?;
+
+    Ok(fallback_url)
 }
 
 fn validated_bounds(bounds: BrowserWebviewBounds) -> Result<BrowserWebviewBounds, AppError> {
@@ -378,7 +406,11 @@ fn current_or_loading_state(
     if let Some(snapshot) = snapshot {
         Ok(snapshot)
     } else {
-        tracker_start(state, app_handle, fallback_url)
+        tracker_start(
+            state,
+            app_handle,
+            validate_browser_webview_fallback_url(fallback_url)?,
+        )
     }
 }
 
@@ -388,6 +420,22 @@ fn should_use_placeholder_browser_webview_url(platform_kind: PlatformKind) -> bo
 
 fn is_placeholder_browser_webview_url(url: &str) -> bool {
     url == "about:blank"
+}
+
+fn should_navigate_existing_browser_webview(
+    current_url: &str,
+    target_url: &str,
+    snapshot: Option<&BrowserWebviewState>,
+    platform_kind: PlatformKind,
+) -> bool {
+    if should_use_placeholder_browser_webview_url(platform_kind)
+        && is_placeholder_browser_webview_url(current_url)
+        && snapshot.is_some_and(|state| state.url == target_url)
+    {
+        return false;
+    }
+
+    current_url != target_url
 }
 
 fn browser_webview_initial_url(
@@ -522,8 +570,20 @@ pub async fn create_or_update_browser_webview(
             .url()
             .map_err(|error| browser_webview_error(format!("Failed to read browser URL: {error}")))?
             .to_string();
+        let snapshot = state
+            .browser_webview
+            .lock()
+            .map_err(|error| {
+                browser_webview_error(format!("Browser webview state lock error: {error}"))
+            })?
+            .snapshot();
 
-        if current_url != url {
+        if should_navigate_existing_browser_webview(
+            &current_url,
+            &url,
+            snapshot.as_ref(),
+            crate::platform::PlatformInfo::current().kind,
+        ) {
             let next_state = tracker_start(state.inner(), app_handle, url.clone())?;
             if let Err(error) = browser_webview.navigate(external_url(&url)?) {
                 let _ = clear_browser_webview_tracker(state.inner());
@@ -649,15 +709,17 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 mod tests {
     use super::{
         browser_webview_bounds_diagnostics_payload, browser_webview_initial_url,
-        browser_webview_not_open_error, child_webview_rect_from_browser_bounds, external_url,
-        is_placeholder_browser_webview_url, should_use_placeholder_browser_webview_url,
-        timeout_fallback_emissions, tracker_navigation_availability, validated_bounds,
-        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
-        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
+        browser_webview_not_open_error, child_webview_rect_from_browser_bounds,
+        empty_reload_source_error, external_url, is_placeholder_browser_webview_url,
+        should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
+        timeout_fallback_emissions, tracker_navigation_availability,
+        validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
+        BrowserWebviewBounds, BrowserWebviewBoundsUnit, BrowserWebviewTimeoutFallbackEmission,
+        BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
         INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::browser_webview::{
-        set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect,
+        set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect, BrowserWebviewState,
         BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::commands::dto::AppError;
@@ -747,6 +809,63 @@ mod tests {
             }
             other => panic!("expected user-visible missing webview error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn empty_reload_source_error_is_user_visible() {
+        let error = empty_reload_source_error();
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR);
+            }
+            other => panic!("expected user-visible empty reload source error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn empty_browser_webview_fallback_url_is_rejected_before_reload_navigation() {
+        for value in ["", "   "] {
+            match validate_browser_webview_fallback_url(value.to_string()) {
+                Err(AppError::UserVisible { message }) => {
+                    assert_eq!(message, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR);
+                }
+                other => panic!("expected empty fallback URL error, got {other:?}"),
+            }
+        }
+
+        assert_eq!(
+            validate_browser_webview_fallback_url("https://example.com/article".to_string())
+                .expect("non-empty fallback URL should pass"),
+            "https://example.com/article"
+        );
+    }
+
+    #[test]
+    fn browser_webview_fallback_url_rejects_control_chars_and_requires_http_url_for_reload_navigation(
+    ) {
+        for value in [
+            "https://example.com/article\nhttps://evil.example",
+            "javascript:alert('owned')",
+            "file:///tmp/article.html",
+            "not a url",
+        ] {
+            assert!(
+                validate_browser_webview_fallback_url(value.to_string()).is_err(),
+                "fallback URL must reject control chars and require http(s): {value:?}"
+            );
+        }
+
+        assert_eq!(
+            validate_browser_webview_fallback_url("http://example.com/article".to_string())
+                .expect("http fallback URL should pass"),
+            "http://example.com/article"
+        );
+        assert_eq!(
+            validate_browser_webview_fallback_url("https://example.com/article".to_string())
+                .expect("https fallback URL should pass"),
+            "https://example.com/article"
+        );
     }
 
     #[test]
@@ -907,6 +1026,31 @@ mod tests {
     }
 
     #[test]
+    fn physical_bounds_validation_rejects_dimensions_that_round_to_zero_pixels() {
+        for (label, width, height) in [
+            ("width rounds to zero", 0.49, 720.0),
+            ("height rounds to zero", 900.0, 0.49),
+        ] {
+            let bounds = BrowserWebviewBounds {
+                x: 460.0,
+                y: 84.0,
+                width,
+                height,
+                unit: BrowserWebviewBoundsUnit::Physical,
+            };
+
+            match validated_bounds(bounds) {
+                Err(AppError::UserVisible { message }) => {
+                    assert_eq!(message, INVALID_BROWSER_BOUNDS_ERROR, "{label}");
+                }
+                other => panic!(
+                    "expected physical bounds that round to 0px to be rejected for {label}, got {other:?}"
+                ),
+            }
+        }
+    }
+
+    #[test]
     fn windows_uses_placeholder_initial_url() {
         let initial_url =
             browser_webview_initial_url("https://example.com/article", PlatformKind::Windows)
@@ -933,6 +1077,41 @@ mod tests {
             tracker_navigation_availability(false, native_availability),
             native_availability
         );
+    }
+
+    #[test]
+    fn placeholder_update_skips_navigation_when_target_is_already_tracked() {
+        let snapshot = BrowserWebviewState {
+            url: "https://example.com/article".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+        };
+
+        assert!(!should_navigate_existing_browser_webview(
+            "about:blank",
+            "https://example.com/article",
+            Some(&snapshot),
+            PlatformKind::Windows,
+        ));
+        assert!(should_navigate_existing_browser_webview(
+            "about:blank",
+            "https://example.com/next",
+            Some(&snapshot),
+            PlatformKind::Windows,
+        ));
+        assert!(should_navigate_existing_browser_webview(
+            "about:blank",
+            "https://example.com/article",
+            None,
+            PlatformKind::Windows,
+        ));
+        assert!(should_navigate_existing_browser_webview(
+            "about:blank",
+            "https://example.com/article",
+            Some(&snapshot),
+            PlatformKind::Macos,
+        ));
     }
 
     #[test]

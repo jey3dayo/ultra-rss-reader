@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rusqlite::{params, Connection};
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::repository::preference::PreferenceRepository;
 
 pub struct SqlitePreferenceRepository<'a> {
@@ -45,6 +45,13 @@ impl PreferenceRepository for SqlitePreferenceRepository<'_> {
     }
 
     fn set(&self, key: &str, value: &str) -> DomainResult<()> {
+        let key = key.trim();
+        if key.is_empty() {
+            return Err(DomainError::Validation(
+                "preference key cannot be blank".to_string(),
+            ));
+        }
+
         self.conn.execute(
             "INSERT OR REPLACE INTO preferences (key, value) VALUES (?1, ?2)",
             params![key, value],
@@ -104,5 +111,34 @@ mod tests {
         assert_eq!(all.len(), 2);
         assert_eq!(all.get("theme"), Some(&"dark".to_string()));
         assert_eq!(all.get("font_size"), Some(&"medium".to_string()));
+    }
+
+    #[test]
+    fn set_trims_preference_key_before_storing() {
+        let db = test_db();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+
+        repo.set("  theme  ", "dark").unwrap();
+
+        assert_eq!(repo.get("theme").unwrap(), Some("dark".to_string()));
+        assert_eq!(repo.get("  theme  ").unwrap(), None);
+        let all = repo.get_all().unwrap();
+        assert_eq!(all.len(), 1);
+        assert!(all.contains_key("theme"));
+    }
+
+    #[test]
+    fn set_rejects_blank_preference_key() {
+        let db = test_db();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+
+        for key in ["", "   ", "\n\t"] {
+            let error = repo.set(key, "dark").unwrap_err();
+            assert!(
+                matches!(error, DomainError::Validation(message) if message == "preference key cannot be blank")
+            );
+        }
+
+        assert!(repo.get_all().unwrap().is_empty());
     }
 }

@@ -39,6 +39,9 @@ fn normalize_ascii(value: &str) -> String {
     value.trim().to_ascii_lowercase()
 }
 
+// Mute keyword matching is intentionally ASCII-case-insensitive only.
+// It does not perform Unicode case folding or width normalization because the
+// SQL matcher relies on SQLite lower(), which has the same ASCII-only contract.
 fn matches_mute_keyword(article: &Article, rule: &MuteKeyword) -> bool {
     let normalized_keyword = normalize_ascii(&rule.keyword);
     if normalized_keyword.is_empty() {
@@ -538,6 +541,7 @@ mod tests {
                 "kindle unlimited",
                 MuteKeywordScope::Title,
                 None,
+                true,
             ),
             (
                 article_fixture(
@@ -549,6 +553,7 @@ mod tests {
                 "kindle unlimited",
                 MuteKeywordScope::Body,
                 None,
+                true,
             ),
             (
                 article_fixture(
@@ -560,16 +565,41 @@ mod tests {
                 "kindle unlimited",
                 MuteKeywordScope::TitleAndBody,
                 Some("Kindle Unlimited content"),
+                true,
             ),
             (
                 article_fixture("Visible article", "", Some("plain summary"), None),
                 "kindle unlimited",
                 MuteKeywordScope::TitleAndBody,
                 None,
+                false,
+            ),
+            (
+                article_fixture("CAFÉ news", "", None, None),
+                "café",
+                MuteKeywordScope::Title,
+                None,
+                false,
+            ),
+            (
+                article_fixture("ストア限定セール", "", None, None),
+                "ｽﾄｱ",
+                MuteKeywordScope::Title,
+                None,
+                false,
+            ),
+            (
+                article_fixture("ストア限定セール", "", None, None),
+                "ストア",
+                MuteKeywordScope::Title,
+                None,
+                true,
             ),
         ];
 
-        for (index, (article, keyword, scope, content_text)) in fixtures.into_iter().enumerate() {
+        for (index, (article, keyword, scope, content_text, expected)) in
+            fixtures.into_iter().enumerate()
+        {
             let db = test_db();
             let rule = MuteKeyword {
                 id: format!("mute-{index}"),
@@ -583,6 +613,11 @@ mod tests {
                 sql_matches_article(&db, &article, content_text, &rule),
                 matches_mute_keyword(&article, &rule),
                 "fixture {index} should match SQL and Rust behavior",
+            );
+            assert_eq!(
+                matches_mute_keyword(&article, &rule),
+                expected,
+                "fixture {index} should keep the documented ASCII-only matching policy",
             );
         }
     }

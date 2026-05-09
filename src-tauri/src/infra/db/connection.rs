@@ -653,6 +653,61 @@ mod tests {
     }
 
     #[test]
+    fn vacuum_failure_restores_file_connections_and_keeps_db_usable() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("vacuum-failure-recovery.db");
+        let mut db = DbManager::new(&db_path).unwrap();
+
+        db.writer()
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS vacuum_probe (
+                    id INTEGER PRIMARY KEY,
+                    payload TEXT NOT NULL
+                );
+                INSERT INTO vacuum_probe (payload) VALUES ('before-failure');",
+            )
+            .unwrap();
+        db.replace_with_in_memory_connections().unwrap();
+
+        let error = db
+            .restore_file_connections_after_vacuum(
+                &db_path,
+                Err(DomainError::Persistence(
+                    "simulated VACUUM failure".to_string(),
+                )),
+            )
+            .expect_err("VACUUM failure should still be returned");
+
+        match error {
+            DomainError::Persistence(message) => {
+                assert_eq!(message, "simulated VACUUM failure");
+            }
+            other => panic!("expected original VACUUM persistence error, got {other:?}"),
+        }
+
+        db.writer()
+            .execute(
+                "INSERT INTO vacuum_probe (payload) VALUES ('after-failure')",
+                [],
+            )
+            .unwrap();
+
+        let payloads: Vec<String> = db
+            .reader()
+            .prepare("SELECT payload FROM vacuum_probe ORDER BY id")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+
+        assert_eq!(
+            payloads,
+            vec!["before-failure".to_string(), "after-failure".to_string()]
+        );
+    }
+
+    #[test]
     fn new_repairs_latest_version_schema_when_feed_columns_are_missing() {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("broken-latest.db");
@@ -892,17 +947,33 @@ mod tests {
                 [],
             )
             .unwrap();
+            conn.execute(
+                "INSERT INTO articles (
+                    id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version,
+                    summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at
+                 ) VALUES (
+                    'art-3', 'f1', NULL, 'Malformed content', '', '<p>Broken <strong>body</p>Trailing', 1,
+                    'Should not be used', NULL, NULL, NULL, '2026-04-15T00:00:00+00:00', 0, 0, '2026-04-15T00:00:00+00:00'
+                 )",
+                [],
+            )
+            .unwrap();
         }
 
         let repaired = DbManager::new(&db_path).unwrap();
-        let (html_content_text, summary_content_text): (String, String) = repaired
+        let (html_content_text, summary_content_text, malformed_content_text): (
+            String,
+            String,
+            String,
+        ) = repaired
             .reader()
             .query_row(
                 "SELECT
                    (SELECT content_text FROM articles WHERE id = 'art-1'),
-                   (SELECT content_text FROM articles WHERE id = 'art-2')",
+                   (SELECT content_text FROM articles WHERE id = 'art-2'),
+                   (SELECT content_text FROM articles WHERE id = 'art-3')",
                 [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .unwrap();
 
@@ -916,6 +987,13 @@ mod tests {
         assert_eq!(
             summary_content_text,
             super::super::sqlite_article::article_body_text("", Some("Summary only body"))
+        );
+        assert_eq!(
+            malformed_content_text,
+            super::super::sqlite_article::article_body_text(
+                "<p>Broken <strong>body</p>Trailing",
+                Some("Should not be used")
+            )
         );
     }
 }

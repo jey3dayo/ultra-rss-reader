@@ -8,7 +8,12 @@ fn is_reading_list_url(url: &str) -> bool {
         return false;
     }
 
-    url.starts_with("http://") || url.starts_with("https://")
+    match url.split_once("://") {
+        Some((scheme, _)) => {
+            scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https")
+        }
+        None => false,
+    }
 }
 
 fn applescript_string(value: &str) -> String {
@@ -81,6 +86,24 @@ mod tests {
         );
         assert!(is_reading_list_url("http://example.com/article"));
         assert!(is_reading_list_url("https://example.com/article"));
+    }
+
+    #[test]
+    fn accepts_mixed_case_http_schemes_for_reading_list_urls() {
+        for url in [
+            "HTTP://example.com/article",
+            "HTTPS://example.com/article",
+            "HtTp://example.com/article",
+            "hTtPs://example.com/article",
+        ] {
+            assert!(is_reading_list_url(url));
+            let script = reading_list_script(url).unwrap();
+
+            assert_eq!(
+                script,
+                format!(r#"tell application "Safari" to add reading list item "{url}""#)
+            );
+        }
     }
 
     #[test]

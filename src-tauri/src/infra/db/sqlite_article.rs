@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::article::{Article, ArticleViewHistoryItem};
@@ -185,10 +186,10 @@ impl<'a> SqliteArticleRepository<'a> {
     }
 }
 
-fn parse_datetime(s: &str) -> DateTime<Utc> {
+fn parse_datetime(s: &str) -> rusqlite::Result<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(s)
         .map(|dt| dt.with_timezone(&Utc))
-        .unwrap_or_default()
+        .map_err(|err| rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(err)))
 }
 
 fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
@@ -206,10 +207,10 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
         url: row.get(8)?,
         author: row.get(9)?,
         thumbnail: row.get(10)?,
-        published_at: parse_datetime(&published_at_str),
+        published_at: parse_datetime(&published_at_str)?,
         is_read: row.get(12)?,
         is_starred: row.get(13)?,
-        fetched_at: parse_datetime(&fetched_at_str),
+        fetched_at: parse_datetime(&fetched_at_str)?,
     })
 }
 
@@ -246,7 +247,7 @@ fn row_to_article_view_history_item(
     Ok(ArticleViewHistoryItem {
         account_id: AccountId(row.get(15)?),
         article,
-        viewed_at: parse_datetime(&viewed_at_str),
+        viewed_at: parse_datetime(&viewed_at_str)?,
     })
 }
 
@@ -607,6 +608,12 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         ];
         if let Some(mode_filter) = mode.sql_filter("a") {
             filters.push(mode_filter);
+        }
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
         }
         let where_clause = filters.join(" AND ");
         let sql = format!(
@@ -1013,36 +1020,45 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         account_id: &AccountId,
         read_remote_ids: &[String],
         starred_remote_ids: &[String],
-        pending_remote_ids: &[String],
+        pending_read_remote_ids: &[String],
+        pending_starred_remote_ids: &[String],
     ) -> DomainResult<()> {
         let tx = self.conn.unchecked_transaction()?;
 
         // Get all articles with remote_id in this account (via feed -> account join)
-        // that are NOT in pending_remote_ids
         let mut stmt = tx.prepare(
-            "SELECT a.id, a.remote_id FROM articles a
+            "SELECT a.id, a.remote_id, a.is_read, a.is_starred FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              WHERE f.account_id = ?1
                AND a.remote_id IS NOT NULL
                AND f.remote_id LIKE 'feed/%'",
         )?;
 
-        let rows: Vec<(String, String)> = stmt
+        let rows: Vec<(String, String, bool, bool)> = stmt
             .query_map(params![account_id.0], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, bool>(2)?,
+                    row.get::<_, bool>(3)?,
+                ))
             })?
             .collect::<Result<Vec<_>, _>>()?;
 
         let mut update_stmt =
             tx.prepare("UPDATE articles SET is_read = ?1, is_starred = ?2 WHERE id = ?3")?;
 
-        for (article_id, remote_id) in &rows {
-            // Skip articles with pending mutations
-            if pending_remote_ids.contains(remote_id) {
-                continue;
-            }
-            let is_read = read_remote_ids.contains(remote_id);
-            let is_starred = starred_remote_ids.contains(remote_id);
+        for (article_id, remote_id, current_read, current_starred) in &rows {
+            let is_read = if pending_read_remote_ids.contains(remote_id) {
+                *current_read
+            } else {
+                read_remote_ids.contains(remote_id)
+            };
+            let is_starred = if pending_starred_remote_ids.contains(remote_id) {
+                *current_starred
+            } else {
+                starred_remote_ids.contains(remote_id)
+            };
             update_stmt.execute(params![is_read, is_starred, article_id])?;
         }
 
@@ -1277,6 +1293,75 @@ mod tests {
     }
 
     #[test]
+    fn list_feed_article_summaries_excludes_muted_articles_from_latest_and_starred_count() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let muted_only_feed_id = insert_test_feed(&db, &account_id);
+        let empty_feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest_muted_starred = make_article(&feed_id, "Kindle Unlimited campaign");
+        newest_muted_starred.published_at = DateTime::parse_from_rfc3339("2026-04-02T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        newest_muted_starred.is_starred = true;
+        let mut visible = make_article(&feed_id, "Visible article");
+        visible.published_at = DateTime::parse_from_rfc3339("2026-04-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut muted_only_starred = make_article(&muted_only_feed_id, "Kindle Unlimited roundup");
+        muted_only_starred.published_at = DateTime::parse_from_rfc3339("2026-04-03T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        muted_only_starred.is_starred = true;
+        repo.upsert(&[newest_muted_starred, visible, muted_only_starred])
+            .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let summaries = repo
+            .list_feed_article_summaries_by_account(&account_id)
+            .unwrap();
+        let summary_by_feed_id = summaries
+            .into_iter()
+            .map(|summary| (summary.feed_id.0.clone(), summary))
+            .collect::<std::collections::HashMap<_, _>>();
+        let summary = summary_by_feed_id
+            .get(&feed_id.0)
+            .expect("feed summary should exist");
+
+        assert_eq!(
+            summary.latest_article_at.as_deref(),
+            Some("2026-04-01T00:00:00+00:00")
+        );
+        assert_eq!(summary.starred_count, 0);
+        assert_eq!(
+            summary_by_feed_id
+                .get(&muted_only_feed_id.0)
+                .and_then(|summary| summary.latest_article_at.as_deref()),
+            None
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&muted_only_feed_id.0)
+                .map(|summary| summary.starred_count),
+            Some(0)
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&empty_feed_id.0)
+                .and_then(|summary| summary.latest_article_at.as_deref()),
+            None
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&empty_feed_id.0)
+                .map(|summary| summary.starred_count),
+            Some(0)
+        );
+    }
+
+    #[test]
     fn upsert_inserts_new_article() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -1289,6 +1374,27 @@ mod tests {
         let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].title, "New Article");
+    }
+
+    #[test]
+    fn find_by_feed_returns_decode_error_for_malformed_published_at() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let article = make_article(&feed_id, "Malformed date article");
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        db.writer()
+            .execute(
+                "UPDATE articles SET published_at = ?1 WHERE id = ?2",
+                params!["not-a-date", article.id.0],
+            )
+            .unwrap();
+
+        let result = repo.find_by_feed(&feed_id, &Pagination::default());
+
+        assert!(result.is_err());
     }
 
     #[test]
@@ -1461,6 +1567,58 @@ mod tests {
 
         assert_eq!(page.len(), 1);
         assert_eq!(page[0].title, "Visible article");
+    }
+
+    #[test]
+    fn find_by_folder_filters_mute_keywords_before_pagination() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Folder", 0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+                params![folder_id.0, feed_id.0],
+            )
+            .unwrap();
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest_muted = make_article(&feed_id, "Kindle Unlimited campaign");
+        newest_muted.published_at = Utc::now() + chrono::Duration::seconds(2);
+        let mut visible = make_article(&feed_id, "Visible article");
+        visible.published_at = Utc::now() + chrono::Duration::seconds(1);
+        repo.upsert(&[newest_muted, visible]).unwrap();
+
+        let without_mute = repo
+            .find_by_folder(
+                &folder_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 1,
+                },
+            )
+            .unwrap();
+        assert_eq!(without_mute[0].title, "Kindle Unlimited campaign");
+
+        insert_mute_keyword(&db, "Kindle Unlimited", "title");
+        let with_mute = repo
+            .find_by_folder(
+                &folder_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 1,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(with_mute.len(), 1);
+        assert_eq!(with_mute[0].title, "Visible article");
     }
 
     #[test]
@@ -2017,6 +2175,62 @@ mod tests {
     }
 
     #[test]
+    fn find_recently_viewed_by_account_excludes_muted_articles_before_pagination() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let newest_muted = make_article(&feed_id, "Kindle Unlimited campaign");
+        let middle_visible = make_article(&feed_id, "Middle visible");
+        let oldest_visible = make_article(&feed_id, "Oldest visible");
+        repo.upsert(&[
+            newest_muted.clone(),
+            middle_visible.clone(),
+            oldest_visible.clone(),
+        ])
+        .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        for (article, viewed_at) in [
+            (&oldest_visible, "2026-04-20T10:00:00Z"),
+            (&middle_visible, "2026-04-20T11:00:00Z"),
+            (&newest_muted, "2026-04-20T12:00:00Z"),
+        ] {
+            db.writer()
+                .execute(
+                    "INSERT INTO article_view_history (account_id, article_id, viewed_at) VALUES (?1, ?2, ?3)",
+                    params![account_id.0, article.id.0, viewed_at],
+                )
+                .unwrap();
+        }
+
+        let first_page = repo
+            .find_recently_viewed_by_account(
+                &account_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 1,
+                },
+                ArticleListMode::All,
+            )
+            .unwrap();
+        let second_page = repo
+            .find_recently_viewed_by_account(
+                &account_id,
+                &Pagination {
+                    offset: 1,
+                    limit: 1,
+                },
+                ArticleListMode::All,
+            )
+            .unwrap();
+
+        assert_eq!(first_page[0].article.title, "Middle visible");
+        assert_eq!(second_page[0].article.title, "Oldest visible");
+    }
+
+    #[test]
     fn clear_article_view_history_removes_only_that_accounts_history() {
         let db = test_db();
         let account_a = insert_test_account(&db);
@@ -2182,8 +2396,14 @@ mod tests {
         repo.upsert(&[a1.clone(), a2.clone(), a3.clone()]).unwrap();
 
         // r1 is read, r2 is starred, r3 is neither
-        repo.apply_remote_state(&account_id, &["r1".to_string()], &["r2".to_string()], &[])
-            .unwrap();
+        repo.apply_remote_state(
+            &account_id,
+            &["r1".to_string()],
+            &["r2".to_string()],
+            &[],
+            &[],
+        )
+        .unwrap();
 
         let articles = repo
             .find_by_feed(
@@ -2221,12 +2441,76 @@ mod tests {
 
         repo.upsert(&[a1.clone()]).unwrap();
 
-        // Remote says r1 is NOT read and NOT starred, but r1 is pending
-        repo.apply_remote_state(&account_id, &[], &[], &["r1".to_string()])
-            .unwrap();
+        // Remote says r1 is NOT read and NOT starred, but r1 has both axes pending.
+        repo.apply_remote_state(
+            &account_id,
+            &[],
+            &[],
+            &["r1".to_string()],
+            &["r1".to_string()],
+        )
+        .unwrap();
 
         let articles = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         // Should be unchanged because r1 is pending
+        assert!(articles[0].is_read);
+        assert!(articles[0].is_starred);
+    }
+
+    #[test]
+    fn apply_remote_state_keeps_read_pending_separate_from_star_state() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Article 1");
+        article.remote_id = Some("r1".to_string());
+        article.is_read = true;
+        article.is_starred = false;
+
+        repo.upsert(&[article.clone()]).unwrap();
+
+        repo.apply_remote_state(
+            &account_id,
+            &[],
+            &["r1".to_string()],
+            &["r1".to_string()],
+            &[],
+        )
+        .unwrap();
+
+        let articles = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
+
+        assert!(articles[0].is_read);
+        assert!(articles[0].is_starred);
+    }
+
+    #[test]
+    fn apply_remote_state_keeps_star_pending_separate_from_read_state() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Article 1");
+        article.remote_id = Some("r1".to_string());
+        article.is_read = false;
+        article.is_starred = true;
+
+        repo.upsert(&[article.clone()]).unwrap();
+
+        repo.apply_remote_state(
+            &account_id,
+            &["r1".to_string()],
+            &[],
+            &[],
+            &["r1".to_string()],
+        )
+        .unwrap();
+
+        let articles = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
+
         assert!(articles[0].is_read);
         assert!(articles[0].is_starred);
     }
@@ -2262,14 +2546,15 @@ mod tests {
         article.is_read = true;
         repo.upsert(&[article]).unwrap();
 
-        repo.apply_remote_state(&account_id, &[], &[], &[]).unwrap();
+        repo.apply_remote_state(&account_id, &[], &[], &[], &[])
+            .unwrap();
 
         let articles = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert!(articles[0].is_read);
     }
 
     #[test]
-    fn update_sanitized_and_find_by_version() {
+    fn update_sanitized_refreshes_search_text_and_version_for_old_article() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let feed_id = insert_test_feed(&db, &account_id);
@@ -2282,16 +2567,27 @@ mod tests {
 
         repo.upsert(&[a1.clone(), a2.clone()]).unwrap();
 
-        // Find articles with sanitizer_version below 2
         let old = repo.find_by_sanitizer_version_below(2, 100).unwrap();
         assert_eq!(old.len(), 1);
         assert_eq!(old[0].id, a1.id);
 
-        // Update sanitized content
-        repo.update_sanitized(&a1.id, "new sanitized", 2).unwrap();
+        repo.update_sanitized(&a1.id, "<p>new <strong>sanitized</strong></p>", 2)
+            .unwrap();
 
         let old = repo.find_by_sanitizer_version_below(2, 100).unwrap();
         assert_eq!(old.len(), 0);
+
+        let (content_text, sanitizer_version): (String, u32) = db
+            .writer()
+            .query_row(
+                "SELECT content_text, sanitizer_version FROM articles WHERE id = ?1",
+                params![a1.id.0],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(content_text, "new sanitized");
+        assert_eq!(sanitizer_version, 2);
     }
 
     #[test]
@@ -2317,6 +2613,31 @@ mod tests {
             .unwrap();
 
         assert_eq!(content_text, "Summary fallback body");
+    }
+
+    #[test]
+    fn upsert_extracts_search_text_from_sanitized_html_for_new_articles() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Article 1");
+        article.content_sanitized = "<article><p>Lead <strong>body</article>Trailing".to_string();
+        article.summary = Some("Summary fallback body".to_string());
+
+        repo.upsert(&[article.clone()]).unwrap();
+
+        let content_text: String = db
+            .writer()
+            .query_row(
+                "SELECT content_text FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(content_text, "Lead body Trailing");
     }
 
     #[test]

@@ -17,6 +17,9 @@ const MIGRATION_V12: &str = include_str!("../../../migrations/V12__mute_keywords
 const MIGRATION_V13: &str = include_str!("../../../migrations/V13__tag_color_palette_refresh.sql");
 const MIGRATION_V14: &str = include_str!("../../../migrations/V14__article_content_text.sql");
 const MIGRATION_V15: &str = include_str!("../../../migrations/V15__remove_inoreader.sql");
+#[cfg(test)]
+const MIGRATION_V16: &str =
+    include_str!("../../../migrations/V16__account_connection_verification.sql");
 const MIGRATION_V17: &str = include_str!("../../../migrations/V17__article_view_history.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
@@ -24,6 +27,11 @@ const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
 const V16_CONNECTION_VERIFICATION_STATUS_COLUMN: &str = "connection_verification_status";
 const V16_CONNECTION_VERIFIED_AT_COLUMN: &str = "connection_verified_at";
 const V16_CONNECTION_VERIFICATION_ERROR_COLUMN: &str = "connection_verification_error";
+const V16_CONNECTION_VERIFICATION_STATUS_SQL: &str = "ALTER TABLE accounts ADD COLUMN connection_verification_status TEXT NOT NULL DEFAULT 'unverified'";
+const V16_CONNECTION_VERIFIED_AT_SQL: &str =
+    "ALTER TABLE accounts ADD COLUMN connection_verified_at TEXT";
+const V16_CONNECTION_VERIFICATION_ERROR_SQL: &str =
+    "ALTER TABLE accounts ADD COLUMN connection_verification_error TEXT";
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -236,19 +244,19 @@ fn apply_v16_account_connection_verification(conn: &Connection) -> DomainResult<
         conn,
         "accounts",
         V16_CONNECTION_VERIFICATION_STATUS_COLUMN,
-        "ALTER TABLE accounts ADD COLUMN connection_verification_status TEXT NOT NULL DEFAULT 'unverified'",
+        V16_CONNECTION_VERIFICATION_STATUS_SQL,
     )?;
     add_column_if_missing(
         conn,
         "accounts",
         V16_CONNECTION_VERIFIED_AT_COLUMN,
-        "ALTER TABLE accounts ADD COLUMN connection_verified_at TEXT",
+        V16_CONNECTION_VERIFIED_AT_SQL,
     )?;
     add_column_if_missing(
         conn,
         "accounts",
         V16_CONNECTION_VERIFICATION_ERROR_COLUMN,
-        "ALTER TABLE accounts ADD COLUMN connection_verification_error TEXT",
+        V16_CONNECTION_VERIFICATION_ERROR_SQL,
     )?;
 
     set_schema_version(conn, 16)?;
@@ -370,6 +378,23 @@ mod tests {
                 "migration version {version} is not represented by a file or inline repair"
             );
         }
+    }
+
+    #[test]
+    fn v16_file_migration_matches_inline_contract() {
+        let inline_v16_sql = format!(
+            "{V16_CONNECTION_VERIFICATION_STATUS_SQL};
+             {V16_CONNECTION_VERIFIED_AT_SQL};
+             {V16_CONNECTION_VERIFICATION_ERROR_SQL};
+             DELETE FROM schema_version;
+             INSERT INTO schema_version (version) VALUES (16);"
+        );
+
+        assert_eq!(
+            normalize_sql(MIGRATION_V16),
+            normalize_sql(&inline_v16_sql),
+            "file-based V16 migration must stay in sync with the inline migration"
+        );
     }
 
     #[test]
@@ -999,5 +1024,9 @@ mod tests {
         assert!(conn
             .prepare("SELECT connection_verification_error FROM accounts LIMIT 0")
             .is_ok());
+    }
+
+    fn normalize_sql(sql: &str) -> String {
+        sql.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 }

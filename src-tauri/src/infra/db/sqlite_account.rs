@@ -1,7 +1,8 @@
+use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::account::{Account, ConnectionVerificationStatus};
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::repository::account::AccountRepository;
@@ -23,10 +24,13 @@ fn provider_kind_to_str(kind: &ProviderKind) -> &'static str {
     }
 }
 
-fn provider_kind_from_str(s: &str) -> ProviderKind {
+fn provider_kind_from_str(s: &str) -> DomainResult<ProviderKind> {
     match s {
-        "FreshRss" => ProviderKind::FreshRss,
-        _ => ProviderKind::Local,
+        "Local" => Ok(ProviderKind::Local),
+        "FreshRss" => Ok(ProviderKind::FreshRss),
+        other => Err(DomainError::Persistence(format!(
+            "Unknown account provider kind: {other}"
+        ))),
     }
 }
 
@@ -38,11 +42,14 @@ fn verification_status_to_str(status: ConnectionVerificationStatus) -> &'static 
     }
 }
 
-fn verification_status_from_str(status: &str) -> ConnectionVerificationStatus {
+fn verification_status_from_str(status: &str) -> DomainResult<ConnectionVerificationStatus> {
     match status {
-        "verified" => ConnectionVerificationStatus::Verified,
-        "error" => ConnectionVerificationStatus::Error,
-        _ => ConnectionVerificationStatus::Unverified,
+        "verified" => Ok(ConnectionVerificationStatus::Verified),
+        "unverified" => Ok(ConnectionVerificationStatus::Unverified),
+        "error" => Ok(ConnectionVerificationStatus::Error),
+        other => Err(DomainError::Persistence(format!(
+            "Unknown account connection verification status: {other}"
+        ))),
     }
 }
 
@@ -51,7 +58,9 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
     let verification_status: String = row.get(9)?;
     Ok(Account {
         id: AccountId(row.get(0)?),
-        kind: provider_kind_from_str(&kind_str),
+        kind: provider_kind_from_str(&kind_str).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(1, Type::Text, Box::new(error))
+        })?,
         name: row.get(2)?,
         server_url: row.get(3)?,
         username: row.get(4)?,
@@ -59,7 +68,10 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
         sync_on_startup: row.get::<_, bool>(6)?,
         sync_on_wake: row.get::<_, bool>(7)?,
         keep_read_items_days: row.get(8)?,
-        connection_verification_status: verification_status_from_str(&verification_status),
+        connection_verification_status: verification_status_from_str(&verification_status)
+            .map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(9, Type::Text, Box::new(error))
+            })?,
         connection_verified_at: row.get(10)?,
         connection_verification_error: row.get(11)?,
     })
@@ -241,6 +253,82 @@ mod tests {
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].name, "Test Account");
         assert_eq!(all[0].id, account.id);
+    }
+
+    #[test]
+    fn find_all_returns_error_for_unknown_provider_kind() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.reader());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params!["acc-unknown", "UnknownProvider", "Unknown"],
+            )
+            .unwrap();
+
+        let error = repo
+            .find_all()
+            .expect_err("unknown provider kind should fail account decode");
+
+        assert!(error.to_string().contains("UnknownProvider"));
+    }
+
+    #[test]
+    fn find_by_id_returns_error_for_unknown_provider_kind() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.reader());
+        let account_id = AccountId("acc-unknown".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![account_id.0, "UnknownProvider", "Unknown"],
+            )
+            .unwrap();
+
+        let error = repo
+            .find_by_id(&account_id)
+            .expect_err("unknown provider kind should fail account decode");
+
+        assert!(error.to_string().contains("UnknownProvider"));
+    }
+
+    #[test]
+    fn find_all_returns_error_for_unknown_verification_status() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.reader());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name, connection_verification_status)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params!["acc-expired", "Local", "Expired", "expired"],
+            )
+            .unwrap();
+
+        let error = repo
+            .find_all()
+            .expect_err("unknown verification status should fail account decode");
+
+        assert!(error.to_string().contains("expired"));
+    }
+
+    #[test]
+    fn find_by_id_returns_error_for_unknown_verification_status() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.reader());
+        let account_id = AccountId("acc-expired".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name, connection_verification_status)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![account_id.0, "Local", "Expired", "expired"],
+            )
+            .unwrap();
+
+        let error = repo
+            .find_by_id(&account_id)
+            .expect_err("unknown verification status should fail account decode");
+
+        assert!(error.to_string().contains("expired"));
     }
 
     #[test]

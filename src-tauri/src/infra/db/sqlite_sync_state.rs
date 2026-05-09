@@ -45,7 +45,17 @@ impl SyncStateRepository for SqliteSyncStateRepository<'_> {
 
     fn save(&self, state: &SyncState) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO sync_state (account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT INTO sync_state (account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+             ON CONFLICT(account_id, scope_key) DO UPDATE SET
+                timestamp_usec = excluded.timestamp_usec,
+                continuation = excluded.continuation,
+                etag = excluded.etag,
+                last_modified = excluded.last_modified,
+                last_success_at = excluded.last_success_at,
+                last_error = excluded.last_error,
+                error_count = excluded.error_count,
+                next_retry_at = excluded.next_retry_at",
             params![
                 state.account_id.0,
                 state.scope_key,
@@ -83,6 +93,16 @@ mod tests {
         id
     }
 
+    fn sync_state_rowid(db: &DbManager, account_id: &AccountId, scope_key: &str) -> i64 {
+        db.reader()
+            .query_row(
+                "SELECT rowid FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+                params![account_id.0, scope_key],
+                |row| row.get(0),
+            )
+            .unwrap()
+    }
+
     #[test]
     fn save_and_get() {
         let db = test_db();
@@ -111,6 +131,36 @@ mod tests {
         assert_eq!(found.continuation, Some("cont-123".to_string()));
         assert_eq!(found.etag, Some("etag-abc".to_string()));
         assert_eq!(found.error_count, 0);
+    }
+
+    #[test]
+    fn save_and_get_round_trip_local_feed_validators_on_migration_applied_db() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+        let scope_key = SyncStateScopeKey::local_feed("https://example.com/rss.xml");
+
+        let state = SyncState {
+            account_id: account_id.clone(),
+            scope_key: scope_key.as_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: Some("\"etag-local\"".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        };
+
+        repo.save(&state).unwrap();
+
+        let found = repo.get(&account_id, scope_key).unwrap().unwrap();
+        assert_eq!(found.etag, Some("\"etag-local\"".to_string()));
+        assert_eq!(
+            found.last_modified,
+            Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string())
+        );
     }
 
     #[test]
@@ -157,6 +207,146 @@ mod tests {
         assert_eq!(found.timestamp_usec, Some(1_700_000_200_000_000));
         assert_eq!(found.continuation, Some("new-cont".to_string()));
         assert_eq!(found.error_count, 3);
+    }
+
+    #[test]
+    fn save_upserts_existing_without_replacing_row() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+        let scope_key = SyncStateScopeKey::greader_account_all().as_string();
+
+        let mut state = SyncState {
+            account_id: account_id.clone(),
+            scope_key: scope_key.clone(),
+            timestamp_usec: Some(1_700_000_100_000_000),
+            continuation: Some("old-cont".to_string()),
+            etag: Some("old-etag".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+            last_error: Some("old error".to_string()),
+            error_count: 1,
+            next_retry_at: Some("2025-01-01T01:00:00Z".to_string()),
+        };
+        repo.save(&state).unwrap();
+        let initial_rowid = sync_state_rowid(&db, &account_id, &scope_key);
+
+        state.timestamp_usec = Some(1_700_000_200_000_000);
+        state.continuation = Some("new-cont".to_string());
+        state.etag = Some("new-etag".to_string());
+        state.last_modified = Some("Thu, 02 Jan 2025 00:00:00 GMT".to_string());
+        state.last_success_at = Some("2025-01-02T00:00:00Z".to_string());
+        state.last_error = None;
+        state.error_count = 0;
+        state.next_retry_at = None;
+        repo.save(&state).unwrap();
+
+        let updated_rowid = sync_state_rowid(&db, &account_id, &scope_key);
+        let found = repo
+            .get(&account_id, SyncStateScopeKey::greader_account_all())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(updated_rowid, initial_rowid);
+        assert_eq!(found.timestamp_usec, Some(1_700_000_200_000_000));
+        assert_eq!(found.continuation, Some("new-cont".to_string()));
+        assert_eq!(found.etag, Some("new-etag".to_string()));
+        assert_eq!(
+            found.last_modified,
+            Some("Thu, 02 Jan 2025 00:00:00 GMT".to_string())
+        );
+        assert_eq!(
+            found.last_success_at,
+            Some("2025-01-02T00:00:00Z".to_string())
+        );
+        assert_eq!(found.last_error, None);
+        assert_eq!(found.error_count, 0);
+        assert_eq!(found.next_retry_at, None);
+    }
+
+    #[test]
+    fn save_and_get_round_trip_retry_metadata_on_migration_applied_db() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+
+        let state = SyncState {
+            account_id: account_id.clone(),
+            scope_key: SyncStateScopeKey::scheduler().as_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: Some("temporary network error".to_string()),
+            error_count: 2,
+            next_retry_at: Some("2026-05-09T12:30:00Z".to_string()),
+        };
+
+        repo.save(&state).unwrap();
+
+        let found = repo
+            .get(&account_id, SyncStateScopeKey::scheduler())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            found.last_error,
+            Some("temporary network error".to_string())
+        );
+        assert_eq!(found.error_count, 2);
+        assert_eq!(
+            found.next_retry_at,
+            Some("2026-05-09T12:30:00Z".to_string())
+        );
+    }
+
+    #[test]
+    fn get_keeps_same_scope_key_isolated_by_account_on_migration_applied_db() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+
+        repo.save(&SyncState {
+            account_id: account_a.clone(),
+            scope_key: SyncStateScopeKey::greader_account_all().as_string(),
+            timestamp_usec: Some(100),
+            continuation: Some("account-a".to_string()),
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        })
+        .unwrap();
+        repo.save(&SyncState {
+            account_id: account_b.clone(),
+            scope_key: SyncStateScopeKey::greader_account_all().as_string(),
+            timestamp_usec: Some(200),
+            continuation: Some("account-b".to_string()),
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        })
+        .unwrap();
+
+        let account_a_state = repo
+            .get(&account_a, SyncStateScopeKey::greader_account_all())
+            .unwrap()
+            .unwrap();
+        let account_b_state = repo
+            .get(&account_b, SyncStateScopeKey::greader_account_all())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(account_a_state.timestamp_usec, Some(100));
+        assert_eq!(account_a_state.continuation, Some("account-a".to_string()));
+        assert_eq!(account_b_state.timestamp_usec, Some(200));
+        assert_eq!(account_b_state.continuation, Some("account-b".to_string()));
     }
 
     #[test]

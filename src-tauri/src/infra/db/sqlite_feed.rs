@@ -107,8 +107,16 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                reader_mode = excluded.reader_mode,
                web_preview_mode = excluded.web_preview_mode
              ON CONFLICT(account_id, url) DO UPDATE SET
+               folder_id = excluded.folder_id,
                remote_id = excluded.remote_id,
                title = excluded.title,
+               site_url = excluded.site_url,
+               icon = excluded.icon,
+               unread_count = excluded.unread_count
+             ON CONFLICT(account_id, remote_id) DO UPDATE SET
+               folder_id = excluded.folder_id,
+               title = excluded.title,
+               url = excluded.url,
                site_url = excluded.site_url,
                icon = excluded.icon,
                unread_count = excluded.unread_count",
@@ -525,6 +533,29 @@ mod tests {
     }
 
     #[test]
+    fn update_folder_missing_feed_is_successful_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Folder", 0],
+            )
+            .unwrap();
+
+        repo.update_folder(&FeedId("missing-feed".to_string()), Some(&folder_id))
+            .unwrap();
+
+        let feed_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(feed_count, 0);
+    }
+
+    #[test]
     fn update_display_settings_persists_inherit_on_and_off_values() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -543,6 +574,21 @@ mod tests {
             assert_eq!(saved_feed.reader_mode, reader_mode);
             assert_eq!(saved_feed.web_preview_mode, web_preview_mode);
         }
+    }
+
+    #[test]
+    fn update_display_settings_missing_feed_is_successful_noop() {
+        let db = test_db();
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        repo.update_display_settings(&FeedId("missing-feed".to_string()), "on", "off")
+            .unwrap();
+
+        let feed_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(feed_count, 0);
     }
 
     #[test]
@@ -596,6 +642,20 @@ mod tests {
     }
 
     #[test]
+    fn delete_missing_feed_is_successful_noop() {
+        let db = test_db();
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        repo.delete(&FeedId("missing-feed".to_string())).unwrap();
+
+        let feed_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(feed_count, 0);
+    }
+
+    #[test]
     fn save_updates_existing_feed_without_cascading_articles() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -634,7 +694,8 @@ mod tests {
     }
 
     #[test]
-    fn save_updates_existing_feed_when_account_and_url_match_preserves_local_settings() {
+    fn save_updates_existing_feed_when_account_and_url_match_updates_remote_folder_and_preserves_local_settings(
+    ) {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
@@ -671,7 +732,7 @@ mod tests {
         let replacement_feed = Feed {
             id: FeedId::new(),
             account_id: account_id.clone(),
-            folder_id: Some(remote_folder_id),
+            folder_id: Some(remote_folder_id.clone()),
             remote_id: Some("feed/1".to_string()),
             title: "Remote Feed".to_string(),
             url: existing_feed.url.clone(),
@@ -692,7 +753,7 @@ mod tests {
         assert_eq!(feeds[0].site_url, "https://example.com");
         assert_eq!(feeds[0].icon.as_deref(), Some(&[1, 2, 3][..]));
         assert_eq!(feeds[0].unread_count, 12);
-        assert_eq!(feeds[0].folder_id.as_ref(), Some(&folder_id));
+        assert_eq!(feeds[0].folder_id.as_ref(), Some(&remote_folder_id));
         assert_eq!(feeds[0].reader_mode, "on");
         assert_eq!(feeds[0].web_preview_mode, "off");
     }
@@ -748,6 +809,44 @@ mod tests {
     }
 
     #[test]
+    fn save_duplicate_account_remote_id_preserves_existing_id_and_updates_remote_url() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let mut existing_feed = make_feed(&account_id, "Original Feed", "https://old.example/rss");
+        existing_feed.remote_id = Some("feed/remote".to_string());
+        existing_feed.site_url = "https://old.example".to_string();
+        existing_feed.unread_count = 4;
+        existing_feed.reader_mode = "on".to_string();
+        existing_feed.web_preview_mode = "off".to_string();
+        repo.save(&existing_feed).unwrap();
+
+        let mut incoming_feed = make_feed(&account_id, "Updated Feed", "https://new.example/rss");
+        incoming_feed.remote_id = existing_feed.remote_id.clone();
+        incoming_feed.site_url = "https://new.example".to_string();
+        incoming_feed.icon = Some(vec![4, 5, 6]);
+        incoming_feed.unread_count = 9;
+
+        repo.save(&incoming_feed).unwrap();
+
+        let feeds = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(feeds.len(), 1);
+        let saved_feed = &feeds[0];
+
+        assert_eq!(saved_feed.id, existing_feed.id);
+        assert_ne!(saved_feed.id, incoming_feed.id);
+        assert_eq!(saved_feed.remote_id.as_deref(), Some("feed/remote"));
+        assert_eq!(saved_feed.url, "https://new.example/rss");
+        assert_eq!(saved_feed.title, "Updated Feed");
+        assert_eq!(saved_feed.site_url, "https://new.example");
+        assert_eq!(saved_feed.icon.as_deref(), Some(&[4, 5, 6][..]));
+        assert_eq!(saved_feed.unread_count, 9);
+        assert_eq!(saved_feed.reader_mode, "on");
+        assert_eq!(saved_feed.web_preview_mode, "off");
+    }
+
+    #[test]
     fn rename_updates_title() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -763,5 +862,20 @@ mod tests {
         let feeds = repo.find_by_account(&account_id).unwrap();
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].title, "New Title");
+    }
+
+    #[test]
+    fn rename_missing_feed_is_successful_noop() {
+        let db = test_db();
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        repo.rename(&FeedId("missing-feed".to_string()), "New Title")
+            .unwrap();
+
+        let feed_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(feed_count, 0);
     }
 }

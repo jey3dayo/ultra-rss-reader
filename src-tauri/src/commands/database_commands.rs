@@ -30,7 +30,11 @@ impl From<DatabaseInfo> for DatabaseInfoDto {
 
 #[tauri::command]
 pub fn get_database_info(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
-    let db = try_lock_db(&state.db)?;
+    get_database_info_inner(&state.db)
+}
+
+fn get_database_info_inner(db: &Mutex<DbManager>) -> Result<DatabaseInfoDto, AppError> {
+    let db = try_lock_db(db)?;
     Ok(db.database_info().map_err(AppError::from)?.into())
 }
 
@@ -58,7 +62,7 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
-    use crate::commands::database_commands::vacuum_database_inner;
+    use crate::commands::database_commands::{get_database_info_inner, vacuum_database_inner};
     use crate::commands::dto::AppError;
     use crate::infra::db::connection::DbManager;
 
@@ -78,6 +82,25 @@ mod tests {
                 );
             }
             other => panic!("expected user-visible syncing error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn get_database_info_returns_busy_error_when_db_is_locked() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let _guard = db.lock().unwrap();
+
+        let error =
+            get_database_info_inner(&db).expect_err("busy DB should return command-level error");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(
+                    message,
+                    "Database is busy. Wait for the current operation to finish and try again."
+                );
+            }
+            other => panic!("expected user-visible busy error, got {other:?}"),
         }
     }
 

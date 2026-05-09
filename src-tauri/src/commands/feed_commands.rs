@@ -4,13 +4,17 @@ use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto, FolderDto};
 use crate::commands::AppState;
+use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
+use crate::domain::provider::ProviderKind;
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::FeedProvider;
+use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
@@ -94,13 +98,30 @@ pub fn create_folder(
     account_id: String,
     name: String,
 ) -> Result<FolderDto, AppError> {
+    let db = lock_db(&state.db)?;
+    create_folder_in_db(&db, account_id, name)
+}
+
+fn create_folder_in_db(
+    db: &DbManager,
+    account_id: String,
+    name: String,
+) -> Result<FolderDto, AppError> {
     use crate::domain::folder::Folder;
 
-    let db = lock_db(&state.db)?;
     let account_id = AccountId(account_id);
-    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let account_repo = SqliteAccountRepository::new(db.reader());
+    if account_repo.find_by_id(&account_id)?.is_none() {
+        return Err(AppError::UserVisible {
+            message: "Account not found".into(),
+        });
+    }
 
-    // Determine next sort_order
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+    let folder_repo = SqliteFolderRepository::new(&tx);
     let existing = folder_repo.find_by_account(&account_id)?;
     let name = validate_folder_name(
         &name,
@@ -109,7 +130,11 @@ pub fn create_folder(
             .map(|folder| folder.name.clone())
             .collect::<Vec<_>>(),
     )?;
-    let sort_order = existing.len() as i32;
+    let sort_order = existing
+        .iter()
+        .map(|folder| folder.sort_order)
+        .max()
+        .map_or(0, |sort_order| sort_order + 1);
 
     // NOTE: Local-only folder; remote sync will be handled in a future iteration
     let folder = Folder {
@@ -120,12 +145,18 @@ pub fn create_folder(
         sort_order,
     };
     folder_repo.save(&folder)?;
+    tx.commit()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
     Ok(FolderDto::from(folder))
 }
 
 #[tauri::command]
 pub fn delete_feed(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
     let db = lock_db(&state.db)?;
+    delete_feed_in_db(&db, feed_id)
+}
+
+fn delete_feed_in_db(db: &DbManager, feed_id: String) -> Result<(), AppError> {
     let repo = SqliteFeedRepository::new(db.writer());
     repo.delete(&FeedId(feed_id))?;
     Ok(())
@@ -138,6 +169,10 @@ pub fn rename_feed(
     title: String,
 ) -> Result<(), AppError> {
     let db = lock_db(&state.db)?;
+    rename_feed_in_db(&db, feed_id, title)
+}
+
+fn rename_feed_in_db(db: &DbManager, feed_id: String, title: String) -> Result<(), AppError> {
     let title = validate_feed_title(&title)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.rename(&FeedId(feed_id), &title)?;
@@ -165,18 +200,57 @@ fn update_feed_folder_in_db(
     Ok(())
 }
 
+fn recalculate_feed_unread_count_in_db(db: &DbManager, feed_id: &FeedId) -> Result<i32, AppError> {
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    Ok(feed_repo.recalculate_unread_count(feed_id)?)
+}
+
+fn validate_add_local_feed_account_in_db(
+    db: &DbManager,
+    account_id: &AccountId,
+) -> Result<(), AppError> {
+    let account_repo = SqliteAccountRepository::new(db.reader());
+    let account = account_repo
+        .find_by_id(account_id)?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Account not found".into(),
+        })?;
+
+    if !matches!(account.kind, ProviderKind::Local) {
+        return Err(AppError::UserVisible {
+            message: "Feed can only be added to a Local account".into(),
+        });
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn add_local_feed(
     state: State<'_, AppState>,
     account_id: String,
     url: String,
 ) -> Result<FeedDto, AppError> {
+    add_local_feed_with_db(&state.db, account_id, url).await
+}
+
+async fn add_local_feed_with_db(
+    db: &Mutex<DbManager>,
+    account_id: String,
+    url: String,
+) -> Result<FeedDto, AppError> {
+    let account_id = AccountId(account_id);
+
+    {
+        let db = lock_db(db)?;
+        validate_add_local_feed_account_in_db(&db, &account_id)?;
+    }
+
     // 1. Validate by fetching the feed
     let provider = LocalProvider::new();
     let sub = provider.create_subscription(&url, None).await?;
 
     // 2. Save to DB
-    let account_id = AccountId(account_id);
     let feed = Feed {
         id: FeedId::new(),
         account_id: account_id.clone(),
@@ -192,13 +266,13 @@ pub async fn add_local_feed(
     };
 
     {
-        let db = lock_db(&state.db)?;
+        let db = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db.writer());
         feed_repo.save(&feed)?;
     }
 
     let persisted_feed = {
-        let db = lock_db(&state.db)?;
+        let db = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db.reader());
         feed_repo
             .find_by_url(&account_id, &feed.url)?
@@ -208,16 +282,12 @@ pub async fn add_local_feed(
     };
 
     // 3. Fetch initial articles for the new feed
-    super::sync_providers::sync_local_feed(&state.db, &provider, &account_id, &persisted_feed)
-        .await?;
+    super::sync_providers::sync_local_feed(db, &provider, &account_id, &persisted_feed).await?;
 
     // 4. Re-read unread count from DB
     let unread_count = {
-        let db = lock_db(&state.db)?;
-        let feed_repo = SqliteFeedRepository::new(db.reader());
-        feed_repo
-            .recalculate_unread_count(&persisted_feed.id)
-            .unwrap_or(0)
+        let db = lock_db(db)?;
+        recalculate_feed_unread_count_in_db(&db, &persisted_feed.id)?
     };
     let mut updated_feed = persisted_feed;
     updated_feed.unread_count = unread_count;
@@ -252,6 +322,16 @@ pub fn update_feed_display_settings(
     reader_mode: String,
     web_preview_mode: String,
 ) -> Result<(), AppError> {
+    let db = lock_db(&state.db)?;
+    update_feed_display_settings_in_db(&db, feed_id, reader_mode, web_preview_mode)
+}
+
+fn update_feed_display_settings_in_db(
+    db: &DbManager,
+    feed_id: String,
+    reader_mode: String,
+    web_preview_mode: String,
+) -> Result<(), AppError> {
     if !matches!(reader_mode.as_str(), "inherit" | "on" | "off") {
         return Err(AppError::UserVisible {
             message: format!("Unknown reader mode: {reader_mode}"),
@@ -262,7 +342,6 @@ pub fn update_feed_display_settings(
             message: format!("Unknown web preview mode: {web_preview_mode}"),
         });
     }
-    let db = lock_db(&state.db)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.update_display_settings(&FeedId(feed_id), &reader_mode, &web_preview_mode)?;
     Ok(())
@@ -277,8 +356,17 @@ pub async fn discover_feeds(url: String) -> Result<Vec<DiscoveredFeedDto>, AppEr
 #[cfg(test)]
 mod tests {
     use rusqlite::params;
+    use std::net::TcpListener;
+    use std::sync::{mpsc, Mutex};
+    use std::thread;
+    use std::time::{Duration, Instant};
 
-    use super::update_feed_folder_in_db;
+    use super::{
+        add_local_feed_with_db, create_folder_in_db, delete_feed_in_db,
+        recalculate_feed_unread_count_in_db, rename_feed_in_db, update_feed_display_settings_in_db,
+        update_feed_folder_in_db, validate_add_local_feed_account_in_db,
+    };
+    use crate::commands::dto::AppError;
     use crate::domain::types::{AccountId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
 
@@ -286,12 +374,27 @@ mod tests {
         DbManager::new_in_memory().unwrap()
     }
 
-    fn insert_test_account(db: &DbManager, name: &str) -> AccountId {
+    fn insert_test_account_with_kind(db: &DbManager, name: &str, kind: &str) -> AccountId {
         let id = AccountId::new();
         db.writer()
             .execute(
                 "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
-                params![id.0, "Local", name],
+                params![id.0, kind, name],
+            )
+            .unwrap();
+        id
+    }
+
+    fn insert_test_account(db: &DbManager, name: &str) -> AccountId {
+        insert_test_account_with_kind(db, name, "Local")
+    }
+
+    fn insert_test_feed(db: &DbManager, account_id: &AccountId) -> FeedId {
+        let id = FeedId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                params![id.0, account_id.0, "Feed", "http://example.com/rss"],
             )
             .unwrap();
         id
@@ -302,15 +405,9 @@ mod tests {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
         let other_account_id = insert_test_account(&db, "Other");
-        let feed_id = FeedId::new();
+        let feed_id = insert_test_feed(&db, &account_id);
         let other_folder_id = FolderId::new();
 
-        db.writer()
-            .execute(
-                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
-                params![feed_id.0, account_id.0, "Feed", "http://example.com/rss"],
-            )
-            .unwrap();
         db.writer()
             .execute(
                 "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
@@ -330,5 +427,282 @@ mod tests {
             .unwrap();
 
         assert!(saved_folder_id.is_none());
+    }
+
+    #[test]
+    fn delete_feed_command_keeps_missing_feed_as_noop() {
+        let db = test_db();
+
+        delete_feed_in_db(&db, "missing-feed".to_string()).unwrap();
+    }
+
+    #[test]
+    fn rename_feed_command_keeps_missing_feed_as_noop() {
+        let db = test_db();
+
+        rename_feed_in_db(&db, "missing-feed".to_string(), "Renamed Feed".to_string()).unwrap();
+    }
+
+    #[test]
+    fn update_feed_folder_command_keeps_missing_feed_as_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Folder", 0],
+            )
+            .unwrap();
+
+        update_feed_folder_in_db(&db, "missing-feed".to_string(), Some(folder_id.0)).unwrap();
+    }
+
+    #[test]
+    fn update_feed_folder_command_keeps_folder_account_mismatch_as_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let other_account_id = insert_test_account(&db, "Other");
+        let feed_id = insert_test_feed(&db, &account_id);
+        let other_folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![other_folder_id.0, other_account_id.0, "Other", 0],
+            )
+            .unwrap();
+
+        update_feed_folder_in_db(&db, feed_id.0, Some(other_folder_id.0)).unwrap();
+    }
+
+    #[test]
+    fn update_feed_display_settings_command_keeps_missing_feed_as_noop() {
+        let db = test_db();
+
+        update_feed_display_settings_in_db(
+            &db,
+            "missing-feed".to_string(),
+            "on".to_string(),
+            "off".to_string(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn create_folder_rejects_missing_account_before_saving() {
+        let db = test_db();
+
+        let error = create_folder_in_db(&db, "missing".to_string(), "Inbox".to_string())
+            .expect_err("missing account should be rejected before folder save");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Account not found"
+        ));
+
+        let folder_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(folder_count, 0);
+    }
+
+    #[test]
+    fn create_folder_allocates_sort_order_after_current_max_inside_command() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params!["existing-low", account_id.0, "Low", 0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params!["existing-high", account_id.0, "High", 7],
+            )
+            .unwrap();
+
+        let first = create_folder_in_db(&db, account_id.0.clone(), "First".to_string()).unwrap();
+        let second = create_folder_in_db(&db, account_id.0.clone(), "Second".to_string()).unwrap();
+
+        assert_eq!(first.sort_order, 8);
+        assert_eq!(second.sort_order, 9);
+
+        let duplicate_order_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM (
+                   SELECT sort_order
+                   FROM folders
+                   WHERE account_id = ?1
+                   GROUP BY sort_order
+                   HAVING COUNT(*) > 1
+                 )",
+                params![account_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(duplicate_order_count, 0);
+    }
+
+    #[test]
+    fn update_feed_display_settings_command_persists_inherit_on_and_off_values() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let feed_id = insert_test_feed(&db, &account_id);
+
+        for (reader_mode, web_preview_mode) in
+            [("inherit", "inherit"), ("on", "off"), ("off", "on")]
+        {
+            update_feed_display_settings_in_db(
+                &db,
+                feed_id.0.clone(),
+                reader_mode.to_string(),
+                web_preview_mode.to_string(),
+            )
+            .unwrap();
+
+            let (saved_reader_mode, saved_web_preview_mode): (String, String) = db
+                .reader()
+                .query_row(
+                    "SELECT reader_mode, web_preview_mode FROM feeds WHERE id = ?1",
+                    params![feed_id.0],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .unwrap();
+
+            assert_eq!(saved_reader_mode, reader_mode);
+            assert_eq!(saved_web_preview_mode, web_preview_mode);
+        }
+    }
+
+    #[test]
+    fn update_feed_display_settings_command_rejects_unknown_reader_mode() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let feed_id = insert_test_feed(&db, &account_id);
+
+        let error = update_feed_display_settings_in_db(
+            &db,
+            feed_id.0,
+            "enabled".to_string(),
+            "inherit".to_string(),
+        )
+        .expect_err("unknown reader mode should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Unknown reader mode: enabled"
+        ));
+    }
+
+    #[test]
+    fn update_feed_display_settings_command_rejects_unknown_web_preview_mode() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let feed_id = insert_test_feed(&db, &account_id);
+
+        let error = update_feed_display_settings_in_db(
+            &db,
+            feed_id.0,
+            "inherit".to_string(),
+            "enabled".to_string(),
+        )
+        .expect_err("unknown web preview mode should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Unknown web preview mode: enabled"
+        ));
+    }
+
+    #[test]
+    fn add_local_feed_preflight_accepts_local_accounts() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+
+        validate_add_local_feed_account_in_db(&db, &account_id).unwrap();
+    }
+
+    #[test]
+    fn add_local_feed_preflight_rejects_missing_accounts() {
+        let db = test_db();
+        let error = validate_add_local_feed_account_in_db(&db, &AccountId("missing".to_string()))
+            .expect_err("missing account should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Account not found"
+        ));
+    }
+
+    #[test]
+    fn add_local_feed_preflight_rejects_non_local_accounts() {
+        let db = test_db();
+        let account_id = insert_test_account_with_kind(&db, "FreshRSS", "FreshRss");
+        let error = validate_add_local_feed_account_in_db(&db, &account_id)
+            .expect_err("non-local account should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed can only be added to a Local account"
+        ));
+    }
+
+    #[tokio::test]
+    async fn add_local_feed_rejects_missing_account_before_network_request() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let url = format!("http://{}/feed.xml", listener.local_addr().unwrap());
+        let (connection_tx, connection_rx) = mpsc::channel();
+        let listener_thread = thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_millis(250);
+            while Instant::now() < deadline {
+                match listener.accept() {
+                    Ok(_) => {
+                        let _ = connection_tx.send(());
+                        return;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        thread::sleep(Duration::from_millis(10));
+                    }
+                    Err(_) => return,
+                }
+            }
+        });
+
+        let db = Mutex::new(test_db());
+        let error = add_local_feed_with_db(&db, "missing".to_string(), url)
+            .await
+            .expect_err("missing account should be rejected before fetching");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Account not found"
+        ));
+        listener_thread.join().unwrap();
+        assert!(
+            connection_rx.try_recv().is_err(),
+            "missing account must not trigger an HTTP request"
+        );
+    }
+
+    #[test]
+    fn recalculate_feed_unread_count_command_returns_recalculation_errors() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let feed_id = insert_test_feed(&db, &account_id);
+
+        db.writer().execute("DROP TABLE articles", []).unwrap();
+
+        let error = recalculate_feed_unread_count_in_db(&db, &feed_id)
+            .expect_err("unread count recalculation failure should be returned");
+
+        assert!(matches!(error, AppError::UserVisible { message } if message.contains("articles")));
     }
 }

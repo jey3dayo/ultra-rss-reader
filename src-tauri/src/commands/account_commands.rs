@@ -62,6 +62,52 @@ fn validate_account_sync_settings(
     Ok(())
 }
 
+fn account_name_matches(left: &str, right: &str) -> bool {
+    left.trim().eq_ignore_ascii_case(right.trim())
+}
+
+fn validate_account_name_with_excluded_id(
+    name: &str,
+    accounts: &[Account],
+    excluded_id: Option<&AccountId>,
+) -> Result<String, AppError> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Account name cannot be empty".into(),
+        });
+    }
+    if name.chars().count() > 100 {
+        return Err(AppError::UserVisible {
+            message: "Account name must be 100 characters or less".into(),
+        });
+    }
+    if accounts.iter().any(|account| {
+        excluded_id.is_none_or(|excluded_id| account.id != *excluded_id)
+            && account_name_matches(&account.name, &name)
+    }) {
+        return Err(AppError::UserVisible {
+            message: format!("Account name \"{name}\" is already in use"),
+        });
+    }
+    Ok(name)
+}
+
+fn validate_account_name(name: &str, accounts: &[Account]) -> Result<String, AppError> {
+    validate_account_name_with_excluded_id(name, accounts, None)
+}
+
+fn validate_freshrss_server_url(account: &Account) -> Result<&str, AppError> {
+    account
+        .server_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|server_url| !server_url.is_empty())
+        .ok_or_else(|| AppError::UserVisible {
+            message: "FreshRSS server URL is not configured".into(),
+        })
+}
+
 fn save_account_after_optional_password<F, S, D>(
     account: &Account,
     password: Option<&str>,
@@ -101,11 +147,79 @@ where
     }
 }
 
+fn update_account_credentials_after_optional_password<F, U, S, D>(
+    id: &AccountId,
+    password: Option<&str>,
+    mut find_account: F,
+    update_credentials: U,
+    set_password: S,
+    delete_password: D,
+) -> Result<Account, AppError>
+where
+    F: FnMut(&AccountId) -> Result<Option<Account>, AppError>,
+    U: FnOnce(&AccountId) -> Result<(), AppError>,
+    S: FnOnce(&str, &str) -> Result<(), AppError>,
+    D: FnOnce(&str) -> Result<(), AppError>,
+{
+    find_account(id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
+
+    let saved_password = password.filter(|pw| !pw.is_empty());
+    if let Some(pw) = saved_password {
+        set_password(id.as_ref(), pw)?;
+    }
+
+    match update_credentials(id).and_then(|()| {
+        find_account(id)?.ok_or_else(|| AppError::UserVisible {
+            message: "Account not found".into(),
+        })
+    }) {
+        Ok(account) => Ok(account),
+        Err(error) => {
+            if saved_password.is_some() {
+                if let Err(rollback_error) = delete_password(id.as_ref()) {
+                    warn!(
+                        "Failed to roll back keyring entry for account {} after credential update failure: {:?}",
+                        id.as_ref(),
+                        rollback_error
+                    );
+                }
+            }
+            Err(error)
+        }
+    }
+}
+
+fn delete_account_then_password<D, K>(
+    id: &AccountId,
+    delete_account: D,
+    delete_password: K,
+) -> Result<(), AppError>
+where
+    D: FnOnce(&AccountId) -> Result<(), AppError>,
+    K: FnOnce(&str) -> Result<(), AppError>,
+{
+    delete_account(id)?;
+
+    if let Err(error) = delete_password(id.as_ref()) {
+        warn!(
+            "Failed to clean up keyring for account {} after DB delete: {:?}",
+            id.as_ref(),
+            error
+        );
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        save_account_after_optional_password, validate_account_sync_settings,
-        validate_add_account_args,
+        delete_account_then_password, save_account_after_optional_password,
+        update_account_credentials_after_optional_password, validate_account_name,
+        validate_account_name_with_excluded_id, validate_account_sync_settings,
+        validate_add_account_args, validate_freshrss_server_url,
     };
     use crate::commands::dto::AppError;
     use crate::domain::account::{Account, ConnectionVerificationStatus};
@@ -189,6 +303,57 @@ mod tests {
     }
 
     #[test]
+    fn validate_account_name_trims_and_rejects_empty_or_duplicate_names() {
+        let existing = vec![fresh_rss_account()];
+
+        assert_eq!(
+            validate_account_name("  Work FreshRSS  ", &existing).unwrap(),
+            "Work FreshRSS"
+        );
+        assert!(validate_account_name("   ", &existing).is_err());
+        assert!(validate_account_name(&"a".repeat(101), &existing).is_err());
+        assert!(validate_account_name("FreshRSS", &existing).is_err());
+        assert!(validate_account_name("  FreshRSS  ", &existing).is_err());
+        assert!(validate_account_name("freshrss", &existing).is_err());
+        assert!(validate_account_name("  FRESHRSS  ", &existing).is_err());
+    }
+
+    #[test]
+    fn validate_account_name_rejects_case_insensitive_duplicates_except_current_account() {
+        let mut existing = fresh_rss_account();
+        existing.name = "Work".to_string();
+        let accounts = vec![existing.clone()];
+
+        assert_eq!(
+            validate_account_name_with_excluded_id(" work ", &accounts, Some(&existing.id))
+                .unwrap(),
+            "work"
+        );
+        assert!(validate_account_name_with_excluded_id(
+            " work ",
+            &accounts,
+            Some(&AccountId::new())
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn validate_freshrss_server_url_rejects_missing_or_blank_urls() {
+        let mut account = fresh_rss_account();
+
+        assert_eq!(
+            validate_freshrss_server_url(&account).unwrap(),
+            "https://rss.example.com"
+        );
+
+        account.server_url = None;
+        assert!(validate_freshrss_server_url(&account).is_err());
+
+        account.server_url = Some("   ".to_string());
+        assert!(validate_freshrss_server_url(&account).is_err());
+    }
+
+    #[test]
     fn add_account_rolls_back_keyring_entry_when_db_save_fails() {
         let account = fresh_rss_account();
         let saved_passwords = RefCell::new(Vec::new());
@@ -251,6 +416,146 @@ mod tests {
             AppError::Retryable { message } => panic!("unexpected retryable error: {message}"),
         }
     }
+
+    #[test]
+    fn update_account_credentials_does_not_save_password_before_account_exists() {
+        let saved_passwords = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        let error = update_account_credentials_after_optional_password(
+            &AccountId("missing-account".to_string()),
+            Some("secret"),
+            |_| Ok(None),
+            |_| Ok(()),
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect_err("missing account should be rejected before keyring save");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Account not found"
+        ));
+        assert!(saved_passwords.borrow().is_empty());
+        assert!(deleted_passwords.borrow().is_empty());
+    }
+
+    #[test]
+    fn update_account_credentials_rolls_back_password_when_db_update_fails() {
+        let account = fresh_rss_account();
+        let saved_passwords = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        let error = update_account_credentials_after_optional_password(
+            &account.id,
+            Some("secret"),
+            |_| Ok(Some(account.clone())),
+            |_| {
+                Err(AppError::UserVisible {
+                    message: "db failed".to_string(),
+                })
+            },
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect_err("DB update failure should be returned");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "db failed"
+        ));
+        assert_eq!(
+            saved_passwords.borrow().as_slice(),
+            &[(account.id.as_ref().to_string(), "secret".to_string())]
+        );
+        assert_eq!(
+            deleted_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+    }
+
+    #[test]
+    fn delete_account_does_not_delete_password_when_db_delete_fails() {
+        let account = fresh_rss_account();
+        let deleted_accounts = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        let error = delete_account_then_password(
+            &account.id,
+            |account_id| {
+                deleted_accounts
+                    .borrow_mut()
+                    .push(account_id.as_ref().to_string());
+                Err(AppError::UserVisible {
+                    message: "db delete failed".to_string(),
+                })
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect_err("DB delete failure should be returned");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "db delete failed"
+        ));
+        assert_eq!(
+            deleted_accounts.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert!(deleted_passwords.borrow().is_empty());
+    }
+
+    #[test]
+    fn delete_account_keeps_db_delete_when_password_delete_fails() {
+        let account = fresh_rss_account();
+        let deleted_accounts = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        delete_account_then_password(
+            &account.id,
+            |account_id| {
+                deleted_accounts
+                    .borrow_mut()
+                    .push(account_id.as_ref().to_string());
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Err(AppError::UserVisible {
+                    message: "keyring delete failed".to_string(),
+                })
+            },
+        )
+        .expect("keyring cleanup failure should not roll back DB account delete");
+
+        assert_eq!(
+            deleted_accounts.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert_eq!(
+            deleted_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+    }
 }
 
 #[tauri::command]
@@ -279,6 +584,15 @@ pub async fn add_account(
         password.as_deref(),
     )?;
 
+    let name = {
+        let db = state.db.lock().map_err(|e| AppError::UserVisible {
+            message: format!("Lock error: {e}"),
+        })?;
+        let repo = SqliteAccountRepository::new(db.reader());
+        let accounts = repo.find_all()?;
+        validate_account_name(&name, &accounts)?
+    };
+
     let mut account = Account {
         id: AccountId::new(),
         kind: provider_kind,
@@ -296,8 +610,7 @@ pub async fn add_account(
 
     // Validate connection for remote providers (no DB lock held during .await)
     if matches!(account.kind, ProviderKind::FreshRss) {
-        let mut provider =
-            GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default());
+        let mut provider = GReaderProvider::for_freshrss(validate_freshrss_server_url(&account)?);
 
         provider
             .authenticate(&Credentials {
@@ -363,21 +676,21 @@ pub fn update_account_credentials(
 ) -> Result<AccountDto, AppError> {
     let id = AccountId(account_id);
 
-    // Update password in keyring if provided
-    if let Some(ref pw) = password {
-        if !pw.is_empty() {
-            keyring_store::set_password(id.as_ref(), pw)?;
-        }
-    }
-
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteAccountRepository::new(db.writer());
-    repo.update_credentials(&id, server_url.as_deref(), username.as_deref())?;
-    let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
-        message: "Account not found".into(),
-    })?;
+    let account = update_account_credentials_after_optional_password(
+        &id,
+        password.as_deref(),
+        |id| repo.find_by_id(id).map_err(AppError::from),
+        |id| {
+            repo.update_credentials(id, server_url.as_deref(), username.as_deref())
+                .map_err(AppError::from)
+        },
+        |account_id, pw| keyring_store::set_password(account_id, pw).map_err(AppError::from),
+        |account_id| keyring_store::delete_password(account_id).map_err(AppError::from),
+    )?;
     Ok(AccountDto::from(account))
 }
 
@@ -390,26 +703,10 @@ pub fn rename_account(
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
-    let name = name.trim().to_string();
-    if name.is_empty() {
-        return Err(AppError::UserVisible {
-            message: "Account name cannot be empty".into(),
-        });
-    }
-    if name.chars().count() > 100 {
-        return Err(AppError::UserVisible {
-            message: "Account name must be 100 characters or less".into(),
-        });
-    }
     let repo = SqliteAccountRepository::new(db.writer());
     let id = AccountId(account_id);
-    // Check for duplicate name
     let all_accounts = repo.find_all()?;
-    if all_accounts.iter().any(|a| a.id != id && a.name == name) {
-        return Err(AppError::UserVisible {
-            message: format!("Account name \"{name}\" is already in use"),
-        });
-    }
+    let name = validate_account_name_with_excluded_id(&name, &all_accounts, Some(&id))?;
     repo.rename(&id, &name)?;
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
@@ -438,6 +735,8 @@ pub async fn test_account_connection(
         return Ok(AccountDto::from(account));
     }
 
+    let server_url = validate_freshrss_server_url(&account)?;
+
     let username = account
         .username
         .as_deref()
@@ -447,8 +746,7 @@ pub async fn test_account_connection(
 
     let password = keyring_store::get_password(id.as_ref())?;
 
-    let mut provider =
-        GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default());
+    let mut provider = GReaderProvider::for_freshrss(server_url);
 
     if let Err(error) = provider
         .authenticate(&Credentials {
@@ -491,15 +789,14 @@ pub async fn test_account_connection(
 
 #[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
-    // Clean up keyring entry (log warning on unexpected errors)
-    if let Err(e) = keyring_store::delete_password(&account_id) {
-        warn!("Failed to clean up keyring for account {account_id}: {e}");
-    }
-
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteAccountRepository::new(db.writer());
-    repo.delete(&AccountId(account_id))?;
-    Ok(())
+    let id = AccountId(account_id);
+    delete_account_then_password(
+        &id,
+        |id| repo.delete(id).map_err(AppError::from),
+        |account_id| keyring_store::delete_password(account_id).map_err(AppError::from),
+    )
 }

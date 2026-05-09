@@ -10,6 +10,12 @@ pub enum PendingMutationType {
     Unstar,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PendingMutationAxis {
+    ReadState,
+    StarState,
+}
+
 impl PendingMutationType {
     pub fn parse(value: &str) -> DomainResult<Self> {
         match value {
@@ -29,6 +35,31 @@ impl PendingMutationType {
             Self::MarkUnread => "mark_unread",
             Self::Star => "star",
             Self::Unstar => "unstar",
+        }
+    }
+
+    pub fn axis(self) -> PendingMutationAxis {
+        match self {
+            Self::MarkRead | Self::MarkUnread => PendingMutationAxis::ReadState,
+            Self::Star | Self::Unstar => PendingMutationAxis::StarState,
+        }
+    }
+
+    pub fn replacement_type_values(self) -> &'static [&'static str] {
+        match self.axis() {
+            PendingMutationAxis::ReadState => {
+                &["mark_read", "MarkRead", "mark_unread", "MarkUnread"]
+            }
+            PendingMutationAxis::StarState => &[
+                "star",
+                "Star",
+                "set_starred",
+                "SetStarred",
+                "unstar",
+                "Unstar",
+                "unset_starred",
+                "UnsetStarred",
+            ],
         }
     }
 }

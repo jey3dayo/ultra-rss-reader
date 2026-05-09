@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::io::Cursor;
 
-use quick_xml::escape::escape;
 use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 
@@ -35,7 +34,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 return Err("OPML document must contain an <opml> root element".to_string());
             }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
-                let attrs = parse_outline_attrs(e);
+                let attrs = parse_outline_attrs(e)?;
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
                         title: outline_title_or_url(&attrs, xml_url),
@@ -56,7 +55,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 }
             }
             Ok(Event::Empty(ref e)) if e.name().as_ref() == b"outline" => {
-                let attrs = parse_outline_attrs(e);
+                let attrs = parse_outline_attrs(e)?;
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
                         title: outline_title_or_url(&attrs, xml_url),
@@ -91,14 +90,21 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     Ok(feeds)
 }
 
-fn parse_outline_attrs(e: &quick_xml::events::BytesStart<'_>) -> HashMap<String, String> {
+fn parse_outline_attrs(
+    e: &quick_xml::events::BytesStart<'_>,
+) -> Result<HashMap<String, String>, String> {
     let mut map = HashMap::new();
-    for attr in e.attributes().flatten() {
+    for attr in e.attributes() {
+        let attr =
+            attr.map_err(|error| format!("OPML parse error: invalid outline attribute: {error}"))?;
         let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
-        let value = attr.unescape_value().unwrap_or_default().to_string();
+        let value = attr
+            .unescape_value()
+            .map_err(|error| format!("OPML parse error: invalid outline attribute value: {error}"))?
+            .to_string();
         map.insert(key, value);
     }
-    map
+    Ok(map)
 }
 
 fn outline_title_or_url(attrs: &HashMap<String, String>, xml_url: &str) -> String {
@@ -135,7 +141,7 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
         .write_event(Event::Start(BytesStart::new("title")))
         .expect("write title start");
     writer
-        .write_event(Event::Text(BytesText::new(&escape(title))))
+        .write_event(Event::Text(BytesText::new(title)))
         .expect("write title text");
     writer
         .write_event(Event::End(BytesEnd::new("title")))
@@ -313,6 +319,24 @@ mod tests {
     }
 
     #[test]
+    fn rejects_malformed_outline_attribute() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Broken" xmlUrl=https://example.com/rss/>
+    <outline text="Valid" xmlUrl="https://example.com/valid.xml"/>
+  </body>
+</opml>"#;
+
+        let error = parse_opml(xml).unwrap_err();
+
+        assert!(
+            error.starts_with("OPML parse error: invalid outline attribute:"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
     fn skips_outline_without_xml_url() {
         let xml = r#"<?xml version="1.0"?>
 <opml version="2.0">
@@ -329,6 +353,29 @@ mod tests {
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].title, "With URL");
         assert_eq!(feeds[0].folder, Some("Folder".to_string()));
+    }
+
+    #[test]
+    fn maps_nested_folder_to_deepest_folder_name() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Top">
+      <outline text="Nested">
+        <outline text="Deep Feed" xmlUrl="https://example.com/deep.xml"/>
+      </outline>
+      <outline text="Top Feed" xmlUrl="https://example.com/top.xml"/>
+    </outline>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(feeds[0].title, "Deep Feed");
+        assert_eq!(feeds[0].folder, Some("Nested".to_string()));
+        assert_eq!(feeds[1].title, "Top Feed");
+        assert_eq!(feeds[1].folder, Some("Top".to_string()));
     }
 
     #[test]
@@ -472,6 +519,9 @@ mod tests {
         }];
 
         let xml = generate_opml("Test & Title", &feeds);
+        assert!(xml.contains("<title>Test &amp; Title</title>"));
+        assert!(!xml.contains("&amp;amp;"));
+
         // Should not panic and should round-trip
         let parsed = parse_opml(&xml).unwrap();
         assert_eq!(parsed.len(), 1);

@@ -797,6 +797,26 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     ))
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn browser_preview_action_for_virtual_key_from_prefs_result(
+    prefs_result: Result<HashMap<String, String>, std::io::Error>,
+    virtual_key: u32,
+    command_or_control: bool,
+    shift: bool,
+) -> Option<&'static str> {
+    let key = browser_shortcut_key_from_virtual_key(virtual_key)?;
+    let prefs = match prefs_result {
+        Ok(prefs) => prefs,
+        Err(error) => {
+            tracing::warn!(
+                "Failed to load embedded browser shortcut preferences; using default preview shortcuts: {error}"
+            );
+            HashMap::new()
+        }
+    };
+    browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift)
+}
+
 #[cfg(windows)]
 fn browser_preview_action_for_virtual_key<R: Runtime>(
     app_handle: &AppHandle<R>,
@@ -804,18 +824,15 @@ fn browser_preview_action_for_virtual_key<R: Runtime>(
     command_or_control: bool,
     shift: bool,
 ) -> Option<&'static str> {
-    use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
-    use crate::repository::preference::PreferenceRepository;
-
-    let key = browser_shortcut_key_from_virtual_key(virtual_key)?;
-    let app_state = app_handle.state::<crate::commands::AppState>();
-    let db = app_state.db.lock().ok()?;
-    let repo = SqlitePreferenceRepository::new(db.reader());
-    let prefs = repo.get_all().ok()?;
-    browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift)
+    browser_preview_action_for_virtual_key_from_prefs_result(
+        load_browser_preview_prefs(app_handle),
+        virtual_key,
+        command_or_control,
+        shift,
+    )
 }
 
-#[cfg(windows)]
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn browser_shortcut_key_from_virtual_key(virtual_key: u32) -> Option<String> {
     match virtual_key {
         0x30..=0x39 => char::from_u32(virtual_key).map(|ch| ch.to_string()),
@@ -1202,8 +1219,10 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        browser_preview_action_for_shortcut, browser_preview_close_bridge_source,
-        browser_preview_focus_override_source, browser_preview_initialization_script,
+        browser_preview_action_for_shortcut,
+        browser_preview_action_for_virtual_key_from_prefs_result,
+        browser_preview_close_bridge_source, browser_preview_focus_override_source,
+        browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
         browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
         should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
@@ -1240,6 +1259,26 @@ mod tests {
         assert!(!state.is_loading);
         assert!(state.can_go_back);
         assert!(!state.can_go_forward);
+    }
+
+    #[test]
+    fn finish_prefers_native_navigation_availability_over_fallback_history() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+
+        tracker.start("https://example.com/next".to_string());
+        let state = tracker.finish(
+            "https://example.com/next".to_string(),
+            Some(BrowserNavigationAvailability {
+                can_go_back: false,
+                can_go_forward: true,
+            }),
+        );
+
+        assert!(!state.can_go_back);
+        assert!(state.can_go_forward);
     }
 
     #[test]
@@ -1525,6 +1564,28 @@ mod tests {
         assert_eq!(
             browser_preview_action_for_shortcut(&prefs, "j", false, false),
             None
+        );
+    }
+
+    #[test]
+    fn browser_preview_virtual_key_uses_default_shortcuts_when_preferences_fail_to_load() {
+        let action = browser_preview_action_for_virtual_key_from_prefs_result(
+            Err(std::io::Error::other("preference read failed")),
+            0x4D,
+            false,
+            false,
+        );
+
+        assert_eq!(action, Some("toggle-read"));
+    }
+
+    #[test]
+    fn browser_preview_virtual_key_keeps_saved_overrides_when_preferences_load() {
+        let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
+
+        assert_eq!(
+            browser_preview_action_for_virtual_key_from_prefs_result(Ok(prefs), 0x58, false, false),
+            Some("toggle-read")
         );
     }
 

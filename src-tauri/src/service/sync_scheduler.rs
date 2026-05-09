@@ -13,6 +13,7 @@ use crate::commands::sync_commands::{
     SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
@@ -34,6 +35,7 @@ struct AccountSchedule {
     next_sync: Instant,
 }
 
+#[derive(Debug)]
 struct RetryBackoffState {
     error_count: i32,
     next_retry_at: Option<String>,
@@ -74,12 +76,23 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 continue;
             }
 
-            let accounts: Vec<Account> = match state.db.lock().ok().and_then(|db_guard| {
+            let accounts_result = {
+                let db_guard = match state.db.lock() {
+                    Ok(db_guard) => db_guard,
+                    Err(error) => {
+                        tracing::warn!("Skipping scheduled sync: failed to lock database: {error}");
+                        continue;
+                    }
+                };
                 let repo = SqliteAccountRepository::new(db_guard.reader());
-                repo.find_all().ok()
-            }) {
-                Some(a) => a,
-                None => continue,
+                repo.find_all()
+            };
+            let accounts: Vec<Account> = match accounts_result {
+                Ok(accounts) => accounts,
+                Err(error) => {
+                    tracing::warn!("Skipping scheduled sync: failed to load accounts: {error}");
+                    continue;
+                }
             };
 
             let now = Instant::now();
@@ -156,7 +169,13 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             });
                         }
                         reporter.emit_account_finished(account, true);
-                        reset_error_count(&state.db, &account.id);
+                        if let Err(error) = reset_error_count(&state.db, &account.id) {
+                            tracing::warn!(
+                                "Background sync could not reset backoff state for account '{}': {error}",
+                                account.name
+                            );
+                            all_succeeded = false;
+                        }
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + account_interval(account);
                         }
@@ -168,7 +187,21 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             account.name
                         );
                         reporter.emit_account_finished(account, false);
-                        let backoff_state = increment_error_count(&state.db, &account.id, &e);
+                        let backoff_state = match increment_error_count(&state.db, &account.id, &e)
+                        {
+                            Ok(backoff_state) => backoff_state,
+                            Err(error) => {
+                                tracing::warn!(
+                                    "Background sync could not persist backoff state for account '{}': {error}",
+                                    account.name
+                                );
+                                RetryBackoffState {
+                                    error_count: 1,
+                                    next_retry_at: None,
+                                    retry_in_seconds: calculate_backoff_secs(1),
+                                }
+                            }
+                        };
                         let backoff = calculate_backoff(account, backoff_state.error_count);
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + backoff;
@@ -259,8 +292,9 @@ fn prune_deleted_account_schedules(
 
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
     let base = account_interval(account);
+    let error_count = clamped_backoff_error_count(error_count);
     let multiplier = 1u64
-        .checked_shl(error_count.min(MAX_BACKOFF_SHIFT_BITS as i32) as u32)
+        .checked_shl(error_count)
         .unwrap_or(MAX_BACKOFF_MULTIPLIER);
     let backoff = base.saturating_mul(multiplier as u32);
     backoff.min(MAX_BACKOFF)
@@ -287,16 +321,14 @@ fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bool {
     false
 }
 
-fn reset_error_count(db: &Mutex<DbManager>, account_id: &AccountId) {
-    let Some(db_guard) = db.lock().ok() else {
-        return;
-    };
+fn reset_error_count(db: &Mutex<DbManager>, account_id: &AccountId) -> DomainResult<()> {
+    let db_guard = db
+        .lock()
+        .map_err(|error| DomainError::Persistence(format!("Lock error: {error}")))?;
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
     let scope_key = SyncStateScopeKey::scheduler();
     let mut state = repo
-        .get(account_id, &scope_key)
-        .ok()
-        .flatten()
+        .get(account_id, &scope_key)?
         .unwrap_or_else(|| SyncState {
             account_id: account_id.clone(),
             scope_key: scope_key.as_string(),
@@ -313,27 +345,21 @@ fn reset_error_count(db: &Mutex<DbManager>, account_id: &AccountId) {
     state.last_error = None;
     state.next_retry_at = None;
     state.last_success_at = Some(chrono::Utc::now().to_rfc3339());
-    let _ = repo.save(&state);
+    repo.save(&state)
 }
 
 fn increment_error_count(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
     error: &crate::commands::dto::AppError,
-) -> RetryBackoffState {
-    let Some(db_guard) = db.lock().ok() else {
-        return RetryBackoffState {
-            error_count: 1,
-            next_retry_at: None,
-            retry_in_seconds: calculate_backoff_secs(1),
-        };
-    };
+) -> DomainResult<RetryBackoffState> {
+    let db_guard = db
+        .lock()
+        .map_err(|error| DomainError::Persistence(format!("Lock error: {error}")))?;
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
     let scope_key = SyncStateScopeKey::scheduler();
     let mut state = repo
-        .get(account_id, &scope_key)
-        .ok()
-        .flatten()
+        .get(account_id, &scope_key)?
         .unwrap_or_else(|| SyncState {
             account_id: account_id.clone(),
             scope_key: scope_key.as_string(),
@@ -346,26 +372,31 @@ fn increment_error_count(
             error_count: 0,
             next_retry_at: None,
         });
-    state.error_count += 1;
+    state.error_count = (clamped_backoff_error_count(state.error_count) as i32).saturating_add(1);
     state.last_error = Some(error.to_string());
     // Set next_retry_at for the backoff check
     let backoff_secs = calculate_backoff_secs(state.error_count);
     let next_retry = chrono::Utc::now() + chrono::Duration::seconds(backoff_secs as i64);
     let next_retry_at = next_retry.to_rfc3339();
     state.next_retry_at = Some(next_retry_at.clone());
-    let _ = repo.save(&state);
-    RetryBackoffState {
+    repo.save(&state)?;
+    Ok(RetryBackoffState {
         error_count: state.error_count,
         next_retry_at: Some(next_retry_at),
         retry_in_seconds: backoff_secs,
-    }
+    })
 }
 
 fn calculate_backoff_secs(error_count: i32) -> u64 {
+    let error_count = clamped_backoff_error_count(error_count);
     let multiplier = 1u64
-        .checked_shl(error_count.min(MAX_BACKOFF_SHIFT_BITS as i32) as u32)
+        .checked_shl(error_count)
         .unwrap_or(MAX_BACKOFF_MULTIPLIER);
     (BACKOFF_BASE_SECS * multiplier).min(MAX_BACKOFF.as_secs())
+}
+
+fn clamped_backoff_error_count(error_count: i32) -> u32 {
+    error_count.clamp(0, MAX_BACKOFF_SHIFT_BITS as i32) as u32
 }
 
 pub async fn wait_for_automatic_sync_enabled(
@@ -380,7 +411,10 @@ pub async fn wait_for_automatic_sync_enabled(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::dto::AppError;
     use crate::domain::account::ConnectionVerificationStatus;
+    use crate::infra::db::connection::DbManager;
+    use rusqlite::params;
     use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::sync::Notify;
 
@@ -399,6 +433,19 @@ mod tests {
             connection_verified_at: None,
             connection_verification_error: None,
         }
+    }
+
+    fn test_db() -> DbManager {
+        DbManager::new_in_memory().unwrap()
+    }
+
+    fn insert_test_account(db: &DbManager, account_id: &AccountId) {
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![account_id.0, "Local", "Test"],
+            )
+            .unwrap();
     }
 
     #[tokio::test]
@@ -497,14 +544,75 @@ mod tests {
     }
 
     #[test]
+    fn calculate_backoff_clamps_negative_error_count_to_initial_delay() {
+        let account = test_account(60);
+
+        assert_eq!(calculate_backoff(&account, -1), Duration::from_secs(60));
+        assert_eq!(calculate_backoff_secs(-1), BACKOFF_BASE_SECS);
+    }
+
+    #[test]
     fn calculate_backoff_caps_at_max() {
         let account = test_account(60);
         assert_eq!(calculate_backoff(&account, 20), MAX_BACKOFF);
     }
 
     #[test]
-    fn calculate_backoff_secs_caps_at_max() {
+    fn calculate_backoff_secs_caps_abnormal_high_values_at_max() {
         assert!(calculate_backoff_secs(20) <= MAX_BACKOFF.as_secs());
+        assert_eq!(calculate_backoff_secs(i32::MAX), MAX_BACKOFF.as_secs());
+    }
+
+    #[test]
+    fn increment_error_count_persists_backoff_state_and_is_in_backoff() {
+        let db = std::sync::Mutex::new(test_db());
+        let account_id = AccountId::new();
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account_id);
+        }
+
+        let backoff_state = increment_error_count(
+            &db,
+            &account_id,
+            &AppError::UserVisible {
+                message: "sync failed".to_string(),
+            },
+        )
+        .expect("backoff state should save");
+
+        assert_eq!(backoff_state.error_count, 1);
+        assert_eq!(backoff_state.retry_in_seconds, calculate_backoff_secs(1));
+        assert!(backoff_state.next_retry_at.is_some());
+        assert!(is_in_backoff(&db, &account_id));
+    }
+
+    #[test]
+    fn increment_error_count_surfaces_save_errors() {
+        let db = std::sync::Mutex::new(test_db());
+        let account_id = AccountId::new();
+
+        let error = increment_error_count(
+            &db,
+            &account_id,
+            &AppError::UserVisible {
+                message: "sync failed".to_string(),
+            },
+        )
+        .expect_err("sync state save failure should be returned");
+
+        assert!(matches!(error, DomainError::Persistence(_)));
+    }
+
+    #[test]
+    fn reset_error_count_surfaces_save_errors() {
+        let db = std::sync::Mutex::new(test_db());
+        let account_id = AccountId::new();
+
+        let error = reset_error_count(&db, &account_id)
+            .expect_err("sync state save failure should be returned");
+
+        assert!(matches!(error, DomainError::Persistence(_)));
     }
 
     #[test]

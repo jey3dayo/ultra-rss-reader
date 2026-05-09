@@ -166,14 +166,29 @@ fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainRes
         .map_err(|e| DomainError::Keychain(format!("Failed to serialize dev store: {e}")))?;
     std::fs::write(path, &json)
         .map_err(|e| DomainError::Keychain(format!("Failed to write dev store: {e}")))?;
-    // Restrict file permissions to owner-only (0600) on Unix
     #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = std::fs::Permissions::from_mode(0o600);
-        let _ = std::fs::set_permissions(path, perms);
-    }
+    set_dev_store_owner_only_permissions(path)?;
     Ok(())
+}
+
+#[cfg(unix)]
+fn set_dev_store_owner_only_permissions(path: &Path) -> DomainResult<()> {
+    set_dev_store_owner_only_permissions_with(path, |path, perms| {
+        std::fs::set_permissions(path, perms)
+    })
+}
+
+#[cfg(unix)]
+fn set_dev_store_owner_only_permissions_with<F>(path: &Path, set_permissions: F) -> DomainResult<()>
+where
+    F: FnOnce(&Path, std::fs::Permissions) -> std::io::Result<()>,
+{
+    use std::os::unix::fs::PermissionsExt;
+
+    let perms = std::fs::Permissions::from_mode(0o600);
+    set_permissions(path, perms).map_err(|e| {
+        DomainError::Keychain(format!("Failed to restrict dev store permissions: {e}"))
+    })
 }
 
 fn delete_dev_password_at_path(path: &PathBuf, account_id: &str) -> DomainResult<()> {
@@ -546,6 +561,51 @@ mod tests {
             .expect("repeated missing dev credential cleanup should stay a no-op");
 
         assert_eq!(super::read_dev_store(&path).unwrap(), store);
+    }
+
+    #[test]
+    fn dev_credentials_store_survives_restart_readback_by_account_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let mut first_process_store = HashMap::new();
+        first_process_store.insert("account-a".to_string(), "secret-a".to_string());
+        first_process_store.insert("account-b".to_string(), "secret-b".to_string());
+
+        super::write_dev_store(&path, &first_process_store)
+            .expect("dev credential fixture should be writable");
+
+        let restarted_process_store = super::read_dev_store(&path)
+            .expect("dev credential store should be readable after restart");
+
+        assert_eq!(
+            restarted_process_store.get("account-a"),
+            Some(&"secret-a".to_string())
+        );
+        assert_eq!(
+            restarted_process_store.get("account-b"),
+            Some(&"secret-b".to_string())
+        );
+        assert_eq!(restarted_process_store.get("missing-account"), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn dev_credentials_permission_failure_is_keychain_error() {
+        let path = Path::new("/tmp/dev-credentials.json");
+
+        let error = super::set_dev_store_owner_only_permissions_with(path, |_path, _perms| {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "permission denied",
+            ))
+        })
+        .expect_err("dev credential permission failure must be observable");
+
+        assert!(matches!(error, DomainError::Keychain(_)));
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Failed to restrict dev store permissions: permission denied"
+        );
     }
 
     #[test]

@@ -1,3 +1,4 @@
+use rusqlite::types::Type;
 use rusqlite::{params, Connection};
 
 use crate::domain::article::Article;
@@ -68,10 +69,10 @@ fn row_to_tag(row: &rusqlite::Row) -> rusqlite::Result<Tag> {
     })
 }
 
-fn parse_datetime(s: &str) -> chrono::DateTime<chrono::Utc> {
+fn parse_datetime(s: &str) -> rusqlite::Result<chrono::DateTime<chrono::Utc>> {
     chrono::DateTime::parse_from_rfc3339(s)
         .map(|dt| dt.with_timezone(&chrono::Utc))
-        .unwrap_or_default()
+        .map_err(|err| rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(err)))
 }
 
 fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
@@ -89,14 +90,23 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
         url: row.get(8)?,
         author: row.get(9)?,
         thumbnail: row.get(10)?,
-        published_at: parse_datetime(&published_at_str),
+        published_at: parse_datetime(&published_at_str)?,
         is_read: row.get(12)?,
         is_starred: row.get(13)?,
-        fetched_at: parse_datetime(&fetched_at_str),
+        fetched_at: parse_datetime(&fetched_at_str)?,
     })
 }
 
 const ARTICLE_SELECT_COLS: &str = "a.id, a.feed_id, a.remote_id, a.title, a.content_raw, a.content_sanitized, a.sanitizer_version, a.summary, a.url, a.author, a.thumbnail, a.published_at, a.is_read, a.is_starred, a.fetched_at";
+
+fn validate_tag_name(name: &str) -> DomainResult<()> {
+    if name.trim().is_empty() {
+        return Err(DomainError::Validation(
+            "tag name cannot be blank".to_string(),
+        ));
+    }
+    Ok(())
+}
 
 impl TagRepository for SqliteTagRepository<'_> {
     fn find_all(&self) -> DomainResult<Vec<Tag>> {
@@ -121,6 +131,8 @@ impl TagRepository for SqliteTagRepository<'_> {
     }
 
     fn save(&self, tag: &Tag) -> DomainResult<()> {
+        validate_tag_name(&tag.name)?;
+
         self.conn.execute(
             "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3) \
              ON CONFLICT(id) DO UPDATE SET name = excluded.name, color = excluded.color",
@@ -130,6 +142,8 @@ impl TagRepository for SqliteTagRepository<'_> {
     }
 
     fn find_or_create(&self, tag: &Tag) -> DomainResult<Tag> {
+        validate_tag_name(&tag.name)?;
+
         if let Some(existing) = self.find_by_name(&tag.name)? {
             return Ok(existing);
         }
@@ -332,6 +346,52 @@ mod tests {
     }
 
     #[test]
+    fn save_rejects_blank_tag_names_without_inserting_rows() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        for name in ["", "   "] {
+            let tag = Tag {
+                id: TagId::new(),
+                name: name.to_string(),
+                color: None,
+            };
+
+            let error = repo
+                .save(&tag)
+                .expect_err("blank tag name should be rejected");
+            assert!(
+                matches!(error, DomainError::Validation(message) if message == "tag name cannot be blank")
+            );
+        }
+
+        assert!(repo.find_all().unwrap().is_empty());
+    }
+
+    #[test]
+    fn find_or_create_rejects_blank_tag_names_without_inserting_rows() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        for name in ["", "   "] {
+            let tag = Tag {
+                id: TagId::new(),
+                name: name.to_string(),
+                color: None,
+            };
+
+            let error = repo
+                .find_or_create(&tag)
+                .expect_err("blank tag name should be rejected");
+            assert!(
+                matches!(error, DomainError::Validation(message) if message == "tag name cannot be blank")
+            );
+        }
+
+        assert!(repo.find_all().unwrap().is_empty());
+    }
+
+    #[test]
     fn find_all_sorts_tags_by_name_case_insensitively() {
         let db = test_db();
         let repo = SqliteTagRepository::new(db.writer());
@@ -501,6 +561,35 @@ mod tests {
     }
 
     #[test]
+    fn find_articles_by_tag_returns_decode_error_for_malformed_fetched_at() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "work".to_string(),
+            color: Some("#0000ff".to_string()),
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        db.writer()
+            .execute(
+                "UPDATE articles SET fetched_at = ?1 WHERE id = ?2",
+                params!["not-a-date", article_id.0],
+            )
+            .unwrap();
+
+        let pagination = Pagination {
+            offset: 0,
+            limit: 50,
+        };
+        let result = repo.find_articles_by_tag(&tag.id, &pagination, None, ArticleListMode::All);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn find_articles_by_tag_filters_muted_articles() {
         let db = test_db();
         let (_, _, article_id) = insert_test_data(&db);
@@ -587,7 +676,7 @@ mod tests {
     }
 
     #[test]
-    fn tag_article_idempotent() {
+    fn tag_article_uses_insert_or_ignore_for_duplicate_link() {
         let db = test_db();
         let (_, _, article_id) = insert_test_data(&db);
         let repo = SqliteTagRepository::new(db.writer());
@@ -599,12 +688,66 @@ mod tests {
         };
         repo.save(&tag).unwrap();
 
-        // Tagging twice should not error
         repo.tag_article(&article_id, &tag.id).unwrap();
         repo.tag_article(&article_id, &tag.id).unwrap();
 
         let tags = repo.find_tags_for_article(&article_id).unwrap();
         assert_eq!(tags.len(), 1);
+    }
+
+    #[test]
+    fn untag_article_treats_delete_zero_rows_as_successful_noop() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "test".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+
+        repo.untag_article(&article_id, &tag.id).unwrap();
+
+        let tags = repo.find_tags_for_article(&article_id).unwrap();
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn tag_article_rejects_missing_article_with_foreign_key_error() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "test".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+
+        let error = repo
+            .tag_article(&ArticleId("missing-article".to_string()), &tag.id)
+            .expect_err("missing article should violate the article_tags foreign key");
+
+        assert!(
+            matches!(error, DomainError::Persistence(message) if message.contains("FOREIGN KEY constraint failed"))
+        );
+    }
+
+    #[test]
+    fn tag_article_rejects_missing_tag_with_foreign_key_error() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let error = repo
+            .tag_article(&article_id, &TagId("missing-tag".to_string()))
+            .expect_err("missing tag should violate the article_tags foreign key");
+
+        assert!(
+            matches!(error, DomainError::Persistence(message) if message.contains("FOREIGN KEY constraint failed"))
+        );
     }
 
     #[test]
