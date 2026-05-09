@@ -70,11 +70,6 @@
   - story/dev mock が `window.__TAURI_INTERNALS__` など global を触るため、story 間や test 間で leaked runtime state が残ると false positive になる
   - install / restore / already installed の contract test を追加し、Storybook fixture cleanup と分ける
 
-- [ ] P1 article list keydown RAF selection ordering を補強する
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-keydown-handler.ts`, `src/components/reader/hooks/article-list/use-article-list-effects.ts`
-  - keyboard navigation と RAF focus が article list update / search result update と重なる時、古い row へ focus する可能性がある
-  - selected article deleted、search query changed、next/prev repeated keydown の ordering を focused test で固定する
-
 - [ ] P2 feed tree click suppression timer cleanup を補強する
   - 対象: `src/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression.ts`
   - drag handle click suppression は timer 依存で、drag cancel / drop / unmount の順序によって suppress flag が残る可能性がある
@@ -214,6 +209,126 @@
   - 対象: `scripts/lib/windows-dispatch.ts`, `scripts/tauri-cli-dispatch.ts`, `src/__tests__/scripts/tauri-cli-dispatch.test.ts`
   - Windows dispatch の env allowlist で `VITE_*` / `TAURI_*` を広く通す場合、`*_SECRET` / `*_TOKEN` / `*_CREDENTIALS` が Windows 側へ漏れる可能性がある
   - forwarded env の secret suffix denylist と explicit allowlist を test で固定し、必要な dev env だけを通す
+
+- [ ] P0 release tag と app/package/Cargo version の一致を release workflow で固定する
+  - 対象: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `.github/workflows/release.yml`
+  - release tag と app/package/Cargo version がズレると、別バージョンの artifact を正規 release として配布できる
+  - release workflow で tag、package version、Tauri bundle version、Cargo package version の parity を検証し、不一致なら artifact 作成前に失敗させる
+
+- [ ] P0 add_local_feed の部分保存 rollback / partial success 契約を固定する
+  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/sync_providers.rs`, `src/hooks/use-add-feed.ts`
+  - `add_local_feed` は feed 保存後に初回 sync へ進むため、初回記事取得が失敗した時に「追加失敗だが feed は残る」状態になり得る
+  - feed persisted + initial sync failed の rollback / partial success / retry 導線を決め、user feedback と DB 状態を Rust test で固定する
+
+- [ ] P1 dev credentials file store の atomic write / lost update 契約を固定する
+  - 対象: `src-tauri/src/infra/keyring_store.rs`
+  - dev credentials が `std::fs::write` 直書きだと、書き込み中断や並行 set/delete で JSON 破損・lost update になり得る
+  - `write_dev_store` を temp file + rename か lock 方針へ寄せ、partial write、permission failure、連続 set/delete の test を追加する
+
+- [ ] P1 dependency security audit gate を CI / release preflight へ入れるか決める
+  - 対象: `mise.toml`, `.github/workflows/ci.yml`, `package.json`, `src-tauri/Cargo.toml`
+  - frozen install と build はあるが、npm/Cargo の既知脆弱性 gate が未固定だと、release 直前まで supply-chain risk に気づけない
+  - `pnpm audit` / Rust audit 相当を CI、release preflight、manual only のどこで落とすか決め、許容/除外リストの運用も TODO 化する
+
+- [ ] P1 GitHub Actions の tag pin / SHA pin 方針を release workflow から固定する
+  - 対象: `.github/workflows/ci.yml`, `.github/workflows/release.yml`
+  - workflow actions が version tag 固定だけだと、release workflow の supply-chain 面が tag 移動や upstream 変更に依存する
+  - release job だけ SHA pin するか全 workflow へ広げるかを決め、action pinning policy と更新手順を test / lint で検出できる形にする
+
+- [ ] P1 Tauri unstable feature を release build で許可する条件を棚卸しする
+  - 対象: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/browser_webview.rs`
+  - `tauri` に `unstable` feature が入っているため、release artifact で使ってよい API 面積と将来の breaking risk が明文化されていない
+  - unstable API の使用箇所、必要理由、代替可能性、release smoke で見るべき挙動を一覧化し、不要なら feature を外す
+
+- [ ] P1 feed discovery の resolved candidate URL に private / unsupported scheme filter を追加する
+  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src/api/schemas/discovered-feed.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`
+  - fetch 先と redirect の検証があっても、HTML の `<base>` や `<link href>` から作られた候補 URL 自体の private / unsupported policy が別契約になりやすい
+  - public page -> private base href、relative feed、duplicate candidate、unsupported scheme の contract test を追加する
+
+- [ ] P1 provider HTTP response body size limit を決める
+  - 対象: `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/feed_discovery.rs`
+  - feed body / discovery HTML を読み切る経路があると、巨大 response や圧縮展開後サイズでメモリを食うリスクが残る
+  - local feed fetch と feed discovery に response body size limit / timeout / error copy の契約を追加し、oversized feed / oversized HTML / compressed response の provider test を固定する
+
+- [ ] P1 article thumbnail URL の sanitizer/privacy 境界を固定する
+  - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/api/schemas/article.ts`, `src/components/reader/article-list-item.tsx`, `src/components/reader/article-content-view.tsx`
+  - `content_sanitized` は Rust sanitizer 境界がある一方、`thumbnail` は provider 由来 URL を `<img src>` に渡すため、remote image privacy と scheme policy が本文 HTML と別管理になりやすい
+  - http/https/relative/data/private URL policy を決め、normalizer / ArticleDtoSchema / reader rendering の contract test を追加する
+
+- [ ] P1 add feed dialog の form-level result announcement contract を追加する
+  - 対象: `src/components/reader/add-feed-dialog-view.tsx`, `src/components/reader/feed-dialog-url-section.tsx`
+  - URL field の invalid hint だけでなく、discover / submit の error と success が視覚表示だけになると支援技術へ通知されない可能性がある
+  - URL field error と form-level result を分け、`role` / `aria-live` / `aria-describedby` の方針を accessibility test で固定する
+
+- [ ] P1 command palette dialog の accessible name contract を固定する
+  - 対象: `src/components/reader/command-palette.tsx`, `src/components/ui/command.tsx`
+  - Dialog title / description が popup content 外に置かれる構造だと、dialog の accessible name / description association が壊れても検出しにくい
+  - command palette と shared CommandDialog で `getByRole("dialog", { name })` が通る contract test を追加する
+
+- [ ] P1 mirrored theme localStorage fallback の責務を固定する
+  - 対象: `src/stores/preferences-store.ts`, `src/constants/storage.ts`, `src/schemas/storage.ts`
+  - theme は DB preference の mirror として localStorage にも保存されるが、DB load failure や invalid mirror の時にどちらを source of truth にするかが曖昧
+  - DB preference missing、DB load failure、invalid localStorage theme、storage unavailable の時の適用 theme と mirror 更新方針を store test で固定する
+
+- [ ] P2 Tauri CSP の external img/frame 許可面積を feed content / browser webview 境界で整理する
+  - 対象: `src-tauri/tauri.conf.json`, `docs/feed-content-privacy.md`, `src/components/reader/article-content-view.tsx`
+  - CSP で `img-src` / `frame-src` が `http:` / `https:` を広く許可している場合、feed content と browser webview の責務境界が security config 上で見えにくい
+  - reader thumbnail、sanitized article body、Web Preview、child webview の許可面積を threat model と manual verification に分ける
+
+- [ ] P2 package / Tauri bundle metadata の release artifact 表示項目を source of truth 化する
+  - 対象: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/tauri.release.conf.json`, `src-tauri/Cargo.toml`
+  - package metadata と bundle metadata の責務が曖昧だと、配布 artifact の表示名、publisher、copyright、category が release ごとに drift する
+  - release artifact に出る metadata を一覧化し、どのファイルを source of truth にするかを schema test で固定する
+
+- [ ] P2 OPML import の feed title / folder name normalization を通常 validation と揃える
+  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/commands/feed_commands.rs`
+  - OPML の `title` / folder name が create/rename validation と別経路で DB に入ると、空文字、長大文字列、制御文字、重複 folder の扱いが揺れる
+  - trim、長さ、blank fallback、duplicate normalized folder の契約を決め、blank folder / long title / control char の Rust test を追加する
+
+- [ ] P2 OPML export の XML round-trip 契約を固定する
+  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
+  - export XML 自体の control char replacement、folder order、import round-trip が未固定だと、download UI が成功しても他 reader で壊れる OPML になり得る
+  - XML 1.0 invalid char、folder sort order、export -> parse round-trip を fixture test で固定する
+
+- [ ] P2 article list grouped listbox semantics を固定する
+  - 対象: `src/components/reader/article-list-screen-view.tsx`, `src/components/reader/article-groups-view.tsx`, `src/components/reader/article-list-item.tsx`
+  - `role="listbox"` 配下の group header / wrapper / option の関係が曖昧だと、日付グループ見出しが支援技術へ安定して伝わらない可能性がある
+  - `role="group"` / `aria-labelledby` / option 構造の方針を決め、grouped article list の accessibility contract test を追加する
+
+- [ ] P2 settings navigation の selection semantics を整理する
+  - 対象: `src/components/settings/settings-nav-view.tsx`, `src/components/settings/accounts-nav-view.tsx`, `src/components/shared/nav-row-button.tsx`
+  - settings modal 内のカテゴリ/アカウント切替が `aria-current` と `aria-pressed` を併用しており、navigation / tabs / radio 相当の操作モデルが曖昧
+  - 現行 keyboard 操作を維持するか arrow key selection を足すか決め、selected state の role/aria contract を test で固定する
+
+- [ ] P2 sidebar expanded folders localStorage の prune / write contract を固定する
+  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/schemas/storage.ts`, `src/constants/storage.ts`
+  - expanded folders は localStorage 永続化だが、保存時にも schema cap/prune を通さないと古い account id や巨大 map が残り続けやすい
+  - 保存時の account/folder id normalization と上限を適用し、unknown account accumulation、oversized map、storage write failure の test を追加する
+
+- [ ] P2 feed folder update の missing folder / concurrent delete message を分ける
+  - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`
+  - `feed not found or folder does not belong to feed account` に missing feed、missing folder、cross-account folder、concurrent folder delete が混ざると、UI rollback と toast の原因分類ができない
+  - affected row 0 の原因を分けるか log diagnostic を追加し、concurrent folder delete / missing feed / cross-account folder の DB test を追加する
+
+- [ ] P2 mute keyword auto mark read の long transaction / partial failure contract を固定する
+  - 対象: `src-tauri/src/commands/mute_keyword_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
+  - mute keyword 作成・更新時に全 account の muted unread を mark read するため、対象記事が多い時の long transaction、途中失敗、UI feedback の境界が曖昧になりやすい
+  - preference enabled 時の対象 account snapshot、partial failure、large article set の処理方針を Rust test / manual verification に分けて固定する
+
+- [ ] P2 tag article/untag missing target の no-op policy を固定する
+  - 対象: `src-tauri/src/infra/db/sqlite_tag.rs`, `src-tauri/src/commands/tag_commands.rs`, `src/components/reader/hooks/article/use-article-tag-picker-popover.ts`
+  - `INSERT OR IGNORE` / `DELETE` の affected row を user-visible にしない場合、missing article/tag や concurrent delete が成功扱いになり、UI cache と DB がズレたまま見える可能性がある
+  - missing article、missing tag、already tagged、already untagged の no-op / error 方針を決め、tag picker の optimistic update contract と合わせて test する
+
+- [ ] P3 frontend localStorage key registry の coverage contract を追加する
+  - 対象: `src/constants/storage.ts`, `src/schemas/storage.ts`, `src/__tests__/constants/storage.test.ts`, `src/__tests__/schemas/storage.test.ts`
+  - storage key が増えても schema / owner / cleanup 方針の対応表がないと、localStorage 境界の追加時に validation 漏れが起きやすい
+  - `STORAGE_KEYS` の各 key に schema、owner、cleanup 方針があるかを fixture で照合し、新規 key 追加時に境界未定義を検出する
+
+- [ ] P3 feed content privacy hardening の実測タスクを docs checklist と接続する
+  - 対象: `docs/feed-content-privacy.md`, `TODO.md`
+  - privacy hardening の大枠 TODO だけだと、reader thumbnail、sanitized body remote media、Web Preview の実測観点が混ざりやすい
+  - `docs/feed-content-privacy.md` の checklist と TODO の実行単位を対応させ、manual verification を reader thumbnail / sanitized body / Web Preview に分割する
 
 ## 次の並列バッチ候補
 
