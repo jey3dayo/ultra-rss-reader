@@ -50,9 +50,7 @@ export function ArticleFilterToggleButton({
 }: ArticleFilterToggleButtonProps) {
   return (
     <Toggle className={articleFilterToggleButtonClassName({ mode, size, className })} {...props}>
-      {showIcon ? (
-        <ArticleFilterToggleIcon mode={mode} pressed={props.pressed === true} size={size} />
-      ) : null}
+      {showIcon ? <ArticleFilterToggleIcon mode={mode} pressed={props.pressed === true} size={size} /> : null}
       {children}
     </Toggle>
   );

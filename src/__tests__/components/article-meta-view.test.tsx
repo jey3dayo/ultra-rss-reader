@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleMetaView } from "@/components/reader/article-meta-view";
 import { ReaderInlineActionButton } from "@/components/reader/reader-inline-action-button";
@@ -72,10 +73,16 @@ describe("ArticleMetaView", () => {
   it("keeps reader inline actions as native non-submit buttons with forwarded disabled semantics", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
+    const titleButtonRef = createRef<HTMLButtonElement>();
 
     render(
       <form>
-        <ReaderInlineActionButton variant="title" aria-label="Open original article" onClick={onClick}>
+        <ReaderInlineActionButton
+          ref={titleButtonRef}
+          variant="title"
+          aria-label="Open original article"
+          onClick={onClick}
+        >
           First Article
         </ReaderInlineActionButton>
         <ReaderInlineActionButton variant="feed" disabled onClick={onClick}>
@@ -88,6 +95,7 @@ describe("ArticleMetaView", () => {
     const feedButton = screen.getByRole("button", { name: "Tech Blog" });
 
     expect(titleButton.tagName).toBe("BUTTON");
+    expect(titleButtonRef.current).toBe(titleButton);
     expect(titleButton).toHaveAttribute("type", "button");
     expect(titleButton).toHaveAttribute("aria-label", "Open original article");
     expect(feedButton).toHaveAttribute("type", "button");

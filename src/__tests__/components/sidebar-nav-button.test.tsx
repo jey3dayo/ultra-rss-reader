@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { describe, expect, it } from "vitest";
 import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
 
@@ -98,5 +99,13 @@ describe("SidebarNavButton", () => {
 
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "tabular-nums");
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
+  });
+
+  it("keeps its public ref contract attached to the native button", () => {
+    const buttonRef = createRef<HTMLButtonElement>();
+
+    render(<SidebarNavButton ref={buttonRef}>Feed row</SidebarNavButton>);
+
+    expect(buttonRef.current).toBe(screen.getByRole("button", { name: "Feed row" }));
   });
 });

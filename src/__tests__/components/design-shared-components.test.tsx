@@ -129,10 +129,7 @@ describe("Design-themed shared components", () => {
       "motion-reduce:transition-none",
     );
     expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
-    expect(screen.getByText("Muted chip")).toHaveClass(
-      "text-foreground-soft",
-      "motion-reduce:transition-none",
-    );
+    expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft", "motion-reduce:transition-none");
     expect(screen.getByText("Neutral chip")).toHaveAttribute("data-label-chip", "neutral");
     expect(screen.getByText("Success chip")).toHaveClass(
       "border-state-success-border",

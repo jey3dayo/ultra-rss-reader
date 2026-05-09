@@ -1,19 +1,29 @@
-import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { controlChipVariants } from "@/components/shared/control-chip";
 import { cn } from "@/lib/utils";
 
 type TagPickerTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   compact?: boolean;
   expanded?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 type TagOptionRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color"> & {
   swatchColor?: string | null;
   children: ReactNode;
+  ref?: Ref<HTMLButtonElement>;
 };
 
-export const TagPickerTriggerButton = forwardRef<HTMLButtonElement, TagPickerTriggerButtonProps>(
-  ({ children, className, compact = false, expanded = false, type = "button", ...props }, ref) => (
+export function TagPickerTriggerButton({
+  children,
+  className,
+  compact = false,
+  expanded = false,
+  ref,
+  type = "button",
+  ...props
+}: TagPickerTriggerButtonProps) {
+  return (
     <button
       ref={ref}
       type={type}
@@ -30,13 +40,20 @@ export const TagPickerTriggerButton = forwardRef<HTMLButtonElement, TagPickerTri
     >
       {children}
     </button>
-  ),
-);
+  );
+}
 
 TagPickerTriggerButton.displayName = "TagPickerTriggerButton";
 
-export const TagOptionRowButton = forwardRef<HTMLButtonElement, TagOptionRowButtonProps>(
-  ({ children, className, swatchColor, type = "button", ...props }, ref) => (
+export function TagOptionRowButton({
+  children,
+  className,
+  ref,
+  swatchColor,
+  type = "button",
+  ...props
+}: TagOptionRowButtonProps) {
+  return (
     <button
       ref={ref}
       type={type}
@@ -51,7 +68,7 @@ export const TagOptionRowButton = forwardRef<HTMLButtonElement, TagOptionRowButt
       ) : null}
       {children}
     </button>
-  ),
-);
+  );
+}
 
 TagOptionRowButton.displayName = "TagOptionRowButton";

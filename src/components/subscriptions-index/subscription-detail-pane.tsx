@@ -4,11 +4,7 @@ import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
-import {
-  MOTION_CONTENT_SWAP_CLASS_NAME,
-  MOTION_DATA_PHASE_ATTRIBUTE,
-  MOTION_PHASE_ENTERING,
-} from "@/constants/motion";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {
@@ -47,9 +43,7 @@ type DecisionActionConfig = {
   icon: typeof Check;
 };
 
-function buildDecisionActionConfigs(
-  decisionActions: SubscriptionDecisionActions,
-): DecisionActionConfig[] {
+function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions): DecisionActionConfig[] {
   return [
     {
       key: "keep",
@@ -75,11 +69,7 @@ function buildDecisionActionConfigs(
   ];
 }
 
-function formatLatestArticleMetric(
-  value: string | null,
-  locale: string,
-  emptyLabel: string,
-): string {
+function formatLatestArticleMetric(value: string | null, locale: string, emptyLabel: string): string {
   const formatted = formatSubscriptionDate(value, locale);
   return formatted === "—" ? emptyLabel : formatted;
 }
@@ -113,9 +103,7 @@ export function SubscriptionDetailPane({
       }}
     >
       <div className="mb-5 border-b border-border/50 pb-4">
-        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground-soft">
-          {heading}
-        </h2>
+        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground-soft">{heading}</h2>
       </div>
       {!row || !metrics ? (
         <div className="flex items-center lg:min-h-0 lg:flex-1">
@@ -138,20 +126,11 @@ export function SubscriptionDetailPane({
               title={row.feed.title}
               titleHref={row.feed.site_url}
               leadingVisual={
-                <FeedFavicon
-                  title={row.feed.title}
-                  url={row.feed.url}
-                  siteUrl={row.feed.site_url}
-                  size="lg"
-                />
+                <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} size="lg" />
               }
               badgeLabel={detailCandidate?.statusLabel}
               badgeTone={detailCandidate?.tone ?? "neutral"}
-              summaryText={
-                detailCandidate?.reasonBoxBody
-                  ? undefined
-                  : (detailCandidate?.summary ?? reasonHint)
-              }
+              summaryText={detailCandidate?.reasonBoxBody ? undefined : (detailCandidate?.summary ?? reasonHint)}
               reasonBox={
                 detailCandidate?.reasonBoxBody
                   ? {
@@ -166,11 +145,7 @@ export function SubscriptionDetailPane({
                 { label: folderLabel, value: row.folderName ?? "—" },
                 {
                   label: latestArticleLabel,
-                  value: formatLatestArticleMetric(
-                    metrics.latestArticleAt,
-                    dateLocale,
-                    latestArticleEmptyLabel,
-                  ),
+                  value: formatLatestArticleMetric(metrics.latestArticleAt, dateLocale, latestArticleEmptyLabel),
                 },
                 { label: unreadCountLabel, value: row.feed.unread_count },
                 { label: starredCountLabel, value: metrics.starredCount },
@@ -181,10 +156,7 @@ export function SubscriptionDetailPane({
               recentArticles={metrics.previewArticles.map((article) => ({
                 id: article.id,
                 title: article.title,
-                publishedAt: formatSubscriptionDate(
-                  article.published_at,
-                  dateLocale,
-                ),
+                publishedAt: formatSubscriptionDate(article.published_at, dateLocale),
                 url: article.url,
               }))}
             />

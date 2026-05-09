@@ -1,7 +1,8 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 import { cn } from "@/lib/utils";
 
 type ReaderInlineActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  ref?: Ref<HTMLButtonElement>;
   variant: "feed" | "title";
 };
 
@@ -13,9 +14,12 @@ const readerInlineActionButtonClassNames: Record<ReaderInlineActionButtonProps["
 
 export function ReaderInlineActionButton({
   className,
+  ref,
   type = "button",
   variant,
   ...props
 }: ReaderInlineActionButtonProps) {
-  return <button type={type} className={cn(readerInlineActionButtonClassNames[variant], className)} {...props} />;
+  return (
+    <button ref={ref} type={type} className={cn(readerInlineActionButtonClassNames[variant], className)} {...props} />
+  );
 }

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
 import { ArticleTagPickerView } from "@/components/reader/article-tag-picker-view";
 import articleTagPickerViewSource from "@/components/reader/article-tag-picker-view.tsx?raw";
 
@@ -360,6 +361,23 @@ describe("ArticleTagPickerView", () => {
     expect(articleTagPickerViewSource).toContain(
       'import type { ArticleTagPickerViewProps } from "./article-tag-picker.types"',
     );
+  });
+
+  it("keeps tag picker wrapper refs attached to their native buttons", () => {
+    const triggerRef = createRef<HTMLButtonElement>();
+    const optionRef = createRef<HTMLButtonElement>();
+
+    render(
+      <>
+        <TagPickerTriggerButton ref={triggerRef}>Add tag</TagPickerTriggerButton>
+        <TagOptionRowButton ref={optionRef} swatchColor="#ff0000">
+          Important
+        </TagOptionRowButton>
+      </>,
+    );
+
+    expect(triggerRef.current).toBe(screen.getByRole("button", { name: "Add tag" }));
+    expect(optionRef.current).toBe(screen.getByRole("button", { name: "Important" }));
   });
 
   it("keeps the tag section heading visible even when there are no assigned tags", () => {
