@@ -90,16 +90,6 @@
   - articles/count は保存済みだが validator `sync_state` 保存だけ失敗すると、次回同じ feed を再取得し、逆方向の不整合も将来 refactor で入りやすい
   - `sync_state` table failure test で記事保存済み時の state 方針を固定し、article upsert、mute auto-read、count、state を service transaction へまとめる
 
-- [ ] P2 pending_mutations の duplicate row を DB 制約で防ぐ
-  - 対象: `src-tauri/migrations/V1__initial.sql`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
-  - repository は delete-then-insert で正規化しているが DB 制約がなく、legacy row や手動破損で duplicate が入ると sync push が重複実行される
-  - duplicate fixture で push 回数と delete 結果を固定し、`account_id + remote_entry_id + mutation axis` の cleanup migration / unique index を検討する
-
-- [ ] P2 account update/delete repository の affected rows policy を固定する
-  - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`
-  - `update_sync_settings` / `rename` は command 側の re-read で missing を検出するが repository contract は silent no-op で、`delete` も missing account で成功扱いになり得る
-  - missing account の command/repository policy を test 化し、repository 層で affected rows を返すか validation error に統一する
-
 - [ ] P2 account sync 設定更新の stale error toast を revision guard する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts`
   - 成功側は revision guard があるが失敗側は常に `showSyncUpdateError` するため、古い request の失敗が後続成功後にエラー表示だけ出せる
@@ -119,11 +109,6 @@
   - 対象: `mise.toml`, `.github/workflows/*.yml`
   - `actionlint -shellcheck=` で shellcheck integration を切っているため、workflow 内 shell script の引用や未定義変数の問題を拾いにくい
   - shellcheck を導入するか、workflow script を外部 script 化して lint するか決め、CI shell の最小 gate を追加する
-
-- [ ] P3 schema_version を single-row contract に寄せる
-  - 対象: `src-tauri/migrations/*.sql`, `src-tauri/src/infra/db/migration.rs`
-  - 古い migration は `INSERT`、近い migration は `DELETE FROM schema_version` + insert で、helper は single row 前提のため、新規 migration 追加時に履歴/現行値の扱いが揺れやすい
-  - migration 後 `schema_version` が 1 row だけで latest になる contract test を追加し、以後は `set_schema_version` 相当の書き方へ統一する
 
 - [ ] P3 auto mark read の同一 article 再自動既読 policy を固定する
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`
@@ -170,25 +155,10 @@
   - query key が hook ごとに手書きされる箇所が残ると、mode/account/tag の invalidation 漏れが UI stale data につながる
   - query key factory を棚卸しし、mark read/star/tag/feed delete/add feed 後に必要 key が invalidated される contract test を追加する
 
-- [ ] P2 Windows command dispatch の env allowlist と path conversion failure を contract 化する
-  - 対象: `scripts/lib/windows-dispatch.ts`, `scripts/windows-command-dispatch.ts`, `scripts/tauri-cli-dispatch.ts`
-  - WSL/Windows dispatch は env と cwd conversion に依存するため、secret/env pollution や path conversion failure が CI/local Windows だけで出やすい
-  - allowed env、PowerShell encoded command、cwd inaccessible、missing powershell の failure message を script test に追加する
-
-- [ ] P2 seed-dev-db-from-prod の destructive target cleanup safety を強化する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `mise.toml`
-  - prod data を dev へコピーする script は target 削除/コピーを伴うため、identifier 取り違えや symlink/path traversal に弱いと dev/prod data を壊し得る
-  - source/target identifier guard、symlink拒否、backup作成、credentials非コピー確認を script test と TODO 実行手順に入れる
-
 - [ ] P2 capabilities/default.json の permission 最小化を feature matrix と照合する
   - 対象: `src-tauri/capabilities/default.json`, `src-tauri/src/commands/*.rs`, `src/hooks/*.ts`
   - clipboard/opener/updater/window permission が広く見えるため、使っていない permission が残ると Tauri capability の意図が drift する
   - frontend invoke/use site と permission list を照合し、unused permission を削るか理由をコメント/contract test に残す
-
-- [ ] P2 `withGlobalTauri` の必要性と browser-mode fallback を固定する
-  - 対象: `src-tauri/tauri.conf.json`, `src/api/tauri-commands.ts`, `src/dev/mocks.ts`
-  - global Tauri API を有効にしているため、browser-mode/dev mock と packaged app の runtime boundary が曖昧になりやすい
-  - `window.__TAURI__` なし、mock runtime、packaged runtime の safeInvoke behavior を schema/runtime test で固定し、不要なら withGlobalTauri を外す検討をする
 
 - [ ] P3 release notes label categories と issue/PR labels の drift を検出する
   - 対象: `.github/release.yml`, `.github/labeler.yml`, `.github/ISSUE_TEMPLATE/*.yml`
@@ -420,11 +390,6 @@
   - port owner 判定が command line の Vite 文字列中心なので、同じ port を使う別 repo の Vite を停止してしまう可能性がある
   - cwd/project root/package name を判定に含めるか user confirmation に逃がし、same repo / other repo / unknown command line の test を追加する
 
-- [ ] P2 Windows dispatch の forwarded env allowlist を secret pattern だけに依存しない
-  - 対象: `scripts/lib/windows-dispatch.ts`, `scripts/windows-command-dispatch.ts`
-  - `DEV_` / `VITE_` / `TAURI_` / `RUST_` prefix を広く転送し、suffix で secret を落としているため、suffix に当たらない token-like env が Windows 側へ漏れる可能性がある
-  - explicit allowlist、masked diagnostics、secret-like value detection、`DEV_CREDENTIALS` 例外の扱いを script test にする
-
 - [ ] P3 UI store toast timer を store lifecycle / test isolation として整理する
   - 対象: `src/stores/ui-store.ts`, `src/__tests__/stores/ui-store.test.ts`
   - module-level `toastTimer` は store reset や test isolation と別 lifecycle なので、テスト間や HMR 中に古い timer が新しい toast を消す可能性がある
@@ -504,11 +469,6 @@
   - 対象: `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/hooks/article-list/use-article-list-header-actions.ts`
   - feed の reader/web preview mode と account/default preference が別経路で解決されるため、`inherit` 表示と実際の article/browser behavior がズレやすい
   - default変更後、feed override解除、folder/context menu からの変更、cache invalidation の contract test を追加する
-
-- [ ] P2 command registry の null-response commands と Rust return type を照合する
-  - 対象: `src/api/tauri-commands.ts`, `src/api/schemas/commands.ts`, `src-tauri/src/lib.rs`, `src-tauri/src/commands`
-  - frontend は `NullResponseSchema` を期待している command が多く、Rust 側が将来 count/result DTO を返すようになると schema parse failure で UI が壊れる
-  - command name、args schema、response schema、Rust return type の一覧を repo contract test で照合する
 
 - [ ] P2 dev mocks の mutation side effect と real DB cascade の差分を検出する
   - 対象: `src/dev/mocks.ts`, `src/dev/mock-data.ts`, `src-tauri/src/infra/db`
