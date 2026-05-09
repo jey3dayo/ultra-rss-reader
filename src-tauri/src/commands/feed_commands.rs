@@ -291,16 +291,55 @@ async fn add_local_feed_with_provider(
     };
 
     // 3. Fetch initial articles for the new feed
-    super::sync_providers::sync_local_feed(db, provider, &account_id, &persisted_feed).await?;
+    if let Err(error) =
+        super::sync_providers::sync_local_feed(db, provider, &account_id, &persisted_feed).await
+    {
+        rollback_added_feed(db, &persisted_feed.id, &error);
+        return Err(error);
+    }
 
     // 4. Re-read unread count from DB
-    let unread_count = {
-        let db = lock_db(db)?;
-        recalculate_feed_unread_count_in_db(&db, &persisted_feed.id)?
+    let unread_count_result = {
+        let db_guard = lock_db(db)?;
+        recalculate_feed_unread_count_in_db(&db_guard, &persisted_feed.id)
+    };
+    let unread_count = match unread_count_result {
+        Ok(unread_count) => unread_count,
+        Err(error) => {
+            rollback_added_feed_after_command_error(db, &persisted_feed.id, &error);
+            return Err(error);
+        }
     };
     let mut updated_feed = persisted_feed;
     updated_feed.unread_count = unread_count;
     Ok(FeedDto::from(updated_feed))
+}
+
+fn rollback_added_feed(db: &Mutex<DbManager>, feed_id: &FeedId, error: &AppError) {
+    if let Err(cleanup_error) = rollback_added_feed_in_db(db, feed_id) {
+        tracing::warn!(
+            "Failed to roll back added local feed after initial sync failure: {cleanup_error}; original error: {error}"
+        );
+    }
+}
+
+fn rollback_added_feed_after_command_error(
+    db: &Mutex<DbManager>,
+    feed_id: &FeedId,
+    error: &AppError,
+) {
+    if let Err(cleanup_error) = rollback_added_feed_in_db(db, feed_id) {
+        tracing::warn!(
+            "Failed to roll back added local feed after command failure: {cleanup_error}; original error: {error}"
+        );
+    }
+}
+
+fn rollback_added_feed_in_db(db: &Mutex<DbManager>, feed_id: &FeedId) -> Result<(), AppError> {
+    let db = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    feed_repo.delete(feed_id)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -860,6 +899,65 @@ mod tests {
         assert!(
             matches!(error, AppError::UserVisible { message } if message.contains("unread recalc failed"))
         );
+    }
+
+    #[tokio::test]
+    async fn add_local_feed_rolls_back_persisted_feed_when_initial_sync_fails() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(SAMPLE_RSS)
+            .expect(2)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, "Primary")
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "CREATE TRIGGER fail_initial_article_sync
+                     BEFORE INSERT ON articles
+                     BEGIN
+                       SELECT RAISE(FAIL, 'initial sync failed');
+                     END",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error =
+            add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
+                .await
+                .expect_err("initial sync failure should reject add feed");
+
+        mock.assert_async().await;
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message.contains("initial sync failed")
+        ));
+
+        let saved_feed_count: i64 = {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .reader()
+                .query_row(
+                    "SELECT COUNT(*) FROM feeds WHERE account_id = ?1 AND url = ?2",
+                    params![account_id.0, feed_url],
+                    |row| row.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(saved_feed_count, 0);
     }
 
     #[test]
