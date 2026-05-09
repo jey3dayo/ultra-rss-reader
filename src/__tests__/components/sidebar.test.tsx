@@ -408,6 +408,32 @@ describe("Sidebar", () => {
     expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
   });
 
+  it("does not reuse the previous account feed tree snapshot while the next account is unresolved", async () => {
+    sidebarSourceOverrides.feedsEnabled = true;
+    sidebarSourceOverrides.foldersEnabled = true;
+    sidebarSourceOverrides.feedsData = [{ ...sampleFeeds[0], title: "Account 1 Snapshot Feed" }];
+    sidebarSourceOverrides.foldersData = [];
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Account 1 Snapshot Feed")).toBeInTheDocument();
+
+    useUiStore.setState({
+      selectedAccountId: "acc-2",
+    });
+    sidebarSourceOverrides.feedsData = undefined;
+    sidebarSourceOverrides.foldersData = undefined;
+    rerender(<Sidebar />);
+
+    expect(screen.queryByText("Account 1 Snapshot Feed")).not.toBeInTheDocument();
+    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+  });
+
   it("keeps loading and suppresses the add-feed CTA when an adopted empty snapshot starts refetching", async () => {
     sidebarSourceOverrides.feedsEnabled = true;
     sidebarSourceOverrides.foldersEnabled = true;

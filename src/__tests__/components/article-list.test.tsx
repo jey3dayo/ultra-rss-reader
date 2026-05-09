@@ -47,6 +47,7 @@ function requireStringArray(value: unknown, fieldName: string): string[] {
 
 type ArticlesResult = ReturnType<typeof articleHooks.useArticles>;
 type AccountArticlesResult = ReturnType<typeof articleHooks.useAccountArticles>;
+type RecentArticlesResult = ReturnType<typeof articleHooks.useRecentArticles>;
 type TagArticlesResult = ReturnType<typeof tagHooks.useArticlesByTag>;
 
 function articlesResult(result: Pick<ArticlesResult, "data" | "isLoading">): ArticlesResult {
@@ -55,6 +56,10 @@ function articlesResult(result: Pick<ArticlesResult, "data" | "isLoading">): Art
 
 function accountArticlesResult(result: Pick<AccountArticlesResult, "data" | "isLoading">): AccountArticlesResult {
   return result as AccountArticlesResult;
+}
+
+function recentArticlesResult(result: Pick<RecentArticlesResult, "data" | "isLoading">): RecentArticlesResult {
+  return result as RecentArticlesResult;
 }
 
 function tagArticlesResult(result: Pick<TagArticlesResult, "data" | "isLoading">): TagArticlesResult {
@@ -123,6 +128,11 @@ describe("ArticleList", () => {
       initialArticle: { ...sampleArticles[0], id: "all-snapshot", title: "All Snapshot Article" },
     },
     {
+      label: "recent",
+      selection: { type: "smart", kind: "recent" } as const,
+      initialArticle: { ...sampleArticles[0], id: "recent-snapshot", title: "Recent Snapshot Article" },
+    },
+    {
       label: "tag",
       selection: { type: "tag", tagId: "tag-1" } as const,
       initialArticle: { ...sampleArticles[0], id: "tag-snapshot", title: "Tag Snapshot Article" },
@@ -134,10 +144,12 @@ describe("ArticleList", () => {
   }) => {
     const articlesSpy = vi.spyOn(articleHooks, "useArticles");
     const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
+    const recentArticlesSpy = vi.spyOn(articleHooks, "useRecentArticles");
     const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
 
     articlesSpy.mockReturnValue(articlesResult({ data: undefined, isLoading: false }));
     accountArticlesSpy.mockReturnValue(accountArticlesResult({ data: undefined, isLoading: false }));
+    recentArticlesSpy.mockReturnValue(recentArticlesResult({ data: undefined, isLoading: false }));
     tagArticlesSpy.mockReturnValue(tagArticlesResult({ data: undefined, isLoading: false }));
 
     if (label === "feed") {
@@ -150,6 +162,13 @@ describe("ArticleList", () => {
     } else if (label === "all") {
       accountArticlesSpy.mockReturnValue(
         accountArticlesResult({
+          data: [initialArticle],
+          isLoading: false,
+        }),
+      );
+    } else if (label === "recent") {
+      recentArticlesSpy.mockReturnValue(
+        recentArticlesResult({
           data: [initialArticle],
           isLoading: false,
         }),
@@ -186,6 +205,13 @@ describe("ArticleList", () => {
     } else if (label === "all") {
       accountArticlesSpy.mockReturnValue(
         accountArticlesResult({
+          data: undefined,
+          isLoading: true,
+        }),
+      );
+    } else if (label === "recent") {
+      recentArticlesSpy.mockReturnValue(
+        recentArticlesResult({
           data: undefined,
           isLoading: true,
         }),
