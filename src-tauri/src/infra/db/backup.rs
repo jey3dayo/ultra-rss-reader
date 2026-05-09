@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -256,40 +257,81 @@ pub fn cleanup_old_backups(db_path: &Path, keep: usize) -> DomainResult<()> {
     let prefix = format!("{stem}_v");
     let suffix = ".db";
 
-    let mut backups: Vec<String> = fs::read_dir(&dir)
+    let backup_entries: Vec<String> = fs::read_dir(&dir)
         .map_err(|e| DomainError::Migration(format!("Cannot read backup dir: {e}")))?
         .filter_map(|entry| entry.ok())
-        .filter_map(|entry| {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with(&prefix)
+        .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .collect();
+    let mut backups: Vec<String> = backup_entries
+        .iter()
+        .filter(|name| {
+            name.starts_with(&prefix)
                 && name.ends_with(suffix)
                 && !name.contains("-wal")
                 && !name.contains("-shm")
-            {
-                Some(name)
-            } else {
-                None
-            }
         })
+        .cloned()
         .collect();
 
     // Sort ascending by name (timestamp embedded, so lexicographic == chronological)
     backups.sort();
 
-    if backups.len() <= keep {
-        return Ok(());
-    }
+    let to_remove_count = backups.len().saturating_sub(keep);
+    let to_remove = &backups[..to_remove_count];
+    let kept: BTreeSet<&str> = backups[to_remove_count..]
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let to_remove_set: BTreeSet<&str> = to_remove.iter().map(String::as_str).collect();
+    let mut removal_errors = Vec::new();
 
-    let to_remove = &backups[..backups.len() - keep];
     for name in to_remove {
         let bp = dir.join(name);
         if let Err(e) = fs::remove_file(&bp) {
-            warn!("Failed to remove old backup {}: {e}", bp.display());
+            let message = format!("Failed to remove old backup {}: {e}", bp.display());
+            warn!("{message}");
+            removal_errors.push(message);
         }
-        // Also remove WAL/SHM backups
-        for aux_suffix in SQLITE_AUXILIARY_SUFFIXES {
-            let _ = fs::remove_file(auxiliary_backup_path(&bp, aux_suffix));
+    }
+
+    for entry_name in backup_entries {
+        let Some((main_backup_name, _)) = entry_name.rsplit_once('-') else {
+            continue;
+        };
+        let is_aux_backup = SQLITE_AUXILIARY_SUFFIXES
+            .iter()
+            .any(|aux_suffix| entry_name.ends_with(&format!("-{aux_suffix}")));
+        if !is_aux_backup
+            || !main_backup_name.starts_with(&prefix)
+            || !main_backup_name.ends_with(suffix)
+        {
+            continue;
         }
+        if kept.contains(main_backup_name) {
+            continue;
+        }
+
+        let aux_path = dir.join(&entry_name);
+        let reason = if to_remove_set.contains(main_backup_name) {
+            "old backup generation"
+        } else {
+            "orphan backup generation"
+        };
+        if let Err(e) = fs::remove_file(&aux_path) {
+            let message = format!(
+                "Failed to remove {reason} auxiliary backup {}: {e}",
+                aux_path.display()
+            );
+            warn!("{message}");
+            removal_errors.push(message);
+        }
+    }
+
+    if !removal_errors.is_empty() {
+        return Err(DomainError::Migration(format!(
+            "Backup cleanup failed: {}",
+            removal_errors.join("; ")
+        )));
     }
 
     info!("Cleaned up {} old backup(s), kept {keep}", to_remove.len());
@@ -398,6 +440,20 @@ mod tests {
     }
 
     #[test]
+    fn create_backup_uses_unique_name_when_auxiliary_backup_collides() {
+        let (_dir, db_path) = setup_temp_db();
+        let base = backup_path(&db_path, 1);
+        fs::create_dir_all(base.parent().unwrap()).unwrap();
+        fs::write(auxiliary_backup_path(&base, "wal"), b"existing wal backup").unwrap();
+
+        let backup = create_backup(&db_path, 1).unwrap();
+
+        assert_ne!(backup, base);
+        assert!(backup.exists());
+        assert!(auxiliary_backup_path(&base, "wal").exists());
+    }
+
+    #[test]
     fn create_backup_fails_if_db_missing() {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("nonexistent.db");
@@ -446,14 +502,19 @@ mod tests {
     fn restore_removes_stale_wal_shm() {
         let (_dir, db_path) = setup_temp_db();
         let bp = create_backup(&db_path, 1).unwrap();
-        // Create stale WAL that has no backup counterpart
+        // Create stale WAL/SHM files that have no backup counterparts.
         let mut wal_name = db_path.as_os_str().to_owned();
         wal_name.push("-wal");
         let wal_path = PathBuf::from(wal_name);
+        let mut shm_name = db_path.as_os_str().to_owned();
+        shm_name.push("-shm");
+        let shm_path = PathBuf::from(shm_name);
         fs::write(&wal_path, b"stale wal").unwrap();
+        fs::write(&shm_path, b"stale shm").unwrap();
         restore_backup(&db_path, &bp).unwrap();
-        // Stale WAL should be removed (no WAL backup existed for v1)
+        // Stale WAL/SHM should be removed (no aux backup existed for v1).
         assert!(!wal_path.exists());
+        assert!(!shm_path.exists());
     }
 
     #[test]
@@ -509,5 +570,27 @@ mod tests {
         assert!(kept.exists());
         assert!(auxiliary_backup_path(&kept, "wal").exists());
         assert!(auxiliary_backup_path(&kept, "shm").exists());
+    }
+
+    #[test]
+    fn cleanup_removes_orphan_auxiliary_backups_without_touching_kept_generation() {
+        let (_dir, db_path) = setup_temp_db();
+        let backup_dir = backups_dir(&db_path).unwrap();
+        fs::create_dir_all(&backup_dir).unwrap();
+        let kept = backup_dir.join("test_v3_20240101T000003.db");
+        let orphan = backup_dir.join("test_v2_20240101T000002.db");
+        fs::write(&kept, b"kept").unwrap();
+        fs::write(auxiliary_backup_path(&kept, "wal"), b"kept wal").unwrap();
+        fs::write(auxiliary_backup_path(&kept, "shm"), b"kept shm").unwrap();
+        fs::write(auxiliary_backup_path(&orphan, "wal"), b"orphan wal").unwrap();
+        fs::write(auxiliary_backup_path(&orphan, "shm"), b"orphan shm").unwrap();
+
+        cleanup_old_backups(&db_path, 1).unwrap();
+
+        assert!(kept.exists());
+        assert!(auxiliary_backup_path(&kept, "wal").exists());
+        assert!(auxiliary_backup_path(&kept, "shm").exists());
+        assert!(!auxiliary_backup_path(&orphan, "wal").exists());
+        assert!(!auxiliary_backup_path(&orphan, "shm").exists());
     }
 }
