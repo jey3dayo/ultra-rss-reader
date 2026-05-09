@@ -330,6 +330,61 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "navigate-article", direction: 1 });
   });
 
+  it.each(["", "   "] as const)("treats a blank next-article shortcut override as disabled: %j", (shortcut) => {
+    const keyToAction = buildKeyToActionMap({
+      shortcut_next_article: shortcut,
+    });
+
+    expect(keyToAction.get(shortcut)).toBeUndefined();
+    expect(keyToAction.get("j")).toBeUndefined();
+
+    const result = resolveKeyboardAction({
+      key: "j",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+      keyToAction,
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
+  it.each(["input", "textarea"] as const)("ignores shortcuts for lowercase %s target tags", (targetTag) => {
+    const result = resolveKeyboardAction({
+      key: "m",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag,
+      targetIsTextEditing: false,
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("ignored_input");
+  });
+
+  it("treats targetIsTextEditing as text input even when the target tag is not editable", () => {
+    const result = resolveKeyboardAction({
+      key: "m",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      targetIsTextEditing: true,
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("ignored_input");
+  });
+
   it("does not let later duplicate custom shortcuts overwrite an earlier custom shortcut", () => {
     const keyToAction = buildKeyToActionMap({
       shortcut_open_settings: "z",

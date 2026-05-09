@@ -140,6 +140,44 @@ describe("useKeyboard", () => {
     }
   });
 
+  it("ignores global shortcuts from opt-out subtrees", () => {
+    const toggleReadSpy = vi.fn();
+    const focusSearchSpy = vi.fn();
+    window.addEventListener(keyboardEvents.toggleRead, toggleReadSpy);
+    window.addEventListener(keyboardEvents.focusSearch, focusSearchSpy);
+
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-disable-global-shortcuts", "true");
+    const button = document.createElement("button");
+    wrapper.append(button);
+    document.body.append(wrapper);
+
+    try {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
+
+      const { unmount } = renderHook(() => useKeyboard());
+
+      fireEvent.keyDown(button, { key: "m" });
+      fireEvent.keyDown(button, { key: "/" });
+      fireEvent.keyDown(button, { key: "Escape" });
+
+      expect(toggleReadSpy).not.toHaveBeenCalled();
+      expect(focusSearchSpy).not.toHaveBeenCalled();
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+
+      unmount();
+    } finally {
+      wrapper.remove();
+      window.removeEventListener(keyboardEvents.toggleRead, toggleReadSpy);
+      window.removeEventListener(keyboardEvents.focusSearch, focusSearchSpy);
+    }
+  });
+
   it("cleans up the previous global keydown listener before resubscribing to state-dependent shortcuts", () => {
     const addEventListener = vi.spyOn(window, "addEventListener");
     const removeEventListener = vi.spyOn(window, "removeEventListener");

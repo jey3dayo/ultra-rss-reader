@@ -245,6 +245,11 @@ function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): str
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
 
+function normalizeShortcutMapKey(key: string): string | null {
+  const trimmedKey = key.trim();
+  return trimmedKey.length > 0 ? trimmedKey : null;
+}
+
 /** All default shortcut preference entries (for preferences-store defaults). */
 export const shortcutDefaults: KeyboardShortcutPrefs = {};
 for (const definition of shortcutDefinitions) {
@@ -255,7 +260,10 @@ for (const definition of shortcutDefinitions) {
 export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
   const map: KeyToActionMap = new Map();
   for (const def of shortcutDefinitions) {
-    const key = getShortcutKey(def.id, prefs);
+    const key = normalizeShortcutMapKey(getShortcutKey(def.id, prefs));
+    if (key === null) {
+      continue;
+    }
     if (map.has(key)) {
       continue;
     }
@@ -310,7 +318,8 @@ function nextViewMode(current: ViewMode): ViewMode {
 }
 
 function isTextInputTarget(targetTag?: string | null, targetIsTextEditing = false): boolean {
-  return targetIsTextEditing || targetTag === "INPUT" || targetTag === "TEXTAREA";
+  const normalizedTag = targetTag?.toUpperCase();
+  return targetIsTextEditing || normalizedTag === "INPUT" || normalizedTag === "TEXTAREA";
 }
 
 function resolveActionForId(

@@ -139,6 +139,32 @@ describe("CommandPalette", () => {
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
   });
 
+  it("shows recent resources without duplicating persisted history entries", async () => {
+    seedCommandHistory(["feed:feed-1", "feed:feed-1", "tag:tag-1", "tag:tag-1", "article:art-1", "article:art-1"]);
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const feedsGroup = await screen.findByRole("group", { name: "Feeds" });
+    const tagsGroup = screen.getByRole("group", { name: "Tags" });
+    const articlesGroup = screen.getByRole("group", { name: "Articles" });
+
+    expect(within(feedsGroup).getAllByRole("option", { name: /Tech Blog/ })).toHaveLength(1);
+    expect(within(tagsGroup).getAllByRole("option", { name: /Later/ })).toHaveLength(1);
+    expect(within(articlesGroup).getAllByRole("option", { name: /First Article/ })).toHaveLength(1);
+    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+  });
+
+  it("adds feed context to article resource results", async () => {
+    seedCommandHistory(["article:art-1"]);
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const articleOption = await screen.findByRole("option", { name: /First Article/ });
+
+    expect(articleOption).toHaveTextContent("Tech Blog");
+    expect(articleOption).toHaveTextContent("https://example.com/1");
+  });
+
   it("falls back to the normal action list when history is empty", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
