@@ -253,6 +253,7 @@ function toAppError(cmd: string, error: unknown): AppError {
 }
 
 function validateInvokeArgs(options: InvokeArgsOptions, args?: InvokeArgsRecord): InvokeArgsRecord | undefined {
+  // Throwing is contained here because safeInvoke converts ZodError into AppError Result.
   return options.args && args ? parseWithSchema(options.args, args) : args;
 }
 
@@ -270,6 +271,7 @@ async function invokeWithResponseSchema<R extends z.ZodType>(
   const validatedArgs = validateInvokeArgs(options, args);
   const raw = await invoke<unknown>(cmd, validatedArgs);
   try {
+    // Response parse is diagnostics-only once it leaves safeInvoke.
     return parseWithSchema(options.response, raw);
   } catch (error) {
     if (error instanceof z.ZodError) {

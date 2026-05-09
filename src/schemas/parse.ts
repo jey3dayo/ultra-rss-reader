@@ -4,6 +4,7 @@ type NullableParseResult<TSchema extends z.ZodType> = z.output<TSchema> | null;
 
 /**
  * Throwing schema boundary. Invalid values surface as the schema library error.
+ * Use only where the callsite immediately converts the throw into Result/reject or intentionally fails a test.
  */
 export function parseWithSchema<TSchema extends z.ZodType>(schema: TSchema, value: unknown): z.output<TSchema> {
   const result = schema.safeParse(value);
@@ -22,6 +23,7 @@ export function parseJsonWithSchema<TSchema extends z.ZodType>(contents: string,
 
 /**
  * Nullable JSON + schema boundary. Malformed JSON and invalid data both return null for caller-owned fallback.
+ * Use for local persisted/config recovery paths where the caller owns a safe default.
  */
 export function parseJsonWithSchemaOrNull<TSchema extends z.ZodType>(
   contents: string,

@@ -246,6 +246,12 @@ describe("setupTauriMocks fixture isolation", () => {
     expect(recorder.calls).toEqual([]);
   });
 
+  it("documents test IPC mock args parsing as an intentional fail-fast boundary", () => {
+    const source = readWorkspaceFile("tests/helpers/tauri-mocks.ts");
+
+    expect(source).toContain("Test IPC mocks fail fast so handlers never observe unvalidated command payloads.");
+  });
+
   it("treats null, false, and zero custom handler responses as handled", async () => {
     teardownTauriMocks();
     setupTauriMocks((cmd) => {

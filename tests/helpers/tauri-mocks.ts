@@ -65,6 +65,7 @@ function toMockHandlerArgs(args: RawMockTauriCommandArgs): ValidatedMockTauriCom
 function validateArgs(cmd: string, payload: unknown): ValidatedMockTauriCommandArgs {
   const schema = getCommandArgsSchema(cmd);
   if (schema) {
+    // Test IPC mocks fail fast so handlers never observe unvalidated command payloads.
     return toMockHandlerArgs(parseWithSchema(schema, payload));
   }
   return toMockHandlerArgs(isRecord(payload) ? payload : {});

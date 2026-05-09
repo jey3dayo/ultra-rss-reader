@@ -17,6 +17,7 @@ Schemas are runtime contracts, not just type generators. When adding or changing
 - For each schema, decide whether it is a trusted backend DTO, a frontend guard, a local persisted format, or a view-model normalization boundary.
 - Be explicit about blank strings, whitespace-only strings, nonfinite numbers, negative counts, invalid dates, unknown enum values, duplicate identities, and unknown passthrough keys.
 - Keep user-facing fallback copy outside schema files unless the schema itself owns the user-visible result.
+- Use throwing parse helpers only at narrow adapters that immediately convert failures into `Result`, promise rejection, or an intentional test failure. Use nullable parse helpers for local persisted/config recovery paths where the caller owns the fallback default.
 
 ## Test Expectations
 
