@@ -166,6 +166,12 @@ describe("browser-webview-state", () => {
         message: "Something else failed",
       }),
     ).toBe(false);
+    expect(
+      isMissingEmbeddedBrowserWebviewError({
+        type: "UserVisible",
+        message: "Native call failed: Embedded browser webview is not open",
+      }),
+    ).toBe(false);
   });
 
   it("updates the browser ref and navigation store outside the React state updater", () => {

@@ -59,8 +59,8 @@ function expectUniqueIds(items: readonly { id: string }[]) {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
-function expectNonBlank(value: string, message: string) {
-  expect(value.trim().length, message).toBeGreaterThan(0);
+function expectNonBlank(value: string | null | undefined, message: string) {
+  expect(value?.trim().length ?? 0, message).toBeGreaterThan(0);
 }
 
 describe("test fixtures", () => {
@@ -288,8 +288,7 @@ describe("renderStory", () => {
       };
 
     const meta = {
-      component: ({ label }: { label: string; tone: string }) =>
-        createElement("span", null, label),
+      component: ({ label }: { label: string; tone: string }) => createElement("span", null, label),
       args: { label: "meta", tone: "neutral" },
       parameters: { layout: "centered", viewport: "desktop" },
       globals: { locale: "en", theme: "light" },
@@ -351,8 +350,7 @@ describe("renderStory", () => {
 
     renderStory(
       {
-        component: ({ label }: { label: string }) =>
-          createElement("span", null, label),
+        component: ({ label }: { label: string }) => createElement("span", null, label),
         args: { label: "base" },
         parameters: { layout: "centered", viewport: "desktop" },
         globals: { locale: "en", theme: "light" },
@@ -393,17 +391,11 @@ describe("renderStory", () => {
           return createElement("span", null, label);
         },
         args: { label: "meta" },
-        decorators: [
-          createDecorator("meta-outer"),
-          createDecorator("meta-inner"),
-        ],
+        decorators: [createDecorator("meta-outer"), createDecorator("meta-inner")],
       },
       {
         args: { label: "story" },
-        decorators: [
-          createDecorator("story-outer"),
-          createDecorator("story-inner"),
-        ],
+        decorators: [createDecorator("story-outer"), createDecorator("story-inner")],
       },
     );
 
@@ -418,23 +410,15 @@ describe("renderStory", () => {
       "meta-outer:after",
       "component:story",
     ]);
-    expect(contexts).toEqual([
-      { label: "story" },
-      { label: "story" },
-      { label: "story" },
-      { label: "story" },
-    ]);
+    expect(contexts).toEqual([{ label: "story" }, { label: "story" }, { label: "story" }, { label: "story" }]);
     expect(
-      Array.from(container.querySelectorAll("[data-decorator]")).map((node) =>
-        node.getAttribute("data-decorator"),
-      ),
+      Array.from(container.querySelectorAll("[data-decorator]")).map((node) => node.getAttribute("data-decorator")),
     ).toEqual(["meta-outer", "meta-inner", "story-outer", "story-inner"]);
   });
 
   it("rejects non-options values passed as the third argument", () => {
     const meta = {
-      component: ({ label }: { label: string }) =>
-        createElement("span", null, label),
+      component: ({ label }: { label: string }) => createElement("span", null, label),
       args: { label: "base" },
     };
 
@@ -447,17 +431,14 @@ describe("renderStory", () => {
         // @ts-expect-error This fixes the runtime boundary for JS or incorrectly typed callers.
         true,
       ),
-    ).toThrowError(
-      "renderStory third argument must be Testing Library RenderOptions.",
-    );
+    ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");
   });
 
   it("passes valid Testing Library options through to render", () => {
     const wrapperText = "render wrapper";
     const { baseElement } = renderStory(
       {
-        component: ({ label }: { label: string }) =>
-          createElement("span", null, label),
+        component: ({ label }: { label: string }) => createElement("span", null, label),
         args: { label: "base" },
       },
       {
@@ -465,15 +446,12 @@ describe("renderStory", () => {
       },
       {
         baseElement: document.createElement("section"),
-        wrapper: ({ children }) =>
-          createElement("div", { "aria-label": wrapperText }, children),
+        wrapper: ({ children }) => createElement("div", { "aria-label": wrapperText }, children),
       },
     );
 
     expect(baseElement.tagName).toBe("SECTION");
-    expect(
-      baseElement.querySelector(`[aria-label="${wrapperText}"]`),
-    ).not.toBeNull();
+    expect(baseElement.querySelector(`[aria-label="${wrapperText}"]`)).not.toBeNull();
     expect(baseElement).toHaveTextContent("story");
   });
 });

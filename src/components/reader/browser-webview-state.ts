@@ -38,7 +38,7 @@ export function resolveBrowserStateForRequestedUrl(
 }
 
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
-  return error.message.includes(MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR);
+  return error.message === MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR;
 }
 
 export function mergeBrowserState(

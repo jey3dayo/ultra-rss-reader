@@ -82,6 +82,27 @@ describe("useUpdateFeedFolder", () => {
     });
   });
 
+  it("stops before optimistic update when feed query cancellation rejects", async () => {
+    seedFeeds();
+    vi.spyOn(queryClient, "cancelQueries").mockRejectedValue(new Error("cancel boom"));
+    const updateFeedFolderSpy = vi.spyOn(tauriCommands, "updateFeedFolder").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
+
+    await expect(result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-1" })).rejects.toBeDefined();
+
+    expect(updateFeedFolderSpy).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        folder_id: null,
+      }),
+    ]);
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: cancel boom");
+    });
+  });
+
   it("shows a toast and rejects when the folder update fails", async () => {
     vi.spyOn(tauriCommands, "updateFeedFolder").mockResolvedValue(
       Result.fail({ type: "UserVisible", message: "boom" }),

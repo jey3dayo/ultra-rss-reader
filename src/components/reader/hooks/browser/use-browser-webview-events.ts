@@ -1,8 +1,12 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
+import { BrowserWebviewStateSchema } from "@/api/schemas";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
-import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
+import type {
+  BrowserDebugGeometryNativeDiagnostics,
+  BrowserDebugGeometryRect,
+} from "@/lib/browser/browser-debug-geometry";
 import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
 import type { BrowserWebviewFallbackPayload } from "../../browser-webview-state";
 
@@ -16,6 +20,49 @@ type UseBrowserWebviewEventsParams = {
 
 type UseBrowserWebviewEventsResult = () => Promise<void>;
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isBrowserWebviewFallbackPayload(payload: unknown): payload is BrowserWebviewFallbackPayload {
+  return (
+    isObjectRecord(payload) &&
+    typeof payload.url === "string" &&
+    typeof payload.opened_external === "boolean" &&
+    (payload.error_message === null || typeof payload.error_message === "string")
+  );
+}
+
+function isBrowserDebugGeometryRect(payload: unknown): payload is BrowserDebugGeometryRect {
+  return (
+    isObjectRecord(payload) &&
+    Number.isFinite(payload.x) &&
+    Number.isFinite(payload.y) &&
+    Number.isFinite(payload.width) &&
+    Number.isFinite(payload.height)
+  );
+}
+
+function isBrowserDebugGeometryNativeDiagnostics(payload: unknown): payload is BrowserDebugGeometryNativeDiagnostics {
+  return (
+    isObjectRecord(payload) &&
+    typeof payload.action === "string" &&
+    isBrowserDebugGeometryRect(payload.requestedLogical) &&
+    isBrowserDebugGeometryRect(payload.appliedLogical) &&
+    Number.isFinite(payload.scaleFactor) &&
+    (payload.nativeWebviewBounds === null || isBrowserDebugGeometryRect(payload.nativeWebviewBounds))
+  );
+}
+
+function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewState | null {
+  const result = BrowserWebviewStateSchema.safeParse(payload);
+  return result.success ? result.data : null;
+}
+
+function warnMalformedBrowserWebviewEvent(eventName: string, payload: unknown) {
+  console.warn(`Ignored malformed embedded browser webview ${eventName} payload:`, payload);
+}
+
 export function useBrowserWebviewEvents({
   showDiagnostics,
   onStateChanged,
@@ -28,12 +75,21 @@ export function useBrowserWebviewEvents({
   useLayoutEffect(() => {
     let cancelled = false;
     const listenerGroup = createTauriListenerGroup([
-      listen<BrowserWebviewState>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
+      listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
         if (cancelled) return;
-        onStateChanged(payload);
+        const nextState = parseBrowserWebviewStatePayload(payload);
+        if (!nextState) {
+          warnMalformedBrowserWebviewEvent(BROWSER_WINDOW_EVENTS.stateChanged, payload);
+          return;
+        }
+        onStateChanged(nextState);
       }),
-      listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
+      listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
         if (cancelled) return;
+        if (!isBrowserWebviewFallbackPayload(payload)) {
+          warnMalformedBrowserWebviewEvent(BROWSER_WINDOW_EVENTS.fallback, payload);
+          return;
+        }
         onFallback(payload);
       }),
       listen(BROWSER_WINDOW_EVENTS.closed, () => {
@@ -42,8 +98,12 @@ export function useBrowserWebviewEvents({
       }),
       ...(showDiagnostics
         ? [
-            listen<BrowserDebugGeometryNativeDiagnostics>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
+            listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
               if (cancelled) return;
+              if (!isBrowserDebugGeometryNativeDiagnostics(payload)) {
+                warnMalformedBrowserWebviewEvent(BROWSER_WINDOW_EVENTS.diagnostics, payload);
+                return;
+              }
               onDiagnostics(payload);
             }),
           ]

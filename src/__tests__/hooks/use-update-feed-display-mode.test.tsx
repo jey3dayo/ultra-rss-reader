@@ -9,11 +9,16 @@ import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mo
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, options?: { message?: string }) => `${key}:${options?.message ?? ""}`,
-  }),
-}));
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: { message?: string }) => `${key}:${options?.message ?? ""}`,
+    }),
+  };
+});
 
 describe("useUpdateFeedDisplaySettings", () => {
   let queryClient: QueryClient;
@@ -96,6 +101,27 @@ describe("useUpdateFeedDisplaySettings", () => {
     ]);
     expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
     expect(showToastMock).toHaveBeenCalledWith("failed_to_update_display_settings:boom");
+  });
+
+  it("stops before optimistic update when feed query cancellation rejects", async () => {
+    seedFeeds();
+    vi.spyOn(queryClient, "cancelQueries").mockRejectedValue(new Error("cancel boom"));
+    const updateFeedDisplaySettingsSpy = vi
+      .spyOn(tauriCommands, "updateFeedDisplaySettings")
+      .mockResolvedValue(Result.succeed(null));
+    const { result } = createHook();
+
+    await expect(result.current("feed-1", "on", "on")).rejects.toThrow("cancel boom");
+
+    expect(updateFeedDisplaySettingsSpy).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      }),
+    ]);
+    expect(showToastMock).not.toHaveBeenCalled();
   });
 
   it("does not leave optimistic display settings behind when a canceled update fails", async () => {

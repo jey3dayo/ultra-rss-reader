@@ -5,14 +5,18 @@ import { closeBrowserWebview } from "@/api/tauri-commands";
 export function useBrowserWebviewCleanup() {
   useEffect(() => {
     return () => {
-      void closeBrowserWebview().then((result) => {
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("Failed to close embedded browser webview:", error);
-          }),
-        );
-      });
+      void closeBrowserWebview()
+        .then((result) => {
+          Result.pipe(
+            result,
+            Result.inspectError((error) => {
+              console.error("Failed to close embedded browser webview:", error);
+            }),
+          );
+        })
+        .catch((error: unknown) => {
+          console.error("Failed to close embedded browser webview:", error);
+        });
     };
   }, []);
 }
