@@ -222,6 +222,10 @@ pub struct FeedDto {
     pub web_preview_mode: String,
 }
 
+fn normalize_feed_unread_count(count: i32) -> i32 {
+    count.max(0)
+}
+
 #[derive(Debug, Serialize)]
 pub struct ArticleDto {
     pub id: String,
@@ -368,7 +372,7 @@ impl From<crate::domain::feed::Feed> for FeedDto {
             title: f.title,
             url: f.url,
             site_url: f.site_url,
-            unread_count: f.unread_count,
+            unread_count: normalize_feed_unread_count(f.unread_count),
             reader_mode: f.reader_mode,
             web_preview_mode: f.web_preview_mode,
         }
@@ -624,5 +628,26 @@ mod tests {
         let value = serde_json::to_value(FeedDto::from(feed)).expect("feed dto should serialize");
 
         assert_eq!(value["remote_id"], "feed/https://example.com/rss.xml");
+    }
+
+    #[test]
+    fn feed_dto_normalizes_negative_unread_count() {
+        let feed = crate::domain::feed::Feed {
+            id: crate::domain::types::FeedId("feed-1".to_string()),
+            account_id: crate::domain::types::AccountId("acc-1".to_string()),
+            folder_id: None,
+            remote_id: None,
+            title: "Example".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: -1,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+
+        let value = serde_json::to_value(FeedDto::from(feed)).expect("feed dto should serialize");
+
+        assert_eq!(value["unread_count"], 0);
     }
 }

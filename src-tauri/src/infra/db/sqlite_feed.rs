@@ -55,10 +55,14 @@ fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
         url: row.get(5)?,
         site_url: row.get(6)?,
         icon: row.get(7)?,
-        unread_count: row.get(8)?,
+        unread_count: normalize_unread_count(row.get::<_, i64>(8)?),
         reader_mode: row.get(9)?,
         web_preview_mode: row.get(10)?,
     })
+}
+
+fn normalize_unread_count(count: i64) -> i32 {
+    count.clamp(0, i64::from(i32::MAX)) as i32
 }
 
 const SELECT_COLS: &str =
@@ -156,7 +160,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                 feed.url,
                 feed.site_url,
                 feed.icon,
-                feed.unread_count,
+                normalize_unread_count(i64::from(feed.unread_count)),
                 feed.reader_mode,
                 feed.web_preview_mode,
             ],
@@ -167,7 +171,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     fn update_unread_count(&self, feed_id: &FeedId, count: i32) -> DomainResult<()> {
         self.conn.execute(
             "UPDATE feeds SET unread_count = ?1 WHERE id = ?2",
-            params![count, feed_id.0],
+            params![normalize_unread_count(i64::from(count)), feed_id.0],
         )?;
         Ok(())
     }
@@ -196,12 +200,12 @@ impl FeedRepository for SqliteFeedRepository<'_> {
             );
             self.conn.execute(&sql, params![feed_id.0])?;
         }
-        let count: i32 = self.conn.query_row(
+        let count: i64 = self.conn.query_row(
             "SELECT unread_count FROM feeds WHERE id = ?1",
             params![feed_id.0],
             |row| row.get(0),
         )?;
-        Ok(count)
+        Ok(normalize_unread_count(count))
     }
 
     fn find_by_remote_id(
@@ -479,6 +483,57 @@ mod tests {
 
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].unread_count, 1);
+    }
+
+    #[test]
+    fn find_by_account_normalizes_corrupt_unread_count_before_dto_mapping() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+        let negative_feed = make_feed(&account_id, "Negative", "http://negative.example/rss");
+        let overflow_feed = make_feed(&account_id, "Overflow", "http://overflow.example/rss");
+        repo.save(&negative_feed).unwrap();
+        repo.save(&overflow_feed).unwrap();
+
+        db.writer()
+            .execute(
+                "UPDATE feeds SET unread_count = -1 WHERE id = ?1",
+                params![negative_feed.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "UPDATE feeds SET unread_count = ?1 WHERE id = ?2",
+                params![i64::from(i32::MAX) + 1, overflow_feed.id.0],
+            )
+            .unwrap();
+
+        let feeds = repo.find_by_account(&account_id).unwrap();
+
+        let negative = feeds
+            .iter()
+            .find(|feed| feed.id == negative_feed.id)
+            .unwrap();
+        let overflow = feeds
+            .iter()
+            .find(|feed| feed.id == overflow_feed.id)
+            .unwrap();
+        assert_eq!(negative.unread_count, 0);
+        assert_eq!(overflow.unread_count, i32::MAX);
+    }
+
+    #[test]
+    fn update_unread_count_normalizes_negative_count_at_repository_boundary() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+        let feed = make_feed(&account_id, "Rust Blog", "http://rust.example/rss");
+        repo.save(&feed).unwrap();
+
+        repo.update_unread_count(&feed.id, -1).unwrap();
+
+        let saved = repo.find_by_id(&feed.id).unwrap().unwrap();
+        assert_eq!(saved.unread_count, 0);
     }
 
     #[test]
