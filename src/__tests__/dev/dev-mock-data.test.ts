@@ -145,6 +145,8 @@ describe("dev mock data", () => {
     );
     expect(listDevMockFixtureBoundaryKeys("settings")).not.toEqual(expect.arrayContaining(["articles", "articleTags"]));
     expect(listDevMockFixtureBoundaryKeys("browser")).toEqual(["articles"]);
-    expect(listDevMockFixtureBoundaryKeys("subscriptions")).not.toEqual(expect.arrayContaining(["tags", "articleTags"]));
+    expect(listDevMockFixtureBoundaryKeys("subscriptions")).not.toEqual(
+      expect.arrayContaining(["tags", "articleTags"]),
+    );
   });
 });

@@ -74,7 +74,7 @@ describe("useBrowserViewActions", () => {
     );
 
     const resetBrowserWebviewSyncState = vi.fn();
-    const setSurfaceIssue = vi.fn();
+    const clearSurfaceIssue = vi.fn();
     const showToast = vi.fn();
     const syncBrowserWebview = vi.fn(async () => {});
 
@@ -89,7 +89,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState,
-        setSurfaceIssue,
+        clearSurfaceIssue,
         showToast,
         syncBrowserWebview,
         initialBrowserState: createInitialBrowserState,
@@ -104,7 +104,7 @@ describe("useBrowserViewActions", () => {
     });
 
     expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
-    expect(setSurfaceIssue).toHaveBeenCalledWith(null);
+    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
     expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/article", "create");
     expect(result.current.browserState).toEqual(
       createBrowserState({
@@ -125,7 +125,7 @@ describe("useBrowserViewActions", () => {
     );
 
     const resetBrowserWebviewSyncState = vi.fn();
-    const setSurfaceIssue = vi.fn();
+    const clearSurfaceIssue = vi.fn();
     const showToast = vi.fn();
     const syncBrowserWebview = vi.fn(async () => {});
 
@@ -140,7 +140,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState,
-        setSurfaceIssue,
+        clearSurfaceIssue,
         showToast,
         syncBrowserWebview,
         initialBrowserState: createInitialBrowserState,
@@ -156,7 +156,7 @@ describe("useBrowserViewActions", () => {
 
     expect(result.current.fallbackInFlightRef.current).toBe(false);
     expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
-    expect(setSurfaceIssue).toHaveBeenCalledWith(null);
+    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
     expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/fallback", "create");
     expect(result.current.browserState).toEqual(createInitialBrowserState("https://example.com/fallback"));
     expect(showToast).not.toHaveBeenCalled();
@@ -183,7 +183,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast,
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -222,7 +222,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast: vi.fn(),
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -266,7 +266,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast,
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -313,7 +313,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast: vi.fn(),
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -345,7 +345,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast: vi.fn(),
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -375,7 +375,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast,
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -405,7 +405,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState: vi.fn(),
-        setSurfaceIssue: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
         showToast,
         syncBrowserWebview: vi.fn(async () => {}),
         initialBrowserState: createInitialBrowserState,
@@ -426,7 +426,7 @@ describe("useBrowserViewActions", () => {
 
   it("does not retry the embedded webview without a browser URL", () => {
     const resetBrowserWebviewSyncState = vi.fn();
-    const setSurfaceIssue = vi.fn();
+    const clearSurfaceIssue = vi.fn();
     const syncBrowserWebview = vi.fn(async () => {});
 
     const { result } = renderHook(() => {
@@ -440,7 +440,7 @@ describe("useBrowserViewActions", () => {
         browserStateRef,
         setBrowserState,
         resetBrowserWebviewSyncState,
-        setSurfaceIssue,
+        clearSurfaceIssue,
         showToast: vi.fn(),
         syncBrowserWebview,
         initialBrowserState: createInitialBrowserState,
@@ -457,7 +457,7 @@ describe("useBrowserViewActions", () => {
     expect(result.current.fallbackInFlightRef.current).toBe(true);
     expect(result.current.browserState).toBeNull();
     expect(resetBrowserWebviewSyncState).not.toHaveBeenCalled();
-    expect(setSurfaceIssue).not.toHaveBeenCalled();
+    expect(clearSurfaceIssue).not.toHaveBeenCalled();
     expect(syncBrowserWebview).not.toHaveBeenCalled();
   });
 });

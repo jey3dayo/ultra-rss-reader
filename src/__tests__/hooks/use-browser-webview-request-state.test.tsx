@@ -16,7 +16,7 @@ function createBrowserState(url: string, isLoading = false): BrowserWebviewState
 describe("useBrowserWebviewRequestState", () => {
   it("resets sync state and initializes a new browser request", () => {
     const resetBrowserWebviewSyncState = vi.fn();
-    const setSurfaceIssue = vi.fn();
+    const clearSurfaceIssue = vi.fn();
 
     const { result } = renderHook(() => {
       const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
@@ -30,14 +30,14 @@ describe("useBrowserWebviewRequestState", () => {
         fallbackInFlightRef,
         resetBrowserWebviewSyncState,
         setBrowserState,
-        setSurfaceIssue,
+        clearSurfaceIssue,
       });
 
       return { browserState, browserStateRef, fallbackInFlightRef };
     });
 
     expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
-    expect(setSurfaceIssue).toHaveBeenCalledWith(null);
+    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
     expect(result.current.fallbackInFlightRef.current).toBe(false);
     expect(result.current.browserState).toEqual(createBrowserState("https://example.com/article", true));
     expect(result.current.browserStateRef.current).toEqual(createBrowserState("https://example.com/article", true));
@@ -45,7 +45,7 @@ describe("useBrowserWebviewRequestState", () => {
 
   it("keeps the existing browser state when the requested url is unchanged", () => {
     const resetBrowserWebviewSyncState = vi.fn();
-    const setSurfaceIssue = vi.fn();
+    const clearSurfaceIssue = vi.fn();
     const initialState = createBrowserState("https://example.com/article", false);
 
     const { result } = renderHook(() => {
@@ -60,7 +60,7 @@ describe("useBrowserWebviewRequestState", () => {
         fallbackInFlightRef,
         resetBrowserWebviewSyncState,
         setBrowserState,
-        setSurfaceIssue,
+        clearSurfaceIssue,
       });
 
       return { browserState };
@@ -71,7 +71,7 @@ describe("useBrowserWebviewRequestState", () => {
 
   it("only clears retry state when the browser url is missing", () => {
     const resetBrowserWebviewSyncState = vi.fn();
-    const setSurfaceIssue = vi.fn();
+    const clearSurfaceIssue = vi.fn();
     const initialState = createBrowserState("https://example.com/article", false);
 
     const { result } = renderHook(() => {
@@ -86,14 +86,14 @@ describe("useBrowserWebviewRequestState", () => {
         fallbackInFlightRef,
         resetBrowserWebviewSyncState,
         setBrowserState,
-        setSurfaceIssue,
+        clearSurfaceIssue,
       });
 
       return { browserState, fallbackInFlightRef };
     });
 
     expect(resetBrowserWebviewSyncState).toHaveBeenCalledTimes(1);
-    expect(setSurfaceIssue).not.toHaveBeenCalled();
+    expect(clearSurfaceIssue).not.toHaveBeenCalled();
     expect(result.current.fallbackInFlightRef.current).toBe(false);
     expect(result.current.browserState).toBe(initialState);
   });
