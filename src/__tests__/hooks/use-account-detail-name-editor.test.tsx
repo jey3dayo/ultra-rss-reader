@@ -166,6 +166,38 @@ describe("useAccountDetailNameEditor", () => {
     expect(renameAccountMock).not.toHaveBeenCalled();
     expect(result.current.editingName).toBe(false);
   });
+
+  it("does not save a canceled draft when blur uses the pre-Escape commit handler", async () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("Canceled Name");
+    });
+
+    const blurCommitFromFocusedInput = result.current.commitRename;
+
+    act(() => {
+      result.current.handleNameKeyDown({
+        key: "Escape",
+        preventDefault: vi.fn(),
+      } as unknown as KeyboardEvent<HTMLInputElement>);
+    });
+
+    await act(async () => {
+      await blurCommitFromFocusedInput();
+    });
+
+    expect(renameAccountMock).not.toHaveBeenCalled();
+    expect(result.current.editingName).toBe(false);
+  });
 });
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {

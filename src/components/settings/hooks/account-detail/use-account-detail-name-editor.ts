@@ -73,7 +73,9 @@ export function useAccountDetailNameEditor({
   const { editingName, savingName, nameDraft } = state;
   const nameInputRef = useRef<HTMLInputElement>(null);
   const cancelScheduledFocusRef = useRef<(() => void) | null>(null);
+  const editSessionRef = useRef(0);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
+  const editSessionAtRender = editSessionRef.current;
 
   const cancelScheduledFocus = useCallback(() => {
     cancelScheduledFocusRef.current?.();
@@ -83,18 +85,20 @@ export function useAccountDetailNameEditor({
   useEffect(() => cancelScheduledFocus, [cancelScheduledFocus]);
 
   const startEditingName = () => {
+    editSessionRef.current += 1;
     dispatch({ type: "start-edit", value: account.name });
     cancelScheduledFocus();
     cancelScheduledFocusRef.current = scheduleAccountDetailInputFocus(nameInputRef);
   };
 
   const commitRename = async () => {
-    if (!editingName) {
+    if (!editingName || editSessionAtRender !== editSessionRef.current) {
       return;
     }
 
     const trimmed = nameDraft.trim();
     if (!trimmed || trimmed === account.name) {
+      editSessionRef.current += 1;
       dispatch({ type: "finish-edit", value: account.name });
       return;
     }
@@ -106,6 +110,7 @@ export function useAccountDetailNameEditor({
       Result.inspectError(showRenameError),
       Result.inspect((updated) => {
         renameSucceeded = true;
+        editSessionRef.current += 1;
         dispatch({ type: "finish-edit", value: updated.name });
         updateCachedAccount(queryClient, updated);
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -122,6 +127,7 @@ export function useAccountDetailNameEditor({
       void commitRename();
     } else if (event.key === "Escape") {
       cancelScheduledFocus();
+      editSessionRef.current += 1;
       dispatch({ type: "cancel-edit" });
     }
   };

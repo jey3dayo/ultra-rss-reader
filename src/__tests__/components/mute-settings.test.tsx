@@ -112,6 +112,21 @@ describe("MuteSettings", () => {
     expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent("Body");
   });
 
+  it("submits mute keyword creation from the keyword input with Enter", async () => {
+    const user = userEvent.setup();
+
+    render(<MuteSettings />);
+
+    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "spoiler alert{Enter}");
+
+    await waitFor(() => {
+      expect(createMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
+        keyword: "spoiler alert",
+        scope: "title_and_body",
+      });
+    });
+  });
+
   it("trims mute keyword creation input and rejects whitespace-padded short values", async () => {
     const user = userEvent.setup();
 
