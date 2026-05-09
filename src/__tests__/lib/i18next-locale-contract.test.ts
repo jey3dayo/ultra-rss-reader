@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { supportedLanguages } from "@/lib/i18n";
+import i18n, { supportedLanguages } from "@/lib/i18n";
 import i18nSource from "@/lib/i18n.ts?raw";
 import { i18nResourceFiles, i18nResourceLocales, i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 import type { ShortcutCategoryKey, ShortcutLabelKey } from "@/lib/keyboard/keyboard-shortcuts";
@@ -242,5 +242,37 @@ describe("i18next locale contract", () => {
   it("keeps planned account provider status localized", () => {
     expect(enSettings.account.coming_soon).toBe("Coming soon");
     expect(jaSettings.account.coming_soon).toBe("準備中");
+  });
+
+  it("keeps plural count display keys resolving instead of falling back to locale keys", async () => {
+    const pluralCountCases = [
+      {
+        key: "subscriptions:summary_total_caption",
+        en: { one: "1 feed in this workspace", other: "2 feeds in this workspace" },
+        ja: { one: "このワークスペースで 1 件の購読", other: "このワークスペースで 2 件の購読" },
+      },
+      {
+        key: "subscriptions:summary_review_caption",
+        en: { one: "1 feed needs a decision", other: "2 feeds need a decision" },
+        ja: { one: "1 件が判断待ちです", other: "2 件が判断待ちです" },
+      },
+      {
+        key: "subscriptions:summary_stale_caption",
+        en: { one: "1 feed has gone quiet", other: "2 feeds have gone quiet" },
+        ja: { one: "1 件が長く止まっています", other: "2 件が長く止まっています" },
+      },
+    ] as const;
+
+    for (const locale of ["en", "ja"] as const) {
+      await i18n.changeLanguage(locale);
+
+      for (const { key, en, ja } of pluralCountCases) {
+        const expected = locale === "en" ? en : ja;
+
+        expect(i18n.t(key, { count: 1 })).toBe(expected.one);
+        expect(i18n.t(key, { count: 2 })).toBe(expected.other);
+        expect(i18n.t(key, { count: 2 })).not.toBe(key);
+      }
+    }
   });
 });

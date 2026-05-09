@@ -3,9 +3,9 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
-import i18n from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type DialogProps = DialogPrimitive.Root.Props;
@@ -44,8 +44,8 @@ function DialogClose({ ...props }: DialogCloseProps) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
-function resolveDialogCloseLabel(closeLabel?: string) {
-  return closeLabel ?? i18n.t(["dialog_close", "close"]);
+function resolveDialogCloseLabel(closeLabel: string | undefined, fallbackLabel: string) {
+  return closeLabel ?? fallbackLabel;
 }
 
 function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
@@ -74,9 +74,11 @@ function DialogContent({
   overlayClassName,
   ...props
 }: DialogContentProps) {
+  const { t } = useTranslation();
   const resolvedOverlayClassName = [getDialogOverlayPresetClass(overlayPreset), overlayClassName]
     .filter(Boolean)
     .join(" ");
+  const resolvedCloseLabel = resolveDialogCloseLabel(closeLabel, t(["dialog_close", "close"]));
 
   return (
     <DialogPortal>
@@ -97,7 +99,7 @@ function DialogContent({
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           >
             <XIcon />
-            <span className="sr-only">{resolveDialogCloseLabel(closeLabel)}</span>
+            <span className="sr-only">{resolvedCloseLabel}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -110,6 +112,9 @@ function DialogHeader({ className, ...props }: DialogHeaderProps) {
 }
 
 function DialogFooter({ className, showCloseButton = false, closeLabel, children, ...props }: DialogFooterProps) {
+  const { t } = useTranslation();
+  const resolvedCloseLabel = resolveDialogCloseLabel(closeLabel, t(["dialog_close", "close"]));
+
   return (
     <div
       data-slot="dialog-footer"
@@ -122,7 +127,7 @@ function DialogFooter({ className, showCloseButton = false, closeLabel, children
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close render={<Button variant="outline" />}>
-          {resolveDialogCloseLabel(closeLabel)}
+          {resolvedCloseLabel}
         </DialogPrimitive.Close>
       )}
     </div>
