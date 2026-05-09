@@ -1403,6 +1403,76 @@
   - `src/__tests__/config/repo-contracts.test.ts` で issue template の領域選択肢と labeler / 自動領域ラベルの最低限対応を確認する
   - release label parity contract とは分け、issue template affected area contract だけを扱う
 
+- [ ] icon toolbar ariaDisabled activation guard 候補を追加する
+  - `src/components/shared/icon-toolbar-control.tsx` の `ariaDisabled` が `aria-disabled="true"` だけでなく click / Enter / Space の実行抑止にも効くようにする
+  - `src/__tests__/components/icon-toolbar-control.test.tsx` で tooltip は維持しつつ、pointer / keyboard activation で `onClick` しないことを固定する
+  - settings action aria label contract とは分け、shared icon toolbar の disabled interaction だけを扱う
+
+- [ ] tag color picker radiogroup contract 候補を追加する
+  - `src/components/shared/tag-color-picker.tsx` の色選択を単一選択グループとして扱えるようにする
+  - `src/__tests__/components/tag-color-picker.test.tsx` で `radiogroup` / `radio` 相当の accessible grouping と arrow key selection を固定する
+  - tag settings UI validation とは分け、shared color picker の keyboard/accessibility contract だけを扱う
+
+- [ ] form dialog shell submit guard 候補を追加する
+  - `src/components/shared/form-dialog-shell.tsx` の Enter submit と footer submit button が同じ submit guard を通るようにする
+  - `src/__tests__/components/shared-form-controls.test.tsx` で `loading` / `submitDisabled` 中は Enter と footer click のどちらも `onSubmit` しないことを固定する
+  - react-doctor form preventDefault review とは分け、shared dialog shell の submit path 統一だけを扱う
+
+- [ ] labeled input inside action focus boundary 候補を追加する
+  - `src/components/shared/labeled-input-row.tsx` の `actionPlacement="inside"` action が input focus / selection を奪わないようにする
+  - `src/__tests__/components/shared-form-controls.test.tsx` で inside action の mouse click 後も input focus が保持され、action は 1 回だけ実行されることを固定する
+  - copyable text field の個別挙動とは分け、labeled input row の inside action boundary だけを扱う
+
+- [ ] nav row selected aria state contract 候補を追加する
+  - `src/components/shared/nav-row-button.tsx` の `selected` と aria state の既定 contract を揃える
+  - `src/__tests__/components/nav-row-button.test.tsx` で `selected` 時の既定 aria state と、caller が `aria-current` / `aria-pressed` を明示した場合の上書きを固定する
+  - React 19 forwardRef cleanup とは分け、shared navigation row の selected state semantics だけを扱う
+
+- [ ] open log directory error copy contract 候補を追加する
+  - `src-tauri/src/commands/log_commands.rs` と `src/components/settings/hooks/use-data-settings-controller.ts` で log directory open failure が UI 上で二重説明にならないようにする
+  - Rust test で command error message は短い action context に留め、TS test で localized toast が `Failed to open... Failed to open...` のように重複しないことを固定する
+  - data settings stale size race とは分け、open log dir failure copy だけを扱う
+
+- [ ] reqwest retryable error redaction 候補を追加する
+  - `src-tauri/src/domain/error.rs` の unknown reqwest error fallback が raw URL / query を user-visible `Retryable` message に流さないようにする
+  - Rust test で generic message に丸め、TS schema/UI test で secret-like query を含む message が surface へ出ないことを固定する
+  - network retry policy とは分け、retryable error message redaction だけを扱う
+
+- [ ] AppError non-empty message contract 候補を追加する
+  - `src-tauri/src/commands/dto.rs` と `src/api/schemas/error.ts` で blank / whitespace-only AppError message を拒否または fallback 正規化する
+  - Rust test で DomainError 変換結果が non-empty message になり、TS schema test で blank message の方針を固定する
+  - individual command error copy とは分け、AppError DTO message invariant だけを扱う
+
+- [ ] reqwest error classification helper 候補を追加する
+  - `src-tauri/src/domain/error.rs` の DNS / connect / timeout 分類 test を外部ネットワーク依存から pure helper test へ寄せる
+  - Rust test で主要 branch を fake/input helper で固定し、実 reqwest request test は最小補助にする
+  - retryable message redaction とは分け、network error classification test stability だけを扱う
+
+- [ ] tauri mock folder default fixture 候補を追加する
+  - `tests/helpers/tauri-mocks.ts` の default `list_folders` が `sampleFolders` を account filter 済み clone として返すようにする
+  - `tests/helpers/tauri-mocks.test.ts` で返却値 mutation が次回呼び出しへ漏れないことを固定する
+  - fixture folder relationship contract とは分け、default folder mock behavior だけを扱う
+
+- [ ] tauri mock call recorder helper 候補を追加する
+  - `tests/helpers/tauri-mocks.ts` / `tests/helpers/tauri-types.ts` に schema validation 後 args を記録できる call recorder helper を用意する
+  - helper test で handler が `undefined` を返した場合は既存 default handler に fallback することを固定する
+  - tauri default mock command coverage とは分け、test call recording ergonomics だけを扱う
+
+- [ ] test query client mutation retry default 候補を追加する
+  - `tests/helpers/create-wrapper.tsx` の `createTestQueryClient` で queries だけでなく mutations retry も default false にする
+  - helper test で `queries.retry` / `mutations.retry` が false になり、明示 override は維持できることを固定する
+  - TanStack Query invalidation contract とは分け、test query client default behavior だけを扱う
+
+- [ ] test runtime flags teardown 候補を追加する
+  - `tests/setup.ts` / `tests/helpers/tauri-runtime.ts` の共通 teardown で IPC mock だけでなく `__TAURI_INTERNALS__` / browser mock flags も reset する
+  - helper test で runtime present/missing/dev mock flags が test 間で漏れないことを固定する
+  - Storybook runtime flag reset とは分け、Vitest global runtime teardown だけを扱う
+
+- [ ] MemoryStorage DOM parity 候補を追加する
+  - `tests/setup.ts` の `MemoryStorage` fallback が DOM Storage と同じ key/value string coercion と insertion order を守ることを固定する
+  - `src/__tests__/helpers/test-setup-storage.test.ts` で `setItem` / `getItem` / `removeItem` / `key()` の挙動を確認する
+  - localStorage getter failure guards とは分け、test fallback storage semantics だけを扱う
+
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 
 - [ ] 参照範囲が広い settings 配置候補を別バッチで見直す
