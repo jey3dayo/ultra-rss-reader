@@ -145,6 +145,31 @@ describe("useAccountDetailDangerZone", () => {
     expect(clickedDownloads).toEqual(["Local Work-feeds.opml"]);
   });
 
+  it("revokes the active OPML object URL when switching accounts", async () => {
+    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
+    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
+    const firstAccount = { ...sampleAccounts[0], id: "acc-1", name: "Local Work" };
+    const secondAccount = { ...sampleAccounts[0], id: "acc-2", name: "Local Personal" };
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailDangerZone({
+          account,
+          queryClient: createTestQueryClient(),
+          t,
+          onAccountDeleted: vi.fn(),
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    await act(async () => {
+      await result.current.handleExportOpml();
+    });
+    rerender({ account: secondAccount });
+
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");
+  });
+
   it("ignores a completed OPML export after unmount without creating an object URL", async () => {
     const exportResult = createDeferred<ReturnType<typeof Result.succeed<string>>>();
     exportOpmlMock.mockReturnValue(exportResult.promise);
@@ -218,6 +243,29 @@ describe("useAccountDetailDangerZone", () => {
     });
     act(() => {
       vi.advanceTimersByTime(1000);
+    });
+
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");
+  });
+
+  it("revokes the OPML object URL immediately when the download click fails", async () => {
+    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {
+      throw new Error("download blocked");
+    });
+    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleExportOpml();
     });
 
     expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");

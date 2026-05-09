@@ -106,6 +106,7 @@ export function useAccountDetailNameEditor({
     let renameSucceeded = false;
     const renameResult = await renameAccount(requestAccountId, trimmed);
     if (activeAccountIdRef.current !== requestAccountId || editSessionRef.current !== requestEditSession) {
+      dispatch({ type: "set-saving-name", value: false });
       return;
     }
 

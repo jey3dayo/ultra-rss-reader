@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 
-export function focusAndSelectAccountDetailInput(input: HTMLInputElement | null): boolean {
+function focusAndSelectAccountDetailInput(input: HTMLInputElement | null): boolean {
   if (!input) {
     return false;
   }

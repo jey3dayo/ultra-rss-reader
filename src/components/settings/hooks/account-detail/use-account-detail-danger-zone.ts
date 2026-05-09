@@ -149,6 +149,10 @@ export function useAccountDetailDangerZone({
     };
   }, [revokePendingExportUrl]);
 
+  useEffect(() => {
+    revokePendingExportUrl();
+  }, [account.id, revokePendingExportUrl]);
+
   const handleExportOpml = async () => {
     if (exportInFlightRef.current) {
       return;

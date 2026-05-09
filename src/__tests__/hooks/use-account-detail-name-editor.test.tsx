@@ -265,6 +265,44 @@ describe("useAccountDetailNameEditor", () => {
     expect(result.current.savingName).toBe(false);
     expect(result.current.nameDraft).toBe("Current Draft");
   });
+
+  it("clears saving state when a stale rename response arrives after switching accounts", async () => {
+    const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
+    const secondAccount = { ...sampleAccounts[2], id: "acc-2", name: "Local Account" };
+    const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
+    renameAccountMock.mockReturnValue(staleRename.promise);
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailNameEditor({
+          account,
+          queryClient: createTestQueryClient(),
+          t,
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("Stale Name");
+    });
+    let saveStaleRename: Promise<void> = Promise.resolve();
+    act(() => {
+      saveStaleRename = result.current.commitRename();
+    });
+
+    expect(result.current.savingName).toBe(true);
+
+    rerender({ account: secondAccount });
+
+    await act(async () => {
+      staleRename.resolve(Result.succeed({ ...firstAccount, name: "Stale Name" }));
+      await saveStaleRename;
+    });
+
+    expect(result.current.savingName).toBe(false);
+    expect(result.current.nameDraft).toBe("Stale Name");
+  });
 });
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {
