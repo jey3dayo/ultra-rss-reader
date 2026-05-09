@@ -2,7 +2,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { cva } from "class-variance-authority";
-import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
+import { forwardRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { OverlayActionSurface } from "./overlay-action-surface";
@@ -84,20 +84,23 @@ type IconToolbarSurfaceButtonProps = IconToolbarButtonProps & {
   variant?: "default" | "chrome";
 };
 
-export function IconToolbarButton({
-  label,
-  tooltipLabel,
-  tooltipSide,
-  tooltipAlign,
-  tooltipSideOffset,
-  disabled = false,
-  ariaDisabled,
-  allowAriaDisabledClick = false,
-  ariaPressed,
-  className,
-  children,
-  onClick,
-}: IconToolbarButtonProps) {
+export const IconToolbarButton = forwardRef<HTMLButtonElement, IconToolbarButtonProps>(function IconToolbarButton(
+  {
+    label,
+    tooltipLabel,
+    tooltipSide,
+    tooltipAlign,
+    tooltipSideOffset,
+    disabled = false,
+    ariaDisabled,
+    allowAriaDisabledClick = false,
+    ariaPressed,
+    className,
+    children,
+    onClick,
+  },
+  ref,
+) {
   const handleToolbarButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (ariaDisabled && !allowAriaDisabledClick) {
       event.preventDefault();
@@ -117,6 +120,7 @@ export function IconToolbarButton({
   return (
     <AppTooltip label={tooltipLabel ?? label} side={tooltipSide} align={tooltipAlign} sideOffset={tooltipSideOffset}>
       <ButtonPrimitive
+        ref={ref}
         onClick={handleToolbarButtonClick}
         onKeyDown={handleToolbarButtonKeyDown}
         className={cn(iconToolbarButtonClassName, className)}
@@ -129,7 +133,7 @@ export function IconToolbarButton({
       </ButtonPrimitive>
     </AppTooltip>
   );
-}
+});
 
 export function IconToolbarSurfaceButton({
   label,
