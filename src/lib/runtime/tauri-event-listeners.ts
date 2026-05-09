@@ -16,6 +16,10 @@ export const TAURI_EVENT_LISTENER_FAILURE_EVENT = "ultra-rss:tauri-event-listene
 
 let hasReportedTauriListenerFailure = false;
 
+export function resetTauriEventListenerFailureReportForRuntimeRecovery() {
+  hasReportedTauriListenerFailure = false;
+}
+
 function dispatchTauriListenerFailureEvent() {
   if (hasReportedTauriListenerFailure || typeof window === "undefined") {
     return;

@@ -9,6 +9,7 @@ import {
   AppShell,
   getFocusDebugHudActiveElementDescription,
   preloadSettingsModalModuleForDev,
+  resetSettingsModalPreloadForTest,
   resolveFocusDebugHudPortalTarget,
 } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
@@ -87,6 +88,7 @@ describe("AppShell", () => {
       prefs: {},
       loaded: true,
     });
+    resetSettingsModalPreloadForTest();
     setupTauriMocks();
   });
 
@@ -129,17 +131,35 @@ describe("AppShell", () => {
     });
   });
 
-  it("surfaces settings modal preload rejection without rethrowing", async () => {
-    const error = new Error("settings modal preload failed");
-    const loadModule = vi.fn().mockRejectedValue(error);
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  it("surfaces settings modal preload rejection and retries only once", async () => {
+    vi.useFakeTimers();
+    try {
+      const error = new Error("settings modal preload failed");
+      const retryError = new Error("settings modal preload retry failed");
+      const loadModule = vi.fn().mockRejectedValueOnce(error).mockRejectedValueOnce(retryError);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    preloadSettingsModalModuleForDev(loadModule);
-    await Promise.resolve();
+      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForDev(loadModule);
+      await Promise.resolve();
+      await Promise.resolve();
 
-    expect(loadModule).toHaveBeenCalledTimes(1);
-    expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
-    consoleError.mockRestore();
+      expect(loadModule).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "設定画面の読み込みに失敗しました。アプリの再読み込みを試してください。",
+      });
+
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(loadModule).toHaveBeenCalledTimes(2);
+      expect(consoleError).toHaveBeenCalledWith("Failed to retry settings modal preload.", retryError);
+      preloadSettingsModalModuleForDev(loadModule);
+      expect(loadModule).toHaveBeenCalledTimes(2);
+      consoleError.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {

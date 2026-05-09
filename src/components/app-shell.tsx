@@ -57,17 +57,66 @@ async function loadSettingsModalModule() {
   return import("./settings/settings-modal");
 }
 
+type SettingsModalPreloadState = "idle" | "pending" | "succeeded" | "retrying" | "failed";
+
+const SETTINGS_MODAL_PRELOAD_RETRY_DELAY_MS = 250;
+const SETTINGS_MODAL_PRELOAD_FAILURE_TOAST = "設定画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
+const LAZY_CHUNK_FAILURE_TOAST = "画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
+let settingsModalPreloadState: SettingsModalPreloadState = "idle";
+let settingsModalPreloadRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearSettingsModalPreloadRetryTimer() {
+  if (settingsModalPreloadRetryTimer === null) {
+    return;
+  }
+
+  clearTimeout(settingsModalPreloadRetryTimer);
+  settingsModalPreloadRetryTimer = null;
+}
+
+function reportLazyChunkFailure(message: string) {
+  useUiStore.getState().showToast(message);
+}
+
 export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalModule) {
   if (!import.meta.env.DEV) {
     return;
   }
 
-  void loadModule().catch((error: unknown) => {
-    console.error("Failed to preload settings modal.", error);
-  });
+  if (settingsModalPreloadState !== "idle") {
+    return;
+  }
+
+  settingsModalPreloadState = "pending";
+
+  void loadModule()
+    .then(() => {
+      settingsModalPreloadState = "succeeded";
+    })
+    .catch((error: unknown) => {
+      console.error("Failed to preload settings modal.", error);
+      reportLazyChunkFailure(SETTINGS_MODAL_PRELOAD_FAILURE_TOAST);
+      settingsModalPreloadState = "retrying";
+      settingsModalPreloadRetryTimer = setTimeout(() => {
+        settingsModalPreloadRetryTimer = null;
+        void loadModule()
+          .then(() => {
+            settingsModalPreloadState = "succeeded";
+          })
+          .catch((retryError: unknown) => {
+            settingsModalPreloadState = "failed";
+            console.error("Failed to retry settings modal preload.", retryError);
+          });
+      }, SETTINGS_MODAL_PRELOAD_RETRY_DELAY_MS);
+    });
 }
 
 preloadSettingsModalModuleForDev();
+
+export function resetSettingsModalPreloadForTest() {
+  clearSettingsModalPreloadRetryTimer();
+  settingsModalPreloadState = "idle";
+}
 
 const LazySettingsModal = lazy(async () => {
   const mod = await loadSettingsModalModule();
@@ -102,6 +151,40 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
   render() {
     if (this.state.hasError) {
       return null;
+    }
+
+    return this.props.children;
+  }
+}
+
+type LazyChunkBoundaryProps = {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: () => void;
+};
+
+type LazyChunkBoundaryState = {
+  hasError: boolean;
+};
+
+class LazyChunkBoundary extends Component<LazyChunkBoundaryProps, LazyChunkBoundaryState> {
+  state: LazyChunkBoundaryState = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError(): LazyChunkBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("Failed to render lazy app shell surface.", error);
+    reportLazyChunkFailure(LAZY_CHUNK_FAILURE_TOAST);
+    this.props.onError?.();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? null;
     }
 
     return this.props.children;
@@ -421,11 +504,13 @@ export function AppShell() {
         <AppLayout />
       </div>
       {settingsOpen ? (
-        <SettingsModalBoundary onError={closeSettings}>
-          <Suspense fallback={null}>
-            <LazySettingsModal />
-          </Suspense>
-        </SettingsModalBoundary>
+        <LazyChunkBoundary onError={closeSettings}>
+          <SettingsModalBoundary onError={closeSettings}>
+            <Suspense fallback={null}>
+              <LazySettingsModal />
+            </Suspense>
+          </SettingsModalBoundary>
+        </LazyChunkBoundary>
       ) : null}
       <AppConfirmDialog />
       {shortcutsHelpOpen ? (
@@ -438,9 +523,11 @@ export function AppShell() {
       ) : null}
       <Toast />
       {commandPaletteOpen ? (
-        <Suspense fallback={null}>
-          <LazyCommandPalette />
-        </Suspense>
+        <LazyChunkBoundary>
+          <Suspense fallback={null}>
+            <LazyCommandPalette />
+          </Suspense>
+        </LazyChunkBoundary>
       ) : null}
       {showFocusDebugHud ? (
         <FocusDebugHud temporarilyHidden={focusDebugHudTemporarilyHidden} avoidBottomRight={toastMessage !== null} />

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   attachTauriListeners,
   createTauriListenerGroup,
+  resetTauriEventListenerFailureReportForRuntimeRecovery,
   TAURI_EVENT_LISTENER_FAILURE_EVENT,
 } from "@/lib/runtime/tauri-event-listeners";
 
@@ -36,6 +37,7 @@ function createFakeTauriEventTarget() {
 
 describe("tauri-event-listeners", () => {
   afterEach(() => {
+    resetTauriEventListenerFailureReportForRuntimeRecovery();
     resetTauriRuntimeFlags();
     vi.restoreAllMocks();
   });
@@ -174,6 +176,27 @@ describe("tauri-event-listeners", () => {
       error,
     );
     expect(onFailure).toHaveBeenCalledTimes(1);
+    window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
+  });
+
+  it("allows runtime recovery to make a later listener failure user-visible again", async () => {
+    setTauriRuntimePresent();
+    const firstError = new Error("first listen failed");
+    const secondError = new Error("second listen failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onFailure = vi.fn();
+    window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
+
+    await createTauriListenerGroup([Promise.reject(firstError)]).ready;
+    await createTauriListenerGroup([Promise.reject(secondError)]).ready;
+
+    expect(onFailure).toHaveBeenCalledTimes(1);
+
+    resetTauriEventListenerFailureReportForRuntimeRecovery();
+    await createTauriListenerGroup([Promise.reject(secondError)]).ready;
+
+    expect(warn).toHaveBeenCalledTimes(3);
+    expect(onFailure).toHaveBeenCalledTimes(2);
     window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
   });
 
