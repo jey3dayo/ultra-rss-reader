@@ -53,6 +53,7 @@ import {
   toggleArticleStarArgs,
   UpdateInfoDtoSchema,
   updateAccountSyncArgs,
+  updateFeedFolderArgs,
 } from "@/api/schemas";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 
@@ -1004,6 +1005,20 @@ describe("command args schemas", () => {
       accountId: "acc-1",
     });
   });
+  it("normalizes updateFeedFolderArgs folder ids", () => {
+    expect(updateFeedFolderArgs.parse({ feedId: "feed-1", folderId: null })).toEqual({
+      feedId: "feed-1",
+      folderId: null,
+    });
+    expect(updateFeedFolderArgs.parse({ feedId: "feed-1", folderId: "   " })).toEqual({
+      feedId: "feed-1",
+      folderId: null,
+    });
+    expect(updateFeedFolderArgs.parse({ feedId: "feed-1", folderId: " folder-1 " })).toEqual({
+      feedId: "feed-1",
+      folderId: "folder-1",
+    });
+  });
   it("parses listArticlesByTagArgs with mode", () => {
     expect(
       listArticlesByTagArgs.parse({
@@ -1325,7 +1340,7 @@ describe("command args schemas", () => {
     expect(isCommandWithArgs(unknownCommand)).toBe(false);
 
     if (isCommandWithArgs(knownCommand)) {
-      const narrowedCommand: CommandWithArgs = knownCommand;
+      const narrowedCommand = knownCommand;
       expect(getCommandArgsSchema(knownCommand)).toBe(commandArgsSchemas.list_articles);
       expect(narrowedCommand).toBe(knownCommand);
     }

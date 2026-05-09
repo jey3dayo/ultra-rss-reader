@@ -276,8 +276,10 @@ const externalUrlSchema = z
   });
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 
+const readingListUrlSchema = httpUrlSchema;
+
 // --- checkBrowserEmbedSupport ---
-export const checkBrowserEmbedSupportArgs = z.object({ url: httpUrlSchema });
+export const checkBrowserEmbedSupportArgs = z.object({ url: readingListUrlSchema });
 
 // --- browser webview ---
 const finiteNumberSchema = z.number().finite();
@@ -291,7 +293,7 @@ export const browserWebviewBoundsArgs = z.object({
   unit: z.enum(["logical", "physical"]).optional(),
 });
 export const createOrUpdateBrowserWebviewArgs = z.object({
-  url: httpUrlSchema,
+  url: readingListUrlSchema,
   bounds: browserWebviewBoundsArgs,
 });
 export const setBrowserWebviewBoundsArgs = z.object({
@@ -337,8 +339,6 @@ export const copyToClipboardArgs = z.object({
     message: "Clipboard text must not be blank",
   }),
 });
-
-const readingListUrlSchema = httpUrlSchema;
 
 // --- openInBrowser ---
 export const openInBrowserArgs = z.object({

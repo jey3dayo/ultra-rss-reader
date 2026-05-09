@@ -513,6 +513,7 @@ describe("tauri-commands with mockIPC", () => {
       "mailto:hello@example.com",
       "file:///tmp/article.html",
       "https://example.com/article\nnext",
+      "https://example.com/article\rnext",
     ])("rejects invalid browser command URL %j before invoking Tauri", async (url) => {
       const invokedCommands: string[] = [];
       setupTauriMocks((cmd) => {
@@ -771,6 +772,39 @@ describe("safeInvoke response validation", () => {
     });
 
     for (const [command, runCommand] of feedNullCommandCases) {
+      const result = await runCommand();
+      expect(Result.isFailure(result), command).toBe(true);
+      const error = Result.unwrapError(result);
+      expect(error.type).toBe("UserVisible");
+      expect(error.message).toContain("validation failed");
+    }
+  });
+
+  it("validates mute keyword command group DTO responses", async () => {
+    const invalidMuteKeywordDto = {
+      id: "mute-1",
+      keyword: "   ",
+      scope: "title_and_body",
+      created_at: "2026-04-15",
+      updated_at: "2026-04-15T01:00:00Z",
+    };
+    const muteKeywordCommandCases = [
+      ["list_mute_keywords", () => listMuteKeywords()],
+      ["create_mute_keyword", () => createMuteKeyword("Kindle Unlimited", "title")],
+      ["update_mute_keyword", () => updateMuteKeyword("mute-1", "body")],
+    ] as const;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_mute_keywords") {
+        return [invalidMuteKeywordDto];
+      }
+      if (cmd === "create_mute_keyword" || cmd === "update_mute_keyword") {
+        return invalidMuteKeywordDto;
+      }
+      return null;
+    });
+
+    for (const [command, runCommand] of muteKeywordCommandCases) {
       const result = await runCommand();
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
