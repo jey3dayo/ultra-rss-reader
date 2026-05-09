@@ -550,6 +550,36 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_subscription_uses_feed_url_when_site_link_is_blank() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Blank Site Link Feed</title>
+    <link>   </link>
+    <item>
+      <title>Article 1</title>
+      <link>https://example.com/1</link>
+    </item>
+  </channel>
+</rss>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.title, "Blank Site Link Feed");
+        assert_eq!(subscription.site_url, feed_url);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn create_subscription_sends_local_provider_user_agent() {
         let mut server = mockito::Server::new_async().await;
         let feed_url = format!("{}/feed.xml", server.url());
