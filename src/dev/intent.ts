@@ -11,10 +11,12 @@ export type DevWindowSize = {
   height: number | null;
 };
 
-const DEV_INTENT_ENV_KEYS = ["VITE_DEV_INTENT"] as const;
-const DEV_WEB_URL_ENV_KEYS = ["VITE_DEV_WEB_URL"] as const;
-const DEV_WINDOW_WIDTH_ENV_KEYS = ["VITE_DEV_WINDOW_WIDTH"] as const;
-const DEV_WINDOW_HEIGHT_ENV_KEYS = ["VITE_DEV_WINDOW_HEIGHT"] as const;
+export const DEV_RUNTIME_ENV_KEYS = {
+  intent: ["VITE_DEV_INTENT", "VITE_ULTRA_RSS_DEV_INTENT"],
+  webUrl: ["VITE_DEV_WEB_URL", "VITE_ULTRA_RSS_DEV_WEB_URL"],
+  windowWidth: ["VITE_DEV_WINDOW_WIDTH"],
+  windowHeight: ["VITE_DEV_WINDOW_HEIGHT"],
+} as const;
 let runtimeDevOptionsCache: DevRuntimeOptions | null | undefined;
 let runtimeDevOptionsErrorCache: LoadDevRuntimeOptionsError | null = null;
 let runtimeDevOptionsPromise: Result.ResultAsync<DevRuntimeOptions, LoadDevRuntimeOptionsError> | null = null;
@@ -141,7 +143,7 @@ export function readDevIntent(): DevIntent {
     return null;
   }
 
-  return parseDevIntent(readFirstNonEmptyEnv(DEV_INTENT_ENV_KEYS)) ?? readRuntimeDevIntent();
+  return parseDevIntent(readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.intent)) ?? readRuntimeDevIntent();
 }
 
 export function readDevWebUrl(): string | null {
@@ -149,7 +151,7 @@ export function readDevWebUrl(): string | null {
     return null;
   }
 
-  return readFirstNonEmptyEnv(DEV_WEB_URL_ENV_KEYS) ?? readRuntimeDevWebUrl();
+  return readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.webUrl) ?? readRuntimeDevWebUrl();
 }
 
 export function readDevWindowSize(): DevWindowSize | null {
@@ -157,8 +159,8 @@ export function readDevWindowSize(): DevWindowSize | null {
     return null;
   }
 
-  const widthState = resolveDevWindowSizeFieldState(readFirstNonEmptyEnv(DEV_WINDOW_WIDTH_ENV_KEYS));
-  const heightState = resolveDevWindowSizeFieldState(readFirstNonEmptyEnv(DEV_WINDOW_HEIGHT_ENV_KEYS));
+  const widthState = resolveDevWindowSizeFieldState(readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.windowWidth));
+  const heightState = resolveDevWindowSizeFieldState(readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.windowHeight));
 
   if (widthState.kind === "missing" && heightState.kind === "missing") {
     return readRuntimeDevWindowSize();

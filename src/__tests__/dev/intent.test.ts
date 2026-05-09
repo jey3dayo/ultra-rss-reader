@@ -15,6 +15,7 @@ vi.mock("@/lib/window/window-chrome", () => ({
 }));
 
 import {
+  DEV_RUNTIME_ENV_KEYS,
   loadDevRuntimeOptions,
   loadDevRuntimeOptionsResult,
   parseDevIntent,
@@ -57,34 +58,39 @@ describe("dev-intent helpers", () => {
     expect(parseDevIntent(undefined)).toBeNull();
   });
 
-  it("prefers the short dev intent env name", () => {
-    vi.stubEnv("DEV", true);
+  it("keeps dev runtime env aliases as the source of truth", () => {
+    expect(DEV_RUNTIME_ENV_KEYS).toEqual({
+      intent: ["VITE_DEV_INTENT", "VITE_ULTRA_RSS_DEV_INTENT"],
+      webUrl: ["VITE_DEV_WEB_URL", "VITE_ULTRA_RSS_DEV_WEB_URL"],
+      windowWidth: ["VITE_DEV_WINDOW_WIDTH"],
+      windowHeight: ["VITE_DEV_WINDOW_HEIGHT"],
+    });
+  });
+
+  it("prefers the short dev intent env name over the legacy alias", () => {
     vi.stubEnv("VITE_DEV_INTENT", " open-web-preview-url ");
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-general");
 
     expect(readDevIntent()).toBe("open-web-preview-url");
   });
 
-  it("ignores the removed legacy dev intent env name", () => {
-    vi.stubEnv("DEV", true);
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+  it("reads the legacy dev intent alias when the short env name is unset", () => {
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-general");
 
-    expect(readDevIntent()).toBeNull();
+    expect(readDevIntent()).toBe("open-settings-general");
   });
 
-  it("prefers the short dev web url env name", () => {
-    vi.stubEnv("DEV", true);
+  it("prefers the short dev web url env name over the legacy alias", () => {
     vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/short");
     vi.stubEnv("VITE_ULTRA_RSS_DEV_WEB_URL", "https://example.com/legacy");
 
     expect(readDevWebUrl()).toBe("https://example.com/short");
   });
 
-  it("ignores the removed legacy dev web url env name", () => {
-    vi.stubEnv("DEV", true);
+  it("reads the legacy dev web url alias when the short env name is unset", () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_WEB_URL", "https://example.com/legacy");
 
-    expect(readDevWebUrl()).toBeNull();
+    expect(readDevWebUrl()).toBe("https://example.com/legacy");
   });
 
   it("reads a short dev window size for scenario verification", () => {
@@ -160,25 +166,92 @@ describe("dev-intent helpers", () => {
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps explicit env dev options ahead of loaded runtime values", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "open-web-preview-url");
-    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/env");
-    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
-    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
-    getDevRuntimeOptionsMock.mockResolvedValueOnce(
-      Result.succeed({
-        dev_intent: "open-command-palette",
-        dev_web_url: "https://example.com/runtime",
-        dev_window_width: 640,
-        dev_window_height: 820,
-      }),
-    );
+  it.each([
+    [
+      "env only",
+      {
+        env: {
+          VITE_DEV_INTENT: "open-web-preview-url",
+          VITE_DEV_WEB_URL: "https://example.com/env",
+          VITE_DEV_WINDOW_WIDTH: "520",
+          VITE_DEV_WINDOW_HEIGHT: "900",
+        },
+        runtime: {
+          dev_intent: null,
+          dev_web_url: null,
+          dev_window_width: null,
+          dev_window_height: null,
+        },
+        expectedIntent: "open-web-preview-url",
+        expectedWebUrl: "https://example.com/env",
+        expectedWindowSize: { width: 520, height: 900 },
+      },
+    ],
+    [
+      "Tauri only",
+      {
+        env: {},
+        runtime: {
+          dev_intent: "open-command-palette",
+          dev_web_url: "https://example.com/runtime",
+          dev_window_width: 640,
+          dev_window_height: 820,
+        },
+        expectedIntent: "open-command-palette",
+        expectedWebUrl: "https://example.com/runtime",
+        expectedWindowSize: { width: 640, height: 820 },
+      },
+    ],
+    [
+      "both present",
+      {
+        env: {
+          VITE_DEV_INTENT: "open-web-preview-url",
+          VITE_DEV_WEB_URL: "https://example.com/env",
+          VITE_DEV_WINDOW_WIDTH: "520",
+          VITE_DEV_WINDOW_HEIGHT: "900",
+        },
+        runtime: {
+          dev_intent: "open-command-palette",
+          dev_web_url: "https://example.com/runtime",
+          dev_window_width: 640,
+          dev_window_height: 820,
+        },
+        expectedIntent: "open-web-preview-url",
+        expectedWebUrl: "https://example.com/env",
+        expectedWindowSize: { width: 520, height: 900 },
+      },
+    ],
+    [
+      "invalid env intent and size",
+      {
+        env: {
+          VITE_DEV_INTENT: "removed-dev-intent",
+          VITE_DEV_WINDOW_WIDTH: "10001",
+          VITE_DEV_WINDOW_HEIGHT: "tall",
+        },
+        runtime: {
+          dev_intent: "open-settings-general",
+          dev_web_url: "https://example.com/runtime",
+          dev_window_width: 640,
+          dev_window_height: 820,
+        },
+        expectedIntent: "open-settings-general",
+        expectedWebUrl: "https://example.com/runtime",
+        expectedWindowSize: null,
+      },
+    ],
+  ] as const)("fixes dev runtime option precedence for %s", async (_label, scenario) => {
+    for (const [key, value] of Object.entries(scenario.env)) {
+      vi.stubEnv(key, value);
+    }
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(Result.succeed(scenario.runtime));
 
     expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
 
-    expect(readDevIntent()).toBe("open-web-preview-url");
-    expect(readDevWebUrl()).toBe("https://example.com/env");
-    expect(readDevWindowSize()).toEqual({ width: 520, height: 900 });
+    expect(readDevIntent()).toBe(scenario.expectedIntent);
+    expect(readDevWebUrl()).toBe(scenario.expectedWebUrl);
+    expect(readDevWindowSize()).toEqual(scenario.expectedWindowSize);
   });
 
   it("falls back to runtime dev intent when VITE_DEV_INTENT is unset", async () => {
