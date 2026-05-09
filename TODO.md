@@ -265,32 +265,10 @@
   - 共通化する場合は interval/listener cleanup helper だけに限定し、updater check flow と account selection side effect は分けたままにする
   - updater hook state effects とは分け、lifecycle boilerplate の共通化可否判断だけを扱う
 
-- [ ] account sync status query key drift 候補を追加する
-  - `src/hooks/use-account-sync-statuses.ts` の query key を `accountSyncStatusQueryKey` と共有し、status invalidation と drift しないようにする
-  - account detail sync section の row 表示や sidebar feedback copy とは混ぜない
-
-- [ ] test helper fixture parity 候補を追加する
-  - `tests/helpers/render-story.tsx` で `parameters` / `globals` を Storybook decorator context に渡す contract を追加する
-  - `tests/helpers/fixtures.test.ts` で `sampleMuteKeywords` も `MuteKeywordDtoSchema` parse 対象にし、他 DTO fixture と同じ schema parity に揃える
-  - fixture 表示 copy や mock response の追加は別バッチにする
-
-- [ ] seed dev DB cleanup contract 候補を追加する
-  - `scripts/seed-dev-db-from-prod.ts` で staging copy 後の途中失敗時に `.staging` が残らない cleanup contract を追加する
-  - production credential や seed UX 変更は扱わず、script failure cleanup の test に限定する
-
-- [ ] migration V16 drift contract 候補を追加する
-  - `src-tauri/migrations/V16__account_connection_verification.sql` と `src-tauri/src/infra/db/migration.rs` の inline migration が drift しない contract を追加する
-  - SQL 内容の再設計ではなく、file-based migration と inline 実行の同期検証だけを扱う
-
 - [ ] Tauri dev Vite check / port validation 候補を追加する
   - `scripts/tauri-dev-vite-manager.ts` の `--check` が既存 Vite を停止せず成功確認だけ行う contract に分ける
   - `TAURI_DEV_PORT` は blank / fractional / zero / negative を拒否し、Vite 起動ポートと既存プロセス確認が同じ値を見ることを固定する
   - Tauri CLI dispatch や app E2E scenario とは混ぜず、dev server manager の static test に限定する
-
-- [ ] article list search close stale query 候補を追加する
-  - `src/components/reader/hooks/article-list/use-article-list-search.ts` で検索 UI を閉じた時に `debouncedQuery` も即時 clear する
-  - `showSearch` が false の間は `useSearchArticles` に古い query が残らない contract を追加する
-  - whitespace-only query disable とは別に、検索 close 後の stale query / cache だけを扱う
 
 - [ ] reader data selector escaping 候補を追加する
   - `src/components/reader/hooks/article-list/use-article-list-navigation.ts` の `data-article-id` selector に ID を直接埋め込まないようにする
@@ -322,40 +300,15 @@
   - tag article list の pagination resource guard として境界値 test を追加する
   - tag name / color validation や unknown mode error とは別に、limit 上限だけを扱う
 
-- [ ] dev credentials env truthy parsing 候補を追加する
-  - `src-tauri/src/platform/mod.rs` の `DEV_CREDENTIALS` を env 存在だけで有効化せず truthy 値だけ許可する
-  - `1` / `true` と `0` / `false` / blank の contract を追加する
-  - platform abstraction 全体ではなく、dev credential env semantics の一点修正に限定する
-
-- [ ] dev keyring file permission contract 候補を追加する
-  - `src-tauri/src/infra/keyring_store.rs` の dev credential store で `set_permissions(0600)` 失敗を無視しない
-  - Unix permission 設定失敗を `DomainError::Keychain` または warning として観測できる contract を追加する
-  - native keyring 保存・復元の広い検証ではなく、dev store file permission hardening だけを扱う
-
 - [ ] Storybook update toast runtime guard 候補を追加する
   - `e2e/storybook/update-toast.spec.ts` の `openShellOverlayStory` に `pageerror` 収集と Storybook error 表示検出を追加する
   - toast の表示・寸法 assertion だけでは見逃す runtime error を smoke contract として拾う
   - app E2E runtime guard や Storybook registry drift とは別に、update toast 専用 smoke を扱う
 
-- [ ] CI pnpm store cache 候補を追加する
-  - `.github/workflows/ci.yml` の各 job に release workflow と同じ `pnpm store path` / `actions/cache` パターンを追加できるか確認する
-  - `pnpm install --frozen-lockfile` の重複 install cost を下げる runtime improvement として扱う
-  - quality gate needs や labeler taxonomy 変更とは混ぜない
-
-- [ ] docs reader article scope matrix index 候補を追加する
-  - `docs/README.md` の Operational Docs に `docs/reader-article-scope-matrix.md` を追加する
-  - `CLAUDE.md` が source of truth として参照する文書を docs index から辿れるようにする
-  - markdown link contract や docs 全体再編とは分け、案内漏れの 1 行追加に限定する
-
 - [ ] settings nav id narrowing 候補を追加する
   - `src/components/settings/settings-nav.types.ts` の `SettingsNavItemId = string` を、modal category nav と reusable specimen の境界に合わせて narrow する
   - `SettingsNavViewProps<T extends string>` か modal 側 `SettingsCategory` へ寄せる型 contract を検討する
   - navigation disabled click contract とは別に、nav item id の型境界だけを扱う
-
-- [ ] browser embed support URL validation 候補を追加する
-  - `src-tauri/src/commands/article_commands.rs` の `check_browser_embed_support` で `parse_browser_http_url` を通す
-  - `open_in_browser` / browser webview と同じ非 http(s) URL error contract を unit test で固定する
-  - browser webview bounds / timeout surface とは分け、embed support command の URL validation だけを扱う
 
 - [ ] mailto share command boundary 候補を追加する
   - `src/components/reader/article-share-menu.tsx` の mail share が http(s) 専用 `open_in_browser` に `mailto:` を渡さないようにする
@@ -417,11 +370,6 @@
   - feed / folder unread count から disabled prop を渡し、view test で no-op confirm を避ける contract を固定する
   - mark read error feedback とは分け、0 件時の context menu affordance だけを扱う
 
-- [ ] article pending mutation query error contract 候補を追加する
-  - `src-tauri/src/commands/article_commands.rs` の `maybe_queue_mutation` で `query_row(...).ok()` による DB error の握りつぶしをやめる
-  - `OptionalExtension::optional()?` 相当に寄せ、`QueryReturnedNoRows` 以外は error として返す contract を追加する
-  - GReader pending mutation DB error contract とは別に、article command 側の pending mutation 判定だけを扱う
-
 - [ ] manual sync warning event parity 候補を追加する
   - `src-tauri/src/commands/sync_commands.rs` で manual all / account / feed sync でも warnings が空でなければ `SYNC_WARNING_EVENT` を emit する
   - `trigger_automatic_sync` だけ warning event を出す状態を helper / test で揃える
@@ -432,30 +380,10 @@
   - `Work` と `work` のような視認上近い重複を拒否する command contract を追加する
   - account detail editor validation とは分け、account command の name uniqueness だけを扱う
 
-- [ ] command history storage blank cleanup 候補を追加する
-  - `src/schemas/storage.ts` の `CommandHistoryStorageSchema` で空文字や whitespace-only の履歴 ID を破棄する
-  - `src/__tests__/hooks/use-command-history.test.ts` と schema test で corrupted localStorage cleanup を固定する
-  - command palette recents 表示復帰とは分け、永続化 schema の blank value cleanup だけを扱う
-
 - [ ] test setup storage getter fallback 候補を追加する
   - `tests/setup.ts` の `ensureWorkingStorage()` で `window.localStorage` / `sessionStorage` getter 自体が投げるケースを扱う
   - SecurityError などの getter failure 時に `MemoryStorage` を注入する小テストを追加する
   - Tauri mock strictness とは分け、test setup の Storage polyfill resilience だけを扱う
-
-- [ ] seed dev DB env blank fallback 候補を追加する
-  - `scripts/seed-dev-db-from-prod.ts` の `ULTRA_RSS_PROD_APP_DATA_DIR` / `ULTRA_RSS_DEV_APP_DATA_DIR` で blank env を unset と同じ扱いにする
-  - 空文字なら platform default に fallback する helper contract を script test で固定する
-  - seed cleanup や debug UI 導線とは分け、seed script env parsing の一点修正に限定する
-
-- [ ] Windows dispatch secret env filter 候補を追加する
-  - `scripts/lib/windows-dispatch.ts` の WSL PowerShell dispatch で `TAURI_` prefix を丸ごと encoded command line に渡さない
-  - dev 実行に必要な allowlist か `*_KEY` / `*_TOKEN` / `*_PASSWORD` 除外 contract を追加する
-  - release workflow preflight とは分け、ローカル Windows dispatch の secret exposure 防止だけを扱う
-
-- [ ] browser history reload empty src contract 候補を追加する
-  - `src/lib/browser/webview-history.ts` の fallback iframe reload で empty `src` を成功扱いにしない
-  - typed failure にするか no-op 成功を明示名に分け、`webview-history.test.ts` の契約を更新する
-  - browser bounds / listener / timeout surface とは分け、history helper の入力契約だけを扱う
 
 - [ ] test i18n ja bundle registration 候補を追加する
   - `tests/helpers/i18n-setup.ts` に `ja: i18nResources.ja` を登録する
@@ -477,26 +405,6 @@
   - browser mode no-op を明示するか、API から削って `resolveVisiblePane` 側へ test を寄せる
   - mobile UI 見直しではなく、layout pure helper の引数契約だけを扱う
 
-- [ ] sync flow remote folder upsert 候補を追加する
-  - `src-tauri/src/service/sync_flow.rs` で remote folder 同期時に同じ `remote_id` の既存 folder id を再利用する
-  - `find_by_remote_id(account_id, remote_id)` があれば `FolderId::new()` ではなく既存 id を使う sync flow test を追加する
-  - OPML folder cache や SQLite folder delete transaction とは分け、generic sync flow の remote folder upsert だけを扱う
-
-- [ ] platform command dev web URL validation 候補を追加する
-  - `src-tauri/src/commands/platform_commands.rs` の `VITE_DEV_WEB_URL` を trim だけで DTO に出さない
-  - `http` / `https` URL のみ返す helper と command unit test を追加する
-  - Tauri dev port validation や FreshRSS URL validation とは分け、platform command の dev URL 境界だけを扱う
-
-- [ ] browser webview placeholder navigation dedupe 候補を追加する
-  - `src-tauri/src/commands/browser_webview_commands.rs` で Windows placeholder `about:blank` 使用中の同一 URL 再 navigate を避ける
-  - tracker snapshot の target URL も見て、bounds update だけなら navigation しない contract を追加する
-  - browser history fallback reload とは分け、Rust command 側の placeholder navigation 契約だけを扱う
-
-- [ ] mise test-all Storybook E2E semantics 候補を追加する
-  - `mise.toml` の `test:all` 説明が “including E2E” なのに `test:storybook:e2e` を含まないズレを解消する
-  - Storybook E2E を含めるか、説明を app E2E のみに狭めて package script contract に追加する
-  - Storybook port / registry / runtime guard とは分け、aggregate task semantics だけを扱う
-
 - [ ] settings page inline action disabled contract 候補を追加する
   - `src/components/settings/settings-page-view.tsx` の text control で `control.disabled` 中も inline action が押せる状態を防ぐ
   - action button の disabled を `control.disabled || control.actionDisabled` に揃え、settings page view test に contract を追加する
@@ -516,16 +424,6 @@
   - `src-tauri/src/commands/dto.rs` の `FeedDto` と `src/api/schemas/feed.ts` に `remote_id` を追加する
   - provider-managed feed を frontend DTO から判定できるよう、schema test と代表 fixture を更新する
   - sync flow / pending mutation ではなく、Tauri DTO の欠落フィールド一点として扱う
-
-- [ ] shared field stories render smoke 候補を追加する
-  - `src/__tests__/components/shared-stories.test.tsx` に `CopyableReadonlyField` / `CopyableReadonlyFieldList` story の最小 render assertion を追加する
-  - story export registry だけでなく、shared field story が実 render できる contract を固定する
-  - Storybook E2E runtime guard とは分け、shared component story の unit smoke に限定する
-
-- [ ] Tauri mock fixture fresh clone 候補を追加する
-  - `tests/helpers/tauri-mocks.ts` が `sampleAccounts` / `sampleFeeds` / `sampleArticles` の共有オブジェクトをそのまま返さないようにする
-  - `tests/helpers/fixtures.ts` に fresh clone builder を追加し、mock 返却値の mutation が fixture を汚染しない contract を追加する
-  - fixture parity とは分け、test data builder の immutability だけを扱う
 
 - [ ] account switcher story ref isolation 候補を追加する
   - `src/components/reader/account-switcher-view.stories.tsx` の `triggerRef` / `itemRefs` を meta args で共有しない
@@ -647,16 +545,6 @@
   - 空文字・禁止文字だけの account 名でも `feeds.opml` などへ落ちる hook test を追加する
   - OPML import/export backend serialization とは分け、account detail export action の UI guard だけを扱う
 
-- [ ] pending mutation type axis contract 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_pending_mutation.rs` の `save` が同一 `remote_entry_id` の別種 mutation を消すか共存させるかを固定する
-  - read / unread と star / unstar を別軸で相殺できる repository test を追加する
-  - manual article read transaction とは分け、pending mutation dedupe key の contract だけを扱う
-
-- [ ] remote state pending type separation 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_article.rs` の `apply_remote_state` で pending 種別ごとの remote state 適用範囲を分ける
-  - read pending が star state まで止めないこと、star pending が read state まで止めないことを repository test で固定する
-  - GReader pending mutation DB error とは分け、remote state reconcile の pending type handling だけを扱う
-
 - [ ] local feed validator retention contract 候補を追加する
   - `src-tauri/src/commands/sync_providers.rs` の local feed sync で 200 応答かつ ETag / Last-Modified 欠落時に既存 validator を消すか維持するか固定する
   - `sync_local_feed` の state contract test を追加する
@@ -707,11 +595,6 @@
   - `src/__tests__/lib/article-list.test.ts` で feed selection 中の search result scope を確認する
   - command palette resource search とは分け、article list local search source selection だけを扱う
 
-- [ ] sqlite feed remote URL upsert 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_feed.rs` の `save` で同一 `account_id + remote_id` だが URL が変わった feed の upsert 契約を追加する
-  - `UNIQUE(account_id, remote_id)` 衝突時に既存 id を再利用する repository test を追加する
-  - sync flow remote folder upsert とは分け、feed remote identity の URL drift だけを扱う
-
 - [ ] folder article mute exclusion contract 候補を追加する
   - `src-tauri/src/infra/db/sqlite_article.rs` の `find_by_folder` / `find_unread_by_folder` / `find_starred_by_folder` で mute 除外を pagination 前に適用する
   - feed / account / recent query とは分け、folder scope query の mute parity を repository test で固定する
@@ -736,16 +619,6 @@
   - `.github/release.yml` と `.github/labeler.yml` の release note category labels が drift しない contract を追加する
   - `docs` / `dependencies` / `chore` / `refactor` / `feature` / `enhancement` の label 名対応を config test で固定する
   - release workflow preflight とは分け、release note categorization だけを扱う
-
-- [ ] Storybook story export allowlist contract 候補を追加する
-  - `tests/helpers/storybook-story-export-registry.ts` の `ALLOWED_NON_STORY_EXPORTS` が UI Reference helper export だけを許す契約を固定する
-  - 許可理由コメントまたは dedicated test を追加し、通常 story file の helper export 漏れを検出する
-  - shared field story render smoke とは分け、story export registry の allowlist governance だけを扱う
-
-- [ ] Storybook stale server health check 候補を追加する
-  - `playwright.storybook.config.ts` の `reuseExistingServer: true` が古い 6006 server を掴む問題を検出する
-  - iframe smoke 前に project / version / story registry health check を追加するか、runbook contract を固定する
-  - Playwright artifact separation とは分け、Storybook server freshness だけを扱う
 
 - [ ] react-doctor critical errors 候補を追加する
   - `npx -y react-doctor@latest . --verbose` で出た `react-doctor/no-eval` と `react-hooks/rules-of-hooks` を先に潰す
@@ -1183,11 +1056,6 @@
   - `pageerror` だけでなく `console.error` も拾う contract を最小 Playwright spec で固定する
   - E2E scenario 追加とは分け、runtime error detection helper だけを扱う
 
-- [ ] seed dev DB running app guard 候補を追加する
-  - `scripts/seed-dev-db-from-prod.ts` の macOS / Linux 起動中アプリ検出を `pgrep -x` exact name 依存から強くする
-  - `src/__tests__/scripts/seed-dev-db-from-prod.test.ts` で長い app name / `ultra-rss-reader` process 検出時に DB 置換へ進まないことを固定する
-  - seed cleanup contract とは分け、running app guard の検出境界だけを扱う
-
 - [ ] updater toast locale boundary 候補を追加する
   - `src/hooks/use-updater.ts` の manual update check toast 日本語直書きを locale key 経由に寄せる
   - `src/__tests__/hooks/use-updater.test.ts` で update check 失敗時 / no-update 時の toast が `ja` / `en` の言語設定に従うことを固定する
@@ -1252,16 +1120,6 @@
   - `src-tauri/src/infra/db/sqlite_account.rs` で未知 `connection_verification_status` を `Unverified` に丸めず decode error にする
   - Rust test で `connection_verification_status='expired'` の row が persistence error になり、Unverified として返らないことを固定する
   - provider kind decode とは分け、connection verification status decode だけを扱う
-
-- [ ] pending mutation missing id guard 候補を追加する
-  - `src-tauri/src/service/sync_flow.rs` で `PendingMutation.id == None` の row を push 後に silent skip しない contract を固定する
-  - fake `PendingMutationRepository` test で deletion impossible な mutation を silent success にせず、再送されない方針を明示する
-  - pending mutation DB error contract とは分け、missing local mutation id handling だけを扱う
-
-- [ ] pending mutation remote id validation 候補を追加する
-  - `src-tauri/src/infra/db/sqlite_pending_mutation.rs` で blank / whitespace-only `remote_entry_id` を保存前に拒否する
-  - Rust test で `""` / `"   "` が `DomainError::Validation` になり、pending row が増えないことを固定する
-  - pending mutation missing id guard とは分け、remote entry id invariant だけを扱う
 
 - [ ] tag repository blank name invariant 候補を追加する
   - `src-tauri/src/infra/db/sqlite_tag.rs` または domain constructor 境界で blank / whitespace-only tag name を拒否する
