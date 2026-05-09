@@ -357,7 +357,7 @@ pub async fn discover_feeds(url: String) -> Result<Vec<DiscoveredFeedDto>, AppEr
 mod tests {
     use rusqlite::params;
     use std::net::TcpListener;
-    use std::sync::{mpsc, Mutex};
+    use std::sync::{mpsc, Arc, Barrier, Mutex};
     use std::thread;
     use std::time::{Duration, Instant};
 
@@ -401,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn update_feed_folder_command_does_not_assign_folder_from_another_account() {
+    fn update_feed_folder_command_rejects_folder_from_another_account() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
         let other_account_id = insert_test_account(&db, "Other");
@@ -415,7 +415,8 @@ mod tests {
             )
             .unwrap();
 
-        update_feed_folder_in_db(&db, feed_id.0.clone(), Some(other_folder_id.0)).unwrap();
+        let error = update_feed_folder_in_db(&db, feed_id.0.clone(), Some(other_folder_id.0))
+            .expect_err("folder from another account should be returned as command error");
 
         let saved_folder_id: Option<String> = db
             .reader()
@@ -427,24 +428,41 @@ mod tests {
             .unwrap();
 
         assert!(saved_folder_id.is_none());
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Validation error: feed not found or folder does not belong to feed account"
+        ));
     }
 
     #[test]
-    fn delete_feed_command_keeps_missing_feed_as_noop() {
+    fn delete_feed_command_rejects_missing_feed() {
         let db = test_db();
 
-        delete_feed_in_db(&db, "missing-feed".to_string()).unwrap();
+        let error = delete_feed_in_db(&db, "missing-feed".to_string())
+            .expect_err("missing feed delete should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Validation error: feed not found"
+        ));
     }
 
     #[test]
-    fn rename_feed_command_keeps_missing_feed_as_noop() {
+    fn rename_feed_command_rejects_missing_feed() {
         let db = test_db();
 
-        rename_feed_in_db(&db, "missing-feed".to_string(), "Renamed Feed".to_string()).unwrap();
+        let error = rename_feed_in_db(&db, "missing-feed".to_string(), "Renamed Feed".to_string())
+            .expect_err("missing feed rename should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Validation error: feed not found"
+        ));
     }
 
     #[test]
-    fn update_feed_folder_command_keeps_missing_feed_as_noop() {
+    fn update_feed_folder_command_rejects_missing_feed() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
         let folder_id = FolderId::new();
@@ -455,11 +473,18 @@ mod tests {
             )
             .unwrap();
 
-        update_feed_folder_in_db(&db, "missing-feed".to_string(), Some(folder_id.0)).unwrap();
+        let error = update_feed_folder_in_db(&db, "missing-feed".to_string(), Some(folder_id.0))
+            .expect_err("missing feed folder mutation should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Validation error: feed not found or folder does not belong to feed account"
+        ));
     }
 
     #[test]
-    fn update_feed_folder_command_keeps_folder_account_mismatch_as_noop() {
+    fn update_feed_folder_command_rejects_folder_account_mismatch() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
         let other_account_id = insert_test_account(&db, "Other");
@@ -472,20 +497,32 @@ mod tests {
             )
             .unwrap();
 
-        update_feed_folder_in_db(&db, feed_id.0, Some(other_folder_id.0)).unwrap();
+        let error = update_feed_folder_in_db(&db, feed_id.0, Some(other_folder_id.0))
+            .expect_err("folder account mismatch should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Validation error: feed not found or folder does not belong to feed account"
+        ));
     }
 
     #[test]
-    fn update_feed_display_settings_command_keeps_missing_feed_as_noop() {
+    fn update_feed_display_settings_command_rejects_missing_feed() {
         let db = test_db();
 
-        update_feed_display_settings_in_db(
+        let error = update_feed_display_settings_in_db(
             &db,
             "missing-feed".to_string(),
             "on".to_string(),
             "off".to_string(),
         )
-        .unwrap();
+        .expect_err("missing feed display settings mutation should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Validation error: feed not found"
+        ));
     }
 
     #[test]
@@ -531,6 +568,60 @@ mod tests {
         assert_eq!(first.sort_order, 8);
         assert_eq!(second.sort_order, 9);
 
+        let duplicate_order_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM (
+                   SELECT sort_order
+                   FROM folders
+                   WHERE account_id = ?1
+                   GROUP BY sort_order
+                   HAVING COUNT(*) > 1
+                 )",
+                params![account_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(duplicate_order_count, 0);
+    }
+
+    #[test]
+    fn create_folder_serial_local_commands_do_not_duplicate_sort_order() {
+        let db = Arc::new(Mutex::new(test_db()));
+        let account_id = {
+            let db = db.lock().unwrap();
+            insert_test_account(&db, "Primary")
+        };
+        let start = Arc::new(Barrier::new(2));
+        let handles = ["First", "Second"].map(|name| {
+            let db = Arc::clone(&db);
+            let account_id = account_id.0.clone();
+            let start = Arc::clone(&start);
+
+            thread::spawn(move || {
+                start.wait();
+                let db = db.lock().unwrap();
+                create_folder_in_db(&db, account_id, name.to_string()).unwrap()
+            })
+        });
+
+        let mut created = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect::<Vec<_>>();
+        created.sort_by_key(|folder| folder.sort_order);
+
+        assert_eq!(
+            created
+                .iter()
+                .map(|folder| folder.sort_order)
+                .collect::<Vec<_>>(),
+            vec![0, 1]
+        );
+
+        let db = db.lock().unwrap();
         let duplicate_order_count: i64 = db
             .reader()
             .query_row(

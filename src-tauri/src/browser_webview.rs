@@ -809,12 +809,20 @@ fn browser_preview_action_for_virtual_key_from_prefs_result(
         Ok(prefs) => prefs,
         Err(error) => {
             tracing::warn!(
-                "Failed to load embedded browser shortcut preferences; using default preview shortcuts: {error}"
+                "{}",
+                browser_preview_shortcut_preferences_read_warning(&error)
             );
             HashMap::new()
         }
     };
     browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift)
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn browser_preview_shortcut_preferences_read_warning(error: &std::io::Error) -> String {
+    format!(
+        "Failed to load embedded browser shortcut preferences; using default preview shortcuts: {error}"
+    )
 }
 
 #[cfg(windows)]
@@ -1224,9 +1232,10 @@ mod tests {
         browser_preview_close_bridge_source, browser_preview_focus_override_source,
         browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
-        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
-        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
-        BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
+        browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
+        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
+        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
+        BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1577,6 +1586,16 @@ mod tests {
         );
 
         assert_eq!(action, Some("toggle-read"));
+    }
+
+    #[test]
+    fn browser_preview_virtual_key_preference_read_failure_warning_documents_fallback() {
+        let error = std::io::Error::other("preference read failed");
+        let warning = browser_preview_shortcut_preferences_read_warning(&error);
+
+        assert!(warning.contains("Failed to load embedded browser shortcut preferences"));
+        assert!(warning.contains("using default preview shortcuts"));
+        assert!(warning.contains("preference read failed"));
     }
 
     #[test]

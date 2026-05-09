@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection};
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::sqlite_mute_keyword::{
@@ -203,21 +203,28 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     }
 
     fn delete(&self, feed_id: &FeedId) -> DomainResult<()> {
-        self.conn
+        let affected_rows = self
+            .conn
             .execute("DELETE FROM feeds WHERE id = ?1", params![feed_id.0])?;
+        if affected_rows == 0 {
+            return Err(DomainError::Validation("feed not found".to_string()));
+        }
         Ok(())
     }
 
     fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "UPDATE feeds SET title = ?1 WHERE id = ?2",
             params![title, feed_id.0],
         )?;
+        if affected_rows == 0 {
+            return Err(DomainError::Validation("feed not found".to_string()));
+        }
         Ok(())
     }
 
     fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "UPDATE feeds
              SET folder_id = ?1
              WHERE id = ?2
@@ -232,6 +239,11 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                )",
             params![folder_id.map(|f| &f.0), feed_id.0],
         )?;
+        if affected_rows == 0 {
+            return Err(DomainError::Validation(
+                "feed not found or folder does not belong to feed account".to_string(),
+            ));
+        }
         Ok(())
     }
 
@@ -241,10 +253,13 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         reader_mode: &str,
         web_preview_mode: &str,
     ) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "UPDATE feeds SET reader_mode = ?1, web_preview_mode = ?2 WHERE id = ?3",
             params![reader_mode, web_preview_mode, feed_id.0],
         )?;
+        if affected_rows == 0 {
+            return Err(DomainError::Validation("feed not found".to_string()));
+        }
         Ok(())
     }
 }
@@ -509,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn update_folder_does_not_assign_folder_from_another_account() {
+    fn update_folder_rejects_folder_from_another_account() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let other_account_id = insert_test_account(&db);
@@ -525,15 +540,19 @@ mod tests {
             )
             .unwrap();
 
-        repo.update_folder(&feed.id, Some(&other_folder_id))
-            .unwrap();
+        let error = repo
+            .update_folder(&feed.id, Some(&other_folder_id))
+            .expect_err("folder from another account should be rejected");
 
         let saved_feed = repo.find_by_id(&feed.id).unwrap().unwrap();
         assert!(saved_feed.folder_id.is_none());
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == "feed not found or folder does not belong to feed account")
+        );
     }
 
     #[test]
-    fn update_folder_missing_feed_is_successful_noop() {
+    fn update_folder_rejects_missing_feed() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
@@ -545,14 +564,18 @@ mod tests {
             )
             .unwrap();
 
-        repo.update_folder(&FeedId("missing-feed".to_string()), Some(&folder_id))
-            .unwrap();
+        let error = repo
+            .update_folder(&FeedId("missing-feed".to_string()), Some(&folder_id))
+            .expect_err("missing feed folder mutation should be rejected");
 
         let feed_count: i64 = db
             .reader()
             .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
             .unwrap();
         assert_eq!(feed_count, 0);
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == "feed not found or folder does not belong to feed account")
+        );
     }
 
     #[test]
@@ -577,18 +600,20 @@ mod tests {
     }
 
     #[test]
-    fn update_display_settings_missing_feed_is_successful_noop() {
+    fn update_display_settings_rejects_missing_feed() {
         let db = test_db();
         let repo = SqliteFeedRepository::new(db.writer());
 
-        repo.update_display_settings(&FeedId("missing-feed".to_string()), "on", "off")
-            .unwrap();
+        let error = repo
+            .update_display_settings(&FeedId("missing-feed".to_string()), "on", "off")
+            .expect_err("missing feed display settings mutation should be rejected");
 
         let feed_count: i64 = db
             .reader()
             .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
             .unwrap();
         assert_eq!(feed_count, 0);
+        assert!(matches!(error, DomainError::Validation(message) if message == "feed not found"));
     }
 
     #[test]
@@ -642,17 +667,20 @@ mod tests {
     }
 
     #[test]
-    fn delete_missing_feed_is_successful_noop() {
+    fn delete_rejects_missing_feed() {
         let db = test_db();
         let repo = SqliteFeedRepository::new(db.writer());
 
-        repo.delete(&FeedId("missing-feed".to_string())).unwrap();
+        let error = repo
+            .delete(&FeedId("missing-feed".to_string()))
+            .expect_err("missing feed delete should be rejected");
 
         let feed_count: i64 = db
             .reader()
             .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
             .unwrap();
         assert_eq!(feed_count, 0);
+        assert!(matches!(error, DomainError::Validation(message) if message == "feed not found"));
     }
 
     #[test]
@@ -865,17 +893,19 @@ mod tests {
     }
 
     #[test]
-    fn rename_missing_feed_is_successful_noop() {
+    fn rename_rejects_missing_feed() {
         let db = test_db();
         let repo = SqliteFeedRepository::new(db.writer());
 
-        repo.rename(&FeedId("missing-feed".to_string()), "New Title")
-            .unwrap();
+        let error = repo
+            .rename(&FeedId("missing-feed".to_string()), "New Title")
+            .expect_err("missing feed rename should be rejected");
 
         let feed_count: i64 = db
             .reader()
             .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
             .unwrap();
         assert_eq!(feed_count, 0);
+        assert!(matches!(error, DomainError::Validation(message) if message == "feed not found"));
     }
 }

@@ -175,18 +175,20 @@ impl TagRepository for SqliteTagRepository<'_> {
     }
 
     fn tag_article(&self, article_id: &ArticleId, tag_id: &TagId) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
             params![article_id.0, tag_id.0],
         )?;
+        debug_assert!(affected_rows <= 1);
         Ok(())
     }
 
     fn untag_article(&self, article_id: &ArticleId, tag_id: &TagId) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "DELETE FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
             params![article_id.0, tag_id.0],
         )?;
+        debug_assert!(affected_rows <= 1);
         Ok(())
     }
 
@@ -325,6 +327,16 @@ mod tests {
                 params![uuid::Uuid::new_v4().to_string(), keyword, scope, now, now],
             )
             .unwrap();
+    }
+
+    fn count_article_tag_links(db: &DbManager, article_id: &ArticleId, tag_id: &TagId) -> i64 {
+        db.writer()
+            .query_row(
+                "SELECT COUNT(*) FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
+                params![article_id.0, tag_id.0],
+                |row| row.get(0),
+            )
+            .unwrap()
     }
 
     #[test]
@@ -689,10 +701,11 @@ mod tests {
         repo.save(&tag).unwrap();
 
         repo.tag_article(&article_id, &tag.id).unwrap();
+        assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 1);
+
         repo.tag_article(&article_id, &tag.id).unwrap();
 
-        let tags = repo.find_tags_for_article(&article_id).unwrap();
-        assert_eq!(tags.len(), 1);
+        assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 1);
     }
 
     #[test]
@@ -710,8 +723,43 @@ mod tests {
 
         repo.untag_article(&article_id, &tag.id).unwrap();
 
-        let tags = repo.find_tags_for_article(&article_id).unwrap();
-        assert!(tags.is_empty());
+        assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 0);
+    }
+
+    #[test]
+    fn untag_article_missing_article_is_successful_noop() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "test".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        let missing_article_id = ArticleId("missing-article".to_string());
+
+        repo.untag_article(&missing_article_id, &tag.id).unwrap();
+
+        assert_eq!(
+            count_article_tag_links(&db, &missing_article_id, &tag.id),
+            0
+        );
+    }
+
+    #[test]
+    fn untag_article_missing_tag_is_successful_noop() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+        let missing_tag_id = TagId("missing-tag".to_string());
+
+        repo.untag_article(&article_id, &missing_tag_id).unwrap();
+
+        assert_eq!(
+            count_article_tag_links(&db, &article_id, &missing_tag_id),
+            0
+        );
     }
 
     #[test]

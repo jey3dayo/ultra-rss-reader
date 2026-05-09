@@ -135,13 +135,42 @@ fn saved_language_menu_update_error(error: impl std::fmt::Display) -> AppError {
     }
 }
 
+fn save_preference_value(
+    repo: &impl PreferenceRepository,
+    key: &str,
+    value: &str,
+) -> Result<Option<HashMap<String, String>>, AppError> {
+    validate_preference_input(key, value)?;
+    repo.set(key, value)?;
+
+    if should_rebuild_menu_after_saved_preference(key) {
+        Ok(Some(repo.get_all()?))
+    } else {
+        Ok(None)
+    }
+}
+
+fn apply_saved_preference_runtime_side_effect(key: &str, value: &str) {
+    if key == "debug_browser_hud" {
+        set_browser_webview_diagnostics_enabled(value == "true");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        is_allowed_preference_key, saved_language_menu_update_error,
+        apply_saved_preference_runtime_side_effect, is_allowed_preference_key,
+        save_preference_value, saved_language_menu_update_error,
         should_rebuild_menu_after_saved_preference, validate_preference_input,
     };
+    use crate::browser_webview::{
+        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
+        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
+    };
     use crate::commands::dto::AppError;
+    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
+    use crate::repository::preference::PreferenceRepository;
 
     #[test]
     fn allows_web_preview_focus_preference() {
@@ -194,8 +223,33 @@ mod tests {
         assert!(validate_preference_input("debug_browser_hud", "true").is_ok());
         assert!(validate_preference_input("debug_browser_hud", "false").is_ok());
 
-        let error = validate_preference_input("debug_browser_hud", "sometimes")
-            .expect_err("debug browser HUD should reject non-boolean strings");
+        for value in ["sometimes", "TRUE", "0", " true ", ""] {
+            let error = validate_preference_input("debug_browser_hud", value)
+                .expect_err("debug browser HUD should reject non-boolean strings");
+
+            match error {
+                AppError::UserVisible { message } => {
+                    assert_eq!(
+                        message,
+                        "Invalid boolean preference value for key: debug_browser_hud"
+                    );
+                }
+                other => panic!("unexpected error category: {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn save_preference_rejects_invalid_debug_browser_hud_without_persisting_or_toggling_diagnostics(
+    ) {
+        let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+        repo.set("debug_browser_hud", "true").unwrap();
+        set_browser_webview_diagnostics_enabled(true);
+
+        let error = save_preference_value(&repo, "debug_browser_hud", "sometimes")
+            .expect_err("invalid debug HUD preference should be rejected before write");
 
         match error {
             AppError::UserVisible { message } => {
@@ -206,6 +260,25 @@ mod tests {
             }
             other => panic!("unexpected error category: {other:?}"),
         }
+        assert_eq!(
+            repo.get("debug_browser_hud").unwrap().as_deref(),
+            Some("true")
+        );
+        assert!(browser_webview_diagnostics_enabled());
+
+        set_browser_webview_diagnostics_enabled(false);
+    }
+
+    #[test]
+    fn saved_debug_browser_hud_preference_updates_diagnostics_from_canonical_boolean_strings() {
+        let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
+
+        set_browser_webview_diagnostics_enabled(false);
+        apply_saved_preference_runtime_side_effect("debug_browser_hud", "true");
+        assert!(browser_webview_diagnostics_enabled());
+
+        apply_saved_preference_runtime_side_effect("debug_browser_hud", "false");
+        assert!(!browser_webview_diagnostics_enabled());
     }
 
     #[test]
@@ -247,27 +320,18 @@ pub fn set_preference(
     key: String,
     value: String,
 ) -> Result<(), AppError> {
-    validate_preference_input(&key, &value)?;
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqlitePreferenceRepository::new(db.writer());
-    repo.set(&key, &value)?;
-
-    let prefs = if should_rebuild_menu_after_saved_preference(&key) {
-        Some(repo.get_all()?)
-    } else {
-        None
-    };
+    let prefs = save_preference_value(&repo, &key, &value)?;
     drop(db);
 
     if let Some(prefs) = prefs {
         crate::menu::rebuild(&app, &prefs).map_err(saved_language_menu_update_error)?;
     }
 
-    if key == "debug_browser_hud" {
-        set_browser_webview_diagnostics_enabled(value == "true");
-    }
+    apply_saved_preference_runtime_side_effect(&key, &value);
 
     Ok(())
 }

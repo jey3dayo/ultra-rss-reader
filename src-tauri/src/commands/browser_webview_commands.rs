@@ -842,30 +842,50 @@ mod tests {
     }
 
     #[test]
-    fn browser_webview_fallback_url_rejects_control_chars_and_requires_http_url_for_reload_navigation(
-    ) {
-        for value in [
-            "https://example.com/article\nhttps://evil.example",
-            "javascript:alert('owned')",
-            "file:///tmp/article.html",
-            "not a url",
-        ] {
-            assert!(
-                validate_browser_webview_fallback_url(value.to_string()).is_err(),
-                "fallback URL must reject control chars and require http(s): {value:?}"
+    fn browser_webview_fallback_url_rejects_newline_before_reload_navigation() {
+        match validate_browser_webview_fallback_url(
+            "https://example.com/article\nhttps://evil.example".to_string(),
+        ) {
+            Err(AppError::UserVisible { message }) => {
+                assert_eq!(message, crate::commands::BROWSER_URL_SCHEME_ERROR);
+            }
+            other => panic!("expected newline fallback URL error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn browser_webview_fallback_url_rejects_non_http_scheme_before_reload_navigation() {
+        for value in ["javascript:alert('owned')", "file:///tmp/article.html"] {
+            match validate_browser_webview_fallback_url(value.to_string()) {
+                Err(AppError::UserVisible { message }) => {
+                    assert_eq!(message, crate::commands::BROWSER_URL_SCHEME_ERROR);
+                }
+                other => panic!("expected non-http fallback URL error, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn browser_webview_fallback_url_rejects_malformed_url_before_reload_navigation() {
+        for value in ["not a url", "https://[::1"] {
+            match validate_browser_webview_fallback_url(value.to_string()) {
+                Err(AppError::UserVisible { message }) => {
+                    assert_eq!(message, crate::commands::BROWSER_URL_SCHEME_ERROR);
+                }
+                other => panic!("expected malformed fallback URL error, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn browser_webview_fallback_url_accepts_http_urls_before_reload_navigation() {
+        for value in ["http://example.com/article", "https://example.com/article"] {
+            assert_eq!(
+                validate_browser_webview_fallback_url(value.to_string())
+                    .expect("http(s) fallback URL should pass"),
+                value
             );
         }
-
-        assert_eq!(
-            validate_browser_webview_fallback_url("http://example.com/article".to_string())
-                .expect("http fallback URL should pass"),
-            "http://example.com/article"
-        );
-        assert_eq!(
-            validate_browser_webview_fallback_url("https://example.com/article".to_string())
-                .expect("https fallback URL should pass"),
-            "https://example.com/article"
-        );
     }
 
     #[test]
@@ -1048,6 +1068,22 @@ mod tests {
                 ),
             }
         }
+    }
+
+    #[test]
+    fn physical_bounds_validation_accepts_small_dimensions_that_round_to_one_pixel() {
+        let bounds = validated_bounds(BrowserWebviewBounds {
+            x: 460.0,
+            y: 84.0,
+            width: 0.5,
+            height: 0.5,
+            unit: BrowserWebviewBoundsUnit::Physical,
+        })
+        .expect("physical bounds that round to at least 1px should pass");
+        let rect = bounds.rect();
+
+        assert_eq!(rect.size.to_physical::<u32>(1.0).width, 1);
+        assert_eq!(rect.size.to_physical::<u32>(1.0).height, 1);
     }
 
     #[test]
