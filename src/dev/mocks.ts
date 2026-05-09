@@ -39,6 +39,9 @@ type BrowserMockCommandArgsSchemas = CommandArgsSchemaRegistry;
 type MockCommandWithArgs = keyof BrowserMockCommandArgsSchemas;
 type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = z.output<BrowserMockCommandArgsSchemas[TCommand]>;
 type RawMockIpcPayload = unknown;
+type DevMockWindowGlobalName = "__DEV_BROWSER_MOCKS__" | "__ULTRA_RSS_BROWSER_MOCKS__";
+type DevMockWindowGlobalsSnapshot = Record<DevMockWindowGlobalName, PropertyDescriptor | undefined>;
+export type RestoreDevMocks = () => void;
 
 function parseMockArgs<TCommand extends MockCommandWithArgs>(
   command: TCommand,
@@ -58,6 +61,37 @@ function parseBrowserMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMo
 
 function cloneMockResponse<T>(value: T): T {
   return structuredClone(value);
+}
+
+function captureDevMockWindowGlobals(): DevMockWindowGlobalsSnapshot {
+  return {
+    __DEV_BROWSER_MOCKS__: Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__"),
+    __ULTRA_RSS_BROWSER_MOCKS__: Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__"),
+  };
+}
+
+function restoreDevMockWindowGlobal(name: DevMockWindowGlobalName, descriptor: PropertyDescriptor | undefined) {
+  if (descriptor) {
+    Object.defineProperty(window, name, descriptor);
+    return;
+  }
+
+  delete window[name];
+}
+
+function setDevMockWindowGlobal(name: DevMockWindowGlobalName) {
+  Object.defineProperty(window, name, {
+    configurable: true,
+    writable: true,
+    value: true,
+  });
+}
+
+function createDevMockWindowGlobalsRestore(snapshot: DevMockWindowGlobalsSnapshot): RestoreDevMocks {
+  return () => {
+    restoreDevMockWindowGlobal("__DEV_BROWSER_MOCKS__", snapshot.__DEV_BROWSER_MOCKS__);
+    restoreDevMockWindowGlobal("__ULTRA_RSS_BROWSER_MOCKS__", snapshot.__ULTRA_RSS_BROWSER_MOCKS__);
+  };
 }
 
 let nextAccountId = 100;
@@ -200,11 +234,13 @@ function findLatestPublishedAt(articles: readonly ArticleDto[]): string | null {
   ).publishedAt;
 }
 
-export function setupDevMocks() {
-  if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return;
+export function setupDevMocks(): RestoreDevMocks {
+  const restoreWindowGlobals = createDevMockWindowGlobalsRestore(captureDevMockWindowGlobals());
+
+  if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;
   resetDevMockState();
-  window.__DEV_BROWSER_MOCKS__ = true;
-  window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+  setDevMockWindowGlobal("__DEV_BROWSER_MOCKS__");
+  setDevMockWindowGlobal("__ULTRA_RSS_BROWSER_MOCKS__");
 
   const feedIntegrityReport = { orphaned_article_count: 0, orphaned_feeds: [] };
 
@@ -1049,4 +1085,6 @@ export function setupDevMocks() {
         throw new Error(`[dev-mocks] Unknown command: ${cmd}`);
     }
   });
+
+  return restoreWindowGlobals;
 }

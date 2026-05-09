@@ -60,11 +60,88 @@ describe("setupDevMocks", () => {
   beforeEach(() => {
     clearMocks();
     delete window.__TAURI_INTERNALS__;
+    delete window.__DEV_BROWSER_MOCKS__;
+    delete window.__ULTRA_RSS_BROWSER_MOCKS__;
   });
 
   afterEach(() => {
     clearMocks();
+    delete window.__TAURI_INTERNALS__;
+    delete window.__DEV_BROWSER_MOCKS__;
+    delete window.__ULTRA_RSS_BROWSER_MOCKS__;
     vi.unstubAllEnvs();
+  });
+
+  it("installs and restores browser-only mock window globals", () => {
+    const restoreDevMocks = setupDevMocks();
+
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(true);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toMatchObject({
+      configurable: true,
+      writable: true,
+      value: true,
+    });
+    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toMatchObject({
+      configurable: true,
+      writable: true,
+      value: true,
+    });
+
+    restoreDevMocks();
+
+    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toBeUndefined();
+    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toBeUndefined();
+  });
+
+  it("restores previous browser-only mock window global descriptors", () => {
+    Object.defineProperty(window, "__DEV_BROWSER_MOCKS__", {
+      configurable: true,
+      writable: false,
+      value: false,
+    });
+    Object.defineProperty(window, "__ULTRA_RSS_BROWSER_MOCKS__", {
+      configurable: true,
+      writable: false,
+      value: true,
+    });
+
+    const restoreDevMocks = setupDevMocks();
+
+    expect(window.__DEV_BROWSER_MOCKS__).toBe(true);
+    expect(window.__ULTRA_RSS_BROWSER_MOCKS__).toBe(true);
+
+    restoreDevMocks();
+
+    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toMatchObject({
+      configurable: true,
+      writable: false,
+      value: false,
+    });
+    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toMatchObject({
+      configurable: true,
+      writable: false,
+      value: true,
+    });
+  });
+
+  it("does not install browser-only mock globals when Tauri is already installed", () => {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      writable: true,
+      value: {},
+    });
+
+    const restoreDevMocks = setupDevMocks();
+
+    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toBeUndefined();
+    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toBeUndefined();
+
+    restoreDevMocks();
+
+    expect(window.__TAURI_INTERNALS__).toEqual({});
+    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toBeUndefined();
+    expect(Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__")).toBeUndefined();
   });
 
   it("returns a settled browser state for browser-only UI checks", async () => {
