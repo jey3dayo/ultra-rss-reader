@@ -157,6 +157,17 @@ describe("buildStarredCountByFeedId", () => {
     );
   });
 
+  it("omits starred articles with blank feed ids", () => {
+    const counts = buildStarredCountByFeedId([
+      { ...sampleArticle, id: "art-1", feed_id: "", is_starred: true },
+      { ...sampleArticle, id: "art-2", feed_id: "   ", is_starred: true },
+      { ...sampleArticle, id: "art-3", feed_id: "feed-a", is_starred: true },
+      { ...sampleArticle, id: "art-4", feed_id: "feed-a", is_starred: true },
+    ]);
+
+    expect(counts).toEqual(new Map([["feed-a", 2]]));
+  });
+
   it("returns an empty count map when articles are unavailable", () => {
     expect(buildStarredCountByFeedId(undefined)).toEqual(new Map());
   });

@@ -17,6 +17,11 @@ function normalizeFolderId(folderId: string | null): string | null {
   return trimmedFolderId.length === 0 ? null : trimmedFolderId;
 }
 
+function normalizeFeedId(feedId: string): string | null {
+  const trimmedFeedId = feedId.trim();
+  return trimmedFeedId.length === 0 ? null : trimmedFeedId;
+}
+
 export function groupFeedsByFolder(feeds: FeedDto[]): GroupedFeeds {
   const byFolder = new Map<string, FeedDto[]>();
   const unfoldered: FeedDto[] = [];
@@ -57,7 +62,12 @@ export function buildStarredCountByFeedId(articles: ArticleDto[] | undefined): M
       continue;
     }
 
-    counts.set(article.feed_id, (counts.get(article.feed_id) ?? 0) + 1);
+    const feedId = normalizeFeedId(article.feed_id);
+    if (feedId === null) {
+      continue;
+    }
+
+    counts.set(feedId, (counts.get(feedId) ?? 0) + 1);
   }
 
   return counts;
