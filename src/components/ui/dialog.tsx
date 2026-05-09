@@ -44,6 +44,10 @@ function DialogClose({ ...props }: DialogCloseProps) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+function resolveDialogCloseLabel(closeLabel?: string) {
+  return closeLabel ?? i18n.t(["dialog_close", "close"]);
+}
+
 function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
   switch (preset) {
     case "readable":
@@ -93,7 +97,7 @@ function DialogContent({
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           >
             <XIcon />
-            <span className="sr-only">{closeLabel ?? i18n.t("close")}</span>
+            <span className="sr-only">{resolveDialogCloseLabel(closeLabel)}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -118,7 +122,7 @@ function DialogFooter({ className, showCloseButton = false, closeLabel, children
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close render={<Button variant="outline" />}>
-          {closeLabel ?? i18n.t("close")}
+          {resolveDialogCloseLabel(closeLabel)}
         </DialogPrimitive.Close>
       )}
     </div>

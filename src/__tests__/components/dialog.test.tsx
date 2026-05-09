@@ -35,12 +35,12 @@ describe("DialogContent", () => {
     expect(screen.getByRole("button", { name: "Close custom dialog" })).toBeInTheDocument();
   });
 
-  it("falls back to the common close locale label", async () => {
+  it("uses the shared dialog close locale label", async () => {
     await i18n.changeLanguage("ja");
 
     renderDialogContent();
 
-    expect(screen.getByRole("button", { name: i18n.t("close") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: i18n.t("dialog_close") })).toBeInTheDocument();
   });
 
   it("uses the provided footer close label", () => {
@@ -49,11 +49,11 @@ describe("DialogContent", () => {
     expect(screen.getByRole("button", { name: "Close from footer" })).toBeInTheDocument();
   });
 
-  it("falls back to the common close locale label in the footer", async () => {
+  it("uses the shared dialog close locale label in the footer", async () => {
     await i18n.changeLanguage("ja");
 
     renderDialogFooter();
 
-    expect(screen.getByRole("button", { name: i18n.t("close") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: i18n.t("dialog_close") })).toBeInTheDocument();
   });
 });
