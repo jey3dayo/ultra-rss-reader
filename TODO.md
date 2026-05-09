@@ -140,11 +140,6 @@
   - 対象候補: `src/api/schemas/common.ts` の count/nonnegative schema exports と `src/components/storybook/story-tauri-runtime.ts`
   - public import path を壊さないよう repo contract test を添え、unused type cleanup とは分けて扱う
 
-- [ ] react-doctor sidebar feed tree helper iteration cleanup 候補を追加する
-  - `src/components/reader/sidebar-feed-tree-helpers.ts` の folder model 生成で `.map().filter()` している箇所を、空 folder hide 条件込みの single-pass helper へ寄せる
-  - sidebar feed tree helper test で folder order / unfiled feeds / empty folder visibility が変わらないことを固定する
-  - feed tree drag/drop behavior とは分け、view model helper の iteration cleanup だけを扱う
-
 - [ ] react-doctor app sync-on-wake account extraction 候補を追加する
   - `src/App.tsx` の sync-on-wake 対象 account 抽出で `.filter().map()` している箇所を single-pass 化する
   - app root focused test で hidden duration / active account / disabled account の sync 対象が変わらないことを固定する
