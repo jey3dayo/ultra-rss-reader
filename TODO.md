@@ -80,11 +80,6 @@
   - modal open 時の focus / scroll / selected shortcut 表示が変わらない focused test を追加する
   - shortcut recording Alt key contract とは分け、shortcuts help modal の effect handler 整理だけを扱う
 
-- [ ] react-doctor preferences view transition 候補を追加する
-  - `src/stores/preferences-store.ts` の `document.startViewTransition()` 直接呼び出しを React 19 の view transition 方針に合わせるか、Tauri app 方針として明示的に残すか決める
-  - 方針を test または repo contract に固定し、`react-doctor/no-document-start-view-transition` の抑制が必要なら理由を局所化する
-  - motion / browser overlay 検証とは分け、theme preference transition の integration boundary だけを扱う
-
 - [ ] react-doctor test async waterfall 候補を追加する
   - `react-doctor/server-sequential-independent-await` が出ている test 群を、読みやすさを壊さない範囲で setup await と assertion await に分ける
   - 対象候補: `use-updater.test.ts` / `tauri-commands.test.ts` / `sidebar.test.tsx` / `scenario-runtime.test.ts`
@@ -284,20 +279,10 @@
   - browser overlay shortcut は article shortcut と衝突しやすいため、`use-browser-overlay-shortcuts.ts` の event ownership を別に確認する
   - geometry/layout 数値は既存の browser geometry 候補に残し、ここでは history stack と action availability のみ扱う
 
-- [ ] app icon / badge runtime 検証候補を別バッチで追加する
-  - `use-app-icon-theme.ts`、`use-badge.ts`、provider icon fallback の runtime あり/なし contract を、frontend hook test と packaged app manual verification に分ける
-  - macOS dock badge、Windows taskbar badge、icon theme replacement は OS 差が大きいため、shared runtime wrapper の型整理とは別に検証する
-  - visual asset の差し替えや icon デザイン変更は入れず、状態反映と failure fallback だけを固定する
-
 - [ ] sanitizer / article content migration 候補を別バッチで検証する
   - `src-tauri/src/infra/sanitizer.rs`、`sanitizer_version`、`article_content_text` migration の関係を、保存済み記事と新規同期記事で分けて確認する
   - privacy hardening とは別に、既存記事の再 sanitize 条件、検索用 text extraction、malformed HTML の fallback を test で固定する
   - CSP や remote image policy は privacy batch に残し、ここでは content normalization と migration compatibility に限定する
-
-- [ ] query / mutation wrapper contract 整理候補を別バッチで見直す
-  - `src/hooks/create-query.ts` / `src/hooks/create-mutation.ts` / `src/lib/query/query-invalidation.ts` の Result unwrap、toast、cache invalidation の責務を棚卸しする
-  - account/feed/article/tag/subscription の hook 利用面にまたがるため、実装変更前に query key と invalidation target の対応表を作る
-  - React Query の retry/staleTime 変更は挙動影響が大きいため、型整理や helper test とは別バッチにする
 
 - [ ] feed discovery / add feed pipeline 候補を別バッチで検証する
   - `src-tauri/src/infra/feed_discovery.rs`、`opml_commands.rs`、add feed dialog actions の URL normalization / discovered feed option / folder assignment を分けて確認する
