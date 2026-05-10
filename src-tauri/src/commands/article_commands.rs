@@ -36,7 +36,7 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
         open_browser_in_background(&url)?;
     } else {
         open::that(&url).map_err(|e| AppError::UserVisible {
-            message: format!("Failed to open browser: {e}"),
+            message: native_browser_open_failure_message(e),
         })?;
     }
     Ok(())
@@ -50,7 +50,15 @@ fn should_use_background_browser_open(
 }
 
 fn background_browser_open_failure_message(error: impl std::fmt::Display) -> String {
-    format!("Failed to open browser in background: {error}")
+    native_browser_open_diagnostics_message(format_args!("background open failed: {error}"))
+}
+
+fn native_browser_open_failure_message(error: impl std::fmt::Display) -> String {
+    native_browser_open_diagnostics_message(format_args!("default open failed: {error}"))
+}
+
+fn native_browser_open_diagnostics_message(error: impl std::fmt::Display) -> String {
+    format!("Failed to open browser; native opener diagnostics: {error}")
 }
 
 fn background_browser_open_status_failure_message(
@@ -1136,7 +1144,8 @@ mod tests {
         bulk_mark_account_starred_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
         has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
         mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
-        maybe_queue_mutation, open_browser_in_background_with_command, parse_article_list_mode,
+        maybe_queue_mutation, native_browser_open_failure_message,
+        open_browser_in_background_with_command, parse_article_list_mode,
         provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
         record_article_view_with_conn, should_use_background_browser_open,
         supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
@@ -1365,7 +1374,17 @@ mod tests {
 
         assert_eq!(
             message,
-            "Failed to open browser in background: No such file or directory"
+            "Failed to open browser; native opener diagnostics: background open failed: No such file or directory"
+        );
+    }
+
+    #[test]
+    fn default_open_platform_failure_is_diagnostics_classified_after_url_schema() {
+        let message = native_browser_open_failure_message("permission denied");
+
+        assert_eq!(
+            message,
+            "Failed to open browser; native opener diagnostics: default open failed: permission denied"
         );
     }
 
@@ -1378,7 +1397,8 @@ mod tests {
 
         match open_browser_in_background_with_command(&mut command) {
             Err(AppError::UserVisible { message }) => {
-                assert!(message.contains("Failed to open browser in background"));
+                assert!(message.contains("Failed to open browser"));
+                assert!(message.contains("native opener diagnostics"));
                 assert!(message.contains("LaunchServices denied"));
             }
             other => panic!("expected user-visible background open failure, got {other:?}"),
@@ -1392,7 +1412,8 @@ mod tests {
 
         match open_browser_in_background_with_command(&mut command) {
             Err(AppError::UserVisible { message }) => {
-                assert!(message.contains("Failed to open browser in background"));
+                assert!(message.contains("Failed to open browser"));
+                assert!(message.contains("native opener diagnostics"));
                 assert!(message.contains("open exited with status"));
             }
             other => panic!("expected user-visible background open failure, got {other:?}"),

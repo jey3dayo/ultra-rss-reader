@@ -250,17 +250,25 @@ fn pending_update_metadata_matches(version: &str, source: &str, update: &Update)
     version == update.version && source == update_source(update)
 }
 
+fn updater_initialization_error_message(error: impl std::fmt::Display) -> String {
+    format!("Updater unavailable during manual update check: {error}")
+}
+
+fn updater_endpoint_error_message(error: impl std::fmt::Display) -> String {
+    format!("Update endpoint unavailable during manual update check: {error}")
+}
+
 #[tauri::command]
 pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppError> {
     let pending = app.state::<PendingUpdate>();
     clear_pending_update(&mut *pending.0.lock().await);
 
     let updater = app.updater().map_err(|e| AppError::Retryable {
-        message: format!("Failed to initialize updater: {e}"),
+        message: updater_initialization_error_message(e),
     })?;
 
     let update = updater.check().await.map_err(|e| AppError::Retryable {
-        message: format!("Failed to check for update: {e}"),
+        message: updater_endpoint_error_message(e),
     })?;
 
     let update = match update {
@@ -304,13 +312,13 @@ async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(),
         Some(handle) => handle,
         None => {
             let updater = app.updater().map_err(|e| AppError::Retryable {
-                message: format!("Failed to initialize updater: {e}"),
+                message: updater_initialization_error_message(e),
             })?;
             updater
                 .check()
                 .await
                 .map_err(|e| AppError::Retryable {
-                    message: format!("Failed to check for update: {e}"),
+                    message: updater_endpoint_error_message(e),
                 })?
                 .ok_or_else(|| AppError::UserVisible {
                     message: "No update available".to_string(),
@@ -374,7 +382,8 @@ mod tests {
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
         next_download_session_id, parse_semantic_version_parts, update_event_emit_warning,
-        update_policy_error_parts, DownloadGuard, SyncInstallGuard, DOWNLOADING,
+        update_policy_error_parts, updater_endpoint_error_message,
+        updater_initialization_error_message, DownloadGuard, SyncInstallGuard, DOWNLOADING,
         DOWNLOAD_SESSION_ID,
     };
     use std::sync::atomic::AtomicBool;
@@ -399,6 +408,18 @@ mod tests {
         assert_eq!(
             warning,
             "Failed to emit update-ready event during update flow: listener unavailable"
+        );
+    }
+
+    #[test]
+    fn updater_runtime_unavailable_errors_are_retryable_command_surface_copy() {
+        assert_eq!(
+            updater_initialization_error_message("plugin missing"),
+            "Updater unavailable during manual update check: plugin missing"
+        );
+        assert_eq!(
+            updater_endpoint_error_message("endpoint refused connection"),
+            "Update endpoint unavailable during manual update check: endpoint refused connection"
         );
     }
 

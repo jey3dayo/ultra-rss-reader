@@ -124,6 +124,24 @@ fn startup_preferences_read_warning_message(error: &DomainError) -> String {
     )
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StartupPluginFailureMode {
+    Fatal,
+    CommandRetryable,
+}
+
+fn clipboard_plugin_startup_failure_mode() -> StartupPluginFailureMode {
+    StartupPluginFailureMode::Fatal
+}
+
+fn updater_plugin_startup_failure_mode() -> StartupPluginFailureMode {
+    StartupPluginFailureMode::CommandRetryable
+}
+
+fn updater_endpoint_startup_failure_mode() -> StartupPluginFailureMode {
+    StartupPluginFailureMode::CommandRetryable
+}
+
 fn startup_main_window_show_warning(error: &impl std::fmt::Display) -> String {
     format!("Failed to show main window during startup focus restore: {error}")
 }
@@ -306,8 +324,8 @@ fn cleanup_old_logs_remove_warning(path: &std::path::Path, error: &std::io::Erro
     format!("Failed to remove old log file {}: {error}", path.display())
 }
 
-#[cfg(not(test))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg(not(test))]
 pub fn run() {
     #[cfg(debug_assertions)]
     {
@@ -527,13 +545,15 @@ mod tests {
 
     use super::{
         cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
-        cleanup_old_logs_remove_warning, database_init_error_message, database_init_panic_message,
+        cleanup_old_logs_remove_warning, clipboard_plugin_startup_failure_mode,
+        database_init_error_message, database_init_panic_message,
         main_window_title_bar_uses_overlay, redacted_path_label,
         startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
         startup_focus_main_thread_warning, startup_focus_restore_decision,
         startup_main_webview_focus_warning, startup_main_window_focus_warning,
         startup_main_window_show_warning, startup_preferences_or_default,
-        startup_preferences_read_warning_message, StartupFocusRestoreDecision,
+        startup_preferences_read_warning_message, updater_endpoint_startup_failure_mode,
+        updater_plugin_startup_failure_mode, StartupFocusRestoreDecision, StartupPluginFailureMode,
     };
     use crate::domain::error::DomainError;
 
@@ -666,6 +686,25 @@ mod tests {
         assert!(warning.contains("Failed to read startup preferences"));
         assert!(warning.contains("using default menu state and diagnostics settings"));
         assert!(warning.contains("database is locked"));
+    }
+
+    #[test]
+    fn startup_plugin_failure_modes_are_classified_by_command_surface() {
+        assert_eq!(
+            clipboard_plugin_startup_failure_mode(),
+            StartupPluginFailureMode::Fatal,
+            "clipboard command has no native fallback in the Rust command surface"
+        );
+        assert_eq!(
+            updater_plugin_startup_failure_mode(),
+            StartupPluginFailureMode::CommandRetryable,
+            "updater init is surfaced by manual update commands instead of blocking boot"
+        );
+        assert_eq!(
+            updater_endpoint_startup_failure_mode(),
+            StartupPluginFailureMode::CommandRetryable,
+            "endpoint availability is checked by manual update commands instead of blocking boot"
+        );
     }
 
     #[test]
