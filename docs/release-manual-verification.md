@@ -126,6 +126,7 @@ Confirm:
 - Before testing against an existing profile, the verifier has preserved a private OS-level copy of the app data directory or complete database backup set.
 - The app can detect the new version from the packaged build.
 - Download starts and completes without a stuck progress state.
+- If OS sleep is introduced during download, resume does not leave a partial artifact, stale progress, or stale success state; manual recheck starts a fresh flow.
 - Install/restart applies the new version successfully.
 - If updater verification fails, the app stays on the current version and surfaces a useful error.
 - After a failed download or install, a manual recheck can start a fresh updater flow.
@@ -163,9 +164,27 @@ Confirm before a release that changes Tauri configuration, signing, keyring beha
 - The intended macOS sandbox mode and entitlements are documented in the release plan.
 - Network access is limited to the app's RSS/provider, update, favicon, article media, and Web Preview behavior described by current product policy.
 - File access remains user-initiated or app-owned unless a reviewed feature explicitly needs broader paths.
+- Native file dialogs apply the same extension, cancel, directory, and overwrite-confirmation policy across OPML import/export and database backup/restore flows.
 - Keychain access remains limited to provider credentials and does not create a new shared access group without migration and rollback notes.
 - Diagnostics, support dumps, and logs do not require broad filesystem access to collect private data by default.
 - Any new entitlement lists the user-visible feature, expected prompt or OS behavior, fallback behavior when denied, and manual verification evidence.
+
+If a release changes import/export/backup dialogs, confirm and record:
+
+- OPML import filters `.opml` and `.xml` and rejects unsupported extensions or directories before parsing.
+- OPML export and database backup save dialogs auto-append only the missing expected extension.
+- Existing-file replacement requires explicit overwrite confirmation before any write starts.
+- Canceling a dialog leaves no file mutation, error toast, or stuck progress state.
+- Sleeping during updater download, OPML export, or database backup either cancels cleanly or resumes through a documented operation generation without accepting partial artifacts.
+- Permission denied, disk full, and OS sleep interruption are reported as distinct outcomes.
+
+If a release adds tray or background resident behavior, confirm and record:
+
+- Close-to-tray, full quit, updater restart, OS shutdown, and force quit have separate user-visible behavior.
+- Dirty settings forms, pending imports/exports, in-flight backups, and sync writes can block close or restart with clear copy.
+- Background sync, updater checks, file export, and database backup are either disabled while the window is hidden or explicitly documented as resident operations.
+- Users can disable background activity and can quit the app completely.
+- Reopen from tray, quit, update restart, and relaunch after OS login if enabled were verified in a packaged build.
 
 Evidence to save:
 

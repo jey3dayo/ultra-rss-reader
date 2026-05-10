@@ -63,6 +63,13 @@ Encryption decision:
 - Users who need encrypted storage or transfer must use OS disk encryption, an encrypted archive, or another external secure channel.
 - Any future app settings export/import or backup export feature must define its schema version, secret exclusion policy, encryption behavior, restore compatibility, and redaction preview before shipping.
 
+Native file selection policy:
+
+- OPML import should accept `.opml` and `.xml` files selected through a native open dialog; directory selection and unsupported extensions must fail before parsing.
+- OPML export and database backup flows must use native save dialogs, append the expected extension only when the user did not provide one, and show a clear overwrite confirmation before replacing an existing file.
+- Dialog cancellation is a neutral result, not an error. It must not create, delete, or overwrite files and must leave progress state idle.
+- Database backup save locations must be treated as private user-chosen paths and must not be logged or shown in support copy unless redacted.
+
 ### App Settings Export/Import Preconditions
 
 Decision: do not introduce app settings export/import until the export contract is versioned and excludes secrets by design.
@@ -102,6 +109,41 @@ Decision: user-facing copy may show a stable support code for the error category
 Support codes should identify broad recovery areas such as network, account auth, keyring, database recovery, or migration recovery. Diagnostics IDs may be generated per event or per export for support correlation, but they must not encode private data and must not be reused across unrelated support tickets. User-facing copy must keep recovery guidance separate from raw diagnostic detail.
 
 ## Future Feature Contracts
+
+### System Tray And Background Resident Mode
+
+Decision: do not ship tray or background resident mode until app lifecycle semantics are explicit for close, quit, updater restart, sync, and dirty settings state.
+
+Today, closing the app is treated as ending the interactive session. A resident mode would keep sync and other native work alive after the main window closes, so it changes privacy expectations, battery use, error surfacing, and shutdown drain behavior.
+
+Before tray or resident mode is enabled, the feature contract must define:
+
+- the distinction between close-to-tray, quit, updater restart, OS shutdown, and force quit
+- whether sync scheduler, updater checks, file export, and database backup may run while the main window is hidden
+- how dirty settings forms, pending imports, pending exports, and in-flight backups block close, quit, and update restart
+- visible user controls for disabling background activity and for quitting completely
+- battery and network limits for repeated sync failure, offline state, many accounts, and low-power mode
+- lock-screen-safe or in-app-only error surfacing when the app is resident
+- packaged-build verification on macOS and Windows for close, reopen, quit, restart after update, and relaunch after OS login if login-start is introduced
+
+Until this contract exists, closing the app must not be reinterpreted as background operation, and native notification, updater, or sync work must not rely on a tray-only recovery path.
+
+### Sleep And Long-Running Native Operation Cancellation
+
+Decision: long-running updater download, file export, and database backup flows must be cancellation-aware before they are expected to survive OS sleep or resume.
+
+Laptop sleep can interrupt network streams, filesystem writes, progress events, and SQLite backup reads. A resumed app must not treat a partial artifact or stale progress value as a successful download, export, or backup.
+
+Before these flows claim sleep/resume support, the contract must define:
+
+- an operation generation or cancellation token that is checked before writing completion state, toast copy, or diagnostics
+- partial artifact cleanup or quarantine for updater downloads, OPML exports, and database backups
+- progress reset behavior after sleep, cancellation, failed write, failed install, and app restart
+- retry rules that distinguish user cancellation, OS sleep interruption, network failure, permission denied, and disk full
+- database backup consistency requirements, including complete `.db` plus matching `-wal` / `-shm` handling where relevant
+- focused packaged-build verification for sleep during updater download, sleep during export, sleep during backup, resume cleanup, and manual retry
+
+Until that contract exists, docs and release notes must not promise that downloads, exports, or backups continue across OS sleep.
 
 ### Native Notification Permission And Quiet Hours
 

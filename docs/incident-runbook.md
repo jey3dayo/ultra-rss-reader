@@ -85,6 +85,8 @@ If any surface cannot be removed because of OS permissions, file locks, or an un
 ### Export And Settings Portability
 
 - OPML export is a subscription list export. It should not contain credentials, tokens, cookies, article content, read/star state, sync metadata, local paths, or database backup metadata, but feed titles, folder names, and feed URLs can still be private.
+- Import/export/backup file dialogs must treat cancel as a neutral result, require explicit overwrite confirmation for existing targets, and reject unsupported extensions or directory selections before parsing or writing.
+- If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted until the flow reports a clean retry or cleanup.
 - App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.
 - Do not recommend exporting settings as an uninstall/reinstall backup unless that versioned contract exists for the build being tested.
 
@@ -125,8 +127,9 @@ Use this path when startup succeeded but a later read or write command reports c
 2. Save the packaged-build logs.
 3. Before retrying an install/restart against a profile you care about, preserve the current app data or complete database backup set as private user data.
 4. Verify the current app version did not unexpectedly change.
-5. Re-run the updater path only after confirming the signed release and packaged build pair you are testing.
-6. If restart failed, capture the toast/error message and log output together.
+5. If OS sleep or restart happened during download, confirm any downloaded artifact was cleaned up or ignored before retrying.
+6. Re-run the updater path only after confirming the signed release and packaged build pair you are testing.
+7. If restart failed, capture the toast/error message and log output together.
 
 ### 4. Account Credentials / Keyring Failure
 
