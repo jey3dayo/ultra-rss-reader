@@ -84,31 +84,6 @@
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
 
-- [ ] P2 selected folder deleted while dialog open の fallback/submit policy を決める
-  - 対象: `src/components/feed-dialog/folder-select-view.tsx`, `src/lib/feed-folder-flow.ts`, `src/components/feed-dialog/use-folder-selection.ts`
-  - 選択中 folder が refetch で消えた場合、missing selected value が stale id のまま submit され得る
-  - folder deleted、refetch、stale submit、not found toast、auto reset の test を追加する
-
-- [ ] P3 SettingsPageView inline text action の aria-label required contract を決める
-  - 対象: `src/components/settings/settings-page-view.tsx`, `src/components/settings/settings-page.types.ts`
-  - inline input + button の関係で action aria label が必要になる場面があるが、type 上は optional のまま
-  - missing aria、generated label、existing controls、TS type、a11y test を追加する
-
-- [ ] P3 mute keyword scope select invalid value diagnostics を追加する
-  - 対象: `src/components/settings/mute-settings-view.tsx`, `src/api/schemas/mute-keyword.ts`, `src/lib/runtime/diagnostics.ts`
-  - unknown select value を UI 側で silent no-op にすると、schema drift や fixture 破損に気づきにくい
-  - invalid payload、schema drift、warning once、UI no-op、test を追加する
-
-- [ ] P3 createQuery composite key support policy を決める
-  - 対象: `src/hooks/create-query.ts`, `src/lib/query/query-invalidation.ts`
-  - helper が single string id 前提のため、account+mode+filter など composite key が必要な query が helper 外へ逃げやすい
-  - composite key RFC、generated query、manual query exception、invalidation matrix、type tests を追加する
-
-- [ ] P1 `keep_read_items_days` purge の実行契約を manual/startup/scheduler で揃える
-  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/service/sync_scheduler.rs`
-  - purge が scheduler path 中心だと、manual sync 中心・scheduler 未解禁・startup only の利用で既読記事が溜まり続ける可能性がある
-  - manual all sync後purge、startup sync後purge、scheduler disabled、keep_read_items_days=0、purge failure result の test を追加する
-
 - [ ] P2 scheduler `retry_after_seconds` を error message parse から構造化 metadata へ寄せる
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/domain/error.rs`
   - backoff が `retry_after_seconds=` という message 断片に依存し、provider copy 変更や user-visible 文言混入で retry timing が壊れやすい
@@ -123,11 +98,6 @@
   - 対象: `src-tauri/src/service/sync_flow.rs`
   - `folder_remote_id` が存在するのに folder 解決できない場合に `folder_id=None` へ落ちると、一時的な folder API 欠落で feed が root へ移動し得る
   - folder sync omitted、folder API failure後subscription sync、unknown folder_remote_id、existing folder保持、explicit remote folder removal の test を追加する
-
-- [ ] P2 shortcut runtime modifier policy を platform と同期する
-  - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/hooks/use-keyboard.ts`
-  - resolver が `metaKey || ctrlKey` を同じ modifier と扱うため、macOS Ctrl/Cmd、Windows/Linux Meta/Ctrl の実動作と表示・native menu がずれやすい
-  - mac Ctrl+K vs Cmd+K、Windows Ctrl+K vs Meta+K、custom shortcut modifier、native-menu-owned shortcut parity の test を追加する
 
 - [ ] P2 sidebar feed drop target の folder ownership を contract 化する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-tree-props.ts`
@@ -144,30 +114,10 @@
   - palette 検索結果や recent article が account switch 直前のものだと、現在 account に存在しない feed/article を選び得る
   - account switch while palette open、stale search result、recent article missing feed、feed deleted by refetch、select no-op/toast policy の test を追加する
 
-- [ ] P2 dev scenario async runners を run generation で latest-only にする
-  - 対象: `src/dev/scenarios/runner.ts`, `src/dev/scenarios/helpers.ts`
-  - feed-first/tag-view scenario が複数 IPC 後に UI state/query cache を更新するため、後続 scenario 開始後に古い完了が UI を上書きし得る
-  - feed-first中にtag-view開始、account list delay、listFeeds reject、late query cache write、late selectFeed/selectTag suppression の test を追加する
-
-- [ ] P2 dev scenario query cache seeding の partial failure policy を固定する
-  - 対象: `src/dev/scenarios/helpers.ts`
-  - accounts/feeds/articles/tags を順に query cache へ書くため、途中失敗時に半端な dev cache が残り次の scenario や reader 表示へ混入し得る
-  - listFeeds failure after accounts cached、listArticles failure after feed cached、tag counts failure、failure toast、cache rollback/keep policy の test を追加する
-
 - [ ] P3 OPML export の large account performance を snapshot/limit で見える化する
   - 対象: `src-tauri/src/commands/opml_commands.rs`
   - folder ごとに `remaining_feeds.remove(index)` する構造は大きい feed 数で O(n^2) 寄りになり、large OPML export の UI 固まりにつながりやすい
   - 1k/5k feeds export smoke、many folders、all orphan feeds、stable order、time budget/allocation regression guard を追加する
-
-- [ ] P3 reader fixture seed に cross-account/folder/tag article coverage を増やす
-  - 対象: `tests/helpers/reader-fixtures.ts`, `tests/helpers/fixtures.test.ts`
-  - default sample articles が特定 feed に寄ると、shared mock 利用 test で foldered feed、second account、tag projection の抜けが起きやすい
-  - foldered feed article、second account article、tagged article per tag、read/unread/starred distribution、default mock parity の test を追加する
-
-- [ ] P3 `renderStory` coverage owner を一本化する
-  - 対象: `tests/helpers/render-story.test.tsx`, `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.tsx`
-  - helper 専用 test と fixtures test に契約が分散しており、helper 変更時に片方だけ更新されると意図が読み取りにくくなる
-  - renderStory behavior 専用 suite 集約、fixtures test scope 分離、duplicate test inventory、export/import smoke を追加する
 
 - [ ] P2 preferences load と `setPref` optimistic update の race を latest-only にする
   - 対象: `src/stores/preferences-store.ts`, `src/schemas/preferences.ts`, `src/__tests__/stores`
@@ -203,21 +153,6 @@
   - 対象: `src/api/schemas/platform-info.ts`, `src-tauri/src/commands/platform_commands.rs`
   - dev runtime options だけ余剰 key を許すと、Rust 側 dev-only option 追加や typo が silently accepted になり drift を検知しづらい
   - extra key rejection/allow policy、missing required key、null dimension、invalid dimension、future option drift の test を追加する
-
-- [ ] P2 updater event payload `.passthrough()` の drift detection policy を決める
-  - 対象: `src/api/schemas/update-info.ts`, `src/hooks/use-updater.ts`, `src-tauri/src/commands/updater_commands.rs`
-  - updater event payload が余剰 key を許すため、Tauri event payload drift が UI 側で検知されず旧/新 fields が混在しやすい
-  - extra key policy、percent < 0 / > 100、missing session_id、ready/progress payload parity の test を追加する
-
-- [ ] P2 `SyncResultSchema` の total/succeeded/failed 整合を検証する
-  - 対象: `src/api/schemas/sync-result.ts`, `src/lib/sync/sync-result-feedback.ts`, `src-tauri/src/commands/sync_commands.rs`
-  - `synced: true` かつ failure あり、`succeeded > total` などの矛盾 DTO を UI が成功扱いする余地がある
-  - succeeded > total、failed nonempty with synced true、total mismatch、warning retry fields consistency の test を追加する
-
-- [ ] P2 `safeInvoke` unknown runtime error の UserVisible 化を分類する
-  - 対象: `src/api/tauri-commands.ts`, `src/lib/runtime/diagnostics.ts`, `src/lib/ui-errors.ts`
-  - Tauri unavailable、plugin missing、unknown thrown object がすべて UserVisible message になると diagnostics-only と操作失敗の切り分けが弱い
-  - non-Error object、empty string、plugin missing、runtime unavailable mapping、redaction applied once の test を追加する
 
 - [ ] P2 Storybook QueryClient provider の unmount cache cleanup を固定する
   - 対象: `src/components/storybook/story-query-client-provider.tsx`, `src/__tests__/components/story-query-client-provider.test.tsx`
@@ -368,11 +303,6 @@
   - 対象: `src/components/storybook`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
   - 現状の reference canvas は日本語長文や英語短文の片方に寄りがちで、locale 切替時の overflow を事前に見つけにくい
   - Japanese long labels、English labels、button min width、toolbar overflow、settings row height の focused smoke を追加する
-
-- [ ] P3 `MemoryStorage` test shim と browser Storage spec の差分を明文化する
-  - 対象: `tests/setup.ts`, `src/__tests__/helpers/test-setup-storage.test.ts`
-  - test shim が browser Storage と完全一致しない場合、quota/security error や key ordering の test が false green になりやすい
-  - property access、key ordering、quota unsupported、SecurityError fallback、clear/remove semantics の helper contract を追加する
 
 - [ ] P3 `resolveLayout` の `contentMode` 未使用を compact empty pane contract として整理する
   - 対象: `src/hooks/use-layout.ts`, `src/stores/ui-store.ts`
