@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 use tauri::State;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::commands::dto::{
     AppError, ArticleDto, FeedArticleSummaryDto, FeedIntegrityCleanupDto, FeedIntegrityIssueDto,
@@ -34,6 +35,8 @@ static BROWSER_OPEN_QUEUE: OnceLock<Mutex<HashSet<BrowserOpenQueueKey>>> = OnceL
 
 fn normalize_backend_article_search_query(query: &str) -> String {
     query
+        .nfkc()
+        .collect::<String>()
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
@@ -1264,14 +1267,15 @@ mod tests {
 
     #[test]
     fn backend_article_search_query_normalization_collapses_whitespace_and_caps_length() {
-        let query = format!("　Rust\t\t検索\nemoji😀  {}", "長".repeat(150));
+        let query = format!("　Ｒｕｓｔ\t\t検索\nemoji😀  が {}", "長".repeat(150));
         let normalized = super::normalize_backend_article_search_query(&query);
 
         assert_eq!(normalized.chars().count(), ARTICLE_SEARCH_QUERY_MAX_CHARS);
-        assert!(normalized.starts_with("Rust 検索 emoji😀 長"));
+        assert!(normalized.starts_with("Rust 検索 emoji😀 が 長"));
         assert!(!normalized.contains('　'));
         assert!(!normalized.contains('\n'));
         assert!(!normalized.contains('\t'));
+        assert!(!normalized.contains("が"));
     }
 
     async fn head_rejected_then_stalled_get_url(path: &str) -> String {

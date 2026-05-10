@@ -12,6 +12,9 @@ pub mod sqlite_sync_state;
 pub mod sqlite_tag;
 
 #[cfg(test)]
+pub(crate) mod test_fixtures;
+
+#[cfg(test)]
 mod tests {
     fn assert_contains(haystack: &str, needle: &str, owner: &str) {
         assert!(
