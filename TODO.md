@@ -1874,16 +1874,6 @@
   - attribute map は後勝ちで `xmlUrl/xmlurl` を見るため、duplicate attributes や namespace 付き OPML で importer の結果が環境依存になりやすい
   - duplicate xmlUrl、XMLURL、namespace outline、invalid attribute UTF-8、attribute entity、text/title precedence の parser test を追加する
 
-- [ ] P2 OPML export の account name/title sanitization と error redaction を固定する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/opml.rs`, `src/components/settings/data-settings-view.tsx`
-  - export title は account name 由来で XML sanitize されるが、generate error の詳細は log にのみ出るため、invalid XML char や長大 account name の扱いを固定したい
-  - invalid XML char、long account name、emoji、control char、generate error log redaction、download/copy UI failure の test を追加する
-
-- [ ] P2 OPML export ordering の folder/feed stable sort を locale-independent にする
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/opml.rs`
-  - feed title sort は Rust string cmp なので locale 非依存だが、日本語/大小文字/emoji の ordering が UI 表示順と異なる可能性がある
-  - same title id tie-breaker、Japanese title、case ordering、folder sort_order tie、orphan folder_id fallback の export snapshot を追加する
-
 - [ ] P2 preference allowlist と frontend preference schema の drift を自動検出する
   - 対象: `src-tauri/src/commands/preference_commands.rs`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
   - backend `ALLOWED_KEYS` と frontend schema/defaults が別 source なので、新 preference 追加時に保存だけ失敗する risk が高い
@@ -3731,16 +3721,6 @@
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
   - native close requested、dirty settings、add feed pending、sync pending、restart requested、force close の flow を固定する
 
-- [ ] P2 window size/position restore を multi-monitor / disconnected monitor / negative coordinates で固定する
-  - 対象: Tauri window config, platform store, startup focus restore
-  - 外部 monitor を外した後の保存位置や negative coordinate を復元すると、window が画面外に出る
-  - disconnected monitor、negative x/y、DPI change、maximized state、fullscreen state、safe fallback center の contract を追加する
-
-- [ ] P2 startup focus restore delayed task を app exit / window recreate / focus denied で cancel-safe にする
-  - 対象: `focus_main_webview_on_startup`, app/window lifecycle
-  - 150ms delay 中に window が close/recreate されると stale handle に focus を投げる
-  - app exit before delay、window destroyed、webview missing、focus denied、run_on_main_thread failure の test を追加する
-
 - [ ] P2 native file dialog extension / overwrite confirmation policy を import/export/backup で揃える
   - 対象: OPML import/export、DB backup/restore UI、Tauri dialog usage
   - open/save dialog の拡張子・既存 file overwrite・cancel handling がばらつくと、ユーザーデータを誤上書きしやすい
@@ -3850,11 +3830,6 @@
   - 対象: app shell CSS、native titlebar overlay、drag/drop handlers
   - titlebar drag、browser overlay、file drop overlay が同じ上部領域を使うと、クリック/ドラッグ/drop の優先順位が壊れる
   - titlebar drag、toolbar click、file hover、drop cancel、browser overlay open の visual/manual check を追加する
-
-- [ ] P2 long-running operation progress event monotonicity を import/export/sync/update で揃える
-  - 対象: sync progress events、OPML import/export UI、updater events
-  - progress が戻る、100% 後に error、session id なしで別操作に混ざると UI が信用できなくなる
-  - monotonic percent、session id、100 then error、cancel, restart after failure の contract を追加する
 
 - [ ] P2 memory pressure / OOM risk を large feed import と article render で smoke 化する
   - 対象: local provider parser、OPML import、article content view
@@ -4060,11 +4035,6 @@
   - 対象: backup command、restore docs、DB metadata
   - backup がどの app/schema 由来か分からないと、restore 前に compatibility を判断できない
   - app version、schema version、created_at、source app identifier、checksum、metadata parse failure の contract を追加する
-
-- [ ] P2 OPML export に privacy summary comment を入れる/入れない decision を作る
-  - 対象: OPML generator、export docs
-  - OPML は共有されやすいが購読傾向や folder 名を含むため、生成物に注意書きを入れるか決めておく
-  - comment included/omitted、round-trip compatibility、reader import tolerance、locale copy、user warning の decision を追加する
 
 - [ ] P2 screen reader landmark / heading structure を reader/settings/subscriptions で固定する
   - 対象: app shell、reader panes、settings modal、subscriptions index
