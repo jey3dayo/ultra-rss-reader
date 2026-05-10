@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { i18nResourceLocales } from "@/lib/i18n-resources";
 import {
+  getDefaultShortcutPreferenceValue,
+  isLockedShortcutPreferenceKey,
   isShortcutPreferenceKey,
   type KeyboardShortcutPrefs,
   type ShortcutPreferenceKey,
@@ -328,6 +330,10 @@ export function normalizePreferenceValue<K extends KnownPreferenceKey>(key: K, v
 export function normalizePreferenceValue(key: string, value: string): string;
 export function normalizePreferenceValue(key: string, value: string): string {
   if (isShortcutPreferenceKey(key)) {
+    if (isLockedShortcutPreferenceKey(key)) {
+      return getDefaultShortcutPreferenceValue(key);
+    }
+
     const result = shortcutPreferenceValueSchema.safeParse(value);
     return result.success ? result.data : (preferenceDefaults[key] ?? "");
   }

@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
@@ -338,28 +338,41 @@ fn build_export_opml_feeds(feeds: Vec<Feed>, folders: Vec<Folder>) -> Vec<OpmlFe
             .cmp(&b.sort_order)
             .then_with(|| a.id.0.cmp(&b.id.0))
     });
-    let folder_map: std::collections::HashMap<FolderId, String> = folders
+    let folder_map: HashMap<FolderId, String> = folders
         .iter()
         .map(|f| (f.id.clone(), f.name.clone()))
         .collect();
-    let mut remaining_feeds = feeds;
-    remaining_feeds.sort_by(compare_export_feeds);
-    let mut opml_feeds = Vec::with_capacity(remaining_feeds.len());
+    let feed_count = feeds.len();
+    let mut foldered_feeds: HashMap<FolderId, Vec<Feed>> = HashMap::new();
+    let mut remaining_feeds = Vec::new();
 
-    for folder in folders {
-        let mut index = 0;
-        while index < remaining_feeds.len() {
-            if remaining_feeds[index].folder_id.as_ref() == Some(&folder.id) {
-                opml_feeds.push(feed_to_opml_feed(
-                    remaining_feeds.remove(index),
-                    Some(folder.name.clone()),
-                ));
-            } else {
-                index += 1;
-            }
+    for feed in feeds {
+        if let Some(folder_id) = feed
+            .folder_id
+            .as_ref()
+            .filter(|folder_id| folder_map.contains_key(*folder_id))
+            .cloned()
+        {
+            foldered_feeds.entry(folder_id).or_default().push(feed);
+        } else {
+            remaining_feeds.push(feed);
         }
     }
 
+    let mut opml_feeds = Vec::with_capacity(feed_count);
+
+    for folder in folders {
+        if let Some(mut feeds) = foldered_feeds.remove(&folder.id) {
+            feeds.sort_by(compare_export_feeds);
+            opml_feeds.extend(
+                feeds
+                    .into_iter()
+                    .map(|feed| feed_to_opml_feed(feed, Some(folder.name.clone()))),
+            );
+        }
+    }
+
+    remaining_feeds.sort_by(compare_export_feeds);
     opml_feeds.extend(remaining_feeds.into_iter().map(|feed| {
         let folder_name = feed
             .folder_id
@@ -401,6 +414,8 @@ mod tests {
     use rusqlite::params;
     use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
     use std::sync::Mutex;
+    use std::time::Duration;
+    use std::time::Instant;
 
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use crate::infra::db::connection::DbManager;
@@ -1546,6 +1561,119 @@ mod tests {
                 Some(folder_beta.name.as_str()),
                 Some(folder_japanese.name.as_str()),
             ],
+        );
+    }
+
+    #[test]
+    fn export_large_account_order_snapshot_stays_within_build_time_budget() {
+        const FOLDER_COUNT: usize = 80;
+        const FEEDS_PER_FOLDER: usize = 60;
+        const TOP_LEVEL_FEEDS: usize = 200;
+        const BUILD_TIME_BUDGET: Duration = Duration::from_secs(2);
+
+        let folders = (0..FOLDER_COUNT)
+            .map(|index| {
+                folder(
+                    &format!("folder-{index:03}"),
+                    &format!("Folder {index:03}"),
+                    index as i32,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut feeds = Vec::with_capacity(FOLDER_COUNT * FEEDS_PER_FOLDER + TOP_LEVEL_FEEDS);
+
+        for folder in folders.iter().rev() {
+            for feed_index in (0..FEEDS_PER_FOLDER).rev() {
+                feeds.push(feed(
+                    &format!("{}-feed-{feed_index:03}", folder.id.0),
+                    Some(&folder.id),
+                    &format!("Feed {feed_index:03}"),
+                ));
+            }
+        }
+
+        for feed_index in (0..TOP_LEVEL_FEEDS).rev() {
+            feeds.push(feed(
+                &format!("top-feed-{feed_index:03}"),
+                None,
+                &format!("Top {feed_index:03}"),
+            ));
+        }
+
+        let started_at = Instant::now();
+        let opml_feeds = build_export_opml_feeds(feeds, folders);
+        let elapsed = started_at.elapsed();
+
+        assert_eq!(
+            opml_feeds.len(),
+            FOLDER_COUNT * FEEDS_PER_FOLDER + TOP_LEVEL_FEEDS
+        );
+        assert!(
+            elapsed <= BUILD_TIME_BUDGET,
+            "large OPML export ordering exceeded build time budget: {elapsed:?}"
+        );
+
+        let snapshot_positions = [
+            0,
+            FEEDS_PER_FOLDER - 1,
+            FEEDS_PER_FOLDER,
+            FOLDER_COUNT * FEEDS_PER_FOLDER - 1,
+            FOLDER_COUNT * FEEDS_PER_FOLDER,
+            opml_feeds.len() - 1,
+        ];
+        let order_snapshot = snapshot_positions
+            .iter()
+            .map(|index| {
+                let feed = &opml_feeds[*index];
+                (
+                    *index,
+                    feed.title.as_str(),
+                    feed.folder.as_deref(),
+                    feed.xml_url.as_str(),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            order_snapshot,
+            vec![
+                (
+                    0,
+                    "Feed 000",
+                    Some("Folder 000"),
+                    "https://example.com/folder-000-feed-000.xml",
+                ),
+                (
+                    59,
+                    "Feed 059",
+                    Some("Folder 000"),
+                    "https://example.com/folder-000-feed-059.xml",
+                ),
+                (
+                    60,
+                    "Feed 000",
+                    Some("Folder 001"),
+                    "https://example.com/folder-001-feed-000.xml",
+                ),
+                (
+                    4799,
+                    "Feed 059",
+                    Some("Folder 079"),
+                    "https://example.com/folder-079-feed-059.xml",
+                ),
+                (
+                    4800,
+                    "Top 000",
+                    None,
+                    "https://example.com/top-feed-000.xml",
+                ),
+                (
+                    4999,
+                    "Top 199",
+                    None,
+                    "https://example.com/top-feed-199.xml",
+                ),
+            ]
         );
     }
 

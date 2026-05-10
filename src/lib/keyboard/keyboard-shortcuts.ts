@@ -228,6 +228,7 @@ const shortcutDefinitionById = new Map<ShortcutActionId, ShortcutDefinition>(
   shortcutDefinitions.map((definition) => [definition.id, definition]),
 );
 const shortcutActionIdSet = new Set<string>(shortcutDefinitionById.keys());
+const lockedShortcutActionIds = new Set<ShortcutActionId>(["open_settings"]);
 
 export function isShortcutActionId(value: string): value is ShortcutActionId {
   return shortcutActionIdSet.has(value);
@@ -235,6 +236,23 @@ export function isShortcutActionId(value: string): value is ShortcutActionId {
 
 export function isShortcutPreferenceKey(key: string): key is ShortcutPreferenceKey {
   return key.startsWith("shortcut_") && isShortcutActionId(key.slice("shortcut_".length));
+}
+
+export function isLockedShortcutActionId(id: ShortcutActionId): boolean {
+  return lockedShortcutActionIds.has(id);
+}
+
+export function isLockedShortcutPreferenceKey(key: ShortcutPreferenceKey): boolean {
+  return isLockedShortcutActionId(key.slice("shortcut_".length) as ShortcutActionId);
+}
+
+export function getDefaultShortcutKey(id: ShortcutActionId): string {
+  return shortcutDefinitionById.get(id)?.defaultKey ?? "";
+}
+
+export function getDefaultShortcutPreferenceValue(key: ShortcutPreferenceKey): string {
+  const actionId = key.slice("shortcut_".length);
+  return isShortcutActionId(actionId) ? getDefaultShortcutKey(actionId) : "";
 }
 
 export type KeyToActionMap = Map<string, ShortcutActionId>;
@@ -266,11 +284,11 @@ export function getRenamedShortcutPreferenceKey(key: string): ShortcutPreference
 }
 
 function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
-  const definition = shortcutDefinitionById.get(id);
-  if (id === "open_settings") {
-    return definition?.defaultKey ?? "\u2318,";
+  if (isLockedShortcutActionId(id)) {
+    return getDefaultShortcutKey(id);
   }
 
+  const definition = shortcutDefinitionById.get(id);
   const preferenceKey = shortcutPrefKey(id);
   const renamedPreference = renamedShortcutPreferenceEntries.find(([, currentKey]) => currentKey === preferenceKey);
 
@@ -334,6 +352,10 @@ export function getShortcutConflict(
 ): ShortcutConflict | null {
   const normalizedKey = normalizeShortcutMapKey(key);
   if (normalizedKey === null) {
+    return null;
+  }
+
+  if (targetId === "open_settings" && normalizedKey === platformSettingsShortcut) {
     return null;
   }
 

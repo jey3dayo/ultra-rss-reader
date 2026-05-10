@@ -892,7 +892,9 @@ fn retry_after_seconds_from_app_error(error: &crate::commands::dto::AppError) ->
             message,
             retry_after_seconds,
         } if message.starts_with(RETRY_AFTER_MESSAGE_PREFIX) => *retry_after_seconds,
-        AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. } | AppError::UserVisible { .. } => None,
+        AppError::Retryable { .. }
+        | AppError::RetryableWithMetadata { .. }
+        | AppError::UserVisible { .. } => None,
     }
 }
 

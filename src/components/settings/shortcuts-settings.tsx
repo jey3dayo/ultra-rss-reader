@@ -1,12 +1,14 @@
 import { RotateCcw } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRegisterSettingsDirtyState } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-shortcut-targets";
 import {
   formatKeyForDisplay,
+  getDefaultShortcutKey,
   getShortcutConflict,
+  isLockedShortcutActionId,
   normalizeRecordedShortcutKey,
   type ShortcutActionId,
   shortcutDefinitions,
@@ -21,6 +23,10 @@ type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
   "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing" | "preventDefault" | "stopPropagation"
 >;
+type ShortcutConflictMessageState = {
+  id: ShortcutActionId;
+  key: string;
+};
 
 function normalizeRecordedKey(
   e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing">,
@@ -51,8 +57,11 @@ export function ShortcutsSettings() {
 
   const getKey = useCallback(
     (id: ShortcutActionId) => {
-      const def = shortcutDefinitions.find((d) => d.id === id);
-      return prefs[shortcutPrefKey(id)] ?? def?.defaultKey ?? "";
+      if (isLockedShortcutActionId(id)) {
+        return getDefaultShortcutKey(id);
+      }
+
+      return prefs[shortcutPrefKey(id)] ?? getDefaultShortcutKey(id);
     },
     [prefs],
   );
@@ -80,29 +89,39 @@ export function ShortcutsSettings() {
   );
 
   const handleStartRecording = useCallback((id: ShortcutActionId) => {
-    setConflictMessage(null);
+    setConflictMessageState(null);
     setRecordingId(id);
   }, []);
 
-  const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const [conflictMessageState, setConflictMessageState] = useState<ShortcutConflictMessageState | null>(null);
+  const conflictMessage = useMemo(() => {
+    if (!conflictMessageState) {
+      return null;
+    }
+
+    const conflict = findConflict(conflictMessageState.id, conflictMessageState.key);
+    if (!conflict) {
+      return null;
+    }
+
+    return t("shortcuts.conflict_message", {
+      key: formatKeyForDisplay(conflictMessageState.key, platformKind),
+      name: conflict,
+    });
+  }, [conflictMessageState, findConflict, platformKind, t]);
 
   const handleKeyRecorded = useCallback(
     (id: ShortcutActionId, key: string) => {
       const conflict = findConflict(id, key);
       if (conflict) {
-        setConflictMessage(
-          t("shortcuts.conflict_message", {
-            key: formatKeyForDisplay(key, platformKind),
-            name: conflict,
-          }),
-        );
+        setConflictMessageState({ id, key });
       } else {
-        setConflictMessage(null);
+        setConflictMessageState(null);
         setPref(shortcutPrefKey(id), key);
       }
       setRecordingId(null);
     },
-    [findConflict, platformKind, setPref, t],
+    [findConflict, setPref],
   );
 
   const handleCancel = useCallback(() => {
@@ -132,6 +151,8 @@ export function ShortcutsSettings() {
   const showConfirm = useUiStore((s) => s.showConfirm);
 
   const doResetAll = useCallback(() => {
+    setConflictMessageState(null);
+    setRecordingId(null);
     for (const def of shortcutDefinitions) {
       setPref(shortcutPrefKey(def.id), def.defaultKey);
     }
@@ -147,11 +168,11 @@ export function ShortcutsSettings() {
   const handleResetShortcut = useCallback(
     (id: ShortcutActionId) => {
       const def = shortcutDefinitions.find((shortcut) => shortcut.id === id);
-      if (!def || def.id === "open_settings") {
+      if (!def || isLockedShortcutActionId(def.id)) {
         return;
       }
 
-      setConflictMessage(null);
+      setConflictMessageState(null);
       setRecordingId(null);
       setPref(shortcutPrefKey(def.id), def.defaultKey);
     },
