@@ -2923,21 +2923,6 @@
   - focus restore が `requestAnimationFrame` を直接呼ぶため、test/jsdom polyfill 欠落や unusual WebView で落ちる可能性がある
   - requestAnimationFrame missing、close with restoreFocus、unmount before frame、fallback sync focus の test を追加する
 
-- [ ] P2 Safari Reading List URL validation に control char / whitespace policy を追加する
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/api/schemas/commands.ts`, `src/components/reader/article-share-menu.tsx`
-  - `add_to_reading_list` は newline だけを明示拒否しており、tab、NUL、leading/trailing whitespace、userinfo 付き URL の扱いが URL policy とずれやすい
-  - tab/NUL/control char、leading/trailing whitespace、userinfo URL、mixed-case scheme、schema/backend parity の test を追加する
-
-- [ ] P2 Safari Reading List の URL 長上限と AppleScript argument policy を決める
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/components/reader/article-browser-actions.ts`
-  - very long URL を AppleScript 1 引数に入れる設計なので、OS 側 limit や signed URL redaction の失敗時に user-visible error と log が揺れやすい
-  - 4KB/16KB URL、osascript argument failure、stderr redaction、user-visible copy、fallback open external の test を追加する
-
-- [ ] P2 clipboard text validation を control char / grapheme / bytes で固定する
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/clipboard.ts`, `src/api/schemas/commands.ts`
-  - Rust 側は char count と trim 空文字中心なので、NUL/control char、emoji、巨大 UTF-8 payload の扱いが frontend schema とずれやすい
-  - NUL、tab/newline-only、emoji 2048 chars、UTF-8 bytes over limit、frontend/backend error parity の test を追加する
-
 - [ ] P2 mailto subject/body truncation を grapheme-safe にする
   - 対象: `src/components/reader/article-share-menu.tsx`, `src/__tests__/components/article-share-menu.test.tsx`
   - `slice(0, maxLength)` は surrogate pair や combining mark を分割し、メールクライアントに壊れた subject/body を渡し得る
@@ -3063,21 +3048,6 @@
   - debug dump や copy/export に account URL、token 付き URL、local path、subscription metadata が混ざるとサポート共有で漏れる
   - account URL token、diagnostics payload、log path、browser geometry URL、copy/export redaction の contract test に分ける
 
-- [ ] P1 provider HTTP client response body cap を provider 全体で固定する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/http_client.rs`
-  - feed discovery だけ body cap があっても、sync/fetch/provider JSON 側で巨大・圧縮・chunked response を受けるとメモリ事故になる
-  - huge feed body、huge JSON、compressed response、chunked response、partial read failure の境界値を追加する
-
-- [ ] P1 SQLite `foreign_keys` / `busy_timeout` / WAL mode PRAGMA を connection contract にする
-  - 対象: `src-tauri/src/infra/db/connection.rs`, `src-tauri/migrations`
-  - connection 初期化の PRAGMA が変わると cascade、lock、read/write split の挙動が静かに変わる
-  - foreign key cascade、busy timeout、WAL enabled、in-memory DB parity、migration connection parity を固定する
-
-- [ ] P1 FTS5 rebuild / trigger drift を sanitizer・`content_text` migration と同期する
-  - 対象: `src-tauri/migrations/V3__fts5.sql`, `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
-  - sanitizer repair や `content_text` 更新後に FTS table だけ古いと検索結果と本文表示がずれる
-  - title/content update、delete、repair batch、rebuild command、empty content の FTS contract を追加する
-
 - [ ] P2 article reader scroll position retention policy を決める
   - 対象: `src/components/reader/hooks/article`, `src/stores/ui-store.ts`
   - article 切替、feed 切替、browser overlay close、account switch で scroll を残すか戻すかが曖昧だと閲覧復帰が不安定になる
@@ -3102,16 +3072,6 @@
   - 対象: `src-tauri/src/menu_i18n.rs`, `src-tauri/src/menu.rs`, frontend locale actions
   - native menu rebuild が locale switch と競合すると旧 locale 表示や raw key 表示が残る
   - missing key、ja/en switch、menu rebuild failure、fallback language、checked item label を固定する
-
-- [ ] P2 HTTP cache validator の weak/strong ETag と `Last-Modified` parsing を固定する
-  - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/repository/sync_state.rs`, `src-tauri/src/infra/provider/local.rs`
-  - weak ETag、quote 差分、invalid date の扱いが曖昧だと過剰 fetch または更新漏れになる
-  - weak ETag、quoted ETag、invalid Last-Modified、304 response、URL change validator clear の test を追加する
-
-- [ ] P2 GReader rate limit `Retry-After` header を structured error に寄せる
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_scheduler.rs`
-  - message parse ベースの retry 判定が残ると provider 文言変更で backoff が壊れる
-  - seconds header、HTTP date header、invalid header、multiple accounts、backoff cap の contract を追加する
 
 - [ ] P2 app update restart prompt と dirty form / pending mutation の衝突を防ぐ
   - 対象: `src/hooks/use-updater.ts`, `src/components/settings`, `src/components/add-feed`
@@ -3173,16 +3133,6 @@
   - observer mock の cleanup が test ごとに違うと、後続 test の resize/layout 判定が flake する
   - setup helper、afterEach cleanup、observer callback ordering、fake timers、StrictMode double invoke の確認を追加する
 
-- [ ] P1 feed fetch redirect policy を cross-scheme / private host / loop で固定する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/feed_discovery.rs`, URL schema
-  - initial URL が安全でも redirect 先で private host、file-like scheme、downgrade、loop に入ると SSRF/timeout/誤取得につながる
-  - http->https、https->http、private redirect、relative redirect、redirect loop、max hops の contract test を追加する
-
-- [ ] P1 compressed response bomb を decoded-size cap として provider/discovery 共通にする
-  - 対象: `src-tauri/src/infra/provider/http_defaults.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/feed_discovery.rs`
-  - gzip/brotli の encoded size だけ見ていると decoded body が巨大化してメモリを食う
-  - gzip bomb、brotli bomb、invalid encoding、decoded limit exceeded、partial decode failure の fixture を追加する
-
 - [ ] P1 DB backup / restore 前後の `integrity_check` と WAL checkpoint 方針を固定する
   - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`, backup flow
   - WAL 未 checkpoint や破損 DB を backup/restore すると、成功 toast 後に次回起動で壊れる
@@ -3199,25 +3149,10 @@
   - sanitized HTML 内の link が opener policy を迂回すると、token URL や private host を外部に開く可能性がある
   - `target=_blank`、`rel=noopener noreferrer`、credential URL、private host、malformed href、relative href の fixture を追加する
 
-- [ ] P2 feed parser charset / BOM / XML declaration handling を corpus 化する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, feed parser boundary
-  - UTF-8 以外、BOM、XML declaration の encoding、invalid bytes が混ざると title/link/date が欠落する
-  - UTF-8 BOM、Shift_JIS declaration、invalid byte、HTML entity、CDATA、empty title の fixture を追加する
-
 - [ ] P2 feed discovery robots.txt / user-agent 方針を明文化する
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, provider HTTP defaults, docs
   - desktop app として robots.txt を読む/読まない、User-Agent をどう名乗るかが曖昧だと provider 側 block や運用問い合わせに弱い
   - user-agent string、robots ignored/checked policy、403 handling、docs wording、test fixture の task に分ける
-
-- [ ] P2 TLS / certificate / DNS failure の user-facing error taxonomy を固定する
-  - 対象: `src-tauri/src/domain/error.rs`, provider/fetch commands
-  - timeout、DNS、cert expired、self-signed、connection reset が同じ generic network error だとユーザーが復旧できない
-  - DNS failure、TLS expired、self-signed cert、connection reset、timeout、loopback probe の message contract を追加する
-
-- [ ] P2 proxy / environment variable leakage policy を HTTP client boundary で決める
-  - 対象: `src-tauri/src/infra/provider/http_defaults.rs`, release/dev startup
-  - OS/proxy 環境変数を暗黙利用するかどうかが曖昧だと、会社 network と個人環境で挙動が変わる
-  - `HTTP_PROXY`、`NO_PROXY`、localhost bypass、dev only override、diagnostics redaction の contract を追加する
 
 - [ ] P2 `robots` / provider block response を sync backoff と user action で分ける
   - 対象: local provider sync、`src-tauri/src/service/sync_scheduler.rs`, sync result UI
