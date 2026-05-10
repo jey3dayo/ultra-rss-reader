@@ -234,6 +234,20 @@ Confirm and record:
 - Support/debug copy does not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.
 - If support needs environment context, ask for app version, OS family, CPU architecture, locale, and timezone offset as separate non-secret fields instead of adding a stable fingerprint to default debug copy.
 
+### 9a. Import/Export Cancellation Verification
+
+Verify this when a release changes OPML import/export, database backup/restore, settings data portability, file dialogs, or long-running operation progress.
+
+Confirm and record:
+
+- Cancel before choosing a file or destination closes without a confirmation prompt.
+- Cancel after OPML import preview or running import asks for confirmation before canceling.
+- Cancel after OPML export destination selection asks for confirmation before canceling a running write.
+- Cancel during database backup/restore asks for confirmation before canceling any copy or restore step.
+- The confirmation copy states whether cancellation leaves no changes, partial changes, or a partial artifact that may need manual cleanup.
+- After a canceled export or backup, a retry does not silently reuse a stale partial artifact.
+- After a canceled import, the UI reports whether no feeds changed or a partial mutation may need review.
+
 ## Hotfix Release Checklist
 
 Use this checklist only for a patch that fixes a released regression and should avoid unrelated release scope. Normal feature releases should use the full checklist above.

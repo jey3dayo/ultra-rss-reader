@@ -86,6 +86,19 @@ Before app settings export/import is implemented, the contract must define:
 
 Until that contract exists, support and release docs must not promise portable app settings export/import.
 
+### Import/Export Progress Cancellation
+
+Decision: destructive or ambiguous cancellation confirmation must happen before canceling an import/export operation, not after progress has already been torn down.
+
+Progress cancellation contract:
+
+- OPML import: confirmation is required after parsing or preview has started and before canceling a running import that may have written feeds or folders.
+- OPML export: confirmation is required after the destination path has been chosen and before canceling a running write that may leave a partial artifact.
+- Database backup/restore: confirmation is required before canceling any running copy or restore step that may leave a partial backup set or restore target.
+- Future app settings export/import: confirmation timing must follow the same before-cancel rule and must state whether no changes, partial changes, or cleanup will result.
+- A cancel request made before a file is selected or before an operation starts must close without a confirmation prompt.
+- If cancellation cannot guarantee cleanup of a partial artifact, the UI must say the artifact may remain and direct the user to delete or retry it manually.
+
 ### Support/Debug Environment Fingerprint
 
 Decision: do not include a stable app/environment fingerprint in support or debug copy by default.
@@ -197,6 +210,28 @@ The current same-origin assumptions are:
 
 Future changes that merge reader and browser state, add cross-origin messaging, or expose webview navigation data to app actions must update this contract before implementation.
 
+### Feed Discovery Result Trust Levels
+
+Decision: feed discovery results are untrusted metadata until the add action validates and normalizes the selected URL.
+
+Discovery can receive titles, feed URLs, site URLs, content types, and redirects from arbitrary publisher-controlled pages. UI display may show this metadata for user choice, but add action must not treat it as trusted account or subscription state.
+
+Trust level contract:
+
+| Surface | Trust level | Allowed behavior |
+| --- | --- | --- |
+| Discovery result display | Untrusted preview | Show title, URL, and warning state with escaping and truncation |
+| Add action candidate | Validated candidate | Re-validate scheme, host, redirect target, private-host policy, and mixed-content policy before mutation |
+| Stored feed | Trusted app state | Store only normalized values returned by the validated add flow |
+
+Display and action rules:
+
+- Spoofable publisher titles must not be used as proof that a feed is safe.
+- HTTP, mixed-content, private-host, credentialed, oversized, malformed, or redirecting URLs must show a distinct warning or blocked state before add.
+- Add action must use the normalized feed URL selected by validation, not only the display label.
+- If validation changes the URL, follows a redirect, or rejects a private host, the user-visible result must explain that before storing the feed.
+- Debug logs and support copy must record discovery failure class without storing raw token-bearing URLs.
+
 ## Guardrails
 
 - Reader HTML must continue to come from sanitized `content_sanitized` fields.
@@ -207,6 +242,8 @@ Future changes that merge reader and browser state, add cross-origin messaging, 
 - Support artifacts must be redacted before sharing and deleted manually when they are no longer needed.
 - Support dumps must not be generated before explicit user consent and redaction preview.
 - Native notifications, custom protocols, deep links, and cross-origin browser/reader bridges must not ship before their privacy and routing contracts are defined and verified.
+- Feed discovery preview metadata must stay separate from validated add-feed state.
+- Import/export cancel actions must confirm before canceling once partial writes or state mutations are possible.
 
 ## Follow-Up Direction
 

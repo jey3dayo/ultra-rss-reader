@@ -89,6 +89,8 @@ If any surface cannot be removed because of OS permissions, file locks, or an un
 - If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted until the flow reports a clean retry or cleanup.
 - App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.
 - Do not recommend exporting settings as an uninstall/reinstall backup unless that versioned contract exists for the build being tested.
+- If import/export cancellation is reported, record whether the user confirmed before canceling, which phase was running, and whether a partial artifact or partial feed/folder mutation may remain.
+- If feed discovery added the wrong feed, record the displayed title, normalized URL class, redirect/private-host warning state, and add action result separately. Do not treat the discovery title as trusted evidence.
 
 ### Manual Verification Checklist
 
@@ -150,6 +152,12 @@ Use this path when startup succeeded but a later read or write command reports c
 2. Save logs before retrying repeated sync attempts.
 3. Note which account names appear in the toast or warning output.
 4. If the failure suggests retry/backoff behavior, preserve the first error rather than hammering manual retries.
+5. Record freshness state separately for account, affected feeds, and the current article list:
+   - all success
+   - partial success
+   - all failed
+   - offline detected
+6. If stale content is still readable, capture whether a stale content banner was shown in the account, feed, or article view. Do not report readable stale articles as a successful fresh sync.
 
 ## Escalation Notes
 

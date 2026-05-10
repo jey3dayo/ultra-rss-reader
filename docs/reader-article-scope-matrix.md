@@ -62,6 +62,34 @@
 - フィード、フォルダ、タグでは、絞り込み前に account articles の先頭 50 件へ切り詰めない。
 - フォルダは `sourceKind: folder` として扱う。`accountArticles` に混ぜて後段で folder filter しない。
 
+## Freshness And Stale Content Contract
+
+Reader の freshness 表示は、account、feed、article list で同じ sync result model を使う。表示対象が違っても、同じ状態を別の severity や別ラベルにしない。
+
+| Sync result | Account surface | Feed surface | Article list surface |
+| --- | --- | --- | --- |
+| All success | 最新として表示する | 最新として表示する | stale warning なし |
+| Partial success | 部分的に更新済みとして表示する | 失敗した feed だけ stale として表示する | stale feed が含まれる場合だけ部分更新 warning を表示する |
+| All failed | 前回同期時点の内容として表示する | 前回同期時点の内容として表示する | stale content banner を表示する |
+| Offline detected | オフラインの可能性として表示する | オフラインの可能性として表示する | stale content banner を表示する |
+
+Freshness indicator contract:
+
+- Account surface は、account 全体の `last successful sync` と stale feed count を表示単位にする。
+- Feed surface は、その feed の `last successful feed sync` を表示単位にする。
+- Article list surface は、現在の `ReaderQuery` に含まれる feed のうち stale な feed があるかを表示単位にする。
+- Partial success は success toast だけで終わらせず、stale feed count を account/feed/article list のいずれでも追える状態にする。
+- All failed と offline detected は、古い記事を読める状態でも「現在の内容が最新とは限らない」ことを表示する。
+- Manual sync failed は、既存記事を消さずに stale state を維持する。空状態へ置き換えない。
+
+Stale content banner policy:
+
+- Account view: all failed、offline detected、または stale feed count が 1 以上で last successful sync が表示閾値を超えたときに出す。
+- Feed view: その feed の sync が失敗中、offline detected、または last successful feed sync が表示閾値を超えたときに出す。
+- Article view/list: 現在開いている記事または一覧が stale feed に属する場合に出す。
+- Banner dismiss は session-local にする。Account/feed を切り替えたら、別 scope の stale state を隠さない。
+- Error toast は一時的な失敗通知、stale content banner は閲覧中データの鮮度表示として分ける。
+
 ## Transition Rules
 
 | 経路                                | 通常文脈                                                      | スター文脈                                                     |
@@ -86,4 +114,6 @@
 - recent は `viewed_at DESC` を維持しているか。
 - starred/unread view で、選択中記事の retained article が画面遷移まで残るか。
 - `selectedAccountId === null` で API が呼ばれていないか。
+- partial sync success、all failed、offline detected で account/feed/article list の freshness 表示が同じ状態分類を使っているか。
+- stale content banner と error toast が別の役割として表示され、古い記事一覧を空状態に置き換えていないか。
 - 画面確認は `debug` アカウントで行う。
