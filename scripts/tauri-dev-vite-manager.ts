@@ -21,7 +21,10 @@ type SpawnSpec = {
 type ManagedChildProcess = {
   killed: boolean;
   kill(signal: NodeJS.Signals): boolean;
-  on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): void;
+  on(
+    event: "exit",
+    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
+  ): void;
   on(event: "error", listener: (error: Error) => void): void;
 };
 
@@ -70,7 +73,11 @@ function normalizePathForComparison(value: string): string {
     return slashPath.toLowerCase();
   }
 
-  return path.resolve(slashPath).replaceAll("\\", "/").replace(/\/+$/, "").toLowerCase();
+  return path
+    .resolve(slashPath)
+    .replaceAll("\\", "/")
+    .replace(/\/+$/, "")
+    .toLowerCase();
 }
 
 function splitCommandLine(commandLine: string): string[] {
@@ -85,7 +92,10 @@ function splitCommandLine(commandLine: string): string[] {
   return args;
 }
 
-function hasExpectedVitePort(commandArgs: readonly string[], port: number): boolean {
+function hasExpectedVitePort(
+  commandArgs: readonly string[],
+  port: number,
+): boolean {
   const expectedPort = String(port);
 
   return commandArgs.some((arg, index) => {
@@ -97,7 +107,10 @@ function hasExpectedVitePort(commandArgs: readonly string[], port: number): bool
   });
 }
 
-function commandArgsReferencePackageRoot(commandArgs: readonly string[], packageRoot: string): boolean {
+function commandArgsReferencePackageRoot(
+  commandArgs: readonly string[],
+  packageRoot: string,
+): boolean {
   const normalizedPackageRoot = normalizePathForComparison(packageRoot);
 
   return commandArgs.some((arg) => {
@@ -114,7 +127,9 @@ function resolvePackageRoot(scriptUrl: string): string {
   return path.resolve(fileURLToPath(new URL("..", scriptUrl)));
 }
 
-export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind {
+export function classifyPortOwnerCommandLine(
+  commandLine: string,
+): PortOwnerKind {
   const normalized = commandLine.trim().toLowerCase();
   if (!normalized) {
     return "unknown";
@@ -131,7 +146,10 @@ export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind
   return "foreign";
 }
 
-export function classifyPortOwner(processInfo: PortOwnerProcess, expectedOwner: ExpectedViteOwner): PortOwnerKind {
+export function classifyPortOwner(
+  processInfo: PortOwnerProcess,
+  expectedOwner: ExpectedViteOwner,
+): PortOwnerKind {
   const ownerKind = classifyPortOwnerCommandLine(processInfo.commandLine);
   if (ownerKind !== "vite") {
     return ownerKind;
@@ -139,10 +157,15 @@ export function classifyPortOwner(processInfo: PortOwnerProcess, expectedOwner: 
 
   const commandArgs = splitCommandLine(processInfo.commandLine);
   if (processInfo.cwd) {
-    if (normalizePathForComparison(processInfo.cwd) !== normalizePathForComparison(expectedOwner.packageRoot)) {
+    if (
+      normalizePathForComparison(processInfo.cwd) !==
+      normalizePathForComparison(expectedOwner.packageRoot)
+    ) {
       return "foreign";
     }
-  } else if (!commandArgsReferencePackageRoot(commandArgs, expectedOwner.packageRoot)) {
+  } else if (
+    !commandArgsReferencePackageRoot(commandArgs, expectedOwner.packageRoot)
+  ) {
     return "foreign";
   }
 
@@ -153,7 +176,10 @@ export function classifyPortOwner(processInfo: PortOwnerProcess, expectedOwner: 
   return "vite";
 }
 
-export function buildViteSpawnSpec(scriptUrl: string = import.meta.url, port: number = DEFAULT_DEV_PORT): SpawnSpec {
+export function buildViteSpawnSpec(
+  scriptUrl: string = import.meta.url,
+  port: number = DEFAULT_DEV_PORT,
+): SpawnSpec {
   return {
     command: process.execPath,
     args: [
@@ -167,7 +193,9 @@ export function buildViteSpawnSpec(scriptUrl: string = import.meta.url, port: nu
   };
 }
 
-export function resolveTauriDevPort(env: NodeJS.ProcessEnv = process.env): number {
+export function resolveTauriDevPort(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
   const rawPort = env.TAURI_DEV_PORT;
   if (rawPort === undefined) {
     return DEFAULT_DEV_PORT;
@@ -175,7 +203,12 @@ export function resolveTauriDevPort(env: NodeJS.ProcessEnv = process.env): numbe
 
   const trimmedPort = rawPort.trim();
   const port = Number(trimmedPort);
-  if (!trimmedPort || !Number.isInteger(port) || port <= 0 || port > MAX_TCP_PORT) {
+  if (
+    !trimmedPort ||
+    !Number.isInteger(port) ||
+    port <= 0 ||
+    port > MAX_TCP_PORT
+  ) {
     throw new Error("TAURI_DEV_PORT must be an integer between 1 and 65535.");
   }
 
@@ -192,13 +225,19 @@ function getExecErrorCode(error: unknown): number | string {
 }
 
 function getExecErrorExitCode(error: unknown): number {
-  return typeof error === "object" && error !== null && "code" in error && typeof error.code === "number"
+  return typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "number"
     ? error.code
     : -1;
 }
 
 function getExecErrorStdout(error: unknown): string {
-  return typeof error === "object" && error !== null && "stdout" in error && typeof error.stdout === "string"
+  return typeof error === "object" &&
+    error !== null &&
+    "stdout" in error &&
+    typeof error.stdout === "string"
     ? error.stdout
     : "";
 }
@@ -207,20 +246,40 @@ export function buildPortWaitTimeoutMessage(options: {
   port: number;
   elapsedMs: number;
   lastProcess: ListeningProcess | null;
+  processSnapshots?: ListeningProcess[];
 }): string {
   const processDetail = options.lastProcess
     ? `last listener pid ${options.lastProcess.pid}: ${options.lastProcess.commandLine || "unknown command"}`
     : "no listener details were available";
+  const processSnapshots =
+    options.processSnapshots ??
+    (options.lastProcess ? [options.lastProcess] : []);
+  const snapshotDetail =
+    processSnapshots.length > 0
+      ? processSnapshots
+          .map((processInfo, index) => {
+            const cwd = processInfo.cwd
+              ? ` cwd ${processInfo.cwd}`
+              : " cwd unknown";
+            return `#${index + 1} pid ${processInfo.pid}${cwd} command ${processInfo.commandLine || "unknown command"}`;
+          })
+          .join(" | ")
+      : "none";
 
   return [
     `Timed out waiting for port ${options.port} to become available after ${options.elapsedMs}ms`,
     `Checked port: ${options.port}`,
     `Last listener: ${processDetail}`,
+    `Process state snapshot: ${snapshotDetail}`,
     "Next action: stop the stale Vite process, free the configured TAURI_DEV_PORT, or rerun with a supported Node/Vite environment.",
   ].join(". ");
 }
 
-async function capture(command: string, args: string[], allowedExitCodes: number[] = [0]): Promise<string> {
+async function capture(
+  command: string,
+  args: string[],
+  allowedExitCodes: number[] = [0],
+): Promise<string> {
   try {
     const { stdout } = await execFileAsync(command, args, { encoding: "utf8" });
     return stdout.trim();
@@ -234,7 +293,9 @@ async function capture(command: string, args: string[], allowedExitCodes: number
   }
 }
 
-async function getListeningProcess(port: number): Promise<ListeningProcess | null> {
+async function getListeningProcess(
+  port: number,
+): Promise<ListeningProcess | null> {
   if (process.platform === "win32") {
     return getListeningProcessOnWindows(port);
   }
@@ -242,10 +303,16 @@ async function getListeningProcess(port: number): Promise<ListeningProcess | nul
   return getListeningProcessOnUnix(port);
 }
 
-async function getListeningProcessOnUnix(port: number): Promise<ListeningProcess | null> {
+async function getListeningProcessOnUnix(
+  port: number,
+): Promise<ListeningProcess | null> {
   let pidText = "";
   try {
-    pidText = await capture("lsof", ["-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], [0, 1]);
+    pidText = await capture(
+      "lsof",
+      ["-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"],
+      [0, 1],
+    );
   } catch (error: unknown) {
     if (getExecErrorCode(error) !== "ENOENT") {
       throw error;
@@ -268,7 +335,9 @@ async function getListeningProcessOnUnix(port: number): Promise<ListeningProcess
   return { pid, commandLine, cwd };
 }
 
-async function getListeningProcessFromSs(port: number): Promise<ListeningProcess | null> {
+async function getListeningProcessFromSs(
+  port: number,
+): Promise<ListeningProcess | null> {
   const output = await capture("ss", ["-ltnp", `sport = :${port}`], [0, 1]);
   const pidMatch = output.match(/pid=(\d+)/);
 
@@ -298,8 +367,14 @@ async function getProcessCwdOnUnix(pid: number): Promise<string | undefined> {
   }
 
   try {
-    const cwdOutput = await capture("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], [0, 1]);
-    const cwdLine = cwdOutput.split(/\r?\n/).find((line) => line.startsWith("n"));
+    const cwdOutput = await capture(
+      "lsof",
+      ["-a", "-p", String(pid), "-d", "cwd", "-Fn"],
+      [0, 1],
+    );
+    const cwdLine = cwdOutput
+      .split(/\r?\n/)
+      .find((line) => line.startsWith("n"));
     return cwdLine?.slice(1).trim() || undefined;
   } catch (error: unknown) {
     if (getExecErrorCode(error) !== "ENOENT") {
@@ -309,7 +384,9 @@ async function getProcessCwdOnUnix(pid: number): Promise<string | undefined> {
   }
 }
 
-async function getListeningProcessOnWindows(port: number): Promise<ListeningProcess | null> {
+async function getListeningProcessOnWindows(
+  port: number,
+): Promise<ListeningProcess | null> {
   const pidText = await capture(
     "powershell.exe",
     [
@@ -342,6 +419,7 @@ async function waitForPortToBeFree(port: number): Promise<void> {
   const startedAt = Date.now();
   const deadline = startedAt + PORT_WAIT_TIMEOUT_MS;
   let lastProcess: ListeningProcess | null = null;
+  const processSnapshots: ListeningProcess[] = [];
 
   // Poll sequentially so each check observes the port after the previous wait interval.
   while (Date.now() < deadline) {
@@ -350,6 +428,7 @@ async function waitForPortToBeFree(port: number): Promise<void> {
       return;
     }
     lastProcess = processInfo;
+    processSnapshots.push(processInfo);
 
     await new Promise((resolve) => setTimeout(resolve, PORT_WAIT_INTERVAL_MS));
   }
@@ -359,6 +438,7 @@ async function waitForPortToBeFree(port: number): Promise<void> {
       port,
       elapsedMs: Date.now() - startedAt,
       lastProcess,
+      processSnapshots,
     }),
   );
 }
@@ -400,11 +480,15 @@ export async function runTauriDevViteManager({
     }
 
     if (checkMode) {
-      log(`[tauri-dev-vite-manager] existing Vite dev server is ready on port ${port} (pid ${existingProcess.pid})`);
+      log(
+        `[tauri-dev-vite-manager] existing Vite dev server is ready on port ${port} (pid ${existingProcess.pid})`,
+      );
       return "checked";
     }
 
-    log(`[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`);
+    log(
+      `[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`,
+    );
     stopProcessImpl(existingProcess.pid);
     try {
       await waitForPortToBeFreeImpl(port);
@@ -457,11 +541,16 @@ async function main(): Promise<void> {
   await runTauriDevViteManager();
 }
 
-const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule =
+  typeof process.argv[1] === "string" &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
   main().catch((error: unknown) => {
-    console.error("[tauri-dev-vite-manager]", error instanceof Error ? error.message : error);
+    console.error(
+      "[tauri-dev-vite-manager]",
+      error instanceof Error ? error.message : error,
+    );
     process.exit(1);
   });
 }
