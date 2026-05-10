@@ -64,7 +64,7 @@ pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<Remo
                 .unwrap_or_default();
 
             RemoteEntry {
-                id: if entry.id.is_empty() {
+                id: if entry.id.trim().is_empty() {
                     None
                 } else {
                     Some(entry.id)
@@ -185,6 +185,26 @@ mod tests {
         assert_eq!(first.url, Some("https://example.com/article1".to_string()));
         assert_eq!(first.id, Some("guid-1".to_string()));
         assert!(first.published_at.is_some());
+    }
+
+    #[test]
+    fn whitespace_only_entry_id_is_treated_as_blank() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Whitespace ID</title>
+    <id>   </id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link href="https://example.com/article"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(entries[0].id, None);
     }
 
     #[test]
