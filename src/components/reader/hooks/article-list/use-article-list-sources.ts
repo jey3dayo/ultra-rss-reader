@@ -296,13 +296,13 @@ export function useArticleListSources({
   });
   const primarySourceSnapshotCandidate = useMemo<ArticleListPrimarySourceSnapshot | null>(
     () =>
-      primarySourceArticles === undefined
+      primarySourceArticles === undefined || primarySourceLoading
         ? null
         : {
             contextKey: sourcePlan.sourceKey,
             articles: primarySourceArticles,
           },
-    [primarySourceArticles, sourcePlan.sourceKey],
+    [primarySourceArticles, primarySourceLoading, sourcePlan.sourceKey],
   );
   const { snapshot: primarySourceSnapshot } = useScreenSnapshot(
     primarySourceSnapshotCandidate,

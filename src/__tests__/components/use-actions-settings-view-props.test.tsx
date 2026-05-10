@@ -1,6 +1,10 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { ActionsSettingsViewProps } from "@/components/settings/actions-settings-view";
-import { useActionsSettingsViewProps as buildActionsSettingsViewProps } from "@/components/settings/hooks/use-actions-settings-view-props";
+import {
+  ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS,
+  useActionsSettingsViewProps as buildActionsSettingsViewProps,
+  TOOLBAR_ACTION_IDS_WITH_SETTINGS,
+} from "@/components/settings/hooks/use-actions-settings-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");
@@ -25,6 +29,7 @@ describe("useActionsSettingsViewProps", () => {
       expect.objectContaining({
         id: "action-copy-link",
         label: "Copy Link",
+        toggleAriaLabel: "Show in toolbar: Copy Link",
         checked: true,
       }),
     );
@@ -32,5 +37,10 @@ describe("useActionsSettingsViewProps", () => {
     props.services[0]?.onCheckedChange(false);
 
     expect(setPref).toHaveBeenCalledWith("action_copy_link", "false");
+  });
+
+  it("keeps settings-visible actions aligned with toolbar visibility actions", () => {
+    expect(ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS).toEqual(["copy-link"]);
+    expect(TOOLBAR_ACTION_IDS_WITH_SETTINGS).toEqual(ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS);
   });
 });

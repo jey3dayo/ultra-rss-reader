@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "@/api/tauri-commands";
 import { closeBrowserWebview } from "@/api/tauri-commands";
 import { useBrowserWebviewCleanup } from "@/components/reader/hooks/browser/use-browser-webview-cleanup";
+import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("@/api/tauri-commands", () => ({
   closeBrowserWebview: vi.fn(),
@@ -15,6 +16,7 @@ describe("useBrowserWebviewCleanup", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   it("closes the browser webview once on unmount only", async () => {
@@ -34,6 +36,21 @@ describe("useBrowserWebviewCleanup", () => {
     await Promise.resolve();
 
     expect(closeBrowserWebviewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not close a newer browser webview from stale controller cleanup", async () => {
+    closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
+    useUiStore.setState({ browserUrl: "https://example.com/previous" });
+
+    const { unmount } = renderHook(() => {
+      useBrowserWebviewCleanup();
+    });
+
+    useUiStore.setState({ browserUrl: "https://example.com/current" });
+    unmount();
+    await Promise.resolve();
+
+    expect(closeBrowserWebviewMock).not.toHaveBeenCalled();
   });
 
   it("logs Result failures from the close command during unmount cleanup", async () => {

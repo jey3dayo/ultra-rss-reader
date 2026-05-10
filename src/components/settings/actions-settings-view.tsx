@@ -11,6 +11,7 @@ import {
 type ActionsSettingsActionRow = {
   id: string;
   label: string;
+  toggleAriaLabel: string;
   icon: React.ReactNode;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
@@ -42,7 +43,7 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
               <GradientSwitch
                 checked={service.checked}
                 onCheckedChange={(checked) => service.onCheckedChange(checked)}
-                aria-label={toggleLabel}
+                aria-label={service.toggleAriaLabel}
               />
             </div>
           </div>

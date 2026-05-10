@@ -64,6 +64,18 @@ export function useBrowserViewEventBridge({
       [handleBrowserWebviewFallback],
     ),
     onClosed: onCloseOverlay,
+    isClosedEventCurrent: useCallback(
+      (payload) => {
+        const currentState = browserStateRef.current;
+        const requestedUrl = useUiStore.getState().browserUrl;
+        return (
+          requestedUrl === payload.url &&
+          currentState?.url === payload.url &&
+          currentState.load_generation === payload.load_generation
+        );
+      },
+      [browserStateRef],
+    ),
     onDiagnostics,
   });
 

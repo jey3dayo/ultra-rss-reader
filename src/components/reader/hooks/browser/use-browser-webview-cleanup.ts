@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
 import { type AppError, closeBrowserWebview } from "@/api/tauri-commands";
+import { useUiStore } from "@/stores/ui-store";
 
 type BrowserWebviewCloseFailureCategory =
   | "already-closed"
@@ -42,7 +43,12 @@ function logBrowserWebviewCloseFailure(error: AppError | unknown) {
 
 export function useBrowserWebviewCleanup() {
   useEffect(() => {
+    const mountedBrowserUrl = useUiStore.getState().browserUrl;
     return () => {
+      const currentBrowserUrl = useUiStore.getState().browserUrl;
+      if (currentBrowserUrl && currentBrowserUrl !== mountedBrowserUrl) {
+        return;
+      }
       void closeBrowserWebview()
         .then((result) => {
           Result.pipe(

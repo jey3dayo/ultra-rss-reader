@@ -10,6 +10,7 @@ type ArticleTagPickerPopoverProps = {
   labels: ArticleTagPickerViewProps["labels"];
   availableTags: ArticleTagPickerViewProps["availableTags"];
   newTagName: string;
+  isCreateTagPending: boolean;
   newTagInputRef: RefObject<HTMLInputElement | null>;
   tagOptionRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
   onAssignTag: ArticleTagPickerViewProps["onAssignTag"];
@@ -24,6 +25,7 @@ export function ArticleTagPickerPopover({
   labels,
   availableTags,
   newTagName,
+  isCreateTagPending,
   newTagInputRef,
   tagOptionRefs,
   onAssignTag,
@@ -76,13 +78,15 @@ export function ArticleTagPickerPopover({
             }
           }}
           placeholder={labels.newTagPlaceholder}
+          aria-busy={isCreateTagPending || undefined}
           className="h-10 flex-1 rounded-md border-none bg-transparent px-1 text-sm shadow-none ring-0 focus-visible:ring-0"
         />
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={onCreateTag}
-          disabled={!newTagName.trim()}
+          disabled={isCreateTagPending || !newTagName.trim()}
+          aria-busy={isCreateTagPending || undefined}
           className="size-10 rounded-md text-foreground-soft hover:bg-surface-1/72"
           aria-label={labels.createTag}
         >

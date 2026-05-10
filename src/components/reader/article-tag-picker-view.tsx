@@ -11,6 +11,7 @@ export function ArticleTagPickerView({
   availableTags,
   newTagName,
   isExpanded,
+  isCreateTagPending = false,
   labels,
   onExpandedChange,
   onNewTagNameChange,
@@ -37,6 +38,7 @@ export function ArticleTagPickerView({
   });
 
   const handleCreateTag = () => {
+    if (isCreateTagPending) return;
     const trimmedName = newTagName.trim();
     if (!trimmedName) return;
     requestFocusRestoreOnClose();
@@ -76,6 +78,7 @@ export function ArticleTagPickerView({
                 labels={labels}
                 availableTags={availableTags}
                 newTagName={newTagName}
+                isCreateTagPending={isCreateTagPending}
                 newTagInputRef={newTagInputRef}
                 tagOptionRefs={tagOptionRefs}
                 onAssignTag={onAssignTag}

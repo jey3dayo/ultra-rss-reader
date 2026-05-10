@@ -15,6 +15,7 @@ const meta = {
       {
         id: "copy-link",
         label: "Copy link",
+        toggleAriaLabel: "Show Copy link in toolbar",
         icon: <Copy className="size-5" />,
         checked: true,
         onCheckedChange: fn(),
@@ -22,6 +23,7 @@ const meta = {
       {
         id: "open-browser",
         label: "Open in browser",
+        toggleAriaLabel: "Show Open in browser in toolbar",
         icon: <Globe className="size-5" />,
         checked: true,
         onCheckedChange: fn(),
@@ -29,6 +31,7 @@ const meta = {
       {
         id: "external-browser",
         label: "Open in external browser",
+        toggleAriaLabel: "Show Open in external browser in toolbar",
         icon: <ExternalLink className="size-5" />,
         checked: false,
         onCheckedChange: fn(),

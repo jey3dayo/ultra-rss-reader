@@ -17,6 +17,7 @@ export type ArticleTagPickerViewProps = {
   availableTags: ArticleTagPickerTagView[];
   newTagName: string;
   isExpanded: boolean;
+  isCreateTagPending?: boolean;
   labels: ArticleTagPickerViewLabels;
   onExpandedChange: (expanded: boolean) => void;
   onNewTagNameChange: (value: string) => void;

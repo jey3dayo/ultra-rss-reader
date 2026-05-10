@@ -230,7 +230,9 @@ describe("ArticleTagChips", () => {
     expect(await screen.findByRole("heading", { name: "Tags" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add tag" }));
 
-    const listbox = await screen.findByRole("listbox", { name: "Available tags" });
+    const listbox = await screen.findByRole("listbox", {
+      name: "Available tags",
+    });
     expect(within(listbox).queryAllByRole("option")).toEqual([]);
     expect(screen.getByRole("textbox")).toHaveValue("");
   });
@@ -273,7 +275,10 @@ describe("ArticleTagChips", () => {
   it("keeps the picker open and surfaces feedback when existing tag assignment fails", async () => {
     const user = userEvent.setup();
     const consoleError = suppressConsoleError();
-    const appError: AppError = { type: "UserVisible", message: "Assign failed" };
+    const appError: AppError = {
+      type: "UserVisible",
+      message: "Assign failed",
+    };
 
     useUiStore.setState({ toastMessage: null });
     setupTauriMocks((cmd) => {
@@ -307,7 +312,10 @@ describe("ArticleTagChips", () => {
   it("keeps existing tag options open when option assignment fails", async () => {
     const user = userEvent.setup();
     const consoleError = suppressConsoleError();
-    const appError: AppError = { type: "UserVisible", message: "Assign failed" };
+    const appError: AppError = {
+      type: "UserVisible",
+      message: "Assign failed",
+    };
 
     useUiStore.setState({ toastMessage: null });
     setupTauriMocks((cmd) => {
@@ -337,7 +345,10 @@ describe("ArticleTagChips", () => {
   it("keeps the new tag draft open when create succeeds but assign fails", async () => {
     const user = userEvent.setup();
     const consoleError = suppressConsoleError();
-    const appError: AppError = { type: "UserVisible", message: "Assign failed" };
+    const appError: AppError = {
+      type: "UserVisible",
+      message: "Assign failed",
+    };
     const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
     useUiStore.setState({ toastMessage: null });
@@ -372,5 +383,119 @@ describe("ArticleTagChips", () => {
       args: { articleId: "art-1", tagId: "tag-review" },
     });
     expectTauriCommandError(consoleError, "tag_article", appError);
+  });
+
+  it.each([
+    [
+      "duplicate",
+      { type: "UserVisible", message: "Tag already exists" } satisfies AppError,
+      { type: "UserVisible", message: "Tag already exists" } satisfies AppError,
+    ],
+    ["network", new Error("Network unavailable"), "Network unavailable"],
+    [
+      "schema",
+      {
+        type: "Diagnostics",
+        message: "Invalid tag payload",
+      } satisfies AppError,
+      {
+        type: "Diagnostics",
+        message: "Invalid tag payload",
+      } satisfies AppError,
+    ],
+  ])("keeps the new tag draft open and surfaces feedback when create_tag fails with %s error", async (_kind, error, loggedError) => {
+    const user = userEvent.setup();
+    const consoleError = suppressConsoleError();
+    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    useUiStore.setState({ toastMessage: null });
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      switch (cmd) {
+        case "get_article_tags":
+          return [];
+        case "list_tags":
+          return [];
+        case "create_tag":
+          throw error;
+        case "tag_article":
+          throw new Error("tag_article should not be called when create_tag fails");
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleTagChips articleId="art-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
+    const input = await screen.findByRole("textbox");
+    await user.type(input, "Review");
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByText(error.message)).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("Review");
+    expect(commands).toContainEqual({
+      cmd: "create_tag",
+      args: { name: "Review", color: undefined },
+    });
+    expect(commands.some((command) => command.cmd === "tag_article")).toBe(false);
+    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] create_tag failed:", loggedError);
+  });
+
+  it("surfaces pending state and ignores duplicate create requests while create_tag is pending", async () => {
+    const user = userEvent.setup();
+    let resolveCreateTag: ((value: { id: string; name: string; color: null }) => void) | undefined;
+    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      switch (cmd) {
+        case "get_article_tags":
+          return [];
+        case "list_tags":
+          return [];
+        case "create_tag":
+          return new Promise((resolve) => {
+            resolveCreateTag = resolve;
+          });
+        case "tag_article":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
+    const input = await screen.findByRole("textbox");
+    await user.type(input, "Review");
+    await user.keyboard("{Enter}");
+
+    const createButton = screen.getByRole("button", { name: "Create tag" });
+    await waitFor(() => {
+      expect(createButton).toBeDisabled();
+      expect(createButton).toHaveAttribute("aria-busy", "true");
+      expect(input).toHaveAttribute("aria-busy", "true");
+    });
+
+    await user.keyboard("{Enter}");
+    await user.click(createButton);
+    expect(commands.filter((command) => command.cmd === "create_tag")).toHaveLength(1);
+
+    if (resolveCreateTag === undefined) {
+      throw new Error("create_tag resolver was not captured");
+    }
+    resolveCreateTag({ id: "tag-review", name: "Review", color: null });
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "tag_article",
+        args: { articleId: "art-1", tagId: "tag-review" },
+      });
+    });
   });
 });

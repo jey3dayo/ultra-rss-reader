@@ -152,6 +152,9 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
         onSuccess: (tag) => {
           assignExistingTag(tag.id);
         },
+        onError: (error) => {
+          showToast(toArticleTagAssignErrorMessage(error));
+        },
       },
     );
   };
@@ -162,6 +165,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
       availableTags={availableTags}
       newTagName={newTagName}
       isExpanded={showPicker}
+      isCreateTagPending={createTagMutation.isPending}
       labels={{
         sectionTitle: t("tags_section_title"),
         sectionHint: t("tags_section_hint"),

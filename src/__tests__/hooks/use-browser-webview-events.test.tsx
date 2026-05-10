@@ -7,6 +7,7 @@ import { useBrowserWebviewEvents } from "@/components/reader/hooks/browser/use-b
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
+import { useUiStore } from "@/stores/ui-store";
 
 type EventCallback = (event: { payload: unknown }) => void;
 type Cleanup = () => void;
@@ -20,6 +21,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 describe("useBrowserWebviewEvents", () => {
   beforeEach(() => {
     listenMock.mockReset();
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   afterEach(() => {
@@ -189,15 +191,21 @@ describe("useBrowserWebviewEvents", () => {
     expect(onFailure).toHaveBeenCalledTimes(3);
     expect(onFailure).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ detail: { owner: "browser-webview-events:state-changed" } }),
+      expect.objectContaining({
+        detail: { owner: "browser-webview-events:state-changed" },
+      }),
     );
     expect(onFailure).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ detail: { owner: "browser-webview-events:fallback" } }),
+      expect.objectContaining({
+        detail: { owner: "browser-webview-events:fallback" },
+      }),
     );
     expect(onFailure).toHaveBeenNthCalledWith(
       3,
-      expect.objectContaining({ detail: { owner: "browser-webview-events:closed" } }),
+      expect.objectContaining({
+        detail: { owner: "browser-webview-events:closed" },
+      }),
     );
     window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
   });
@@ -251,6 +259,65 @@ describe("useBrowserWebviewEvents", () => {
     expect(onStateChanged).toHaveBeenCalledWith(browserState);
     expect(onFallback).toHaveBeenCalledWith(fallbackPayload);
     expect(onDiagnostics).toHaveBeenCalledWith(diagnosticsPayload);
+  });
+
+  it("accepts closed events only for the current browser URL and load generation", async () => {
+    const onClosed = vi.fn();
+    listenMock.mockResolvedValue(vi.fn());
+    useUiStore.setState({ browserUrl: "https://example.com/current" });
+
+    const { result } = renderHook(() =>
+      useBrowserWebviewEvents({
+        showDiagnostics: false,
+        onStateChanged: vi.fn(),
+        onFallback: vi.fn(),
+        onClosed,
+        onDiagnostics: vi.fn(),
+        isClosedEventCurrent: (payload) =>
+          payload.url === "https://example.com/current" && payload.load_generation === 2,
+      }),
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+
+    const closedListener = getListener(BROWSER_WINDOW_EVENTS.closed);
+    closedListener({
+      payload: { url: "https://example.com/current", load_generation: 1 },
+    });
+    closedListener({
+      payload: { url: "https://example.com/previous", load_generation: 2 },
+    });
+    closedListener({
+      payload: { url: "https://example.com/current", load_generation: 2 },
+    });
+
+    expect(onClosed).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts legacy closed events without payload as the current overlay", async () => {
+    const onClosed = vi.fn();
+    listenMock.mockResolvedValue(vi.fn());
+
+    const { result } = renderHook(() =>
+      useBrowserWebviewEvents({
+        showDiagnostics: false,
+        onStateChanged: vi.fn(),
+        onFallback: vi.fn(),
+        onClosed,
+        onDiagnostics: vi.fn(),
+        isClosedEventCurrent: () => false,
+      }),
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+
+    getListener(BROWSER_WINDOW_EVENTS.closed)({ payload: undefined });
+
+    expect(onClosed).toHaveBeenCalledTimes(1);
   });
 
   it("ignores malformed native payloads before they reach browser webview handlers", async () => {

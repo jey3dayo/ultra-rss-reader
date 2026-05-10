@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { ZodError } from "zod";
+import { z } from "zod";
 import {
   BrowserWebviewDiagnosticsPayloadSchema,
   BrowserWebviewFallbackPayloadSchema,
@@ -21,6 +22,7 @@ type UseBrowserWebviewEventsParams = {
   onStateChanged: (payload: BrowserWebviewState) => void;
   onFallback: (payload: BrowserWebviewFallbackPayload) => void;
   onClosed: () => void;
+  isClosedEventCurrent?: (payload: BrowserWebviewClosedPayload) => boolean;
   onDiagnostics: (payload: BrowserDebugGeometryNativeDiagnostics) => void;
 };
 
@@ -36,6 +38,28 @@ type BrowserWebviewPayloadParseResult<T> =
       error: ZodError;
     };
 
+type BrowserWebviewClosedPayload = {
+  url: string;
+  load_generation: number;
+};
+
+type BrowserWebviewClosedPayloadParseResult =
+  | {
+      kind: "current";
+      data: BrowserWebviewClosedPayload | null;
+    }
+  | {
+      kind: "malformed";
+      error: ZodError;
+    };
+
+const BrowserWebviewClosedPayloadSchema = z
+  .object({
+    url: z.string(),
+    load_generation: z.number().int().nonnegative(),
+  })
+  .strict();
+
 function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewPayloadParseResult<BrowserWebviewState> {
   const result = BrowserWebviewStateSchema.safeParse(payload);
   return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
@@ -46,6 +70,14 @@ function parseBrowserWebviewFallbackPayload(
 ): BrowserWebviewPayloadParseResult<BrowserWebviewFallbackPayload> {
   const result = BrowserWebviewFallbackPayloadSchema.safeParse(payload);
   return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+}
+
+function parseBrowserWebviewClosedPayload(payload: unknown): BrowserWebviewClosedPayloadParseResult {
+  if (payload === undefined || payload === null) {
+    return { kind: "current", data: null };
+  }
+  const result = BrowserWebviewClosedPayloadSchema.safeParse(payload);
+  return result.success ? { kind: "current", data: result.data } : { kind: "malformed", error: result.error };
 }
 
 function parseBrowserWebviewDiagnosticsPayload(
@@ -99,6 +131,7 @@ export function useBrowserWebviewEvents({
   onStateChanged,
   onFallback,
   onClosed,
+  isClosedEventCurrent = () => true,
   onDiagnostics,
 }: UseBrowserWebviewEventsParams): UseBrowserWebviewEventsResult {
   const listenerReadyRef = useRef<Promise<void> | null>(null);
@@ -149,8 +182,21 @@ export function useBrowserWebviewEvents({
       },
       {
         owner: "browser-webview-events:closed",
-        subscription: listen(BROWSER_WINDOW_EVENTS.closed, () => {
+        subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.closed, ({ payload }) => {
           if (cancelled) return;
+          const result = parseBrowserWebviewClosedPayload(payload);
+          if (result.kind === "malformed") {
+            warnMalformedBrowserWebviewEvent(
+              warnedMalformedPayloadShapesRef.current,
+              BROWSER_WINDOW_EVENTS.closed,
+              payload,
+              result.error,
+            );
+            return;
+          }
+          if (result.data !== null && !isClosedEventCurrent(result.data)) {
+            return;
+          }
           onClosed();
         }),
       },
@@ -183,7 +229,7 @@ export function useBrowserWebviewEvents({
       listenerGroup.dispose();
       listenerReadyRef.current = null;
     };
-  }, [onClosed, onDiagnostics, onFallback, onStateChanged, showDiagnostics]);
+  }, [isClosedEventCurrent, onClosed, onDiagnostics, onFallback, onStateChanged, showDiagnostics]);
 
   return useCallback(() => listenerReadyRef.current ?? Promise.resolve(), []);
 }

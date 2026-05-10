@@ -180,6 +180,7 @@ describe("Settings surface views", () => {
           {
             id: "copy-link",
             label: "Copy link",
+            toggleAriaLabel: "Show Copy link in toolbar",
             icon: <Copy className="size-5" />,
             checked: true,
             onCheckedChange,
@@ -197,7 +198,7 @@ describe("Settings surface views", () => {
     expect(screen.getByText("Show in toolbar")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Copy link").previousElementSibling).toHaveClass("bg-surface-1/72", "text-foreground-soft");
 
-    await user.click(screen.getByRole("switch", { name: "Show in toolbar" }));
+    await user.click(screen.getByRole("switch", { name: "Show Copy link in toolbar" }));
 
     expect(onCheckedChange).toHaveBeenCalledWith(false);
   });

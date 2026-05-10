@@ -654,7 +654,9 @@ describe("useArticleListSources", () => {
   });
 
   it("does not adopt stale feed articles for a newly selected feed", () => {
-    useFeedsMock.mockReturnValue({ data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-1") });
+    useFeedsMock.mockReturnValue({
+      data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-1"),
+    });
     useArticlesMock.mockReturnValue({
       data: [matrixArticle("stale-feed-result", "feed-2", false, false)],
       isLoading: false,
@@ -676,7 +678,9 @@ describe("useArticleListSources", () => {
   });
 
   it("does not adopt stale account feeds or account articles for a newly selected account", () => {
-    useFeedsMock.mockReturnValue({ data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-2") });
+    useFeedsMock.mockReturnValue({
+      data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-2"),
+    });
     useAccountArticlesMock.mockReturnValue({
       data: [matrixArticle("stale-account-result", "feed-other-account", false, false)],
       isLoading: false,
@@ -723,6 +727,41 @@ describe("useArticleListSources", () => {
     rerender();
 
     expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1"]);
+  });
+
+  it("keeps the previous feed source while a refetch reports an empty loading result", () => {
+    let currentArticles = [sampleArticles[0], sampleArticles[1]];
+    let isLoading = false;
+    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
+      data: options?.mode === "unread" ? currentArticles : [sampleArticles[0], sampleArticles[1]],
+      isLoading,
+    }));
+
+    const props: Parameters<typeof useArticleListSources>[0] = {
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedAccountId: "acc-1",
+      selectedArticleId: "art-2",
+      retainedArticleIds: new Set(),
+      viewMode: "unread",
+    };
+
+    const { result, rerender } = renderHook(() => useArticleListSources(props), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+
+    currentArticles = [];
+    isLoading = true;
+    rerender();
+
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+    expect(result.current.isLoadingFeedArticles).toBe(false);
+
+    isLoading = false;
+    rerender();
+
+    expect(result.current.articles).toEqual([]);
   });
 
   it("keeps previously retained feed articles when another retained article remains selected", () => {
