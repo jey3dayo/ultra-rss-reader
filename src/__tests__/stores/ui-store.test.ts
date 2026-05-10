@@ -58,6 +58,7 @@ function setStaleBrowserState() {
     browserNavigationState: { canGoBack: true, canGoForward: true },
     browserCloseInFlight: true,
     pendingBrowserCloseAction: "next-article",
+    pendingBrowserCloseActionQueue: ["next-article"],
   });
 }
 
@@ -69,6 +70,7 @@ function expectBrowserStateReset() {
       browserNavigationState: null,
       browserCloseInFlight: false,
       pendingBrowserCloseAction: null,
+      pendingBrowserCloseActionQueue: [],
     }),
   );
 }
@@ -130,6 +132,7 @@ describe("useUiStore", () => {
         | "browserNavigationState"
         | "browserCloseInFlight"
         | "pendingBrowserCloseAction"
+        | "pendingBrowserCloseActionQueue"
         | "articleNavigationDirection"
         | "searchQuery"
         | "expandedFolderIds"
@@ -678,6 +681,31 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
+  it("keeps reader article and feed selection unchanged while subscriptions workspace is open", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      subscriptionsWorkspace: { kind: "index" },
+      selection: { type: "feed", feedId: "feed-before" },
+      selectedArticleId: "article-before",
+      contentMode: "reader",
+      focusedPane: "content",
+      articleNavigationDirection: null,
+      retainedArticleIds: new Set(["article-before"]),
+    });
+
+    useUiStore.getState().selectFeed("feed-after");
+    useUiStore.getState().selectFeedFromCurrentContext("feed-current-context");
+    useUiStore.getState().selectArticle("article-after", { navigationDirection: 1 });
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-before" });
+    expect(useUiStore.getState().selectedArticleId).toBe("article-before");
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().focusedPane).toBe("content");
+    expect(useUiStore.getState().articleNavigationDirection).toBeNull();
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["article-before"]));
+  });
+
   it("validates subscriptions index return state before storing it", () => {
     const returnState = {
       accountId: " acc-1 ",
@@ -998,6 +1026,7 @@ describe("useUiStore", () => {
       browserUrl: "https://example.com",
       browserCloseInFlight: true,
       pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
       focusedPane: "sidebar",
     });
 
@@ -1010,6 +1039,7 @@ describe("useUiStore", () => {
         browserNavigationState: null,
         browserCloseInFlight: false,
         pendingBrowserCloseAction: null,
+        pendingBrowserCloseActionQueue: [],
         focusedPane: "content",
       }),
     );
@@ -1020,6 +1050,7 @@ describe("useUiStore", () => {
       browserUrl: "https://example.com",
       browserCloseInFlight: true,
       pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
       focusedPane: "content",
     });
 
@@ -1032,6 +1063,7 @@ describe("useUiStore", () => {
         browserNavigationState: null,
         browserCloseInFlight: false,
         pendingBrowserCloseAction: null,
+        pendingBrowserCloseActionQueue: [],
         focusedPane: "list",
       }),
     );
@@ -1186,6 +1218,7 @@ describe("useUiStore", () => {
       browserNavigationState: { canGoBack: true, canGoForward: true },
       browserCloseInFlight: true,
       pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
       viewMode: "starred",
       focusedPane: "content",
       recentlyReadIds: new Set(["article-1"]),
@@ -1208,6 +1241,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().browserNavigationState).toBeNull();
     expect(useUiStore.getState().browserCloseInFlight).toBe(false);
     expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+    expect(useUiStore.getState().pendingBrowserCloseActionQueue).toEqual([]);
     expect(useUiStore.getState().viewMode).toBe("unread");
     expect(useUiStore.getState().focusedPane).toBe("list");
     expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());

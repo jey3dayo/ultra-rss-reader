@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
+  JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS,
+  PARSE_JSON_WITH_SCHEMA_OR_NULL_CALLER_OWNERS,
   parseJsonWithSchema,
   parseJsonWithSchemaOrNull,
   parseWithSchema,
@@ -105,6 +107,71 @@ describe("schema parse helpers", () => {
     expect(safeParseJsonWithSchema('{"id":"acc-2","unreadCount":0}', userSchema)).toEqual({
       id: "acc-2",
       unreadCount: 0,
+    });
+  });
+
+  it("keeps nullable JSON parse production callsites inventoried by fallback owner", async () => {
+    const { readdir, readFile } = await import("node:fs/promises");
+    const { join, relative } = await import("node:path");
+    const sourceRoot = join(process.cwd(), "src");
+    const sourceFiles: string[] = [];
+    const ignoredSegments = new Set(["__tests__"]);
+
+    async function collectSourceFiles(directory: string): Promise<void> {
+      const entries = await readdir(directory, { withFileTypes: true });
+      for (const entry of entries) {
+        const absolutePath = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (!ignoredSegments.has(entry.name)) {
+            await collectSourceFiles(absolutePath);
+          }
+          continue;
+        }
+
+        if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) {
+          sourceFiles.push(absolutePath);
+        }
+      }
+    }
+
+    await collectSourceFiles(sourceRoot);
+
+    const callCounts = new Map<string, number>();
+    for (const sourceFile of sourceFiles) {
+      const contents = await readFile(sourceFile, "utf8");
+      const relativePath = relative(process.cwd(), sourceFile);
+      const callCount = contents
+        .split("\n")
+        .filter((line) => line.includes("parseJsonWithSchemaOrNull("))
+        .filter((line) => !line.includes("export function parseJsonWithSchemaOrNull")).length;
+      if (callCount > 0) {
+        callCounts.set(relativePath, callCount);
+      }
+    }
+
+    expect(Object.fromEntries(callCounts)).toEqual(
+      Object.fromEntries(
+        PARSE_JSON_WITH_SCHEMA_OR_NULL_CALLER_OWNERS.map((owner) => [owner.callsite, owner.callCount]),
+      ),
+    );
+  });
+
+  it("keeps non-nullable fallback owners off the nullable JSON helper inventory", () => {
+    expect(JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS.commandHistory).toMatchObject({
+      fallbackBoundary: "explicit cleanup",
+      nullableParseHelper: false,
+    });
+    expect(JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS.preferencesLoad).toMatchObject({
+      fallbackBoundary: "backend load failure",
+      nullableParseHelper: false,
+    });
+    expect(JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS.diagnostics).toMatchObject({
+      fallbackBoundary: "throwing/schema error surface",
+      nullableParseHelper: false,
+    });
+    expect(JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS.storageCleanup).toMatchObject({
+      fallbackBoundary: "schema contract",
+      nullableParseHelper: false,
     });
   });
 

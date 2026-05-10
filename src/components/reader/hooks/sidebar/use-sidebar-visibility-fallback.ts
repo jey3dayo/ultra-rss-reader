@@ -1,27 +1,7 @@
 import { useEffect } from "react";
 import type { SidebarVisibilityFallbackParams } from "../../sidebar-feed-section.types";
 
-type SidebarVisibilityFallbackDecision =
-  | { type: "none" }
-  | { type: "select-all" }
-  | { type: "select-feed"; feedId: string }
-  | { type: "select-smart-view"; kind: "unread" }
-  | { type: "set-view-mode"; mode: "all" };
-
-function resolveFeedOrAllFallback(firstFeedId: string | null): SidebarVisibilityFallbackDecision {
-  return firstFeedId ? { type: "select-feed", feedId: firstFeedId } : { type: "select-all" };
-}
-
-export function resolveSidebarVisibilityFallback({
-  firstFeedId,
-  selection,
-  tags,
-  viewMode,
-  showSidebarUnread,
-  showSidebarStarred,
-  showSidebarRecentArticles,
-  showSidebarTags,
-}: Pick<
+type SidebarVisibilityFallbackDecisionParams = Pick<
   SidebarVisibilityFallbackParams,
   | "firstFeedId"
   | "selection"
@@ -31,7 +11,39 @@ export function resolveSidebarVisibilityFallback({
   | "showSidebarStarred"
   | "showSidebarRecentArticles"
   | "showSidebarTags"
->): SidebarVisibilityFallbackDecision {
+> & {
+  feedsReady?: boolean;
+};
+
+type SidebarVisibilityFallbackDecision =
+  | { type: "none" }
+  | { type: "select-all" }
+  | { type: "select-feed"; feedId: string }
+  | { type: "select-smart-view"; kind: "unread" }
+  | { type: "set-view-mode"; mode: "all" };
+
+function resolveFeedOrAllFallback(params: {
+  firstFeedId: string | null;
+  feedsReady?: boolean;
+}): SidebarVisibilityFallbackDecision {
+  if (params.firstFeedId) {
+    return { type: "select-feed", feedId: params.firstFeedId };
+  }
+
+  return params.feedsReady === false ? { type: "none" } : { type: "select-all" };
+}
+
+export function resolveSidebarVisibilityFallback({
+  firstFeedId,
+  feedsReady,
+  selection,
+  tags,
+  viewMode,
+  showSidebarUnread,
+  showSidebarStarred,
+  showSidebarRecentArticles,
+  showSidebarTags,
+}: SidebarVisibilityFallbackDecisionParams): SidebarVisibilityFallbackDecision {
   const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
   const hasSmartUnreadSelection = selectedSmartViewKind === "unread";
   const hasSmartStarredSelection = selectedSmartViewKind === "starred";
@@ -51,7 +63,9 @@ export function resolveSidebarVisibilityFallback({
     (selection.type === "tag" && !showSidebarTags) ||
     isMissingSelectedTag
   ) {
-    return showSidebarUnread ? { type: "select-smart-view", kind: "unread" } : resolveFeedOrAllFallback(firstFeedId);
+    return showSidebarUnread
+      ? { type: "select-smart-view", kind: "unread" }
+      : resolveFeedOrAllFallback({ firstFeedId, feedsReady });
   }
 
   if (hasFilterOnlyUnread && !showSidebarUnread) {
@@ -59,7 +73,7 @@ export function resolveSidebarVisibilityFallback({
   }
 
   if (hasSmartUnreadSelection && !showSidebarUnread) {
-    return resolveFeedOrAllFallback(firstFeedId);
+    return resolveFeedOrAllFallback({ firstFeedId, feedsReady });
   }
 
   return { type: "none" };
@@ -67,6 +81,7 @@ export function resolveSidebarVisibilityFallback({
 
 export function useSidebarVisibilityFallback({
   firstFeedId,
+  feedsReady,
   selection,
   tags,
   viewMode,
@@ -78,10 +93,11 @@ export function useSidebarVisibilityFallback({
   selectAll,
   selectSmartView,
   setViewMode,
-}: SidebarVisibilityFallbackParams) {
+}: SidebarVisibilityFallbackParams & { feedsReady?: boolean }) {
   useEffect(() => {
     const decision = resolveSidebarVisibilityFallback({
       firstFeedId,
+      feedsReady,
       selection,
       tags,
       viewMode,
@@ -108,6 +124,7 @@ export function useSidebarVisibilityFallback({
         return;
     }
   }, [
+    feedsReady,
     firstFeedId,
     selectAll,
     selectFeed,

@@ -2,6 +2,50 @@ import type { z } from "zod";
 
 type NullableParseResult<TSchema extends z.ZodType> = z.output<TSchema> | null;
 
+export const PARSE_JSON_WITH_SCHEMA_OR_NULL_CALLER_OWNERS = [
+  {
+    owner: "safeParseJsonWithSchema",
+    fallbackBoundary: "named nullable alias",
+    callsite: "src/schemas/parse.ts",
+    callCount: 1,
+    fallbackBehavior: "Delegates fallback ownership to the direct safeParseJsonWithSchema caller.",
+  },
+  {
+    owner: "sidebar startup folder expansion",
+    fallbackBoundary: "localStorage UI cache recovery",
+    callsite: "src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts",
+    callCount: 3,
+    fallbackBehavior: "Drops malformed or schema-invalid expansion cache and rebuilds from visible accounts.",
+  },
+] as const;
+
+export const JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS = {
+  commandHistory: {
+    owner: "command history localStorage",
+    fallbackBoundary: "explicit cleanup",
+    nullableParseHelper: false,
+    fallbackBehavior: "Malformed JSON and schema-invalid history are removed before returning an empty history.",
+  },
+  preferencesLoad: {
+    owner: "preferences store load",
+    fallbackBoundary: "backend load failure",
+    nullableParseHelper: false,
+    fallbackBehavior: "Backend load errors keep optimistic state or apply bootstrapped defaults.",
+  },
+  diagnostics: {
+    owner: "diagnostics and command DTOs",
+    fallbackBoundary: "throwing/schema error surface",
+    nullableParseHelper: false,
+    fallbackBehavior: "Malformed JSON and invalid payloads remain distinguishable for user-visible errors.",
+  },
+  storageCleanup: {
+    owner: "storage cleanup policy",
+    fallbackBoundary: "schema contract",
+    nullableParseHelper: false,
+    fallbackBehavior: "Cleanup policy drift fails schema validation instead of silently dropping keys.",
+  },
+} as const;
+
 /**
  * Throwing schema boundary. Invalid values surface as the schema library error.
  * Use only where the callsite immediately converts the throw into Result/reject or intentionally fails a test.

@@ -96,7 +96,10 @@ function HiddenPaneBoundary({
         subtree: true,
       });
 
-      return () => observer.disconnect();
+      return () => {
+        observer.disconnect();
+        restoreHiddenPaneFocus(pane);
+      };
     }
 
     restoreHiddenPaneFocus(pane);

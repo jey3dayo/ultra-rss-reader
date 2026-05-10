@@ -32,6 +32,13 @@ const UNKNOWN_PREFERENCE_ERROR_MESSAGE = "Unknown error";
 export type { AfterReadingPreference, SortSubscriptions, Theme };
 export { preferenceDefaults, resolvePreferenceValue };
 
+export const PREFERENCES_LOAD_FALLBACK_OWNER = {
+  owner: "preferences store load",
+  fallbackBoundary: "backend load failure",
+  nullableParseHelper: false,
+  fallbackBehavior: "Keep optimistic mutations; otherwise apply bootstrapped defaults and mirror runtime UI state.",
+} as const;
+
 let systemThemeCleanup: (() => void) | null = null;
 let themeViewTransitionId = 0;
 let preferencesLoadPromise: Promise<void> | null = null;

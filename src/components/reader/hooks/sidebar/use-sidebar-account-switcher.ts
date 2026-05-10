@@ -55,6 +55,7 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const accountItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const restoreFocusFrameRef = useRef<number | null>(null);
+  const restoreFocusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const accountMenuId = useId();
 
@@ -62,6 +63,10 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
     if (restoreFocusFrameRef.current !== null) {
       cancelAnimationFrame(restoreFocusFrameRef.current);
       restoreFocusFrameRef.current = null;
+    }
+    if (restoreFocusTimeoutRef.current !== null) {
+      clearTimeout(restoreFocusTimeoutRef.current);
+      restoreFocusTimeoutRef.current = null;
     }
   }, []);
 
@@ -131,19 +136,37 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
       dispatch({ type: "set-account-list-open", value: false });
       cancelRestoreFocusFrame();
       if (restoreFocus) {
-        const restoreFocusFrame = requestAnimationFrame(() => {
+        const focusTrigger = () => {
+          restoreFocusTimeoutRef.current = null;
+          if (!isMountedRef.current) {
+            return;
+          }
+          accountTriggerRef.current?.focus();
+        };
+        const scheduleTimerRestoreFocus = () => {
+          const restoreFocusTimeout = setTimeout(focusTrigger, 0);
+          restoreFocusTimeoutRef.current = restoreFocusTimeout;
+        };
+        const restoreFocusOnFrame = () => {
           if (restoreFocusFrameRef.current !== restoreFocusFrame) {
             return;
           }
 
           restoreFocusFrameRef.current = null;
-          if (!isMountedRef.current) {
-            return;
+          focusTrigger();
+        };
+        let restoreFocusFrame: number | null = null;
+        if (typeof requestAnimationFrame === "function") {
+          try {
+            restoreFocusFrame = requestAnimationFrame(restoreFocusOnFrame);
+            restoreFocusFrameRef.current = restoreFocusFrame;
+          } catch (error) {
+            console.warn("Failed to schedule sidebar account switcher focus restore.", error);
+            scheduleTimerRestoreFocus();
           }
-
-          accountTriggerRef.current?.focus();
-        });
-        restoreFocusFrameRef.current = restoreFocusFrame;
+        } else {
+          scheduleTimerRestoreFocus();
+        }
       }
     },
     [cancelRestoreFocusFrame],
@@ -182,11 +205,21 @@ export function useAccountSwitcherViewModel({
   useEffect(() => {
     if (!isExpanded || !hasMultipleAccounts) return;
 
-    const frameId = requestAnimationFrame(() => {
+    const focusSelectedItem = () => {
       focusAccountItem(itemRefs, accounts.length, selectedIndex);
-    });
+    };
 
-    return () => cancelAnimationFrame(frameId);
+    if (typeof requestAnimationFrame === "function") {
+      try {
+        const frameId = requestAnimationFrame(focusSelectedItem);
+        return () => cancelAnimationFrame(frameId);
+      } catch (error) {
+        console.warn("Failed to schedule account switcher item focus.", error);
+      }
+    }
+
+    const timeoutId = setTimeout(focusSelectedItem, 0);
+    return () => clearTimeout(timeoutId);
   }, [accounts.length, hasMultipleAccounts, isExpanded, itemRefs, selectedIndex]);
 
   return {

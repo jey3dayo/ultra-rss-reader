@@ -118,6 +118,61 @@ describe("useOldUnreadReadAction", () => {
     expect(showToast).toHaveBeenCalledWith("No old unread articles");
   });
 
+  it("rechecks the same scope target and period immediately before the confirmed mutation", async () => {
+    const showToast = vi.fn();
+    countOldUnreadArticlesMock.mockResolvedValue(Result.succeed(2));
+    useUiStore.setState({
+      showConfirm: (_message, onConfirm) => {
+        onConfirm();
+      },
+      showToast,
+    });
+
+    const { result } = renderHook(() => useOldUnreadReadAction("folder", "folder-1"));
+
+    await act(async () => {
+      await result.current(90);
+    });
+
+    await waitFor(() => {
+      expect(countOldUnreadArticlesMock).toHaveBeenCalledTimes(2);
+    });
+    expect(countOldUnreadArticlesMock).toHaveBeenNthCalledWith(1, "folder", "folder-1", 90);
+    expect(countOldUnreadArticlesMock).toHaveBeenNthCalledWith(2, "folder", "folder-1", 90);
+    expect(markOldUnreadReadMutate).toHaveBeenCalledWith(
+      { scopeKind: "folder", targetId: "folder-1", olderThanDays: 90 },
+      expect.objectContaining({
+        onError: expect.any(Function),
+      }),
+    );
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("does not mutate when the post-confirm old unread recheck fails", async () => {
+    const showToast = vi.fn();
+    countOldUnreadArticlesMock
+      .mockResolvedValueOnce(Result.succeed(3))
+      .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "Folder no longer exists" }));
+    useUiStore.setState({
+      showConfirm: (_message, onConfirm) => {
+        onConfirm();
+      },
+      showToast,
+    });
+
+    const { result } = renderHook(() => useOldUnreadReadAction("folder", "folder-1"));
+
+    await act(async () => {
+      await result.current(30);
+    });
+
+    await waitFor(() => {
+      expect(countOldUnreadArticlesMock).toHaveBeenCalledTimes(2);
+    });
+    expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Folder no longer exists");
+  });
+
   it("shows a toast and does not mutate when old unread count returns Result.fail", async () => {
     const showToast = vi.fn();
     countOldUnreadArticlesMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "Count failed" }));

@@ -163,7 +163,13 @@ describe("package scripts", () => {
       { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `%${key}%`), taskName: "lint:md" },
     ] as const;
 
-    expect(markdownTargets).toEqual(["**/*.md", "#**/node_modules/**", "#**/.worktrees/**", "#**/target/**"]);
+    expect(markdownTargets).toEqual([
+      "**/*.md",
+      "#**/node_modules/**",
+      "#**/.worktrees/**",
+      "#**/target/**",
+      "#src-tauri/gen/**",
+    ]);
     for (const { commandName, expectedRefs, taskName } of markdownTaskCommands) {
       const targets = extractMarkdownTaskTargets(miseToml, taskName, commandName);
 

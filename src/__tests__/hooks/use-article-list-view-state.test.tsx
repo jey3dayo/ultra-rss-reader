@@ -79,11 +79,50 @@ describe("useArticleListViewState", () => {
     );
 
     expect(loading.result.current.isSearchLoading).toBe(true);
+    expect(loading.result.current.isPrimarySourceLoading).toBe(false);
     expect(loading.result.current.isSearchEmptyState).toBe(false);
     expect(loading.result.current.setupEmptyState).toBe("no-accounts");
     expect(empty.result.current.isSearchLoading).toBe(false);
     expect(empty.result.current.isSearchEmptyState).toBe(true);
     expect(empty.result.current.setupEmptyState).toBe("none");
+  });
+
+  it("keeps primary source loading separate from search fetching", () => {
+    const { result } = renderHook(() =>
+      useArticleListViewState(
+        createParams({
+          selection: { type: "folder", folderId: "folder-1" },
+          showSearch: true,
+          trimmedDebouncedQuery: "rss",
+          searchResults: undefined,
+          isSearching: true,
+          isLoadingFolderArticles: true,
+          filteredArticleCount: 0,
+        }),
+      ),
+    );
+
+    expect(result.current.isPrimarySourceLoading).toBe(true);
+    expect(result.current.isSearchLoading).toBe(true);
+    expect(result.current.isSearchEmptyState).toBe(false);
+  });
+
+  it("treats current search fetching as loading even when stale results are still present", () => {
+    const { result } = renderHook(() =>
+      useArticleListViewState(
+        createParams({
+          showSearch: true,
+          trimmedDebouncedQuery: "query b",
+          searchResults: [{ id: "query-a-result" }],
+          isSearching: true,
+          filteredArticleCount: 1,
+        }),
+      ),
+    );
+
+    expect(result.current.isSearchLoading).toBe(true);
+    expect(result.current.isSearchEmptyState).toBe(false);
+    expect(result.current.setupEmptyState).toBe("none");
   });
 });
 

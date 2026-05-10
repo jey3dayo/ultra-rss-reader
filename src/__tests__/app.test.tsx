@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -104,6 +104,34 @@ describe("App", () => {
     const restoredListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
     expect(restoredListFocusable).not.toBeNull();
     expect(restoredListFocusable).not.toHaveAttribute("tabindex", "-1");
+  });
+
+  it("mobile: restores hidden pane descendants when subscriptions workspace unmounts the pane tray", async () => {
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar" });
+
+    const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
+
+    const hiddenListPane = getSlidingPanes()[1];
+    const initialListFocusable = hiddenListPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+    const lazyButton = document.createElement("button");
+    lazyButton.type = "button";
+    lazyButton.textContent = "Lazy child";
+    hiddenListPane?.append(lazyButton);
+
+    expect(initialListFocusable).not.toBeNull();
+    expect(initialListFocusable).toHaveAttribute("tabindex", "-1");
+    await waitFor(() => {
+      expect(lazyButton).toHaveAttribute("tabindex", "-1");
+    });
+
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "index" }, focusedPane: "content" });
+    rerender(<AppLayout />);
+
+    expect(screen.queryByTestId("sliding-pane-tray")).not.toBeInTheDocument();
+    expect(initialListFocusable).not.toHaveAttribute("tabindex", "-1");
+    expect(initialListFocusable).not.toHaveAttribute("data-app-layout-previous-tabindex");
+    expect(lazyButton).not.toHaveAttribute("tabindex");
+    expect(lazyButton).not.toHaveAttribute("data-app-layout-previous-tabindex");
   });
 
   it("mobile: no fixed-width sidebar/list classes", () => {

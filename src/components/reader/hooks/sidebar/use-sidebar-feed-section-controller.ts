@@ -160,6 +160,7 @@ export function useSidebarFeedSectionController({
 
   useSidebarVisibilityFallback({
     firstFeedId,
+    feedsReady: feeds !== undefined,
     selection,
     tags,
     viewMode,

@@ -120,4 +120,33 @@ describe("useSidebarFeedSectionController", () => {
     expect(selectFeed).toHaveBeenCalledWith("feed-1");
     expect(openFeedLandingMock).not.toHaveBeenCalled();
   });
+
+  it("waits for loading feeds before falling back from a hidden smart view to the first feed", () => {
+    const selectAll = vi.fn();
+    const selectFeed = vi.fn();
+    const params = createControllerParams({
+      feeds: undefined,
+      folders: undefined,
+      selection: { type: "smart", kind: "unread" },
+      showSidebarUnread: false,
+      selectAll,
+      selectFeed,
+    });
+
+    const { rerender } = renderHook((currentParams) => useSidebarFeedSectionController(currentParams), {
+      initialProps: params,
+    });
+
+    expect(selectAll).not.toHaveBeenCalled();
+    expect(selectFeed).not.toHaveBeenCalled();
+
+    rerender({
+      ...params,
+      feeds: [sampleFeeds[0]],
+      folders: [{ ...sampleFolders[0], account_id: "acc-1" }],
+    });
+
+    expect(selectFeed).toHaveBeenCalledWith(sampleFeeds[0].id);
+    expect(selectAll).not.toHaveBeenCalled();
+  });
 });

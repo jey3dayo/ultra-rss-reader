@@ -9,6 +9,7 @@ import type { SidebarVisibilityFallbackParams } from "@/components/reader/sideba
 const tag = { id: "tag-1", name: "Important", color: "#ff0000" };
 
 function createParams(overrides: Partial<SidebarVisibilityFallbackParams> = {}): SidebarVisibilityFallbackParams {
+  const { feedsReady = true, ...rest } = overrides;
   return {
     firstFeedId: "feed-1",
     selection: { type: "all" },
@@ -22,7 +23,8 @@ function createParams(overrides: Partial<SidebarVisibilityFallbackParams> = {}):
     selectAll: vi.fn(),
     selectSmartView: vi.fn(),
     setViewMode: vi.fn(),
-    ...overrides,
+    feedsReady,
+    ...rest,
   };
 }
 
@@ -60,6 +62,17 @@ describe("useSidebarVisibilityFallback", () => {
         showSidebarUnread: false,
       },
       expected: { type: "select-all" },
+    },
+    {
+      name: "hidden recent smart view while feeds are still loading",
+      params: {
+        firstFeedId: null,
+        feedsReady: false,
+        selection: { type: "smart", kind: "recent" } as const,
+        showSidebarRecentArticles: false,
+        showSidebarUnread: false,
+      },
+      expected: { type: "none" },
     },
     {
       name: "missing selected tag",
@@ -166,6 +179,21 @@ describe("useSidebarVisibilityFallback", () => {
     renderHook(() => useSidebarVisibilityFallback(params));
 
     expect(params.selectAll).toHaveBeenCalledTimes(1);
+    expect(params.selectFeed).not.toHaveBeenCalled();
+    expect(params.selectSmartView).not.toHaveBeenCalled();
+  });
+
+  it("waits for feed loading before falling back from hidden unread to all", () => {
+    const params = createParams({
+      firstFeedId: null,
+      feedsReady: false,
+      selection: { type: "smart", kind: "unread" },
+      showSidebarUnread: false,
+    });
+
+    renderHook(() => useSidebarVisibilityFallback(params));
+
+    expect(params.selectAll).not.toHaveBeenCalled();
     expect(params.selectFeed).not.toHaveBeenCalled();
     expect(params.selectSmartView).not.toHaveBeenCalled();
   });

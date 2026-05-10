@@ -18,7 +18,6 @@ export function useArticleListViewState({
   isLoadingTagArticles,
   showSearch,
   trimmedDebouncedQuery,
-  searchResults,
   isSearching,
   filteredArticleCount,
 }: UseArticleListViewStateParams): UseArticleListViewStateResult {
@@ -84,7 +83,7 @@ export function useArticleListViewState({
           ? isLoadingRecentArticles
           : accountListScopeId != null && isLoadingAccountArticles;
 
-  const isSearchLoading = showSearch && trimmedDebouncedQuery.length > 0 && searchResults === undefined && isSearching;
+  const isSearchLoading = showSearch && trimmedDebouncedQuery.length > 0 && isSearching;
   const isSearchEmptyState =
     showSearch && trimmedDebouncedQuery.length > 0 && !isSearchLoading && filteredArticleCount === 0;
   const setupEmptyState =

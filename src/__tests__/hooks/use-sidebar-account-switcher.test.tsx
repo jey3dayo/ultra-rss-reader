@@ -1,4 +1,4 @@
-import { act, fireEvent, renderHook } from "@testing-library/react";
+import { act, fireEvent, renderHook, waitFor } from "@testing-library/react";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import type { MutableRefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -174,6 +174,65 @@ describe("useSidebarAccountSwitcher", () => {
     expect(focusSpy).not.toHaveBeenCalled();
   });
 
+  it("restores focus with a timer fallback when requestAnimationFrame is unavailable", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    Object.defineProperty(window, "requestAnimationFrame", { configurable: true, value: undefined });
+    Object.defineProperty(window, "cancelAnimationFrame", { configurable: true, value: undefined });
+    const trigger = document.createElement("button");
+    const other = document.createElement("button");
+    document.body.append(trigger, other);
+    const { result } = renderHook(() => useSidebarAccountSwitcher());
+    setRef(result.current.accountTriggerRef, trigger);
+    other.focus();
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    await act(async () => {
+      result.current.closeAccountList(true);
+    });
+
+    expect(setTimeoutSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
+
+    setTimeoutSpy.mockRestore();
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: originalCancelAnimationFrame,
+    });
+  });
+
+  it("restores focus with a timer fallback when requestAnimationFrame throws", async () => {
+    const requestError = new Error("requestAnimationFrame unavailable");
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => {
+      throw requestError;
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const trigger = document.createElement("button");
+    const other = document.createElement("button");
+    document.body.append(trigger, other);
+    const { result } = renderHook(() => useSidebarAccountSwitcher());
+    setRef(result.current.accountTriggerRef, trigger);
+    other.focus();
+
+    await act(async () => {
+      result.current.closeAccountList(true);
+    });
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith("Failed to schedule sidebar account switcher focus restore.", requestError);
+
+    warnSpy.mockRestore();
+    requestAnimationFrameSpy.mockRestore();
+  });
+
   it("keeps the account list mounted when outside-click listener binding fails", () => {
     const error = new Error("document listener blocked");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -245,6 +304,23 @@ describe("useSidebarAccountSwitcher", () => {
   });
 
   it("focuses the selected account item on the opened focus frame", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    if (typeof window.requestAnimationFrame !== "function") {
+      Object.defineProperty(window, "requestAnimationFrame", {
+        configurable: true,
+        value: (callback: FrameRequestCallback) => {
+          callback(0);
+          return 0;
+        },
+      });
+    }
+    if (typeof window.cancelAnimationFrame !== "function") {
+      Object.defineProperty(window, "cancelAnimationFrame", {
+        configurable: true,
+        value: () => undefined,
+      });
+    }
     const firstItem = document.createElement("button");
     const secondItem = document.createElement("button");
     const itemRefs = { current: [firstItem, secondItem] };
@@ -268,5 +344,50 @@ describe("useSidebarAccountSwitcher", () => {
 
     unmount();
     requestAnimationFrameSpy.mockRestore();
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: originalCancelAnimationFrame,
+    });
+  });
+
+  it("focuses the selected account item with a timer fallback when requestAnimationFrame is unavailable", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    Object.defineProperty(window, "requestAnimationFrame", { configurable: true, value: undefined });
+    Object.defineProperty(window, "cancelAnimationFrame", { configurable: true, value: undefined });
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const firstItem = document.createElement("button");
+    const secondItem = document.createElement("button");
+    const itemRefs = { current: [firstItem, secondItem] };
+
+    document.body.append(firstItem, secondItem);
+
+    renderHook(() =>
+      useAccountSwitcherViewModel({
+        accounts: sampleAccounts,
+        selectedAccountId: "acc-2",
+        isExpanded: true,
+        itemRefs,
+      }),
+    );
+
+    expect(setTimeoutSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(secondItem).toHaveFocus();
+    });
+
+    setTimeoutSpy.mockRestore();
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: originalCancelAnimationFrame,
+    });
   });
 });

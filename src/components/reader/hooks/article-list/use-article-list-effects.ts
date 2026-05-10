@@ -15,6 +15,7 @@ type UseArticleListEffectsParams = {
   focusedPane: FocusedPane;
   selectedArticleId: string | null;
   isPrimarySourceLoading: boolean;
+  isSearchLoading: boolean;
   clearArticle: () => void;
 };
 
@@ -27,15 +28,17 @@ export function useArticleListEffects({
   focusedPane,
   selectedArticleId,
   isPrimarySourceLoading,
+  isSearchLoading,
   clearArticle,
 }: UseArticleListEffectsParams) {
   const selectedArticleClearGenerationRef = useRef(0);
+  const isListDataLoading = isPrimarySourceLoading || isSearchLoading;
 
   useEffect(() => {
     selectedArticleClearGenerationRef.current += 1;
     const selectedArticleClearGeneration = selectedArticleClearGenerationRef.current;
 
-    if (!selectedArticleId || isPrimarySourceLoading) {
+    if (!selectedArticleId || isListDataLoading) {
       return;
     }
 
@@ -50,12 +53,12 @@ export function useArticleListEffects({
         const selectedArticleStillMissing = !filteredArticles.some(
           (article) => article.id === currentSelectedArticleId,
         );
-        if (!isPrimarySourceLoading && selectedArticleStillMissing) {
+        if (!isListDataLoading && selectedArticleStillMissing) {
           clearArticle();
         }
       });
     }
-  }, [clearArticle, filteredArticles, isPrimarySourceLoading, selectedArticleId]);
+  }, [clearArticle, filteredArticles, isListDataLoading, selectedArticleId]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {
@@ -65,7 +68,7 @@ export function useArticleListEffects({
   }, [selection, scrollToTopOnChange]);
 
   useEffect(() => {
-    if (focusedPane !== "list" || isPrimarySourceLoading) {
+    if (focusedPane !== "list" || isListDataLoading) {
       return;
     }
 
@@ -102,5 +105,5 @@ export function useArticleListEffects({
     });
 
     return cleanupFocusTargetRow;
-  }, [filteredArticles, focusedPane, isPrimarySourceLoading, listRef, selectedArticleId]);
+  }, [filteredArticles, focusedPane, isListDataLoading, listRef, selectedArticleId]);
 }

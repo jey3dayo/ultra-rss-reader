@@ -58,6 +58,7 @@ export type SidebarVisibilityFallbackParams = {
   firstFeedId: string | null;
   selection: SidebarSelection;
   tags: TagDto[] | undefined;
+  feedsReady: boolean;
   viewMode: SidebarFeedTreeViewMode;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;

@@ -64,6 +64,20 @@ function renderShareMenu(props: Partial<ComponentProps<typeof ArticleShareMenu>>
   );
 }
 
+function truncateGraphemesForExpectation(value: string, maxGraphemes: number) {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  let result = "";
+  let count = 0;
+  for (const { segment } of segmenter.segment(value)) {
+    if (count >= maxGraphemes) {
+      break;
+    }
+    result += segment;
+    count += 1;
+  }
+  return result;
+}
+
 describe("ArticleShareMenu", () => {
   beforeEach(() => {
     addArticleToReadingListMock.mockReset();
@@ -176,11 +190,15 @@ describe("ArticleShareMenu", () => {
     expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
   });
 
-  it("encodes and trims long email share subject and body inputs before opening mail", async () => {
+  it("encodes and trims long email share subject and body inputs on grapheme boundaries before opening mail", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
-    const longTitle = `${"A".repeat(170)} with extra title`;
-    const longUrl = `https://example.com/${"path/".repeat(500)}`;
+    const longTitle = `${"A".repeat(158)}e\u0301👨‍👩‍👧‍👦 extra title`;
+    const urlPrefix = "https://example.com/";
+    const urlPadding = "a".repeat(SHARE_COMMAND_TEXT_MAX_CHARS - urlPrefix.length - 1);
+    const longUrl = `${urlPrefix}${urlPadding}👨‍👩‍👧‍👦extra`;
+    const expectedSubject = truncateGraphemesForExpectation(longTitle, 160);
+    const expectedBody = truncateGraphemesForExpectation(longUrl, SHARE_COMMAND_TEXT_MAX_CHARS);
     openExternalUrlMock.mockResolvedValue(Result.succeed(undefined));
 
     renderShareMenu({
@@ -197,7 +215,7 @@ describe("ArticleShareMenu", () => {
 
     await waitFor(() => {
       expect(openExternalUrlMock).toHaveBeenCalledWith(
-        `mailto:?subject=${encodeURIComponent(longTitle.slice(0, 160))}&body=${encodeURIComponent(longUrl.slice(0, SHARE_COMMAND_TEXT_MAX_CHARS))}`,
+        `mailto:?subject=${encodeURIComponent(expectedSubject)}&body=${encodeURIComponent(expectedBody)}`,
       );
     });
     expect(showToast).not.toHaveBeenCalled();
@@ -239,5 +257,76 @@ describe("ArticleShareMenu", () => {
     });
     expect(openInBrowserMock).not.toHaveBeenCalled();
     expect(copyArticleLinkMock).not.toHaveBeenCalled();
+  });
+
+  it("categorizes email share command failures with the shared article action taxonomy", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    openExternalUrlMock.mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "opener plugin not available",
+      }),
+    );
+
+    renderShareMenu({ showToast });
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith("opener plugin not available");
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to open email client:",
+      expect.objectContaining({
+        category: "runtime_unavailable",
+        localeKey: "article_actions.errors.runtime_unavailable",
+      }),
+    );
+  });
+
+  it("handles rejected async copy menu actions with the shared menu policy", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    copyArticleLinkMock.mockRejectedValue(new Error("clipboard plugin not available"));
+
+    renderShareMenu({ showToast });
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Copy link" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith("clipboard plugin not available");
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "Copy failed",
+      expect.objectContaining({
+        category: "runtime_unavailable",
+        localeKey: "article_actions.errors.runtime_unavailable",
+      }),
+    );
+  });
+
+  it("handles rejected async reading-list menu actions with the shared menu policy", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    addArticleToReadingListMock.mockRejectedValue(new Error("permission denied"));
+
+    renderShareMenu({ showToast });
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Add to Reading List" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith("permission denied");
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "Add to reading list failed",
+      expect.objectContaining({
+        category: "permission_denied",
+        localeKey: "article_actions.errors.permission_denied",
+      }),
+    );
   });
 });

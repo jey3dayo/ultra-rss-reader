@@ -119,6 +119,7 @@ function getResetBrowserState() {
     browserNavigationState: null,
     browserCloseInFlight: false,
     pendingBrowserCloseAction: null,
+    pendingBrowserCloseActionQueue: [],
   };
 }
 
@@ -157,6 +158,7 @@ type UiState = {
   browserNavigationState: BrowserNavigationState | null;
   browserCloseInFlight: boolean;
   pendingBrowserCloseAction: PendingBrowserCloseAction | null;
+  pendingBrowserCloseActionQueue: PendingBrowserCloseAction[];
   articleNavigationDirection: ArticleNavigationDirection | null;
   expandedFolderIds: Set<string>;
   settingsOpen: boolean;
@@ -290,6 +292,7 @@ export type UiStoreReaderState = Pick<
   | "browserNavigationState"
   | "browserCloseInFlight"
   | "pendingBrowserCloseAction"
+  | "pendingBrowserCloseActionQueue"
   | "articleNavigationDirection"
   | "searchQuery"
   | "expandedFolderIds"
@@ -308,6 +311,7 @@ export type UiStoreReaderSelectionState = Pick<
   | "browserNavigationState"
   | "browserCloseInFlight"
   | "pendingBrowserCloseAction"
+  | "pendingBrowserCloseActionQueue"
   | "articleNavigationDirection"
   | "searchQuery"
   | "expandedFolderIds"
@@ -502,6 +506,7 @@ const initialState: UiState = {
   browserNavigationState: null,
   browserCloseInFlight: false,
   pendingBrowserCloseAction: null,
+  pendingBrowserCloseActionQueue: [],
   articleNavigationDirection: null,
   expandedFolderIds: new Set(),
   settingsOpen: false,
@@ -682,28 +687,36 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       retainedArticleIds: new Set(),
     }),
   selectFeed: (feedId) =>
-    set({
-      accountPaneOpen: false,
-      selection: { type: "feed", feedId },
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      ...getResetBrowserState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
+    set((state) =>
+      state.subscriptionsWorkspace !== null
+        ? state
+        : {
+            accountPaneOpen: false,
+            selection: { type: "feed", feedId },
+            selectedArticleId: null,
+            contentMode: "empty",
+            focusedPane: "list",
+            ...getResetBrowserState(),
+            recentlyReadIds: new Set(),
+            retainedArticleIds: new Set(),
+          },
+    ),
   selectFeedFromCurrentContext: (feedId) =>
-    set((state) => ({
-      accountPaneOpen: false,
-      selection: { type: "feed", feedId },
-      viewMode: getContextAwareScopeViewMode(state),
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      ...getResetBrowserState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    })),
+    set((state) =>
+      state.subscriptionsWorkspace !== null
+        ? state
+        : {
+            accountPaneOpen: false,
+            selection: { type: "feed", feedId },
+            viewMode: getContextAwareScopeViewMode(state),
+            selectedArticleId: null,
+            contentMode: "empty",
+            focusedPane: "list",
+            ...getResetBrowserState(),
+            recentlyReadIds: new Set(),
+            retainedArticleIds: new Set(),
+          },
+    ),
   selectFolder: (folderId) =>
     set((state) => ({
       accountPaneOpen: false,
@@ -793,18 +806,22 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       retainedArticleIds: new Set(),
     }),
   selectArticle: (id, options) =>
-    set((state) => ({
-      accountPaneOpen: false,
-      selectedArticleId: id,
-      contentMode: "reader",
-      focusedPane: "content",
-      articleNavigationDirection: options?.navigationDirection ?? null,
-      retainedArticleIds: getRetainedArticleIdsAfterSelectingArticle({
-        articleId: id,
-        viewMode: state.viewMode,
-        currentRetainedArticleIds: state.retainedArticleIds,
-      }),
-    })),
+    set((state) =>
+      state.subscriptionsWorkspace !== null
+        ? state
+        : {
+            accountPaneOpen: false,
+            selectedArticleId: id,
+            contentMode: "reader",
+            focusedPane: "content",
+            articleNavigationDirection: options?.navigationDirection ?? null,
+            retainedArticleIds: getRetainedArticleIdsAfterSelectingArticle({
+              articleId: id,
+              viewMode: state.viewMode,
+              currentRetainedArticleIds: state.retainedArticleIds,
+            }),
+          },
+    ),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) =>
     set({
@@ -815,6 +832,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: "content",
       browserCloseInFlight: false,
       pendingBrowserCloseAction: null,
+      pendingBrowserCloseActionQueue: [],
     }),
   closeBrowser: () =>
     set((s) => ({
@@ -825,10 +843,19 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: s.selectedArticleId ? "content" : "list",
       browserCloseInFlight: false,
       pendingBrowserCloseAction: null,
+      pendingBrowserCloseActionQueue: [],
     })),
   setBrowserNavigationState: (state) => set({ browserNavigationState: state }),
   setBrowserCloseInFlight: (inFlight) => set({ browserCloseInFlight: inFlight }),
-  setPendingBrowserCloseAction: (action) => set({ pendingBrowserCloseAction: action }),
+  setPendingBrowserCloseAction: (action) =>
+    set((state) =>
+      action === null
+        ? { pendingBrowserCloseAction: null, pendingBrowserCloseActionQueue: [] }
+        : {
+            pendingBrowserCloseAction: action,
+            pendingBrowserCloseActionQueue: [...state.pendingBrowserCloseActionQueue, action],
+          },
+    ),
   setViewMode: (mode) =>
     set({
       viewMode: mode,

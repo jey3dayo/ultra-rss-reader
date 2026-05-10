@@ -2,10 +2,11 @@ import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
 import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
-import { type ArticleDto, openExternalUrl } from "@/api/tauri-commands";
+import { type AppError, type ArticleDto, openExternalUrl } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
 import {
   addArticleToReadingList,
+  categorizeArticleActionError,
   copyArticleLink,
   normalizeArticleExternalBrowserUrl,
 } from "./article-browser-actions";
@@ -18,9 +19,36 @@ const MAILTO_FALLBACK_SUBJECT = "Untitled article";
 const MAILTO_SUBJECT_MAX_LENGTH = 160;
 const MAILTO_BODY_MAX_LENGTH = SHARE_COMMAND_TEXT_MAX_CHARS;
 
+function truncateGraphemes(value: string, maxGraphemes: number) {
+  if (typeof Intl.Segmenter === "function") {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    let result = "";
+    let count = 0;
+    for (const { segment } of segmenter.segment(value)) {
+      if (count >= maxGraphemes) {
+        break;
+      }
+      result += segment;
+      count += 1;
+    }
+    return result;
+  }
+
+  let result = "";
+  let count = 0;
+  for (const character of value) {
+    if (count >= maxGraphemes) {
+      break;
+    }
+    result += character;
+    count += 1;
+  }
+  return result;
+}
+
 function resolveMailtoValue(value: string | null, fallback: string, maxLength: number) {
   const normalized = value?.trim() || fallback;
-  return normalized.length > maxLength ? normalized.slice(0, maxLength) : normalized;
+  return truncateGraphemes(normalized, maxLength);
 }
 
 function buildArticleMailto(article: ArticleDto) {
@@ -56,6 +84,35 @@ type ArticleShareMenuProps = {
   labels: ArticleShareMenuLabels;
 };
 
+function isAppError(error: unknown): error is AppError {
+  if (!error || typeof error !== "object" || !("type" in error) || !("message" in error)) {
+    return false;
+  }
+
+  return (
+    typeof error.message === "string" &&
+    (error.type === "UserVisible" || error.type === "Retryable" || error.type === "Diagnostics")
+  );
+}
+
+function runArticleShareMenuAction(
+  action: () => Promise<unknown>,
+  showToast: ArticleShareMenuProps["showToast"],
+  errorLabel: string,
+) {
+  void action().catch((error: unknown) => {
+    const appError: AppError = isAppError(error)
+      ? error
+      : {
+          type: "UserVisible",
+          message: error instanceof Error ? error.message : String(error),
+        };
+    const actionError = categorizeArticleActionError(appError);
+    console.error(errorLabel, actionError);
+    showToast(actionError.message);
+  });
+}
+
 export function ArticleShareMenu({ article, supportsReadingList, showToast, labels }: ArticleShareMenuProps) {
   return (
     <Menu.Root>
@@ -71,12 +128,18 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
           <Menu.Popup className={contextMenuStyles.popup}>
             <Menu.Item
               className={contextMenuStyles.item}
-              onClick={async () => {
-                if (!article?.url) return;
-                await copyArticleLink(article.url, {
+              onClick={() => {
+                runArticleShareMenuAction(
+                  async () => {
+                    if (!article?.url) return;
+                    await copyArticleLink(article.url, {
+                      showToast,
+                      successMessage: labels.linkCopied,
+                    });
+                  },
                   showToast,
-                  successMessage: labels.linkCopied,
-                });
+                  "Copy failed",
+                );
               }}
             >
               <Copy className="mr-2 size-4" />
@@ -85,12 +148,18 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
             {supportsReadingList ? (
               <Menu.Item
                 className={contextMenuStyles.item}
-                onClick={async () => {
-                  if (!article?.url) return;
-                  await addArticleToReadingList(article.url, {
+                onClick={() => {
+                  runArticleShareMenuAction(
+                    async () => {
+                      if (!article?.url) return;
+                      await addArticleToReadingList(article.url, {
+                        showToast,
+                        successMessage: labels.addedToReadingList,
+                      });
+                    },
                     showToast,
-                    successMessage: labels.addedToReadingList,
-                  });
+                    "Add to reading list failed",
+                  );
                 }}
               >
                 <BookmarkPlus className="mr-2 size-4" />
@@ -100,24 +169,33 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
             <Menu.Separator className={contextMenuStyles.separator} />
             <Menu.Item
               className={contextMenuStyles.item}
-              onClick={async () => {
-                if (!article) return;
-                const mailtoResult = buildArticleMailto(article);
-                if (Result.isFailure(mailtoResult)) {
-                  const error = Result.unwrapError(mailtoResult);
-                  if (error) {
-                    showToast(error.message);
-                  }
-                  return;
-                }
+              onClick={() => {
+                runArticleShareMenuAction(
+                  async () => {
+                    if (!article) return;
+                    const mailtoResult = buildArticleMailto(article);
+                    if (Result.isFailure(mailtoResult)) {
+                      const error = Result.unwrapError(mailtoResult);
+                      if (error) {
+                        const actionError = categorizeArticleActionError(error);
+                        console.error("Failed to open email client:", actionError);
+                        showToast(actionError.message);
+                      }
+                      return;
+                    }
 
-                const mailto = Result.unwrap(mailtoResult);
-                Result.pipe(
-                  await openExternalUrl(mailto),
-                  Result.inspectError((error) => {
-                    console.error("Failed to open email client:", error);
-                    showToast(error.message);
-                  }),
+                    const mailto = Result.unwrap(mailtoResult);
+                    Result.pipe(
+                      await openExternalUrl(mailto),
+                      Result.inspectError((error) => {
+                        const actionError = categorizeArticleActionError(error);
+                        console.error("Failed to open email client:", actionError);
+                        showToast(actionError.message);
+                      }),
+                    );
+                  },
+                  showToast,
+                  "Failed to open email client:",
                 );
               }}
             >

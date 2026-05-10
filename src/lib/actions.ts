@@ -10,6 +10,7 @@ import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocus
 import { logRuntimeDiagnostic, type RuntimeDiagnosticPolicyId } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
+import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/windows";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -19,6 +20,12 @@ export { isAppAction } from "@/lib/app-actions";
 
 type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
 type GlobalActionDiagnosticCategory = "window" | "sync" | "browser" | "updates";
+type GlobalActionRuntimeError = {
+  type: "UserVisible";
+  message: string;
+  category: RuntimeActionErrorCategory;
+  localeKey: `app_actions.errors.${RuntimeActionErrorCategory}`;
+};
 
 const actionDiagnosticPolicyByCategory = {
   window: "app-action-window",
@@ -45,13 +52,26 @@ function logGlobalActionFailure(action: AppAction, category: GlobalActionDiagnos
   logRuntimeDiagnostic(actionDiagnosticPolicyByCategory[category], `[actions:${category}] ${action} failed.`, error);
 }
 
+function toGlobalActionRuntimeError(error: unknown): GlobalActionRuntimeError {
+  const message = error instanceof Error ? error.message : String(error);
+  const category = classifyRuntimeActionErrorCategory(message);
+  return {
+    type: "UserVisible",
+    message,
+    category,
+    localeKey: `app_actions.errors.${category}`,
+  };
+}
+
 function runGlobalActionBoundary(
   action: AppAction,
   category: GlobalActionDiagnosticCategory,
   operation: () => Promise<void>,
 ): void {
   void Promise.resolve(operation()).catch((error: unknown) => {
-    logGlobalActionFailure(action, category, error);
+    const actionError = toGlobalActionRuntimeError(error);
+    logGlobalActionFailure(action, category, actionError);
+    useUiStore.getState().showToast(actionError.message);
   });
 }
 
@@ -62,6 +82,9 @@ function emitNavigationEvent(name: string, direction: 1 | -1): void {
 
 function queueBrowserCloseActionIfNeeded(action: BufferedBrowserCloseAction): boolean {
   const store = useUiStore.getState();
+  if (store.subscriptionsWorkspace !== null) {
+    return true;
+  }
   if (!store.browserCloseInFlight) {
     return false;
   }
@@ -147,16 +170,18 @@ async function navigateBrowserForward(): Promise<void> {
 
 export function flushPendingBrowserCloseAction(): void {
   const store = useUiStore.getState();
-  const pendingAction = store.pendingBrowserCloseAction;
+  const pendingActions = [...store.pendingBrowserCloseActionQueue];
   store.setPendingBrowserCloseAction(null);
   store.setBrowserCloseInFlight(false);
-  emitDebugInputTrace(`flush ${pendingAction ?? "none"}`);
+  emitDebugInputTrace(`flush ${pendingActions.length === 0 ? "none" : pendingActions.join(",")}`);
 
-  if (!pendingAction) {
+  if (pendingActions.length === 0) {
     return;
   }
 
-  dispatchBufferedBrowserCloseAction(pendingAction);
+  for (const pendingAction of pendingActions) {
+    dispatchBufferedBrowserCloseAction(pendingAction);
+  }
 }
 
 /**

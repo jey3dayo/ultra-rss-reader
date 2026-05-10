@@ -10,6 +10,7 @@ MD_GLOB = "**/*.md"
 MD_EXCLUDE_NODE_MODULES = "#**/node_modules/**"
 MD_EXCLUDE_WORKTREES = "#**/.worktrees/**"
 MD_EXCLUDE_TARGET = "#**/target/**"
+MD_EXCLUDE_TAURI_GEN = "#src-tauri/gen/**"
 
 [tools]
 node = "24"
@@ -44,8 +45,8 @@ run = "taplo fmt mise.toml src-tauri/Cargo.toml"
 
 [tasks."format:md"]
 description = "Markdown format + lint autofix"
-run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET --fix"
-run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% --fix"
+run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN --fix"
+run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN% --fix"
 
 # ========================================
 # フォーマットチェック（書き込みなし、CI用）
@@ -109,8 +110,8 @@ run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
-run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET"
-run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET%"
+run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN"
+run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN%"
 
 [tasks."lint:yaml"]
 description = "YAML lint check"
@@ -176,16 +177,16 @@ node --input-type=module -e "import { readFileSync } from 'node:fs'; const packa
 [tasks."quality:markdownlint-contract"]
 description = "Check markdownlint target count and ignore pattern contract"
 run = """
-COUNT=$(rg --files -g '*.md' -g '!**/node_modules/**' -g '!**/.worktrees/**' -g '!**/target/**' | wc -l | tr -d ' ')
+COUNT=$(rg --files -g '*.md' -g '!**/node_modules/**' -g '!**/.worktrees/**' -g '!**/target/**' -g '!src-tauri/gen/**' | wc -l | tr -d ' ')
 if [ "$COUNT" != "158" ]; then
   echo "markdownlint target count drift: expected 158, got $COUNT" >&2
   exit 1
 fi
-pnpm markdownlint-cli2 "$MD_GLOB" "$MD_EXCLUDE_NODE_MODULES" "$MD_EXCLUDE_WORKTREES" "$MD_EXCLUDE_TARGET"
+pnpm markdownlint-cli2 "$MD_GLOB" "$MD_EXCLUDE_NODE_MODULES" "$MD_EXCLUDE_WORKTREES" "$MD_EXCLUDE_TARGET" "$MD_EXCLUDE_TAURI_GEN"
 """
 run_windows = """
-node --input-type=module -e "import { execFileSync } from 'node:child_process'; const list = execFileSync('rg', ['--files', '-g', '*.md', '-g', '!**/node_modules/**', '-g', '!**/.worktrees/**', '-g', '!**/target/**'], { encoding: 'utf8' }).trim().split(/\\r?\\n/).filter(Boolean); if (list.length !== 158) { console.error(`markdownlint target count drift: expected 158, got ${list.length}`); process.exit(1); }"
-markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET%
+node --input-type=module -e "import { execFileSync } from 'node:child_process'; const list = execFileSync('rg', ['--files', '-g', '*.md', '-g', '!**/node_modules/**', '-g', '!**/.worktrees/**', '-g', '!**/target/**', '-g', '!src-tauri/gen/**'], { encoding: 'utf8' }).trim().split(/\\r?\\n/).filter(Boolean); if (list.length !== 158) { console.error(`markdownlint target count drift: expected 158, got ${list.length}`); process.exit(1); }"
+markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN%
 """
 
 [tasks."report:licenses"]

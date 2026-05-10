@@ -477,6 +477,29 @@ describe("executeAction", () => {
       }
     });
 
+    it("keeps article and feed navigation actions inert while subscriptions workspace is open", () => {
+      const articleEvents = captureNavigationDetails(APP_EVENTS.navigateArticle);
+      const feedEvents = captureNavigationDetails(APP_EVENTS.navigateFeed);
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        subscriptionsWorkspace: { kind: "index" },
+      });
+
+      try {
+        executeAction("next-article");
+        executeAction("prev-article");
+        executeAction("next-feed");
+        executeAction("prev-feed");
+
+        expect(articleEvents.details).toEqual([]);
+        expect(feedEvents.details).toEqual([]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+      } finally {
+        articleEvents.cleanup();
+        feedEvents.cleanup();
+      }
+    });
+
     it("clears the selected article and focuses the list target for mouse-back outside browser mode", async () => {
       document.body.innerHTML = '<div data-article-id="art-1" tabindex="-1"></div>';
       useUiStore.setState({
@@ -539,7 +562,7 @@ describe("executeAction", () => {
       }
     });
 
-    it("overwrites pending browser close navigation with the latest action before flush", () => {
+    it("flushes pending browser close navigation in the order it was queued", () => {
       const articleEvents = captureNavigationDetails(APP_EVENTS.navigateArticle);
       const feedEvents = captureNavigationDetails(APP_EVENTS.navigateFeed);
       useUiStore.setState({
@@ -554,12 +577,14 @@ describe("executeAction", () => {
         expect(articleEvents.details).toEqual([]);
         expect(feedEvents.details).toEqual([]);
         expect(useUiStore.getState().pendingBrowserCloseAction).toBe("prev-feed");
+        expect(useUiStore.getState().pendingBrowserCloseActionQueue).toEqual(["next-article", "prev-feed"]);
 
         flushPendingBrowserCloseAction();
 
-        expect(articleEvents.details).toEqual([]);
+        expect(articleEvents.details).toEqual([1]);
         expect(feedEvents.details).toEqual([-1]);
         expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+        expect(useUiStore.getState().pendingBrowserCloseActionQueue).toEqual([]);
         expect(useUiStore.getState().browserCloseInFlight).toBe(false);
 
         flushPendingBrowserCloseAction();
@@ -571,7 +596,7 @@ describe("executeAction", () => {
       }
     });
 
-    it("collapses rapid repeated browser close navigation into a single pending action", () => {
+    it("keeps rapid repeated browser close navigation as consecutive queued actions", () => {
       const { details, cleanup } = captureNavigationDetails(APP_EVENTS.navigateArticle);
       useUiStore.setState({
         browserCloseInFlight: true,
@@ -585,11 +610,17 @@ describe("executeAction", () => {
 
         expect(details).toEqual([]);
         expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+        expect(useUiStore.getState().pendingBrowserCloseActionQueue).toEqual([
+          "next-article",
+          "next-article",
+          "next-article",
+        ]);
 
         flushPendingBrowserCloseAction();
 
-        expect(details).toEqual([1]);
+        expect(details).toEqual([1, 1, 1]);
         expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+        expect(useUiStore.getState().pendingBrowserCloseActionQueue).toEqual([]);
         expect(useUiStore.getState().browserCloseInFlight).toBe(false);
       } finally {
         cleanup();
@@ -827,9 +858,17 @@ describe("executeAction", () => {
       executeAction("toggle-fullscreen");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions:window] toggle-fullscreen failed.", error);
+        expect(consoleError).toHaveBeenCalledWith(
+          "[actions:window] toggle-fullscreen failed.",
+          expect.objectContaining({
+            message: error.message,
+            category: "unknown",
+            localeKey: "app_actions.errors.unknown",
+          }),
+        );
       });
       expect(setWindowFullscreenMock).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
       consoleError.mockRestore();
     });
 
@@ -841,8 +880,16 @@ describe("executeAction", () => {
       executeAction("toggle-fullscreen");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions:window] toggle-fullscreen failed.", error);
+        expect(consoleError).toHaveBeenCalledWith(
+          "[actions:window] toggle-fullscreen failed.",
+          expect.objectContaining({
+            message: error.message,
+            category: "unknown",
+            localeKey: "app_actions.errors.unknown",
+          }),
+        );
       });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
       consoleError.mockRestore();
     });
   });
@@ -862,8 +909,16 @@ describe("executeAction", () => {
       executeAction("reload-webview");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions:browser] reload-webview failed.", error);
+        expect(consoleError).toHaveBeenCalledWith(
+          "[actions:browser] reload-webview failed.",
+          expect.objectContaining({
+            message: error.message,
+            category: "unknown",
+            localeKey: "app_actions.errors.unknown",
+          }),
+        );
       });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
     });
 
     it("closes browser mode for close-browser", () => {
@@ -1008,8 +1063,16 @@ describe("executeAction", () => {
       executeAction("check-for-updates");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions:updates] check-for-updates failed.", error);
+        expect(consoleError).toHaveBeenCalledWith(
+          "[actions:updates] check-for-updates failed.",
+          expect.objectContaining({
+            message: error.message,
+            category: "unknown",
+            localeKey: "app_actions.errors.unknown",
+          }),
+        );
       });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
     });
   });
 
@@ -1191,8 +1254,16 @@ describe("executeAction", () => {
       executeAction("sync-all");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions:sync] sync-all failed.", error);
+        expect(consoleError).toHaveBeenCalledWith(
+          "[actions:sync] sync-all failed.",
+          expect.objectContaining({
+            message: error.message,
+            category: "unknown",
+            localeKey: "app_actions.errors.unknown",
+          }),
+        );
       });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
     });
   });
 

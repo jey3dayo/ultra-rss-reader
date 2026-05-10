@@ -393,6 +393,7 @@ describe("useArticleListEffects", () => {
           focusedPane: "list",
           selectedArticleId,
           isPrimarySourceLoading: false,
+          isSearchLoading: false,
           clearArticle,
         }),
       {
@@ -441,6 +442,7 @@ describe("useArticleListEffects", () => {
           focusedPane: "list",
           selectedArticleId: sampleArticles[1].id,
           isPrimarySourceLoading,
+          isSearchLoading: false,
           clearArticle,
         }),
       {
@@ -491,6 +493,7 @@ describe("useArticleListEffects", () => {
           focusedPane: "list",
           selectedArticleId: sampleArticles[1].id,
           isPrimarySourceLoading: false,
+          isSearchLoading: false,
           clearArticle,
         }),
       {
@@ -505,6 +508,57 @@ describe("useArticleListEffects", () => {
     });
     rerender({
       filteredArticles: [sampleArticles[1], sampleArticles[0]],
+    });
+    requestAnimationFrameCallbacks.forEach((callback) => {
+      callback(0);
+    });
+
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+    expect(clearArticle).not.toHaveBeenCalled();
+  });
+
+  it("does not clear the selected article while search results for the current query are loading", () => {
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const clearArticle = vi.fn();
+    const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
+    const cancelAnimationFrame = vi.fn();
+
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      requestAnimationFrameCallbacks.push(callback);
+      return requestAnimationFrameCallbacks.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+
+    const { rerender } = renderHook(
+      ({ filteredArticles, isSearchLoading }) =>
+        useArticleListEffects({
+          selection: { type: "all" },
+          scrollToTopOnChange: "false",
+          listRef: { current: list },
+          viewportRef: { current: viewport },
+          filteredArticles,
+          focusedPane: "list",
+          selectedArticleId: sampleArticles[1].id,
+          isPrimarySourceLoading: false,
+          isSearchLoading,
+          clearArticle,
+        }),
+      {
+        initialProps: {
+          filteredArticles: [sampleArticles[0], sampleArticles[1]],
+          isSearchLoading: false,
+        },
+      },
+    );
+
+    rerender({
+      filteredArticles: [],
+      isSearchLoading: false,
+    });
+    rerender({
+      filteredArticles: [],
+      isSearchLoading: true,
     });
     requestAnimationFrameCallbacks.forEach((callback) => {
       callback(0);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarAccountSelection } from "@/components/reader/hooks/sidebar/use-sidebar-account-selection";
 import { useSidebarControllerActions } from "@/components/reader/hooks/sidebar/use-sidebar-controller-actions";
@@ -7,7 +7,7 @@ import { useSidebarRuntime } from "@/components/reader/hooks/sidebar/use-sidebar
 import { useSidebarViewProps } from "@/components/reader/hooks/sidebar/use-sidebar-view-props";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
-import { focusSelectedAccountPaneTarget } from "@/lib/reader-focus";
+import { focusSelectedAccountPaneTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { focusAccountItem } from "../../account-switcher-menu";
 import type { SidebarControllerResult } from "../../sidebar.types";
@@ -87,6 +87,30 @@ export function useSidebarController(): SidebarControllerResult {
     isSyncDisabled,
   } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
+  const accountFocusCleanupRef = useRef<(() => void) | null>(null);
+  const accountFocusGenerationRef = useRef(0);
+
+  const cancelPendingAccountFocus = useCallback(() => {
+    accountFocusGenerationRef.current += 1;
+    accountFocusCleanupRef.current?.();
+    accountFocusCleanupRef.current = null;
+  }, []);
+
+  const scheduleAccountFocus = useCallback(
+    (focus: () => void, schedule: (runFocus: () => void) => () => void) => {
+      cancelPendingAccountFocus();
+      const generation = accountFocusGenerationRef.current;
+      accountFocusCleanupRef.current = schedule(() => {
+        if (generation !== accountFocusGenerationRef.current) {
+          return;
+        }
+
+        accountFocusCleanupRef.current = null;
+        focus();
+      });
+    },
+    [cancelPendingAccountFocus],
+  );
 
   const focusAccountList = useCallback(() => {
     const accountCount = accounts?.length ?? 0;
@@ -97,9 +121,7 @@ export function useSidebarController(): SidebarControllerResult {
     if (layoutMode !== "mobile") {
       closeAccountList();
       useUiStore.getState().openAccountPane();
-      requestAnimationFrame(() => {
-        focusSelectedAccountPaneTarget();
-      });
+      scheduleAccountFocus(focusSelectedAccountPaneTarget, scheduleReaderFocusFrame);
       return;
     }
 
@@ -107,15 +129,27 @@ export function useSidebarController(): SidebarControllerResult {
       toggleAccountList();
     }
 
-    window.setTimeout(() => {
-      if (accountCount <= 1) {
-        accountTriggerRef.current?.focus();
-        return;
-      }
+    scheduleAccountFocus(
+      () => {
+        if (accountCount <= 1) {
+          accountTriggerRef.current?.focus();
+          return;
+        }
 
-      const selectedIndex = accounts?.findIndex((account) => account.id === selectedAccountId) ?? -1;
-      focusAccountItem(accountItemRefs, accountCount, selectedIndex >= 0 ? selectedIndex : 0);
-    }, 0);
+        const selectedIndex = accounts?.findIndex((account) => account.id === selectedAccountId) ?? -1;
+        focusAccountItem(accountItemRefs, accountCount, selectedIndex >= 0 ? selectedIndex : 0);
+      },
+      (runFocus) => {
+        if (typeof window === "undefined" || typeof window.setTimeout !== "function") {
+          return () => undefined;
+        }
+
+        const timeoutId = window.setTimeout(runFocus, 0);
+        return () => {
+          window.clearTimeout(timeoutId);
+        };
+      },
+    );
   }, [
     accountItemRefs,
     accountTriggerRef,
@@ -123,9 +157,12 @@ export function useSidebarController(): SidebarControllerResult {
     closeAccountList,
     isAccountListOpen,
     layoutMode,
+    scheduleAccountFocus,
     selectedAccountId,
     toggleAccountList,
   ]);
+
+  useEffect(() => cancelPendingAccountFocus, [cancelPendingAccountFocus]);
 
   useEffect(() => {
     if (focusedPane !== "sidebar" || selection.type !== "feed") {

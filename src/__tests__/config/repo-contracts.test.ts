@@ -131,6 +131,24 @@ function readDirectoryFileStems(path: string) {
     .toSorted();
 }
 
+function collectTypeSurfaceFiles(path: string): string[] {
+  const directoryPath = join(repoRoot, path);
+  const entries = readdirSync(directoryPath, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const entryPath = join(path, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...collectTypeSurfaceFiles(entryPath));
+    } else if (entry.name.endsWith(".types.ts")) {
+      files.push(toPosixPath(entryPath));
+    }
+  }
+
+  return files.toSorted();
+}
+
 function toPosixPath(path: string) {
   return path.replaceAll("\\", "/");
 }
@@ -975,18 +993,21 @@ describe("repository static contracts", () => {
       "$MD_EXCLUDE_NODE_MODULES",
       "$MD_EXCLUDE_WORKTREES",
       "$MD_EXCLUDE_TARGET",
+      "$MD_EXCLUDE_TAURI_GEN",
     ].join(" ");
     const markdownWindowsArguments = [
       "%MD_GLOB%",
       "%MD_EXCLUDE_NODE_MODULES%",
       "%MD_EXCLUDE_WORKTREES%",
       "%MD_EXCLUDE_TARGET%",
+      "%MD_EXCLUDE_TAURI_GEN%",
     ].join(" ");
 
     expect(extractMiseEnvValue(miseSource, "MD_GLOB")).toBe("**/*.md");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_NODE_MODULES")).toBe("#**/node_modules/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
+    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
     expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`pnpm markdownlint-cli2 ${markdownArguments} --fix`);
     expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
       `markdownlint-cli2.CMD ${markdownWindowsArguments} --fix`,
@@ -1050,6 +1071,7 @@ describe("repository static contracts", () => {
     const gitignoreSource = readRepoFile(".gitignore");
     const ripgrepIgnoreSource = readRepoFile(".ignore");
     const claudeGuidance = readRepoFile("CLAUDE.md");
+    const miseSource = readRepoFile("mise.toml");
     const ignoredArtifactPrefixes = [
       "dist/",
       "src-tauri/target/",
@@ -1071,6 +1093,10 @@ describe("repository static contracts", () => {
     expect(claudeGuidance).toContain("change `src-tauri/capabilities/` or the owning Tauri permission/config source");
     expect(claudeGuidance).toContain("rerun the Tauri CLI command that generated the schema drift");
     expect(claudeGuidance).toContain("review the resulting schema diff as generated output before committing");
+    expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TARGET");
+    expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TAURI_GEN");
+    expect(extractMiseTaskSection(miseSource, "quality:markdownlint-contract")).toContain("-g '!**/target/**'");
+    expect(extractMiseTaskSection(miseSource, "quality:markdownlint-contract")).toContain("-g '!src-tauri/gen/**'");
   });
 
   it("keeps app E2E Playwright and package dev scripts aligned with the Vite port", () => {
@@ -1320,6 +1346,37 @@ describe("repository static contracts", () => {
     );
   });
 
+  it("keeps UI design rules aligned with shared CSS color tokens", () => {
+    const designGuidance = readRepoFile("DESIGN.md");
+    const colorRule = readRepoFile(".claude/rules/color-pattern.md");
+    const globalCss = readRepoFile("src/styles/global.css");
+
+    expect(designGuidance).toContain("Primary (`#f54e00`)");
+    expect(designGuidance).toContain("Unread (`#9fbbe0`)");
+    expect(designGuidance).toContain("Loading (`#9fbbe0`)");
+    expect(designGuidance).toContain("Starred (`#facc15`)");
+    expect(designGuidance).toContain("Dialog and Popup Shells");
+    expect(designGuidance).toContain("named scrim roles from the token layer");
+
+    expect(extractCssCustomProperty(globalCss, ":root", "--theme-primary")).toBe("#f54e00");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--theme-primary")).toBe("#f54e00");
+    expect(extractCssCustomProperty(globalCss, ":root", "--theme-unread")).toBe("#9fbbe0");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--theme-unread")).toBe("#9fbbe0");
+    expect(extractCssCustomProperty(globalCss, ":root", "--theme-starred")).toBe("#facc15");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--theme-starred")).toBe("#facc15");
+    expect(extractCssCustomProperty(globalCss, ":root", "--tone-loading")).toBe("var(--theme-unread)");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--tone-loading")).toBe("var(--theme-unread)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--dialog-scrim")).toBe("var(--dialog-overlay)");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--dialog-scrim")).toBe("var(--dialog-overlay)");
+
+    expect(colorRule).toContain("rgba(245, 78, 0, 0.26)");
+    expect(colorRule).toContain("rgba(245, 78, 0, 0.38)");
+    expect(colorRule).toContain("var(--gradient-switch-track-off)");
+    expect(colorRule).not.toContain("oklch(0.65 0.15 250)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe("var(--color-ring)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-gray-600)");
+  });
+
   it("keeps renderStory scoped to Storybook global preview parameters and decorators", () => {
     const renderStoryHelperSource = readRepoFile("tests/helpers/render-story.tsx");
 
@@ -1499,6 +1556,37 @@ describe("repository static contracts", () => {
     expect(readRepoFile("CLAUDE.md")).toContain("[.claude/rules/README.md](.claude/rules/README.md)");
   });
 
+  it("keeps CLAUDE rule links aligned with the rules index", () => {
+    const claudeGuidance = readRepoFile("CLAUDE.md");
+    const ruleIndex = readRepoFile(".claude/rules/README.md");
+    const indexedRuleFiles = new Set(
+      extractMarkdownRelativeLinks(ruleIndex)
+        .filter((link) => link.endsWith(".md") && link !== "./README.md")
+        .map((link) => normalize(join(".claude/rules", link))),
+    );
+    const claudeRuleLinks = [
+      ...new Set(
+        extractMarkdownLinks(claudeGuidance)
+          .filter((link) => link.startsWith(".claude/rules/") && link.endsWith(".md"))
+          .map((link) => normalize(link)),
+      ),
+    ].toSorted();
+    const missingFromIndex = claudeRuleLinks
+      .filter((link) => link !== ".claude/rules/README.md")
+      .filter((link) => !indexedRuleFiles.has(link));
+
+    expect(claudeRuleLinks).toEqual([
+      ".claude/rules/README.md",
+      ".claude/rules/async-side-effect-policy.md",
+      ".claude/rules/contract-test-policy.md",
+      ".claude/rules/quality-policy.md",
+      ".claude/rules/runtime-boundary.md",
+      ".claude/rules/rust-test-unwrap-policy.md",
+      ".claude/rules/schema-boundary.md",
+    ]);
+    expect(missingFromIndex).toEqual([]);
+  });
+
   it("keeps the docs index linked to top-level RTK guidance", () => {
     const docsIndex = readRepoFile("docs/README.md");
     const topLevelDocsSection = docsIndex.match(/^## Top-Level Docs\n\n([\s\S]*?)(?=^## )/m)?.[1] ?? "";
@@ -1512,6 +1600,11 @@ describe("repository static contracts", () => {
     expect(agents).toContain("Use `./CLAUDE.md` as the master document");
     expect(agents).toContain("Read order for repository-local guidance: `AGENTS.md` -> `CLAUDE.md`");
     expect(agents).toContain("Keep this file as a thin router only.");
+    expect(agents.trim().split("\n").length).toBeLessThanOrEqual(20);
+    expect([...agents.matchAll(/^## .+$/gm)].map((match) => match[0])).toEqual(["## Overview", "## Instructions"]);
+    expect(agents).not.toContain("## File Placement");
+    expect(agents).not.toContain("## Type Surface Policy");
+    expect(agents).not.toContain("## Operational Notes");
   });
 
   it("keeps PR quality gate checklist aligned with AGENTS DoD guidance", () => {
@@ -1965,6 +2058,45 @@ describe("repository static contracts", () => {
     for (const sourceGlob of representativeSourceGlobs) {
       expect(readRepoFile("TODO.md")).not.toContain(sourceGlob);
     }
+  });
+
+  it("keeps remaining TypeScript type surface files on an explicit allowlist", () => {
+    const remainingTypeSurfaceAllowlist = [
+      "src/components/reader/add-feed-dialog.types.ts",
+      "src/components/reader/article-actions.types.ts",
+      "src/components/reader/article-list.types.ts",
+      "src/components/reader/article-tag-picker.types.ts",
+      "src/components/reader/browser-view.types.ts",
+      "src/components/reader/command-palette.types.ts",
+      "src/components/reader/feed-dialog-form.types.ts",
+      "src/components/reader/feed-tree.types.ts",
+      "src/components/reader/hooks/article-list/article-list-controller.types.ts",
+      "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts",
+      "src/components/reader/rename-feed-dialog.types.ts",
+      "src/components/reader/sidebar-feed-section.types.ts",
+      "src/components/reader/sidebar-feed-tree.types.ts",
+      "src/components/reader/sidebar-runtime.types.ts",
+      "src/components/reader/sidebar-sources.types.ts",
+      "src/components/reader/sidebar.types.ts",
+      "src/components/settings/account-detail/sync.types.ts",
+      "src/components/settings/accounts-nav.types.ts",
+      "src/components/settings/add-account/form-view.types.ts",
+      "src/components/settings/add-account/services.types.ts",
+      "src/components/settings/settings-modal.types.ts",
+      "src/components/settings/settings-nav.types.ts",
+      "src/components/settings/settings-page.types.ts",
+      "src/components/settings/settings-preference.types.ts",
+      "src/lib/subscriptions/subscription-summary-filter.types.ts",
+      "src/lib/subscriptions/subscriptions-index.types.ts",
+      "src/lib/subscriptions/subscriptions-workspace.types.ts",
+    ];
+    const typeSurfaceFiles = [
+      ...collectTypeSurfaceFiles("src/components/reader"),
+      ...collectTypeSurfaceFiles("src/components/settings"),
+      ...collectTypeSurfaceFiles("src/lib/subscriptions"),
+    ].toSorted();
+
+    expect(typeSurfaceFiles).toEqual(remainingTypeSurfaceAllowlist);
   });
 
   it("keeps GitHub issue templates aligned with label taxonomy sources", () => {

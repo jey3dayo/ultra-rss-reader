@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   AccountDtoSchema,
   AccountSyncStatusSchema,
+  APP_ERROR_MESSAGE_MAX_CHARS,
   AppErrorSchema,
   ArticleDtoSchema,
   addAccountArgs,
@@ -17,6 +18,7 @@ import {
   BrowserWebviewFallbackPayloadSchema,
   BrowserWebviewStateSchema,
   browserWebviewBoundsArgs,
+  COUNT_RESPONSE_MAX_VALUE,
   type CommandWithArgs,
   CountResponseSchema,
   clearArticleViewHistoryArgs,
@@ -156,6 +158,12 @@ function extractRustUsizeConst(source: string, constName: string) {
   return Number(match?.[1].replaceAll("_", ""));
 }
 
+function extractRustI64Const(source: string, constName: string) {
+  const match = source.match(new RegExp(`(?:pub\\(crate\\)\\s+)?const ${constName}: i64 = ([\\d_]+);`));
+  expect(match, `${constName} should exist`).not.toBeNull();
+  return Number(match?.[1].replaceAll("_", ""));
+}
+
 function extractRustU32Const(source: string, constName: string) {
   const match = source.match(new RegExp(`const ${constName}: u32 = ([\\d_]+);`));
   expect(match, `${constName} should exist`).not.toBeNull();
@@ -248,6 +256,38 @@ function expectPaginationArgsSchema(schema: { parse: (value: unknown) => unknown
   expect(() => schema.parse({ ...base, offset: 0, limit: MAX_IPC_PAGINATION_LIMIT + 1 })).toThrow();
   expect(() => schema.parse({ ...base, offset: 0, limit: 1.5 })).toThrow();
   expect(() => schema.parse({ ...base, offset: 0, limit: Number.POSITIVE_INFINITY })).toThrow();
+}
+
+function extractImportedApiSchemaNamesFromTauriCommands(source: string) {
+  const importMatch = source.match(/import\s+\{([\s\S]*?)\}\s+from\s+"@\/api\/schemas";/);
+  expect(importMatch, "tauri command wrapper should import schemas from the barrel").not.toBeNull();
+
+  return [...(importMatch?.[1] ?? "").matchAll(/\b([A-Z][A-Za-z0-9]+Schema)\b/g)]
+    .map((match) => match[1])
+    .filter((name): name is string => name !== undefined)
+    .toSorted();
+}
+
+function extractSafeInvokeResponseSchemaNames(source: string) {
+  return [...source.matchAll(/\bresponse:\s*([A-Z][A-Za-z0-9]+Schema)\b/g)]
+    .map((match) => match[1])
+    .filter((name): name is string => name !== undefined)
+    .toSorted();
+}
+
+function extractSafeInvokeCommandCallCount(source: string) {
+  return [...source.matchAll(/\bsafeInvoke\(\s*"/g)].length;
+}
+
+function extractSchemaNamesFromSource(source: string) {
+  return [...source.matchAll(/\b([A-Z][A-Za-z0-9]+Schema)\b/g)]
+    .map((match) => match[1])
+    .filter((name): name is string => name !== undefined)
+    .toSorted();
+}
+
+function readApiSchemaBarrelSource() {
+  return readFileSync(join(process.cwd(), "src/api/schemas/index.ts"), "utf8");
 }
 
 describe("DTO schemas", () => {
@@ -1221,6 +1261,25 @@ describe("AppErrorSchema", () => {
     expect(() => AppErrorSchema.parse({ type: "Retryable", message: "" })).toThrow();
     expect(() => AppErrorSchema.parse({ type: "Retryable", message: "   " })).toThrow();
   });
+  it("keeps AppError message length and control character policy synced with Rust DTOs", () => {
+    expect(extractRustUsizeConst(readRustCommandDtoSource(), "APP_ERROR_MESSAGE_MAX_CHARS")).toBe(
+      APP_ERROR_MESSAGE_MAX_CHARS,
+    );
+    expect(AppErrorSchema.parse({ type: "UserVisible", message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS) })).toEqual({
+      type: "UserVisible",
+      message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS),
+    });
+
+    expect(() =>
+      AppErrorSchema.parse({ type: "UserVisible", message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS + 1) }),
+    ).toThrow();
+    expect(() => AppErrorSchema.parse({ type: "UserVisible", message: "line 1\nline 2" })).toThrow();
+    expect(() => AppErrorSchema.parse({ type: "UserVisible", message: "bad\u0000message" })).toThrow();
+    expect(AppErrorSchema.parse({ type: "UserVisible", message: "https://example.com/token/abc123" })).toEqual({
+      type: "UserVisible",
+      message: "https://example.com/token/abc123",
+    });
+  });
 });
 
 describe("primitive command result schemas", () => {
@@ -1244,10 +1303,14 @@ describe("primitive command result schemas", () => {
     expect(() => BooleanResponseSchema.parse("false")).toThrow();
   });
 
-  it("keeps count and nonnegative integer response schemas separate", () => {
+  it("keeps count response safe integer cap synced with Rust DTOs", () => {
     expect(CountResponseSchema.parse(0)).toBe(0);
+    expect(CountResponseSchema.parse(COUNT_RESPONSE_MAX_VALUE)).toBe(COUNT_RESPONSE_MAX_VALUE);
     expect(NonnegativeIntResponseSchema.parse(0)).toBe(0);
     expect(CountResponseSchema).not.toBe(NonnegativeIntResponseSchema);
+    expect(COUNT_RESPONSE_MAX_VALUE).toBe(Number.MAX_SAFE_INTEGER);
+    expect(extractRustI64Const(readRustCommandDtoSource(), "COUNT_RESPONSE_MAX_VALUE")).toBe(COUNT_RESPONSE_MAX_VALUE);
+    expect(() => CountResponseSchema.parse(COUNT_RESPONSE_MAX_VALUE + 1)).toThrow();
   });
   it("normalizes nullable starred counts and rejects invalid count values", () => {
     expect(NullableStarredCountSchema.parse(null)).toBe(0);
@@ -2439,6 +2502,30 @@ describe("command args schemas", () => {
     const commandsWithArgs = extractSafeInvokeCommandsWithArgs(readTauriCommandsSource());
 
     expectSortedKeysForTarget("commandArgsSchemas", Object.keys(commandArgsSchemas), commandsWithArgs);
+  });
+
+  it("keeps Tauri command response schemas imported from the API schema barrel connected to safeInvoke", () => {
+    const tauriCommandsSource = readTauriCommandsSource();
+    const importedSchemaNames = extractImportedApiSchemaNamesFromTauriCommands(tauriCommandsSource);
+    const responseSchemaNames = extractSafeInvokeResponseSchemaNames(tauriCommandsSource);
+    const nonResponseSchemaImports = new Set(["AppErrorSchema"]);
+
+    const unusedImportedSchemas = importedSchemaNames.filter(
+      (schemaName) => !responseSchemaNames.includes(schemaName) && !nonResponseSchemaImports.has(schemaName),
+    );
+
+    expect(unusedImportedSchemas).toEqual([]);
+  });
+
+  it("keeps every safeInvoke command response backed by an API schema barrel export", () => {
+    const barrelSchemaExports = extractSchemaNamesFromSource(readApiSchemaBarrelSource());
+    const tauriCommandsSource = readTauriCommandsSource();
+    const responseSchemaNames = extractSafeInvokeResponseSchemaNames(tauriCommandsSource);
+    const importedSchemaNames = extractImportedApiSchemaNamesFromTauriCommands(tauriCommandsSource);
+
+    expect(responseSchemaNames).toHaveLength(extractSafeInvokeCommandCallCount(tauriCommandsSource));
+    expect(responseSchemaNames.filter((schemaName) => !importedSchemaNames.includes(schemaName))).toEqual([]);
+    expect(responseSchemaNames.filter((schemaName) => !barrelSchemaExports.includes(schemaName))).toEqual([]);
   });
 
   it("keeps generated command args schemas backed by Rust command names", () => {

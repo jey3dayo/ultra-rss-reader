@@ -38,6 +38,9 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
             Ok(Event::Start(_)) | Ok(Event::Empty(_)) if !saw_root_element => {
                 return Err(OPML_ROOT_ERROR_MESSAGE.to_string());
             }
+            Ok(Event::Decl(_)) if saw_root_element => {
+                return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
+            }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
                 if outline_stack.len() >= MAX_OUTLINE_DEPTH {
                     return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
@@ -381,6 +384,13 @@ mod tests {
     }
 
     #[test]
+    fn rejects_root_before_xml_declaration_noise_as_malformed_xml() {
+        let result = parse_opml(r#"<opml></opml><?xml version="1.0"?>"#);
+
+        assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
+    }
+
+    #[test]
     fn rejects_doctype_before_entity_expansion_boundaries() {
         let xml = r#"<?xml version="1.0"?>
 <!DOCTYPE opml [
@@ -470,6 +480,23 @@ mod tests {
     }
 
     #[test]
+    fn ignores_lossy_or_unsupported_outline_attribute_keys_without_guessing() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Unsupported key" x�mlUrl="https://example.com/lossy.xml"/>
+    <outline text="Valid key" xmlUrl="https://example.com/valid.xml"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "Valid key");
+        assert_eq!(feeds[0].xml_url, "https://example.com/valid.xml");
+    }
+
+    #[test]
     fn rejects_overly_deep_outline_nesting_as_malformed_xml() {
         let mut xml = String::from(r#"<?xml version="1.0"?><opml><body>"#);
         for index in 0..=MAX_OUTLINE_DEPTH {
@@ -484,6 +511,28 @@ mod tests {
         let result = parse_opml(&xml);
 
         assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
+    }
+
+    #[test]
+    fn accepts_outline_nesting_at_stack_limit() {
+        let mut xml = String::from(r#"<?xml version="1.0"?><opml><body>"#);
+        for index in 0..MAX_OUTLINE_DEPTH {
+            xml.push_str(&format!(r#"<outline text="Folder {index}">"#));
+        }
+        xml.push_str(r#"<outline text="Deep Feed" xmlUrl="https://example.com/deep.xml"/>"#);
+        for _ in 0..MAX_OUTLINE_DEPTH {
+            xml.push_str("</outline>");
+        }
+        xml.push_str("</body></opml>");
+
+        let feeds = parse_opml(&xml).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "Deep Feed");
+        assert_eq!(
+            feeds[0].folder,
+            Some(format!("Folder {}", MAX_OUTLINE_DEPTH - 1))
+        );
     }
 
     #[test]

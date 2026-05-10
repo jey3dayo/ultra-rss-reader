@@ -17,7 +17,11 @@ vi.mock("@/api/tauri-commands", () => ({
   setPreference: vi.fn(async () => Result.succeed(null)),
 }));
 
-import { resetPreferencesStoreRuntimeForTests, usePreferencesStore } from "../../stores/preferences-store";
+import {
+  PREFERENCES_LOAD_FALLBACK_OWNER,
+  resetPreferencesStoreRuntimeForTests,
+  usePreferencesStore,
+} from "../../stores/preferences-store";
 
 function createDeferred(): { promise: Promise<void>; resolve: () => void } {
   let resolvePromise: () => void = () => {};
@@ -761,6 +765,10 @@ describe("usePreferencesStore preferences", () => {
       await Promise.all([firstLoad, secondLoad]);
 
       expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(PREFERENCES_LOAD_FALLBACK_OWNER).toMatchObject({
+        fallbackBoundary: "backend load failure",
+        nullableParseHelper: false,
+      });
       expect(usePreferencesStore.getState().prefs).toMatchObject({
         theme: "light",
         language: "system",

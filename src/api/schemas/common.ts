@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-const createNonnegativeSafeIntegerSchema = () => z.number().int().nonnegative().finite().safe();
+export const COUNT_RESPONSE_MAX_VALUE = Number.MAX_SAFE_INTEGER;
+
+const createNonnegativeSafeIntegerSchema = () => z.number().int().nonnegative().finite().max(COUNT_RESPONSE_MAX_VALUE);
 
 export const IsoDateTimeStringSchema = z.string().datetime({ offset: true });
 

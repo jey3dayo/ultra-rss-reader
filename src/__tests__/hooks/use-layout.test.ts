@@ -32,6 +32,10 @@ describe("resolveLayout", () => {
     expect(resolveLayout("compact", "content", "reader")).toEqual(["list", "content"]);
   });
 
+  it("compact+empty keeps the content pane available for empty-state ownership", () => {
+    expect(resolveLayout("compact", "content", "empty")).toEqual(["list", "content"]);
+  });
+
   it("mobile: single pane", () => {
     expect(resolveLayout("mobile", "list", "reader")).toEqual(["list"]);
   });

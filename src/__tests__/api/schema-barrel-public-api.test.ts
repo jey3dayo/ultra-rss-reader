@@ -41,6 +41,7 @@ import {
 } from "@/api/schemas/common";
 
 const publicSchemaRuntimeExports = [
+  "APP_ERROR_MESSAGE_MAX_CHARS",
   "AccountDtoListSchema",
   "AccountDtoSchema",
   "AccountSyncStatusSchema",
@@ -51,6 +52,7 @@ const publicSchemaRuntimeExports = [
   "BrowserWebviewDiagnosticsPayloadSchema",
   "BrowserWebviewFallbackPayloadSchema",
   "BrowserWebviewStateSchema",
+  "COUNT_RESPONSE_MAX_VALUE",
   "CountResponseSchema",
   "DatabaseInfoDtoSchema",
   "DevRuntimeOptionsSchema",

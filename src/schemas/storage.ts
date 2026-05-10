@@ -150,6 +150,7 @@ export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
   commandHistory: {
     storageKey: STORAGE_KEYS.commandHistory,
     schemaName: "CommandHistoryStorageSchema",
+    fallbackOwner: "command history localStorage explicit cleanup",
     entryCountCap: MAX_COMMAND_HISTORY,
     entryLengthCap: MAX_COMMAND_HISTORY_ENTRY_LENGTH,
     rawJsonByteCap: MAX_COMMAND_HISTORY_STORAGE_LENGTH,
@@ -163,6 +164,7 @@ export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
   sidebarExpandedFolders: {
     storageKey: STORAGE_KEYS.sidebarExpandedFolders,
     schemaName: "StoredSidebarExpandedFoldersSchema",
+    fallbackOwner: "sidebar startup folder expansion localStorage cache recovery",
     accountEntryCountCap: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
     folderEntryCountCap: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
     rawJsonByteCap: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,

@@ -11,6 +11,7 @@ import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import {
   CommandHistoryStorageSchema,
   DatabaseRestoreStorageReconciliationPolicySchema,
+  STORAGE_SCHEMA_CAPACITY_FIXTURES,
   StorageCleanupPolicyConnectionsSchema,
   StoredSidebarExpandedFoldersSchema,
 } from "@/schemas/storage";
@@ -63,6 +64,9 @@ describe("storage schemas", () => {
     });
 
     expect(result.success).toBe(false);
+    expect(STORAGE_SCHEMA_CAPACITY_FIXTURES.commandHistory.fallbackOwner).toBe(
+      "command history localStorage explicit cleanup",
+    );
     expect(parseJsonWithSchemaOrNull('{"0":"action:open-settings"}', CommandHistoryStorageSchema) ?? []).toEqual([]);
     expect(parseJsonWithSchemaOrNull("not-json", CommandHistoryStorageSchema) ?? []).toEqual([]);
   });
@@ -150,6 +154,9 @@ describe("storage schemas", () => {
     const result = StoredSidebarExpandedFoldersSchema.safeParse(["folder-1"]);
 
     expect(result.success).toBe(false);
+    expect(STORAGE_SCHEMA_CAPACITY_FIXTURES.sidebarExpandedFolders.fallbackOwner).toBe(
+      "sidebar startup folder expansion localStorage cache recovery",
+    );
     expect(parseJsonWithSchemaOrNull('["folder-1"]', StoredSidebarExpandedFoldersSchema) ?? {}).toEqual({});
     expect(parseJsonWithSchemaOrNull("not-json", StoredSidebarExpandedFoldersSchema) ?? {}).toEqual({});
   });

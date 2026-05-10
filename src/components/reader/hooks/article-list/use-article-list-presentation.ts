@@ -123,6 +123,7 @@ export function useArticleListPresentation({
     focusedPane,
     selectedArticleId,
     isPrimarySourceLoading: viewState.isPrimarySourceLoading,
+    isSearchLoading: viewState.isSearchLoading,
     clearArticle,
   });
 

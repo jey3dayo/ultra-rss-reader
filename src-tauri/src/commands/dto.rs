@@ -2,6 +2,10 @@ use serde::Serialize;
 
 use crate::domain::error::DomainError;
 
+pub const APP_ERROR_MESSAGE_MAX_CHARS: usize = 2048;
+pub const COUNT_RESPONSE_MAX_VALUE: i64 = 9_007_199_254_740_991;
+const APP_ERROR_FALLBACK_MESSAGE: &str = "An application error occurred";
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(tag = "type")]
 pub enum AppError {
@@ -34,10 +38,22 @@ pub fn user_facing_error_support_policy(error: &AppError) -> UserFacingErrorSupp
 }
 
 fn non_empty_app_error_message(message: String) -> String {
-    if message.trim().is_empty() {
-        "An application error occurred".to_string()
+    let sanitized: String = message
+        .chars()
+        .map(|character| {
+            if character.is_control() {
+                ' '
+            } else {
+                character
+            }
+        })
+        .take(APP_ERROR_MESSAGE_MAX_CHARS)
+        .collect();
+
+    if sanitized.trim().is_empty() {
+        APP_ERROR_FALLBACK_MESSAGE.to_string()
     } else {
-        message
+        sanitized
     }
 }
 
@@ -546,6 +562,20 @@ mod tests {
         assert_eq!(
             super::non_empty_app_error_message("visible message".to_string()),
             "visible message"
+        );
+    }
+
+    #[test]
+    fn app_error_message_normalizer_removes_control_characters_and_caps_length() {
+        assert_eq!(
+            super::non_empty_app_error_message("line 1\nline 2\u{0000}".to_string()),
+            "line 1 line 2 "
+        );
+
+        let message = "x".repeat(super::APP_ERROR_MESSAGE_MAX_CHARS + 1);
+        assert_eq!(
+            super::non_empty_app_error_message(message).chars().count(),
+            super::APP_ERROR_MESSAGE_MAX_CHARS
         );
     }
 

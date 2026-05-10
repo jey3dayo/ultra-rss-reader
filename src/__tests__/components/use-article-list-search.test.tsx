@@ -351,4 +351,42 @@ describe("useArticleListSearch", () => {
     expect(result.current.searchResults).toBeUndefined();
     expect(result.current.isSearching).toBe(true);
   });
+
+  it("does not expose stale owner results as current search results after the query changes", () => {
+    useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
+      data: [{ id: "query-a-result" }],
+      isFetching: query === "query b",
+      isPlaceholderData: false,
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query: "query a",
+              key: `${_accountId}\0query a`,
+            }
+          : null,
+    }));
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("query a");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.searchResults).toEqual([{ id: "query-a-result" }]);
+
+    act(() => {
+      result.current.setSearchQuery("query b");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("query b");
+    expect(result.current.searchResults).toBeUndefined();
+    expect(result.current.isSearching).toBe(false);
+  });
 });

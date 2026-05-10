@@ -96,4 +96,22 @@ describe("useArticleListData", () => {
 
     expect(result.current.filteredArticles).not.toBe(firstFilteredArticles);
   });
+
+  it("does not reuse source articles as search results while current search data is unavailable", () => {
+    const sourcePlan = buildSourcePlan({
+      accountId: "acc-1",
+      filter: "all",
+      effectiveViewMode: "all",
+    });
+    const { result } = renderHook(() =>
+      useArticleListData({
+        ...buildParams(sourcePlan),
+        showSearch: true,
+        trimmedDebouncedQuery: "urgent",
+        searchResults: undefined,
+      }),
+    );
+
+    expect(result.current.filteredArticles).toEqual([]);
+  });
 });

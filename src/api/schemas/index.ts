@@ -94,6 +94,7 @@ export {
 } from "./commands";
 export {
   BooleanResponseSchema,
+  COUNT_RESPONSE_MAX_VALUE,
   CountResponseSchema,
   IntResponseSchema,
   NonnegativeIntResponseSchema,
@@ -106,7 +107,7 @@ export {
   DiscoveredFeedDtoListSchema,
   DiscoveredFeedDtoSchema,
 } from "./discovered-feed";
-export { type AppError, AppErrorSchema } from "./error";
+export { APP_ERROR_MESSAGE_MAX_CHARS, type AppError, AppErrorSchema } from "./error";
 export { type FeedDto, FeedDtoListSchema, FeedDtoSchema } from "./feed";
 export {
   type FeedArticleSummaryDto,
