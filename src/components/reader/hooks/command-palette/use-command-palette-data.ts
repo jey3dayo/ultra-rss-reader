@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
-import { getHistory } from "@/components/reader/hooks/command-palette/use-command-history";
+import { normalizeCommandHistoryForExistingEntries } from "@/components/reader/hooks/command-palette/use-command-history";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -157,8 +157,14 @@ export function useCommandPaletteData({
     const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
     const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
     const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
+    const existingEntryKeys = new Set<string>([
+      ...actions.map((action) => `action:${action.id}`),
+      ...feeds.map((feed) => `feed:${feed.id}`),
+      ...tags.map((tag) => `tag:${tag.id}`),
+      ...recentArticleCandidates.map((article) => `article:${article.id}`),
+    ]);
     const entries: CommandPaletteHistoryEntry[] = [];
-    for (const historyEntry of getHistory()) {
+    for (const historyEntry of normalizeCommandHistoryForExistingEntries(existingEntryKeys)) {
       const entry = parseCommandPaletteHistoryEntry(historyEntry);
       if (entry !== null) {
         entries.push(entry);

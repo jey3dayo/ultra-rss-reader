@@ -3,6 +3,7 @@ import { LEGACY_STORAGE_KEYS, STORAGE_KEYS } from "@/constants/storage";
 import {
   getLastStartupSyncTriggeredAt,
   markStartupSyncTriggered,
+  resetStartupSyncStorageFailureWarnings,
   shouldThrottleStartupSync,
 } from "@/lib/sync/startup-sync-storage";
 
@@ -11,10 +12,12 @@ describe("startup sync storage", () => {
   const legacyKey = LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt;
 
   beforeEach(() => {
+    resetStartupSyncStorageFailureWarnings();
     localStorage.clear();
   });
 
   afterEach(() => {
+    resetStartupSyncStorageFailureWarnings();
     vi.restoreAllMocks();
   });
 
@@ -145,6 +148,26 @@ describe("startup sync storage", () => {
     expect(warn).toHaveBeenCalledWith("Failed to read startup sync metadata from localStorage.", expect.any(Error));
   });
 
+  it("warns once while repeated startup sync storage reads fail", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const throwingStorage = {
+      getItem: () => {
+        throw new Error("get failed");
+      },
+      removeItem: () => {
+        throw new Error("remove should not run");
+      },
+      setItem: () => {
+        throw new Error("set should not run");
+      },
+    };
+
+    expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBeNull();
+    expect(getLastStartupSyncTriggeredAt(throwingStorage, 2_000)).toBeNull();
+    expect(warn).toHaveBeenCalledWith("Failed to read startup sync metadata from localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   it("treats storage remove failures during cleanup as a startup sync no-op", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const throwingStorage = {
@@ -215,6 +238,45 @@ describe("startup sync storage", () => {
 
     expect(() => markStartupSyncTriggered(throwingStorage, 12_345)).not.toThrow();
     expect(warn).toHaveBeenCalledWith("Failed to write startup sync metadata to localStorage.", expect.any(Error));
+  });
+
+  it("warns once while repeated startup sync storage writes fail", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const throwingStorage = {
+      getItem: () => null,
+      removeItem: () => {
+        throw new Error("remove should not run");
+      },
+      setItem: () => {
+        throw new Error("set failed");
+      },
+    };
+
+    expect(() => markStartupSyncTriggered(throwingStorage, 12_345)).not.toThrow();
+    expect(() => markStartupSyncTriggered(throwingStorage, 12_346)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith("Failed to write startup sync metadata to localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("can reset startup sync warning once cache between recovery checks", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const throwingStorage = {
+      getItem: () => null,
+      removeItem: () => {
+        throw new Error("remove should not run");
+      },
+      setItem: () => {
+        throw new Error("set failed");
+      },
+    };
+
+    markStartupSyncTriggered(throwingStorage, 12_345);
+    markStartupSyncTriggered(throwingStorage, 12_346);
+    resetStartupSyncStorageFailureWarnings();
+    markStartupSyncTriggered(throwingStorage, 12_347);
+
+    expect(warn).toHaveBeenCalledWith("Failed to write startup sync metadata to localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(2);
   });
 
   it("treats localStorage getter failures as missing startup sync storage", () => {

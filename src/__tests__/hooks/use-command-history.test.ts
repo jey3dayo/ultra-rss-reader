@@ -4,6 +4,7 @@ import {
   clearHistory,
   compactCommandHistory,
   getHistory,
+  normalizeCommandHistoryForExistingEntries,
   resetCommandHistoryStorageFailureWarnings,
 } from "@/components/reader/hooks/command-palette/use-command-history";
 import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
@@ -142,6 +143,43 @@ describe("use-command-history", () => {
     expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(
       JSON.stringify(["feed:feed-1", "action:open-settings"]),
     );
+  });
+
+  it("normalizes stored history against existing command palette resources", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify([
+        "feed:feed-1",
+        "tag:deleted-tag",
+        "article:art-1",
+        "action:missing-action",
+        "feed:feed-1",
+        "action:open-settings",
+      ]),
+    );
+
+    const normalized = normalizeCommandHistoryForExistingEntries(
+      new Set(["feed:feed-1", "article:art-1", "action:open-settings"]),
+    );
+
+    expect(normalized).toEqual(["feed:feed-1", "article:art-1", "action:open-settings"]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(
+      JSON.stringify(["feed:feed-1", "article:art-1", "action:open-settings"]),
+    );
+  });
+
+  it("returns normalized resource history in memory when resource cleanup write fails", () => {
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["feed:feed-1", "tag:deleted-tag"]));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+
+    expect(
+      normalizeCommandHistoryForExistingEntries(new Set(["feed:feed-1"])),
+    ).toEqual(["feed:feed-1"]);
+    expect(warn).toHaveBeenCalledWith("Failed to normalize command history in localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("caps history to the maximum size", () => {

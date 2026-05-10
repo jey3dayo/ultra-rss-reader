@@ -1,6 +1,8 @@
 import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
+import { resetCommandHistoryStorageFailureWarnings } from "@/components/reader/hooks/command-palette/use-command-history";
+import { resetStartupSyncStorageFailureWarnings } from "@/lib/sync/startup-sync-storage";
 
 const originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
 const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
@@ -153,6 +155,8 @@ afterEach(() => {
   cleanup();
   teardownTauriMocks();
   resetTauriRuntimeFlags();
+  resetCommandHistoryStorageFailureWarnings();
+  resetStartupSyncStorageFailureWarnings();
   restoreStorageDescriptors();
   ensureWorkingStorage();
 });

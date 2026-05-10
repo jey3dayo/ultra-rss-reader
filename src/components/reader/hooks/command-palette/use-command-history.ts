@@ -1,5 +1,6 @@
 import { MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
+import { parseCommandPaletteHistoryEntry } from "../../command-palette-history";
 
 type CommandHistoryStorageFailureKind = "unavailable" | "normalize" | "read" | "write" | "clear";
 
@@ -122,6 +123,49 @@ export function compactCommandHistory(entries: readonly string[], id: string): s
   }
 
   return CommandHistoryStorageSchema.parse([normalizedId, ...entries]);
+}
+
+export function normalizeCommandHistoryForExistingEntries(existingEntryKeys: ReadonlySet<string>): string[] {
+  const history = getHistory();
+  const next: string[] = [];
+  const projectedEntryKeys = new Set<string>();
+
+  for (const historyEntry of history) {
+    const entry = parseCommandPaletteHistoryEntry(historyEntry);
+    if (entry === null) {
+      continue;
+    }
+
+    const entryKey = `${entry.kind}:${entry.id}`;
+    if (!existingEntryKeys.has(entryKey) || projectedEntryKeys.has(entryKey)) {
+      continue;
+    }
+
+    projectedEntryKeys.add(entryKey);
+    next.push(historyEntry);
+  }
+
+  writeNormalizedHistoryAfterResourceProjection(history, next);
+  return next;
+}
+
+function writeNormalizedHistoryAfterResourceProjection(previous: readonly string[], next: readonly string[]): void {
+  if (previous.length === next.length && previous.every((entry, index) => entry === next[index])) {
+    return;
+  }
+
+  const storage = readStorage();
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(next));
+    resetCommandHistoryStorageFailure("normalize");
+  } catch (error) {
+    warnCommandHistoryStorageFailureOnce("normalize", "Failed to normalize command history in localStorage.", error);
+    // Ignore cleanup write failures; callers can still use the normalized in-memory history.
+  }
 }
 
 export function addToHistory(id: string): void {

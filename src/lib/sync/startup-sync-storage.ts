@@ -3,23 +3,37 @@ import { STARTUP_SYNC_THROTTLE_MS } from "@/constants/ui-runtime";
 import { getCurrentTimeMs } from "@/lib/datetime";
 
 type StartupSyncStorage = Pick<Storage, "getItem" | "removeItem" | "setItem">;
+type StartupSyncStorageFailureKind = "unavailable" | "migrate" | "cleanup" | "read" | "write";
+
 const startupSyncStorageKeys = [
   STORAGE_KEYS.startupSyncLastTriggeredAt,
   LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt,
 ] as const;
-let hasWarnedStartupSyncStorageUnavailable = false;
+const warnedStartupSyncStorageFailureKinds = new Set<StartupSyncStorageFailureKind>();
+
+function resetStartupSyncStorageFailure(kind: StartupSyncStorageFailureKind): void {
+  warnedStartupSyncStorageFailureKinds.delete(kind);
+}
+
+export function resetStartupSyncStorageFailureWarnings(): void {
+  warnedStartupSyncStorageFailureKinds.clear();
+}
 
 function logStartupSyncStorageFailure(message: string, error: unknown): void {
   console.warn(message, error);
 }
 
-function logStartupSyncStorageUnavailableOnce(error: unknown): void {
-  if (hasWarnedStartupSyncStorageUnavailable) {
+function warnStartupSyncStorageFailureOnce(
+  kind: StartupSyncStorageFailureKind,
+  message: string,
+  error: unknown,
+): void {
+  if (warnedStartupSyncStorageFailureKinds.has(kind)) {
     return;
   }
 
-  hasWarnedStartupSyncStorageUnavailable = true;
-  logStartupSyncStorageFailure("Startup sync localStorage is unavailable.", error);
+  warnedStartupSyncStorageFailureKinds.add(kind);
+  logStartupSyncStorageFailure(message, error);
 }
 
 function readStartupSyncStorage(): StartupSyncStorage | null {
@@ -27,9 +41,11 @@ function readStartupSyncStorage(): StartupSyncStorage | null {
     return null;
   }
   try {
-    return window.localStorage;
+    const storage = window.localStorage;
+    resetStartupSyncStorageFailure("unavailable");
+    return storage;
   } catch (error) {
-    logStartupSyncStorageUnavailableOnce(error);
+    warnStartupSyncStorageFailureOnce("unavailable", "Startup sync localStorage is unavailable.", error);
     return null;
   }
 }
@@ -49,15 +65,21 @@ function storageKeysForStartupSync(accountId?: string): readonly string[] {
 function migrateLegacyStartupSyncTimestamp(storage: StartupSyncStorage, rawValue: string): void {
   try {
     storage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, rawValue);
+    resetStartupSyncStorageFailure("migrate");
   } catch (error) {
-    logStartupSyncStorageFailure("Failed to migrate startup sync metadata to localStorage.", error);
+    warnStartupSyncStorageFailureOnce("migrate", "Failed to migrate startup sync metadata to localStorage.", error);
     return;
   }
 
   try {
     storage.removeItem(LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt);
+    resetStartupSyncStorageFailure("cleanup");
   } catch (error) {
-    logStartupSyncStorageFailure("Failed to remove legacy startup sync metadata from localStorage.", error);
+    warnStartupSyncStorageFailureOnce(
+      "cleanup",
+      "Failed to remove legacy startup sync metadata from localStorage.",
+      error,
+    );
     // Keep the throttling decision based on the valid legacy timestamp even if cleanup fails.
   }
 }
@@ -74,6 +96,7 @@ export function getLastStartupSyncTriggeredAt(
   try {
     for (const storageKey of storageKeysForStartupSync(accountId)) {
       const rawValue = storage.getItem(storageKey);
+      resetStartupSyncStorageFailure("read");
       if (!rawValue) {
         continue;
       }
@@ -82,8 +105,13 @@ export function getLastStartupSyncTriggeredAt(
       if (!Number.isFinite(timestamp) || timestamp < 0 || timestamp > now) {
         try {
           storage.removeItem(storageKey);
+          resetStartupSyncStorageFailure("cleanup");
         } catch (error) {
-          logStartupSyncStorageFailure("Failed to remove invalid startup sync metadata from localStorage.", error);
+          warnStartupSyncStorageFailureOnce(
+            "cleanup",
+            "Failed to remove invalid startup sync metadata from localStorage.",
+            error,
+          );
         }
         continue;
       }
@@ -97,7 +125,7 @@ export function getLastStartupSyncTriggeredAt(
 
     return null;
   } catch (error) {
-    logStartupSyncStorageFailure("Failed to read startup sync metadata from localStorage.", error);
+    warnStartupSyncStorageFailureOnce("read", "Failed to read startup sync metadata from localStorage.", error);
     return null;
   }
 }
@@ -123,8 +151,9 @@ export function markStartupSyncTriggered(
   try {
     const storageKey = accountId ? startupSyncAccountStorageKey(accountId) : STORAGE_KEYS.startupSyncLastTriggeredAt;
     storage.setItem(storageKey, String(now));
+    resetStartupSyncStorageFailure("write");
   } catch (error) {
-    logStartupSyncStorageFailure("Failed to write startup sync metadata to localStorage.", error);
+    warnStartupSyncStorageFailureOnce("write", "Failed to write startup sync metadata to localStorage.", error);
     // Ignore storage failures and fall back to process-local guarding only.
   }
 }
