@@ -1275,6 +1275,43 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
   });
 
+  it("keeps release manual checks covering first-run prompts, permission denials, and Windows crash visibility", () => {
+    expect(releaseManualVerification).toContain("First-Run Permission Prompt Smoke");
+    expect(releaseManualVerification).toContain("First-Run Permission Prompt Verification");
+    expect(releaseManualVerification).toContain("first-run prompts appear only after user-initiated actions");
+    expect(releaseManualVerification).toContain("denial leaves retryable UI");
+    expect(releaseManualVerification).toContain(
+      "First account setup reaches native keyring access without falling back to dev credentials",
+    );
+    expect(releaseManualVerification).toContain(
+      "First OPML import or database restore file-open dialog appears as a user-initiated action",
+    );
+    expect(releaseManualVerification).toContain(
+      "First OPML export or database backup save dialog applies the expected extension",
+    );
+    expect(releaseManualVerification).toContain(
+      "First clipboard copy action succeeds or reports permission denial with action-specific recovery copy",
+    );
+
+    for (const permissionSurface of [
+      "File or folder access",
+      "Native open/save dialog access",
+      "Keyring access",
+      "Clipboard access",
+    ]) {
+      expect(releaseManualVerification).toContain(permissionSurface);
+    }
+
+    expect(releaseManualVerification).toContain("Windows Hidden Console And Crash Visibility Verification");
+    expect(releaseManualVerification).toContain("Normal launch does not leave an unexpected console window");
+    expect(releaseManualVerification).toContain("release logs without requiring a visible console");
+    expect(releaseManualVerification).toContain("user-visible failure surface");
+    expect(releaseManualVerification).toContain("support path that does not require the user to run the app from PowerShell");
+    expect(releaseManualVerification).toContain(
+      "skip that part for the current release and record the missing behavior as release risk",
+    );
+  });
+
   it("keeps Tauri identifiers and seed data directories collision-proof across dev and production", () => {
     const seedDevDatabaseScript = readText("scripts/seed-dev-db-from-prod.ts");
 

@@ -226,6 +226,13 @@ Confirm and record:
 - Denying any prompt that the OS allows denying leaves the app in a retryable state and writes enough redacted release log context to debug the denial.
 - Screenshots of OS permission prompts redact local usernames, local paths, account names, feed URLs, server URLs, and credential material.
 
+For permission-denied results, verify the user-facing copy gives one concrete next action for the denied surface:
+
+- File or folder access: ask the user to choose another readable or writable location, or reopen the picker after changing OS file permissions.
+- Native open/save dialog access: ask the user to retry the same import, export, backup, or restore action from the visible app control; cancel remains neutral.
+- Keyring access: ask the user to unlock or allow the OS credential prompt and retry account setup, edit, or sync without switching to dev credential storage.
+- Clipboard access: ask the user to grant clipboard permission or use the visible fallback action to copy, open, or inspect the same value.
+
 If a release adds a new permission prompt, record the user-visible feature that triggers it, the fallback when denied, and whether the prompt appears before the user takes an action that explains why access is needed.
 
 ### 2f. Windows Hidden Console And Crash Visibility Verification
