@@ -107,17 +107,7 @@
 
 ### Reader Content / Feed Discovery / Security
 
-- [ ] P1 Rust sanitizer version bump と saved article repair の release gate を作る
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
-  - sanitizer policy を変えても `SANITIZER_VERSION` bump や repair path を忘れると、保存済み article が古い HTML policy のまま表示される
-  - allowed tag/attribute 変更、version bump 漏れ、repair batch limit、repair failure retry、partial repair 後の起動の integration test を追加する
-
 ### Release / Native / Keyboard / I18n / A11y
-
-- [ ] P2 mobile single-pane layout の hidden pane tab order / focus restore を E2E contract にする
-  - 対象: `e2e/app.spec.ts`, `src/components/app-shell.tsx`, `src/stores/ui-store.ts`
-  - mobile single-pane で sidebar/settings/article/account pane を切り替える時、hidden pane に tab stop が残ると keyboard/a11y 操作が壊れる
-  - pane switch、account setup、settings close、browser overlay close、back navigation、tab order snapshot の E2E を追加する
 
 - [ ] P3 Japanese long-label screenshot smoke を settings / article toolbar / account detail に追加する
   - 対象: `e2e/storybook`, `src/locales/ja`, `src/components/settings`, `src/components/reader/article-toolbar-view.tsx`
@@ -131,32 +121,12 @@
 
 ### Database / Updater / Window
 
-- [ ] P2 window icon path の packaging / platform fallback を release smoke に入れる
-  - 対象: `src/lib/window/windows.ts`, `src-tauri/tauri.conf.json`, `src-tauri/icons`, `tests/release-repo-contract.test.ts`
-  - `setWindowIcon` は path 文字列を native に渡すため、packaged app と dev app で icon path 解決が違うと no-op/失敗になりやすい
-  - dev path、packaged resource path、missing icon、Windows/macOS/Linux behavior、fallback log の release smoke を追加する
-
 ### Article List / Schema / Mute / Tags / Share
-
-- [ ] P2 article list retained article ids の lifetime / size cap を account switch で固定する
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-data.ts`, `src/components/reader/hooks/article-list/use-article-list-view-state.ts`, `src/lib/articles/article-list.ts`
-  - retained ids は selection 維持に効く一方、account/feed/tag 切替後に古い id が残ると invisible article や memory growth の原因になりやすい
-  - account switch、feed delete、tag delete、search clear、max retained ids、selected article deleted の test を追加する
-
-- [ ] P2 browser webview command schema の geometry integer rounding を DPI/zoom で固定する
-  - 対象: `src/api/schemas/browser-webview.ts`, `src/api/schemas/commands.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`
-  - DOMRect は fractional pixel を返すが native webview bounds は integer に寄りやすく、DPI/zoom で 1px gap や overlap が出やすい
-  - fractional rect、devicePixelRatio、zoom change、negative zero、min size、round/floor/ceil policy の contract test を追加する
 
 - [ ] P2 feed integrity cleanup の dry-run / destructive run 差を UI warning と同期する
   - 対象: `src/api/schemas/feed-integrity.ts`, `src-tauri/src/commands/feed_commands.rs`, `src/components/settings/debug-settings.tsx`
   - orphan cleanup は destructive になり得るため、dry-run 結果と実 cleanup 結果が一致しない場合の user warning が必要になる
   - dry-run count、cleanup count mismatch、concurrent feed delete、DB busy、partial cleanup failure、undo不可 copy の contract を追加する
-
-- [ ] P3 command/action naming の `sync-all` / `sync_all` / menu id 表記揺れを整理する
-  - 対象: `src/lib/app-actions.ts`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src-tauri/src/menu.rs`, `TODO.md`
-  - kebab-case、snake_case、Rust menu id が混ざると search/grep 時に owner を見落としやすく、TODO や test 名も揺れやすい
-  - action naming guide、conversion helper、test name convention、legacy alias allowlist を CLAUDE/rules か repo contract に追加する
 
 - [ ] P3 article list hook type surface を controller params/result と pure helper types に分割する
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/hooks/article-list/*`, `src/lib/articles/article-list.ts`
@@ -183,11 +153,6 @@
   - tag 削除時に selection は all に戻すが、tag picker や article tag chips 側に stale tag id が残ると次の assignment が失敗しやすい
   - selected tag delete、picker open中delete、article tags refetch、delete mutation failure、undo不可 toast の component/hook test を追加する
 
-- [ ] P2 article remote image URL policy と mail/share URL policy の差を明文化する
-  - 対象: `src/lib/articles/article-view.ts`, `src/components/reader/article-share-menu.tsx`, `src/components/reader/article-content-view.tsx`
-  - remote image は https only、share/open は http(s)、mailto は mailto を使うため、URL policy が機能ごとに違う理由を test と copy に残さないと修正時に混ざりやすい
-  - https image、http article URL、protocol-relative image、credential URL、mailto share、invalid URL toast の policy test を追加する
-
 - [ ] P3 migration file numbering / feature ownership を generated changelog で検出する
   - 対象: `src-tauri/migrations`, `tests/release-repo-contract.test.ts`
   - migration が増えるほど番号衝突、説明不足、feature owner 不明が起きやすく、DB rollback/backup 判断が遅れる
@@ -201,11 +166,6 @@
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/src/infra/provider/traits.rs`
   - pending mutation は1件ずつ push 成功後に削除するため、途中 failure で前半だけ remote 適用済みになるが、UI には partial push 状態が見えにくい
   - first success second failure、delete failure after push、duplicate retry、remote id missing、axis別 partial success の integration test を追加する
-
-- [ ] P2 sync_flow sanitizer repair batch が毎回同じ 500 件で詰まらない ordering を固定する
-  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/infra/sanitizer.rs`
-  - outdated sanitized articles を 500 件だけ repair するため、失敗行や ordering が固定されないと毎回同じ記事で止まり続ける可能性がある
-  - deterministic order、repair failure skip/stop、batch progress、version bump後複数起動、large DB の integration test を追加する
 
 - [ ] P2 sync_flow Step 6 unread count recalc が sync 前 feeds snapshot に限定される影響を検証する
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/commands/sync_providers.rs`
