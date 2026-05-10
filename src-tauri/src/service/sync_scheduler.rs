@@ -848,7 +848,7 @@ mod tests {
     }
 
     #[test]
-    fn load_scheduler_accounts_surfaces_account_load_errors() {
+    fn load_scheduler_accounts_skips_invalid_account_rows() {
         let db = std::sync::Mutex::new(test_db());
         {
             let db_guard = db.lock().unwrap();
@@ -861,9 +861,10 @@ mod tests {
                 .unwrap();
         }
 
-        let error = load_scheduler_accounts(&db).expect_err("account load failure should return");
+        let accounts =
+            load_scheduler_accounts(&db).expect("invalid account rows should be skipped");
 
-        assert!(matches!(error, DomainError::Persistence(_)));
+        assert!(accounts.is_empty());
     }
 
     #[test]

@@ -113,6 +113,7 @@ describe("mute keyword mutations", () => {
     });
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        actionOwner: "unknown",
         queryKey: ["muteKeywords"],
         error: invalidationError,
       });

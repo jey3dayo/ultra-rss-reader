@@ -20,6 +20,7 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const settingsModalState = vi.hoisted(() => ({ shouldThrow: false }));
+const commandPaletteState = vi.hoisted(() => ({ shouldThrow: false }));
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(() => Promise.resolve(() => {})),
@@ -54,7 +55,13 @@ vi.mock("@/components/settings/settings-modal", () => ({
 }));
 
 vi.mock("@/components/reader/command-palette", () => ({
-  CommandPalette: () => <div>Command Palette</div>,
+  CommandPalette: () => {
+    if (commandPaletteState.shouldThrow) {
+      throw new Error("command palette render failed");
+    }
+
+    return <div>Command Palette</div>;
+  },
 }));
 
 function enableDebugHud() {
@@ -83,6 +90,7 @@ describe("AppShell", () => {
   beforeEach(() => {
     vi.mocked(listen).mockClear();
     settingsModalState.shouldThrow = false;
+    commandPaletteState.shouldThrow = false;
     useUiStore.setState(useUiStore.getInitialState());
     usePlatformStore.setState(usePlatformStore.getInitialState());
     usePreferencesStore.setState({
@@ -114,14 +122,42 @@ describe("AppShell", () => {
 
   it("keeps the app shell mounted when the settings modal fails to render", async () => {
     settingsModalState.shouldThrow = true;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     useUiStore.setState({ settingsOpen: true });
 
-    render(<AppShell />, { wrapper: createWrapper() });
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("App Layout")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(useUiStore.getState().settingsOpen).toBe(false);
-    });
+      expect(screen.getByText("App Layout")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(useUiStore.getState().settingsOpen).toBe(false);
+      });
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(consoleError).toHaveBeenCalledWith("Failed to render settings modal.", expect.any(Error));
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("keeps lazy chunk telemetry separate from recovery side effects", async () => {
+    commandPaletteState.shouldThrow = true;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    useUiStore.setState({ commandPaletteOpen: true });
+
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
+
+      expect(screen.getByText("App Layout")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "画面の読み込みに失敗しました。アプリの再読み込みを試してください。",
+        });
+      });
+      expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+      expect(consoleError).toHaveBeenCalledWith("Failed to render lazy app shell surface.", expect.any(Error));
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("surfaces Tauri event listener attach failures as a toast", async () => {
@@ -162,6 +198,31 @@ describe("AppShell", () => {
       expect(consoleError).toHaveBeenCalledWith("Failed to retry settings modal preload.", retryError);
       preloadSettingsModalModuleForDev(loadModule);
       expect(loadModule).toHaveBeenCalledTimes(2);
+      consoleError.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels stale settings modal preload retries after the preload generation resets", async () => {
+    vi.stubEnv("DEV", true);
+    vi.useFakeTimers();
+    try {
+      const error = new Error("settings modal preload failed");
+      const loadModule = vi
+        .fn()
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ SettingsModal: () => null });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+      preloadSettingsModalModuleForDev(loadModule);
+      await Promise.resolve();
+      await Promise.resolve();
+      resetSettingsModalPreloadForTest();
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(loadModule).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
       consoleError.mockRestore();
     } finally {
       vi.useRealTimers();

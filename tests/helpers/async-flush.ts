@@ -7,9 +7,7 @@ export async function flushMacrotask(): Promise<void> {
 }
 
 export async function flushRaf(): Promise<void> {
-  await new Promise((resolve) =>
-    requestAnimationFrame(() => resolve(undefined)),
-  );
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 }
 
 export async function flushMicrotasksAndRealTimer(): Promise<void> {

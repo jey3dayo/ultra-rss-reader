@@ -30,9 +30,7 @@ export function createDeferred<T>(): Deferred<T> {
     isSettled: () => settled,
     resolve: resolveDeferred,
     reject: rejectDeferred,
-    cleanup: (
-      reason = new Error("Deferred promise was cleaned up before settling"),
-    ) => {
+    cleanup: (reason = new Error("Deferred promise was cleaned up before settling")) => {
       if (!settled) {
         rejectDeferred(reason);
       }

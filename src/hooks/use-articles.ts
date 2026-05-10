@@ -84,11 +84,12 @@ function requireEnabledQueryValue(value: string | null, label: string): string {
 }
 
 function normalizeManualArticleQueryId(value: string | null): string | null {
-  if (value === null || value.trim().length === 0) {
+  const normalizedValue = normalizeQueryAccountId(value);
+  if (normalizedValue === null) {
     return null;
   }
 
-  return value;
+  return normalizedValue;
 }
 
 export function normalizeArticleSearchQuery(query: string): string {
@@ -125,7 +126,10 @@ export function resolveArticleMutationInvalidationQueryKeys() {
 }
 
 function invalidateArticleMutationQueries(qc: QueryClient) {
-  invalidateArticleQueries(qc, { includeTagArticleCounts: true });
+  invalidateArticleQueries(qc, {
+    actionOwner: "article-mutation",
+    includeTagArticleCounts: true,
+  });
 }
 
 function isArticleDto(candidate: unknown): candidate is ArticleDto {
@@ -488,6 +492,7 @@ export function useRecordArticleView() {
       }
 
       invalidateArticleQueries(qc, {
+        actionOwner: "article-mutation",
         includeAccountArticles: false,
         includeStarredArticles: false,
         includeAccountUnreadCount: false,
@@ -504,6 +509,7 @@ export function useRecordArticleView() {
 
 export const useClearArticleViewHistory = createMutation(clearArticleViewHistory, (qc) =>
   invalidateArticleQueries(qc, {
+    actionOwner: "article-mutation",
     includeAccountArticles: false,
     includeStarredArticles: false,
     includeAccountUnreadCount: false,

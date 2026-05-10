@@ -25,11 +25,21 @@ describe("query-invalidation", () => {
   it("keeps typed query key helpers aligned with existing tuple shapes", () => {
     expect(queryKeys.accounts.root).toEqual(["accounts"]);
     expect(queryKeys.feeds.byAccount("acc-1")).toEqual(["feeds", "acc-1"]);
+    expect(queryKeys.feeds.byAccount(" acc-1 ")).toEqual(["feeds", "acc-1"]);
+    expect(queryKeys.feeds.byAccount(" ")).toEqual(["feeds", null]);
     expect(queryKeys.articles.byFeed("feed-1", "unread")).toEqual(["articles", "feed-1", { mode: "unread" }]);
     expect(queryKeys.accountArticles.byAccount("acc-1", "all")).toEqual(["accountArticles", "acc-1", { mode: "all" }]);
+    expect(queryKeys.accountArticles.byAccount(" acc-1 ", "all")).toEqual([
+      "accountArticles",
+      "acc-1",
+      { mode: "all" },
+    ]);
+    expect(queryKeys.accountArticles.byAccount(" ", "all")).toEqual(["accountArticles", null, { mode: "all" }]);
     expect(queryKeys.accountArticles.byAccountPrefix("acc-1")).toEqual(["accountArticles", "acc-1"]);
+    expect(queryKeys.accountArticles.byAccountPrefix(" acc-1 ")).toEqual(["accountArticles", "acc-1"]);
     expect(queryKeys.feedArticleSummaries.root).toEqual(["feedArticleSummaries"]);
     expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual(["feedArticleSummaries", "acc-1"]);
+    expect(queryKeys.feedArticleSummaries.byAccount(" ")).toEqual(["feedArticleSummaries", null]);
     expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" acc-1 ")).toEqual(["feedArticleSummaries", "acc-1"]);
     expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" ")).toEqual(["feedArticleSummaries", null]);
     expect(queryKeys.folderArticles.byFolder("folder-1", "starred")).toEqual([
@@ -38,17 +48,30 @@ describe("query-invalidation", () => {
       { mode: "starred" },
     ]);
     expect(queryKeys.recentArticles.byAccount("acc-1", "all")).toEqual(["recentArticles", "acc-1", { mode: "all" }]);
+    expect(queryKeys.recentArticles.byAccount(" ", "all")).toEqual(["recentArticles", null, { mode: "all" }]);
     expect(queryKeys.accountUnreadCount.byAccount("acc-1")).toEqual(["accountUnreadCount", "acc-1"]);
     expect(queryKeys.accountUnreadCount.byAccount(null)).toEqual(["accountUnreadCount", null]);
+    expect(queryKeys.accountUnreadCount.byAccount(" ")).toEqual(["accountUnreadCount", null]);
+    expect(queryKeys.accountStarredCount.byAccount(" acc-1 ")).toEqual(["accountStarredCount", "acc-1"]);
+    expect(queryKeys.accountStarredCount.byAccount(" ")).toEqual(["accountStarredCount", null]);
     expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all")).toEqual([
       "articlesByTag",
       "tag-1",
       "acc-1",
       { mode: "all" },
     ]);
+    expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", " ", "all")).toEqual([
+      "articlesByTag",
+      "tag-1",
+      null,
+      { mode: "all" },
+    ]);
     expect(queryKeys.tagArticleCounts.byAccount("acc-1")).toEqual(["tagArticleCounts", "acc-1"]);
     expect(queryKeys.tagArticleCounts.byAccount(null)).toEqual(["tagArticleCounts", null]);
+    expect(queryKeys.tagArticleCounts.byAccount(" ")).toEqual(["tagArticleCounts", null]);
     expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual(["search", "acc-1", "fresh"]);
+    expect(queryKeys.search.byAccountAndQuery(" acc-1 ", "fresh")).toEqual(["search", "acc-1", "fresh"]);
+    expect(queryKeys.search.byAccountAndQuery(" ", "fresh")).toEqual(["search", null, "fresh"]);
   });
 
   it("keeps reader article query key object segments stable for hashing and root matching", () => {
@@ -170,10 +193,12 @@ describe("query-invalidation", () => {
       ["recentArticles"],
       ["feedArticleSummaries"],
     ]);
-    expect(resolveFeedInvalidationQueryKeys({ includeFolders: false, includeAccountUnreadCount: true })).toEqual([
-      ["feeds"],
-      ["accountUnreadCount"],
-    ]);
+    expect(
+      resolveFeedInvalidationQueryKeys({
+        includeFolders: false,
+        includeAccountUnreadCount: true,
+      }),
+    ).toEqual([["feeds"], ["accountUnreadCount"]]);
   });
 
   it("invalidates feed query keys with opt-in account unread count", () => {
@@ -248,6 +273,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
+        actionOwner: "unknown",
         queryKey: ["feeds"],
         error: rejection,
       });
@@ -279,8 +305,12 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { queryKey: ["feeds"], error: feedRejection },
-        { queryKey: ["accountUnreadCount"], error: unreadRejection },
+        { actionOwner: "unknown", queryKey: ["feeds"], error: feedRejection },
+        {
+          actionOwner: "unknown",
+          queryKey: ["accountUnreadCount"],
+          error: unreadRejection,
+        },
       ]);
     });
     expect(diagnosticsReporter).toHaveBeenCalledOnce();
@@ -289,6 +319,29 @@ describe("query-invalidation", () => {
       { queryKey: ["folders"] },
       { queryKey: ["accountUnreadCount"] },
     ]);
+
+    restoreDiagnosticsReporter();
+  });
+
+  it("tags log-only invalidation failures with the user action owner", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const rejection = new Error("delete feed invalidate failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+
+    invalidateQueries.mockRejectedValueOnce(rejection);
+
+    invalidateFeedQueries(queryClient, {
+      actionOwner: "delete-feed",
+      includeFeeds: true,
+      includeFolders: false,
+    });
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "delete-feed", queryKey: ["feeds"], error: rejection },
+      ]);
+    });
 
     restoreDiagnosticsReporter();
   });

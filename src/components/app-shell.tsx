@@ -70,6 +70,7 @@ const SETTINGS_MODAL_PRELOAD_FAILURE_TOAST = "設定画面の読み込みに失�
 const LAZY_CHUNK_FAILURE_TOAST = "画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
 let settingsModalPreloadState: SettingsModalPreloadState = "idle";
 let settingsModalPreloadRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let settingsModalPreloadGeneration = 0;
 
 function clearSettingsModalPreloadRetryTimer() {
   if (settingsModalPreloadRetryTimer === null) {
@@ -94,22 +95,44 @@ export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalM
   }
 
   settingsModalPreloadState = "pending";
+  settingsModalPreloadGeneration += 1;
+  const preloadGeneration = settingsModalPreloadGeneration;
 
   void loadModule()
     .then(() => {
+      if (settingsModalPreloadGeneration !== preloadGeneration) {
+        return;
+      }
+
       settingsModalPreloadState = "succeeded";
     })
     .catch((error: unknown) => {
+      if (settingsModalPreloadGeneration !== preloadGeneration) {
+        return;
+      }
+
       console.error("Failed to preload settings modal.", error);
       reportLazyChunkFailure(SETTINGS_MODAL_PRELOAD_FAILURE_TOAST);
       settingsModalPreloadState = "retrying";
       settingsModalPreloadRetryTimer = setTimeout(() => {
         settingsModalPreloadRetryTimer = null;
+        if (settingsModalPreloadGeneration !== preloadGeneration) {
+          return;
+        }
+
         void loadModule()
           .then(() => {
+            if (settingsModalPreloadGeneration !== preloadGeneration) {
+              return;
+            }
+
             settingsModalPreloadState = "succeeded";
           })
           .catch((retryError: unknown) => {
+            if (settingsModalPreloadGeneration !== preloadGeneration) {
+              return;
+            }
+
             settingsModalPreloadState = "failed";
             console.error("Failed to retry settings modal preload.", retryError);
           });
@@ -120,6 +143,7 @@ export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalM
 preloadSettingsModalModuleForDev();
 
 export function resetSettingsModalPreloadForTest() {
+  settingsModalPreloadGeneration += 1;
   clearSettingsModalPreloadRetryTimer();
   settingsModalPreloadState = "idle";
 }
@@ -133,7 +157,8 @@ const TAURI_EVENT_LISTENER_FAILURE_TOAST = "デスクトップ連携の一部を
 
 type SettingsModalBoundaryProps = {
   children: ReactNode;
-  onError: () => void;
+  onRecoverFromError: () => void;
+  onReportError: (error: Error) => void;
 };
 
 type SettingsModalBoundaryState = {
@@ -150,8 +175,8 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
   }
 
   componentDidCatch(error: Error) {
-    console.error("Failed to render settings modal.", error);
-    this.props.onError();
+    this.props.onReportError(error);
+    this.props.onRecoverFromError();
   }
 
   render() {
@@ -166,7 +191,8 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
 type LazyChunkBoundaryProps = {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: () => void;
+  onRecoverFromError?: () => void;
+  onReportError?: (error: Error) => void;
 };
 
 type LazyChunkBoundaryState = {
@@ -183,9 +209,8 @@ class LazyChunkBoundary extends Component<LazyChunkBoundaryProps, LazyChunkBound
   }
 
   componentDidCatch(error: Error) {
-    console.error("Failed to render lazy app shell surface.", error);
-    reportLazyChunkFailure(LAZY_CHUNK_FAILURE_TOAST);
-    this.props.onError?.();
+    this.props.onReportError?.(error);
+    this.props.onRecoverFromError?.();
   }
 
   render() {
@@ -224,6 +249,15 @@ function isBrowserDebugGeometryDetail(value: unknown): value is BrowserDebugGeom
   return value === null || isBrowserDebugGeometrySnapshot(value);
 }
 
+function reportSettingsModalBoundaryError(error: Error) {
+  console.error("Failed to render settings modal.", error);
+}
+
+function reportLazyChunkBoundaryError(error: Error) {
+  console.error("Failed to render lazy app shell surface.", error);
+  reportLazyChunkFailure(LAZY_CHUNK_FAILURE_TOAST);
+}
+
 type FocusDebugHudState = {
   activeElementDescription: string;
   traces: string[];
@@ -234,7 +268,10 @@ type FocusDebugHudAction =
   | { type: "set-active-element"; value: string }
   | { type: "append-trace"; value: string }
   | { type: "append-browser-trace"; value: string }
-  | { type: "set-browser-geometry"; value: BrowserDebugGeometrySnapshot | null };
+  | {
+      type: "set-browser-geometry";
+      value: BrowserDebugGeometrySnapshot | null;
+    };
 
 const initialFocusDebugHudState: FocusDebugHudState = {
   activeElementDescription: "none",
@@ -330,7 +367,10 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
 
   useEffect(() => {
     const update = () => {
-      dispatch({ type: "set-active-element", value: getFocusDebugHudActiveElementDescription() });
+      dispatch({
+        type: "set-active-element",
+        value: getFocusDebugHudActiveElementDescription(),
+      });
     };
 
     update();
@@ -524,8 +564,8 @@ export function AppShell() {
         <AppLayout />
       </div>
       {settingsOpen ? (
-        <LazyChunkBoundary onError={closeSettings}>
-          <SettingsModalBoundary onError={closeSettings}>
+        <LazyChunkBoundary onRecoverFromError={closeSettings} onReportError={reportLazyChunkBoundaryError}>
+          <SettingsModalBoundary onRecoverFromError={closeSettings} onReportError={reportSettingsModalBoundaryError}>
             <Suspense fallback={null}>
               <LazySettingsModal />
             </Suspense>
@@ -543,7 +583,7 @@ export function AppShell() {
       ) : null}
       <Toast />
       {commandPaletteOpen ? (
-        <LazyChunkBoundary>
+        <LazyChunkBoundary onReportError={reportLazyChunkBoundaryError}>
           <Suspense fallback={null}>
             <LazyCommandPalette />
           </Suspense>

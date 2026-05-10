@@ -23,11 +23,7 @@ function logStartupSyncStorageFailure(message: string, error: unknown): void {
   console.warn(message, error);
 }
 
-function warnStartupSyncStorageFailureOnce(
-  kind: StartupSyncStorageFailureKind,
-  message: string,
-  error: unknown,
-): void {
+function warnStartupSyncStorageFailureOnce(kind: StartupSyncStorageFailureKind, message: string, error: unknown): void {
   if (warnedStartupSyncStorageFailureKinds.has(kind)) {
     return;
   }

@@ -303,6 +303,7 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(clearSyncProgress).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        actionOwner: "unknown",
         queryKey: accountSyncStatusQueryKey(),
         error: invalidationError,
       });

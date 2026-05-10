@@ -1043,6 +1043,7 @@ describe("AddAccountForm", () => {
     });
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        actionOwner: "unknown",
         queryKey: ["accounts"],
         error: invalidationError,
       });

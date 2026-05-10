@@ -163,7 +163,7 @@ describe("useToggleStar", () => {
 
     expect(searchArticlesSpy).not.toHaveBeenCalled();
     expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(null, "fresh"))).toBeDefined();
-    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(" \n\t ", "fresh"))).toBeUndefined();
+    expect(queryClient.getQueryState(["search", " \n\t ", "fresh"])).toBeUndefined();
 
     rerender({ accountId: " acc-1 ", query: " fresh " });
 
@@ -171,7 +171,7 @@ describe("useToggleStar", () => {
       expect(searchArticlesSpy).toHaveBeenCalledWith("acc-1", "fresh");
     });
     expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual(sampleArticles);
-    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery(" acc-1 ", "fresh"))).toBeUndefined();
+    expect(queryClient.getQueryState(["search", " acc-1 ", "fresh"])).toBeUndefined();
   });
 
   it("normalizes article search query unicode, whitespace, and length without FTS escaping", async () => {
@@ -231,11 +231,11 @@ describe("useToggleStar", () => {
     expect(queryClient.getQueryState(queryKeys.recentArticles.byAccount(null, "all"))).toBeDefined();
     expect(queryClient.getQueryState(queryKeys.accountStarredCount.byAccount(null))).toBeDefined();
 
-    expect(queryClient.getQueryState(queryKeys.articles.byFeed("   ", "all"))).toBeUndefined();
-    expect(queryClient.getQueryState(queryKeys.accountArticles.byAccount("\n\t", "all"))).toBeUndefined();
-    expect(queryClient.getQueryState(queryKeys.folderArticles.byFolder("   ", "all"))).toBeUndefined();
-    expect(queryClient.getQueryState(queryKeys.recentArticles.byAccount("\n", "all"))).toBeUndefined();
-    expect(queryClient.getQueryState(queryKeys.accountStarredCount.byAccount("   "))).toBeUndefined();
+    expect(queryClient.getQueryState(["articles", "   ", { mode: "all" }])).toBeUndefined();
+    expect(queryClient.getQueryState(["accountArticles", "\n\t", { mode: "all" }])).toBeUndefined();
+    expect(queryClient.getQueryState(["folderArticles", "   ", { mode: "all" }])).toBeUndefined();
+    expect(queryClient.getQueryState(["recentArticles", "\n", { mode: "all" }])).toBeUndefined();
+    expect(queryClient.getQueryState(["accountStarredCount", "   "])).toBeUndefined();
   });
 
   it("patches cached account and starred article data immediately when starring an article", async () => {

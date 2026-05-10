@@ -192,8 +192,12 @@ export function useAddFeedDialogActions({
           );
         }
 
-        invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
+        invalidateFeedQueries(queryClient, {
+          actionOwner: "add-feed",
+          includeAccountUnreadCount: true,
+        });
         invalidateArticleQueries(queryClient, {
+          actionOwner: "add-feed",
           includeAccountUnreadCount: false,
           includeFeeds: false,
         });

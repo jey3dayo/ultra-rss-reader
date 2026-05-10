@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
-import { normalizeCommandHistoryForExistingEntries } from "@/components/reader/hooks/command-palette/use-command-history";
+import {
+  getHistory,
+  normalizeCommandHistoryForExistingEntries,
+} from "@/components/reader/hooks/command-palette/use-command-history";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -68,6 +71,10 @@ function filterByQuery<T>(
   );
 }
 
+function hasFetchedData(query: { data: unknown; isFetched?: boolean }): boolean {
+  return query.isFetched === true || query.data !== undefined;
+}
+
 function resolveHasVisiblePaletteResults(params: {
   showRecentActions: boolean;
   recentActionsCount: number;
@@ -126,10 +133,13 @@ export function useCommandPaletteData({
   query,
   selectedAccountId,
 }: UseCommandPaletteDataParams): UseCommandPaletteDataResult {
-  const { data: feeds = [] } = useFeeds(selectedAccountId);
-  const { data: tags = [] } = useTags();
+  const feedsQuery = useFeeds(selectedAccountId);
+  const tagsQuery = useTags();
   const { data: articles = [] } = useSearchArticles(selectedAccountId, prefix === null ? deferredQuery : "");
-  const { data: recentArticleCandidates = [] } = useRecentArticles(selectedAccountId);
+  const recentArticlesQuery = useRecentArticles(selectedAccountId);
+  const feeds = feedsQuery.data ?? [];
+  const tags = tagsQuery.data ?? [];
+  const recentArticleCandidates = recentArticlesQuery.data ?? [];
 
   const filteredActions = useMemo(
     () => filterByQuery(actions, query, { label: (action) => action.label, keywords: (action) => action.keywords }),
@@ -153,18 +163,25 @@ export function useCommandPaletteData({
   );
 
   const { recentActions, recentFeeds, recentTags, recentArticles } = useMemo(() => {
+    const resourcesReady =
+      hasFetchedData(feedsQuery) && hasFetchedData(tagsQuery) && hasFetchedData(recentArticlesQuery);
+
     const actionMap = new Map(actions.map((action) => [action.id, action]));
     const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
     const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
     const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
-    const existingEntryKeys = new Set<string>([
-      ...actions.map((action) => `action:${action.id}`),
-      ...feeds.map((feed) => `feed:${feed.id}`),
-      ...tags.map((tag) => `tag:${tag.id}`),
-      ...recentArticleCandidates.map((article) => `article:${article.id}`),
-    ]);
+    const historyEntries = resourcesReady
+      ? normalizeCommandHistoryForExistingEntries(
+          new Set<string>([
+            ...actions.map((action) => `action:${action.id}`),
+            ...feeds.map((feed) => `feed:${feed.id}`),
+            ...tags.map((tag) => `tag:${tag.id}`),
+            ...recentArticleCandidates.map((article) => `article:${article.id}`),
+          ]),
+        )
+      : getHistory();
     const entries: CommandPaletteHistoryEntry[] = [];
-    for (const historyEntry of normalizeCommandHistoryForExistingEntries(existingEntryKeys)) {
+    for (const historyEntry of historyEntries) {
       const entry = parseCommandPaletteHistoryEntry(historyEntry);
       if (entry !== null) {
         entries.push(entry);
@@ -192,6 +209,10 @@ export function useCommandPaletteData({
         continue;
       }
 
+      if (!resourcesReady) {
+        continue;
+      }
+
       if (entry.kind === "feed") {
         const feed = feedMap.get(entry.id);
         if (feed) {
@@ -215,7 +236,7 @@ export function useCommandPaletteData({
     }
 
     return { recentActions, recentFeeds, recentTags, recentArticles };
-  }, [actions, feeds, recentArticleCandidates, tags]);
+  }, [actions, feeds, feedsQuery, recentArticleCandidates, recentArticlesQuery, tags, tagsQuery]);
 
   const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
   const recentResourcesCount = recentFeeds.length + recentTags.length + recentArticles.length;

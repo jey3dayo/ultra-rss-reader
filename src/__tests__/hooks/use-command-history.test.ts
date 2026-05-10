@@ -175,9 +175,7 @@ describe("use-command-history", () => {
       throw new Error("storage unavailable");
     });
 
-    expect(
-      normalizeCommandHistoryForExistingEntries(new Set(["feed:feed-1"])),
-    ).toEqual(["feed:feed-1"]);
+    expect(normalizeCommandHistoryForExistingEntries(new Set(["feed:feed-1"]))).toEqual(["feed:feed-1"]);
     expect(warn).toHaveBeenCalledWith("Failed to normalize command history in localStorage.", expect.any(Error));
     expect(warn).toHaveBeenCalledTimes(1);
   });

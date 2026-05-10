@@ -16,7 +16,9 @@ describe("useUpdateFeedFolder", () => {
   let showToastMock: ReturnType<typeof vi.fn<(message: string | ToastData) => void>>;
 
   beforeEach(() => {
-    const queryWrapper = createQueryWrapper({ queryClientConfig: { defaultOptions: { mutations: { retry: false } } } });
+    const queryWrapper = createQueryWrapper({
+      queryClientConfig: { defaultOptions: { mutations: { retry: false } } },
+    });
     queryClient = queryWrapper.queryClient;
     wrapper = queryWrapper.wrapper;
     showToastMock = vi.fn();
@@ -70,12 +72,19 @@ describe("useUpdateFeedFolder", () => {
 
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
 
-    await result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-1" });
+    await result.current.mutateAsync({
+      feedId: "feed-1",
+      folderId: "folder-1",
+    });
 
     expect(updateFeedFolderSpy).toHaveBeenCalledWith("feed-1", "folder-1");
     await waitFor(() => {
-      expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
-      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+      expect(cancelQueriesSpy).toHaveBeenCalledWith({
+        queryKey: queryKeys.feeds.root,
+      });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+        queryKey: queryKeys.feeds.root,
+      });
     });
   });
 
@@ -200,7 +209,10 @@ describe("useUpdateFeedFolder", () => {
     });
 
     act(() => {
-      secondMutation = result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-b" });
+      secondMutation = result.current.mutateAsync({
+        feedId: "feed-1",
+        folderId: "folder-b",
+      });
     });
 
     await waitFor(() => {
@@ -240,6 +252,7 @@ describe("useUpdateFeedFolder", () => {
 
     await waitFor(() => {
       expect(consoleWarn).toHaveBeenCalledWith("Query invalidation failed:", {
+        actionOwner: "unknown",
         queryKey: queryKeys.feeds.root,
         error: expect.any(Error),
       });

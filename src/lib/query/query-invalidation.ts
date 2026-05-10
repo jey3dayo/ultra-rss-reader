@@ -22,11 +22,17 @@ type InvalidateArticleQueriesOptions = {
   includeFeedArticleSummaries?: boolean;
 };
 
+type QueryInvalidationActionOwner = "add-feed" | "article-mutation" | "delete-feed" | "sync-completed" | "unknown";
 type QueryInvalidationKey = readonly [string];
 type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
 type QueryInvalidationFailure = {
+  actionOwner: QueryInvalidationActionOwner;
   queryKey: QueryKey;
   error: unknown;
+};
+
+type InvalidateQueryKeysLogOnlyOptions = {
+  actionOwner?: QueryInvalidationActionOwner;
 };
 
 let queryInvalidationFailureReporter: (failures: readonly QueryInvalidationFailure[]) => void =
@@ -75,7 +81,7 @@ export const queryKeys = {
   },
   feeds: {
     root: QUERY_KEY_ROOTS.feeds,
-    byAccount: (accountId: string) => [QUERY_KEY_ROOTS.feeds[0], accountId] as const,
+    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feeds[0], normalizeQueryAccountId(accountId)] as const,
   },
   articles: {
     root: QUERY_KEY_ROOTS.articles,
@@ -84,9 +90,10 @@ export const queryKeys = {
   },
   accountArticles: {
     root: QUERY_KEY_ROOTS.accountArticles,
-    byAccountPrefix: (accountId: string) => [QUERY_KEY_ROOTS.accountArticles[0], accountId] as const,
+    byAccountPrefix: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.accountArticles[0], normalizeQueryAccountId(accountId)] as const,
     byAccount: (accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.accountArticles[0], accountId, readerArticleModeOptions(mode)] as const,
+      [QUERY_KEY_ROOTS.accountArticles[0], normalizeQueryAccountId(accountId), readerArticleModeOptions(mode)] as const,
   },
   folderArticles: {
     root: QUERY_KEY_ROOTS.folderArticles,
@@ -95,41 +102,51 @@ export const queryKeys = {
   },
   starredArticles: {
     root: QUERY_KEY_ROOTS.starredArticles,
-    byAccount: (accountId: string) => [QUERY_KEY_ROOTS.starredArticles[0], accountId] as const,
+    byAccount: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.starredArticles[0], normalizeQueryAccountId(accountId)] as const,
   },
   recentArticles: {
     root: QUERY_KEY_ROOTS.recentArticles,
     byAccount: (accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.recentArticles[0], accountId, readerArticleModeOptions(mode)] as const,
+      [QUERY_KEY_ROOTS.recentArticles[0], normalizeQueryAccountId(accountId), readerArticleModeOptions(mode)] as const,
   },
   accountUnreadCount: {
     root: QUERY_KEY_ROOTS.accountUnreadCount,
-    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.accountUnreadCount[0], accountId] as const,
+    byAccount: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.accountUnreadCount[0], normalizeQueryAccountId(accountId)] as const,
   },
   accountStarredCount: {
     root: QUERY_KEY_ROOTS.accountStarredCount,
-    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.accountStarredCount[0], accountId] as const,
+    byAccount: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.accountStarredCount[0], normalizeQueryAccountId(accountId)] as const,
   },
   articlesByTag: {
     root: QUERY_KEY_ROOTS.articlesByTag,
     byTagAndAccount: (tagId: string | null, accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.articlesByTag[0], tagId, accountId, readerArticleModeOptions(mode)] as const,
+      [
+        QUERY_KEY_ROOTS.articlesByTag[0],
+        tagId,
+        normalizeQueryAccountId(accountId),
+        readerArticleModeOptions(mode),
+      ] as const,
   },
   tagArticleCounts: {
     root: QUERY_KEY_ROOTS.tagArticleCounts,
-    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.tagArticleCounts[0], accountId] as const,
+    byAccount: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.tagArticleCounts[0], normalizeQueryAccountId(accountId)] as const,
   },
   search: {
     root: QUERY_KEY_ROOTS.search,
     byAccountAndQuery: (accountId: string | null, query: string) =>
-      [QUERY_KEY_ROOTS.search[0], accountId, query] as const,
+      [QUERY_KEY_ROOTS.search[0], normalizeQueryAccountId(accountId), query] as const,
   },
   feedIntegrityReport: {
     root: QUERY_KEY_ROOTS.feedIntegrityReport,
   },
   feedArticleSummaries: {
     root: QUERY_KEY_ROOTS.feedArticleSummaries,
-    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feedArticleSummaries[0], accountId] as const,
+    byAccount: (accountId: string | null) =>
+      [QUERY_KEY_ROOTS.feedArticleSummaries[0], normalizeQueryAccountId(accountId)] as const,
     subscriptionsIndex: (accountId: string | null) =>
       [QUERY_KEY_ROOTS.feedArticleSummaries[0], normalizeQueryAccountId(accountId)] as const,
   },
@@ -276,13 +293,25 @@ export function resolveArticleInvalidationQueryKeys(
   return resolveInvalidationQueryKeys(ARTICLE_INVALIDATION_TARGETS, options);
 }
 
-export function invalidateQueryKeysLogOnly(queryClient: QueryClient, queryKeys: ReadonlyArray<QueryKey>) {
+export function invalidateQueryKeysLogOnly(
+  queryClient: QueryClient,
+  queryKeys: ReadonlyArray<QueryKey>,
+  options: InvalidateQueryKeysLogOnlyOptions = {},
+) {
+  const actionOwner = options.actionOwner ?? "unknown";
+
   void Promise.all(
     queryKeys.map((queryKey) =>
       queryClient
         .invalidateQueries({ queryKey })
         .then(() => null)
-        .catch((error: unknown): QueryInvalidationFailure => ({ queryKey, error })),
+        .catch(
+          (error: unknown): QueryInvalidationFailure => ({
+            actionOwner,
+            queryKey,
+            error,
+          }),
+        ),
     ),
   ).then((results) => {
     const failures = results.filter((result): result is QueryInvalidationFailure => result !== null);
@@ -292,17 +321,27 @@ export function invalidateQueryKeysLogOnly(queryClient: QueryClient, queryKeys: 
   });
 }
 
-export function invalidateFeedQueries(queryClient: QueryClient, options: InvalidateFeedQueriesOptions = {}) {
-  invalidateQueryKeysLogOnly(queryClient, resolveFeedInvalidationQueryKeys(options));
+export function invalidateFeedQueries(
+  queryClient: QueryClient,
+  options: InvalidateFeedQueriesOptions & InvalidateQueryKeysLogOnlyOptions = {},
+) {
+  invalidateQueryKeysLogOnly(queryClient, resolveFeedInvalidationQueryKeys(options), options);
 }
 
-export function invalidateArticleQueries(queryClient: QueryClient, options: InvalidateArticleQueriesOptions = {}) {
-  invalidateQueryKeysLogOnly(queryClient, resolveArticleInvalidationQueryKeys(options));
+export function invalidateArticleQueries(
+  queryClient: QueryClient,
+  options: InvalidateArticleQueriesOptions & InvalidateQueryKeysLogOnlyOptions = {},
+) {
+  invalidateQueryKeysLogOnly(queryClient, resolveArticleInvalidationQueryKeys(options), options);
 }
 
 export function invalidateSyncCompletedQueries(queryClient: QueryClient) {
-  invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
+  invalidateFeedQueries(queryClient, {
+    actionOwner: "sync-completed",
+    includeAccountUnreadCount: true,
+  });
   invalidateArticleQueries(queryClient, {
+    actionOwner: "sync-completed",
     includeAccountUnreadCount: false,
     includeFeeds: false,
     includeFeedIntegrityReport: true,

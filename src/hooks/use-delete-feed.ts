@@ -44,13 +44,24 @@ export function useDeleteFeed() {
       return Result.unwrap(result);
     },
     onSuccess: (_data, variables) => {
-      invalidateFeedQueries(queryClient, { includeFolders: false, includeAccountUnreadCount: true });
+      invalidateFeedQueries(queryClient, {
+        actionOwner: "delete-feed",
+        includeFolders: false,
+        includeAccountUnreadCount: true,
+      });
       invalidateArticleQueries(queryClient, {
+        actionOwner: "delete-feed",
         includeAccountUnreadCount: false,
         includeFeeds: false,
         includeTagArticleCounts: true,
       });
-      invalidateQueryKeysLogOnly(queryClient, [queryKeys.feedArticleSummaries.subscriptionsIndex(variables.accountId)]);
+      invalidateQueryKeysLogOnly(
+        queryClient,
+        [queryKeys.feedArticleSummaries.subscriptionsIndex(variables.accountId)],
+        {
+          actionOwner: "delete-feed",
+        },
+      );
       showToast(t("unsubscribed_from", { title: getDeletedFeedTitle(variables) }));
       callOptionalCallback(variables.onSuccess);
     },

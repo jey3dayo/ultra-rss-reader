@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  flushMacrotask,
-  flushMicrotasks,
-  flushMicrotasksAndRealTimer,
-  flushRaf,
-} from "./async-flush";
+import { flushMacrotask, flushMicrotasks, flushMicrotasksAndRealTimer, flushRaf } from "./async-flush";
 
 describe("async flush helpers", () => {
   it("flushes microtasks without running timers", async () => {
@@ -31,17 +26,17 @@ describe("async flush helpers", () => {
 
   it("flushes requestAnimationFrame callbacks", async () => {
     const callbacks: FrameRequestCallback[] = [];
-    const requestAnimationFrameSpy = vi
-      .spyOn(window, "requestAnimationFrame")
-      .mockImplementation((callback) => {
-        callbacks.push(callback);
-        return callbacks.length;
-      });
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    });
     const calls: string[] = [];
     const flushed = flushRaf().then(() => calls.push("raf"));
 
     expect(calls).toEqual([]);
-    callbacks.forEach((callback) => callback(1));
+    callbacks.forEach((callback) => {
+      callback(1);
+    });
     await flushed;
 
     expect(calls).toEqual(["raf"]);
