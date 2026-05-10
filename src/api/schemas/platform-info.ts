@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLATFORM_KINDS } from "@/constants/platform";
+import { DEFAULT_PLATFORM_INFO, PLATFORM_KINDS, type PlatformKind } from "@/constants/platform";
 
 // Capabilities are part of PlatformInfo; keep the nested schema local until callers need a standalone contract.
 const PlatformCapabilitiesSchema = z
@@ -12,12 +12,26 @@ const PlatformCapabilitiesSchema = z
   })
   .strict();
 
+function isPlatformKind(kind: string): kind is PlatformKind {
+  return PLATFORM_KINDS.some((platformKind) => platformKind === kind);
+}
+
 export const PlatformInfoSchema = z
   .object({
-    kind: z.enum(PLATFORM_KINDS),
+    kind: z.string(),
     capabilities: PlatformCapabilitiesSchema,
   })
-  .strict();
+  .strict()
+  .transform((platform) => {
+    if (isPlatformKind(platform.kind)) {
+      return {
+        ...platform,
+        kind: platform.kind,
+      };
+    }
+
+    return DEFAULT_PLATFORM_INFO;
+  });
 
 export const MAX_DEV_WINDOW_DIMENSION_PX = 10_000;
 const devWindowDimensionSchema = z.number().int().positive().max(MAX_DEV_WINDOW_DIMENSION_PX).nullable();

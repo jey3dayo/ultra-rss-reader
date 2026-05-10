@@ -1,7 +1,7 @@
 import { mockPlatformInfo } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import { PlatformInfoSchema } from "@/api/schemas";
-import { DEFAULT_PLATFORM_CAPABILITIES, PLATFORM_KINDS } from "@/constants/platform";
+import { DEFAULT_PLATFORM_CAPABILITIES, DEFAULT_PLATFORM_INFO, PLATFORM_KINDS } from "@/constants/platform";
 import platformSource from "../../../src-tauri/src/platform/mod.rs?raw";
 
 function extractPlatformCapabilityFields(source: string): string[] {
@@ -62,5 +62,20 @@ describe("platform mock parity", () => {
 
     expect(PlatformInfoSchema.safeParse(platformWithExtraCapability).success).toBe(false);
     expect(PlatformInfoSchema.safeParse(platformWithExtraTopLevelKey).success).toBe(false);
+  });
+
+  it("normalizes unknown platform kinds to safe feature flag fallbacks", () => {
+    expect(
+      PlatformInfoSchema.parse({
+        kind: "freebsd",
+        capabilities: {
+          supports_reading_list: true,
+          supports_background_browser_open: true,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: true,
+        },
+      }),
+    ).toEqual(DEFAULT_PLATFORM_INFO);
   });
 });
