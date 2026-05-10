@@ -1175,6 +1175,7 @@ mod tests {
     use crate::infra::db::connection::DbManager;
     use crate::repository::article::ArticleListMode;
     use crate::repository::feed::FeedRepository;
+    use std::collections::HashSet;
 
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
@@ -1232,6 +1233,269 @@ mod tests {
                 params![uuid::Uuid::new_v4().to_string(), keyword, scope, now, now],
             )
             .unwrap();
+    }
+
+    fn table_columns(db: &DbManager, table_name: &str) -> HashSet<String> {
+        let pragma = format!("PRAGMA table_info({table_name})");
+        let mut stmt = db.writer().prepare(&pragma).unwrap();
+        stmt.query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<HashSet<_>, _>>()
+            .unwrap()
+    }
+
+    fn index_names(db: &DbManager, table_name: &str) -> HashSet<String> {
+        let pragma = format!("PRAGMA index_list({table_name})");
+        let mut stmt = db.writer().prepare(&pragma).unwrap();
+        stmt.query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<HashSet<_>, _>>()
+            .unwrap()
+    }
+
+    fn explain_query_plan(db: &DbManager, sql: &str) -> Vec<String> {
+        let mut stmt = db
+            .writer()
+            .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
+            .unwrap();
+        stmt.query_map([], |row| row.get::<_, String>(3))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    }
+
+    fn assert_plan_uses_any(plan: &[String], expected_markers: &[&str]) {
+        assert!(
+            plan.iter().any(|detail| expected_markers
+                .iter()
+                .any(|marker| detail.contains(marker))),
+            "query plan should contain one of {expected_markers:?}, got {plan:#?}"
+        );
+    }
+
+    fn assert_no_unindexed_article_scan(plan: &[String]) {
+        assert!(
+            !plan
+                .iter()
+                .any(|detail| detail == "SCAN articles" || detail == "SCAN a"),
+            "query plan should not full-scan articles without an index: {plan:#?}"
+        );
+    }
+
+    fn seed_representative_article_dataset(
+        db: &DbManager,
+    ) -> (AccountId, FeedId, FeedId, FolderId) {
+        let account_id = insert_test_account(db);
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Query Plan Folder", 0],
+            )
+            .unwrap();
+        let feed_a = insert_test_feed(db, &account_id);
+        let feed_b = insert_test_feed(db, &account_id);
+        db.writer()
+            .execute(
+                "UPDATE feeds SET folder_id = ?1 WHERE id IN (?2, ?3)",
+                params![folder_id.0, feed_a.0, feed_b.0],
+            )
+            .unwrap();
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let base_published_at = DateTime::parse_from_rfc3339("2026-04-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let articles = [feed_a.clone(), feed_b.clone()]
+            .into_iter()
+            .enumerate()
+            .flat_map(|(feed_index, feed_id)| {
+                (0..80).map(move |index| {
+                    let mut article =
+                        make_article(&feed_id, &format!("Plan fixture {feed_index}-{index}"));
+                    article.id = ArticleId(format!("plan-{feed_index}-{index:03}"));
+                    article.content_sanitized =
+                        format!("<p>representative searchable body {feed_index} {index}</p>");
+                    article.summary = Some(format!("summary {feed_index} {index}"));
+                    article.published_at = base_published_at
+                        + chrono::Duration::seconds((feed_index * 100 + index) as i64);
+                    article.fetched_at =
+                        article.published_at + chrono::Duration::seconds(index as i64);
+                    article.is_read = index % 3 == 0;
+                    article.is_starred = index % 11 == 0;
+                    article
+                })
+            })
+            .collect::<Vec<_>>();
+        repo.upsert(&articles).unwrap();
+        db.writer().execute_batch("ANALYZE;").unwrap();
+
+        (account_id, feed_a, feed_b, folder_id)
+    }
+
+    #[test]
+    fn article_repository_sql_inventory_matches_latest_migration() {
+        let db = test_db();
+        let article_columns = table_columns(&db, "articles");
+        let feed_columns = table_columns(&db, "feeds");
+        let article_view_history_columns = table_columns(&db, "article_view_history");
+
+        for column in SELECT_COLS.split(", ") {
+            assert!(
+                article_columns.contains(column),
+                "SELECT_COLS references missing articles.{column}"
+            );
+        }
+        for column in ["published_at", "fetched_at", "id"] {
+            assert!(
+                article_columns.contains(column),
+                "article ordering references missing articles.{column}"
+            );
+        }
+        for column in ["id", "account_id", "folder_id", "remote_id"] {
+            assert!(
+                feed_columns.contains(column),
+                "article repository joins reference missing feeds.{column}"
+            );
+        }
+        for column in ["account_id", "article_id", "viewed_at"] {
+            assert!(
+                article_view_history_columns.contains(column),
+                "recently viewed query references missing article_view_history.{column}"
+            );
+        }
+
+        let article_indexes = index_names(&db, "articles");
+        for index_name in [
+            "idx_articles_feed_id",
+            "idx_articles_published_at",
+            "idx_articles_is_read",
+            "idx_articles_is_starred",
+            "idx_articles_remote_id",
+        ] {
+            assert!(
+                article_indexes.contains(index_name),
+                "latest migration inventory is missing index {index_name}"
+            );
+        }
+
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let representative_sql = [
+            format!(
+                "SELECT {SELECT_COLS} FROM articles WHERE feed_id = ?1 ORDER BY {ARTICLE_ORDER_DESC} LIMIT ?2 OFFSET ?3"
+            ),
+            format!(
+                "SELECT {select_cols_prefixed} FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED} LIMIT ?2 OFFSET ?3"
+            ),
+            format!(
+                "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at FROM article_view_history h JOIN articles a ON h.article_id = a.id JOIN feeds f ON a.feed_id = f.id WHERE h.account_id = ?1 AND f.account_id = ?1 ORDER BY h.viewed_at DESC LIMIT ?2 OFFSET ?3"
+            ),
+            format!(
+                "WITH matched(article_id, published_at, fetched_at) AS (
+                   SELECT a.id, a.published_at, a.fetched_at FROM articles a
+                   JOIN feeds f ON a.feed_id = f.id
+                   JOIN articles_fts fts ON a.rowid = fts.rowid
+                   WHERE f.account_id = ?1 AND articles_fts MATCH ?2
+                 )
+                 SELECT {select_cols_prefixed} FROM articles a
+                 JOIN matched m ON m.article_id = a.id
+                 ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
+                 LIMIT ?3 OFFSET ?4"
+            ),
+        ];
+
+        for sql in representative_sql {
+            db.writer().prepare(&sql).unwrap_or_else(|error| {
+                panic!("article repository SQL should prepare: {error}\n{sql}")
+            });
+        }
+    }
+
+    #[test]
+    fn article_list_query_plans_keep_index_and_fts_coverage() {
+        let db = test_db();
+        let (account_id, feed_a, _feed_b, folder_id) = seed_representative_article_dataset(&db);
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let feed_unread_plan = explain_query_plan(
+            &db,
+            &format!(
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE feed_id = '{}' AND is_read = 0
+                 ORDER BY {ARTICLE_ORDER_DESC}
+                 LIMIT 30 OFFSET 0",
+                feed_a.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&feed_unread_plan);
+        assert_plan_uses_any(
+            &feed_unread_plan,
+            &["idx_articles_is_read", "idx_articles_feed_id"],
+        );
+
+        let account_starred_plan = explain_query_plan(
+            &db,
+            &format!(
+                "SELECT {select_cols_prefixed} FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 WHERE f.account_id = '{}' AND a.is_starred = 1
+                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+                 LIMIT 30 OFFSET 0",
+                account_id.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&account_starred_plan);
+        assert_plan_uses_any(&account_starred_plan, &["idx_articles_is_starred"]);
+
+        let folder_plan = explain_query_plan(
+            &db,
+            &format!(
+                "SELECT {select_cols_prefixed} FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 WHERE f.folder_id = '{}'
+                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+                 LIMIT 30 OFFSET 0",
+                folder_id.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&folder_plan);
+        assert_plan_uses_any(
+            &folder_plan,
+            &["idx_articles_feed_id", "idx_articles_published_at"],
+        );
+
+        let search_plan = explain_query_plan(
+            &db,
+            &format!(
+                "WITH matched(article_id, published_at, fetched_at) AS (
+                   SELECT a.id, a.published_at, a.fetched_at FROM articles a
+                   JOIN feeds f ON a.feed_id = f.id
+                   JOIN articles_fts fts ON a.rowid = fts.rowid
+                   WHERE f.account_id = '{}' AND articles_fts MATCH 'representative'
+                   UNION
+                   SELECT a.id, a.published_at, a.fetched_at FROM articles a
+                   JOIN feeds f ON a.feed_id = f.id
+                   WHERE f.account_id = '{}'
+                     AND (a.title LIKE '%representative%' ESCAPE '\\'
+                       OR a.content_text LIKE '%representative%' ESCAPE '\\')
+                 )
+                 SELECT {select_cols_prefixed} FROM articles a
+                 JOIN matched m ON m.article_id = a.id
+                 ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
+                 LIMIT 30 OFFSET 0",
+                account_id.0, account_id.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&search_plan);
+        assert_plan_uses_any(&search_plan, &["VIRTUAL TABLE INDEX", "articles_fts"]);
     }
 
     #[test]
