@@ -26,6 +26,7 @@ const JSON_FEED_SUPPORT_DECISION: &str =
     "JSON Feed is supported only at explicit application/feed+json parser boundaries";
 const LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT: usize = 1;
 const LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT: usize = 1;
+const XML_DOCTYPE_DECLARATION: &[u8] = b"<!DOCTYPE";
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
@@ -237,6 +238,20 @@ impl LocalProvider {
         validate_feed_response_body_against_content_type(&bytes, content_type)?;
 
         Ok((bytes, content_type))
+    }
+
+    fn reject_xml_doctype_declaration(feed_body: &[u8]) -> DomainResult<()> {
+        let has_doctype = feed_body
+            .windows(XML_DOCTYPE_DECLARATION.len())
+            .any(|window| window.eq_ignore_ascii_case(XML_DOCTYPE_DECLARATION));
+
+        if has_doctype {
+            return Err(DomainError::Parse(
+                "DOCTYPE declarations are not supported at feed parser boundaries".to_string(),
+            ));
+        }
+
+        Ok(())
     }
 
     async fn acquire_sync_request_permit(&self) -> DomainResult<tokio::sync::OwnedSemaphorePermit> {
@@ -451,6 +466,7 @@ impl FeedProvider for LocalProvider {
 
         let response_url = response.url().to_string();
         let (bytes, _) = Self::response_bytes_with_limit(response).await?;
+        Self::reject_xml_doctype_declaration(&bytes)?;
         let entries = normalizer::normalize_feed(&bytes, response_url.as_str())?;
 
         Ok(PullResult {
@@ -487,6 +503,7 @@ impl FeedProvider for LocalProvider {
             .error_for_status()
             .map_err(DomainError::from_provider_http_error)?;
         let (bytes, _) = Self::response_bytes_with_limit(response).await?;
+        Self::reject_xml_doctype_declaration(&bytes)?;
         let feed =
             feed_rs::parser::parse(&bytes[..]).map_err(|e| DomainError::Parse(e.to_string()))?;
 
@@ -1964,6 +1981,97 @@ mod tests {
 
         assert_eq!(subscription.title, "");
         assert_eq!(subscription.site_url, "https://example.com/");
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn feed_parser_boundary_rejects_nested_entity_doctype() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+  <!ENTITY a "aaaaaaaaaa">
+  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+  <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+]>
+<rss version="2.0">
+  <channel>
+    <title>&c;</title>
+    <link>https://example.com/</link>
+  </channel>
+</rss>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/entity-expansion.xml", server.url());
+        let mock = server
+            .mock("GET", "/entity-expansion.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml; charset=utf-8")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("DOCTYPE entity declarations should be rejected before parser expansion");
+
+        assert!(error
+            .to_string()
+            .contains("DOCTYPE declarations are not supported"));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn feed_parser_boundary_rejects_external_entity_doctype() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+  <!ENTITY remote SYSTEM "http://127.0.0.1:9/xxe.txt">
+]>
+<rss version="2.0">
+  <channel>
+    <title>&remote;</title>
+    <link>https://example.com/</link>
+  </channel>
+</rss>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/external-entity.xml", server.url());
+        let mock = server
+            .mock("GET", "/external-entity.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml; charset=utf-8")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("external entity declarations should be rejected before parser expansion");
+
+        assert!(error
+            .to_string()
+            .contains("DOCTYPE declarations are not supported"));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn feed_parser_boundary_accepts_large_text_node_with_response_size_cap() {
+        let large_title = "a".repeat(128 * 1024);
+        let feed = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>{large_title}</title><link>https://example.com/</link><item><title>Large Text Article</title><link>https://example.com/large-text</link><guid>large-text</guid></item></channel></rss>"#
+        );
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/large-text.xml", server.url());
+        let mock = server
+            .mock("GET", "/large-text.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml; charset=utf-8")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.title.len(), large_title.len());
+        assert!(subscription.title.bytes().all(|byte| byte == b'a'));
         mock.assert_async().await;
     }
 

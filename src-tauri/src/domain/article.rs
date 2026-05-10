@@ -153,6 +153,26 @@ mod tests {
     }
 
     #[test]
+    fn same_guid_after_feed_url_change_is_a_different_id() {
+        let id1 = generate_entry_id(
+            "acc1",
+            Some("stable-guid"),
+            "https://example.com/old-feed.xml",
+            Some("https://example.com/article"),
+            None,
+        );
+        let id2 = generate_entry_id(
+            "acc1",
+            Some("stable-guid"),
+            "https://example.com/new-feed.xml",
+            Some("https://example.com/article"),
+            None,
+        );
+
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
     fn empty_guid_falls_through() {
         let id = generate_entry_id(
             "acc1",
@@ -181,6 +201,62 @@ mod tests {
             Some("Different Title"),
         );
         assert_eq!(id, no_guid_id);
+    }
+
+    #[test]
+    fn url_fallback_is_scoped_by_account_and_feed() {
+        let id = generate_entry_id(
+            "acc1",
+            None,
+            "https://example.com/feed-a.xml",
+            Some("https://example.com/article"),
+            Some("Ignored Title"),
+        );
+        let different_account_id = generate_entry_id(
+            "acc2",
+            None,
+            "https://example.com/feed-a.xml",
+            Some("https://example.com/article"),
+            Some("Ignored Title"),
+        );
+        let different_feed_id = generate_entry_id(
+            "acc1",
+            None,
+            "https://example.com/feed-b.xml",
+            Some("https://example.com/article"),
+            Some("Ignored Title"),
+        );
+
+        assert_ne!(id, different_account_id);
+        assert_ne!(id, different_feed_id);
+    }
+
+    #[test]
+    fn title_fallback_is_scoped_by_account_and_feed() {
+        let id = generate_entry_id(
+            "acc1",
+            None,
+            "https://example.com/feed-a.xml",
+            None,
+            Some("Shared Title"),
+        );
+        let different_account_id = generate_entry_id(
+            "acc2",
+            None,
+            "https://example.com/feed-a.xml",
+            None,
+            Some("Shared Title"),
+        );
+        let different_feed_id = generate_entry_id(
+            "acc1",
+            None,
+            "https://example.com/feed-b.xml",
+            None,
+            Some("Shared Title"),
+        );
+
+        assert_ne!(id, different_account_id);
+        assert_ne!(id, different_feed_id);
     }
 
     #[test]

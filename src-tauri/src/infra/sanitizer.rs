@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 
-pub const SANITIZER_VERSION: u32 = 2;
+use crate::domain::url_policy;
+
+pub const SANITIZER_VERSION: u32 = 3;
 const SANITIZER_ADDED_TAGS: &[&str] = &[
     "img",
     "picture",
@@ -12,16 +14,27 @@ const SANITIZER_ADDED_TAGS: &[&str] = &[
     "pre",
     "code",
 ];
-const SANITIZER_IMG_ATTRS: &[&str] = &["src", "srcset", "sizes", "alt", "width", "height"];
+const SANITIZER_IMG_ATTRS: &[&str] = &[
+    "src",
+    "srcset",
+    "sizes",
+    "alt",
+    "width",
+    "height",
+    "loading",
+    "referrerpolicy",
+];
 const SANITIZER_VIDEO_ATTRS: &[&str] = &["src", "controls", "width", "height"];
 const SANITIZER_SOURCE_ATTRS: &[&str] = &["src", "srcset", "sizes", "type", "media"];
+const REDACTED_LINK_TITLE: &str = "External link";
+const REDACTED_IMAGE_TITLE: &str = "External image";
 
 pub fn sanitize_html(raw: &str) -> String {
     if raw.trim().is_empty() {
         return String::new();
     }
 
-    ammonia::Builder::default()
+    let sanitized = ammonia::Builder::default()
         .add_tags(SANITIZER_ADDED_TAGS)
         .add_tag_attributes("img", SANITIZER_IMG_ATTRS)
         .add_tag_attributes("video", SANITIZER_VIDEO_ATTRS)
@@ -29,21 +42,27 @@ pub fn sanitize_html(raw: &str) -> String {
         .url_schemes(std::collections::HashSet::from(["http", "https"]))
         .attribute_filter(|_, attribute, value| {
             if attribute.eq_ignore_ascii_case("href") {
-                return is_absolute_http_url(value).then_some(Cow::Borrowed(value));
+                return is_public_absolute_http_url(value).then_some(Cow::Borrowed(value));
             }
 
             if attribute.eq_ignore_ascii_case("src") {
-                return is_absolute_http_url(value).then_some(Cow::Borrowed(value));
+                return is_public_absolute_http_url(value).then_some(Cow::Borrowed(value));
             }
 
             if attribute.eq_ignore_ascii_case("srcset") {
                 return filter_srcset(value).map(Cow::Owned);
             }
 
+            if attribute.eq_ignore_ascii_case("title") {
+                return Some(Cow::Borrowed(redact_url_title(value).unwrap_or(value)));
+            }
+
             Some(Cow::Borrowed(value))
         })
         .clean(raw)
-        .to_string()
+        .to_string();
+
+    apply_reader_media_policy(&sanitized)
 }
 
 fn filter_srcset(srcset: &str) -> Option<String> {
@@ -101,15 +120,56 @@ fn is_safe_srcset_url(url: &str) -> bool {
         return false;
     }
 
-    is_absolute_http_url(trimmed)
+    is_public_absolute_http_url(trimmed)
 }
 
-fn is_absolute_http_url(url: &str) -> bool {
+fn is_public_absolute_http_url(url: &str) -> bool {
     reqwest::Url::parse(url).is_ok_and(|parsed| {
         matches!(parsed.scheme(), "http" | "https")
             && parsed.username().is_empty()
             && parsed.password().is_none()
+            && !parsed.host_str().is_some_and(url_policy::is_private_host)
     })
+}
+
+fn redact_url_title(value: &str) -> Option<&'static str> {
+    reqwest::Url::parse(value.trim())
+        .is_ok()
+        .then_some(REDACTED_LINK_TITLE)
+}
+
+fn apply_reader_media_policy(sanitized: &str) -> String {
+    use kuchikiki::traits::TendrilSink;
+
+    let document = kuchikiki::parse_html().one(sanitized).document_node;
+    if let Ok(images) = document.select("img") {
+        for image in images {
+            let mut attributes = image.attributes.borrow_mut();
+            attributes.insert("loading", "lazy".to_string());
+            attributes.insert("referrerpolicy", "no-referrer".to_string());
+            if attributes.get("title") == Some(REDACTED_LINK_TITLE) {
+                attributes.insert("title", REDACTED_IMAGE_TITLE.to_string());
+            }
+        }
+    }
+
+    let mut bytes = Vec::new();
+    if let Some(body) = document
+        .select("body")
+        .ok()
+        .and_then(|mut body| body.next())
+    {
+        for child in body.as_node().children() {
+            child
+                .serialize(&mut bytes)
+                .expect("sanitized HTML serialization should succeed");
+        }
+    } else {
+        document
+            .serialize(&mut bytes)
+            .expect("sanitized HTML serialization should succeed");
+    }
+    String::from_utf8(bytes).expect("sanitized HTML should serialize as UTF-8")
 }
 
 pub fn extract_visible_text(raw: &str) -> String {
@@ -167,7 +227,7 @@ mod tests {
         expected: Option<&'static str>,
     }
 
-    const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 2;
+    const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 3;
 
     const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
         SanitizerCorpusCase {
@@ -185,7 +245,7 @@ mod tests {
                 r#"href="https://publisher.example.com/read?utm_source=feed""#,
                 r#"rel="noopener noreferrer""#,
             ],
-            forbidden_fragments: &["ping=", "target=", "referrerpolicy=", "tracker.example.com"],
+            forbidden_fragments: &["ping=", "target=", "tracker.example.com"],
         },
         SanitizerCorpusCase {
             label: "tracking media keeps only absolute http candidates",
@@ -198,14 +258,14 @@ mod tests {
                 r#"sizes="100vw""#,
                 r#"type="image/webp""#,
                 r#"alt="Hero""#,
+                r#"loading="lazy""#,
+                r#"referrerpolicy="no-referrer""#,
             ],
             forbidden_fragments: &[
                 r#"src="//cdn.example.com/protocol-relative.jpg""#,
                 "data:image",
                 "javascript:",
                 "/relative.jpg",
-                "referrerpolicy=",
-                "loading=",
                 "onerror",
             ],
         },
@@ -218,6 +278,8 @@ mod tests {
                 "body",
                 "Trailing",
                 r#"src="https://cdn.example.com/body.jpg""#,
+                r#"loading="lazy""#,
+                r#"referrerpolicy="no-referrer""#,
             ],
             forbidden_fragments: &["<script", "onclick"],
         },
@@ -246,7 +308,7 @@ mod tests {
                 r#"src="https://cdn.example.com/clip.webm""#,
                 r#"type="video/webm""#,
             ],
-            forbidden_fragments: &["<script", "onclick", "referrerpolicy="],
+            forbidden_fragments: &["<script", "onclick"],
         },
     ];
 
@@ -264,6 +326,8 @@ mod tests {
         let output = sanitize_html(input);
         assert!(output.contains("img"));
         assert!(output.contains("https://example.com/img.jpg"));
+        assert!(output.contains(r#"loading="lazy""#));
+        assert!(output.contains(r#"referrerpolicy="no-referrer""#));
     }
 
     #[test]
@@ -290,23 +354,22 @@ mod tests {
     fn fixes_reader_media_and_link_privacy_attributes() {
         let input = r#"
             <p>
-              <a href="https://example.com/article" rel="opener" target="_blank" ping="https://tracker.example.com">Read</a>
+              <a href="https://example.com/article" rel="opener" target="_blank" ping="https://tracker.example.com" title="https://tracker.example.com/raw-token">Read</a>
             </p>
             <picture>
               <source src="https://cdn.example.com/hero.webp" srcset="https://cdn.example.com/hero.webp 1x" sizes="100vw" media="(min-width: 800px)" type="image/webp" referrerpolicy="origin">
-              <img src="https://cdn.example.com/hero.jpg" srcset="https://cdn.example.com/hero.jpg 1x" sizes="100vw" alt="Hero" width="800" height="450" referrerpolicy="origin">
+              <img src="https://cdn.example.com/hero.jpg" srcset="https://cdn.example.com/hero.jpg 1x" sizes="100vw" alt="Hero" width="12000" height="9000" referrerpolicy="origin" title="https://cdn.example.com/raw-token.jpg">
             </picture>
+            <img src="http://127.0.0.1/private.jpg" srcset="https://cdn.example.com/public.jpg 1x, http://10.0.0.1/private.jpg 2x" alt="Private">
+            <img alt="Broken">
             <video src="https://cdn.example.com/clip.mp4" controls width="800" height="450" autoplay poster="https://cdn.example.com/poster.jpg"></video>
         "#;
 
         let output = sanitize_html(input);
 
-        assert!(
-            output.contains(
-                r#"<a href="https://example.com/article" rel="noopener noreferrer">Read</a>"#
-            ),
-            "links should keep href only with ammonia's no-referrer rel policy: {output}",
-        );
+        assert!(output.contains(r#"href="https://example.com/article""#));
+        assert!(output.contains(r#"rel="noopener noreferrer""#));
+        assert!(output.contains(r#"title="External link""#));
         assert!(output.contains(r#"<source"#));
         assert!(output.contains(r#"src="https://cdn.example.com/hero.webp""#));
         assert!(output.contains(r#"srcset="https://cdn.example.com/hero.webp 1x""#));
@@ -315,18 +378,27 @@ mod tests {
         assert!(output.contains(r#"type="image/webp""#));
         assert!(output.contains(r#"<img"#));
         assert!(output.contains(r#"alt="Hero""#));
+        assert!(output.contains(r#"width="12000""#));
+        assert!(output.contains(r#"height="9000""#));
+        assert!(output.contains(r#"loading="lazy""#));
+        assert!(output.contains(r#"title="External image""#));
+        assert!(output.contains(r#"alt="Broken""#));
         assert!(output.contains(r#"<video"#));
         assert!(output.contains(r#"controls="""#));
         assert!(!output.contains("target="));
         assert!(!output.contains("ping="));
-        assert!(!output.contains("referrerpolicy="));
+        assert!(output.contains(r#"referrerpolicy="no-referrer""#));
+        assert!(!output.contains("tracker.example.com/raw-token"));
+        assert!(!output.contains("cdn.example.com/raw-token"));
+        assert!(!output.contains("127.0.0.1"));
+        assert!(!output.contains("10.0.0.1"));
         assert!(!output.contains("autoplay"));
         assert!(!output.contains("poster="));
     }
 
     #[test]
     fn records_current_sanitizer_contract_version() {
-        assert_eq!(SANITIZER_VERSION, 2);
+        assert_eq!(SANITIZER_VERSION, 3);
     }
 
     #[test]
@@ -347,7 +419,16 @@ mod tests {
         );
         assert_eq!(
             SANITIZER_IMG_ATTRS,
-            &["src", "srcset", "sizes", "alt", "width", "height"],
+            &[
+                "src",
+                "srcset",
+                "sizes",
+                "alt",
+                "width",
+                "height",
+                "loading",
+                "referrerpolicy",
+            ],
         );
         assert_eq!(
             SANITIZER_VIDEO_ATTRS,
@@ -450,7 +531,7 @@ mod tests {
         assert!(output.contains(r#"alt="Hero""#));
         assert!(output.contains(r#"width="800""#));
         assert!(output.contains(r#"height="450""#));
-        assert!(!output.contains("loading="));
+        assert!(output.contains(r#"loading="lazy""#));
         assert!(!output.contains("decoding="));
         assert!(!output.contains("onerror"));
         assert!(!output.contains("onload"));
